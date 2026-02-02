@@ -1,0 +1,373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 250 250 250;
+    --foreground: 15 23 42;
+
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+
+    --primary: 14 165 233;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
+
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+
+    --accent: 217 70 239;
+    --accent-foreground: 255 255 255;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 14 165 233;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 15 23 42;
+    --foreground: 248 250 252;
+
+    --card: 30 41 59;
+    --card-foreground: 248 250 252;
+
+    --primary: 56 189 248;
+    --primary-foreground: 15 23 42;
+
+    --secondary: 51 65 85;
+    --secondary-foreground: 248 250 252;
+
+    --muted: 51 65 85;
+    --muted-foreground: 148 163 184;
+
+    --accent: 217 70 239;
+    --accent-foreground: 255 255 255;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 51 65 85;
+    --input: 51 65 85;
+    --ring: 56 189 248;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-grappler-900 text-grappler-50 font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-grappler-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-grappler-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-grappler-500;
+  }
+}
+
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-grappler-800/50 backdrop-blur-sm border border-grappler-700/50 rounded-xl shadow-lg;
+  }
+
+  .card-hover {
+    @apply hover:bg-grappler-800/70 hover:border-grappler-600/50 transition-all duration-200;
+  }
+
+  /* Button styles */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-grappler-900
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500
+           shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40;
+  }
+
+  .btn-secondary {
+    @apply btn bg-grappler-700 text-grappler-100 hover:bg-grappler-600 focus:ring-grappler-500;
+  }
+
+  .btn-accent {
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-500
+           shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-grappler-300 hover:bg-grappler-800 hover:text-grappler-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-error text-white hover:bg-red-600 focus:ring-error;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-md {
+    @apply px-4 py-2 text-base;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-4 py-3 bg-grappler-800 border border-grappler-700 rounded-lg
+           text-grappler-100 placeholder-grappler-500
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           transition-all duration-200;
+  }
+
+  .input-error {
+    @apply border-error focus:ring-error;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-strength {
+    @apply bg-strength/20 text-red-400 border border-strength/30;
+  }
+
+  .badge-hypertrophy {
+    @apply bg-hypertrophy/20 text-purple-400 border border-hypertrophy/30;
+  }
+
+  .badge-power {
+    @apply bg-power/20 text-orange-400 border border-power/30;
+  }
+
+  .badge-success {
+    @apply bg-success/20 text-green-400 border border-success/30;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 bg-grappler-700 rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+
+  /* Workout type colors */
+  .workout-strength {
+    @apply bg-gradient-to-r from-red-600 to-red-500;
+  }
+
+  .workout-hypertrophy {
+    @apply bg-gradient-to-r from-purple-600 to-purple-500;
+  }
+
+  .workout-power {
+    @apply bg-gradient-to-r from-orange-600 to-orange-500;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 bg-clip-text text-transparent;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply card p-4 flex flex-col gap-1;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-grappler-50;
+  }
+
+  .stat-label {
+    @apply text-sm text-grappler-400;
+  }
+
+  /* Floating label input */
+  .floating-input-group {
+    @apply relative;
+  }
+
+  .floating-input {
+    @apply input pt-6 pb-2;
+  }
+
+  .floating-label {
+    @apply absolute left-4 top-4 text-grappler-500 transition-all duration-200
+           peer-focus:top-2 peer-focus:text-xs peer-focus:text-primary-400
+           peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs;
+  }
+
+  /* RPE indicator */
+  .rpe-indicator {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold;
+  }
+
+  .rpe-low {
+    @apply bg-green-500/20 text-green-400;
+  }
+
+  .rpe-medium {
+    @apply bg-yellow-500/20 text-yellow-400;
+  }
+
+  .rpe-high {
+    @apply bg-red-500/20 text-red-400;
+  }
+
+  /* Pulse animation for active workout */
+  .pulse-ring {
+    @apply absolute inset-0 rounded-full animate-ping bg-primary-500/30;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Text shadow */
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Gradient backgrounds */
+  .bg-mesh {
+    background-image:
+      radial-gradient(at 40% 20%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(217, 70, 239, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(217, 70, 239, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
+  }
+
+  /* Animation delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Responsive padding */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 1000px 100%;
+}
+
+/* Chart tooltip styles */
+.recharts-tooltip-wrapper {
+  @apply !z-50;
+}
+
+.recharts-default-tooltip {
+  @apply !bg-grappler-800 !border-grappler-700 !rounded-lg !shadow-xl;
+}
+
+.recharts-tooltip-label {
+  @apply !text-grappler-200 !font-medium;
+}
+
+.recharts-tooltip-item {
+  @apply !text-grappler-300;
+}

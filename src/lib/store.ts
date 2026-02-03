@@ -58,6 +58,7 @@ interface AppState {
   // Workout state
   activeWorkout: {
     session: WorkoutSession;
+    baseSession: WorkoutSession; // Original session before any location adaptations
     exerciseLogs: ExerciseLog[];
     startTime: Date;
     preCheckIn?: PreWorkoutCheckIn;
@@ -501,6 +502,7 @@ export const useAppStore = create<AppState>()(
         set({
           activeWorkout: {
             session,
+            baseSession: JSON.parse(JSON.stringify(session)), // Deep clone as immutable base
             exerciseLogs,
             startTime: new Date()
           }
@@ -608,26 +610,46 @@ export const useAppStore = create<AppState>()(
           set({ user: { ...user, availableEquipment: profileEquipment, updatedAt: new Date() } });
         }
 
-        // Helper: check if an exercise is compatible with the target equipment
+        // Always adapt from the ORIGINAL base session — not the last adapted state.
+        // This prevents exercises getting "stuck" when switching back and forth.
+        const baseExercises = activeWorkout.baseSession.exercises;
+
         const isExerciseCompatible = (ex: { equipmentTypes?: EquipmentType[] }) => {
           const eqTypes = ex.equipmentTypes || [];
           if (eqTypes.length === 0) return true;
           return eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et));
         };
 
-        // Check each exercise — if incompatible with new profile, swap it
-        const updatedExercises = [...activeWorkout.session.exercises];
-        const updatedLogs = [...activeWorkout.exerciseLogs];
-        const usedIds = new Set(updatedExercises.map(e => e.exerciseId));
+        const updatedExercises = [...baseExercises];
+        const usedIds = new Set<string>();
         let changed = false;
+
+        // Rebuild exercise logs to match the base session structure
+        const updatedLogs = baseExercises.map((ex, i) => {
+          const existingLog = activeWorkout.exerciseLogs[i];
+          return {
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exercise.name,
+            sets: existingLog
+              ? existingLog.sets.map(s => ({ ...s }))
+              : Array.from({ length: ex.sets }, (_, si) => ({
+                  setNumber: si + 1,
+                  weight: getSuggestedWeight(ex.exerciseId, workoutLogs) || 0,
+                  reps: ex.prescription.targetReps,
+                  rpe: ex.prescription.rpe,
+                  completed: false,
+                })),
+            personalRecord: false as boolean,
+          };
+        });
 
         for (let i = 0; i < updatedExercises.length; i++) {
           const ex = updatedExercises[i];
+          usedIds.add(ex.exerciseId);
 
           if (isExerciseCompatible(ex.exercise)) continue;
 
-          // Search ALL exercises (not tier-filtered) for a compatible alternative
-          // that shares primary muscles with the current exercise
+          // Original exercise incompatible — find the best compatible alternative
           const currentMuscles = ex.exercise.primaryMuscles;
           const currentPattern = ex.exercise.movementPattern;
 
@@ -639,7 +661,6 @@ export const useAppStore = create<AppState>()(
               alt.primaryMuscles.some(m => currentMuscles.includes(m))
             )
             .sort((a, b) => {
-              // Score: muscle overlap + same movement pattern + same category
               const aOverlap = a.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
               const bOverlap = b.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
               if (bOverlap !== aOverlap) return bOverlap - aOverlap;
@@ -659,7 +680,6 @@ export const useAppStore = create<AppState>()(
             };
             const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
             updatedLogs[i] = {
-              ...updatedLogs[i],
               exerciseId: compatibleAlt.id,
               exerciseName: compatibleAlt.name,
               sets: updatedLogs[i].sets.map(s => ({
@@ -668,15 +688,16 @@ export const useAppStore = create<AppState>()(
                 completed: false,
               })),
               personalRecord: false,
-              estimated1RM: undefined,
-              feedback: undefined,
             };
             changed = true;
           }
         }
 
-        if (changed) {
-          const updatedSession = { ...activeWorkout.session, exercises: updatedExercises };
+        // Check if we need to update (either exercises changed or we're restoring originals)
+        const currentIds = activeWorkout.session.exercises.map(e => e.exerciseId).join(',');
+        const newIds = updatedExercises.map(e => e.exerciseId).join(',');
+        if (changed || currentIds !== newIds) {
+          const updatedSession = { ...activeWorkout.baseSession, exercises: updatedExercises };
           set({
             activeWorkout: {
               ...activeWorkout,

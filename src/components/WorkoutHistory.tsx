@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Activity,
   TrendingUp,
+  Search,
   MessageSquare,
   Pencil,
   Trash2,
@@ -28,6 +29,9 @@ export default function WorkoutHistory() {
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'strength' | 'hypertrophy' | 'power'>('all');
+  const [dateFilter, setDateFilter] = useState<'7d' | '30d' | '90d' | 'all'>('all');
   const weightUnit = user?.weightUnit || 'lbs';
 
   const startEditing = (logId: string) => {
@@ -82,9 +86,97 @@ export default function WorkoutHistory() {
     setExpandedLogId(null);
   };
 
-  const sortedLogs = [...workoutLogs].reverse();
+  const filteredLogs = useMemo(() => {
+    let logs = [...workoutLogs].reverse(); // newest first
 
-  if (sortedLogs.length === 0) {
+    // Date filter
+    if (dateFilter !== 'all') {
+      const days = dateFilter === '7d' ? 7 : dateFilter === '30d' ? 30 : 90;
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      logs = logs.filter(l => new Date(l.date) >= cutoff);
+    }
+
+    // Type filter
+    if (typeFilter !== 'all') {
+      logs = logs.filter(l =>
+        l.sessionId?.toLowerCase().includes(typeFilter) ||
+        l.exercises.some(e => e.exerciseName.toLowerCase().includes(typeFilter))
+      );
+    }
+
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      logs = logs.filter(l =>
+        l.sessionId?.toLowerCase().includes(q) ||
+        l.exercises.some(e => e.exerciseName.toLowerCase().includes(q))
+      );
+    }
+
+    return logs;
+  }, [workoutLogs, searchQuery, typeFilter, dateFilter]);
+
+  // Calculate progress projection for main lifts
+  const progressProjections = useMemo(() => {
+    const mainLifts = ['squat', 'deadlift', 'bench press', 'overhead press'];
+    const projections: { exercise: string; current1RM: number; weeklyGain: number; milestones: { target: number; weeksAway: number }[] }[] = [];
+
+    for (const liftName of mainLifts) {
+      // Find all logs for this exercise
+      const liftData: { date: Date; estimated1RM: number }[] = [];
+      for (const log of workoutLogs) {
+        for (const ex of log.exercises) {
+          if (ex.exerciseName.toLowerCase().includes(liftName) && ex.estimated1RM && ex.estimated1RM > 0) {
+            liftData.push({ date: new Date(log.date), estimated1RM: ex.estimated1RM });
+          }
+        }
+      }
+
+      if (liftData.length < 2) continue;
+
+      // Sort by date
+      liftData.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      // Calculate weekly rate of gain (linear regression simplified)
+      const first = liftData[0];
+      const last = liftData[liftData.length - 1];
+      const weeksDiff = Math.max(1, (last.date.getTime() - first.date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const totalGain = last.estimated1RM - first.estimated1RM;
+      const weeklyGain = totalGain / weeksDiff;
+
+      if (weeklyGain <= 0) continue;
+
+      const current1RM = last.estimated1RM;
+
+      // Calculate milestones (next 2 round numbers)
+      const unit = current1RM > 100 ? 25 : 10;
+      const milestones: { target: number; weeksAway: number }[] = [];
+      let nextTarget = Math.ceil(current1RM / unit) * unit;
+      if (nextTarget === current1RM) nextTarget += unit;
+
+      for (let i = 0; i < 2; i++) {
+        const weeksAway = Math.round((nextTarget - current1RM) / weeklyGain);
+        if (weeksAway < 52) {
+          milestones.push({ target: nextTarget, weeksAway });
+        }
+        nextTarget += unit;
+      }
+
+      if (milestones.length > 0) {
+        projections.push({
+          exercise: liftName.charAt(0).toUpperCase() + liftName.slice(1),
+          current1RM: Math.round(current1RM),
+          weeklyGain: Math.round(weeklyGain * 10) / 10,
+          milestones,
+        });
+      }
+    }
+
+    return projections;
+  }, [workoutLogs]);
+
+  if (workoutLogs.length === 0) {
     return (
       <div className="text-center py-16">
         <Dumbbell className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
@@ -98,10 +190,87 @@ export default function WorkoutHistory() {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-bold text-grappler-50">Workout History</h2>
-        <span className="text-sm text-grappler-400">{sortedLogs.length} workouts</span>
+        <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
       </div>
 
-      {sortedLogs.map((log) => {
+      {/* Progress Projection */}
+      {progressProjections.length > 0 && (
+        <div className="card p-4 mb-4">
+          <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary-400" />
+            Progress Projection
+          </h3>
+          <div className="space-y-3">
+            {progressProjections.map((p, i) => (
+              <div key={i} className="bg-grappler-800/50 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium text-grappler-100">{p.exercise}</p>
+                  <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} lbs</span></p>
+                </div>
+                <p className="text-[11px] text-grappler-500 mb-2">Gaining ~{p.weeklyGain} lbs/week</p>
+                <div className="flex gap-2">
+                  {p.milestones.map((m, j) => (
+                    <div key={j} className="flex-1 bg-grappler-700/40 rounded-lg px-3 py-2 text-center">
+                      <p className="text-sm font-bold text-primary-400">{m.target} lbs</p>
+                      <p className="text-[10px] text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="space-y-3 mb-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-grappler-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search exercises or sessions..."
+            className="input pl-10 w-full"
+          />
+        </div>
+        <div className="flex gap-2">
+          {(['all', 'strength', 'hypertrophy', 'power'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium capitalize',
+                typeFilter === t ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {([
+            { value: '7d', label: '7 days' },
+            { value: '30d', label: '30 days' },
+            { value: '90d', label: '90 days' },
+            { value: 'all', label: 'All time' },
+          ] as const).map(d => (
+            <button
+              key={d.value}
+              onClick={() => setDateFilter(d.value)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium',
+                dateFilter === d.value ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-grappler-500">{filteredLogs.length} workout{filteredLogs.length !== 1 ? 's' : ''} found</p>
+      </div>
+
+      {filteredLogs.map((log) => {
         const isExpanded = expandedLogId === log.id;
 
         return (

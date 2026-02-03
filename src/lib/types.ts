@@ -1,6 +1,38 @@
 // Core User Types
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type Equipment = 'full_gym' | 'home_gym' | 'minimal';
+export type EquipmentType =
+  | 'barbell' | 'dumbbell' | 'kettlebell' | 'cable' | 'machine'
+  | 'bodyweight' | 'pull_up_bar' | 'bench' | 'resistance_band'
+  | 'ez_bar' | 'trap_bar' | 'landmine' | 'dip_station'
+  | 'ab_wheel' | 'medicine_ball' | 'battle_ropes' | 'box';
+// Equipment presets for quick switching between locations
+export type EquipmentProfileName = 'gym' | 'home' | 'travel' | 'custom';
+
+export interface EquipmentProfile {
+  name: EquipmentProfileName;
+  label: string;
+  equipment: EquipmentType[];
+}
+
+export const DEFAULT_EQUIPMENT_PROFILES: EquipmentProfile[] = [
+  {
+    name: 'gym',
+    label: 'Full Gym',
+    equipment: ['barbell', 'dumbbell', 'kettlebell', 'cable', 'machine', 'bench', 'pull_up_bar', 'dip_station', 'ez_bar', 'trap_bar', 'landmine', 'ab_wheel', 'medicine_ball', 'battle_ropes', 'box', 'resistance_band'],
+  },
+  {
+    name: 'home',
+    label: 'Home Gym',
+    equipment: ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'],
+  },
+  {
+    name: 'travel',
+    label: 'Travel / Minimal',
+    equipment: ['bodyweight', 'resistance_band'],
+  },
+];
+
 export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power';
 export type SessionsPerWeek = 1 | 2 | 3 | 4 | 5 | 6;
 export type WeightUnit = 'lbs' | 'kg';
@@ -12,6 +44,7 @@ export interface UserProfile {
   age: number;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
+  availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
   weightUnit: WeightUnit;
@@ -53,6 +86,7 @@ export interface Exercise {
   secondaryMuscles: MuscleGroup[];
   movementPattern: MovementPattern;
   equipmentRequired: Equipment[];
+  equipmentTypes: EquipmentType[];
   grapplerFriendly: boolean;
   aestheticValue: number; // 1-10 scale for how much it contributes to aesthetics
   strengthValue: number; // 1-10 scale for how much it contributes to strength
@@ -572,6 +606,7 @@ export interface OnboardingData {
   age: number;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
+  availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
   weightUnit: WeightUnit;

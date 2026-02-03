@@ -4,7 +4,8 @@ import {
   MobilityExercise,
   MobilityFocus,
   WorkoutSession,
-  ExercisePrescription
+  ExercisePrescription,
+  EquipmentType
 } from './types';
 
 // Mobility & Deload module for Grappler Gains
@@ -586,6 +587,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: [],
         movementPattern: 'rotation',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 1,
         strengthValue: 1,
@@ -620,6 +622,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: ['traps'],
         movementPattern: 'pull',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 3,
         strengthValue: 2,
@@ -651,6 +654,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: ['traps'],
         movementPattern: 'pull',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 3,
         strengthValue: 2,
@@ -681,6 +685,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: [],
         movementPattern: 'rotation',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 1,
         strengthValue: 1,
@@ -714,6 +719,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: ['core'],
         movementPattern: 'pull',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 2,
         strengthValue: 3,
@@ -748,6 +754,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         secondaryMuscles: [],
         movementPattern: 'rotation',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],
+        equipmentTypes: ['bodyweight'] as EquipmentType[],
         grapplerFriendly: true,
         aestheticValue: 1,
         strengthValue: 1,

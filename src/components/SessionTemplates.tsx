@@ -96,6 +96,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
           secondaryMuscles: [],
           movementPattern: 'push' as const,
           equipmentRequired: [],
+          equipmentTypes: [],
           grapplerFriendly: true,
           aestheticValue: 5,
           strengthValue: 5,

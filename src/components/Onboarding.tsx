@@ -19,7 +19,7 @@ import {
   Scale,
   Trophy
 } from 'lucide-react';
-import { ExperienceLevel, Equipment, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit } from '@/lib/types';
+import { ExperienceLevel, Equipment, EquipmentType, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const steps = [
@@ -298,6 +298,26 @@ function AboutYouStep({
   );
 }
 
+// All equipment items with display labels
+const ALL_EQUIPMENT_ITEMS: { value: EquipmentType; label: string }[] = [
+  { value: 'barbell', label: 'Barbell' },
+  { value: 'dumbbell', label: 'Dumbbells' },
+  { value: 'kettlebell', label: 'Kettlebells' },
+  { value: 'bench', label: 'Bench' },
+  { value: 'pull_up_bar', label: 'Pull-Up Bar' },
+  { value: 'cable', label: 'Cable Machine' },
+  { value: 'machine', label: 'Machines' },
+  { value: 'dip_station', label: 'Dip Station' },
+  { value: 'ez_bar', label: 'EZ Bar' },
+  { value: 'trap_bar', label: 'Trap Bar' },
+  { value: 'landmine', label: 'Landmine' },
+  { value: 'resistance_band', label: 'Bands' },
+  { value: 'ab_wheel', label: 'Ab Wheel' },
+  { value: 'medicine_ball', label: 'Med Ball' },
+  { value: 'battle_ropes', label: 'Battle Ropes' },
+  { value: 'box', label: 'Plyo Box' },
+];
+
 // Step 3: Equipment
 function EquipmentStep({
   data,
@@ -306,68 +326,85 @@ function EquipmentStep({
   data: OnboardingData;
   update: (data: Partial<OnboardingData>) => void;
 }) {
-  const options: { value: Equipment; icon: any; title: string; desc: string }[] = [
-    {
-      value: 'full_gym',
-      icon: Building2,
-      title: 'Full Gym',
-      desc: 'Barbells, machines, cables, everything',
-    },
-    {
-      value: 'home_gym',
-      icon: Home,
-      title: 'Home Gym',
-      desc: 'Barbells, dumbbells, rack, bench',
-    },
-    {
-      value: 'minimal',
-      icon: Backpack,
-      title: 'Minimal',
-      desc: 'Dumbbells, kettlebells, pull-up bar',
-    },
+  const profiles: { value: Equipment; icon: any; title: string; desc: string; profileName: 'gym' | 'home' | 'travel' }[] = [
+    { value: 'full_gym', icon: Building2, title: 'Full Gym', desc: 'Everything available', profileName: 'gym' },
+    { value: 'home_gym', icon: Home, title: 'Home Gym', desc: 'Barbell, dumbbells, bench, rack', profileName: 'home' },
+    { value: 'minimal', icon: Backpack, title: 'Travel / Minimal', desc: 'Bodyweight + bands', profileName: 'travel' },
   ];
 
+  const selectedEquipment = data.availableEquipment || [];
+  const toggleEquipment = (eq: EquipmentType) => {
+    const current = [...selectedEquipment];
+    const idx = current.indexOf(eq);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(eq);
+    }
+    update({ availableEquipment: current });
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
+    <div className="space-y-5">
+      <div className="text-center mb-4">
         <h2 className="text-xl font-bold text-grappler-50">Your Equipment</h2>
         <p className="text-grappler-400 text-sm">
-          We'll customize exercises based on what you have
+          Pick a preset, then customize. You can switch anytime.
         </p>
       </div>
 
-      <div className="space-y-3">
-        {options.map((option) => (
+      {/* Profile presets */}
+      <div className="grid grid-cols-3 gap-2">
+        {profiles.map((p) => (
           <button
-            key={option.value}
-            onClick={() => update({ equipment: option.value })}
+            key={p.value}
+            onClick={() => {
+              const preset = DEFAULT_EQUIPMENT_PROFILES.find(pr => pr.name === p.profileName);
+              update({
+                equipment: p.value,
+                availableEquipment: preset?.equipment || [],
+              });
+            }}
             className={cn(
-              'w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all',
-              data.equipment === option.value
+              'p-3 rounded-xl border-2 text-center transition-all',
+              data.equipment === p.value
                 ? 'border-primary-500 bg-primary-500/10'
                 : 'border-grappler-700 hover:border-grappler-600'
             )}
           >
-            <div
-              className={cn(
-                'w-12 h-12 rounded-lg flex items-center justify-center',
-                data.equipment === option.value
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-grappler-700 text-grappler-400'
-              )}
-            >
-              <option.icon className="w-6 h-6" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-grappler-100">{option.title}</p>
-              <p className="text-sm text-grappler-400">{option.desc}</p>
-            </div>
-            {data.equipment === option.value && (
-              <Check className="w-5 h-5 text-primary-500 ml-auto" />
-            )}
+            <p.icon className={cn(
+              'w-6 h-6 mx-auto mb-1',
+              data.equipment === p.value ? 'text-primary-500' : 'text-grappler-400'
+            )} />
+            <p className="text-xs font-medium text-grappler-200">{p.title}</p>
           </button>
         ))}
       </div>
+
+      {/* Granular equipment toggles */}
+      <div>
+        <p className="text-xs text-grappler-500 mb-2">Tap to add/remove specific equipment:</p>
+        <div className="flex flex-wrap gap-2">
+          {ALL_EQUIPMENT_ITEMS.map((item) => (
+            <button
+              key={item.value}
+              onClick={() => toggleEquipment(item.value)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                selectedEquipment.includes(item.value)
+                  ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                  : 'bg-grappler-800 text-grappler-500 border border-grappler-700'
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <p className="text-[10px] text-grappler-600 text-center">
+        Bodyweight exercises are always included
+      </p>
     </div>
   );
 }

@@ -21,14 +21,16 @@ import {
   Brain,
   Zap,
   Heart,
-  AlertTriangle
+  AlertTriangle,
+  TrendingUp
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
 import { getAlternativesForExercise } from '@/lib/exercises';
 import { calculateReadiness } from '@/lib/auto-adjust';
-import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit } from '@/lib/types';
+import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog } from '@/lib/types';
+import { getSuggestedWeight } from '@/lib/auto-adjust';
 import Confetti from 'react-confetti';
 
 export default function ActiveWorkout() {
@@ -100,6 +102,10 @@ export default function ActiveWorkout() {
         setRestTimer(prev => {
           if (prev <= 1) {
             setIsResting(false);
+            // Vibrate when rest is done
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate([200, 100, 200, 100, 300]);
+            }
             return 0;
           }
           return prev - 1;
@@ -251,6 +257,50 @@ export default function ActiveWorkout() {
     user.equipment,
     5
   ) : [];
+
+  // Get per-exercise history from previous sessions
+  const getExerciseHistory = (exerciseId: string) => {
+    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const sorted = [...allLogs].reverse();
+    for (const log of sorted) {
+      const ex = log.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex && ex.sets.length > 0) {
+        const bestSet = ex.sets
+          .filter(s => s.completed)
+          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        return {
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          rpe: bestSet.rpe,
+          date: new Date(log.date),
+          feedback: ex.feedback
+        };
+      }
+    }
+    return null;
+  };
+
+  const previousPerformance = getExerciseHistory(currentExercise.exerciseId);
+
+  // Get adjustment reason for this exercise's suggested weight
+  const getAdjustmentReason = (): string | null => {
+    if (!previousPerformance) return null;
+    if (!previousPerformance.feedback) return `Based on last session: ${previousPerformance.weight} ${weightUnit}`;
+    switch (previousPerformance.feedback.difficulty) {
+      case 'too_easy':
+        return `+5-10% — Last time was too easy (${previousPerformance.weight} ${weightUnit})`;
+      case 'too_hard':
+        return `Reduced — Last time was too hard (${previousPerformance.weight} ${weightUnit})`;
+      case 'challenging':
+        return `Small bump — Good challenge last time (${previousPerformance.weight} ${weightUnit})`;
+      case 'just_right':
+        return `Maintained — Last time felt right (${previousPerformance.weight} ${weightUnit})`;
+      default:
+        return null;
+    }
+  };
+
+  const adjustmentReason = getAdjustmentReason();
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh">
@@ -818,6 +868,24 @@ export default function ActiveWorkout() {
                 <span className="ml-2">Tempo: {currentExercise.prescription.tempo}</span>
               )}
             </p>
+
+            {/* Per-exercise history from last session */}
+            {previousPerformance && (
+              <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg inline-block">
+                <p className="text-xs text-grappler-400">
+                  Last time: <span className="text-grappler-200 font-medium">{previousPerformance.weight} {weightUnit} x {previousPerformance.reps}</span>
+                  <span className="text-grappler-500 ml-1">@ RPE {previousPerformance.rpe}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Adjustment transparency */}
+            {adjustmentReason && (
+              <div className="mt-1.5 flex items-center justify-center gap-1">
+                <TrendingUp className="w-3 h-3 text-primary-400" />
+                <p className="text-[11px] text-primary-400">{adjustmentReason}</p>
+              </div>
+            )}
           </div>
 
           {/* Set Indicator */}

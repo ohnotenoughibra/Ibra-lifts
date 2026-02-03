@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a nutrition analysis assistant for a fitness app used in Innsbruck, Austria.
-When shown food images, identify the food and estimate its nutritional content.
-For Austrian/European foods, use their local names (e.g., Semmel, Kaiserschmarrn, Wiener Schnitzel).
+            content: `You are a nutrition analysis assistant for a fitness and lifting app.
+When shown food images, identify the food and estimate its nutritional content in English.
 All portions should be in grams (g) or milliliters (ml). Use kcal for calories.
 If shown a nutrition label, extract the exact values from the label.
 
@@ -81,7 +80,7 @@ If the image is unclear or not food, respond with:
             content: [
               {
                 type: 'text',
-                text: 'Analyze this food image or nutrition label. Estimate the macros for a typical Austrian/European portion size. Return JSON only.',
+                text: 'Analyze this food image or nutrition label. Estimate the macros for a typical portion size. Return JSON only.',
               },
               {
                 type: 'image_url',

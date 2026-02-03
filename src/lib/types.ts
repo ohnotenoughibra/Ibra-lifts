@@ -47,6 +47,7 @@ export interface UserProfile {
   availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  sessionDurationMinutes: number;
   weightUnit: WeightUnit;
   createdAt: Date;
   updatedAt: Date;
@@ -432,6 +433,7 @@ export interface MobilityExercise {
   sets: number;
   description: string;
   breathingCue?: string;
+  videoUrl?: string;   // YouTube URL for form reference
 }
 
 // Exercise Response Profiling
@@ -609,6 +611,7 @@ export interface OnboardingData {
   availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  sessionDurationMinutes: number;
   weightUnit: WeightUnit;
   baselineLifts: Partial<BaselineLifts>;
 }

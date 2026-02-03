@@ -44,7 +44,7 @@ A science-based workout app designed for combat athletes (BJJ, wrestling, MMA) w
 - **State Management**: Zustand with persistence
 - **Charts**: Recharts
 - **Animations**: Framer Motion
-- **Database**: Supabase (optional - works offline with localStorage)
+- **Database**: Vercel Postgres (optional - works offline with localStorage)
 - **Deployment**: Vercel
 
 ## Getting Started
@@ -74,14 +74,9 @@ The app will be available at `http://localhost:3000`
 
 ### Environment Variables
 
-```env
-# Required for Supabase (optional - app works without it using localStorage)
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+No env variables needed for local development. The app uses localStorage.
 
-# App URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+For cloud storage with Vercel Postgres, the env vars are **auto-set** when you add a database in the Vercel dashboard (see deployment steps below).
 
 ## Deployment on Vercel
 
@@ -93,15 +88,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 1. Push your code to GitHub
 2. Import the project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy!
+3. Deploy! (works immediately with localStorage)
 
-### Setting up Supabase (Optional)
+### Adding Vercel Postgres (Optional - for cloud storage)
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Get your project URL and anon key from Settings > API
-3. Add to your environment variables
-4. Run the SQL migrations (see `/supabase/migrations`)
+1. In your Vercel project dashboard, go to **Storage** tab
+2. Click **Create Database** > **Postgres**
+3. Select the free "Hobby" plan
+4. Click **Connect** to link it to your project
+5. Vercel automatically sets all `POSTGRES_*` env variables
+6. Redeploy - the app will auto-detect the database and sync data
+
+No manual env variable setup needed. Vercel handles it all.
 
 ## Project Structure
 
@@ -110,7 +108,8 @@ src/
 ├── app/                    # Next.js app router
 │   ├── api/               # API routes
 │   │   ├── workout/       # Workout generation
-│   │   └── progress/      # Progress calculations
+│   │   ├── progress/      # Progress calculations
+│   │   └── sync/          # Cloud sync (Vercel Postgres)
 │   ├── globals.css        # Global styles
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Main page
@@ -128,7 +127,7 @@ src/
     ├── gamification.ts    # Points, badges, levels
     ├── knowledge.ts       # Tips & articles
     ├── store.ts           # Zustand state management
-    ├── supabase.ts        # Database client
+    ├── db.ts              # Vercel Postgres client
     ├── types.ts           # TypeScript types
     ├── utils.ts           # Utility functions
     └── workout-generator.ts# Periodization logic

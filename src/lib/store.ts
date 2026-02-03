@@ -26,7 +26,8 @@ import {
   HRSession,
   GrapplingSession,
   MealEntry,
-  MacroTargets
+  MacroTargets,
+  MuscleGroupConfig
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -91,6 +92,9 @@ interface AppState {
   // Body composition
   bodyComposition: BodyCompositionEntry[];
 
+  // Muscle emphasis for mesocycle customization
+  muscleEmphasis: MuscleGroupConfig | null;
+
   // Offline queue
   isOnline: boolean;
 
@@ -107,6 +111,9 @@ interface AppState {
   updateOnboardingData: (data: Partial<OnboardingData>) => void;
   completeOnboarding: () => void;
   setBaselineLifts: (lifts: BaselineLifts) => void;
+
+  // Muscle emphasis actions
+  setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number) => void;
@@ -230,6 +237,7 @@ export const useAppStore = create<AppState>()(
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
       waterLog: {},
       bodyComposition: [],
+      muscleEmphasis: null,
       isOnline: true,
       lastSyncAt: null,
       showTip: true,
@@ -298,9 +306,12 @@ export const useAppStore = create<AppState>()(
 
       setBaselineLifts: (lifts) => set({ baselineLifts: lifts }),
 
+      // Muscle emphasis actions
+      setMuscleEmphasis: (config) => set({ muscleEmphasis: config }),
+
       // Mesocycle actions
       generateNewMesocycle: (weeks = 5) => {
-        const { user, currentMesocycle, mesocycleHistory, baselineLifts } = get();
+        const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
 
         // Archive current mesocycle if exists
@@ -320,7 +331,8 @@ export const useAppStore = create<AppState>()(
           equipment: user.equipment,
           sessionsPerWeek: user.sessionsPerWeek,
           weeks,
-          baselineLifts: baselineLifts || undefined
+          baselineLifts: baselineLifts || undefined,
+          muscleEmphasis: muscleEmphasis || undefined
         });
 
         set({ currentMesocycle: newMesocycle });
@@ -785,6 +797,7 @@ export const useAppStore = create<AppState>()(
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
           waterLog: {},
           bodyComposition: [],
+          muscleEmphasis: null,
           isOnline: true,
           lastSyncAt: null,
           showTip: true,
@@ -872,6 +885,7 @@ export const useAppStore = create<AppState>()(
         macroTargets: state.macroTargets,
         waterLog: state.waterLog,
         bodyComposition: state.bodyComposition,
+        muscleEmphasis: state.muscleEmphasis,
         lastSyncAt: state.lastSyncAt,
       })
     }

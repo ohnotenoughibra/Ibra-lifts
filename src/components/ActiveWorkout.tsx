@@ -52,11 +52,13 @@ export default function ActiveWorkout() {
   const [showPRCelebration, setShowPRCelebration] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showOverview, setShowOverview] = useState(true);
-  const [showPreCheckIn, setShowPreCheckIn] = useState(false);
+  const [showCheckInSection, setShowCheckInSection] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
+  const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
+  const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
@@ -182,7 +184,7 @@ export default function ActiveWorkout() {
     const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
 
     if (isLastSetOfExercise) {
-      // Show exercise feedback modal
+      // Show inline feedback bar instead of modal
       setFeedbackExerciseIndex(currentExerciseIndex);
       setExerciseFeedbackState({
         pumpRating: 3,
@@ -190,7 +192,7 @@ export default function ActiveWorkout() {
         jointPain: false,
         wantToSwap: false
       });
-      setTimeout(() => setShowExerciseFeedback(true), 500);
+      setInlineFeedbackIndex(currentExerciseIndex);
 
       // Move to next exercise
       if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
@@ -198,6 +200,29 @@ export default function ActiveWorkout() {
         setCurrentSetIndex(0);
       }
     } else {
+      // Set-level auto-regulation: suggest weight adjustment for next set
+      const targetReps = currentExercise.prescription.targetReps;
+      const actualReps = currentSet.reps;
+      const currentWeight = currentSet.weight;
+
+      if (currentWeight > 0 && actualReps > 0) {
+        if (actualReps >= targetReps + 3) {
+          const bump = weightUnit === 'kg' ? 2.5 : 5;
+          setWeightSuggestion({
+            message: `You hit ${actualReps} reps (target ${targetReps}) — consider bumping up`,
+            suggestedWeight: currentWeight + bump,
+          });
+        } else if (actualReps <= targetReps - 3 && currentSet.rpe >= 9) {
+          const drop = weightUnit === 'kg' ? 2.5 : 5;
+          setWeightSuggestion({
+            message: `Only ${actualReps} reps at RPE ${currentSet.rpe} — consider dropping weight`,
+            suggestedWeight: Math.max(0, currentWeight - drop),
+          });
+        } else {
+          setWeightSuggestion(null);
+        }
+      }
+
       setCurrentSetIndex(currentSetIndex + 1);
     }
 
@@ -231,7 +256,18 @@ export default function ActiveWorkout() {
 
   const submitPreCheckIn = () => {
     setPreCheckIn(checkIn);
-    setShowPreCheckIn(false);
+  };
+
+  const submitInlineFeedback = (difficulty: 'too_easy' | 'just_right' | 'too_hard', pain: boolean) => {
+    const fb: ExerciseFeedback = {
+      exerciseId: activeWorkout.exerciseLogs[feedbackExerciseIndex].exerciseId,
+      pumpRating: difficulty === 'too_easy' ? 2 : difficulty === 'just_right' ? 4 : 3,
+      difficulty: difficulty === 'too_hard' ? 'too_hard' : difficulty === 'too_easy' ? 'too_easy' : 'just_right',
+      jointPain: pain,
+      wantToSwap: pain || difficulty === 'too_hard'
+    };
+    updateExerciseFeedback(feedbackExerciseIndex, fb);
+    setInlineFeedbackIndex(null);
   };
 
   const skipRest = () => {
@@ -471,375 +507,155 @@ export default function ActiveWorkout() {
               </div>
             </div>
 
+            {/* Inline Check-In (collapsible) */}
+            <div className="mt-5">
+              <button
+                onClick={() => setShowCheckInSection(!showCheckInSection)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-grappler-800/60 border border-grappler-700/50"
+              >
+                <span className="text-sm font-medium text-grappler-300 flex items-center gap-2">
+                  <Brain className="w-4 h-4" /> Quick Check-In
+                  <span className="text-[10px] text-grappler-500">(optional)</span>
+                </span>
+                <ChevronDown className={cn('w-4 h-4 text-grappler-400 transition-transform', showCheckInSection && 'rotate-180')} />
+              </button>
+
+              <AnimatePresence>
+                {showCheckInSection && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-3 space-y-3">
+                      {/* Sleep + Hours row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-grappler-800/40 rounded-lg p-3">
+                          <label className="text-xs text-grappler-400 mb-1.5 flex items-center gap-1">
+                            <Moon className="w-3 h-3" /> Sleep Quality
+                          </label>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((v) => (
+                              <button
+                                key={v}
+                                onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
+                                className={cn(
+                                  'flex-1 py-1.5 rounded text-xs font-medium',
+                                  checkIn.sleepQuality === v
+                                    ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                    : 'bg-grappler-700 text-grappler-500'
+                                )}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="bg-grappler-800/40 rounded-lg p-3">
+                          <label className="text-xs text-grappler-400 mb-1.5 block">Hours Slept</label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
+                              className="w-7 h-7 rounded bg-grappler-700 flex items-center justify-center"
+                            >
+                              <Minus className="w-3 h-3 text-grappler-300" />
+                            </button>
+                            <span className="text-lg font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
+                            <button
+                              onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
+                              className="w-7 h-7 rounded bg-grappler-700 flex items-center justify-center"
+                            >
+                              <Plus className="w-3 h-3 text-grappler-300" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Nutrition */}
+                      <div className="bg-grappler-800/40 rounded-lg p-3">
+                        <label className="text-xs text-grappler-400 mb-1.5 flex items-center gap-1">
+                          <Utensils className="w-3 h-3" /> Nutrition
+                        </label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {([
+                            { value: 'fasted', label: 'Fasted' },
+                            { value: 'light_meal', label: 'Light' },
+                            { value: 'full_meal', label: 'Full' },
+                            { value: 'heavy_meal', label: 'Heavy' }
+                          ] as const).map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => setCheckIn({ ...checkIn, nutrition: opt.value })}
+                              className={cn(
+                                'py-1.5 rounded text-xs font-medium',
+                                checkIn.nutrition === opt.value
+                                  ? 'bg-primary-500 text-white'
+                                  : 'bg-grappler-700 text-grappler-500'
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Stress + Soreness + Motivation compact row */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { label: 'Stress', key: 'stress' as const, icon: Brain, lowLabel: 'Low', highLabel: 'High', invert: true },
+                          { label: 'Soreness', key: 'soreness' as const, icon: Heart, lowLabel: 'None', highLabel: 'Sore', invert: true },
+                          { label: 'Motivation', key: 'motivation' as const, icon: Zap, lowLabel: 'Low', highLabel: 'High', invert: false },
+                        ]).map(({ label, key, icon: Icon, invert }) => (
+                          <div key={key} className="bg-grappler-800/40 rounded-lg p-3">
+                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                              <Icon className="w-3 h-3" /> {label}
+                            </label>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((v) => (
+                                <button
+                                  key={v}
+                                  onClick={() => setCheckIn({ ...checkIn, [key]: v })}
+                                  className={cn(
+                                    'flex-1 py-1 rounded text-[10px] font-medium',
+                                    checkIn[key] === v
+                                      ? invert
+                                        ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                        : v >= 4 ? 'bg-green-500 text-white' : v <= 2 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
+                                      : 'bg-grappler-700 text-grappler-500'
+                                  )}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Bottom CTA */}
             <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4">
               <button
                 onClick={() => {
+                  if (showCheckInSection) submitPreCheckIn();
                   setShowOverview(false);
-                  setShowPreCheckIn(true);
                 }}
                 className="btn btn-primary btn-lg w-full gap-2"
               >
                 <Zap className="w-5 h-5" />
-                Ready — Start Check-In
-              </button>
-              <button
-                onClick={() => {
-                  setShowOverview(false);
-                }}
-                className="btn btn-ghost btn-sm w-full mt-2 text-grappler-500"
-              >
-                Skip check-in, go straight to workout
+                Start Workout
               </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Pre-Workout Check-In Modal */}
-      <AnimatePresence>
-        {showPreCheckIn && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
-            >
-              <h2 className="text-xl font-bold text-grappler-50 mb-2">Pre-Workout Check-In</h2>
-              <p className="text-sm text-grappler-400 mb-4">
-                How are you feeling? This helps auto-adjust your workout.
-              </p>
-
-              <div className="space-y-4">
-                {/* Sleep Quality */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
-                    <Moon className="w-4 h-4" /> Sleep Quality
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          checkIn.sleepQuality === v
-                            ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
-                    <span>Terrible</span>
-                    <span>Great</span>
-                  </div>
-                </div>
-
-                {/* Sleep Hours */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 block">Hours Slept</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                      className="w-10 h-10 rounded-lg bg-grappler-700 flex items-center justify-center"
-                    >
-                      <Minus className="w-4 h-4 text-grappler-300" />
-                    </button>
-                    <span className="text-2xl font-bold text-grappler-50 w-16 text-center">{checkIn.sleepHours}h</span>
-                    <button
-                      onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                      className="w-10 h-10 rounded-lg bg-grappler-700 flex items-center justify-center"
-                    >
-                      <Plus className="w-4 h-4 text-grappler-300" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Nutrition */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
-                    <Utensils className="w-4 h-4" /> Nutrition
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {([
-                      { value: 'fasted', label: 'Fasted' },
-                      { value: 'light_meal', label: 'Light Meal' },
-                      { value: 'full_meal', label: 'Full Meal' },
-                      { value: 'heavy_meal', label: 'Heavy Meal' }
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setCheckIn({ ...checkIn, nutrition: opt.value })}
-                        className={cn(
-                          'py-2 px-3 rounded-lg text-sm',
-                          checkIn.nutrition === opt.value
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stress */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
-                    <Brain className="w-4 h-4" /> Stress Level
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setCheckIn({ ...checkIn, stress: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          checkIn.stress === v
-                            ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
-                    <span>Relaxed</span>
-                    <span>Very Stressed</span>
-                  </div>
-                </div>
-
-                {/* Soreness */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
-                    <Heart className="w-4 h-4" /> Body Soreness
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setCheckIn({ ...checkIn, soreness: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          checkIn.soreness === v
-                            ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
-                    <span>None</span>
-                    <span>Very Sore</span>
-                  </div>
-                </div>
-
-                {/* Motivation */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
-                    <Zap className="w-4 h-4" /> Motivation
-                  </label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setCheckIn({ ...checkIn, motivation: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          checkIn.motivation === v
-                            ? v >= 4 ? 'bg-green-500 text-white' : v <= 2 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
-                    <span>None</span>
-                    <span>Pumped</span>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 block">Notes (optional)</label>
-                  <input
-                    type="text"
-                    value={checkIn.notes || ''}
-                    onChange={(e) => setCheckIn({ ...checkIn, notes: e.target.value })}
-                    placeholder="e.g., ate late, rolled hard yesterday..."
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowPreCheckIn(false)}
-                  className="btn btn-secondary btn-md flex-1"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={submitPreCheckIn}
-                  className="btn btn-primary btn-md flex-1"
-                >
-                  Start Workout
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Exercise Feedback Modal (after last set) */}
-      <AnimatePresence>
-        {showExerciseFeedback && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md"
-            >
-              <h2 className="text-lg font-bold text-grappler-50 mb-1">
-                How was {activeWorkout.exerciseLogs[feedbackExerciseIndex]?.exerciseName}?
-              </h2>
-              <p className="text-xs text-grappler-400 mb-4">Quick feedback helps auto-adjust your next workout</p>
-
-              <div className="space-y-4">
-                {/* Pump Rating */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 block">Pump / Muscle Activation</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, pumpRating: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          exerciseFeedback.pumpRating === v
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
-                    <span>No pump</span>
-                    <span>Insane pump</span>
-                  </div>
-                </div>
-
-                {/* Difficulty */}
-                <div>
-                  <label className="text-sm text-grappler-300 mb-2 block">Difficulty</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {([
-                      { value: 'too_easy', label: 'Too Easy', color: 'bg-blue-500' },
-                      { value: 'just_right', label: 'Just Right', color: 'bg-green-500' },
-                      { value: 'challenging', label: 'Challenging', color: 'bg-yellow-500' },
-                      { value: 'too_hard', label: 'Too Hard', color: 'bg-red-500' }
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, difficulty: opt.value })}
-                        className={cn(
-                          'py-2 px-3 rounded-lg text-sm font-medium',
-                          exerciseFeedback.difficulty === opt.value
-                            ? `${opt.color} text-white`
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Joint Pain */}
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-grappler-300 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" /> Any joint pain?
-                  </label>
-                  <button
-                    onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, jointPain: !exerciseFeedback.jointPain })}
-                    className={cn(
-                      'px-4 py-1.5 rounded-lg text-sm font-medium',
-                      exerciseFeedback.jointPain
-                        ? 'bg-red-500 text-white'
-                        : 'bg-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    {exerciseFeedback.jointPain ? 'Yes' : 'No'}
-                  </button>
-                </div>
-
-                {exerciseFeedback.jointPain && (
-                  <input
-                    type="text"
-                    value={exerciseFeedback.jointPainLocation || ''}
-                    onChange={(e) => setExerciseFeedbackState({ ...exerciseFeedback, jointPainLocation: e.target.value })}
-                    placeholder="Where? e.g., left shoulder"
-                    className="input"
-                  />
-                )}
-
-                {/* Want to swap */}
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-grappler-300">Try different exercise next time?</label>
-                  <button
-                    onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, wantToSwap: !exerciseFeedback.wantToSwap })}
-                    className={cn(
-                      'px-4 py-1.5 rounded-lg text-sm font-medium',
-                      exerciseFeedback.wantToSwap
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    {exerciseFeedback.wantToSwap ? 'Yes' : 'No'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowExerciseFeedback(false)}
-                  className="btn btn-secondary btn-md flex-1"
-                >
-                  Skip
-                </button>
-                <button
-                  onClick={submitExerciseFeedback}
-                  className="btn btn-primary btn-md flex-1"
-                >
-                  Save
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Inline Exercise Feedback is rendered in the main content area below */}
 
       {/* Exercise Swap Modal */}
       <AnimatePresence>
@@ -1051,6 +867,91 @@ export default function ActiveWorkout() {
 
       {/* Main Content */}
       <main className="p-4 pb-32">
+        {/* Inline Exercise Feedback Bar */}
+        <AnimatePresence>
+          {inlineFeedbackIndex !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 bg-grappler-800/80 backdrop-blur rounded-xl p-3 border border-grappler-700/50"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-grappler-300">
+                  How was <span className="font-medium text-grappler-100">{activeWorkout.exerciseLogs[inlineFeedbackIndex]?.exerciseName}</span>?
+                </p>
+                <button
+                  onClick={() => setInlineFeedbackIndex(null)}
+                  className="text-grappler-500 hover:text-grappler-300"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => submitInlineFeedback('too_easy', false)}
+                  className="flex-1 py-2 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                >
+                  Too Easy
+                </button>
+                <button
+                  onClick={() => submitInlineFeedback('just_right', false)}
+                  className="flex-1 py-2 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors"
+                >
+                  Just Right
+                </button>
+                <button
+                  onClick={() => submitInlineFeedback('too_hard', false)}
+                  className="flex-1 py-2 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                >
+                  Too Hard
+                </button>
+                <button
+                  onClick={() => submitInlineFeedback('just_right', true)}
+                  className="py-2 px-3 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition-colors"
+                  title="Pain during this exercise"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Weight Suggestion Banner */}
+        <AnimatePresence>
+          {weightSuggestion && !isResting && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 bg-primary-500/10 border border-primary-500/30 rounded-xl p-3 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2 flex-1">
+                <TrendingUp className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                <p className="text-xs text-primary-300">{weightSuggestion.message}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <button
+                  onClick={() => {
+                    setExactValue('weight', weightSuggestion.suggestedWeight);
+                    setWeightSuggestion(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-500 text-white"
+                >
+                  {weightSuggestion.suggestedWeight} {weightUnit}
+                </button>
+                <button
+                  onClick={() => setWeightSuggestion(null)}
+                  className="text-grappler-500 hover:text-grappler-300"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Exercise Navigation */}
         <div className="flex items-center justify-between mb-4">
           <button

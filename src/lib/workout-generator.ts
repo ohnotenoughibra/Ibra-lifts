@@ -10,10 +10,31 @@ import {
   Equipment,
   SetPrescription,
   BaselineLifts,
-  MuscleGroup
+  MuscleGroup,
+  MuscleGroupConfig,
+  MuscleEmphasis
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
+
+// Volume landmarks per muscle group (weekly sets)
+// Based on RP/scientific literature: MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume
+export const VOLUME_LANDMARKS: Record<string, { mev: number; mav: number; mrv: number }> = {
+  chest: { mev: 8, mav: 16, mrv: 22 },
+  back: { mev: 8, mav: 16, mrv: 22 },
+  shoulders: { mev: 6, mav: 14, mrv: 20 },
+  biceps: { mev: 4, mav: 12, mrv: 18 },
+  triceps: { mev: 4, mav: 10, mrv: 16 },
+  quadriceps: { mev: 6, mav: 14, mrv: 20 },
+  hamstrings: { mev: 4, mav: 12, mrv: 18 },
+  glutes: { mev: 4, mav: 12, mrv: 18 },
+  calves: { mev: 6, mav: 12, mrv: 18 },
+  core: { mev: 4, mav: 10, mrv: 16 },
+  forearms: { mev: 2, mav: 8, mrv: 14 },
+  traps: { mev: 4, mav: 10, mrv: 16 },
+  lats: { mev: 6, mav: 14, mrv: 20 },
+  full_body: { mev: 4, mav: 10, mrv: 16 },
+};
 
 // Science-based rep/set/intensity prescriptions
 const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
@@ -139,6 +160,44 @@ interface GeneratorOptions {
   weeks: number;
   baselineLifts?: BaselineLifts;
   periodizationType?: 'undulating' | 'block';
+  muscleEmphasis?: MuscleGroupConfig;
+}
+
+// Muscle emphasis scoring multipliers
+const EMPHASIS_MULTIPLIERS: Record<MuscleEmphasis, number> = {
+  focus: 1.5,
+  maintain: 1.0,
+  ignore: 0.2,
+};
+
+// Map from MuscleGroup to the keys in MuscleGroupConfig
+// Some MuscleGroup values (forearms, traps, lats, full_body) don't have
+// direct entries in MuscleGroupConfig, so they default to 'maintain'.
+function getMuscleEmphasisMultiplier(
+  muscle: MuscleGroup,
+  config: MuscleGroupConfig | undefined
+): number {
+  if (!config) return 1.0;
+  const key = muscle as keyof MuscleGroupConfig;
+  if (key in config) {
+    return EMPHASIS_MULTIPLIERS[config[key]];
+  }
+  return 1.0; // default for muscles not in config (forearms, traps, lats, full_body)
+}
+
+// Calculate the average emphasis multiplier for an exercise based on its primary muscles
+function getExerciseEmphasisScore(
+  exercise: Exercise,
+  config: MuscleGroupConfig | undefined
+): number {
+  if (!config) return 1.0;
+  const primaryMultipliers = exercise.primaryMuscles.map(m =>
+    getMuscleEmphasisMultiplier(m, config)
+  );
+  if (primaryMultipliers.length === 0) return 1.0;
+  // Use the maximum multiplier among primary muscles so that an exercise
+  // targeting at least one "focus" muscle gets the full boost.
+  return Math.max(...primaryMultipliers);
 }
 
 function randomBetween(min: number, max: number): number {
@@ -175,13 +234,14 @@ function selectExercisesForType(
   type: WorkoutType,
   equipment: Equipment,
   goalFocus: GoalFocus,
-  usedExerciseIds: Set<string>
+  usedExerciseIds: Set<string>,
+  muscleEmphasis?: MuscleGroupConfig
 ): Exercise[] {
   const availableExercises = getExercisesByEquipment(equipment);
   const priorities = EXERCISE_PRIORITIES[type];
   const selected: Exercise[] = [];
 
-  // Priority scoring based on goal focus
+  // Priority scoring based on goal focus + muscle emphasis
   const scoreExercise = (ex: Exercise): number => {
     let score = 0;
     if (goalFocus === 'strength') {
@@ -198,6 +258,8 @@ function selectExercisesForType(
     if (usedExerciseIds.has(ex.id)) {
       score -= 5;
     }
+    // Apply muscle emphasis multiplier
+    score *= getExerciseEmphasisScore(ex, muscleEmphasis);
     return score;
   };
 
@@ -267,9 +329,10 @@ function generateWorkoutSession(
   dayNumber: number,
   equipment: Equipment,
   goalFocus: GoalFocus,
-  usedExerciseIds: Set<string>
+  usedExerciseIds: Set<string>,
+  muscleEmphasis?: MuscleGroupConfig
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds);
+  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis);
   const config = WORKOUT_PRESCRIPTIONS[type];
 
   const exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
@@ -375,7 +438,8 @@ function generateMesocycleWeek(
   equipment: Equipment,
   goalFocus: GoalFocus,
   periodizationType: 'undulating' | 'block' = 'undulating',
-  weekIndex: number = 0
+  weekIndex: number = 0,
+  muscleEmphasis?: MuscleGroupConfig
 ): MesocycleWeek {
   const workoutTypes = periodizationType === 'block'
     ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
@@ -392,7 +456,8 @@ function generateMesocycleWeek(
       index + 1,
       equipment,
       goalFocus,
-      usedExerciseIds
+      usedExerciseIds,
+      muscleEmphasis
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -439,7 +504,7 @@ function generateMesocycleWeek(
 }
 
 export function generateMesocycle(options: GeneratorOptions): Mesocycle {
-  const { userId, goalFocus, equipment, sessionsPerWeek, weeks } = options;
+  const { userId, goalFocus, equipment, sessionsPerWeek, weeks, muscleEmphasis } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
 
@@ -450,7 +515,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     const isDeload = i === weeks;
     const weekIndex = i - 1;
     mesocycleWeeks.push(
-      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex)
+      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis)
     );
   }
 

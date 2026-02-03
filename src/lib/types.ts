@@ -549,6 +549,22 @@ export interface BodyCompositionEntry {
   notes?: string;
 }
 
+// Muscle Emphasis for per-muscle-group mesocycle customization
+export type MuscleEmphasis = 'focus' | 'maintain' | 'ignore';
+
+export interface MuscleGroupConfig {
+  chest: MuscleEmphasis;
+  back: MuscleEmphasis;
+  shoulders: MuscleEmphasis;
+  biceps: MuscleEmphasis;
+  triceps: MuscleEmphasis;
+  quadriceps: MuscleEmphasis;
+  hamstrings: MuscleEmphasis;
+  glutes: MuscleEmphasis;
+  calves: MuscleEmphasis;
+  core: MuscleEmphasis;
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

@@ -1,53 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMesocycle, generateQuickWorkout } from '@/lib/workout-generator';
-import { GoalFocus, Equipment, SessionsPerWeek } from '@/lib/types';
+import { z } from 'zod';
+
+const workoutRequestSchema = z.object({
+  userId: z.string().min(1, 'userId is required'),
+  goalFocus: z.enum(['strength', 'hypertrophy', 'balanced', 'power']),
+  equipment: z.enum(['full_gym', 'home_gym', 'minimal']),
+  sessionsPerWeek: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+  weeks: z.number().int().min(1).max(12).optional().default(5),
+  quickWorkout: z.boolean().optional().default(false),
+  duration: z.number().int().min(10).max(120).optional().default(30),
+  periodizationType: z.enum(['undulating', 'block']).optional().default('undulating'),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      userId,
-      goalFocus,
-      equipment,
-      sessionsPerWeek,
-      weeks = 5,
-      quickWorkout = false,
-      duration = 30
-    } = body;
+    const parsed = workoutRequestSchema.safeParse(body);
 
-    // Validate required fields
-    if (!userId || !goalFocus || !equipment || !sessionsPerWeek) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: parsed.error.issues.map(i => i.message).join('; ') },
         { status: 400 }
       );
     }
 
-    // Validate enum values
-    const validGoalFocus: GoalFocus[] = ['strength', 'hypertrophy', 'balanced', 'power'];
-    const validEquipment: Equipment[] = ['full_gym', 'home_gym', 'minimal'];
-    const validSessions: SessionsPerWeek[] = [2, 3];
-
-    if (!validGoalFocus.includes(goalFocus)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid goal focus' },
-        { status: 400 }
-      );
-    }
-
-    if (!validEquipment.includes(equipment)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid equipment type' },
-        { status: 400 }
-      );
-    }
-
-    if (!validSessions.includes(sessionsPerWeek)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid sessions per week' },
-        { status: 400 }
-      );
-    }
+    const { userId, goalFocus, equipment, sessionsPerWeek, weeks, quickWorkout, duration, periodizationType } = parsed.data;
 
     // Generate workout
     if (quickWorkout) {
@@ -64,7 +42,8 @@ export async function POST(request: NextRequest) {
       goalFocus,
       equipment,
       sessionsPerWeek,
-      weeks
+      weeks,
+      periodizationType,
     });
 
     return NextResponse.json({
@@ -93,7 +72,7 @@ export async function GET() {
           userId: 'string (required)',
           goalFocus: 'strength | hypertrophy | balanced | power (required)',
           equipment: 'full_gym | home_gym | minimal (required)',
-          sessionsPerWeek: '2 | 3 (required)',
+          sessionsPerWeek: '1-6 (required)',
           weeks: 'number (optional, default: 5)',
           quickWorkout: 'boolean (optional, default: false)',
           duration: 'number (optional, for quick workout, default: 30)'

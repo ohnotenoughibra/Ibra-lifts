@@ -12,16 +12,20 @@ export default function ThemeToggle() {
     if (themeMode === 'light') {
       document.body.classList.add('light-mode');
       document.documentElement.classList.remove('dark');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f8fafc');
     } else {
       document.body.classList.remove('light-mode');
       document.documentElement.classList.add('dark');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0f172a');
     }
   }, [themeMode]);
 
   return (
     <button
       onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
-      className="relative w-14 h-7 rounded-full bg-grappler-700 light-mode:bg-gray-300 transition-colors flex items-center p-1"
+      className={`relative w-14 h-7 rounded-full transition-colors flex items-center p-1 ${
+        themeMode === 'dark' ? 'bg-grappler-700' : 'bg-gray-300'
+      }`}
       aria-label="Toggle theme"
     >
       <motion.div

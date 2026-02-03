@@ -751,12 +751,13 @@ export function suggestAdjustments(
 export function generateQuickWorkout(
   equipment: Equipment,
   durationMinutes: number = 30,
-  goalFocus: GoalFocus = 'balanced'
+  goalFocus: GoalFocus = 'balanced',
+  availableEquipment?: EquipmentType[]
 ): WorkoutSession {
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
                             goalFocus === 'hypertrophy' ? 'hypertrophy' : 'power';
 
-  const availableExercises = getExercisesByEquipment(equipment)
+  const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment)
     .filter(e => e.grapplerFriendly && e.category === 'compound');
 
   // Select 3-4 key compounds

@@ -710,7 +710,8 @@ export const useAppStore = create<AppState>()(
 
       completeWorkout: (feedback) => {
         const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user } = get();
-        if (!activeWorkout || !currentMesocycle || !user) return;
+        if (!activeWorkout || !user) return;
+        // Mesocycle can be null for template/quick workouts — still log the workout
 
         // Calculate total volume
         const totalVolume = activeWorkout.exerciseLogs.reduce((total, ex) => {
@@ -731,7 +732,7 @@ export const useAppStore = create<AppState>()(
         const workoutLog: WorkoutLog = {
           id: uuidv4(),
           userId: user.id,
-          mesocycleId: currentMesocycle.id,
+          mesocycleId: currentMesocycle?.id || 'standalone',
           sessionId: activeWorkout.session.id,
           date: new Date(),
           exercises: activeWorkout.exerciseLogs,

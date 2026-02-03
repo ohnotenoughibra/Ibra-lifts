@@ -27,7 +27,6 @@ import {
   Activity,
   Apple,
   Leaf,
-  Trophy as TrophyIcon,
   Crosshair,
   Scaling,
   HeartPulse,
@@ -495,7 +494,7 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
-    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus);
+    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment);
     startWorkout(quickSession);
   };
 

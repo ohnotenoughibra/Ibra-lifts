@@ -8,6 +8,7 @@ import {
   GoalFocus,
   SplitType,
   Equipment,
+  EquipmentType,
   SetPrescription,
   BaselineLifts,
   MuscleGroup,
@@ -156,11 +157,42 @@ interface GeneratorOptions {
   userId: string;
   goalFocus: GoalFocus;
   equipment: Equipment;
+  availableEquipment?: EquipmentType[];
   sessionsPerWeek: 1 | 2 | 3 | 4 | 5 | 6;
   weeks: number;
   baselineLifts?: BaselineLifts;
   periodizationType?: 'undulating' | 'block';
   muscleEmphasis?: MuscleGroupConfig;
+}
+
+// Filter exercises by the user's specific equipment inventory
+function getExercisesByGranularEquipment(equipment: Equipment, availableEquipment?: EquipmentType[]): Exercise[] {
+  // Start with the tier-based filter for backward compatibility
+  const tierFiltered = getExercisesByEquipment(equipment);
+
+  // If no granular equipment specified, use tier-only filter
+  if (!availableEquipment || availableEquipment.length === 0) {
+    return tierFiltered;
+  }
+
+  // Filter further: exercise needs ALL its equipmentTypes to be in user's inventory
+  // Bodyweight exercises always pass (they need no equipment)
+  return tierFiltered.filter(ex => {
+    if (!ex.equipmentTypes || ex.equipmentTypes.length === 0) return true;
+    if (ex.equipmentTypes.length === 1 && ex.equipmentTypes[0] === 'bodyweight') return true;
+    return ex.equipmentTypes.every(et => et === 'bodyweight' || availableEquipment.includes(et));
+  });
+}
+
+// Weighted shuffle: adds controlled randomness to exercise selection
+// instead of always picking the same top-scored exercises
+function weightedShuffle<T>(items: T[], scoreFn: (item: T) => number): T[] {
+  const scored = items.map(item => ({
+    item,
+    score: scoreFn(item) + Math.random() * 3, // Add 0-3 random points
+  }));
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map(s => s.item);
 }
 
 // Muscle emphasis scoring multipliers
@@ -235,9 +267,11 @@ function selectExercisesForType(
   equipment: Equipment,
   goalFocus: GoalFocus,
   usedExerciseIds: Set<string>,
-  muscleEmphasis?: MuscleGroupConfig
+  muscleEmphasis?: MuscleGroupConfig,
+  availableEquipment?: EquipmentType[]
 ): Exercise[] {
-  const availableExercises = getExercisesByEquipment(equipment);
+  // Use granular equipment filtering when available, fallback to tier-only
+  const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
   const priorities = EXERCISE_PRIORITIES[type];
   const selected: Exercise[] = [];
 
@@ -249,7 +283,6 @@ function selectExercisesForType(
     } else if (goalFocus === 'hypertrophy') {
       score = ex.aestheticValue * 2 + ex.strengthValue;
     } else if (goalFocus === 'power') {
-      // Power prioritizes explosive movements and strength
       score = ex.strengthValue * 1.5 + ex.aestheticValue + (ex.movementPattern === 'explosive' || ex.movementPattern === 'rotation' ? 4 : 0);
     } else {
       score = ex.strengthValue + ex.aestheticValue + (ex.grapplerFriendly ? 3 : 0);
@@ -269,10 +302,11 @@ function selectExercisesForType(
     ? (patterns as any)[type] as string[]
     : ['hinge', 'squat', 'push', 'pull'];
 
-  // Select compounds by matching target movement patterns first
-  const compoundPool = availableExercises
-    .filter(e => e.category === 'compound')
-    .sort((a, b) => scoreExercise(b) - scoreExercise(a));
+  // Select compounds with weighted randomization (not always the same top picks)
+  const compoundPool = weightedShuffle(
+    availableExercises.filter(e => e.category === 'compound'),
+    scoreExercise
+  );
 
   const usedPatterns = new Set<string>();
   for (const pattern of targetPatterns) {
@@ -286,7 +320,7 @@ function selectExercisesForType(
       usedPatterns.add(pattern);
     }
   }
-  // Fill remaining compound slots with highest-scored exercises
+  // Fill remaining compound slots
   for (const ex of compoundPool) {
     if (selected.length >= priorities.compounds) break;
     if (!usedExerciseIds.has(ex.id) && !selected.includes(ex)) {
@@ -295,29 +329,28 @@ function selectExercisesForType(
     }
   }
 
-  // Add power/grappling-specific exercises
-  const grapplingExercises = availableExercises
-    .filter(e => (e.category === 'grappling_specific' || e.category === 'power') && !usedExerciseIds.has(e.id))
-    .sort((a, b) => scoreExercise(b) - scoreExercise(a))
-    .slice(0, priorities.grapplingSpecific);
+  // Add power/grappling-specific exercises with randomization
+  const grapplingExercises = weightedShuffle(
+    availableExercises.filter(e => (e.category === 'grappling_specific' || e.category === 'power') && !usedExerciseIds.has(e.id)),
+    scoreExercise
+  ).slice(0, priorities.grapplingSpecific);
   selected.push(...grapplingExercises);
   grapplingExercises.forEach(e => usedExerciseIds.add(e.id));
 
-  // Add isolation exercises for aesthetics
+  // Add isolation exercises for aesthetics with randomization
   if (goalFocus === 'hypertrophy' || goalFocus === 'balanced') {
-    const isolations = availableExercises
-      .filter(e => e.category === 'isolation' && !usedExerciseIds.has(e.id))
-      .sort((a, b) => scoreExercise(b) - scoreExercise(a))
-      .slice(0, priorities.isolation);
+    const isolations = weightedShuffle(
+      availableExercises.filter(e => e.category === 'isolation' && !usedExerciseIds.has(e.id)),
+      scoreExercise
+    ).slice(0, priorities.isolation);
     selected.push(...isolations);
     isolations.forEach(e => usedExerciseIds.add(e.id));
   }
 
-  // Add grip work for grapplers
+  // Add grip work for grapplers with randomization
   if (goalFocus === 'balanced' || goalFocus === 'strength') {
-    const gripWork = availableExercises
-      .filter(e => e.category === 'grip' && !usedExerciseIds.has(e.id))
-      .slice(0, 1);
+    const gripPool = availableExercises.filter(e => e.category === 'grip' && !usedExerciseIds.has(e.id));
+    const gripWork = gripPool.length > 0 ? [gripPool[Math.floor(Math.random() * gripPool.length)]] : [];
     selected.push(...gripWork);
   }
 
@@ -330,9 +363,10 @@ function generateWorkoutSession(
   equipment: Equipment,
   goalFocus: GoalFocus,
   usedExerciseIds: Set<string>,
-  muscleEmphasis?: MuscleGroupConfig
+  muscleEmphasis?: MuscleGroupConfig,
+  availableEquipment?: EquipmentType[]
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis);
+  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment);
   const config = WORKOUT_PRESCRIPTIONS[type];
 
   const exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
@@ -439,7 +473,8 @@ function generateMesocycleWeek(
   goalFocus: GoalFocus,
   periodizationType: 'undulating' | 'block' = 'undulating',
   weekIndex: number = 0,
-  muscleEmphasis?: MuscleGroupConfig
+  muscleEmphasis?: MuscleGroupConfig,
+  availableEquipment?: EquipmentType[]
 ): MesocycleWeek {
   const workoutTypes = periodizationType === 'block'
     ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
@@ -457,7 +492,8 @@ function generateMesocycleWeek(
       equipment,
       goalFocus,
       usedExerciseIds,
-      muscleEmphasis
+      muscleEmphasis,
+      availableEquipment
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -504,7 +540,7 @@ function generateMesocycleWeek(
 }
 
 export function generateMesocycle(options: GeneratorOptions): Mesocycle {
-  const { userId, goalFocus, equipment, sessionsPerWeek, weeks, muscleEmphasis } = options;
+  const { userId, goalFocus, equipment, availableEquipment, sessionsPerWeek, weeks, muscleEmphasis } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
 
@@ -515,7 +551,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     const isDeload = i === weeks;
     const weekIndex = i - 1;
     mesocycleWeeks.push(
-      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis)
+      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis, availableEquipment)
     );
   }
 

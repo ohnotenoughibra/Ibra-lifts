@@ -36,7 +36,7 @@ import {
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
 import { getSuggestedWeight, whoopRecoveryToReadiness } from './auto-adjust';
-import { getExerciseById, getAlternativesForExercise } from './exercises';
+import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -607,50 +607,70 @@ export const useAppStore = create<AppState>()(
           set({ user: { ...user, availableEquipment: profileEquipment, updatedAt: new Date() } });
         }
 
+        // Helper: check if an exercise is compatible with the target equipment
+        const isExerciseCompatible = (ex: { equipmentTypes?: EquipmentType[] }) => {
+          const eqTypes = ex.equipmentTypes || [];
+          if (eqTypes.length === 0) return true;
+          return eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+        };
+
         // Check each exercise — if incompatible with new profile, swap it
         const updatedExercises = [...activeWorkout.session.exercises];
         const updatedLogs = [...activeWorkout.exerciseLogs];
+        const usedIds = new Set(updatedExercises.map(e => e.exerciseId));
         let changed = false;
 
         for (let i = 0; i < updatedExercises.length; i++) {
           const ex = updatedExercises[i];
-          const exData = ex.exercise;
-          const eqTypes = exData.equipmentTypes || [];
 
-          // Check if exercise is compatible: all non-bodyweight equipment must be available
-          const isCompatible = eqTypes.length === 0 ||
-            eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+          if (isExerciseCompatible(ex.exercise)) continue;
 
-          if (!isCompatible) {
-            // Find a compatible alternative with same primary muscles
-            const alts = getAlternativesForExercise(ex.exerciseId, user?.equipment || 'full_gym', 20);
-            const compatibleAlt = alts.find(alt => {
-              const altEq = alt.equipmentTypes || [];
-              return altEq.length === 0 || altEq.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+          // Search ALL exercises (not tier-filtered) for a compatible alternative
+          // that shares primary muscles with the current exercise
+          const currentMuscles = ex.exercise.primaryMuscles;
+          const currentPattern = ex.exercise.movementPattern;
+
+          const compatibleAlts = allExercises
+            .filter(alt =>
+              alt.id !== ex.exerciseId &&
+              !usedIds.has(alt.id) &&
+              isExerciseCompatible(alt) &&
+              alt.primaryMuscles.some(m => currentMuscles.includes(m))
+            )
+            .sort((a, b) => {
+              // Score: muscle overlap + same movement pattern + same category
+              const aOverlap = a.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
+              const bOverlap = b.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
+              if (bOverlap !== aOverlap) return bOverlap - aOverlap;
+              const aPattern = a.movementPattern === currentPattern ? 1 : 0;
+              const bPattern = b.movementPattern === currentPattern ? 1 : 0;
+              return bPattern - aPattern;
             });
 
-            if (compatibleAlt) {
-              updatedExercises[i] = {
-                ...ex,
-                exerciseId: compatibleAlt.id,
-                exercise: compatibleAlt,
-              };
-              const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
-              updatedLogs[i] = {
-                ...updatedLogs[i],
-                exerciseId: compatibleAlt.id,
-                exerciseName: compatibleAlt.name,
-                sets: updatedLogs[i].sets.map(s => ({
-                  ...s,
-                  weight: suggestedWeight || 0,
-                  completed: false,
-                })),
-                personalRecord: false,
-                estimated1RM: undefined,
-                feedback: undefined,
-              };
-              changed = true;
-            }
+          const compatibleAlt = compatibleAlts[0];
+
+          if (compatibleAlt) {
+            usedIds.add(compatibleAlt.id);
+            updatedExercises[i] = {
+              ...ex,
+              exerciseId: compatibleAlt.id,
+              exercise: compatibleAlt,
+            };
+            const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
+            updatedLogs[i] = {
+              ...updatedLogs[i],
+              exerciseId: compatibleAlt.id,
+              exerciseName: compatibleAlt.name,
+              sets: updatedLogs[i].sets.map(s => ({
+                ...s,
+                weight: suggestedWeight || 0,
+                completed: false,
+              })),
+              personalRecord: false,
+              estimated1RM: undefined,
+              feedback: undefined,
+            };
+            changed = true;
           }
         }
 

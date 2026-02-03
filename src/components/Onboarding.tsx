@@ -10,6 +10,7 @@ import {
   Zap,
   Heart,
   Scale,
+  Clock,
 } from 'lucide-react';
 import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -271,6 +272,36 @@ function Step2_Plan({
           {data.sessionsPerWeek <= 3 ? 'Full body each session' :
            data.sessionsPerWeek <= 4 ? 'Upper/lower split' :
            'Push/pull/legs split'}
+        </p>
+      </div>
+
+      {/* Session duration */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-2 flex items-center gap-1.5">
+          <Clock className="w-4 h-4 text-grappler-400" />
+          Session duration
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {[45, 60, 75, 90].map((mins) => (
+            <button
+              key={mins}
+              onClick={() => update({ sessionDurationMinutes: mins })}
+              className={cn(
+                'py-3 rounded-lg text-sm font-bold transition-all',
+                data.sessionDurationMinutes === mins
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              {mins}m
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-grappler-500 mt-1.5 text-center">
+          {data.sessionDurationMinutes <= 45 ? 'Quick & focused compound work' :
+           data.sessionDurationMinutes <= 60 ? 'Standard session with accessories' :
+           data.sessionDurationMinutes <= 75 ? 'Full session with isolation work' :
+           'Extended session with extra volume'}
         </p>
       </div>
     </div>

@@ -216,6 +216,7 @@ const initialOnboardingData: OnboardingData = {
   availableEquipment: DEFAULT_EQUIPMENT_PROFILES[0].equipment,
   goalFocus: 'balanced',
   sessionsPerWeek: 3,
+  sessionDurationMinutes: 60,
   weightUnit: 'lbs',
   baselineLifts: {}
 };
@@ -290,6 +291,7 @@ export const useAppStore = create<AppState>()(
           availableEquipment: onboardingData.availableEquipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment,
           goalFocus: onboardingData.goalFocus,
           sessionsPerWeek: onboardingData.sessionsPerWeek,
+          sessionDurationMinutes: onboardingData.sessionDurationMinutes || 60,
           weightUnit: onboardingData.weightUnit || 'lbs',
           createdAt: new Date(),
           updatedAt: new Date()
@@ -324,8 +326,8 @@ export const useAppStore = create<AppState>()(
           isAuthenticated: true
         });
 
-        // Generate first mesocycle
-        get().generateNewMesocycle();
+        // Generate first mesocycle with user's preferred duration
+        get().generateNewMesocycle(5, onboardingData.sessionDurationMinutes || 60);
       },
 
       setBaselineLifts: (lifts) => set({ baselineLifts: lifts }),
@@ -431,6 +433,8 @@ export const useAppStore = create<AppState>()(
       generateNewMesocycle: (weeks = 5, sessionDurationMinutes) => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
+        // Fall back to user's stored preference if no explicit duration passed
+        const duration = sessionDurationMinutes ?? user.sessionDurationMinutes ?? 60;
 
         // Archive current mesocycle if exists
         if (currentMesocycle) {
@@ -452,7 +456,7 @@ export const useAppStore = create<AppState>()(
           weeks,
           baselineLifts: baselineLifts || undefined,
           muscleEmphasis: muscleEmphasis || undefined,
-          sessionDurationMinutes,
+          sessionDurationMinutes: duration,
         });
 
         set({ currentMesocycle: newMesocycle });

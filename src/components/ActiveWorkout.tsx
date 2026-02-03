@@ -201,11 +201,13 @@ export default function ActiveWorkout() {
       setCurrentSetIndex(currentSetIndex + 1);
     }
 
-    // Show tip occasionally
-    if (Math.random() < 0.3) {
+    // Show tip during rest — keep visible for the full rest period
+    if (Math.random() < 0.5) {
       setTip(getRandomTip(currentExercise.exerciseId));
       setShowTip(true);
-      setTimeout(() => setShowTip(false), 5000);
+      // Stay visible for the entire rest or at least 20 seconds
+      const tipDuration = Math.max(20000, currentExercise.prescription.restSeconds * 1000);
+      setTimeout(() => setShowTip(false), tipDuration);
     }
   };
 

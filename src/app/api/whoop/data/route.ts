@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       whoopFetch('/cycle', accessToken, { start: startStr, end: endStr, limit: '7' }),
       whoopFetch('/activity/sleep', accessToken, { start: startStr, end: endStr, limit: '7' }),
       whoopFetch('/activity/workout', accessToken, { start: startStr, end: endStr, limit: '10' }),
-      whoopFetch('/body_measurement', accessToken),
+      whoopFetch('/user/measurement/body', accessToken),
     ]);
 
   // --- Step 5: Collect per-endpoint warnings ---

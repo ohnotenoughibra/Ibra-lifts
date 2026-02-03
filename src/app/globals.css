@@ -62,7 +62,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: rgb(51 65 85);
   }
 
   html {

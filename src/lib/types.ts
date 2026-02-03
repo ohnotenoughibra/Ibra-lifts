@@ -3,6 +3,7 @@ export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type Equipment = 'full_gym' | 'home_gym' | 'minimal';
 export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power';
 export type SessionsPerWeek = 2 | 3;
+export type WeightUnit = 'lbs' | 'kg';
 
 export interface UserProfile {
   id: string;
@@ -13,6 +14,7 @@ export interface UserProfile {
   equipment: Equipment;
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  weightUnit: WeightUnit;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,6 +133,50 @@ export interface ExerciseLog {
   sets: SetLog[];
   personalRecord: boolean;
   estimated1RM?: number;
+  feedback?: ExerciseFeedback;
+}
+
+// Pre-workout check-in (like RP app)
+export interface PreWorkoutCheckIn {
+  sleepQuality: number;    // 1-5 (terrible to great)
+  sleepHours: number;      // hours slept
+  nutrition: 'fasted' | 'light_meal' | 'full_meal' | 'heavy_meal';
+  stress: number;          // 1-5
+  soreness: number;        // 1-5 (none to severe)
+  motivation: number;      // 1-5
+  notes?: string;          // free text like "ate pizza last night"
+}
+
+// Per-exercise feedback (after last set of each exercise - RP style)
+export interface ExerciseFeedback {
+  exerciseId: string;
+  pumpRating: number;      // 1-5 (no pump to best pump ever)
+  difficulty: 'too_easy' | 'just_right' | 'challenging' | 'too_hard';
+  jointPain: boolean;
+  jointPainLocation?: string;
+  wantToSwap: boolean;     // flag to try a different exercise next time
+  notes?: string;
+}
+
+// Post-workout feedback
+export interface PostWorkoutFeedback {
+  overallRPE: number;
+  overallPerformance: 'worse_than_expected' | 'as_expected' | 'better_than_expected';
+  soreness: number;
+  energy: number;
+  mood: number;            // 1-5
+  wouldRepeat: boolean;    // did you enjoy this session?
+  notes?: string;
+}
+
+// Auto-adjustment result from the engine
+export interface WorkoutAdjustment {
+  exerciseId: string;
+  exerciseName: string;
+  adjustmentType: 'weight' | 'sets' | 'reps' | 'swap' | 'deload';
+  oldValue: number;
+  newValue: number;
+  reason: string;
 }
 
 export interface WorkoutLog {
@@ -142,6 +188,9 @@ export interface WorkoutLog {
   exercises: ExerciseLog[];
   totalVolume: number; // weight x reps
   duration: number; // minutes
+  preCheckIn?: PreWorkoutCheckIn;
+  postFeedback?: PostWorkoutFeedback;
+  adjustmentsApplied?: WorkoutAdjustment[];
   overallRPE: number;
   soreness: number; // 1-10
   energy: number; // 1-10
@@ -248,5 +297,6 @@ export interface OnboardingData {
   equipment: Equipment;
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  weightUnit: WeightUnit;
   baselineLifts: Partial<BaselineLifts>;
 }

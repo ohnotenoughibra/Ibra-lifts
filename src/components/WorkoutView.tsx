@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
   Calendar,
@@ -16,19 +16,27 @@ import {
   RefreshCw,
   Info,
   Wrench,
-  Search
+  Search,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutSession, WorkoutType, MesocycleWeek } from '@/lib/types';
+import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis } from '@/lib/types';
 
 interface WorkoutViewProps {
   onOpenBuilder?: () => void;
 }
 
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis } = useAppStore();
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
+
+  const handleGenerateWithEmphasis = () => {
+    setShowEmphasisPicker(false);
+    generateNewMesocycle();
+  };
 
   if (!currentMesocycle) {
     return (
@@ -36,9 +44,25 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
         <Dumbbell className="w-16 h-16 text-grappler-600 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-grappler-200 mb-2">No Active Program</h2>
         <p className="text-grappler-400 mb-6">Generate a new mesocycle to get started</p>
-        <button onClick={() => generateNewMesocycle()} className="btn btn-primary btn-md">
-          Generate Program
-        </button>
+        <div className="space-y-3 max-w-sm mx-auto">
+          <button onClick={() => setShowEmphasisPicker(true)} className="btn btn-primary btn-md w-full gap-2">
+            <SlidersHorizontal className="w-4 h-4" />
+            Customize & Generate
+          </button>
+          <button onClick={() => generateNewMesocycle()} className="btn btn-secondary btn-sm w-full">
+            Quick Generate (Default)
+          </button>
+        </div>
+        <AnimatePresence>
+          {showEmphasisPicker && (
+            <MuscleEmphasisPicker
+              config={muscleEmphasis}
+              onSave={setMuscleEmphasis}
+              onGenerate={handleGenerateWithEmphasis}
+              onClose={() => setShowEmphasisPicker(false)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -70,13 +94,25 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           </p>
         </div>
         <button
-          onClick={() => generateNewMesocycle()}
+          onClick={() => setShowEmphasisPicker(true)}
           className="btn btn-secondary btn-sm gap-2"
         >
-          <RefreshCw className="w-4 h-4" />
+          <SlidersHorizontal className="w-4 h-4" />
           New Block
         </button>
       </div>
+
+      {/* Muscle Emphasis Picker */}
+      <AnimatePresence>
+        {showEmphasisPicker && (
+          <MuscleEmphasisPicker
+            config={muscleEmphasis}
+            onSave={setMuscleEmphasis}
+            onGenerate={handleGenerateWithEmphasis}
+            onClose={() => setShowEmphasisPicker(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Build Custom / Browse */}
       {onOpenBuilder && (
@@ -141,6 +177,182 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+// Default config for the muscle emphasis picker
+const DEFAULT_MUSCLE_CONFIG: MuscleGroupConfig = {
+  chest: 'maintain',
+  back: 'maintain',
+  shoulders: 'maintain',
+  biceps: 'maintain',
+  triceps: 'maintain',
+  quadriceps: 'maintain',
+  hamstrings: 'maintain',
+  glutes: 'maintain',
+  calves: 'maintain',
+  core: 'maintain',
+};
+
+const MUSCLE_GROUP_LABELS: Record<keyof MuscleGroupConfig, string> = {
+  chest: 'Chest',
+  back: 'Back',
+  shoulders: 'Shoulders',
+  biceps: 'Biceps',
+  triceps: 'Triceps',
+  quadriceps: 'Quads',
+  hamstrings: 'Hamstrings',
+  glutes: 'Glutes',
+  calves: 'Calves',
+  core: 'Core',
+};
+
+const EMPHASIS_CYCLE: MuscleEmphasis[] = ['maintain', 'focus', 'ignore'];
+
+const EMPHASIS_STYLES: Record<MuscleEmphasis, { bg: string; text: string; border: string; label: string }> = {
+  focus: {
+    bg: 'bg-green-500/20',
+    text: 'text-green-400',
+    border: 'border-green-500/50',
+    label: 'Focus',
+  },
+  maintain: {
+    bg: 'bg-grappler-700/50',
+    text: 'text-grappler-300',
+    border: 'border-grappler-600',
+    label: 'Maintain',
+  },
+  ignore: {
+    bg: 'bg-red-500/10',
+    text: 'text-red-400',
+    border: 'border-red-500/30',
+    label: 'Ignore',
+  },
+};
+
+interface MuscleEmphasisPickerProps {
+  config: MuscleGroupConfig | null;
+  onSave: (config: MuscleGroupConfig) => void;
+  onGenerate: () => void;
+  onClose: () => void;
+}
+
+function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose }: MuscleEmphasisPickerProps) {
+  const [localConfig, setLocalConfig] = useState<MuscleGroupConfig>(
+    config || { ...DEFAULT_MUSCLE_CONFIG }
+  );
+
+  const cycleEmphasis = (muscle: keyof MuscleGroupConfig) => {
+    const current = localConfig[muscle];
+    const currentIndex = EMPHASIS_CYCLE.indexOf(current);
+    const next = EMPHASIS_CYCLE[(currentIndex + 1) % EMPHASIS_CYCLE.length];
+    const updated = { ...localConfig, [muscle]: next };
+    setLocalConfig(updated);
+    onSave(updated);
+  };
+
+  const resetAll = () => {
+    const reset = { ...DEFAULT_MUSCLE_CONFIG };
+    setLocalConfig(reset);
+    onSave(reset);
+  };
+
+  const focusCount = Object.values(localConfig).filter(v => v === 'focus').length;
+  const ignoreCount = Object.values(localConfig).filter(v => v === 'ignore').length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="mt-6 card p-5 text-left"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-grappler-50 text-base">Muscle Emphasis</h3>
+          <p className="text-xs text-grappler-400 mt-0.5">
+            Tap a muscle group to cycle: Maintain &rarr; Focus &rarr; Ignore
+          </p>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-grappler-700 transition-colors">
+          <X className="w-4 h-4 text-grappler-400" />
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-4 text-xs">
+        {(['focus', 'maintain', 'ignore'] as MuscleEmphasis[]).map((emphasis) => {
+          const style = EMPHASIS_STYLES[emphasis];
+          return (
+            <div key={emphasis} className="flex items-center gap-1.5">
+              <div className={cn('w-2.5 h-2.5 rounded-full', style.bg, 'border', style.border)} />
+              <span className={style.text}>{style.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Muscle Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {(Object.keys(MUSCLE_GROUP_LABELS) as (keyof MuscleGroupConfig)[]).map((muscle) => {
+          const emphasis = localConfig[muscle];
+          const style = EMPHASIS_STYLES[emphasis];
+          return (
+            <button
+              key={muscle}
+              onClick={() => cycleEmphasis(muscle)}
+              className={cn(
+                'p-3 rounded-xl border-2 transition-all text-left flex items-center justify-between',
+                style.bg,
+                style.border,
+                'hover:brightness-110 active:scale-[0.97]'
+              )}
+            >
+              <span className={cn('text-sm font-medium', style.text)}>
+                {MUSCLE_GROUP_LABELS[muscle]}
+              </span>
+              <span className={cn(
+                'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full',
+                emphasis === 'focus' && 'bg-green-500/30 text-green-300',
+                emphasis === 'maintain' && 'bg-grappler-600/50 text-grappler-400',
+                emphasis === 'ignore' && 'bg-red-500/20 text-red-300',
+              )}>
+                {style.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Summary */}
+      {(focusCount > 0 || ignoreCount > 0) && (
+        <div className="text-xs text-grappler-400 mb-4 flex items-center gap-3">
+          {focusCount > 0 && (
+            <span className="text-green-400">{focusCount} focused</span>
+          )}
+          {ignoreCount > 0 && (
+            <span className="text-red-400">{ignoreCount} ignored</span>
+          )}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <button
+          onClick={resetAll}
+          className="btn btn-secondary btn-sm flex-1"
+        >
+          Reset All
+        </button>
+        <button
+          onClick={onGenerate}
+          className="btn btn-primary btn-sm flex-1 gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Generate Block
+        </button>
+      </div>
+    </motion.div>
   );
 }
 

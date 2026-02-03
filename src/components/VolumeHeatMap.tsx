@@ -2,17 +2,16 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Flame, BarChart3, Info } from 'lucide-react';
+import { ChevronLeft, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { getExerciseById } from '@/lib/exercises';
+import { VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { cn } from '@/lib/utils';
 import type { MuscleGroup, WorkoutLog } from '@/lib/types';
 
 interface VolumeHeatMapProps {
   onClose: () => void;
 }
-
-type TimePeriod = 'week' | 'month' | 'all';
 
 const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'biceps', 'triceps',
@@ -41,76 +40,89 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
 };
 
+type VolumeZone = 'untrained' | 'below_mev' | 'mev_to_mav' | 'mav_to_mrv' | 'above_mrv';
+
+function getVolumeZone(sets: number, landmarks: { mev: number; mav: number; mrv: number }): VolumeZone {
+  if (sets === 0) return 'untrained';
+  if (sets < landmarks.mev) return 'below_mev';
+  if (sets <= landmarks.mav) return 'mev_to_mav';
+  if (sets <= landmarks.mrv) return 'mav_to_mrv';
+  return 'above_mrv';
+}
+
+function getZoneColor(zone: VolumeZone): string {
+  switch (zone) {
+    case 'untrained': return 'text-grappler-500';
+    case 'below_mev': return 'text-red-400';
+    case 'mev_to_mav': return 'text-yellow-400';
+    case 'mav_to_mrv': return 'text-emerald-400';
+    case 'above_mrv': return 'text-red-400';
+  }
+}
+
+function getZoneLabel(zone: VolumeZone): string {
+  switch (zone) {
+    case 'untrained': return 'Untrained';
+    case 'below_mev': return 'Below MEV';
+    case 'mev_to_mav': return 'Maintenance';
+    case 'mav_to_mrv': return 'Optimal Growth';
+    case 'above_mrv': return 'Overreaching';
+  }
+}
+
+function getZoneBgColor(zone: VolumeZone): string {
+  switch (zone) {
+    case 'untrained': return 'bg-grappler-700';
+    case 'below_mev': return 'bg-red-500/20';
+    case 'mev_to_mav': return 'bg-yellow-500/20';
+    case 'mav_to_mrv': return 'bg-emerald-500/20';
+    case 'above_mrv': return 'bg-red-500/20';
+  }
+}
+
 /**
- * Returns a heat color from blue (cold/low) through yellow (medium) to red (hot/high).
- * `ratio` is 0..1 where 0 = no volume, 1 = max volume.
+ * Compute weekly set counts per muscle group from the last 7 days of workout logs.
+ * Primary muscles get full set credit; secondary muscles get 0.5 set credit.
  */
-function getHeatColor(ratio: number): string {
-  const clamped = Math.max(0, Math.min(1, ratio));
-  if (clamped === 0) return '#1e3a5f'; // dark blue-gray for untrained
-
-  if (clamped <= 0.5) {
-    // blue -> yellow
-    const t = clamped / 0.5;
-    const r = Math.round(30 + t * 225);
-    const g = Math.round(100 + t * 155);
-    const b = Math.round(200 - t * 180);
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-  // yellow -> red
-  const t = (clamped - 0.5) / 0.5;
-  const r = Math.round(255);
-  const g = Math.round(255 - t * 210);
-  const b = Math.round(20 - t * 20);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function filterLogsByPeriod(logs: WorkoutLog[], period: TimePeriod): WorkoutLog[] {
-  if (period === 'all') return logs;
+function computeWeeklySetVolume(logs: WorkoutLog[]): Record<MuscleGroup, number> {
   const now = new Date();
-  const cutoff = new Date(now);
-  if (period === 'week') {
-    cutoff.setDate(cutoff.getDate() - 7);
-  } else {
-    cutoff.setDate(cutoff.getDate() - 30);
-  }
-  return logs.filter(log => new Date(log.date).getTime() >= cutoff.getTime());
-}
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
-function computeMuscleVolumes(logs: WorkoutLog[]): Record<MuscleGroup, number> {
   const volumes: Record<MuscleGroup, number> = {} as Record<MuscleGroup, number>;
   for (const mg of MUSCLE_GROUPS) {
     volumes[mg] = 0;
   }
 
-  for (const log of logs) {
+  const weekLogs = logs.filter(log => new Date(log.date).getTime() >= weekAgo.getTime());
+
+  for (const log of weekLogs) {
     for (const ex of log.exercises) {
       const exerciseData = getExerciseById(ex.exerciseId);
       if (!exerciseData) continue;
 
-      const setVolume = ex.sets.reduce((sum, set) => {
-        return sum + (set.completed ? set.weight * set.reps : 0);
-      }, 0);
+      // Count completed sets only
+      const completedSets = ex.sets.filter(s => s.completed).length;
 
-      // Primary muscles get full volume credit
+      // Primary muscles get full set credit
       for (const muscle of exerciseData.primaryMuscles) {
         if (muscle in volumes) {
-          volumes[muscle] += setVolume;
+          volumes[muscle] += completedSets;
         }
       }
-      // Secondary muscles get 50% volume credit
+      // Secondary muscles get half set credit
       for (const muscle of exerciseData.secondaryMuscles) {
         if (muscle in volumes) {
-          volumes[muscle] += setVolume * 0.5;
+          volumes[muscle] += completedSets * 0.5;
         }
       }
     }
@@ -119,70 +131,69 @@ function computeMuscleVolumes(logs: WorkoutLog[]): Record<MuscleGroup, number> {
   return volumes;
 }
 
-function formatVolume(vol: number): string {
-  if (vol >= 1000000) return `${(vol / 1000000).toFixed(1)}M`;
-  if (vol >= 1000) return `${(vol / 1000).toFixed(1)}k`;
-  return Math.round(vol).toLocaleString();
-}
-
-// SVG body region definitions: each maps a muscle group to SVG shapes
-// Coordinates are for a 200x400 viewBox front-view body outline
-interface BodyRegionDef {
+interface MuscleVolumeData {
   muscle: MuscleGroup;
   label: string;
-  // Center position for tooltip/label
-  cx: number;
-  cy: number;
+  sets: number;
+  landmarks: { mev: number; mav: number; mrv: number };
+  zone: VolumeZone;
+  /** Distance from optimal center of MAV-MRV range; lower = closer to optimal */
+  optimalGap: number;
 }
 
-const BODY_REGIONS: BodyRegionDef[] = [
-  { muscle: 'traps', label: 'Traps', cx: 100, cy: 88 },
-  { muscle: 'shoulders', label: 'Shoulders', cx: 55, cy: 105 },
-  { muscle: 'chest', label: 'Chest', cx: 100, cy: 125 },
-  { muscle: 'biceps', label: 'Biceps', cx: 40, cy: 150 },
-  { muscle: 'triceps', label: 'Triceps', cx: 160, cy: 150 },
-  { muscle: 'forearms', label: 'Forearms', cx: 35, cy: 195 },
-  { muscle: 'lats', label: 'Lats', cx: 68, cy: 148 },
-  { muscle: 'core', label: 'Core', cx: 100, cy: 175 },
-  { muscle: 'quadriceps', label: 'Quads', cx: 82, cy: 260 },
-  { muscle: 'hamstrings', label: 'Hamstrings', cx: 118, cy: 275 },
-  { muscle: 'glutes', label: 'Glutes', cx: 100, cy: 220 },
-  { muscle: 'calves', label: 'Calves', cx: 85, cy: 330 },
-];
-
 export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
-  const { workoutLogs, user } = useAppStore();
-  const unit = user?.weightUnit || 'lbs';
-  const [period, setPeriod] = useState<TimePeriod>('all');
-  const [hoveredMuscle, setHoveredMuscle] = useState<MuscleGroup | null>(null);
+  const { workoutLogs, currentMesocycle } = useAppStore();
+  const [expandedMuscle, setExpandedMuscle] = useState<MuscleGroup | null>(null);
 
-  const filteredLogs = useMemo(
-    () => filterLogsByPeriod(workoutLogs, period),
-    [workoutLogs, period]
+  const weeklySetVolumes = useMemo(
+    () => computeWeeklySetVolume(workoutLogs),
+    [workoutLogs]
   );
 
-  const muscleVolumes = useMemo(
-    () => computeMuscleVolumes(filteredLogs),
-    [filteredLogs]
-  );
-
-  const maxVolume = useMemo(() => {
-    const vals = Object.values(muscleVolumes).filter(v => v > 0);
-    return vals.length > 0 ? Math.max(...vals) : 1;
-  }, [muscleVolumes]);
-
-  // Sort muscle groups by volume descending for the breakdown list
-  const sortedMuscles = useMemo(() => {
-    return [...MUSCLE_GROUPS]
+  const muscleData: MuscleVolumeData[] = useMemo(() => {
+    return MUSCLE_GROUPS
       .filter(mg => mg !== 'full_body')
-      .sort((a, b) => muscleVolumes[b] - muscleVolumes[a]);
-  }, [muscleVolumes]);
+      .map(mg => {
+        const landmarks = VOLUME_LANDMARKS[mg] || { mev: 4, mav: 10, mrv: 16 };
+        const sets = Math.round(weeklySetVolumes[mg] * 10) / 10; // round to 1 decimal
+        const zone = getVolumeZone(sets, landmarks);
+        // optimal center is midpoint of MAV-MRV
+        const optimalCenter = (landmarks.mav + landmarks.mrv) / 2;
+        const optimalGap = Math.abs(sets - optimalCenter);
+
+        return {
+          muscle: mg,
+          label: MUSCLE_LABELS[mg],
+          sets,
+          landmarks,
+          zone,
+          optimalGap,
+        };
+      })
+      // Sort: biggest gap from optimal first
+      .sort((a, b) => b.optimalGap - a.optimalGap);
+  }, [weeklySetVolumes]);
 
   const hasData = workoutLogs.length > 0;
 
-  function getColorForMuscle(muscle: MuscleGroup): string {
-    return getHeatColor(maxVolume > 0 ? muscleVolumes[muscle] / maxVolume : 0);
-  }
+  // Summary stats
+  const summary = useMemo(() => {
+    const total = muscleData.length;
+    const optimal = muscleData.filter(d => d.zone === 'mav_to_mrv').length;
+    const maintenance = muscleData.filter(d => d.zone === 'mev_to_mav').length;
+    const belowMev = muscleData.filter(d => d.zone === 'below_mev' || d.zone === 'untrained').length;
+    const overreaching = muscleData.filter(d => d.zone === 'above_mrv').length;
+    return { total, optimal, maintenance, belowMev, overreaching };
+  }, [muscleData]);
+
+  // Current mesocycle week info
+  const mesocycleInfo = useMemo(() => {
+    if (!currentMesocycle) return null;
+    return {
+      name: currentMesocycle.name || 'Current Block',
+      weekCount: currentMesocycle.weeks?.length || 0,
+    };
+  }, [currentMesocycle]);
 
   return (
     <motion.div
@@ -201,18 +212,20 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
             <ChevronLeft className="w-5 h-5 text-grappler-200" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-grappler-50">Volume Heat Map</h1>
-            <p className="text-xs text-grappler-400">Training volume by muscle group</p>
+            <h1 className="text-lg font-bold text-grappler-50">Weekly Volume Tracker</h1>
+            <p className="text-xs text-grappler-400">
+              Sets per muscle group vs. MEV / MAV / MRV landmarks
+            </p>
           </div>
         </div>
       </div>
 
       {!hasData ? (
         <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
-          <Flame className="w-12 h-12 text-grappler-600 mb-4" />
+          <BarChart3 className="w-12 h-12 text-grappler-600 mb-4" />
           <h2 className="text-lg font-semibold text-grappler-200 mb-2">No Data Yet</h2>
           <p className="text-grappler-400 text-sm max-w-xs">
-            Complete some workouts to see your training volume mapped across muscle groups.
+            Complete some workouts to see your weekly volume tracked against scientifically-based landmarks.
           </p>
         </div>
       ) : (
@@ -222,458 +235,356 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
           initial="hidden"
           animate="visible"
         >
-          {/* Period Selector */}
-          <motion.div variants={itemVariants} className="flex gap-2">
-            {([
-              { key: 'week' as TimePeriod, label: 'Last Week' },
-              { key: 'month' as TimePeriod, label: 'Last Month' },
-              { key: 'all' as TimePeriod, label: 'All Time' },
-            ]).map(opt => (
-              <button
-                key={opt.key}
-                onClick={() => setPeriod(opt.key)}
-                className={cn(
-                  'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                  period === opt.key
-                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
-                    : 'bg-grappler-800 text-grappler-400 border border-grappler-700'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+          {/* Summary Cards */}
+          <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2">
+            <div className="card p-3 text-center">
+              <div className="text-lg font-bold text-emerald-400">{summary.optimal}</div>
+              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Optimal</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-lg font-bold text-yellow-400">{summary.maintenance}</div>
+              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Maintenance</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-lg font-bold text-red-400">{summary.belowMev}</div>
+              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Below MEV</div>
+            </div>
+            <div className="card p-3 text-center">
+              <div className="text-lg font-bold text-red-400">{summary.overreaching}</div>
+              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Over MRV</div>
+            </div>
           </motion.div>
 
-          {/* Body Heat Map SVG */}
-          <motion.div variants={itemVariants} className="card p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Flame className="w-5 h-5 text-primary-400" />
-              <h2 className="text-base font-semibold text-grappler-50">Body Map</h2>
-            </div>
-
-            <div className="flex justify-center">
-              <svg
-                viewBox="0 0 200 400"
-                className="w-full max-w-[280px] h-auto"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Body outline - head */}
-                <ellipse cx="100" cy="40" rx="22" ry="28" fill="#1a1a2e" stroke="#334155" strokeWidth="1" />
-
-                {/* Neck */}
-                <rect x="92" y="65" width="16" height="15" rx="3" fill="#1a1a2e" stroke="#334155" strokeWidth="0.8" />
-
-                {/* Traps */}
-                <path
-                  d="M75 80 L92 80 L92 95 L75 100 Z"
-                  fill={getColorForMuscle('traps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('traps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                <path
-                  d="M125 80 L108 80 L108 95 L125 100 Z"
-                  fill={getColorForMuscle('traps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('traps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Shoulders - left */}
-                <ellipse
-                  cx="55" cy="105" rx="18" ry="14"
-                  fill={getColorForMuscle('shoulders')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('shoulders')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Shoulders - right */}
-                <ellipse
-                  cx="145" cy="105" rx="18" ry="14"
-                  fill={getColorForMuscle('shoulders')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('shoulders')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Chest */}
-                <path
-                  d="M72 100 L128 100 L132 115 Q132 140 100 142 Q68 140 68 115 Z"
-                  fill={getColorForMuscle('chest')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('chest')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Lats - left */}
-                <path
-                  d="M68 120 L58 135 L62 162 L72 158 L72 130 Z"
-                  fill={getColorForMuscle('lats')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('lats')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Lats - right */}
-                <path
-                  d="M132 120 L142 135 L138 162 L128 158 L128 130 Z"
-                  fill={getColorForMuscle('lats')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('lats')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Biceps - left */}
-                <ellipse
-                  cx="40" cy="148" rx="10" ry="22"
-                  fill={getColorForMuscle('biceps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('biceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Biceps - right */}
-                <ellipse
-                  cx="160" cy="148" rx="10" ry="22"
-                  fill={getColorForMuscle('biceps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('biceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Triceps - left (behind biceps, shown as side sliver) */}
-                <path
-                  d="M48 130 L52 128 L52 168 L48 170 Z"
-                  fill={getColorForMuscle('triceps')}
-                  stroke="#334155"
-                  strokeWidth="0.6"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('triceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Triceps - right */}
-                <path
-                  d="M152 130 L148 128 L148 168 L152 170 Z"
-                  fill={getColorForMuscle('triceps')}
-                  stroke="#334155"
-                  strokeWidth="0.6"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('triceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Forearms - left */}
-                <ellipse
-                  cx="34" cy="198" rx="8" ry="25"
-                  fill={getColorForMuscle('forearms')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('forearms')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Forearms - right */}
-                <ellipse
-                  cx="166" cy="198" rx="8" ry="25"
-                  fill={getColorForMuscle('forearms')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('forearms')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Core / Abs */}
-                <rect
-                  x="78" y="142" width="44" height="56" rx="8"
-                  fill={getColorForMuscle('core')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('core')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Glutes */}
-                <path
-                  d="M75 200 L125 200 Q130 215 125 230 L75 230 Q70 215 75 200 Z"
-                  fill={getColorForMuscle('glutes')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('glutes')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Quadriceps - left */}
-                <path
-                  d="M75 232 L95 232 L92 300 L78 300 Z"
-                  fill={getColorForMuscle('quadriceps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('quadriceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Quadriceps - right */}
-                <path
-                  d="M105 232 L125 232 L122 300 L108 300 Z"
-                  fill={getColorForMuscle('quadriceps')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('quadriceps')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Hamstrings - left (visible on inner edge) */}
-                <path
-                  d="M95 240 L100 240 L98 295 L93 295 Z"
-                  fill={getColorForMuscle('hamstrings')}
-                  stroke="#334155"
-                  strokeWidth="0.6"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('hamstrings')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Hamstrings - right */}
-                <path
-                  d="M100 240 L107 240 L107 295 L102 295 Z"
-                  fill={getColorForMuscle('hamstrings')}
-                  stroke="#334155"
-                  strokeWidth="0.6"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('hamstrings')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Calves - left */}
-                <ellipse
-                  cx="85" cy="330" rx="9" ry="24"
-                  fill={getColorForMuscle('calves')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('calves')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-                {/* Calves - right */}
-                <ellipse
-                  cx="115" cy="330" rx="9" ry="24"
-                  fill={getColorForMuscle('calves')}
-                  stroke="#334155"
-                  strokeWidth="0.8"
-                  opacity={0.85}
-                  onMouseEnter={() => setHoveredMuscle('calves')}
-                  onMouseLeave={() => setHoveredMuscle(null)}
-                  className="cursor-pointer transition-opacity hover:opacity-100"
-                />
-
-                {/* Feet outlines */}
-                <ellipse cx="85" cy="360" rx="10" ry="6" fill="#1a1a2e" stroke="#334155" strokeWidth="0.6" />
-                <ellipse cx="115" cy="360" rx="10" ry="6" fill="#1a1a2e" stroke="#334155" strokeWidth="0.6" />
-
-                {/* Hands */}
-                <ellipse cx="30" cy="228" rx="6" ry="8" fill="#1a1a2e" stroke="#334155" strokeWidth="0.6" />
-                <ellipse cx="170" cy="228" rx="6" ry="8" fill="#1a1a2e" stroke="#334155" strokeWidth="0.6" />
-              </svg>
-            </div>
-
-            {/* Hover tooltip */}
-            {hoveredMuscle && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-3 text-center"
-              >
-                <span className="inline-flex items-center gap-2 bg-grappler-800 rounded-full px-4 py-2">
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: getColorForMuscle(hoveredMuscle) }}
-                  />
-                  <span className="text-sm font-medium text-grappler-50">
-                    {MUSCLE_LABELS[hoveredMuscle]}
-                  </span>
-                  <span className="text-sm text-grappler-400">
-                    {formatVolume(muscleVolumes[hoveredMuscle])} {unit}
-                  </span>
-                </span>
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* Color Legend */}
+          {/* Legend */}
           <motion.div variants={itemVariants} className="card p-4">
             <div className="flex items-center gap-2 mb-3">
               <Info className="w-4 h-4 text-primary-400" />
-              <h3 className="text-sm font-semibold text-grappler-50">Color Scale</h3>
+              <h3 className="text-sm font-semibold text-grappler-50">Volume Zones</h3>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-grappler-400 whitespace-nowrap">Low</span>
-              <div className="flex-1 h-4 rounded-full overflow-hidden flex">
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 h-full"
-                    style={{ backgroundColor: getHeatColor((i + 1) / 20) }}
-                  />
-                ))}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-red-500/60" />
+                <span className="text-grappler-300">Below MEV <span className="text-grappler-500">(junk volume)</span></span>
               </div>
-              <span className="text-xs text-grappler-400 whitespace-nowrap">High</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-yellow-500/60" />
+                <span className="text-grappler-300">MEV-MAV <span className="text-grappler-500">(maintenance)</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-emerald-500/60" />
+                <span className="text-grappler-300">MAV-MRV <span className="text-grappler-500">(optimal growth)</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-sm bg-red-500/80" />
+                <span className="text-grappler-300">Above MRV <span className="text-grappler-500">(overreaching)</span></span>
+              </div>
             </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-grappler-500">Cool / Untrained</span>
-              <span className="text-[10px] text-grappler-500">Hot / High Volume</span>
-            </div>
+            <p className="text-[10px] text-grappler-500 mt-2.5">
+              MEV = Minimum Effective Volume &bull; MAV = Maximum Adaptive Volume &bull; MRV = Maximum Recoverable Volume
+            </p>
           </motion.div>
 
-          {/* Volume Breakdown List */}
+          {/* Muscle Group Volume Bars */}
           <motion.div variants={itemVariants} className="card p-4">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary-400" />
-              <h2 className="text-base font-semibold text-grappler-50">Volume Breakdown</h2>
+              <h2 className="text-base font-semibold text-grappler-50">Weekly Set Volume</h2>
+              <span className="text-xs text-grappler-500 ml-auto">last 7 days</span>
             </div>
 
-            <div className="space-y-3">
-              {sortedMuscles.map((muscle, index) => {
-                const vol = muscleVolumes[muscle];
-                const ratio = maxVolume > 0 ? vol / maxVolume : 0;
-                const color = getHeatColor(ratio);
-
-                return (
-                  <motion.div
-                    key={muscle}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="group"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="text-sm text-grappler-200 font-medium">
-                          {MUSCLE_LABELS[muscle]}
-                        </span>
-                      </div>
-                      <span className="text-sm text-grappler-400 tabular-nums">
-                        {formatVolume(vol)} {unit}
-                      </span>
-                    </div>
-                    <div className="h-2 bg-grappler-800 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.max(ratio * 100, vol > 0 ? 2 : 0)}%` }}
-                        transition={{ duration: 0.6, delay: index * 0.03, ease: 'easeOut' }}
-                      />
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Total volume summary */}
-            <div className="mt-4 pt-4 border-t border-grappler-700/50">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-grappler-300">Total Tracked Volume</span>
-                <span className="text-sm font-bold text-grappler-50">
-                  {formatVolume(
-                    sortedMuscles.reduce((sum, mg) => sum + muscleVolumes[mg], 0)
-                  )}{' '}
-                  {unit}
-                </span>
-              </div>
-              <p className="text-xs text-grappler-500 mt-1">
-                Secondary muscles counted at 50% volume credit
-              </p>
+            <div className="space-y-1">
+              {muscleData.map((data, index) => (
+                <MuscleVolumeBar
+                  key={data.muscle}
+                  data={data}
+                  index={index}
+                  expanded={expandedMuscle === data.muscle}
+                  onToggle={() =>
+                    setExpandedMuscle(expandedMuscle === data.muscle ? null : data.muscle)
+                  }
+                />
+              ))}
             </div>
           </motion.div>
 
-          {/* Muscle imbalance insight */}
-          {sortedMuscles.length > 2 && muscleVolumes[sortedMuscles[0]] > 0 && (
-            <motion.div variants={itemVariants} className="card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-yellow-400" />
-                <h3 className="text-sm font-semibold text-grappler-50">Balance Insight</h3>
-              </div>
-              <div className="space-y-2">
+          {/* Insights */}
+          <motion.div variants={itemVariants} className="card p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-primary-400" />
+              <h3 className="text-sm font-semibold text-grappler-50">Insights</h3>
+            </div>
+            <div className="space-y-2.5">
+              {summary.overreaching > 0 && (
                 <div className="flex items-start gap-2 text-sm">
-                  <span className="text-emerald-400 mt-0.5 flex-shrink-0">&#x25B2;</span>
+                  <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
                   <p className="text-grappler-300">
-                    <span className="text-grappler-100 font-medium">{MUSCLE_LABELS[sortedMuscles[0]]}</span>{' '}
-                    has the highest volume at{' '}
-                    <span className="text-grappler-100 font-medium">
-                      {formatVolume(muscleVolumes[sortedMuscles[0]])} {unit}
-                    </span>
+                    <span className="text-red-400 font-medium">{summary.overreaching} muscle group{summary.overreaching > 1 ? 's' : ''}</span>{' '}
+                    exceeding MRV. Consider reducing volume to avoid excess fatigue and injury risk.
                   </p>
                 </div>
-                {muscleVolumes[sortedMuscles[sortedMuscles.length - 1]] === 0 ? (
-                  <div className="flex items-start gap-2 text-sm">
-                    <span className="text-red-400 mt-0.5 flex-shrink-0">&#x25BC;</span>
-                    <p className="text-grappler-300">
-                      <span className="text-grappler-100 font-medium">
-                        {MUSCLE_LABELS[sortedMuscles[sortedMuscles.length - 1]]}
-                      </span>{' '}
-                      has zero recorded volume — consider adding exercises that target it.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 text-sm">
-                    <span className="text-yellow-400 mt-0.5 flex-shrink-0">&#x25BC;</span>
-                    <p className="text-grappler-300">
-                      <span className="text-grappler-100 font-medium">
-                        {MUSCLE_LABELS[sortedMuscles[sortedMuscles.length - 1]]}
-                      </span>{' '}
-                      has the lowest volume at{' '}
-                      <span className="text-grappler-100 font-medium">
-                        {formatVolume(muscleVolumes[sortedMuscles[sortedMuscles.length - 1]])} {unit}
-                      </span>
-                    </p>
-                  </div>
-                )}
+              )}
+              {summary.belowMev > 0 && (
+                <div className="flex items-start gap-2 text-sm">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-grappler-300">
+                    <span className="text-yellow-400 font-medium">{summary.belowMev} muscle group{summary.belowMev > 1 ? 's' : ''}</span>{' '}
+                    below MEV. Volume is too low to stimulate meaningful growth.
+                  </p>
+                </div>
+              )}
+              {summary.optimal > 0 && (
+                <div className="flex items-start gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-grappler-300">
+                    <span className="text-emerald-400 font-medium">{summary.optimal} muscle group{summary.optimal > 1 ? 's' : ''}</span>{' '}
+                    in the optimal growth zone (MAV-MRV). Keep it up!
+                  </p>
+                </div>
+              )}
+              {summary.optimal === 0 && summary.overreaching === 0 && summary.belowMev === 0 && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Info className="w-4 h-4 text-grappler-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-grappler-300">
+                    All muscle groups are in the maintenance range. Push volume toward MAV-MRV for hypertrophy gains.
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Mesocycle context */}
+          {mesocycleInfo && (
+            <motion.div variants={itemVariants} className="card p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-grappler-400" />
+                <h3 className="text-sm font-semibold text-grappler-50">Current Block</h3>
               </div>
+              <p className="text-xs text-grappler-400">
+                {mesocycleInfo.name} &mdash; {mesocycleInfo.weekCount} week{mesocycleInfo.weekCount !== 1 ? 's' : ''} planned.
+                Volume should progressively increase across weeks (MEV &rarr; MRV), then deload.
+              </p>
             </motion.div>
           )}
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+/** Individual muscle group volume bar with landmark zones */
+function MuscleVolumeBar({
+  data,
+  index,
+  expanded,
+  onToggle,
+}: {
+  data: MuscleVolumeData;
+  index: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const { muscle, label, sets, landmarks, zone } = data;
+  const { mev, mav, mrv } = landmarks;
+
+  // The bar represents 0 to mrv * 1.2 (allow some overflow for over-MRV)
+  const barMax = mrv * 1.25;
+
+  // Zone boundaries as percentages
+  const mevPct = (mev / barMax) * 100;
+  const mavPct = (mav / barMax) * 100;
+  const mrvPct = (mrv / barMax) * 100;
+
+  // Current fill percentage
+  const fillPct = Math.min((sets / barMax) * 100, 100);
+
+  // Determine the fill color based on where the current volume sits
+  const fillColor = (() => {
+    if (sets === 0) return 'bg-grappler-600';
+    if (sets < mev) return 'bg-red-500';
+    if (sets <= mav) return 'bg-yellow-500';
+    if (sets <= mrv) return 'bg-emerald-500';
+    return 'bg-red-500';
+  })();
+
+  const fillGlow = (() => {
+    if (sets <= mav && sets >= mev) return 'shadow-yellow-500/20';
+    if (sets > mav && sets <= mrv) return 'shadow-emerald-500/30';
+    return '';
+  })();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.03 }}
+      className="py-2"
+    >
+      {/* Top row: muscle name, set count, zone badge */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between mb-1.5 group"
+      >
+        <div className="flex items-center gap-2">
+          <span className={cn('text-sm font-medium', getZoneColor(zone))}>
+            {label}
+          </span>
+          <span
+            className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+              getZoneBgColor(zone),
+              getZoneColor(zone)
+            )}
+          >
+            {getZoneLabel(zone)}
+          </span>
+        </div>
+        <span className="text-sm tabular-nums text-grappler-200 font-semibold">
+          {sets % 1 === 0 ? sets : sets.toFixed(1)} <span className="text-grappler-500 font-normal text-xs">sets</span>
+        </span>
+      </button>
+
+      {/* The landmark bar */}
+      <div className="relative h-5 rounded-md overflow-hidden bg-grappler-800/80">
+        {/* Zone background bands */}
+        {/* Below MEV zone: 0 to mev */}
+        <div
+          className="absolute inset-y-0 left-0 bg-red-500/10 border-r border-red-500/30"
+          style={{ width: `${mevPct}%` }}
+        />
+        {/* MEV to MAV zone */}
+        <div
+          className="absolute inset-y-0 bg-yellow-500/10 border-r border-yellow-500/30"
+          style={{ left: `${mevPct}%`, width: `${mavPct - mevPct}%` }}
+        />
+        {/* MAV to MRV zone (optimal) */}
+        <div
+          className="absolute inset-y-0 bg-emerald-500/10 border-r border-red-500/30"
+          style={{ left: `${mavPct}%`, width: `${mrvPct - mavPct}%` }}
+        />
+        {/* Above MRV zone */}
+        <div
+          className="absolute inset-y-0 bg-red-500/8"
+          style={{ left: `${mrvPct}%`, right: 0 }}
+        />
+
+        {/* Fill bar */}
+        <motion.div
+          className={cn('absolute inset-y-0 left-0 rounded-md', fillColor, fillGlow && `shadow-lg ${fillGlow}`)}
+          style={{ opacity: 0.75 }}
+          initial={{ width: 0 }}
+          animate={{ width: `${fillPct}%` }}
+          transition={{ duration: 0.7, delay: index * 0.04, ease: 'easeOut' }}
+        />
+
+        {/* Landmark tick marks */}
+        <div
+          className="absolute inset-y-0 w-px bg-red-400/60"
+          style={{ left: `${mevPct}%` }}
+        />
+        <div
+          className="absolute inset-y-0 w-px bg-yellow-400/60"
+          style={{ left: `${mavPct}%` }}
+        />
+        <div
+          className="absolute inset-y-0 w-px bg-red-400/60"
+          style={{ left: `${mrvPct}%` }}
+        />
+
+        {/* Landmark labels inside bar */}
+        <span
+          className="absolute top-0.5 text-[8px] font-medium text-red-400/80 leading-none"
+          style={{ left: `${mevPct}%`, transform: 'translateX(2px)' }}
+        >
+          MEV
+        </span>
+        <span
+          className="absolute top-0.5 text-[8px] font-medium text-yellow-400/80 leading-none"
+          style={{ left: `${mavPct}%`, transform: 'translateX(2px)' }}
+        >
+          MAV
+        </span>
+        <span
+          className="absolute top-0.5 text-[8px] font-medium text-red-400/80 leading-none"
+          style={{ left: `${mrvPct}%`, transform: 'translateX(2px)' }}
+        >
+          MRV
+        </span>
+      </div>
+
+      {/* Landmark numbers below bar */}
+      <div className="relative h-3 mt-0.5">
+        <span
+          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}
+        >
+          {mev}
+        </span>
+        <span
+          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}
+        >
+          {mav}
+        </span>
+        <span
+          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}
+        >
+          {mrv}
+        </span>
+      </div>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          className="mt-1 bg-grappler-800/50 rounded-lg p-3 text-xs space-y-1.5"
+        >
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div className="text-red-400 font-semibold">{mev}</div>
+              <div className="text-grappler-500">MEV</div>
+              <div className="text-grappler-600 text-[10px]">Min Effective</div>
+            </div>
+            <div>
+              <div className="text-yellow-400 font-semibold">{mav}</div>
+              <div className="text-grappler-500">MAV</div>
+              <div className="text-grappler-600 text-[10px]">Max Adaptive</div>
+            </div>
+            <div>
+              <div className="text-red-400 font-semibold">{mrv}</div>
+              <div className="text-grappler-500">MRV</div>
+              <div className="text-grappler-600 text-[10px]">Max Recoverable</div>
+            </div>
+          </div>
+          <div className="border-t border-grappler-700/50 pt-1.5">
+            {zone === 'untrained' && (
+              <p className="text-grappler-400">
+                No sets logged this week. Aim for at least <span className="text-grappler-200 font-medium">{mev} sets</span> to maintain muscle.
+              </p>
+            )}
+            {zone === 'below_mev' && (
+              <p className="text-grappler-400">
+                Current volume is below MEV. You need <span className="text-grappler-200 font-medium">{Math.ceil(mev - sets)} more sets</span> to reach the minimum effective threshold.
+              </p>
+            )}
+            {zone === 'mev_to_mav' && (
+              <p className="text-grappler-400">
+                Maintenance volume. Add <span className="text-grappler-200 font-medium">{Math.ceil(mav - sets)} more sets</span> to enter the optimal growth zone.
+              </p>
+            )}
+            {zone === 'mav_to_mrv' && (
+              <p className="text-grappler-400">
+                Optimal growth zone. You can add up to <span className="text-grappler-200 font-medium">{Math.ceil(mrv - sets)} more sets</span> before hitting MRV.
+              </p>
+            )}
+            {zone === 'above_mrv' && (
+              <p className="text-grappler-400">
+                Exceeding MRV by <span className="text-red-400 font-medium">{Math.ceil(sets - mrv)} sets</span>. Accumulated fatigue may outpace recovery. Consider reducing volume or taking a deload.
+              </p>
+            )}
+          </div>
         </motion.div>
       )}
     </motion.div>

@@ -27,41 +27,60 @@ import {
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 
-// ── Austrian & European preset foods with metric portions ──────────────────
+// ── Preset foods with metric portions ──────────────────────────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
-  // Austrian classics
-  { name: 'Wiener Schnitzel (200g)', calories: 530, protein: 32, carbs: 28, fat: 32 },
-  { name: 'Kaiserschmarrn (250g)', calories: 420, protein: 12, carbs: 52, fat: 18 },
-  { name: 'Semmel (1 Stk, 60g)', calories: 160, protein: 5, carbs: 30, fat: 2 },
-  { name: 'Topfenknödel (3 Stk)', calories: 380, protein: 16, carbs: 48, fat: 14 },
-  { name: 'Kasnocken (300g)', calories: 520, protein: 22, carbs: 45, fat: 28 },
-  { name: 'Tiroler Gröstl (350g)', calories: 480, protein: 28, carbs: 38, fat: 24 },
-  // Protein sources (metric)
-  { name: 'Hühnerbrust (170g)', calories: 280, protein: 53, carbs: 0, fat: 6 },
-  { name: 'Lachs (170g)', calories: 350, protein: 38, carbs: 0, fat: 22 },
-  { name: 'Eier (3 Stk)', calories: 234, protein: 18, carbs: 2, fat: 16 },
-  { name: 'Rindfleisch mager (200g)', calories: 320, protein: 44, carbs: 0, fat: 16 },
-  { name: 'Skyr Natur (200g)', calories: 130, protein: 22, carbs: 8, fat: 0 },
-  { name: 'Proteinshake (300ml)', calories: 160, protein: 30, carbs: 5, fat: 2 },
+  // Protein sources
+  { name: 'Chicken Breast (170g)', calories: 280, protein: 53, carbs: 0, fat: 6 },
+  { name: 'Salmon Fillet (170g)', calories: 350, protein: 38, carbs: 0, fat: 22 },
+  { name: 'Eggs (3 large)', calories: 234, protein: 18, carbs: 2, fat: 16 },
+  { name: 'Lean Beef (200g)', calories: 320, protein: 44, carbs: 0, fat: 16 },
+  { name: 'Turkey Breast (170g)', calories: 250, protein: 50, carbs: 0, fat: 5 },
+  { name: 'Tuna (1 can, 140g)', calories: 180, protein: 40, carbs: 0, fat: 2 },
+  { name: 'Shrimp (150g)', calories: 140, protein: 30, carbs: 1, fat: 2 },
+  { name: 'Protein Shake (300ml)', calories: 160, protein: 30, carbs: 5, fat: 2 },
+  // Dairy
+  { name: 'Greek Yogurt (200g)', calories: 130, protein: 20, carbs: 8, fat: 0 },
+  { name: 'Cottage Cheese (200g)', calories: 180, protein: 24, carbs: 6, fat: 5 },
+  { name: 'Whole Milk (250ml)', calories: 150, protein: 8, carbs: 12, fat: 8 },
+  { name: 'Mozzarella (60g)', calories: 170, protein: 12, carbs: 1, fat: 13 },
   // Carb sources
-  { name: 'Haferflocken (80g)', calories: 307, protein: 11, carbs: 55, fat: 5 },
-  { name: 'Vollkornbrot (2 Scheiben)', calories: 200, protein: 8, carbs: 36, fat: 3 },
-  { name: 'Reis (150g gekocht)', calories: 195, protein: 4, carbs: 42, fat: 1 },
-  { name: 'Kartoffeln (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
-  { name: 'Banane (1 Stk)', calories: 105, protein: 1, carbs: 27, fat: 0 },
+  { name: 'Oats (80g dry)', calories: 307, protein: 11, carbs: 55, fat: 5 },
+  { name: 'White Rice (150g cooked)', calories: 195, protein: 4, carbs: 42, fat: 1 },
+  { name: 'Brown Rice (150g cooked)', calories: 180, protein: 4, carbs: 38, fat: 2 },
+  { name: 'Whole Wheat Bread (2 slices)', calories: 200, protein: 8, carbs: 36, fat: 3 },
+  { name: 'Potatoes (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
+  { name: 'Sweet Potato (200g)', calories: 172, protein: 3, carbs: 40, fat: 0 },
+  { name: 'Pasta (150g cooked)', calories: 220, protein: 8, carbs: 42, fat: 1 },
+  // Fruits
+  { name: 'Banana (1 medium)', calories: 105, protein: 1, carbs: 27, fat: 0 },
+  { name: 'Apple (1 medium)', calories: 95, protein: 0, carbs: 25, fat: 0 },
+  { name: 'Blueberries (150g)', calories: 86, protein: 1, carbs: 22, fat: 0 },
+  { name: 'Strawberries (200g)', calories: 64, protein: 1, carbs: 15, fat: 0 },
+  { name: 'Orange (1 medium)', calories: 62, protein: 1, carbs: 15, fat: 0 },
+  { name: 'Grapes (150g)', calories: 104, protein: 1, carbs: 27, fat: 0 },
+  { name: 'Mango (1 cup, 165g)', calories: 99, protein: 1, carbs: 25, fat: 1 },
+  // Vegetables
+  { name: 'Broccoli (150g)', calories: 51, protein: 4, carbs: 10, fat: 0 },
+  { name: 'Spinach (100g)', calories: 23, protein: 3, carbs: 4, fat: 0 },
+  { name: 'Mixed Salad (200g)', calories: 30, protein: 2, carbs: 5, fat: 0 },
   // Fats & snacks
-  { name: 'Erdnussbutter (30g)', calories: 190, protein: 7, carbs: 7, fat: 16 },
-  { name: 'Avocado (halbe)', calories: 160, protein: 2, carbs: 9, fat: 15 },
-  { name: 'Mandeln (30g)', calories: 175, protein: 6, carbs: 6, fat: 15 },
+  { name: 'Peanut Butter (30g)', calories: 190, protein: 7, carbs: 7, fat: 16 },
+  { name: 'Avocado (half)', calories: 160, protein: 2, carbs: 9, fat: 15 },
+  { name: 'Almonds (30g)', calories: 175, protein: 6, carbs: 6, fat: 15 },
+  { name: 'Olive Oil (1 tbsp)', calories: 120, protein: 0, carbs: 0, fat: 14 },
+  // Quick meals
+  { name: 'Chicken & Rice Bowl', calories: 480, protein: 42, carbs: 52, fat: 10 },
+  { name: 'Tuna Sandwich', calories: 380, protein: 28, carbs: 36, fat: 12 },
+  { name: 'Protein Bar', calories: 220, protein: 20, carbs: 24, fat: 8 },
   // Drinks
-  { name: 'Milchkaffee (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
-  { name: 'Apfelschorle (330ml)', calories: 66, protein: 0, carbs: 16, fat: 0 },
+  { name: 'Latte (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
+  { name: 'Orange Juice (250ml)', calories: 112, protein: 2, carbs: 26, fat: 0 },
 ];
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  breakfast: 'Frühstück',
-  lunch: 'Mittagessen',
-  dinner: 'Abendessen',
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
   snack: 'Snack',
   pre_workout: 'Pre-Workout',
   post_workout: 'Post-Workout',
@@ -371,8 +390,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     e.target.value = '';
   };
 
-  // ── European date formatting ──
-  const todayFormatted = new Date().toLocaleDateString('de-AT', {
+  // ── Date formatting ──
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -425,7 +444,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-              Tagesziele
+              Daily Goals
             </h2>
             <p className="text-xs text-grappler-500">{todayFormatted}</p>
           </div>
@@ -456,7 +475,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               size={76}
             />
             <MacroRing
-              label="Fett"
+              label="Fat"
               current={totals.fat}
               target={computedTargets.fat}
               unit="g"
@@ -469,7 +488,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           {totalMacroGrams > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-xs text-grappler-400 uppercase tracking-wide">
-                Makro-Verteilung
+                Macro Split
               </p>
               <div className="h-3 rounded-full overflow-hidden flex bg-grappler-700/50">
                 <motion.div
@@ -502,7 +521,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
-                  Fett {Math.round(fatPct)}%
+                  Fat {Math.round(fatPct)}%
                 </span>
               </div>
             </div>
@@ -519,7 +538,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
               <Droplets className="w-4 h-4 text-blue-400" />
-              Wasser
+              Water
             </h2>
             <span className="text-xs text-grappler-400">
               {waterLiters} L / {(WATER_GOAL * 0.25).toFixed(1)} L
@@ -548,11 +567,11 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </div>
 
           <p className="text-xs text-grappler-500 mt-2">
-            {waterGlasses}/{WATER_GOAL} Gläser (je 250 ml)
+            {waterGlasses}/{WATER_GOAL} glasses (250 ml each)
             {waterGlasses >= WATER_GOAL && (
               <span className="text-blue-400 ml-1 font-medium">
                 {' '}
-                -- Ziel erreicht!
+                -- Goal reached!
               </span>
             )}
           </p>
@@ -567,16 +586,16 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
         >
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-              Essen erfassen
+              Log Food
             </h2>
             <div className="flex gap-2">
               <button
                 onClick={handleCameraClick}
                 className="btn btn-secondary btn-sm gap-1"
-                title="Foto aufnehmen"
+                title="Take photo"
               >
                 <Camera className="w-3.5 h-3.5" />
-                Foto
+                Photo
               </button>
               <button
                 onClick={() => {
@@ -586,7 +605,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="btn btn-secondary btn-sm gap-1"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Schnell
+                Quick
               </button>
               <button
                 onClick={() => {
@@ -599,7 +618,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="btn btn-primary btn-sm gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Manuell
+                Manual
               </button>
             </div>
           </div>
@@ -608,7 +627,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           {(showAddForm || showPresets) && (
             <div className="mb-3">
               <label className="text-xs text-grappler-400 mb-1.5 block">
-                Mahlzeit
+                Meal
               </label>
               <div className="flex gap-1.5 flex-wrap">
                 {MEAL_TYPE_ORDER.map((type) => (
@@ -645,7 +664,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     type="text"
                     value={presetSearch}
                     onChange={(e) => setPresetSearch(e.target.value)}
-                    placeholder="Suchen... (z.B. Schnitzel, Reis)"
+                    placeholder="Search... (e.g. chicken, rice)"
                     className="input text-sm"
                     autoFocus
                   />
@@ -681,7 +700,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   ))}
                   {filteredPresets.length === 0 && (
                     <p className="col-span-2 text-xs text-grappler-500 text-center py-4">
-                      Keine Ergebnisse. Versuche &quot;Manuell&quot; oder &quot;Foto&quot;.
+                      No results. Try &quot;Manual&quot; or &quot;Photo&quot;.
                     </p>
                   )}
                 </div>
@@ -715,7 +734,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                             <div className="absolute inset-0 bg-grappler-900/70 flex items-center justify-center">
                               <div className="text-center">
                                 <Loader2 className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-2" />
-                                <p className="text-xs text-grappler-300">Essen wird erkannt...</p>
+                                <p className="text-xs text-grappler-300">Analyzing food...</p>
                               </div>
                             </div>
                           )}
@@ -745,7 +764,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     }`}>
                       <ImageIcon className="w-4 h-4 flex-shrink-0" />
                       <span>
-                        AI-Erkennung ({analysisResult.confidence === 'high' ? 'sicher' : analysisResult.confidence === 'medium' ? 'wahrscheinlich' : 'unsicher'})
+                        AI Detection ({analysisResult.confidence === 'high' ? 'confident' : analysisResult.confidence === 'medium' ? 'likely' : 'uncertain'})
                         {analysisResult.notes && ` — ${analysisResult.notes}`}
                       </span>
                     </div>
@@ -767,7 +786,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       type="text"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
-                      placeholder="z.B. Tiroler Gröstl, Semmelknödel"
+                      placeholder="e.g. Chicken breast, Rice bowl"
                       className="input"
                       autoFocus={!previewImage}
                     />
@@ -805,7 +824,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
                         <Wheat className="w-3 h-3 text-blue-400" />
-                        Kohlenhydrate (g)
+                        Carbs (g)
                       </label>
                       <input
                         type="number"
@@ -819,7 +838,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
                         <Droplet className="w-3 h-3 text-yellow-400" />
-                        Fett (g)
+                        Fat (g)
                       </label>
                       <input
                         type="number"
@@ -840,14 +859,14 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       }}
                       className="btn btn-secondary btn-sm flex-1"
                     >
-                      Abbrechen
+                      Cancel
                     </button>
                     <button
                       onClick={handleAddMeal}
                       disabled={isAnalyzing}
                       className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
-                      Hinzufügen
+                      Add
                     </button>
                   </div>
                 </div>
@@ -864,17 +883,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           className="card p-4"
         >
           <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide mb-3">
-            Heutige Mahlzeiten
+            Today's Meals
           </h2>
 
           {todayMeals.length === 0 ? (
             <div className="text-center py-8">
               <Apple className="w-10 h-10 text-grappler-700 mx-auto mb-2" />
               <p className="text-sm text-grappler-500">
-                Noch keine Mahlzeiten erfasst.
+                No meals logged yet.
               </p>
               <p className="text-xs text-grappler-600 mt-1">
-                Nutze Foto, Schnell oder Manuell um loszulegen.
+                Use Photo, Quick or Manual to get started.
               </p>
             </div>
           ) : (
@@ -923,7 +942,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 {meal.protein}g P
                               </span>
                               <span className="text-blue-400">
-                                {meal.carbs}g K
+                                {meal.carbs}g C
                               </span>
                               <span className="text-yellow-400">
                                 {meal.fat}g F
@@ -955,7 +974,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             className="bg-grappler-800 rounded-xl p-4"
           >
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide mb-3">
-              Tagesbilanz
+              Daily Summary
             </h2>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
@@ -966,7 +985,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {computedTargets.calories} kcal
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.calories - totals.calories, 0)} übrig
+                  {Math.max(computedTargets.calories - totals.calories, 0)} left
                 </p>
               </div>
               <div>
@@ -977,7 +996,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {computedTargets.protein}g Pro
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.protein - totals.protein, 0)}g übrig
+                  {Math.max(computedTargets.protein - totals.protein, 0)}g left
                 </p>
               </div>
               <div>
@@ -985,10 +1004,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.carbs}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.carbs}g KH
+                  / {computedTargets.carbs}g Carbs
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.carbs - totals.carbs, 0)}g übrig
+                  {Math.max(computedTargets.carbs - totals.carbs, 0)}g left
                 </p>
               </div>
               <div>
@@ -996,10 +1015,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.fat}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.fat}g Fett
+                  / {computedTargets.fat}g Fat
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.fat - totals.fat, 0)}g übrig
+                  {Math.max(computedTargets.fat - totals.fat, 0)}g left
                 </p>
               </div>
             </div>

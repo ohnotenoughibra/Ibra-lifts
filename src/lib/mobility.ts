@@ -12,6 +12,9 @@ import {
 // Provides structured mobility routines, deload session generation,
 // and active recovery sessions tailored for grapplers who lift.
 
+const ytSearch = (q: string) =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' form demo')}`;
+
 // --- Mobility Routines ---
 
 /**
@@ -35,7 +38,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Sit with both legs at 90 degrees. Rotate hips to switch sides, keeping torso tall. ' +
             'Hold each side briefly before switching.',
-          breathingCue: 'Exhale as you rotate to each side. Inhale in the middle position.'
+          breathingCue: 'Exhale as you rotate to each side. Inhale in the middle position.',
+          videoUrl: ytSearch('90 90 hip switch mobility')
         },
         {
           name: 'Deep Squat Hold with Rotation',
@@ -44,7 +48,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Drop into a deep squat. Place one hand on the ground and reach the other toward the ceiling, ' +
             'rotating through the thoracic spine. Alternate sides.',
-          breathingCue: 'Inhale at the bottom, exhale as you rotate and reach.'
+          breathingCue: 'Inhale at the bottom, exhale as you rotate and reach.',
+          videoUrl: ytSearch('deep squat hold thoracic rotation')
         },
         {
           name: 'Pigeon Stretch',
@@ -53,7 +58,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'From a kneeling position, bring one shin across your body at roughly 45 degrees. ' +
             'Sink hips toward the floor. Keep hips square. Hold each side.',
-          breathingCue: 'Slow, deep breaths. Exhale to sink deeper into the stretch.'
+          breathingCue: 'Slow, deep breaths. Exhale to sink deeper into the stretch.',
+          videoUrl: ytSearch('pigeon stretch hip mobility')
         },
         {
           name: 'Cossack Squat Flow',
@@ -62,7 +68,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Wide stance, shift weight side to side into a deep lateral squat. Keep the trailing leg straight ' +
             'with toes pointed up. Flow continuously.',
-          breathingCue: 'Inhale in the center, exhale as you sit into each side.'
+          breathingCue: 'Inhale in the center, exhale as you sit into each side.',
+          videoUrl: ytSearch('cossack squat mobility flow')
         },
         {
           name: 'Hip Flexor Couch Stretch',
@@ -71,7 +78,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Rear foot elevated on a wall or bench, front foot flat. Drive hips forward into a deep hip flexor stretch. ' +
             'Squeeze the rear glute to deepen the stretch.',
-          breathingCue: 'Breathe into the front of the hip. Long exhales to release tension.'
+          breathingCue: 'Breathe into the front of the hip. Long exhales to release tension.',
+          videoUrl: ytSearch('hip flexor couch stretch')
         },
         {
           name: 'Frog Stretch',
@@ -80,7 +88,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'On all fours, spread knees wide with feet turned out. Slowly rock hips back toward heels, ' +
             'then forward. Feel the stretch in the inner thighs and groin.',
-          breathingCue: 'Exhale as you rock back, inhale as you rock forward.'
+          breathingCue: 'Exhale as you rock back, inhale as you rock forward.',
+          videoUrl: ytSearch('frog stretch groin mobility')
         }
       ]
     },
@@ -100,7 +109,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand with back against a wall. Arms in a "W" shape against the wall. Slowly slide arms up ' +
             'to a "Y" position and back down, maintaining contact with the wall.',
-          breathingCue: 'Inhale as you slide up, exhale as you slide down.'
+          breathingCue: 'Inhale as you slide up, exhale as you slide down.',
+          videoUrl: ytSearch('wall slides shoulder mobility')
         },
         {
           name: 'Thread the Needle',
@@ -109,7 +119,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'On all fours, reach one arm under your body toward the opposite side while the other arm stays planted. ' +
             'Rotate through the thoracic spine. Alternate sides.',
-          breathingCue: 'Exhale as you thread through, inhale as you open back up.'
+          breathingCue: 'Exhale as you thread through, inhale as you open back up.',
+          videoUrl: ytSearch('thread the needle stretch')
         },
         {
           name: 'Band Pull-Aparts',
@@ -118,7 +129,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Hold a light band at arm length. Pull it apart by squeezing the shoulder blades together. ' +
             'Control the return. Focus on rear delt and external rotator activation.',
-          breathingCue: 'Exhale as you pull apart, inhale on the return.'
+          breathingCue: 'Exhale as you pull apart, inhale on the return.',
+          videoUrl: ytSearch('band pull aparts shoulder')
         },
         {
           name: 'Sleeper Stretch',
@@ -127,7 +139,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lie on your side with the bottom arm at 90 degrees in front of you. Use the top hand to gently ' +
             'press the bottom hand toward the floor, stretching the posterior shoulder.',
-          breathingCue: 'Slow breaths. Exhale to gently increase pressure.'
+          breathingCue: 'Slow breaths. Exhale to gently increase pressure.',
+          videoUrl: ytSearch('sleeper stretch shoulder')
         },
         {
           name: 'Cross-Body Shoulder Stretch',
@@ -136,7 +149,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Pull one arm across your chest at shoulder height using the opposite hand. ' +
             'Hold and feel the stretch in the rear deltoid and posterior capsule.',
-          breathingCue: 'Breathe normally. Exhale to gently deepen the stretch.'
+          breathingCue: 'Breathe normally. Exhale to gently deepen the stretch.',
+          videoUrl: ytSearch('cross body shoulder stretch')
         }
       ]
     },
@@ -156,7 +170,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'On all fours, alternate between arching the back (cow) and rounding it (cat). ' +
             'Move slowly and deliberately through each position.',
-          breathingCue: 'Inhale into cow (arch), exhale into cat (round).'
+          breathingCue: 'Inhale into cow (arch), exhale into cat (round).',
+          videoUrl: ytSearch('cat cow stretch mobility')
         },
         {
           name: "World's Greatest Stretch",
@@ -165,7 +180,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lunge forward, place both hands inside the front foot. Rotate the inside arm up toward the ceiling. ' +
             'Return hand to floor, then push hips back to straighten the front leg. Alternate sides.',
-          breathingCue: 'Exhale as you rotate up, inhale as you return.'
+          breathingCue: 'Exhale as you rotate up, inhale as you return.',
+          videoUrl: ytSearch('worlds greatest stretch')
         },
         {
           name: 'Inchworm',
@@ -174,7 +190,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand tall, hinge at the hips, walk hands out to a plank. Perform a push-up if desired. ' +
             'Walk feet toward hands and stand. Repeat.',
-          breathingCue: 'Exhale walking out, inhale walking back.'
+          breathingCue: 'Exhale walking out, inhale walking back.',
+          videoUrl: ytSearch('inchworm')
         },
         {
           name: 'Scorpion Stretch',
@@ -183,7 +200,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lie face down, arms out to the sides. Lift one leg and rotate it across the body toward the opposite hand. ' +
             'Feel the stretch through the hip flexor and thoracic spine.',
-          breathingCue: 'Exhale as you rotate across, inhale to return.'
+          breathingCue: 'Exhale as you rotate across, inhale to return.',
+          videoUrl: ytSearch('scorpion stretch')
         },
         {
           name: 'Downward Dog to Cobra Flow',
@@ -192,7 +210,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'From downward dog, shift forward through a plank into cobra/upward dog. ' +
             'Push back to downward dog. Flow continuously.',
-          breathingCue: 'Inhale into cobra, exhale back to downward dog.'
+          breathingCue: 'Inhale into cobra, exhale back to downward dog.',
+          videoUrl: ytSearch('downward dog to cobra flow')
         },
         {
           name: 'Standing Side Bend',
@@ -201,7 +220,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand with feet shoulder-width apart. Reach one arm overhead and lean to the opposite side. ' +
             'Feel the stretch through the obliques and lats. Hold each side.',
-          breathingCue: 'Inhale to reach tall, exhale to lean and stretch.'
+          breathingCue: 'Inhale to reach tall, exhale to lean and stretch.',
+          videoUrl: ytSearch('standing side bend')
         },
         {
           name: 'Supine Twist',
@@ -210,7 +230,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lie on your back, pull one knee to chest and let it fall across the body to the opposite side. ' +
             'Keep both shoulders on the ground. Hold each side.',
-          breathingCue: 'Deep breaths. Exhale to allow the knee to sink deeper.'
+          breathingCue: 'Deep breaths. Exhale to allow the knee to sink deeper.',
+          videoUrl: ytSearch('supine twist')
         }
       ]
     },
@@ -230,7 +251,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand tall and make large circles with both arms. 15 seconds forward, 15 seconds backward. ' +
             'Progressively increase the range of motion.',
-          breathingCue: 'Breathe naturally. Keep breathing steady.'
+          breathingCue: 'Breathe naturally. Keep breathing steady.',
+          videoUrl: ytSearch('arm circles forward and backward')
         },
         {
           name: 'Leg Swings (front-to-back and lateral)',
@@ -239,7 +261,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Hold onto a wall or rack. Swing one leg forward and back, then side to side. ' +
             'Keep the core engaged. 15 swings each direction per leg.',
-          breathingCue: 'Exhale on the forward/outward swing.'
+          breathingCue: 'Exhale on the forward/outward swing.',
+          videoUrl: ytSearch('leg swings front-to-back and lateral')
         },
         {
           name: 'Hip Circles',
@@ -248,7 +271,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand on one leg. Make large circles with the other knee, opening and closing the hip. ' +
             'Perform in both directions. Switch legs.',
-          breathingCue: 'Breathe naturally. Focus on control, not speed.'
+          breathingCue: 'Breathe naturally. Focus on control, not speed.',
+          videoUrl: ytSearch('hip circles')
         },
         {
           name: 'Thoracic Rotation on All Fours',
@@ -257,7 +281,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'On all fours, place one hand behind the head. Rotate the elbow down toward the opposite hand, ' +
             'then rotate up toward the ceiling. Alternate sides.',
-          breathingCue: 'Exhale as you rotate up and open the chest.'
+          breathingCue: 'Exhale as you rotate up and open the chest.',
+          videoUrl: ytSearch('thoracic rotation on all fours')
         },
         {
           name: 'Bodyweight Squat with Pause',
@@ -266,7 +291,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Perform slow bodyweight squats. Pause for 2-3 seconds at the bottom, pushing knees out. ' +
             'Use this to open up the hips and ankles before training.',
-          breathingCue: 'Inhale on the way down, exhale to stand.'
+          breathingCue: 'Inhale on the way down, exhale to stand.',
+          videoUrl: ytSearch('bodyweight squat with pause')
         }
       ]
     },
@@ -286,7 +312,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand with feet hip-width. Fold forward from the hips, letting the head and arms hang. ' +
             'Bend the knees slightly if needed. Gently sway side to side.',
-          breathingCue: 'Slow exhales to sink deeper. Let gravity do the work.'
+          breathingCue: 'Slow exhales to sink deeper. Let gravity do the work.',
+          videoUrl: ytSearch('standing forward fold')
         },
         {
           name: 'Quadriceps Stretch (standing)',
@@ -295,7 +322,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand on one leg, grab the opposite ankle and pull the heel toward the glute. ' +
             'Keep the knees together and squeeze the glute on the stretching side.',
-          breathingCue: 'Breathe steadily. Exhale to pull gently deeper.'
+          breathingCue: 'Breathe steadily. Exhale to pull gently deeper.',
+          videoUrl: ytSearch('quadriceps stretch standing')
         },
         {
           name: 'Doorway or Band Chest Stretch',
@@ -304,7 +332,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Place forearm against a doorway or wrap a band around a post. Lean forward to stretch the pec ' +
             'and front shoulder. Adjust arm height to target different fibers.',
-          breathingCue: 'Exhale as you lean in. Inhale to reset slightly.'
+          breathingCue: 'Exhale as you lean in. Inhale to reset slightly.',
+          videoUrl: ytSearch('doorway or band chest stretch')
         },
         {
           name: 'Seated Hamstring Stretch',
@@ -313,7 +342,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Sit on the floor with one leg extended, the other bent. Reach toward the extended foot, ' +
             'hinging from the hips rather than rounding the back.',
-          breathingCue: 'Exhale to reach further. Avoid bouncing.'
+          breathingCue: 'Exhale to reach further. Avoid bouncing.',
+          videoUrl: ytSearch('seated hamstring stretch')
         },
         {
           name: "Child's Pose",
@@ -322,7 +352,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Kneel on the floor, sit back on your heels, and extend your arms forward on the ground. ' +
             'Let the forehead rest on the floor. Relax completely.',
-          breathingCue: 'Deep belly breaths. 4 seconds in, 6 seconds out.'
+          breathingCue: 'Deep belly breaths. 4 seconds in, 6 seconds out.',
+          videoUrl: ytSearch('childs pose stretch')
         }
       ]
     },
@@ -342,7 +373,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Slowly rotate the head in a full circle, making the largest pain-free range possible. ' +
             'Go clockwise, then counter-clockwise. Keep shoulders relaxed.',
-          breathingCue: 'Breathe continuously. Do not hold your breath.'
+          breathingCue: 'Breathe continuously. Do not hold your breath.',
+          videoUrl: ytSearch('neck cars controlled articular rotations')
         },
         {
           name: 'Neck Lateral Flexion Stretch',
@@ -351,7 +383,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Tilt the head toward one shoulder. Use the same-side hand to apply very gentle pressure. ' +
             'Keep the opposite shoulder pulled down. Hold each side.',
-          breathingCue: 'Exhale to gently deepen the stretch. Never force.'
+          breathingCue: 'Exhale to gently deepen the stretch. Never force.',
+          videoUrl: ytSearch('neck lateral flexion stretch')
         },
         {
           name: 'Wrist Circles',
@@ -360,7 +393,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Make fists and slowly rotate the wrists in large circles. 15 seconds in each direction. ' +
             'Focus on smooth, full range-of-motion circles.',
-          breathingCue: 'Breathe normally.'
+          breathingCue: 'Breathe normally.',
+          videoUrl: ytSearch('wrist circles')
         },
         {
           name: 'Wrist Flexor/Extensor Stretch',
@@ -369,7 +403,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Extend one arm, palm up. Use the other hand to gently pull fingers toward the floor (flexor stretch). ' +
             'Then flip palm down and pull fingers back (extensor stretch). Alternate.',
-          breathingCue: 'Exhale into each stretch position.'
+          breathingCue: 'Exhale into each stretch position.',
+          videoUrl: ytSearch('wrist flexor extensor stretch')
         },
         {
           name: 'Finger Extensor Band Work',
@@ -378,7 +413,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Place a rubber band around all five fingertips. Open the hand against the resistance of the band. ' +
             'This counteracts the constant gripping in grappling.',
-          breathingCue: 'Breathe naturally. Focus on full finger extension.'
+          breathingCue: 'Breathe naturally. Focus on full finger extension.',
+          videoUrl: ytSearch('finger extensor band work')
         },
         {
           name: 'Prayer Stretch (wrist flexion)',
@@ -387,7 +423,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Press palms together in a prayer position in front of the chest. Slowly lower hands while ' +
             'keeping palms together to increase the stretch on the wrist flexors.',
-          breathingCue: 'Slow exhale as you lower the hands.'
+          breathingCue: 'Slow exhale as you lower the hands.',
+          videoUrl: ytSearch('prayer stretch wrist flexion')
         }
       ]
     },
@@ -407,7 +444,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lie on a foam roller positioned across the upper back. Support the head with both hands. ' +
             'Gently extend over the roller, segment by segment, moving the roller up and down the thoracic spine.',
-          breathingCue: 'Exhale as you extend over the roller. Inhale to return.'
+          breathingCue: 'Exhale as you extend over the roller. Inhale to return.',
+          videoUrl: ytSearch('foam roller thoracic extension')
         },
         {
           name: 'Open Book Rotation',
@@ -416,7 +454,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Lie on your side, knees stacked and bent to 90 degrees. Top arm reaches over and behind you, ' +
             'opening the chest toward the ceiling. Follow the hand with your eyes.',
-          breathingCue: 'Exhale to rotate open, inhale to close.'
+          breathingCue: 'Exhale to rotate open, inhale to close.',
+          videoUrl: ytSearch('open book rotation')
         },
         {
           name: 'Bench Thoracic Extension',
@@ -425,7 +464,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Kneel in front of a bench. Place elbows on the bench and sit hips back. ' +
             'Let the chest sink toward the floor to extend the thoracic spine.',
-          breathingCue: 'Deep inhale to expand the ribcage, exhale to sink deeper.'
+          breathingCue: 'Deep inhale to expand the ribcage, exhale to sink deeper.',
+          videoUrl: ytSearch('bench thoracic extension')
         },
         {
           name: 'Quadruped Rotation with Reach',
@@ -434,7 +474,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'On all fours, place one hand behind the head. Rotate that elbow down toward the planted hand, ' +
             'then rotate up toward the ceiling. Full range of motion.',
-          breathingCue: 'Exhale on the upward rotation, inhale on the way down.'
+          breathingCue: 'Exhale on the upward rotation, inhale on the way down.',
+          videoUrl: ytSearch('quadruped rotation with reach')
         },
         {
           name: 'Seated Floor Twist',
@@ -443,7 +484,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Sit with legs extended. Cross one foot over the opposite knee. Twist toward the bent knee, ' +
             'using the opposite elbow against the knee for leverage. Hold each side.',
-          breathingCue: 'Inhale to sit tall, exhale to twist deeper.'
+          breathingCue: 'Inhale to sit tall, exhale to twist deeper.',
+          videoUrl: ytSearch('seated floor twist')
         }
       ]
     },
@@ -463,7 +505,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Face a wall, one foot forward. Drive the knee over the toes toward the wall without lifting the heel. ' +
             'Move the foot further back to increase difficulty. Alternate legs.',
-          breathingCue: 'Exhale as you push the knee forward.'
+          breathingCue: 'Exhale as you push the knee forward.',
+          videoUrl: ytSearch('wall ankle dorsiflexion stretch')
         },
         {
           name: 'Banded Ankle Distraction',
@@ -472,7 +515,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Loop a heavy band around the front of the ankle, anchored behind you. Step forward into a half-kneeling ' +
             'position. Drive the knee forward over the toes. The band pulls the talus back, improving joint mobility.',
-          breathingCue: 'Breathe normally. Rock gently forward and back.'
+          breathingCue: 'Breathe normally. Rock gently forward and back.',
+          videoUrl: ytSearch('banded ankle distraction')
         },
         {
           name: 'Calf Raises (slow eccentrics)',
@@ -481,7 +525,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Stand on a step with heels hanging off. Rise up on the balls of the feet, then lower slowly ' +
             'over 3-4 seconds below the step level. Full range of motion.',
-          breathingCue: 'Exhale on the way up, inhale on the slow lowering.'
+          breathingCue: 'Exhale on the way up, inhale on the slow lowering.',
+          videoUrl: ytSearch('calf raises slow eccentrics')
         },
         {
           name: 'Ankle Circles',
@@ -490,7 +535,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Sit or stand on one foot. Make large, slow circles with the free ankle. ' +
             '15 seconds clockwise, 15 seconds counter-clockwise. Switch feet.',
-          breathingCue: 'Breathe naturally.'
+          breathingCue: 'Breathe naturally.',
+          videoUrl: ytSearch('ankle circles')
         },
         {
           name: 'Goblet Squat Hold',
@@ -499,7 +545,8 @@ export function getMobilityRoutines(): MobilityRoutine[] {
           description:
             'Hold a light weight at chest height. Sink into a deep squat and hold. Use the elbows to push the ' +
             'knees out. Focus on keeping heels planted and torso upright.',
-          breathingCue: 'Deep belly breaths. Use the exhale to sink lower.'
+          breathingCue: 'Deep belly breaths. Use the exhale to sink lower.',
+          videoUrl: ytSearch('goblet squat hold')
         }
       ]
     }

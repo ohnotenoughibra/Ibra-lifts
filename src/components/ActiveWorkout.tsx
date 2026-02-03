@@ -66,6 +66,7 @@ export default function ActiveWorkout() {
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
   const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
@@ -367,6 +368,64 @@ export default function ActiveWorkout() {
   };
 
   const previousPerformance = getExerciseHistory(currentExercise.exerciseId);
+
+  // Get full history for an exercise (last 5 sessions)
+  const getExerciseFullHistory = (exerciseId: string) => {
+    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const sorted = [...allLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const results: { weight: number; reps: number; rpe: number; sets: number; date: Date; feedback?: ExerciseFeedback; estimated1RM?: number }[] = [];
+    for (const log of sorted) {
+      const ex = log.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex && ex.sets.length > 0) {
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
+        results.push({
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          rpe: bestSet.rpe,
+          sets: completedSets.length,
+          date: new Date(log.date),
+          feedback: ex.feedback,
+          estimated1RM: ex.estimated1RM,
+        });
+      }
+      if (results.length >= 5) break;
+    }
+    return results;
+  };
+
+  // RPE-based weight suggestion: uses last session's data + target RPE
+  const getRPEWeightSuggestion = () => {
+    if (!previousPerformance || previousPerformance.weight === 0) return null;
+    const targetRPE = currentExercise.prescription.rpe;
+    const targetReps = currentExercise.prescription.targetReps;
+    const lastRPE = previousPerformance.rpe || 7;
+    const lastWeight = previousPerformance.weight;
+
+    // RPE difference → approximate % adjustment (each RPE point ≈ 2-3% of load)
+    const rpeDiff = targetRPE - lastRPE;
+    const repsDiff = targetReps - previousPerformance.reps;
+    // Each rep difference ≈ 2.5% change, each RPE point ≈ 2.5% change
+    const pctAdjust = (rpeDiff * 0.025) - (repsDiff * 0.025);
+    let suggested = Math.round(lastWeight * (1 + pctAdjust));
+
+    // Factor in feedback from last time
+    if (previousPerformance.feedback) {
+      if (previousPerformance.feedback.difficulty === 'too_easy') suggested = Math.round(suggested * 1.05);
+      if (previousPerformance.feedback.difficulty === 'too_hard') suggested = Math.round(suggested * 0.90);
+    }
+
+    // Round to nearest increment
+    const increment = weightUnit === 'kg' ? 2.5 : 5;
+    suggested = Math.round(suggested / increment) * increment;
+    if (suggested <= 0) suggested = increment;
+
+    return { suggested, lastWeight, lastRPE, targetRPE };
+  };
+
+  const rpeSuggestion = getRPEWeightSuggestion();
+  const exerciseHistory = showHistory ? getExerciseFullHistory(currentExercise.exerciseId) : [];
 
   // Get adjustment reason for this exercise's suggested weight
   const getAdjustmentReason = (): string | null => {
@@ -1328,15 +1387,106 @@ export default function ActiveWorkout() {
               Rest: {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} between sets
             </p>
 
-            {/* Per-exercise history from last session */}
-            {previousPerformance && (
-              <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg inline-block">
-                <p className="text-xs text-grappler-400">
-                  Last time: <span className="text-grappler-200 font-medium">{previousPerformance.weight} {weightUnit} x {previousPerformance.reps}</span>
-                  <span className="text-grappler-500 ml-1">@ RPE {previousPerformance.rpe}</span>
+            {/* RPE-based weight suggestion */}
+            {rpeSuggestion && (
+              <div className="mt-2 px-3 py-2 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-primary-400 font-medium flex items-center gap-1">
+                    <Lightbulb className="w-3 h-3" />
+                    Suggested: {rpeSuggestion.suggested} {weightUnit}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setExactValue('weight', rpeSuggestion.suggested);
+                    }}
+                    className="text-[10px] text-primary-400 bg-primary-500/20 px-2 py-0.5 rounded-full hover:bg-primary-500/30 transition-colors"
+                  >
+                    Use
+                  </button>
+                </div>
+                <p className="text-[10px] text-grappler-500 mt-0.5">
+                  Based on {rpeSuggestion.lastWeight}{weightUnit} @ RPE {rpeSuggestion.lastRPE} last time
+                  {rpeSuggestion.targetRPE !== rpeSuggestion.lastRPE && ` → target RPE ${rpeSuggestion.targetRPE}`}
                 </p>
               </div>
             )}
+
+            {/* Per-exercise history from last session */}
+            {previousPerformance && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="px-3 py-1.5 bg-grappler-800/60 rounded-lg">
+                  <p className="text-xs text-grappler-400">
+                    Last: <span className="text-grappler-200 font-medium">{previousPerformance.weight} {weightUnit} x {previousPerformance.reps}</span>
+                    <span className="text-grappler-500 ml-1">@ RPE {previousPerformance.rpe}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors"
+                >
+                  <Clock className="w-3 h-3" />
+                  {showHistory ? 'Hide' : 'History'}
+                </button>
+              </div>
+            )}
+
+            {/* Full exercise history panel */}
+            <AnimatePresence>
+              {showHistory && exerciseHistory.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-2 overflow-hidden"
+                >
+                  <div className="bg-grappler-800/40 rounded-lg p-3 space-y-2">
+                    <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium">Last {exerciseHistory.length} sessions</p>
+                    {exerciseHistory.map((h, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-grappler-500">
+                          {h.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        <span className="text-grappler-200 font-medium">
+                          {h.weight} {weightUnit} x {h.reps}
+                        </span>
+                        <span className="text-grappler-400">
+                          {h.sets}s @ RPE {h.rpe}
+                        </span>
+                        {h.estimated1RM && h.estimated1RM > 0 && (
+                          <span className="text-grappler-500">e1RM: {Math.round(h.estimated1RM)}</span>
+                        )}
+                        {h.feedback && (
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded',
+                            h.feedback.difficulty === 'too_easy' && 'bg-green-500/20 text-green-400',
+                            h.feedback.difficulty === 'just_right' && 'bg-blue-500/20 text-blue-400',
+                            h.feedback.difficulty === 'challenging' && 'bg-yellow-500/20 text-yellow-400',
+                            h.feedback.difficulty === 'too_hard' && 'bg-red-500/20 text-red-400',
+                          )}>
+                            {h.feedback.difficulty === 'too_easy' ? 'Easy' :
+                             h.feedback.difficulty === 'just_right' ? 'Right' :
+                             h.feedback.difficulty === 'challenging' ? 'Hard' :
+                             h.feedback.difficulty === 'too_hard' ? 'Too hard' : ''}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {exerciseHistory.length >= 2 && (
+                      <div className="pt-1 border-t border-grappler-700/50">
+                        <p className="text-[10px] text-grappler-500">
+                          {exerciseHistory[0].weight > exerciseHistory[exerciseHistory.length - 1].weight
+                            ? `↑ +${exerciseHistory[0].weight - exerciseHistory[exerciseHistory.length - 1].weight} ${weightUnit} over ${exerciseHistory.length} sessions`
+                            : exerciseHistory[0].weight < exerciseHistory[exerciseHistory.length - 1].weight
+                            ? `↓ ${exerciseHistory[0].weight - exerciseHistory[exerciseHistory.length - 1].weight} ${weightUnit} over ${exerciseHistory.length} sessions`
+                            : `→ Maintained ${exerciseHistory[0].weight} ${weightUnit} over ${exerciseHistory.length} sessions`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Weight suggestion explanation */}
             {!previousPerformance && currentLog.sets[0]?.weight === 0 && (

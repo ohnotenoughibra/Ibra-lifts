@@ -1524,3 +1524,88 @@ export function getAlternativesForExercise(exerciseId: string, equipment: Equipm
     })
     .slice(0, limit);
 }
+
+// Enhanced alternatives with recommendation scores and reasons
+export interface ExerciseRecommendation {
+  exercise: Exercise;
+  matchScore: number; // 0-100
+  reasons: string[];
+  tags: string[]; // e.g., "Same movement", "Grappler friendly", "Higher aesthetic"
+}
+
+export function getRecommendedAlternatives(
+  exerciseId: string,
+  equipment: Equipment,
+  limit: number = 8
+): ExerciseRecommendation[] {
+  const exercise = exercises.find(e => e.id === exerciseId);
+  if (!exercise) return [];
+
+  return exercises
+    .filter(e =>
+      e.id !== exerciseId &&
+      e.equipmentRequired.includes(equipment) &&
+      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))
+    )
+    .map(alt => {
+      let score = 0;
+      const reasons: string[] = [];
+      const tags: string[] = [];
+
+      // Primary muscle overlap (up to 40 points)
+      const primaryOverlap = alt.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
+      const primaryScore = (primaryOverlap / Math.max(exercise.primaryMuscles.length, 1)) * 40;
+      score += primaryScore;
+      if (primaryOverlap === exercise.primaryMuscles.length) {
+        reasons.push('Targets all the same primary muscles');
+        tags.push('Full match');
+      } else if (primaryOverlap > 0) {
+        reasons.push(`Targets ${alt.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).join(', ')}`);
+      }
+
+      // Secondary muscle overlap (up to 15 points)
+      const secondaryOverlap = alt.secondaryMuscles.filter(m =>
+        exercise.secondaryMuscles.includes(m) || exercise.primaryMuscles.includes(m)
+      ).length;
+      score += Math.min(15, secondaryOverlap * 5);
+
+      // Same movement pattern (20 points)
+      if (alt.movementPattern === exercise.movementPattern) {
+        score += 20;
+        reasons.push(`Same ${exercise.movementPattern} pattern`);
+        tags.push('Same movement');
+      }
+
+      // Same category bonus (10 points)
+      if (alt.category === exercise.category) {
+        score += 10;
+        tags.push(alt.category === 'compound' ? 'Compound' : alt.category === 'isolation' ? 'Isolation' : alt.category);
+      }
+
+      // Grappler-friendly bonus (10 points)
+      if (alt.grapplerFriendly) {
+        score += 10;
+        tags.push('Grappler friendly');
+      }
+
+      // Comparable strength/aesthetic value (up to 5 points)
+      const strengthDiff = Math.abs(alt.strengthValue - exercise.strengthValue);
+      const aestheticDiff = Math.abs(alt.aestheticValue - exercise.aestheticValue);
+      if (strengthDiff <= 1) score += 2.5;
+      if (aestheticDiff <= 1) score += 2.5;
+
+      // If higher aesthetic or strength value, note it
+      if (alt.aestheticValue > exercise.aestheticValue + 1) {
+        tags.push('More aesthetic');
+      }
+      if (alt.strengthValue > exercise.strengthValue + 1) {
+        tags.push('More strength');
+      }
+
+      score = Math.min(100, Math.round(score));
+
+      return { exercise: alt, matchScore: score, reasons, tags };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, limit);
+}

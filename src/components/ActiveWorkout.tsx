@@ -27,7 +27,7 @@ import {
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { getAlternativesForExercise } from '@/lib/exercises';
+import { getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { calculateReadiness } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
@@ -251,12 +251,35 @@ export default function ActiveWorkout() {
   // Get readiness for display
   const readiness = activeWorkout.preCheckIn ? calculateReadiness(activeWorkout.preCheckIn) : null;
 
-  // Get alternatives for current exercise
+  // Get alternatives for current exercise (basic list kept for compatibility)
   const alternatives = user ? getAlternativesForExercise(
     currentExercise.exerciseId,
     user.equipment,
     5
   ) : [];
+
+  // Enhanced recommendations with scores and reasons
+  const recommendations: ExerciseRecommendation[] = user ? getRecommendedAlternatives(
+    currentExercise.exerciseId,
+    user.equipment,
+    8
+  ) : [];
+
+  // Get previous performance for an alternative exercise
+  const getAltHistory = (exerciseId: string) => {
+    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const sorted = [...allLogs].reverse();
+    for (const log of sorted) {
+      const ex = log.exercises.find(e => e.exerciseId === exerciseId);
+      if (ex && ex.sets.length > 0) {
+        const bestSet = ex.sets
+          .filter(s => s.completed)
+          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        return { weight: bestSet.weight, reps: bestSet.reps, date: new Date(log.date) };
+      }
+    }
+    return null;
+  };
 
   // Get per-exercise history from previous sessions
   const getExerciseHistory = (exerciseId: string) => {
@@ -686,27 +709,78 @@ export default function ActiveWorkout() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md"
+              className="card p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
             >
               <h2 className="text-lg font-bold text-grappler-50 mb-1">Swap Exercise</h2>
-              <p className="text-xs text-grappler-400 mb-4">
-                Replace {currentExercise.exercise.name} with a similar exercise
+              <p className="text-xs text-grappler-400 mb-1">
+                Replace <span className="text-grappler-200 font-medium">{currentExercise.exercise.name}</span>
+              </p>
+              <p className="text-[11px] text-grappler-500 mb-4">
+                Sorted by match score — how well each exercise replaces the current one
               </p>
 
               <div className="space-y-2">
-                {alternatives.length > 0 ? alternatives.map((alt) => (
-                  <button
-                    key={alt.id}
-                    onClick={() => handleSwapExercise(alt.id, alt.name)}
-                    className="w-full p-3 rounded-lg border border-grappler-700 hover:border-primary-500 text-left transition-all"
-                  >
-                    <p className="font-medium text-grappler-100">{alt.name}</p>
-                    <p className="text-xs text-grappler-400">
-                      {alt.primaryMuscles.join(', ')} | {alt.category}
-                    </p>
-                  </button>
-                )) : (
-                  <p className="text-sm text-grappler-400 text-center py-4">No alternatives available</p>
+                {recommendations.length > 0 ? recommendations.map((rec) => {
+                  const altHistory = getAltHistory(rec.exercise.id);
+                  return (
+                    <button
+                      key={rec.exercise.id}
+                      onClick={() => handleSwapExercise(rec.exercise.id, rec.exercise.name)}
+                      className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
+                          {rec.exercise.name}
+                        </p>
+                        <span className={cn(
+                          'text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2',
+                          rec.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                          rec.matchScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-grappler-700 text-grappler-400'
+                        )}>
+                          {rec.matchScore}%
+                        </span>
+                      </div>
+
+                      {/* Reason */}
+                      {rec.reasons.length > 0 && (
+                        <p className="text-[11px] text-grappler-400 mb-1.5">
+                          {rec.reasons[0]}
+                        </p>
+                      )}
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {rec.tags.slice(0, 4).map((tag, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Previous performance if available */}
+                      {altHistory && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <TrendingUp className="w-3 h-3 text-primary-400" />
+                          <p className="text-[11px] text-primary-400">
+                            You did {altHistory.weight} {weightUnit} x {altHistory.reps} on {altHistory.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Muscle info */}
+                      <p className="text-[10px] text-grappler-500 mt-1">
+                        {rec.exercise.primaryMuscles.join(', ')}
+                        {rec.exercise.secondaryMuscles.length > 0 && (
+                          <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
+                        )}
+                      </p>
+                    </button>
+                  );
+                }) : (
+                  <p className="text-sm text-grappler-400 text-center py-6">
+                    No alternatives available for your equipment setup
+                  </p>
                 )}
               </div>
 
@@ -714,7 +788,7 @@ export default function ActiveWorkout() {
                 onClick={() => setShowSwapModal(false)}
                 className="btn btn-secondary btn-md w-full mt-4"
               >
-                Cancel
+                Keep Current Exercise
               </button>
             </motion.div>
           </motion.div>
@@ -854,14 +928,14 @@ export default function ActiveWorkout() {
               <h2 className="text-xl font-bold text-grappler-50">
                 {currentExercise.exercise.name}
               </h2>
-              <button
-                onClick={() => setShowSwapModal(true)}
-                className="p-1.5 rounded-lg hover:bg-grappler-700 transition-colors"
-                title="Swap exercise"
-              >
-                <Shuffle className="w-4 h-4 text-grappler-400" />
-              </button>
             </div>
+            <button
+              onClick={() => setShowSwapModal(true)}
+              className="mx-auto mt-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
+            >
+              <Shuffle className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">Swap Exercise</span>
+            </button>
             <p className="text-sm text-grappler-400">
               {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
               {currentExercise.prescription.tempo && (

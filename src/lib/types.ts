@@ -47,6 +47,7 @@ export interface UserProfile {
   availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  sessionDurationMinutes: number;
   weightUnit: WeightUnit;
   createdAt: Date;
   updatedAt: Date;
@@ -609,6 +610,7 @@ export interface OnboardingData {
   availableEquipment: EquipmentType[];
   goalFocus: GoalFocus;
   sessionsPerWeek: SessionsPerWeek;
+  sessionDurationMinutes: number;
   weightUnit: WeightUnit;
   baselineLifts: Partial<BaselineLifts>;
 }

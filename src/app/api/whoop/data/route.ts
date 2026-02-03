@@ -36,24 +36,30 @@ async function whoopFetch(
   endpoint: string,
   accessToken: string,
   params?: Record<string, string>
-): Promise<any> {
-  const url = new URL(`${WHOOP_API}${endpoint}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+): Promise<{ data: any; error?: string }> {
+  try {
+    const url = new URL(`${WHOOP_API}${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      return { data: null, error: `${endpoint}: ${response.status} ${body.substring(0, 100)}` };
+    }
+
+    const json = await response.json();
+    return { data: json };
+  } catch (err: any) {
+    return { data: null, error: `${endpoint}: ${err.message || 'fetch failed'}` };
   }
-
-  const response = await fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  if (!response.ok) {
-    throw new Error(`${response.status}`);
-  }
-
-  return response.json();
 }
 
-// POST /api/whoop/data - Fetch Whoop data (token sent in body to avoid CORS preflight)
+// POST /api/whoop/data - Fetch Whoop data (token sent in body)
 export async function POST(request: NextRequest) {
   let body: any;
   try {
@@ -69,52 +75,63 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No access token', connected: false }, { status: 401 });
   }
 
+  // First, test the token with a simple profile call
+  const profileResult = await whoopFetch('/user/profile/basic', accessToken);
+
+  // If profile fails with auth error, try refreshing token
+  if (profileResult.error && profileResult.error.includes('401') && refreshToken) {
+    const newTokens = await refreshAccessToken(refreshToken);
+    if (newTokens) {
+      return NextResponse.json({
+        connected: false,
+        error: 'token_refreshed',
+        new_access_token: newTokens.access_token,
+        new_refresh_token: newTokens.refresh_token || refreshToken,
+        new_expires_in: newTokens.expires_in,
+      });
+    }
+    return NextResponse.json({
+      error: 'Token expired and refresh failed. Please reconnect.',
+      connected: false,
+    });
+  }
+
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 7);
   const startStr = startDate.toISOString();
   const endStr = endDate.toISOString();
 
-  try {
-    const [profile, recovery, cycles, sleep, workouts, bodyData] = await Promise.all([
-      whoopFetch('/user/profile/basic', accessToken).catch(() => null),
-      whoopFetch('/recovery', accessToken, { start: startStr, end: endStr, limit: '7' }).catch(() => null),
-      whoopFetch('/cycle', accessToken, { start: startStr, end: endStr, limit: '7' }).catch(() => null),
-      whoopFetch('/activity/sleep', accessToken, { start: startStr, end: endStr, limit: '7' }).catch(() => null),
-      whoopFetch('/activity/workout', accessToken, { start: startStr, end: endStr, limit: '10' }).catch(() => null),
-      whoopFetch('/body_measurement', accessToken).catch(() => null),
-    ]);
+  // Fetch all data in parallel - each call handles its own errors
+  const [recoveryResult, cyclesResult, sleepResult, workoutsResult, bodyResult] = await Promise.all([
+    whoopFetch('/recovery', accessToken, { start: startStr, end: endStr, limit: '7' }),
+    whoopFetch('/cycle', accessToken, { start: startStr, end: endStr, limit: '7' }),
+    whoopFetch('/activity/sleep', accessToken, { start: startStr, end: endStr, limit: '7' }),
+    whoopFetch('/activity/workout', accessToken, { start: startStr, end: endStr, limit: '10' }),
+    whoopFetch('/body_measurement', accessToken),
+  ]);
 
-    return NextResponse.json({
-      connected: true,
-      profile,
-      recovery: recovery?.records || [],
-      cycles: cycles?.records || [],
-      sleep: sleep?.records || [],
-      workouts: workouts?.records || [],
-      body: bodyData,
-      lastSync: new Date().toISOString(),
-    });
-  } catch (err: any) {
-    // If all calls failed, try refreshing
-    if (refreshToken) {
-      const newTokens = await refreshAccessToken(refreshToken);
-      if (newTokens) {
-        return NextResponse.json({
-          connected: false,
-          error: 'token_refreshed',
-          new_access_token: newTokens.access_token,
-          new_refresh_token: newTokens.refresh_token || refreshToken,
-          new_expires_in: newTokens.expires_in,
-        });
-      }
-    }
+  // Collect any per-endpoint errors for debugging
+  const errors = [
+    profileResult.error,
+    recoveryResult.error,
+    cyclesResult.error,
+    sleepResult.error,
+    workoutsResult.error,
+    bodyResult.error,
+  ].filter(Boolean);
 
-    return NextResponse.json(
-      { error: 'Failed to fetch Whoop data', connected: false },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    connected: true,
+    profile: profileResult.data,
+    recovery: recoveryResult.data?.records || [],
+    cycles: cyclesResult.data?.records || [],
+    sleep: sleepResult.data?.records || [],
+    workouts: workoutsResult.data?.records || [],
+    body: bodyResult.data,
+    lastSync: new Date().toISOString(),
+    ...(errors.length > 0 ? { warnings: errors } : {}),
+  });
 }
 
 // DELETE /api/whoop/data - Just returns disconnected status

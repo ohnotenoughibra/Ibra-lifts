@@ -11,14 +11,74 @@ import {
   ChevronUp,
   Activity,
   TrendingUp,
-  MessageSquare
+  MessageSquare,
+  Pencil,
+  Trash2,
+  Save,
+  X
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
+import { SetLog } from '@/lib/types';
 
 export default function WorkoutHistory() {
-  const { workoutLogs, user } = useAppStore();
+  const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog } = useAppStore();
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  const startEditing = (logId: string) => {
+    setEditingLogId(logId);
+    setEditData({});
+  };
+
+  const updateEditValue = (exerciseIdx: number, setIdx: number, field: keyof SetLog, value: number) => {
+    setEditData(prev => ({
+      ...prev,
+      [exerciseIdx]: {
+        ...(prev[exerciseIdx] || {}),
+        [setIdx]: {
+          ...(prev[exerciseIdx]?.[setIdx] || {}),
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const saveEdits = (logId: string) => {
+    const log = workoutLogs.find(l => l.id === logId);
+    if (!log) return;
+
+    const updatedExercises = log.exercises.map((ex, eIdx) => {
+      const exerciseEdits = editData[eIdx];
+      if (!exerciseEdits) return ex;
+
+      const updatedSets = ex.sets.map((set, sIdx) => {
+        const setEdits = exerciseEdits[sIdx];
+        if (!setEdits) return set;
+        return { ...set, ...setEdits };
+      });
+
+      // Recalculate total volume for this exercise
+      return { ...ex, sets: updatedSets };
+    });
+
+    // Recalculate total volume
+    const totalVolume = updatedExercises.reduce((sum, ex) =>
+      sum + ex.sets.reduce((s, set) => s + (set.completed ? set.weight * set.reps : 0), 0), 0
+    );
+
+    updateWorkoutLog(logId, { exercises: updatedExercises, totalVolume });
+    setEditingLogId(null);
+    setEditData({});
+  };
+
+  const handleDelete = (logId: string) => {
+    deleteWorkoutLog(logId);
+    setConfirmDeleteId(null);
+    setExpandedLogId(null);
+  };
 
   const sortedLogs = [...workoutLogs].reverse();
 
@@ -98,6 +158,58 @@ export default function WorkoutHistory() {
                   className="border-t border-grappler-700"
                 >
                   <div className="p-4 space-y-3">
+                    {/* Edit/Delete buttons */}
+                    <div className="flex items-center gap-2">
+                      {editingLogId === log.id ? (
+                        <>
+                          <button
+                            onClick={() => saveEdits(log.id)}
+                            className="btn btn-primary btn-sm flex-1 gap-1"
+                          >
+                            <Save className="w-3.5 h-3.5" /> Save Changes
+                          </button>
+                          <button
+                            onClick={() => { setEditingLogId(null); setEditData({}); }}
+                            className="btn btn-secondary btn-sm gap-1"
+                          >
+                            <X className="w-3.5 h-3.5" /> Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEditing(log.id)}
+                            className="btn btn-secondary btn-sm flex-1 gap-1"
+                          >
+                            <Pencil className="w-3.5 h-3.5" /> Edit Workout
+                          </button>
+                          {confirmDeleteId === log.id ? (
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleDelete(log.id)}
+                                className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-3 py-1.5 rounded-lg bg-grappler-700 text-grappler-400 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(log.id)}
+                              className="btn btn-secondary btn-sm gap-1 text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+
                     {/* Pre-check-in summary */}
                     {log.preCheckIn && (
                       <div className="bg-grappler-800/50 rounded-lg p-3 text-xs">
@@ -120,16 +232,61 @@ export default function WorkoutHistory() {
                           )}
                         </div>
                         <div className="space-y-1">
-                          {ex.sets.map((set, j) => (
+                          {ex.sets.map((set, j) => {
+                            const isEditing = editingLogId === log.id;
+                            const editedWeight = editData[i]?.[j]?.weight;
+                            const editedReps = editData[i]?.[j]?.reps;
+                            const editedRpe = editData[i]?.[j]?.rpe;
+                            return (
                             <div key={j} className={cn(
                               'flex items-center justify-between text-xs',
-                              set.completed ? 'text-grappler-300' : 'text-grappler-600 line-through'
+                              !isEditing && (set.completed ? 'text-grappler-300' : 'text-grappler-600 line-through')
                             )}>
-                              <span>Set {set.setNumber}</span>
-                              <span>{set.weight} {weightUnit} x {set.reps} reps</span>
-                              <span>RPE {set.rpe}</span>
+                              <span className="w-12">Set {set.setNumber}</span>
+                              {isEditing ? (
+                                <>
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      value={editedWeight !== undefined ? editedWeight : set.weight}
+                                      onChange={(e) => updateEditValue(i, j, 'weight', parseFloat(e.target.value) || 0)}
+                                      className="w-14 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                    />
+                                    <span className="text-grappler-500">{weightUnit}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-grappler-500">x</span>
+                                    <input
+                                      type="number"
+                                      inputMode="numeric"
+                                      value={editedReps !== undefined ? editedReps : set.reps}
+                                      onChange={(e) => updateEditValue(i, j, 'reps', parseInt(e.target.value) || 0)}
+                                      className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-grappler-500">RPE</span>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      value={editedRpe !== undefined ? editedRpe : set.rpe}
+                                      onChange={(e) => updateEditValue(i, j, 'rpe', parseFloat(e.target.value) || 0)}
+                                      className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                      min={1}
+                                      max={10}
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <span>{set.weight} {weightUnit} x {set.reps} reps</span>
+                                  <span>RPE {set.rpe}</span>
+                                </>
+                              )}
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         {ex.feedback && (
                           <div className="mt-2 pt-2 border-t border-grappler-700 text-xs text-grappler-400 flex flex-wrap gap-2">

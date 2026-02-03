@@ -14,12 +14,18 @@ import {
   Heart,
   Flame,
   RefreshCw,
-  Info
+  Info,
+  Wrench,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek } from '@/lib/types';
 
-export default function WorkoutView() {
+interface WorkoutViewProps {
+  onOpenBuilder?: () => void;
+}
+
+export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const { currentMesocycle, startWorkout, generateNewMesocycle } = useAppStore();
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
@@ -71,6 +77,36 @@ export default function WorkoutView() {
           New Block
         </button>
       </div>
+
+      {/* Build Custom / Browse */}
+      {onOpenBuilder && (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={onOpenBuilder}
+            className="card p-4 flex items-center gap-3 hover:bg-grappler-700/50 transition-colors text-left"
+          >
+            <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-accent-400" />
+            </div>
+            <div>
+              <p className="font-medium text-grappler-100 text-sm">Build Workout</p>
+              <p className="text-xs text-grappler-500">Custom session</p>
+            </div>
+          </button>
+          <button
+            onClick={onOpenBuilder}
+            className="card p-4 flex items-center gap-3 hover:bg-grappler-700/50 transition-colors text-left"
+          >
+            <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center">
+              <Search className="w-5 h-5 text-primary-400" />
+            </div>
+            <div>
+              <p className="font-medium text-grappler-100 text-sm">Browse Exercises</p>
+              <p className="text-xs text-grappler-500">Full database</p>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Periodization Info */}
       <div className="card p-4">

@@ -306,6 +306,146 @@ export interface SupersetGroup {
   restAfterGroup: number; // seconds
 }
 
+// Nutrition & Macro Tracking
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'pre_workout' | 'post_workout';
+
+export interface MacroTargets {
+  calories: number;
+  protein: number;   // grams
+  carbs: number;     // grams
+  fat: number;       // grams
+}
+
+export interface MealEntry {
+  id: string;
+  date: Date;
+  mealType: MealType;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  notes?: string;
+}
+
+export interface DailyNutrition {
+  date: string; // YYYY-MM-DD
+  meals: MealEntry[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  waterLiters: number;
+}
+
+// Wearable / Health Integration (Whoop-first)
+export type WearableProvider = 'whoop' | 'apple_health' | 'oura' | 'garmin';
+
+export interface WearableData {
+  id: string;
+  date: Date;
+  provider: WearableProvider;
+  hrv: number | null;           // Heart rate variability (ms)
+  restingHR: number | null;     // Resting heart rate (bpm)
+  sleepScore: number | null;    // 0-100
+  sleepHours: number | null;
+  recoveryScore: number | null; // 0-100 (Whoop recovery)
+  strain: number | null;        // 0-21 (Whoop strain)
+  respiratoryRate: number | null;
+  skinTemp: number | null;
+  caloriesBurned: number | null;
+  notes?: string;
+}
+
+export interface WearableSettings {
+  provider: WearableProvider;
+  connected: boolean;
+  lastSync: Date | null;
+  autoAdjustFromRecovery: boolean; // Use recovery score to auto-adjust workout intensity
+}
+
+// Competition / Event Prep
+export type CompetitionType = 'bjj_tournament' | 'wrestling_meet' | 'mma_fight' | 'aesthetic_event' | 'strength_meet' | 'custom';
+
+export interface CompetitionEvent {
+  id: string;
+  name: string;
+  type: CompetitionType;
+  date: Date;
+  weightClass?: number;         // target weight in user's unit
+  currentWeight?: number;
+  notes?: string;
+  peakingWeeks: number;         // weeks of peaking phase before event
+  taperStart?: Date;
+  isActive: boolean;
+}
+
+// Deload & Mobility
+export type MobilityFocus = 'hips' | 'shoulders' | 'thoracic' | 'ankles' | 'full_body' | 'neck' | 'wrists';
+
+export interface MobilityRoutine {
+  id: string;
+  name: string;
+  focus: MobilityFocus[];
+  duration: number; // minutes
+  exercises: MobilityExercise[];
+  forGrapplers: boolean;
+}
+
+export interface MobilityExercise {
+  name: string;
+  duration: number;    // seconds
+  sets: number;
+  description: string;
+  breathingCue?: string;
+}
+
+// Exercise Response Profiling
+export interface ExerciseResponseProfile {
+  exerciseId: string;
+  exerciseName: string;
+  totalSessions: number;
+  avgPumpRating: number;
+  avgDifficulty: number;      // numeric 1-4
+  jointPainFrequency: number; // 0-1 ratio
+  strengthGainRate: number;   // % per week
+  volumeResponse: 'high' | 'moderate' | 'low'; // how well user responds to volume on this exercise
+  bestRepRange: string;       // e.g., "6-8" or "10-12"
+  recommendation: 'increase' | 'maintain' | 'decrease' | 'swap';
+  lastUpdated: Date;
+}
+
+// Strength Curve & Sticking Point Analysis
+export interface StickingPointAnalysis {
+  exerciseId: string;
+  exerciseName: string;
+  avgRPE: number;
+  failureReps: number[];      // which rep numbers tend to fail
+  rpeByWeight: { weight: number; avgRPE: number }[];
+  suggestedAccessories: string[];
+  stickingPoint: 'bottom' | 'mid_range' | 'lockout' | 'unknown';
+  analysis: string;
+}
+
+// AI Coach Weekly Summary
+export interface WeeklySummary {
+  id: string;
+  weekStart: Date;
+  weekEnd: Date;
+  totalSessions: number;
+  totalVolume: number;
+  avgRPE: number;
+  avgSleepScore: number | null;
+  avgRecoveryScore: number | null;
+  prsHit: number;
+  strengths: string[];
+  areasToImprove: string[];
+  recommendation: string;
+  nextWeekFocus: string;
+  nutritionAdherence?: number; // 0-100%
+  generatedAt: Date;
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

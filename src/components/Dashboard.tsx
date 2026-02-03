@@ -22,7 +22,14 @@ import {
   Download,
   FileJson,
   FileSpreadsheet,
-  History
+  History,
+  Brain,
+  Activity,
+  Apple,
+  Leaf,
+  Trophy as TrophyIcon,
+  Crosshair,
+  Scaling
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -37,15 +44,51 @@ import ActiveWorkout from './ActiveWorkout';
 import WorkoutHistory from './WorkoutHistory';
 import TrainingCalendar from './TrainingCalendar';
 import BodyWeightTracker from './BodyWeightTracker';
+import WorkoutBuilder from './WorkoutBuilder';
+import NutritionTracker from './NutritionTracker';
+import WearableIntegration from './WearableIntegration';
+import CompetitionPrep from './CompetitionPrep';
+import MobilityWorkouts from './MobilityWorkouts';
+import WeeklyCoach from './WeeklyCoach';
+import ExerciseProfiler from './ExerciseProfiler';
+import StrengthAnalysis from './StrengthAnalysis';
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | null;
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [overlayView, setOverlayView] = useState<OverlayView>(null);
   const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs } = useAppStore();
 
   if (activeWorkout) {
     return <ActiveWorkout />;
+  }
+
+  // Full-screen overlay views
+  if (overlayView === 'builder') {
+    return <WorkoutBuilder onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'nutrition') {
+    return <NutritionTracker onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'wearable') {
+    return <WearableIntegration onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'competition') {
+    return <CompetitionPrep onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'mobility') {
+    return <MobilityWorkouts onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'coach') {
+    return <WeeklyCoach onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'profiler') {
+    return <ExerciseProfiler onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'strength') {
+    return <StrengthAnalysis onClose={() => setOverlayView(null)} />;
   }
 
   return (
@@ -91,7 +134,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <HomeTab />
+              <HomeTab onNavigate={setOverlayView} />
             </motion.div>
           )}
           {activeTab === 'program' && (
@@ -101,7 +144,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <WorkoutView />
+              <WorkoutView onOpenBuilder={() => setOverlayView('builder')} />
             </motion.div>
           )}
           {activeTab === 'progress' && (
@@ -280,7 +323,7 @@ function HistoryTab() {
 }
 
 // Home Tab Content
-function HomeTab() {
+function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const { user, gamificationStats, currentMesocycle, workoutLogs, startWorkout } = useAppStore();
 
   const motivationalMessage = getMotivationalMessage(gamificationStats);
@@ -470,6 +513,38 @@ function HomeTab() {
           </button>
         </motion.div>
       </div>
+
+      {/* Tools & Features Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.38 }}
+      >
+        <h3 className="font-bold text-grappler-50 mb-3">Tools</h3>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
+            { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+            { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+            { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
+            { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
+            { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
+            { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+            { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
+          ].map((tool) => (
+            <button
+              key={tool.label}
+              onClick={() => onNavigate(tool.view)}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            >
+              <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tool.color)}>
+                <tool.icon className="w-4.5 h-4.5" />
+              </div>
+              <span className="text-[10px] font-medium text-grappler-300">{tool.label}</span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Recent Activity */}
       {workoutLogs.length > 0 && (

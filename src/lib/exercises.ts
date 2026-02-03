@@ -1055,6 +1055,416 @@ export const exercises: Exercise[] = [
       'Hold at top',
       'Control the lower'
     ]
+  },
+
+  // ADDITIONAL EXERCISES FOR SUBSTITUTION OPTIONS
+
+  // More chest options
+  {
+    id: 'cable-crossover',
+    name: 'Cable Crossover',
+    category: 'isolation',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 4,
+    description: 'Excellent chest isolation with constant cable tension.',
+    cues: ['Set cables at shoulder height', 'Step forward for stretch', 'Bring hands together with slight bend in elbows', 'Squeeze chest at peak contraction']
+  },
+  {
+    id: 'push-up',
+    name: 'Push-Up',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders', 'triceps', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Bodyweight pushing fundamental with core engagement.',
+    cues: ['Hands just wider than shoulders', 'Body in straight line', 'Lower chest to floor', 'Full lockout at top']
+  },
+  {
+    id: 'landmine-press',
+    name: 'Landmine Press',
+    category: 'compound',
+    primaryMuscles: ['chest', 'shoulders'],
+    secondaryMuscles: ['triceps', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Shoulder-friendly pressing with rotational stability demand.',
+    cues: ['Bar in landmine or corner', 'Press with one or both hands', 'Slight lean forward', 'Great for shoulder rehab']
+  },
+
+  // More back/lat options
+  {
+    id: 't-bar-row',
+    name: 'T-Bar Row',
+    category: 'compound',
+    primaryMuscles: ['back', 'lats'],
+    secondaryMuscles: ['biceps', 'core', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 9,
+    description: 'Heavy rowing variation for back thickness.',
+    cues: ['Straddle the bar', 'Close grip for lat emphasis', 'Pull to chest', 'Keep torso at 45 degrees']
+  },
+  {
+    id: 'meadows-row',
+    name: 'Meadows Row',
+    category: 'compound',
+    primaryMuscles: ['lats', 'back'],
+    secondaryMuscles: ['biceps', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Landmine row variation with excellent lat stretch and contraction.',
+    cues: ['Stand perpendicular to landmine', 'Overhand grip on bar end', 'Pull elbow high and back', 'Great lat stretch at bottom']
+  },
+  {
+    id: 'chest-supported-row',
+    name: 'Chest-Supported Row',
+    category: 'compound',
+    primaryMuscles: ['back', 'lats'],
+    secondaryMuscles: ['biceps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 7,
+    description: 'Eliminates momentum for strict back isolation.',
+    cues: ['Lie face down on incline bench', 'Pull dumbbells to sides', 'Squeeze shoulder blades', 'No momentum allowed']
+  },
+  {
+    id: 'seal-row',
+    name: 'Seal Row',
+    category: 'compound',
+    primaryMuscles: ['back', 'lats'],
+    secondaryMuscles: ['biceps', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Strict rowing from elevated bench, zero momentum.',
+    cues: ['Lie on elevated flat bench', 'Row from dead stop', 'Full scapular retraction', 'Eliminates all cheating']
+  },
+
+  // More shoulder options
+  {
+    id: 'arnold-press',
+    name: 'Arnold Press',
+    category: 'compound',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['triceps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 7,
+    description: 'Rotational press for complete deltoid development.',
+    cues: ['Start palms facing you', 'Rotate as you press up', 'Full overhead lockout', 'Reverse the rotation on descent']
+  },
+  {
+    id: 'cable-lateral-raise',
+    name: 'Cable Lateral Raise',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['traps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 3,
+    description: 'Constant tension lateral raise for superior delt development.',
+    cues: ['Cable at low position', 'Cross-body or same side', 'Raise to shoulder height', 'Slow eccentric for growth']
+  },
+  {
+    id: 'upright-row',
+    name: 'Upright Row',
+    category: 'compound',
+    primaryMuscles: ['shoulders', 'traps'],
+    secondaryMuscles: ['biceps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Trap and delt builder - use wide grip for shoulder safety.',
+    cues: ['Wide grip reduces impingement risk', 'Pull to chest level', 'Elbows lead the movement', 'Dont go above shoulder height']
+  },
+
+  // More leg options
+  {
+    id: 'leg-press',
+    name: 'Leg Press',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'High-volume leg builder without spinal loading.',
+    cues: ['Feet shoulder width on platform', 'Lower until 90 degree knee bend', 'Press through full foot', 'Dont lock knees completely']
+  },
+  {
+    id: 'hack-squat',
+    name: 'Hack Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 7,
+    description: 'Machine squat for quad-focused development.',
+    cues: ['Back flat against pad', 'Feet lower on platform for quad emphasis', 'Full depth', 'Control the negative']
+  },
+  {
+    id: 'step-up',
+    name: 'Dumbbell Step-Up',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Unilateral leg work mimicking grappling level changes.',
+    cues: ['High box for full ROM', 'Drive through front heel', 'Dont push off back foot', 'Control the descent']
+  },
+  {
+    id: 'nordic-curl',
+    name: 'Nordic Hamstring Curl',
+    category: 'isolation',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 8,
+    description: 'Gold standard for hamstring injury prevention - eccentric focused.',
+    cues: ['Kneel with feet anchored', 'Slowly lower body forward', 'Resist with hamstrings', 'Use hands to catch if needed', 'Focus on the slow negative']
+  },
+  {
+    id: 'good-morning',
+    name: 'Good Morning',
+    category: 'compound',
+    primaryMuscles: ['hamstrings', 'back'],
+    secondaryMuscles: ['glutes', 'core'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 8,
+    description: 'Posterior chain builder for hip hinge strength.',
+    cues: ['Bar on upper back like squat', 'Soft knees, hinge at hips', 'Lower until torso near parallel', 'Drive hips forward to stand']
+  },
+  {
+    id: 'glute-bridge',
+    name: 'Glute Bridge',
+    category: 'isolation',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['hamstrings'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Accessible glute builder, great for bridging in grappling.',
+    cues: ['Lie on back, feet flat', 'Drive hips up', 'Squeeze glutes at top', 'Hold for 2 seconds']
+  },
+
+  // More arm options
+  {
+    id: 'incline-dumbbell-curl',
+    name: 'Incline Dumbbell Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 4,
+    description: 'Stretched position curl for long head bicep emphasis.',
+    cues: ['45 degree incline bench', 'Arms hang straight down', 'Curl without moving upper arms', 'Great stretch at bottom']
+  },
+  {
+    id: 'preacher-curl',
+    name: 'Preacher Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 4,
+    description: 'Eliminates cheating for strict bicep isolation.',
+    cues: ['Armpits on top of pad', 'Full extension at bottom', 'Squeeze at top', 'Control the eccentric']
+  },
+  {
+    id: 'overhead-tricep-extension',
+    name: 'Overhead Tricep Extension',
+    category: 'isolation',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 5,
+    description: 'Long head tricep emphasis with overhead stretch.',
+    cues: ['Dumbbell or cable overhead', 'Lower behind head', 'Keep elbows close', 'Full extension at top']
+  },
+  {
+    id: 'close-grip-bench',
+    name: 'Close-Grip Bench Press',
+    category: 'compound',
+    primaryMuscles: ['triceps', 'chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Heavy tricep compound for pushing strength.',
+    cues: ['Hands shoulder width apart', 'Elbows tucked close to body', 'Lower to mid chest', 'Full lockout at top']
+  },
+
+  // More core options
+  {
+    id: 'cable-woodchop',
+    name: 'Cable Woodchop',
+    category: 'grappling_specific',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 7,
+    description: 'Rotational power for throws and guard passes.',
+    cues: ['Cable high or low', 'Rotate through hips and torso', 'Arms guide, core does the work', 'Control both directions']
+  },
+  {
+    id: 'dead-bug',
+    name: 'Dead Bug',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Anti-extension core stability fundamental.',
+    cues: ['Lie on back, arms up, knees at 90', 'Lower opposite arm and leg', 'Keep lower back pressed to floor', 'Slow and controlled']
+  },
+  {
+    id: 'copenhagen-plank',
+    name: 'Copenhagen Plank',
+    category: 'grappling_specific',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['quadriceps'],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 7,
+    description: 'Adductor and lateral core strength for guard play.',
+    cues: ['Side plank with top leg on bench', 'Bottom leg hangs free', 'Lift bottom leg to bench', 'Hold or do reps']
+  },
+
+  // More grip/forearm options
+  {
+    id: 'fat-grip-hold',
+    name: 'Fat Grip Hold',
+    category: 'grip',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'carry',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 3,
+    strengthValue: 8,
+    description: 'Thick bar hold for crushing grip - mimics gi grips.',
+    cues: ['Attach fat grips to barbell or dumbbell', 'Hold at lockout', 'Squeeze as hard as possible', 'Build up hold time']
+  },
+  {
+    id: 'finger-curl',
+    name: 'Barbell Finger Curl',
+    category: 'grip',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 3,
+    strengthValue: 6,
+    description: 'Isolated finger flexor work for grip endurance.',
+    cues: ['Sit with forearms on thighs', 'Let bar roll to fingertips', 'Curl back into palm', 'High reps for endurance']
+  },
+
+  // More power/explosive options
+  {
+    id: 'hang-clean',
+    name: 'Hang Clean',
+    category: 'power',
+    primaryMuscles: ['full_body'],
+    secondaryMuscles: ['quadriceps', 'glutes', 'traps', 'shoulders'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 9,
+    description: 'Explosive hip power from hang position - simpler than full clean.',
+    cues: ['Start at mid-thigh', 'Explosive hip extension', 'Shrug and pull under', 'Catch in front rack']
+  },
+  {
+    id: 'jump-squat',
+    name: 'Jump Squat',
+    category: 'power',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['calves', 'core'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 7,
+    description: 'Explosive lower body power for takedown entries.',
+    cues: ['Bodyweight or light load', 'Quarter to half squat depth', 'Explode upward maximally', 'Land soft, reset between reps']
+  },
+  {
+    id: 'battle-ropes',
+    name: 'Battle Ropes',
+    category: 'grappling_specific',
+    primaryMuscles: ['shoulders', 'core'],
+    secondaryMuscles: ['forearms', 'back'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Conditioning and grip endurance for grappling cardio.',
+    cues: ['Alternating waves or slams', 'Drive from hips', 'Keep core tight', 'Maintain intensity for intervals']
   }
 ];
 
@@ -1089,4 +1499,30 @@ export function getTopAestheticExercises(limit: number = 10): Exercise[] {
 
 export function getTopStrengthExercises(limit: number = 10): Exercise[] {
   return [...exercises].sort((a, b) => b.strengthValue - a.strengthValue).slice(0, limit);
+}
+
+// Get alternative exercises that target the same primary muscles
+export function getAlternativesForExercise(exerciseId: string, equipment: Equipment, limit: number = 5): Exercise[] {
+  const exercise = exercises.find(e => e.id === exerciseId);
+  if (!exercise) return [];
+
+  return exercises
+    .filter(e =>
+      e.id !== exerciseId &&
+      e.equipmentRequired.includes(equipment) &&
+      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m)) &&
+      e.movementPattern === exercise.movementPattern ||
+      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))
+    )
+    .sort((a, b) => {
+      // Score by muscle overlap
+      const aOverlap = a.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
+      const bOverlap = b.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
+      if (bOverlap !== aOverlap) return bOverlap - aOverlap;
+      // Then by same movement pattern
+      const aPattern = a.movementPattern === exercise.movementPattern ? 1 : 0;
+      const bPattern = b.movementPattern === exercise.movementPattern ? 1 : 0;
+      return bPattern - aPattern;
+    })
+    .slice(0, limit);
 }

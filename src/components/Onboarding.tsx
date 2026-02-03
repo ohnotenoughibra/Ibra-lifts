@@ -19,7 +19,7 @@ import {
   Scale,
   Trophy
 } from 'lucide-react';
-import { ExperienceLevel, Equipment, GoalFocus, SessionsPerWeek, OnboardingData } from '@/lib/types';
+import { ExperienceLevel, Equipment, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const steps = [
@@ -267,6 +267,31 @@ function AboutYouStep({
         <p className="text-xs text-grappler-500 mt-1">
           Used for appropriate training intensity
         </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-2">
+          Weight Unit
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(['lbs', 'kg'] as WeightUnit[]).map((unit) => (
+            <button
+              key={unit}
+              onClick={() => update({ weightUnit: unit })}
+              className={cn(
+                'p-4 rounded-xl border-2 text-center transition-all',
+                data.weightUnit === unit
+                  ? 'border-primary-500 bg-primary-500/10'
+                  : 'border-grappler-700 hover:border-grappler-600'
+              )}
+            >
+              <p className="text-2xl font-bold text-grappler-50 mb-1">{unit.toUpperCase()}</p>
+              <p className="text-xs text-grappler-400">
+                {unit === 'lbs' ? 'Pounds' : 'Kilograms'}
+              </p>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -519,7 +544,13 @@ function BaselineStep({
     });
   };
 
-  const lifts = [
+  const unit = data.weightUnit || 'lbs';
+  const lifts = unit === 'kg' ? [
+    { key: 'squat', name: 'Back Squat', placeholder: 'e.g., 100' },
+    { key: 'deadlift', name: 'Deadlift', placeholder: 'e.g., 140' },
+    { key: 'benchPress', name: 'Bench Press', placeholder: 'e.g., 85' },
+    { key: 'overheadPress', name: 'Overhead Press', placeholder: 'e.g., 60' },
+  ] : [
     { key: 'squat', name: 'Back Squat', placeholder: 'e.g., 225' },
     { key: 'deadlift', name: 'Deadlift', placeholder: 'e.g., 315' },
     { key: 'benchPress', name: 'Bench Press', placeholder: 'e.g., 185' },
@@ -539,7 +570,7 @@ function BaselineStep({
         {lifts.map((lift) => (
           <div key={lift.key}>
             <label className="block text-sm font-medium text-grappler-300 mb-1">
-              {lift.name} (lbs)
+              {lift.name} ({unit})
             </label>
             <input
               type="number"

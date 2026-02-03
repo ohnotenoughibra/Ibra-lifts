@@ -11,10 +11,16 @@ import {
   Equipment,
   ExperienceLevel,
   WorkoutSession,
-  ExerciseLog
+  ExerciseLog,
+  WeightUnit,
+  PreWorkoutCheckIn,
+  PostWorkoutFeedback,
+  ExerciseFeedback,
+  WorkoutAdjustment
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
+import { getSuggestedWeight } from './auto-adjust';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -38,6 +44,7 @@ interface AppState {
     session: WorkoutSession;
     exerciseLogs: ExerciseLog[];
     startTime: Date;
+    preCheckIn?: PreWorkoutCheckIn;
   } | null;
   workoutLogs: WorkoutLog[];
 
@@ -61,9 +68,14 @@ interface AppState {
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
+  setPreCheckIn: (checkIn: PreWorkoutCheckIn) => void;
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
-  completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string }) => void;
+  updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
+  swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
   cancelWorkout: () => void;
+  getWeightUnit: () => WeightUnit;
+  convertWeight: (weight: number, to: WeightUnit) => number;
 
   // Gamification actions
   awardPoints: (points: number, reason: string) => void;
@@ -85,6 +97,7 @@ const initialOnboardingData: OnboardingData = {
   equipment: 'full_gym',
   goalFocus: 'balanced',
   sessionsPerWeek: 3,
+  weightUnit: 'lbs',
   baselineLifts: {}
 };
 
@@ -141,6 +154,7 @@ export const useAppStore = create<AppState>()(
           equipment: onboardingData.equipment,
           goalFocus: onboardingData.goalFocus,
           sessionsPerWeek: onboardingData.sessionsPerWeek,
+          weightUnit: onboardingData.weightUnit || 'lbs',
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -231,22 +245,40 @@ export const useAppStore = create<AppState>()(
 
       // Workout actions
       startWorkout: (session) => {
+        const { workoutLogs } = get();
+        // Pre-fill weights from previous session using auto-adjust
+        const exerciseLogs = session.exercises.map((ex) => {
+          const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs);
+          return {
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exercise.name,
+            sets: Array.from({ length: ex.sets }, (_, i) => ({
+              setNumber: i + 1,
+              weight: suggestedWeight || 0,
+              reps: ex.prescription.targetReps,
+              rpe: ex.prescription.rpe,
+              completed: false
+            })),
+            personalRecord: false
+          };
+        });
+
         set({
           activeWorkout: {
             session,
-            exerciseLogs: session.exercises.map((ex) => ({
-              exerciseId: ex.exerciseId,
-              exerciseName: ex.exercise.name,
-              sets: Array.from({ length: ex.sets }, (_, i) => ({
-                setNumber: i + 1,
-                weight: 0,
-                reps: ex.prescription.targetReps,
-                rpe: ex.prescription.rpe,
-                completed: false
-              })),
-              personalRecord: false
-            })),
+            exerciseLogs,
             startTime: new Date()
+          }
+        });
+      },
+
+      setPreCheckIn: (checkIn) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            preCheckIn: checkIn
           }
         });
       },
@@ -257,6 +289,48 @@ export const useAppStore = create<AppState>()(
 
         const updatedLogs = [...activeWorkout.exerciseLogs];
         updatedLogs[exerciseIndex] = log;
+
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            exerciseLogs: updatedLogs
+          }
+        });
+      },
+
+      updateExerciseFeedback: (exerciseIndex, feedback) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+
+        const updatedLogs = [...activeWorkout.exerciseLogs];
+        updatedLogs[exerciseIndex] = {
+          ...updatedLogs[exerciseIndex],
+          feedback
+        };
+
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            exerciseLogs: updatedLogs
+          }
+        });
+      },
+
+      swapExercise: (exerciseIndex, newExerciseId, newExerciseName) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+
+        const updatedLogs = [...activeWorkout.exerciseLogs];
+        const oldLog = updatedLogs[exerciseIndex];
+        updatedLogs[exerciseIndex] = {
+          ...oldLog,
+          exerciseId: newExerciseId,
+          exerciseName: newExerciseName,
+          sets: oldLog.sets.map(s => ({ ...s, weight: 0, completed: false })),
+          personalRecord: false,
+          estimated1RM: undefined,
+          feedback: undefined
+        };
 
         set({
           activeWorkout: {
@@ -295,6 +369,8 @@ export const useAppStore = create<AppState>()(
           exercises: activeWorkout.exerciseLogs,
           totalVolume,
           duration,
+          preCheckIn: activeWorkout.preCheckIn,
+          postFeedback: feedback.postFeedback,
           overallRPE: feedback.overallRPE,
           soreness: feedback.soreness,
           energy: feedback.energy,
@@ -336,6 +412,19 @@ export const useAppStore = create<AppState>()(
       },
 
       cancelWorkout: () => set({ activeWorkout: null }),
+
+      getWeightUnit: () => {
+        const { user } = get();
+        return user?.weightUnit || 'lbs';
+      },
+
+      convertWeight: (weight, to) => {
+        const { user } = get();
+        const from = user?.weightUnit || 'lbs';
+        if (from === to) return weight;
+        if (to === 'kg') return Math.round(weight * 0.453592 * 10) / 10;
+        return Math.round(weight / 0.453592 * 10) / 10;
+      },
 
       // Gamification actions
       awardPoints: (points, reason) => {

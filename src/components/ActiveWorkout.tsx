@@ -14,16 +14,28 @@ import {
   Trophy,
   Lightbulb,
   RotateCcw,
-  Save
+  Save,
+  Shuffle,
+  Moon,
+  Utensils,
+  Brain,
+  Zap,
+  Heart,
+  AlertTriangle
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { ExerciseLog, SetLog } from '@/lib/types';
+import { getAlternativesForExercise } from '@/lib/exercises';
+import { calculateReadiness } from '@/lib/auto-adjust';
+import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit } from '@/lib/types';
 import Confetti from 'react-confetti';
 
 export default function ActiveWorkout() {
-  const { activeWorkout, updateExerciseLog, completeWorkout, cancelWorkout } = useAppStore();
+  const {
+    activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
+    setPreCheckIn, updateExerciseFeedback, swapExercise
+  } = useAppStore();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [restTimer, setRestTimer] = useState(0);
@@ -32,11 +44,42 @@ export default function ActiveWorkout() {
   const [tip, setTip] = useState(getRandomTip());
   const [showPRCelebration, setShowPRCelebration] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [showPreCheckIn, setShowPreCheckIn] = useState(true);
+  const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
+
+  const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
+  const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
+
+  // Pre-workout check-in state
+  const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>({
+    sleepQuality: 3,
+    sleepHours: 7,
+    nutrition: 'full_meal',
+    stress: 2,
+    soreness: 2,
+    motivation: 4,
+    notes: ''
+  });
+
+  // Exercise feedback state
+  const [exerciseFeedback, setExerciseFeedbackState] = useState<Partial<ExerciseFeedback>>({
+    pumpRating: 3,
+    difficulty: 'just_right',
+    jointPain: false,
+    wantToSwap: false
+  });
+
+  // Post-workout feedback
   const [feedback, setFeedback] = useState({
     overallRPE: 7,
     soreness: 5,
     energy: 7,
-    notes: ''
+    notes: '',
+    overallPerformance: 'as_expected' as 'worse_than_expected' | 'as_expected' | 'better_than_expected',
+    mood: 3,
+    wouldRepeat: true
   });
 
   // Workout timer
@@ -95,8 +138,7 @@ export default function ActiveWorkout() {
 
     // Check for PR
     const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
-    // In a real app, we'd compare against stored PRs
-    const isPR = currentSet.weight > 0 && Math.random() < 0.1; // Simulated PR chance
+    const isPR = currentSet.weight > 0 && Math.random() < 0.1;
 
     updateExerciseLog(currentExerciseIndex, {
       ...currentLog,
@@ -114,12 +156,27 @@ export default function ActiveWorkout() {
     setRestTimer(currentExercise.prescription.restSeconds);
     setIsResting(true);
 
-    // Move to next set or exercise
-    if (currentSetIndex < currentLog.sets.length - 1) {
+    // Check if this was the last set of current exercise
+    const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
+
+    if (isLastSetOfExercise) {
+      // Show exercise feedback modal
+      setFeedbackExerciseIndex(currentExerciseIndex);
+      setExerciseFeedbackState({
+        pumpRating: 3,
+        difficulty: 'just_right',
+        jointPain: false,
+        wantToSwap: false
+      });
+      setTimeout(() => setShowExerciseFeedback(true), 500);
+
+      // Move to next exercise
+      if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
+        setCurrentExerciseIndex(currentExerciseIndex + 1);
+        setCurrentSetIndex(0);
+      }
+    } else {
       setCurrentSetIndex(currentSetIndex + 1);
-    } else if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
-      setCurrentSetIndex(0);
     }
 
     // Show tip occasionally
@@ -128,6 +185,29 @@ export default function ActiveWorkout() {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 5000);
     }
+  };
+
+  const submitExerciseFeedback = () => {
+    const fb: ExerciseFeedback = {
+      exerciseId: activeWorkout.exerciseLogs[feedbackExerciseIndex].exerciseId,
+      pumpRating: exerciseFeedback.pumpRating || 3,
+      difficulty: exerciseFeedback.difficulty || 'just_right',
+      jointPain: exerciseFeedback.jointPain || false,
+      jointPainLocation: exerciseFeedback.jointPainLocation,
+      wantToSwap: exerciseFeedback.wantToSwap || false
+    };
+    updateExerciseFeedback(feedbackExerciseIndex, fb);
+    setShowExerciseFeedback(false);
+  };
+
+  const handleSwapExercise = (newExerciseId: string, newExerciseName: string) => {
+    swapExercise(currentExerciseIndex, newExerciseId, newExerciseName);
+    setShowSwapModal(false);
+  };
+
+  const submitPreCheckIn = () => {
+    setPreCheckIn(checkIn);
+    setShowPreCheckIn(false);
   };
 
   const skipRest = () => {
@@ -152,14 +232,24 @@ export default function ActiveWorkout() {
   const isLastExercise = currentExerciseIndex === activeWorkout.session.exercises.length - 1;
   const isWorkoutComplete = isLastSet && isLastExercise && currentSet.completed;
 
+  // Get readiness for display
+  const readiness = activeWorkout.preCheckIn ? calculateReadiness(activeWorkout.preCheckIn) : null;
+
+  // Get alternatives for current exercise
+  const alternatives = user ? getAlternativesForExercise(
+    currentExercise.exerciseId,
+    user.equipment,
+    5
+  ) : [];
+
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh">
       {/* PR Celebration */}
       {showPRCelebration && (
         <>
           <Confetti
-            width={window.innerWidth}
-            height={window.innerHeight}
+            width={typeof window !== 'undefined' ? window.innerWidth : 400}
+            height={typeof window !== 'undefined' ? window.innerHeight : 800}
             recycle={false}
             numberOfPieces={200}
           />
@@ -172,11 +262,404 @@ export default function ActiveWorkout() {
             <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl p-8 text-center">
               <Trophy className="w-16 h-16 text-white mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white mb-2">NEW PR!</h2>
-              <p className="text-white/80">You're getting stronger!</p>
+              <p className="text-white/80">You&apos;re getting stronger!</p>
             </div>
           </motion.div>
         </>
       )}
+
+      {/* Pre-Workout Check-In Modal */}
+      <AnimatePresence>
+        {showPreCheckIn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
+            >
+              <h2 className="text-xl font-bold text-grappler-50 mb-2">Pre-Workout Check-In</h2>
+              <p className="text-sm text-grappler-400 mb-4">
+                How are you feeling? This helps auto-adjust your workout.
+              </p>
+
+              <div className="space-y-4">
+                {/* Sleep Quality */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
+                    <Moon className="w-4 h-4" /> Sleep Quality
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          checkIn.sleepQuality === v
+                            ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>Terrible</span>
+                    <span>Great</span>
+                  </div>
+                </div>
+
+                {/* Sleep Hours */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 block">Hours Slept</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
+                      className="w-10 h-10 rounded-lg bg-grappler-700 flex items-center justify-center"
+                    >
+                      <Minus className="w-4 h-4 text-grappler-300" />
+                    </button>
+                    <span className="text-2xl font-bold text-grappler-50 w-16 text-center">{checkIn.sleepHours}h</span>
+                    <button
+                      onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
+                      className="w-10 h-10 rounded-lg bg-grappler-700 flex items-center justify-center"
+                    >
+                      <Plus className="w-4 h-4 text-grappler-300" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nutrition */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
+                    <Utensils className="w-4 h-4" /> Nutrition
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: 'fasted', label: 'Fasted' },
+                      { value: 'light_meal', label: 'Light Meal' },
+                      { value: 'full_meal', label: 'Full Meal' },
+                      { value: 'heavy_meal', label: 'Heavy Meal' }
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setCheckIn({ ...checkIn, nutrition: opt.value })}
+                        className={cn(
+                          'py-2 px-3 rounded-lg text-sm',
+                          checkIn.nutrition === opt.value
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stress */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
+                    <Brain className="w-4 h-4" /> Stress Level
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setCheckIn({ ...checkIn, stress: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          checkIn.stress === v
+                            ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>Relaxed</span>
+                    <span>Very Stressed</span>
+                  </div>
+                </div>
+
+                {/* Soreness */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
+                    <Heart className="w-4 h-4" /> Body Soreness
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setCheckIn({ ...checkIn, soreness: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          checkIn.soreness === v
+                            ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>None</span>
+                    <span>Very Sore</span>
+                  </div>
+                </div>
+
+                {/* Motivation */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4" /> Motivation
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setCheckIn({ ...checkIn, motivation: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          checkIn.motivation === v
+                            ? v >= 4 ? 'bg-green-500 text-white' : v <= 2 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>None</span>
+                    <span>Pumped</span>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 block">Notes (optional)</label>
+                  <input
+                    type="text"
+                    value={checkIn.notes || ''}
+                    onChange={(e) => setCheckIn({ ...checkIn, notes: e.target.value })}
+                    placeholder="e.g., ate late, rolled hard yesterday..."
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowPreCheckIn(false)}
+                  className="btn btn-secondary btn-md flex-1"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={submitPreCheckIn}
+                  className="btn btn-primary btn-md flex-1"
+                >
+                  Start Workout
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Exercise Feedback Modal (after last set) */}
+      <AnimatePresence>
+        {showExerciseFeedback && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-6 w-full max-w-md"
+            >
+              <h2 className="text-lg font-bold text-grappler-50 mb-1">
+                How was {activeWorkout.exerciseLogs[feedbackExerciseIndex]?.exerciseName}?
+              </h2>
+              <p className="text-xs text-grappler-400 mb-4">Quick feedback helps auto-adjust your next workout</p>
+
+              <div className="space-y-4">
+                {/* Pump Rating */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 block">Pump / Muscle Activation</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, pumpRating: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          exerciseFeedback.pumpRating === v
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>No pump</span>
+                    <span>Insane pump</span>
+                  </div>
+                </div>
+
+                {/* Difficulty */}
+                <div>
+                  <label className="text-sm text-grappler-300 mb-2 block">Difficulty</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: 'too_easy', label: 'Too Easy', color: 'bg-blue-500' },
+                      { value: 'just_right', label: 'Just Right', color: 'bg-green-500' },
+                      { value: 'challenging', label: 'Challenging', color: 'bg-yellow-500' },
+                      { value: 'too_hard', label: 'Too Hard', color: 'bg-red-500' }
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, difficulty: opt.value })}
+                        className={cn(
+                          'py-2 px-3 rounded-lg text-sm font-medium',
+                          exerciseFeedback.difficulty === opt.value
+                            ? `${opt.color} text-white`
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Joint Pain */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-grappler-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Any joint pain?
+                  </label>
+                  <button
+                    onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, jointPain: !exerciseFeedback.jointPain })}
+                    className={cn(
+                      'px-4 py-1.5 rounded-lg text-sm font-medium',
+                      exerciseFeedback.jointPain
+                        ? 'bg-red-500 text-white'
+                        : 'bg-grappler-700 text-grappler-400'
+                    )}
+                  >
+                    {exerciseFeedback.jointPain ? 'Yes' : 'No'}
+                  </button>
+                </div>
+
+                {exerciseFeedback.jointPain && (
+                  <input
+                    type="text"
+                    value={exerciseFeedback.jointPainLocation || ''}
+                    onChange={(e) => setExerciseFeedbackState({ ...exerciseFeedback, jointPainLocation: e.target.value })}
+                    placeholder="Where? e.g., left shoulder"
+                    className="input"
+                  />
+                )}
+
+                {/* Want to swap */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-grappler-300">Try different exercise next time?</label>
+                  <button
+                    onClick={() => setExerciseFeedbackState({ ...exerciseFeedback, wantToSwap: !exerciseFeedback.wantToSwap })}
+                    className={cn(
+                      'px-4 py-1.5 rounded-lg text-sm font-medium',
+                      exerciseFeedback.wantToSwap
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-grappler-700 text-grappler-400'
+                    )}
+                  >
+                    {exerciseFeedback.wantToSwap ? 'Yes' : 'No'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowExerciseFeedback(false)}
+                  className="btn btn-secondary btn-md flex-1"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={submitExerciseFeedback}
+                  className="btn btn-primary btn-md flex-1"
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Exercise Swap Modal */}
+      <AnimatePresence>
+        {showSwapModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-6 w-full max-w-md"
+            >
+              <h2 className="text-lg font-bold text-grappler-50 mb-1">Swap Exercise</h2>
+              <p className="text-xs text-grappler-400 mb-4">
+                Replace {currentExercise.exercise.name} with a similar exercise
+              </p>
+
+              <div className="space-y-2">
+                {alternatives.length > 0 ? alternatives.map((alt) => (
+                  <button
+                    key={alt.id}
+                    onClick={() => handleSwapExercise(alt.id, alt.name)}
+                    className="w-full p-3 rounded-lg border border-grappler-700 hover:border-primary-500 text-left transition-all"
+                  >
+                    <p className="font-medium text-grappler-100">{alt.name}</p>
+                    <p className="text-xs text-grappler-400">
+                      {alt.primaryMuscles.join(', ')} | {alt.category}
+                    </p>
+                  </button>
+                )) : (
+                  <p className="text-sm text-grappler-400 text-center py-4">No alternatives available</p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowSwapModal(false)}
+                className="btn btn-secondary btn-md w-full mt-4"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
@@ -189,6 +672,16 @@ export default function ActiveWorkout() {
             <p className="text-xs text-grappler-400">
               <Timer className="w-3 h-3 inline mr-1" />
               {formatTime(Math.floor(elapsedTime / 60))}
+              {readiness && (
+                <span className={cn(
+                  'ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                  readiness.score >= 65 ? 'bg-green-500/20 text-green-400' :
+                  readiness.score >= 35 ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-red-500/20 text-red-400'
+                )}>
+                  Readiness: {readiness.score}
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -290,14 +783,23 @@ export default function ActiveWorkout() {
           animate={{ opacity: 1, x: 0 }}
           className="card p-6 mb-6"
         >
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-grappler-50 mb-1">
-              {currentExercise.exercise.name}
-            </h2>
+          <div className="text-center mb-4">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-grappler-50">
+                {currentExercise.exercise.name}
+              </h2>
+              <button
+                onClick={() => setShowSwapModal(true)}
+                className="p-1.5 rounded-lg hover:bg-grappler-700 transition-colors"
+                title="Swap exercise"
+              >
+                <Shuffle className="w-4 h-4 text-grappler-400" />
+              </button>
+            </div>
             <p className="text-sm text-grappler-400">
-              {currentExercise.sets} sets × {currentExercise.prescription.targetReps} reps
+              {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
               {currentExercise.prescription.tempo && (
-                <span className="ml-2">• Tempo: {currentExercise.prescription.tempo}</span>
+                <span className="ml-2">Tempo: {currentExercise.prescription.tempo}</span>
               )}
             </p>
           </div>
@@ -326,10 +828,10 @@ export default function ActiveWorkout() {
           <div className="space-y-4">
             {/* Weight */}
             <div className="bg-grappler-800/50 rounded-xl p-4">
-              <label className="text-xs text-grappler-400 uppercase tracking-wide">Weight (lbs)</label>
+              <label className="text-xs text-grappler-400 uppercase tracking-wide">Weight ({weightUnit})</label>
               <div className="flex items-center justify-between mt-2">
                 <button
-                  onClick={() => updateSetValue('weight', -5)}
+                  onClick={() => updateSetValue('weight', -weightIncrement)}
                   className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
                 >
                   <Minus className="w-5 h-5 text-grappler-300" />
@@ -341,7 +843,7 @@ export default function ActiveWorkout() {
                   className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
                 />
                 <button
-                  onClick={() => updateSetValue('weight', 5)}
+                  onClick={() => updateSetValue('weight', weightIncrement)}
                   className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
                 >
                   <Plus className="w-5 h-5 text-grappler-300" />
@@ -458,7 +960,7 @@ export default function ActiveWorkout() {
                 {/* Overall RPE */}
                 <div>
                   <label className="text-sm text-grappler-400 mb-2 block">
-                    How hard was this session overall? (RPE)
+                    Session RPE
                   </label>
                   <div className="flex gap-2">
                     {[5, 6, 7, 8, 9, 10].map((rpe) => (
@@ -478,10 +980,39 @@ export default function ActiveWorkout() {
                   </div>
                 </div>
 
+                {/* Performance vs Expectations */}
+                <div>
+                  <label className="text-sm text-grappler-400 mb-2 block">
+                    How was performance vs expectations?
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { value: 'worse_than_expected', label: 'Worse' },
+                      { value: 'as_expected', label: 'As Expected' },
+                      { value: 'better_than_expected', label: 'Better' }
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFeedback({ ...feedback, overallPerformance: opt.value })}
+                        className={cn(
+                          'py-2 px-2 rounded-lg text-xs font-medium',
+                          feedback.overallPerformance === opt.value
+                            ? opt.value === 'worse_than_expected' ? 'bg-red-500 text-white' :
+                              opt.value === 'better_than_expected' ? 'bg-green-500 text-white' :
+                              'bg-primary-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Soreness */}
                 <div>
                   <label className="text-sm text-grappler-400 mb-2 block">
-                    Current soreness level (1-10)
+                    Soreness (1-10)
                   </label>
                   <input
                     type="range"
@@ -501,7 +1032,7 @@ export default function ActiveWorkout() {
                 {/* Energy */}
                 <div>
                   <label className="text-sm text-grappler-400 mb-2 block">
-                    Energy level (1-10)
+                    Energy (1-10)
                   </label>
                   <input
                     type="range"
@@ -516,6 +1047,47 @@ export default function ActiveWorkout() {
                     <span>{feedback.energy}</span>
                     <span>Energized</span>
                   </div>
+                </div>
+
+                {/* Mood */}
+                <div>
+                  <label className="text-sm text-grappler-400 mb-2 block">Mood</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setFeedback({ ...feedback, mood: v })}
+                        className={cn(
+                          'flex-1 py-2 rounded-lg text-sm font-medium',
+                          feedback.mood === v
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                    <span>Bad</span>
+                    <span>Great</span>
+                  </div>
+                </div>
+
+                {/* Would Repeat */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-grappler-300">Enjoyed this session?</label>
+                  <button
+                    onClick={() => setFeedback({ ...feedback, wouldRepeat: !feedback.wouldRepeat })}
+                    className={cn(
+                      'px-4 py-1.5 rounded-lg text-sm font-medium',
+                      feedback.wouldRepeat
+                        ? 'bg-green-500 text-white'
+                        : 'bg-grappler-700 text-grappler-400'
+                    )}
+                  >
+                    {feedback.wouldRepeat ? 'Yes' : 'No'}
+                  </button>
                 </div>
 
                 {/* Notes */}
@@ -540,7 +1112,21 @@ export default function ActiveWorkout() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => completeWorkout(feedback)}
+                  onClick={() => completeWorkout({
+                    overallRPE: feedback.overallRPE,
+                    soreness: feedback.soreness,
+                    energy: feedback.energy,
+                    notes: feedback.notes,
+                    postFeedback: {
+                      overallRPE: feedback.overallRPE,
+                      overallPerformance: feedback.overallPerformance,
+                      soreness: feedback.soreness,
+                      energy: feedback.energy,
+                      mood: feedback.mood,
+                      wouldRepeat: feedback.wouldRepeat,
+                      notes: feedback.notes
+                    }
+                  })}
                   className="btn btn-primary btn-md flex-1"
                 >
                   Save Workout

@@ -30,11 +30,12 @@ import {
   GrapplingSession,
   MealEntry,
   MacroTargets,
-  MuscleGroupConfig
+  MuscleGroupConfig,
+  WearableData
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
-import { getSuggestedWeight } from './auto-adjust';
+import { getSuggestedWeight, whoopRecoveryToReadiness } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -100,6 +101,9 @@ interface AppState {
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
+
+  // Whoop / wearable data
+  latestWhoopData: WearableData | null;
 
   // Offline queue
   isOnline: boolean;
@@ -187,6 +191,10 @@ interface AppState {
   setActiveEquipmentProfile: (profile: EquipmentProfileName) => void;
   getActiveEquipment: () => EquipmentType[];
 
+  // Whoop actions
+  setLatestWhoopData: (data: WearableData | null) => void;
+  applyWhoopAdjustment: () => void;
+
   // Online status
   setOnline: (online: boolean) => void;
 
@@ -251,6 +259,7 @@ export const useAppStore = create<AppState>()(
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
+      latestWhoopData: null,
       isOnline: true,
       lastSyncAt: null,
       showTip: true,
@@ -340,6 +349,81 @@ export const useAppStore = create<AppState>()(
         if (user?.availableEquipment?.length) return user.availableEquipment;
         const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile);
         return preset?.equipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment;
+      },
+
+      // Whoop actions
+      setLatestWhoopData: (data) => set({ latestWhoopData: data }),
+
+      applyWhoopAdjustment: () => {
+        const { activeWorkout, latestWhoopData } = get();
+        if (!activeWorkout || !latestWhoopData) return;
+
+        // Calculate readiness from Whoop data
+        const readiness = whoopRecoveryToReadiness({
+          recoveryScore: latestWhoopData.recoveryScore ?? undefined,
+          hrvMs: latestWhoopData.hrv ?? undefined,
+          sleepScore: latestWhoopData.sleepScore ?? undefined,
+          strainScore: latestWhoopData.strain ?? undefined,
+        });
+
+        if (readiness.recommendation === 'maintain') return;
+
+        const updatedExercises = activeWorkout.session.exercises.map(ex => {
+          if (readiness.recommendation === 'reduce') {
+            return {
+              ...ex,
+              sets: Math.max(2, ex.sets - 1),
+              prescription: {
+                ...ex.prescription,
+                rpe: Math.max(5, ex.prescription.rpe - 1),
+              },
+            };
+          } else {
+            // increase
+            return {
+              ...ex,
+              sets: ex.sets + 1,
+              prescription: {
+                ...ex.prescription,
+                rpe: Math.min(10, ex.prescription.rpe + 0.5),
+              },
+            };
+          }
+        });
+
+        const updatedSession = { ...activeWorkout.session, exercises: updatedExercises };
+        const updatedLogs = activeWorkout.exerciseLogs.map((log, i) => {
+          const newEx = updatedExercises[i];
+          const currentSets = log.sets;
+          if (readiness.recommendation === 'reduce') {
+            // Remove last set if needed
+            return {
+              ...log,
+              sets: currentSets.slice(0, newEx.sets).map(s => ({
+                ...s,
+                rpe: newEx.prescription.rpe,
+              })),
+            };
+          } else {
+            // Add an extra set
+            const lastSet = currentSets[currentSets.length - 1];
+            return {
+              ...log,
+              sets: [
+                ...currentSets.map(s => ({ ...s, rpe: newEx.prescription.rpe })),
+                { ...lastSet, setNumber: currentSets.length + 1, completed: false, rpe: newEx.prescription.rpe },
+              ],
+            };
+          }
+        });
+
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            session: updatedSession,
+            exerciseLogs: updatedLogs,
+          },
+        });
       },
 
       // Mesocycle actions

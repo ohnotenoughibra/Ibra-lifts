@@ -41,6 +41,7 @@ import {
   Shield
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
+import type { WorkoutLog } from '@/lib/types';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
@@ -75,6 +76,102 @@ import ThemeToggle from './ThemeToggle';
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | null;
+
+function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const weeks = 12;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Build a Set of workout date strings
+  const workoutDates = new Set(
+    workoutLogs.map(log => {
+      const d = new Date(log.date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })
+  );
+
+  // Generate grid: 12 weeks x 7 days
+  const grid: { date: Date; hasWorkout: boolean; isToday: boolean; isFuture: boolean }[][] = [];
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
+
+  for (let w = 0; w < weeks; w++) {
+    const week: typeof grid[0] = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + w * 7 + d);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const isFuture = date > today;
+      week.push({
+        date,
+        hasWorkout: workoutDates.has(dateStr),
+        isToday: date.getTime() === today.getTime(),
+        isFuture,
+      });
+    }
+    grid.push(week);
+  }
+
+  // Calculate current streak
+  let streak = 0;
+  const checkDate = new Date(today);
+  while (true) {
+    const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+    if (workoutDates.has(dateStr)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
+          <Flame className="w-4 h-4 text-orange-400" />
+          Training Streak
+        </h3>
+        <div className="flex items-center gap-1.5">
+          <span className="text-2xl font-black text-orange-400">{streak}</span>
+          <span className="text-xs text-grappler-400">day{streak !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+      <div className="flex gap-[3px]">
+        {grid.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-[3px]">
+            {week.map((day, di) => (
+              <div
+                key={di}
+                className={cn(
+                  'w-3 h-3 rounded-sm transition-colors',
+                  day.isFuture
+                    ? 'bg-grappler-800/30'
+                    : day.hasWorkout
+                      ? 'bg-green-500'
+                      : 'bg-grappler-700/40',
+                  day.isToday && 'ring-1 ring-primary-400'
+                )}
+                title={`${day.date.toLocaleDateString()}${day.hasWorkout ? ' \u2014 trained' : ''}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-[10px] text-grappler-500">{weeks * 7} days</span>
+        <div className="flex items-center gap-1 text-[10px] text-grappler-500">
+          <span>Less</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+          <span>More</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -501,6 +598,9 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
           </motion.div>
         ))}
       </div>
+
+      {/* Training Streak Heatmap */}
+      <StreakHeatmap workoutLogs={workoutLogs} />
 
       {/* Workout Buttons */}
       <div className="grid grid-cols-2 gap-3">

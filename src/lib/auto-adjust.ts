@@ -12,7 +12,7 @@ import {
 // RP-style auto-adjustment engine
 // Analyzes previous workout feedback and adjusts next workout parameters
 
-interface ReadinessScore {
+export interface ReadinessScore {
   score: number; // 0-100
   factors: string[];
   recommendation: 'reduce' | 'maintain' | 'increase';
@@ -456,4 +456,68 @@ export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reaso
   }
 
   return { needed: false, reason: '' };
+}
+
+// Convert Whoop recovery score to readiness adjustments
+export function whoopRecoveryToReadiness(whoopData: {
+  recoveryScore?: number; // 0-100
+  hrvMs?: number;
+  restingHR?: number;
+  sleepScore?: number; // 0-100
+  skinTempC?: number;
+  respiratoryRate?: number;
+  strainScore?: number; // 0-21
+}): ReadinessScore {
+  const factors: string[] = [];
+  let score = 50;
+
+  if (whoopData.recoveryScore !== undefined) {
+    // Whoop recovery is 0-100, map it directly
+    score = whoopData.recoveryScore;
+    if (whoopData.recoveryScore >= 67) factors.push(`Whoop recovery: ${whoopData.recoveryScore}% (green)`);
+    else if (whoopData.recoveryScore >= 34) factors.push(`Whoop recovery: ${whoopData.recoveryScore}% (yellow)`);
+    else factors.push(`Whoop recovery: ${whoopData.recoveryScore}% (red — consider rest day)`);
+  }
+
+  if (whoopData.hrvMs !== undefined) {
+    if (whoopData.hrvMs > 80) { score += 5; factors.push(`HRV: ${whoopData.hrvMs}ms (above baseline)`); }
+    else if (whoopData.hrvMs < 40) { score -= 10; factors.push(`HRV: ${whoopData.hrvMs}ms (below baseline)`); }
+  }
+
+  if (whoopData.sleepScore !== undefined) {
+    if (whoopData.sleepScore >= 85) { score += 5; factors.push(`Sleep score: ${whoopData.sleepScore}%`); }
+    else if (whoopData.sleepScore < 50) { score -= 10; factors.push(`Poor sleep: ${whoopData.sleepScore}%`); }
+  }
+
+  if (whoopData.strainScore !== undefined && whoopData.strainScore > 15) {
+    score -= 10;
+    factors.push(`High previous strain: ${whoopData.strainScore.toFixed(1)}`);
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let recommendation: 'reduce' | 'maintain' | 'increase';
+  if (score < 35) recommendation = 'reduce';
+  else if (score > 65) recommendation = 'increase';
+  else recommendation = 'maintain';
+
+  return { score, factors, recommendation };
+}
+
+// Merge manual pre-check-in readiness with Whoop-derived readiness
+export function mergeReadinessScores(manual: ReadinessScore | null, whoop: ReadinessScore | null): ReadinessScore {
+  if (!manual && !whoop) return { score: 50, factors: [], recommendation: 'maintain' };
+  if (!manual) return whoop!;
+  if (!whoop) return manual;
+
+  // Weighted average: 40% manual, 60% Whoop (objective data gets more weight)
+  const score = Math.round(manual.score * 0.4 + whoop.score * 0.6);
+  const factors = [...whoop.factors, ...manual.factors];
+
+  let recommendation: 'reduce' | 'maintain' | 'increase';
+  if (score < 35) recommendation = 'reduce';
+  else if (score > 65) recommendation = 'increase';
+  else recommendation = 'maintain';
+
+  return { score, factors, recommendation };
 }

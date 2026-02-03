@@ -15,7 +15,8 @@ import {
   Pencil,
   Trash2,
   Save,
-  X
+  X,
+  Share2
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
 import { SetLog } from '@/lib/types';
@@ -26,6 +27,7 @@ export default function WorkoutHistory() {
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
 
   const startEditing = (logId: string) => {

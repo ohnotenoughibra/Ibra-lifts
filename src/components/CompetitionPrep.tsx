@@ -15,6 +15,7 @@ import {
   Flame,
   Zap,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
@@ -452,6 +453,61 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   );
 }
 
+// ---- Weight Cut Safety Warnings ----
+function WeightCutWarnings({ currentWeight, targetWeight, daysRemaining }: { currentWeight: number; targetWeight: number; daysRemaining: number }) {
+  const toLose = currentWeight - targetWeight;
+  const cutPercent = (toLose / currentWeight) * 100;
+  const weeksRemaining = Math.max(1, daysRemaining / 7);
+  const weeklyLossRate = toLose / weeksRemaining;
+  const weeklyLossPercent = (weeklyLossRate / currentWeight) * 100;
+
+  const warnings: { level: 'danger' | 'caution'; message: string }[] = [];
+
+  if (cutPercent > 10) {
+    warnings.push({ level: 'danger', message: `Cutting ${cutPercent.toFixed(1)}% of body weight — risk of muscle loss, hormonal disruption, and performance decline.` });
+  }
+  if (weeklyLossPercent > 1.5) {
+    warnings.push({ level: 'danger', message: `Required pace: ${weeklyLossRate.toFixed(1)} lbs/week (${weeklyLossPercent.toFixed(1)}%/week). Safe limit is ~1% per week.` });
+  } else if (weeklyLossPercent > 1.0) {
+    warnings.push({ level: 'caution', message: `Pace: ${weeklyLossRate.toFixed(1)} lbs/week (${weeklyLossPercent.toFixed(1)}%/week). Aggressive but manageable with careful nutrition.` });
+  }
+  if (toLose > 15 && daysRemaining < 14) {
+    warnings.push({ level: 'danger', message: `${toLose.toFixed(1)} lbs to lose in ${daysRemaining} days requires extreme measures. Consider moving up a weight class.` });
+  }
+  if (toLose > 5 && daysRemaining < 3) {
+    warnings.push({ level: 'danger', message: `Water cut territory — consult a professional. Ensure a rehydration plan is in place.` });
+  }
+
+  if (warnings.length === 0) return null;
+
+  const hasDanger = warnings.some(w => w.level === 'danger');
+
+  return (
+    <div className={cn(
+      'card p-4 border',
+      hasDanger ? 'border-red-500/40 bg-red-500/5' : 'border-yellow-500/40 bg-yellow-500/5'
+    )}>
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className={cn('w-5 h-5', hasDanger ? 'text-red-400' : 'text-yellow-400')} />
+        <h3 className={cn('font-medium', hasDanger ? 'text-red-300' : 'text-yellow-300')}>
+          Weight Cut {hasDanger ? 'Warning' : 'Advisory'}
+        </h3>
+      </div>
+      <div className="space-y-2">
+        {warnings.map((w, i) => (
+          <div key={i} className={cn(
+            'flex items-start gap-2 text-sm p-2 rounded-lg',
+            w.level === 'danger' ? 'bg-red-500/10 text-red-300' : 'bg-yellow-500/10 text-yellow-300'
+          )}>
+            <span className="flex-shrink-0 mt-0.5">{w.level === 'danger' ? '\u26A0' : '\u26A1'}</span>
+            <span>{w.message}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Event Card (list view) ----
 function EventCard({
   event,
@@ -734,6 +790,15 @@ function EventDetail({
             )}
           </div>
         </div>
+      )}
+
+      {/* Weight Cut Safety Warnings */}
+      {event.weightClass && event.currentWeight && event.currentWeight > event.weightClass && (
+        <WeightCutWarnings
+          currentWeight={event.currentWeight}
+          targetWeight={event.weightClass}
+          daysRemaining={daysRemaining}
+        />
       )}
 
       {/* Phase Timeline */}

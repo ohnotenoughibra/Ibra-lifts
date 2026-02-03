@@ -17,8 +17,79 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { SessionTemplate } from '@/lib/types';
+import { SessionTemplate, WorkoutSession, EquipmentType } from '@/lib/types';
 import { formatDate, getRelativeTime } from '@/lib/utils';
+import { exercises as allExercises } from '@/lib/exercises';
+import { Shield } from 'lucide-react';
+
+// Helper to build a preset session from exercise IDs
+function buildPresetSession(
+  name: string,
+  type: 'strength' | 'hypertrophy' | 'power',
+  exerciseIds: string[],
+  setsPerExercise: number,
+  reps: number,
+  rpe: number,
+  restSeconds: number
+): WorkoutSession {
+  const exs = exerciseIds
+    .map(id => allExercises.find(e => e.id === id))
+    .filter(Boolean) as typeof allExercises;
+
+  return {
+    id: `preset-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+    name,
+    type,
+    dayNumber: 1,
+    exercises: exs.map(ex => ({
+      exerciseId: ex.id,
+      exercise: ex,
+      sets: setsPerExercise,
+      prescription: {
+        targetReps: reps,
+        minReps: Math.max(1, reps - 2),
+        maxReps: reps + 2,
+        rpe,
+        restSeconds,
+      },
+    })),
+    estimatedDuration: Math.round(exs.length * setsPerExercise * (30 + restSeconds) / 60),
+    warmUp: ['5 min light cardio', 'Dynamic stretching', 'Movement-specific warm-up'],
+    coolDown: ['Light stretching', 'Foam rolling'],
+  };
+}
+
+// Built-in grappling-focused templates
+const GRAPPLING_PRESETS: { name: string; description: string; build: () => WorkoutSession }[] = [
+  {
+    name: 'BJJ Strength',
+    description: 'Grip, posterior chain & rotational power for grappling',
+    build: () => buildPresetSession('BJJ Strength', 'strength',
+      ['deadlift', 'barbell-row', 'overhead-press', 'pull-up', 'farmers-walk', 'turkish-getup'],
+      4, 5, 8, 180),
+  },
+  {
+    name: 'Grappler Conditioning',
+    description: 'High-rep compound work to build mat endurance',
+    build: () => buildPresetSession('Grappler Conditioning', 'hypertrophy',
+      ['front-squat', 'dumbbell-row', 'push-up', 'kettlebell-swing', 'plank', 'hip-thrust'],
+      3, 12, 7, 90),
+  },
+  {
+    name: 'Competition Prep',
+    description: 'Explosive power & grip for tournament readiness',
+    build: () => buildPresetSession('Competition Prep', 'power',
+      ['power-clean', 'push-press', 'pull-up', 'box-jump', 'farmers-walk', 'cable-row'],
+      4, 4, 9, 150),
+  },
+  {
+    name: 'Home Mat Work',
+    description: 'Bodyweight strength for grapplers — no equipment needed',
+    build: () => buildPresetSession('Home Mat Work', 'hypertrophy',
+      ['push-up', 'jump-squat', 'glute-bridge', 'plank', 'side-plank', 'ab-wheel-rollout'],
+      4, 15, 7, 60),
+  },
+];
 
 interface SessionTemplatesProps {
   onClose: () => void;
@@ -34,7 +105,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     useTemplate
   } = useAppStore();
 
-  const [activeSection, setActiveSection] = useState<'templates' | 'save' | 'history'>('templates');
+  const [activeSection, setActiveSection] = useState<'templates' | 'presets' | 'save' | 'history'>('templates');
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [templateNameInputs, setTemplateNameInputs] = useState<Record<string, string>>({});
@@ -144,10 +215,13 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     return Math.round(totalSets * 3);
   };
 
+  const { startWorkout: storeStartWorkout } = useAppStore();
+
   const sectionTabs = [
     { id: 'templates' as const, label: 'My Templates', icon: Star },
+    { id: 'presets' as const, label: 'Grappling', icon: Shield },
     { id: 'save' as const, label: 'Save Current', icon: Save },
-    { id: 'history' as const, label: 'From History', icon: Clock }
+    { id: 'history' as const, label: 'History', icon: Clock }
   ];
 
   return (
@@ -162,8 +236,8 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             <ChevronLeft className="w-5 h-5 text-grappler-300" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-grappler-50">Session Templates</h1>
-            <p className="text-xs text-grappler-400">Save and reuse your favorite workouts</p>
+            <h1 className="text-xl font-bold text-grappler-50">Templates</h1>
+            <p className="text-xs text-grappler-400">Pick a template to start a workout instantly</p>
           </div>
         </div>
 
@@ -209,12 +283,24 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             className="space-y-4"
           >
             {sessionTemplates.length === 0 ? (
-              <div className="text-center py-16">
+              <div className="text-center py-12">
                 <Star className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
                 <h3 className="text-lg font-bold text-grappler-300 mb-2">No templates saved yet</h3>
-                <p className="text-sm text-grappler-500 max-w-xs mx-auto">
-                  Save your favorite workouts for quick access. Use the &quot;Save Current&quot; or &quot;From History&quot; tabs to get started.
+                <p className="text-sm text-grappler-500 max-w-xs mx-auto mb-4">
+                  Templates let you start a workout instantly — outside your regular program. Useful for days you want to do your own thing.
                 </p>
+                <div className="space-y-2 max-w-xs mx-auto">
+                  <button
+                    onClick={() => setActiveSection('presets')}
+                    className="btn btn-primary btn-sm w-full gap-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    Browse Grappling Templates
+                  </button>
+                  <p className="text-[10px] text-grappler-500">
+                    Or save sessions from your program using the &quot;Save Current&quot; tab
+                  </p>
+                </div>
               </div>
             ) : (
               sessionTemplates.map(template => {
@@ -378,6 +464,83 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                 );
               })
             )}
+          </motion.div>
+        )}
+
+        {/* === GRAPPLING PRESETS SECTION === */}
+        {activeSection === 'presets' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className="text-center mb-2">
+              <p className="text-sm text-grappler-400">
+                Ready-made sessions for grapplers. Tap <span className="text-primary-400 font-medium">Start</span> to begin immediately or <span className="text-grappler-300 font-medium">Save</span> to keep it.
+              </p>
+            </div>
+
+            {GRAPPLING_PRESETS.map((preset, idx) => {
+              const session = preset.build();
+              return (
+                <div key={idx} className="bg-grappler-800 rounded-xl overflow-hidden">
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-lime-400" />
+                      <h3 className="font-bold text-grappler-50">{preset.name}</h3>
+                    </div>
+                    <p className="text-xs text-grappler-400 mb-3">{preset.description}</p>
+
+                    <div className="flex items-center gap-3 text-xs text-grappler-500 mb-3">
+                      <span className="flex items-center gap-1">
+                        <Dumbbell className="w-3 h-3" />
+                        {session.exercises.length} exercises
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        ~{session.estimatedDuration}m
+                      </span>
+                      <span className="capitalize text-xs px-1.5 py-0.5 rounded bg-grappler-700/50">
+                        {session.type}
+                      </span>
+                    </div>
+
+                    {/* Exercise list preview */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {session.exercises.map((ex, i) => (
+                        <span key={i} className="text-[10px] bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
+                          {ex.exercise.name}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const s = preset.build();
+                          storeStartWorkout(s);
+                        }}
+                        className="btn btn-primary btn-sm flex-1 gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        Start Workout
+                      </button>
+                      <button
+                        onClick={() => {
+                          const s = preset.build();
+                          saveAsTemplate(preset.name, s);
+                          showSavedFeedback(preset.name);
+                        }}
+                        className="btn btn-secondary btn-sm gap-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </motion.div>
         )}
 

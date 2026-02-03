@@ -163,6 +163,7 @@ interface GeneratorOptions {
   baselineLifts?: BaselineLifts;
   periodizationType?: 'undulating' | 'block';
   muscleEmphasis?: MuscleGroupConfig;
+  sessionDurationMinutes?: number; // Max session time (e.g. 60, 75, 90)
 }
 
 // Filter exercises by the user's specific equipment inventory
@@ -275,7 +276,10 @@ function selectExercisesForType(
   const priorities = EXERCISE_PRIORITIES[type];
   const selected: Exercise[] = [];
 
-  // Priority scoring based on goal focus + muscle emphasis
+  // Track which muscles are already covered by selected exercises
+  const coveredMuscles = new Set<string>();
+
+  // Priority scoring based on goal focus + muscle emphasis + muscle coverage
   const scoreExercise = (ex: Exercise): number => {
     let score = 0;
     if (goalFocus === 'strength') {
@@ -291,6 +295,15 @@ function selectExercisesForType(
     if (usedExerciseIds.has(ex.id)) {
       score -= 5;
     }
+
+    // Prefer exercises that hit MORE muscles (bang-for-buck for busy people)
+    const totalMuscles = ex.primaryMuscles.length + ex.secondaryMuscles.length * 0.5;
+    score += totalMuscles * 0.5;
+
+    // Bonus for covering NEW muscle groups not yet in the session
+    const newMuscles = ex.primaryMuscles.filter(m => !coveredMuscles.has(m));
+    score += newMuscles.length * 1.5;
+
     // Apply muscle emphasis multiplier
     score *= getExerciseEmphasisScore(ex, muscleEmphasis);
     return score;
@@ -309,6 +322,11 @@ function selectExercisesForType(
   );
 
   const usedPatterns = new Set<string>();
+  const trackMuscles = (ex: Exercise) => {
+    ex.primaryMuscles.forEach(m => coveredMuscles.add(m));
+    ex.secondaryMuscles.forEach(m => coveredMuscles.add(m));
+  };
+
   for (const pattern of targetPatterns) {
     if (selected.length >= priorities.compounds) break;
     const match = compoundPool.find(
@@ -318,36 +336,40 @@ function selectExercisesForType(
       selected.push(match);
       usedExerciseIds.add(match.id);
       usedPatterns.add(pattern);
+      trackMuscles(match);
     }
   }
-  // Fill remaining compound slots
-  for (const ex of compoundPool) {
+  // Fill remaining compound slots — re-score to prefer new muscle coverage
+  const remainingCompounds = weightedShuffle(
+    compoundPool.filter(e => !usedExerciseIds.has(e.id) && !selected.includes(e)),
+    scoreExercise
+  );
+  for (const ex of remainingCompounds) {
     if (selected.length >= priorities.compounds) break;
-    if (!usedExerciseIds.has(ex.id) && !selected.includes(ex)) {
-      selected.push(ex);
-      usedExerciseIds.add(ex.id);
-    }
+    selected.push(ex);
+    usedExerciseIds.add(ex.id);
+    trackMuscles(ex);
   }
 
-  // Add power/grappling-specific exercises with randomization
+  // Add power/grappling-specific exercises — re-score for muscle coverage
   const grapplingExercises = weightedShuffle(
     availableExercises.filter(e => (e.category === 'grappling_specific' || e.category === 'power') && !usedExerciseIds.has(e.id)),
     scoreExercise
   ).slice(0, priorities.grapplingSpecific);
   selected.push(...grapplingExercises);
-  grapplingExercises.forEach(e => usedExerciseIds.add(e.id));
+  grapplingExercises.forEach(e => { usedExerciseIds.add(e.id); trackMuscles(e); });
 
-  // Add isolation exercises for aesthetics with randomization
+  // Add isolation exercises — prefer ones covering muscles NOT yet hit by compounds
   if (goalFocus === 'hypertrophy' || goalFocus === 'balanced') {
     const isolations = weightedShuffle(
       availableExercises.filter(e => e.category === 'isolation' && !usedExerciseIds.has(e.id)),
       scoreExercise
     ).slice(0, priorities.isolation);
     selected.push(...isolations);
-    isolations.forEach(e => usedExerciseIds.add(e.id));
+    isolations.forEach(e => { usedExerciseIds.add(e.id); trackMuscles(e); });
   }
 
-  // Add grip work for grapplers with randomization
+  // Add grip work for grapplers
   if (goalFocus === 'balanced' || goalFocus === 'strength') {
     const gripPool = availableExercises.filter(e => e.category === 'grip' && !usedExerciseIds.has(e.id));
     const gripWork = gripPool.length > 0 ? [gripPool[Math.floor(Math.random() * gripPool.length)]] : [];
@@ -364,12 +386,13 @@ function generateWorkoutSession(
   goalFocus: GoalFocus,
   usedExerciseIds: Set<string>,
   muscleEmphasis?: MuscleGroupConfig,
-  availableEquipment?: EquipmentType[]
+  availableEquipment?: EquipmentType[],
+  maxDurationMinutes?: number
 ): WorkoutSession {
   const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment);
   const config = WORKOUT_PRESCRIPTIONS[type];
 
-  const exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
+  let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
     // Adjust sets based on exercise category
     let sets = randomBetween(config.sets[0], config.sets[1]);
     if (exercise.category === 'isolation') {
@@ -388,6 +411,11 @@ function generateWorkoutSession(
     };
   });
 
+  // Smart time-fitting: trim session to fit within the user's time cap
+  if (maxDurationMinutes && maxDurationMinutes > 0) {
+    exercisePrescriptions = fitSessionToTimeLimit(exercisePrescriptions, maxDurationMinutes);
+  }
+
   const sessionNames: Record<WorkoutType, string[]> = {
     strength: ['Heavy Foundation', 'Max Effort', 'Strength Builder', 'Power Base'],
     hypertrophy: ['Muscle Builder', 'Growth Session', 'Hypertrophy Focus', 'Volume Day'],
@@ -404,6 +432,85 @@ function generateWorkoutSession(
     warmUp: generateWarmUp(type),
     coolDown: generateCoolDown()
   };
+}
+
+/**
+ * Smart time-fitting algorithm.
+ * Trims a session to fit within a time budget without losing workout quality.
+ *
+ * Strategy (in order):
+ * 1. Drop grip/isolation exercises (lowest priority for time-crunched users)
+ * 2. Reduce sets on remaining exercises (minimum 2 sets each)
+ * 3. Drop accessories/grappling-specific exercises
+ * 4. Reduce sets further on compounds (minimum 2)
+ *
+ * Compounds are always preserved because they give the most bang-for-buck —
+ * one exercise hits multiple muscles instead of isolating one.
+ */
+function fitSessionToTimeLimit(
+  prescriptions: ExercisePrescription[],
+  maxMinutes: number
+): ExercisePrescription[] {
+  const WARMUP_COOLDOWN = 15; // 10 warmup + 5 cooldown
+  const targetWorkMinutes = maxMinutes - WARMUP_COOLDOWN;
+  if (targetWorkMinutes <= 0) return prescriptions.slice(0, 2);
+
+  let current = [...prescriptions];
+
+  // Helper: estimate work minutes for a set of prescriptions
+  const estMinutes = (ps: ExercisePrescription[]) => {
+    let mins = 0;
+    for (const p of ps) {
+      mins += (p.prescription.restSeconds / 60) * p.sets;
+      mins += (p.prescription.targetReps * 4) / 60 * p.sets;
+    }
+    return mins;
+  };
+
+  // Step 1: Drop grip exercises if over budget
+  if (estMinutes(current) > targetWorkMinutes) {
+    current = current.filter(p => p.exercise.category !== 'grip');
+  }
+
+  // Step 2: Drop isolation exercises if still over
+  if (estMinutes(current) > targetWorkMinutes) {
+    current = current.filter(p => p.exercise.category !== 'isolation');
+  }
+
+  // Step 3: Reduce sets on all remaining (min 2 per exercise)
+  if (estMinutes(current) > targetWorkMinutes) {
+    current = current.map(p => ({
+      ...p,
+      sets: Math.max(2, p.sets - 1),
+    }));
+  }
+
+  // Step 4: Drop grappling_specific/power exercises if still over
+  if (estMinutes(current) > targetWorkMinutes) {
+    const compounds = current.filter(p => p.exercise.category === 'compound');
+    const others = current.filter(p => p.exercise.category !== 'compound');
+    // Keep at least the compounds
+    current = compounds.length > 0 ? compounds : current.slice(0, 3);
+    // Add back others only if time allows
+    for (const ex of others) {
+      if (estMinutes([...current, ex]) <= targetWorkMinutes) {
+        current.push(ex);
+      }
+    }
+  }
+
+  // Step 5: If still over, reduce all sets to 2
+  if (estMinutes(current) > targetWorkMinutes) {
+    current = current.map(p => ({ ...p, sets: 2 }));
+  }
+
+  // Step 6: Last resort — limit to 4 exercises max
+  if (estMinutes(current) > targetWorkMinutes && current.length > 4) {
+    current = current.slice(0, 4);
+  }
+
+  // Never return empty
+  return current.length > 0 ? current : prescriptions.slice(0, 3);
 }
 
 function findAlternatives(exercise: Exercise, equipment: Equipment): string[] {
@@ -474,7 +581,8 @@ function generateMesocycleWeek(
   periodizationType: 'undulating' | 'block' = 'undulating',
   weekIndex: number = 0,
   muscleEmphasis?: MuscleGroupConfig,
-  availableEquipment?: EquipmentType[]
+  availableEquipment?: EquipmentType[],
+  sessionDurationMinutes?: number
 ): MesocycleWeek {
   const workoutTypes = periodizationType === 'block'
     ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
@@ -493,7 +601,8 @@ function generateMesocycleWeek(
       goalFocus,
       usedExerciseIds,
       muscleEmphasis,
-      availableEquipment
+      availableEquipment,
+      sessionDurationMinutes
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -540,7 +649,7 @@ function generateMesocycleWeek(
 }
 
 export function generateMesocycle(options: GeneratorOptions): Mesocycle {
-  const { userId, goalFocus, equipment, availableEquipment, sessionsPerWeek, weeks, muscleEmphasis } = options;
+  const { userId, goalFocus, equipment, availableEquipment, sessionsPerWeek, weeks, muscleEmphasis, sessionDurationMinutes } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
 
@@ -551,7 +660,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     const isDeload = i === weeks;
     const weekIndex = i - 1;
     mesocycleWeeks.push(
-      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis, availableEquipment)
+      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis, availableEquipment, sessionDurationMinutes)
     );
   }
 

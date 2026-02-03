@@ -9,6 +9,9 @@ import {
   OnboardingData,
   GoalFocus,
   Equipment,
+  EquipmentType,
+  EquipmentProfileName,
+  DEFAULT_EQUIPMENT_PROFILES,
   ExperienceLevel,
   WorkoutSession,
   ExerciseLog,
@@ -95,6 +98,9 @@ interface AppState {
   // Muscle emphasis for mesocycle customization
   muscleEmphasis: MuscleGroupConfig | null;
 
+  // Active equipment profile for quick-switching gym/home/travel
+  activeEquipmentProfile: EquipmentProfileName;
+
   // Offline queue
   isOnline: boolean;
 
@@ -176,6 +182,10 @@ interface AppState {
   addBodyComposition: (entry: Omit<BodyCompositionEntry, 'id'>) => void;
   deleteBodyComposition: (id: string) => void;
 
+  // Equipment profile actions
+  setActiveEquipmentProfile: (profile: EquipmentProfileName) => void;
+  getActiveEquipment: () => EquipmentType[];
+
   // Online status
   setOnline: (online: boolean) => void;
 
@@ -193,6 +203,7 @@ const initialOnboardingData: OnboardingData = {
   age: 34,
   experienceLevel: 'intermediate',
   equipment: 'full_gym',
+  availableEquipment: DEFAULT_EQUIPMENT_PROFILES[0].equipment,
   goalFocus: 'balanced',
   sessionsPerWeek: 3,
   weightUnit: 'lbs',
@@ -238,6 +249,7 @@ export const useAppStore = create<AppState>()(
       waterLog: {},
       bodyComposition: [],
       muscleEmphasis: null,
+      activeEquipmentProfile: 'gym' as EquipmentProfileName,
       isOnline: true,
       lastSyncAt: null,
       showTip: true,
@@ -264,6 +276,7 @@ export const useAppStore = create<AppState>()(
           age: onboardingData.age,
           experienceLevel: onboardingData.experienceLevel,
           equipment: onboardingData.equipment,
+          availableEquipment: onboardingData.availableEquipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment,
           goalFocus: onboardingData.goalFocus,
           sessionsPerWeek: onboardingData.sessionsPerWeek,
           weightUnit: onboardingData.weightUnit || 'lbs',
@@ -309,6 +322,25 @@ export const useAppStore = create<AppState>()(
       // Muscle emphasis actions
       setMuscleEmphasis: (config) => set({ muscleEmphasis: config }),
 
+      // Equipment profile actions
+      setActiveEquipmentProfile: (profile) => {
+        set({ activeEquipmentProfile: profile });
+        // Also update user's availableEquipment from profile
+        const { user } = get();
+        if (user) {
+          const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile);
+          if (preset) {
+            set({ user: { ...user, availableEquipment: preset.equipment, updatedAt: new Date() } });
+          }
+        }
+      },
+      getActiveEquipment: () => {
+        const { user, activeEquipmentProfile } = get();
+        if (user?.availableEquipment?.length) return user.availableEquipment;
+        const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile);
+        return preset?.equipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment;
+      },
+
       // Mesocycle actions
       generateNewMesocycle: (weeks = 5) => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
@@ -324,11 +356,12 @@ export const useAppStore = create<AppState>()(
           });
         }
 
-        // Generate new mesocycle
+        // Generate new mesocycle with granular equipment
         const newMesocycle = generateMesocycle({
           userId: user.id,
           goalFocus: user.goalFocus,
           equipment: user.equipment,
+          availableEquipment: user.availableEquipment || get().getActiveEquipment(),
           sessionsPerWeek: user.sessionsPerWeek,
           weeks,
           baselineLifts: baselineLifts || undefined,

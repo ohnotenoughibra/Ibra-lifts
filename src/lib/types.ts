@@ -433,6 +433,7 @@ export interface MobilityExercise {
   sets: number;
   description: string;
   breathingCue?: string;
+  videoUrl?: string;   // YouTube URL for form reference
 }
 
 // Exercise Response Profiling

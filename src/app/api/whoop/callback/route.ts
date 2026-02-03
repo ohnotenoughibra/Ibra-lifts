@@ -20,13 +20,12 @@ function getAppUrl(request: Request): string {
   return 'http://localhost:3000';
 }
 
-// Handle Whoop OAuth2 callback - exchange code for tokens
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const state = searchParams.get('state');
   const error = searchParams.get('error');
   const appUrl = getAppUrl(request);
+  const redirectUri = `${appUrl}/api/whoop/callback`;
 
   if (error) {
     return NextResponse.redirect(
@@ -38,33 +37,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}?whoop_error=no_code`);
   }
 
-  // Validate CSRF state
-  const storedState = request.cookies.get('whoop_oauth_state')?.value;
-  if (!storedState || storedState !== state) {
-    return NextResponse.redirect(`${appUrl}?whoop_error=invalid_state`);
-  }
-
   const clientId = process.env.WHOOP_CLIENT_ID;
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
 
-  // Use the EXACT redirect_uri from the auth step
-  const storedRedirectUri = request.cookies.get('whoop_redirect_uri')?.value;
-  const redirectUri = storedRedirectUri || `${appUrl}/api/whoop/callback`;
-
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(`${appUrl}?whoop_error=missing_credentials`);
+    return NextResponse.redirect(
+      `${appUrl}?whoop_error=missing_credentials`
+    );
   }
 
   try {
-    // Exchange code for token - credentials in body per Whoop docs
-    const tokenBody = new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: redirectUri,
-    });
-
     const tokenResponse = await fetch(
       'https://api.prod.whoop.com/oauth/oauth2/token',
       {
@@ -72,20 +54,24 @@ export async function GET(request: NextRequest) {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: tokenBody,
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: redirectUri,
+        }),
       }
     );
 
     if (!tokenResponse.ok) {
       const errorBody = await tokenResponse.text();
       console.error('Whoop token exchange failed:', tokenResponse.status, errorBody);
-      console.error('Used redirect_uri:', redirectUri);
-      console.error('Used client_id:', clientId?.substring(0, 8) + '...');
-      // Pass the status code and snippet of error to frontend for debugging
-      const shortError = encodeURIComponent(
-        `token_${tokenResponse.status}_${errorBody.substring(0, 100)}`
+      console.error('redirect_uri:', redirectUri);
+      const detail = encodeURIComponent(
+        `token_${tokenResponse.status}: ${errorBody.substring(0, 120)}`
       );
-      return NextResponse.redirect(`${appUrl}?whoop_error=${shortError}`);
+      return NextResponse.redirect(`${appUrl}?whoop_error=${detail}`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -110,14 +96,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    response.cookies.delete('whoop_oauth_state');
-    response.cookies.delete('whoop_redirect_uri');
-
     return response;
   } catch (err: any) {
-    console.error('Whoop callback error:', err);
+    console.error('Whoop callback exception:', err);
     return NextResponse.redirect(
-      `${appUrl}?whoop_error=${encodeURIComponent(`exception_${err.message?.substring(0, 80)}`)}`
+      `${appUrl}?whoop_error=${encodeURIComponent(`exception: ${err.message?.substring(0, 80)}`)}`
     );
   }
 }

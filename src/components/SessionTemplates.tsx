@@ -90,6 +90,121 @@ const GRAPPLING_PRESETS: { name: string; description: string; build: () => Worko
       ['push-up', 'jump-squat', 'glute-bridge', 'plank', 'side-plank', 'ab-wheel-rollout'],
       4, 15, 7, 60),
   },
+  {
+    name: 'Neck & Grip Fortress',
+    description: 'Bulletproof your neck and grip — essential injury prevention for grapplers',
+    build: () => buildPresetSession('Neck & Grip Fortress', 'strength',
+      ['neck-curl', 'neck-extension', 'dead-hang', 'towel-pull-up', 'farmers-walk', 'plate-pinch', 'wrist-curl'],
+      3, 12, 7, 90),
+  },
+  {
+    name: 'Grappler Power Circuit',
+    description: 'Explosive rotational power & hip drive for takedowns and sweeps',
+    build: () => buildPresetSession('Grappler Power Circuit', 'power',
+      ['hang-clean', 'med-ball-rotational-throw', 'kettlebell-swing', 'box-jump', 'turkish-getup', 'pallof-press'],
+      3, 6, 8, 120),
+  },
+];
+
+// General quick workout presets (not grappling-specific)
+type PresetCategory = 'push' | 'pull' | 'legs' | 'full_body' | 'upper' | 'lower' | 'arms';
+const QUICK_PRESETS: { name: string; description: string; category: PresetCategory; build: () => WorkoutSession }[] = [
+  {
+    name: 'Push Day',
+    category: 'push',
+    description: 'Chest, shoulders & triceps — classic push session',
+    build: () => buildPresetSession('Push Day', 'hypertrophy',
+      ['bench-press', 'overhead-press', 'incline-bench-press', 'lateral-raise', 'tricep-pushdown', 'cable-fly'],
+      4, 10, 7, 120),
+  },
+  {
+    name: 'Pull Day',
+    category: 'pull',
+    description: 'Back & biceps — rows, pulldowns, and curls',
+    build: () => buildPresetSession('Pull Day', 'hypertrophy',
+      ['barbell-row', 'pull-up', 'lat-pulldown', 'face-pull', 'hammer-curl', 'rear-delt-fly'],
+      4, 10, 7, 120),
+  },
+  {
+    name: 'Leg Day — Quad Focus',
+    category: 'legs',
+    description: 'Squat-dominant with quad isolation and calves',
+    build: () => buildPresetSession('Leg Day — Quad Focus', 'hypertrophy',
+      ['back-squat', 'leg-press', 'split-squat', 'leg-extension', 'calf-raise', 'hanging-leg-raise'],
+      4, 10, 7, 120),
+  },
+  {
+    name: 'Leg Day — Posterior Chain',
+    category: 'legs',
+    description: 'Deadlift-dominant with hamstrings and glutes',
+    build: () => buildPresetSession('Leg Day — Posterior Chain', 'hypertrophy',
+      ['romanian-deadlift', 'hip-thrust', 'leg-curl', 'good-morning', 'nordic-curl', 'seated-calf-raise'],
+      4, 10, 7, 120),
+  },
+  {
+    name: 'Upper Body Strength',
+    category: 'upper',
+    description: 'Heavy compounds for upper body — bench, press, rows',
+    build: () => buildPresetSession('Upper Body Strength', 'strength',
+      ['bench-press', 'overhead-press', 'barbell-row', 'weighted-pull-up', 'parallel-bar-dip', 'face-pull'],
+      4, 5, 8, 180),
+  },
+  {
+    name: 'Lower Body Strength',
+    category: 'lower',
+    description: 'Heavy squats and deadlifts with accessories',
+    build: () => buildPresetSession('Lower Body Strength', 'strength',
+      ['back-squat', 'deadlift', 'split-squat', 'leg-curl', 'calf-raise', 'hanging-leg-raise'],
+      4, 5, 8, 180),
+  },
+  {
+    name: 'Full Body Express',
+    category: 'full_body',
+    description: '30-minute full body — one push, pull, squat, hinge, and core',
+    build: () => buildPresetSession('Full Body Express', 'hypertrophy',
+      ['back-squat', 'bench-press', 'barbell-row', 'romanian-deadlift', 'plank'],
+      3, 8, 7, 90),
+  },
+  {
+    name: 'Full Body Heavy',
+    category: 'full_body',
+    description: 'Big 3 + accessories — squat, bench, deadlift in one session',
+    build: () => buildPresetSession('Full Body Heavy', 'strength',
+      ['back-squat', 'bench-press', 'deadlift', 'pull-up', 'overhead-press', 'face-pull'],
+      4, 5, 8, 180),
+  },
+  {
+    name: 'Arms & Delts',
+    category: 'arms',
+    description: 'Biceps, triceps, and shoulder isolation for the pump',
+    build: () => buildPresetSession('Arms & Delts', 'hypertrophy',
+      ['bicep-curl', 'skull-crusher', 'lateral-raise', 'hammer-curl', 'overhead-tricep-extension', 'rear-delt-fly', 'cable-lateral-raise'],
+      3, 12, 7, 75),
+  },
+  {
+    name: 'Bodyweight Only',
+    category: 'full_body',
+    description: 'No equipment needed — push-ups, squats, core',
+    build: () => buildPresetSession('Bodyweight Only', 'hypertrophy',
+      ['push-up', 'pull-up', 'jump-squat', 'lunges', 'plank', 'dead-bug', 'side-plank'],
+      4, 15, 7, 60),
+  },
+  {
+    name: 'Back & Biceps Classic',
+    category: 'pull',
+    description: 'Classic bodybuilding pull day with heavy rows and curls',
+    build: () => buildPresetSession('Back & Biceps Classic', 'hypertrophy',
+      ['barbell-row', 'weighted-pull-up', 'dumbbell-row', 'lat-pulldown', 'bicep-curl', 'incline-dumbbell-curl', 'face-pull'],
+      4, 10, 7, 90),
+  },
+  {
+    name: 'Chest & Shoulders',
+    category: 'push',
+    description: 'Pressing volume for chest and deltoid development',
+    build: () => buildPresetSession('Chest & Shoulders', 'hypertrophy',
+      ['bench-press', 'incline-bench-press', 'dumbbell-shoulder-press', 'cable-fly', 'lateral-raise', 'tricep-pushdown'],
+      4, 10, 7, 90),
+  },
 ];
 
 // Science-based program templates
@@ -217,6 +332,72 @@ const PROGRAM_TEMPLATES: ProgramTemplate[] = [
     periodization: 'undulating',
     tags: ['Off-season', 'BJJ/Wrestling'],
   },
+  {
+    id: '531-inspired',
+    name: '5/3/1 Progression',
+    description: 'Wendler-inspired 4-week waves — heavy singles/triples on main lifts with submaximal volume. Proven long-term strength builder.',
+    science: 'Wendler (2011): Submaximal training with planned progression avoids early plateaus. 90% training max allows consistent progress over months.',
+    goalFocus: 'strength',
+    sessionsPerWeek: [3, 4],
+    weeks: [4, 8],
+    periodization: 'undulating',
+    tags: ['Long-term', 'Sustainable'],
+  },
+  {
+    id: 'upper-lower-hypertrophy',
+    name: 'Upper/Lower Hypertrophy',
+    description: '4-day split hitting each muscle 2x/week. Ideal balance of frequency and recovery for muscle growth.',
+    science: 'Schoenfeld et al. (2016): Training each muscle 2x/week produces significantly more hypertrophy than 1x/week when volume is equated.',
+    goalFocus: 'hypertrophy',
+    sessionsPerWeek: [4],
+    weeks: [4, 5, 6],
+    periodization: 'undulating',
+    tags: ['Popular split', '2x frequency'],
+  },
+  {
+    id: 'dup-strength',
+    name: 'Daily Undulating Periodization',
+    description: 'Vary intensity and volume within each week: heavy day, volume day, speed day. Prevents staleness and drives adaptation.',
+    science: 'Zourdos et al. (2016): DUP produces equal or greater strength gains than linear periodization while reducing monotony and overuse risk.',
+    goalFocus: 'strength',
+    sessionsPerWeek: [3, 4],
+    weeks: [4, 5, 6],
+    periodization: 'undulating',
+    tags: ['Varied intensity', 'Anti-plateau'],
+  },
+  {
+    id: 'push-pull-legs',
+    name: 'Push/Pull/Legs Classic',
+    description: '6-day rotation hitting each muscle 2x/week. The gold standard bodybuilding split for advanced lifters.',
+    science: 'Wernbom et al. (2007): Higher training frequencies allow more weekly volume without excessive per-session fatigue, driving better hypertrophy.',
+    goalFocus: 'hypertrophy',
+    sessionsPerWeek: [5, 6],
+    weeks: [4, 5, 6],
+    periodization: 'undulating',
+    tags: ['Advanced', 'Bodybuilding'],
+  },
+  {
+    id: 'strength-skill',
+    name: 'Strength as Skill',
+    description: 'High frequency, low fatigue — practice heavy singles and doubles frequently. Neural efficiency over volume.',
+    science: 'Mattocks et al. (2017): Frequent exposure to heavy loads (>85% 1RM) with low volume improves neuromuscular efficiency without excessive fatigue.',
+    goalFocus: 'strength',
+    sessionsPerWeek: [4, 5, 6],
+    weeks: [3, 4, 5],
+    periodization: 'undulating',
+    tags: ['Neurological', 'Low fatigue'],
+  },
+  {
+    id: 'deload-recovery',
+    name: 'Active Recovery / Deload',
+    description: 'Strategic deload week — 50-60% of normal volume at reduced intensity. Use between hard training blocks.',
+    science: 'Pritchard et al. (2015): Planned deloads every 4-6 weeks prevent accumulated fatigue and allow supercompensation for the next training block.',
+    goalFocus: 'balanced',
+    sessionsPerWeek: [2, 3],
+    weeks: [1, 2],
+    periodization: 'block',
+    tags: ['Recovery', 'Deload'],
+  },
 ];
 
 interface SessionTemplatesProps {
@@ -236,7 +417,8 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     user,
   } = useAppStore();
 
-  const [activeSection, setActiveSection] = useState<'programs' | 'templates' | 'presets' | 'save' | 'history'>('programs');
+  const [activeSection, setActiveSection] = useState<'programs' | 'quick' | 'templates' | 'presets' | 'save' | 'history'>('programs');
+  const [quickFilter, setQuickFilter] = useState<PresetCategory | null>(null);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [templateNameInputs, setTemplateNameInputs] = useState<Record<string, string>>({});
@@ -385,11 +567,16 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     power: 'text-orange-400 bg-orange-500/20 border-orange-500/30',
   };
 
+  const filteredQuickPresets = quickFilter
+    ? QUICK_PRESETS.filter(p => p.category === quickFilter)
+    : QUICK_PRESETS;
+
   const sectionTabs = [
     { id: 'programs' as const, label: 'Programs', icon: BookOpen },
+    { id: 'quick' as const, label: 'Quick', icon: Zap },
     { id: 'presets' as const, label: 'Grappling', icon: Shield },
     { id: 'templates' as const, label: 'Saved', icon: Star },
-    { id: 'save' as const, label: 'Save Current', icon: Save },
+    { id: 'save' as const, label: 'Save', icon: Save },
     { id: 'history' as const, label: 'History', icon: Clock }
   ];
 
@@ -521,7 +708,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                 >
                   Any
                 </button>
-                {[3, 4, 5, 6, 8].map(n => (
+                {[1, 2, 3, 4, 5, 6, 8].map(n => (
                   <button
                     key={n}
                     onClick={() => setProgramFilterWeeks(programFilterWeeks === n ? null : n)}
@@ -661,6 +848,132 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                   className="mt-3 text-primary-400 text-sm font-medium hover:underline"
                 >
                   Clear all filters
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* === QUICK WORKOUTS SECTION === */}
+        {activeSection === 'quick' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <div className="text-center mb-2">
+              <p className="text-sm text-grappler-400">
+                Ready-made sessions. Tap <span className="text-primary-400 font-medium">Start</span> to begin or <span className="text-grappler-300 font-medium">Save</span> to keep it.
+              </p>
+            </div>
+
+            {/* Category filter */}
+            <div className="flex gap-1.5 flex-wrap">
+              <button
+                onClick={() => setQuickFilter(null)}
+                className={cn(
+                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                  !quickFilter ? 'bg-primary-500/20 text-primary-400' : 'bg-grappler-700/50 text-grappler-400'
+                )}
+              >
+                All
+              </button>
+              {([
+                ['push', 'Push'],
+                ['pull', 'Pull'],
+                ['legs', 'Legs'],
+                ['upper', 'Upper'],
+                ['lower', 'Lower'],
+                ['full_body', 'Full Body'],
+                ['arms', 'Arms'],
+              ] as [PresetCategory, string][]).map(([cat, label]) => (
+                <button
+                  key={cat}
+                  onClick={() => setQuickFilter(quickFilter === cat ? null : cat)}
+                  className={cn(
+                    'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    quickFilter === cat ? 'bg-primary-500/20 text-primary-400' : 'bg-grappler-700/50 text-grappler-400'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {filteredQuickPresets.map((preset, idx) => {
+              const session = preset.build();
+              return (
+                <div key={idx} className="bg-grappler-800 rounded-xl overflow-hidden">
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Dumbbell className="w-4 h-4 text-primary-400" />
+                      <h3 className="font-bold text-grappler-50">{preset.name}</h3>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-400 capitalize ml-auto">
+                        {preset.category.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-grappler-400 mb-3">{preset.description}</p>
+
+                    <div className="flex items-center gap-3 text-xs text-grappler-500 mb-3">
+                      <span className="flex items-center gap-1">
+                        <Dumbbell className="w-3 h-3" />
+                        {session.exercises.length} exercises
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        ~{session.estimatedDuration}m
+                      </span>
+                      <span className="capitalize text-xs px-1.5 py-0.5 rounded bg-grappler-700/50">
+                        {session.type}
+                      </span>
+                    </div>
+
+                    {/* Exercise list preview */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {session.exercises.map((ex, i) => (
+                        <span key={i} className="text-[10px] bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
+                          {ex.exercise.name}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const s = preset.build();
+                          storeStartWorkout(s);
+                        }}
+                        className="btn btn-primary btn-sm flex-1 gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        Start Workout
+                      </button>
+                      <button
+                        onClick={() => {
+                          const s = preset.build();
+                          saveAsTemplate(preset.name, s);
+                          showSavedFeedback(preset.name);
+                        }}
+                        className="btn btn-secondary btn-sm gap-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredQuickPresets.length === 0 && (
+              <div className="text-center py-12">
+                <Dumbbell className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-grappler-300 mb-2">No matching workouts</h3>
+                <button
+                  onClick={() => setQuickFilter(null)}
+                  className="mt-2 text-primary-400 text-sm font-medium hover:underline"
+                >
+                  Show all
                 </button>
               </div>
             )}

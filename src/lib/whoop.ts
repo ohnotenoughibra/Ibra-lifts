@@ -3,7 +3,7 @@
 // Used by /api/whoop/auth, /api/whoop/callback, and /api/whoop/data
 // ---------------------------------------------------------------------------
 
-export const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v1';
+export const WHOOP_API_BASE = 'https://api.prod.whoop.com/developer/v2';
 export const WHOOP_TOKEN_URL = 'https://api.prod.whoop.com/oauth/oauth2/token';
 export const WHOOP_AUTH_URL = 'https://api.prod.whoop.com/oauth/oauth2/auth';
 

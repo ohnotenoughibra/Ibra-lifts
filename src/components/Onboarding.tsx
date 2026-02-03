@@ -7,21 +7,16 @@ import {
   Dumbbell,
   ChevronRight,
   ChevronLeft,
-  Check,
-  Home,
-  Building2,
-  Backpack,
   Zap,
   Heart,
   Scale,
 } from 'lucide-react';
-import { ExperienceLevel, Equipment, EquipmentType, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const steps = [
   { id: 1, title: 'About You' },
-  { id: 2, title: 'Where You Train' },
-  { id: 3, title: 'Your Plan' },
+  { id: 2, title: 'Your Plan' },
 ];
 
 export default function Onboarding() {
@@ -47,8 +42,6 @@ export default function Onboarding() {
       case 1:
         return onboardingData.name.length >= 2 && onboardingData.age >= 16;
       case 2:
-        return !!onboardingData.equipment;
-      case 3:
         return !!onboardingData.goalFocus && !!onboardingData.sessionsPerWeek;
       default:
         return true;
@@ -86,10 +79,7 @@ export default function Onboarding() {
               <Step1_AboutYou data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 2 && (
-              <Step2_Equipment data={onboardingData} update={updateOnboardingData} />
-            )}
-            {currentStep === 3 && (
-              <Step3_Plan data={onboardingData} update={updateOnboardingData} />
+              <Step2_Plan data={onboardingData} update={updateOnboardingData} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -121,7 +111,7 @@ export default function Onboarding() {
   );
 }
 
-// Step 1: Name + Age + Unit (merged from old Welcome + About You)
+// Step 1: Name + Age + Unit + Experience
 function Step1_AboutYou({
   data,
   update,
@@ -136,7 +126,7 @@ function Step1_AboutYou({
           <Dumbbell className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-xl font-bold text-grappler-50">Let's set up your training</h2>
-        <p className="text-grappler-400 text-sm">Takes 30 seconds</p>
+        <p className="text-grappler-400 text-sm">Takes 20 seconds</p>
       </div>
 
       <div>
@@ -208,67 +198,8 @@ function Step1_AboutYou({
   );
 }
 
-// Step 2: Equipment — just pick a preset. Granular customization in settings.
-function Step2_Equipment({
-  data,
-  update,
-}: {
-  data: OnboardingData;
-  update: (data: Partial<OnboardingData>) => void;
-}) {
-  const profiles: { value: Equipment; icon: any; title: string; desc: string; profileName: 'gym' | 'home' | 'travel' }[] = [
-    { value: 'full_gym', icon: Building2, title: 'Gym', desc: 'Barbells, machines, cables, dumbbells — full setup', profileName: 'gym' },
-    { value: 'home_gym', icon: Home, title: 'Home', desc: 'Barbell, dumbbells, bench, pull-up bar', profileName: 'home' },
-    { value: 'minimal', icon: Backpack, title: 'Minimal', desc: 'Bodyweight, bands, maybe dumbbells', profileName: 'travel' },
-  ];
-
-  return (
-    <div className="space-y-5">
-      <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-grappler-50">Where do you train?</h2>
-        <p className="text-grappler-400 text-sm">You can switch between these anytime</p>
-      </div>
-
-      <div className="space-y-3">
-        {profiles.map((p) => (
-          <button
-            key={p.value}
-            onClick={() => {
-              const preset = DEFAULT_EQUIPMENT_PROFILES.find(pr => pr.name === p.profileName);
-              update({
-                equipment: p.value,
-                availableEquipment: preset?.equipment || [],
-              });
-            }}
-            className={cn(
-              'w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all',
-              data.equipment === p.value
-                ? 'border-primary-500 bg-primary-500/10'
-                : 'border-grappler-700 hover:border-grappler-600'
-            )}
-          >
-            <div className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center',
-              data.equipment === p.value ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
-            )}>
-              <p.icon className="w-6 h-6" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="font-medium text-grappler-100">{p.title}</p>
-              <p className="text-sm text-grappler-400">{p.desc}</p>
-            </div>
-            {data.equipment === p.value && (
-              <Check className="w-5 h-5 text-primary-500" />
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Step 3: Goal + Schedule combined
-function Step3_Plan({
+// Step 2: Goal + Schedule (equipment defaults to full_gym, switchable in-app)
+function Step2_Plan({
   data,
   update,
 }: {

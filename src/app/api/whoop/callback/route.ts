@@ -6,9 +6,12 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
   const error = searchParams.get('error');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Check for OAuth errors
+  // Auto-detect app URL from the request
+  const requestUrl = new URL(request.url);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || `${requestUrl.protocol}//${requestUrl.host}`;
+
+  // Check for OAuth errors from Whoop
   if (error) {
     return NextResponse.redirect(
       `${appUrl}?whoop_error=${encodeURIComponent(error)}`
@@ -31,7 +34,11 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.WHOOP_CLIENT_ID;
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
-  const redirectUri = `${appUrl}/api/whoop/callback`;
+
+  // Use the EXACT same redirect_uri that was used in the auth request
+  // This is critical - Whoop requires an exact match
+  const storedRedirectUri = request.cookies.get('whoop_redirect_uri')?.value;
+  const redirectUri = storedRedirectUri || `${appUrl}/api/whoop/callback`;
 
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
@@ -47,10 +54,11 @@ export async function GET(request: NextRequest) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
         },
         body: new URLSearchParams({
           grant_type: 'authorization_code',
+          client_id: clientId,
+          client_secret: clientSecret,
           code,
           redirect_uri: redirectUri,
         }),
@@ -58,17 +66,17 @@ export async function GET(request: NextRequest) {
     );
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Whoop token exchange failed:', errorText);
+      const errorBody = await tokenResponse.text();
+      console.error('Whoop token exchange failed:', tokenResponse.status, errorBody);
+      console.error('redirect_uri used:', redirectUri);
       return NextResponse.redirect(
-        `${appUrl}?whoop_error=token_exchange_failed`
+        `${appUrl}?whoop_error=${encodeURIComponent(`token_exchange_failed_${tokenResponse.status}`)}`
       );
     }
 
     const tokenData = await tokenResponse.json();
-    // tokenData: { access_token, refresh_token, expires_in, token_type, scope }
 
-    // Redirect back to app with tokens stored in cookies (httpOnly for security)
+    // Redirect back to app with tokens stored in cookies
     const response = NextResponse.redirect(
       `${appUrl}?whoop_connected=true`
     );
@@ -76,7 +84,7 @@ export async function GET(request: NextRequest) {
     // Store tokens in httpOnly cookies
     response.cookies.set('whoop_access_token', tokenData.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: tokenData.expires_in || 3600,
       path: '/',
@@ -85,15 +93,16 @@ export async function GET(request: NextRequest) {
     if (tokenData.refresh_token) {
       response.cookies.set('whoop_refresh_token', tokenData.refresh_token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60, // 30 days
         path: '/',
       });
     }
 
-    // Clear the state cookie
+    // Clear temp cookies
     response.cookies.delete('whoop_oauth_state');
+    response.cookies.delete('whoop_redirect_uri');
 
     return response;
   } catch (err) {

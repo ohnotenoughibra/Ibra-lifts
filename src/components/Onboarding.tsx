@@ -476,23 +476,31 @@ function ScheduleStep({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {([2, 3] as SessionsPerWeek[]).map((sessions) => (
+      <div className="grid grid-cols-3 gap-3">
+        {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((sessions) => (
           <button
             key={sessions}
             onClick={() => update({ sessionsPerWeek: sessions })}
             className={cn(
-              'p-6 rounded-xl border-2 text-center transition-all',
+              'p-4 rounded-xl border-2 text-center transition-all',
               data.sessionsPerWeek === sessions
                 ? 'border-primary-500 bg-primary-500/10'
                 : 'border-grappler-700 hover:border-grappler-600'
             )}
           >
-            <p className="text-3xl font-bold text-grappler-50 mb-1">{sessions}</p>
-            <p className="text-sm text-grappler-400">sessions/week</p>
+            <p className="text-2xl font-bold text-grappler-50 mb-1">{sessions}</p>
+            <p className="text-xs text-grappler-400">
+              {sessions === 1 ? 'day/week' : 'days/week'}
+            </p>
           </button>
         ))}
       </div>
+      <p className="text-xs text-grappler-500 text-center mt-2">
+        {data.sessionsPerWeek <= 2 ? 'Full body each session' :
+         data.sessionsPerWeek <= 3 ? 'Full body with undulating periodization' :
+         data.sessionsPerWeek <= 4 ? 'Upper/lower split recommended' :
+         'Push/pull/legs or hybrid split'}
+      </p>
 
       <div className="mt-6">
         <label className="block text-sm font-medium text-grappler-300 mb-3">

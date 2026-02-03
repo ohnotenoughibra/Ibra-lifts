@@ -50,10 +50,55 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
   }
 };
 
-// Undulating periodization schemes
+// Undulating periodization schemes for 1-6 sessions/week
 const UNDULATING_SCHEMES: Record<number, WorkoutType[]> = {
+  1: ['strength'],
   2: ['strength', 'hypertrophy'],
-  3: ['strength', 'hypertrophy', 'power']
+  3: ['strength', 'hypertrophy', 'power'],
+  4: ['strength', 'hypertrophy', 'power', 'hypertrophy'],
+  5: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy'],
+  6: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy', 'power'],
+};
+
+// Block periodization: each week focuses on one training quality
+const BLOCK_SCHEMES: Record<number, WorkoutType[][]> = {
+  // [week1Types, week2Types, week3Types, week4Types, week5Types(deload)]
+  1: [['hypertrophy'], ['strength'], ['power'], ['strength'], ['hypertrophy']],
+  2: [
+    ['hypertrophy', 'hypertrophy'],
+    ['strength', 'strength'],
+    ['power', 'power'],
+    ['strength', 'power'],
+    ['hypertrophy', 'hypertrophy'],
+  ],
+  3: [
+    ['hypertrophy', 'hypertrophy', 'hypertrophy'],
+    ['strength', 'strength', 'strength'],
+    ['power', 'power', 'power'],
+    ['strength', 'strength', 'power'],
+    ['hypertrophy', 'hypertrophy', 'hypertrophy'],
+  ],
+  4: [
+    ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+    ['strength', 'strength', 'strength', 'strength'],
+    ['power', 'power', 'power', 'power'],
+    ['strength', 'strength', 'power', 'power'],
+    ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+  ],
+  5: [
+    ['hypertrophy', 'hypertrophy', 'strength', 'hypertrophy', 'hypertrophy'],
+    ['strength', 'strength', 'power', 'strength', 'strength'],
+    ['power', 'power', 'strength', 'power', 'power'],
+    ['strength', 'strength', 'power', 'power', 'strength'],
+    ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+  ],
+  6: [
+    ['hypertrophy', 'hypertrophy', 'strength', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+    ['strength', 'strength', 'power', 'strength', 'strength', 'strength'],
+    ['power', 'power', 'strength', 'power', 'power', 'power'],
+    ['strength', 'strength', 'power', 'power', 'strength', 'strength'],
+    ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+  ],
 };
 
 // Exercise selection per workout type
@@ -90,9 +135,10 @@ interface GeneratorOptions {
   userId: string;
   goalFocus: GoalFocus;
   equipment: Equipment;
-  sessionsPerWeek: 2 | 3;
+  sessionsPerWeek: 1 | 2 | 3 | 4 | 5 | 6;
   weeks: number;
   baselineLifts?: BaselineLifts;
+  periodizationType?: 'undulating' | 'block';
 }
 
 function randomBetween(min: number, max: number): number {
@@ -325,11 +371,15 @@ function generateCoolDown(): string[] {
 function generateMesocycleWeek(
   weekNumber: number,
   isDeload: boolean,
-  sessionsPerWeek: 2 | 3,
+  sessionsPerWeek: number,
   equipment: Equipment,
-  goalFocus: GoalFocus
+  goalFocus: GoalFocus,
+  periodizationType: 'undulating' | 'block' = 'undulating',
+  weekIndex: number = 0
 ): MesocycleWeek {
-  const workoutTypes = UNDULATING_SCHEMES[sessionsPerWeek];
+  const workoutTypes = periodizationType === 'block'
+    ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
+    : UNDULATING_SCHEMES[sessionsPerWeek];
   const usedExerciseIds = new Set<string>();
 
   // Adjust volume and intensity for deload
@@ -393,11 +443,14 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
 
   const mesocycleWeeks: MesocycleWeek[] = [];
 
+  const periodizationType = options.periodizationType || 'undulating';
+
   for (let i = 1; i <= weeks; i++) {
     // Last week is typically a deload
     const isDeload = i === weeks;
+    const weekIndex = i - 1;
     mesocycleWeeks.push(
-      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus)
+      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex)
     );
   }
 

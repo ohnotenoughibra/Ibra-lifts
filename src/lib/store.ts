@@ -18,12 +18,15 @@ import {
   ExerciseFeedback,
   WorkoutAdjustment,
   BodyWeightEntry,
+  BodyCompositionEntry,
   InjuryEntry,
   CustomExercise,
   SessionTemplate,
   ThemeMode,
   HRSession,
-  GrapplingSession
+  GrapplingSession,
+  MealEntry,
+  MacroTargets
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -79,6 +82,20 @@ interface AppState {
 
   // Theme
   themeMode: ThemeMode;
+
+  // Nutrition
+  meals: MealEntry[];
+  macroTargets: MacroTargets;
+  waterLog: Record<string, number>; // dateStr -> glasses
+
+  // Body composition
+  bodyComposition: BodyCompositionEntry[];
+
+  // Offline queue
+  isOnline: boolean;
+
+  // Sync metadata
+  lastSyncAt: number | null;
 
   // UI state
   showTip: boolean;
@@ -142,6 +159,19 @@ interface AppState {
   // Theme actions
   setThemeMode: (mode: ThemeMode) => void;
 
+  // Nutrition actions
+  addMeal: (meal: Omit<MealEntry, 'id'>) => void;
+  deleteMeal: (id: string) => void;
+  setMacroTargets: (targets: MacroTargets) => void;
+  setWaterGlasses: (date: string, glasses: number) => void;
+
+  // Body composition actions
+  addBodyComposition: (entry: Omit<BodyCompositionEntry, 'id'>) => void;
+  deleteBodyComposition: (id: string) => void;
+
+  // Online status
+  setOnline: (online: boolean) => void;
+
   // UI actions
   setShowTip: (show: boolean) => void;
   setCurrentTipId: (id: string | null) => void;
@@ -196,6 +226,12 @@ export const useAppStore = create<AppState>()(
       hrSessions: [],
       grapplingSessions: [],
       themeMode: 'dark' as ThemeMode,
+      meals: [],
+      macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
+      waterLog: {},
+      bodyComposition: [],
+      isOnline: true,
+      lastSyncAt: null,
       showTip: true,
       currentTipId: null,
 
@@ -689,6 +725,38 @@ export const useAppStore = create<AppState>()(
       // Theme actions
       setThemeMode: (mode) => set({ themeMode: mode }),
 
+      // Nutrition actions
+      addMeal: (meal) => {
+        const { meals } = get();
+        set({ meals: [...meals, { ...meal, id: uuidv4() }] });
+      },
+
+      deleteMeal: (id) => {
+        const { meals } = get();
+        set({ meals: meals.filter(m => m.id !== id) });
+      },
+
+      setMacroTargets: (targets) => set({ macroTargets: targets }),
+
+      setWaterGlasses: (date, glasses) => {
+        const { waterLog } = get();
+        set({ waterLog: { ...waterLog, [date]: glasses } });
+      },
+
+      // Body composition actions
+      addBodyComposition: (entry) => {
+        const { bodyComposition } = get();
+        set({ bodyComposition: [...bodyComposition, { ...entry, id: uuidv4() }] });
+      },
+
+      deleteBodyComposition: (id) => {
+        const { bodyComposition } = get();
+        set({ bodyComposition: bodyComposition.filter(e => e.id !== id) });
+      },
+
+      // Online status
+      setOnline: (online) => set({ isOnline: online }),
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -713,12 +781,75 @@ export const useAppStore = create<AppState>()(
           hrSessions: [],
           grapplingSessions: [],
           themeMode: 'dark' as ThemeMode,
+          meals: [],
+          macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
+          waterLog: {},
+          bodyComposition: [],
+          isOnline: true,
+          lastSyncAt: null,
           showTip: true,
           currentTipId: null
         })
     }),
     {
       name: 'grappler-gains-storage',
+      storage: {
+        getItem: (name: string) => {
+          try {
+            const item = localStorage.getItem(name);
+            return item ? JSON.parse(item) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name: string, value: unknown) => {
+          try {
+            const json = JSON.stringify(value);
+            // Check if we're approaching the limit (5MB typical)
+            const currentSize = new Blob([json]).size;
+            if (currentSize > 4.5 * 1024 * 1024) {
+              // Approaching limit - prune old workout logs (keep last 50)
+              const data = value as any;
+              if (data?.state?.workoutLogs?.length > 50) {
+                data.state.workoutLogs = data.state.workoutLogs.slice(-50);
+              }
+              if (data?.state?.meals?.length > 200) {
+                data.state.meals = data.state.meals.slice(-200);
+              }
+              if (data?.state?.mesocycleHistory?.length > 10) {
+                data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-10);
+              }
+              localStorage.setItem(name, JSON.stringify(data));
+            } else {
+              localStorage.setItem(name, json);
+            }
+          } catch (e: any) {
+            if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+              // Emergency pruning
+              try {
+                const data = (value as any);
+                if (data?.state) {
+                  if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
+                  if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);
+                  if (data.state.mesocycleHistory?.length > 3) data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-3);
+                  if (data.state.bodyComposition?.length > 30) data.state.bodyComposition = data.state.bodyComposition.slice(-30);
+                }
+                localStorage.setItem(name, JSON.stringify(data));
+              } catch {
+                // Last resort: clear and save fresh
+                console.error('localStorage full — clearing old data');
+                localStorage.removeItem(name);
+                localStorage.setItem(name, JSON.stringify(value));
+              }
+            }
+          }
+        },
+        removeItem: (name: string) => {
+          try {
+            localStorage.removeItem(name);
+          } catch {}
+        },
+      },
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
@@ -727,6 +858,7 @@ export const useAppStore = create<AppState>()(
         baselineLifts: state.baselineLifts,
         currentMesocycle: state.currentMesocycle,
         mesocycleHistory: state.mesocycleHistory,
+        activeWorkout: state.activeWorkout,
         workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,
         bodyWeightLog: state.bodyWeightLog,
@@ -735,7 +867,12 @@ export const useAppStore = create<AppState>()(
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,
         grapplingSessions: state.grapplingSessions,
-        themeMode: state.themeMode
+        themeMode: state.themeMode,
+        meals: state.meals,
+        macroTargets: state.macroTargets,
+        waterLog: state.waterLog,
+        bodyComposition: state.bodyComposition,
+        lastSyncAt: state.lastSyncAt,
       })
     }
   )

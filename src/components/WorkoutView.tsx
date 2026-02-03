@@ -39,10 +39,12 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
+  const [blockWeeks, setBlockWeeks] = useState(5);
+  const [sessionMinutes, setSessionMinutes] = useState(0); // 0 = no limit
 
   const handleGenerateWithEmphasis = () => {
     setShowEmphasisPicker(false);
-    generateNewMesocycle();
+    generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
   };
 
   if (!currentMesocycle) {
@@ -67,6 +69,10 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
               onSave={setMuscleEmphasis}
               onGenerate={handleGenerateWithEmphasis}
               onClose={() => setShowEmphasisPicker(false)}
+              weeks={blockWeeks}
+              onWeeksChange={setBlockWeeks}
+              sessionMinutes={sessionMinutes}
+              onSessionMinutesChange={setSessionMinutes}
             />
           )}
         </AnimatePresence>
@@ -140,6 +146,10 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             onSave={setMuscleEmphasis}
             onGenerate={handleGenerateWithEmphasis}
             onClose={() => setShowEmphasisPicker(false)}
+            weeks={blockWeeks}
+            onWeeksChange={setBlockWeeks}
+            sessionMinutes={sessionMinutes}
+            onSessionMinutesChange={setSessionMinutes}
           />
         )}
       </AnimatePresence>
@@ -265,9 +275,13 @@ interface MuscleEmphasisPickerProps {
   onSave: (config: MuscleGroupConfig) => void;
   onGenerate: () => void;
   onClose: () => void;
+  weeks: number;
+  onWeeksChange: (weeks: number) => void;
+  sessionMinutes: number;
+  onSessionMinutesChange: (minutes: number) => void;
 }
 
-function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose }: MuscleEmphasisPickerProps) {
+function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWeeksChange, sessionMinutes, onSessionMinutesChange }: MuscleEmphasisPickerProps) {
   const [localConfig, setLocalConfig] = useState<MuscleGroupConfig>(
     config || { ...DEFAULT_MUSCLE_CONFIG }
   );
@@ -320,6 +334,62 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose }: MuscleEmp
             </div>
           );
         })}
+      </div>
+
+      {/* Block Duration */}
+      <div className="mb-4">
+        <label className="text-xs font-medium text-grappler-400 mb-2 block">Block Duration</label>
+        <div className="flex gap-1.5">
+          {[3, 4, 5, 6, 8].map((w) => (
+            <button
+              key={w}
+              onClick={() => onWeeksChange(w)}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                weeks === w
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700/50 text-grappler-400 hover:text-grappler-200'
+              )}
+            >
+              {w}w
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-grappler-500 mt-1.5">
+          Last week is always a deload. {weeks >= 6 ? 'Longer blocks build more volume.' : ''}
+        </p>
+      </div>
+
+      {/* Session Time Limit */}
+      <div className="mb-4">
+        <label className="text-xs font-medium text-grappler-400 mb-2 block">Session Time Limit</label>
+        <div className="flex gap-1.5">
+          {[
+            { value: 0, label: 'No limit' },
+            { value: 45, label: '45m' },
+            { value: 60, label: '60m' },
+            { value: 75, label: '75m' },
+            { value: 90, label: '90m' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onSessionMinutesChange(opt.value)}
+              className={cn(
+                'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                sessionMinutes === opt.value
+                  ? 'bg-accent-500 text-white'
+                  : 'bg-grappler-700/50 text-grappler-400 hover:text-grappler-200'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-grappler-500 mt-1.5">
+          {sessionMinutes > 0
+            ? `Sessions will be trimmed to ~${sessionMinutes} min. Compounds kept, isolation dropped first.`
+            : 'Sessions auto-sized based on workout type.'}
+        </p>
       </div>
 
       {/* Muscle Grid */}

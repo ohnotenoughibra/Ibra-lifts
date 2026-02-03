@@ -126,7 +126,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
-  generateNewMesocycle: (weeks?: number) => void;
+  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
   completeMesocycle: () => void;
 
   // Workout actions
@@ -427,7 +427,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5) => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes) => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
 
@@ -450,7 +450,8 @@ export const useAppStore = create<AppState>()(
           sessionsPerWeek: user.sessionsPerWeek,
           weeks,
           baselineLifts: baselineLifts || undefined,
-          muscleEmphasis: muscleEmphasis || undefined
+          muscleEmphasis: muscleEmphasis || undefined,
+          sessionDurationMinutes,
         });
 
         set({ currentMesocycle: newMesocycle });

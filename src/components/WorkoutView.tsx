@@ -468,127 +468,83 @@ function WeekCard({
 
               return (
                 <div key={session.id} className="bg-grappler-800/50 rounded-lg overflow-hidden">
-                  {/* Session Header */}
-                  <button
-                    onClick={() => setExpandedSession(isSessionExpanded ? null : session.id)}
-                    className="w-full p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', colorClass)}>
+                  {/* Session Header with inline Start */}
+                  <div className="p-4 flex items-center gap-3">
+                    <button
+                      onClick={() => setExpandedSession(isSessionExpanded ? null : session.id)}
+                      className="flex items-center gap-3 flex-1 min-w-0"
+                    >
+                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', colorClass)}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <div className="text-left">
-                        <h4 className="font-medium text-grappler-100">{session.name}</h4>
+                      <div className="text-left min-w-0">
+                        <h4 className="font-medium text-grappler-100 truncate">{session.name}</h4>
                         <div className="flex items-center gap-3 text-xs text-grappler-400">
                           <span className="flex items-center gap-1">
                             <Dumbbell className="w-3 h-3" />
-                            {session.exercises.length} exercises
+                            {session.exercises.length}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {session.estimatedDuration} min
+                            {session.estimatedDuration}m
                           </span>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn('text-xs px-2 py-1 rounded-full capitalize', colorClass)}>
-                        {session.type}
-                      </span>
+                    </button>
+                    <button
+                      onClick={() => onStartWorkout(session)}
+                      className="btn btn-primary btn-sm gap-1 flex-shrink-0"
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      Start
+                    </button>
+                    <button
+                      onClick={() => setExpandedSession(isSessionExpanded ? null : session.id)}
+                      className="p-1.5 flex-shrink-0"
+                    >
                       {isSessionExpanded ? (
                         <ChevronUp className="w-4 h-4 text-grappler-400" />
                       ) : (
                         <ChevronDown className="w-4 h-4 text-grappler-400" />
                       )}
-                    </div>
-                  </button>
+                    </button>
+                  </div>
 
-                  {/* Session Details */}
+                  {/* Session Details (expand for preview) */}
                   {isSessionExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       className="border-t border-grappler-700 p-4"
                     >
-                      {/* Warm Up */}
-                      <div className="mb-4">
-                        <h5 className="text-xs font-medium text-grappler-400 uppercase mb-2">Warm Up</h5>
-                        <ul className="text-sm text-grappler-300 space-y-1">
-                          {session.warmUp.map((item, i) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-grappler-500 rounded-full" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
                       {/* Exercises */}
-                      <div className="mb-4">
-                        <h5 className="text-xs font-medium text-grappler-400 uppercase mb-2">Exercises</h5>
-                        <div className="space-y-2">
-                          {session.exercises.map((ex, i) => (
-                            <div
-                              key={i}
-                              className="bg-grappler-700/50 rounded-lg p-3"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <p className="font-medium text-grappler-100">{ex.exercise.name}</p>
-                                  <p className="text-sm text-grappler-400">
-                                    {ex.sets} sets × {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
-                                  </p>
-                                  {ex.prescription.tempo && (
-                                    <p className="text-xs text-grappler-500 mt-1">
-                                      Tempo: {ex.prescription.tempo}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-grappler-400">
-                                    Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
-                                  </p>
-                                  {ex.prescription.percentageOf1RM && (
-                                    <p className="text-xs text-grappler-500">
-                                      ~{ex.prescription.percentageOf1RM}% 1RM
-                                    </p>
-                                  )}
-                                </div>
+                      <div className="space-y-2">
+                        {session.exercises.map((ex, i) => (
+                          <div
+                            key={i}
+                            className="bg-grappler-700/50 rounded-lg p-3"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="font-medium text-grappler-100">{ex.exercise.name}</p>
+                                <p className="text-sm text-grappler-400">
+                                  {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
+                                </p>
                               </div>
-                              {ex.exercise.cues && ex.exercise.cues.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-grappler-600">
+                              <div className="text-right">
+                                <p className="text-xs text-grappler-400">
+                                  Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
+                                </p>
+                                {ex.prescription.percentageOf1RM && (
                                   <p className="text-xs text-grappler-500">
-                                    <span className="font-medium">Cue: </span>
-                                    {ex.exercise.cues[0]}
+                                    ~{ex.prescription.percentageOf1RM}% 1RM
                                   </p>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-
-                      {/* Cool Down */}
-                      <div className="mb-4">
-                        <h5 className="text-xs font-medium text-grappler-400 uppercase mb-2">Cool Down</h5>
-                        <ul className="text-sm text-grappler-300 space-y-1">
-                          {session.coolDown.map((item, i) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-grappler-500 rounded-full" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Start Button */}
-                      <button
-                        onClick={() => onStartWorkout(session)}
-                        className="btn btn-primary btn-md w-full gap-2"
-                      >
-                        <Play className="w-4 h-4" />
-                        Start This Workout
-                      </button>
                     </motion.div>
                   )}
                 </div>

@@ -34,14 +34,15 @@ import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
 import { getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { calculateReadiness } from '@/lib/auto-adjust';
-import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog } from '@/lib/types';
+import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
+import { Building2, Home, Backpack } from 'lucide-react';
 import Confetti from 'react-confetti';
 
 export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
-    setPreCheckIn, updateExerciseFeedback, swapExercise
+    setPreCheckIn, updateExerciseFeedback, swapExercise, adaptWorkoutToProfile, activeEquipmentProfile
   } = useAppStore();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -450,6 +451,30 @@ export default function ActiveWorkout() {
                       sum + (ex.sets * (30 + ex.prescription.restSeconds)), 0) / 60)} min
                   </span>
                 </div>
+              </div>
+
+              {/* Location Quick-Switch */}
+              <div className="flex items-center gap-1.5 bg-grappler-800/50 rounded-xl p-1.5 mb-5">
+                {DEFAULT_EQUIPMENT_PROFILES.map((profile) => {
+                  const IconMap: Record<string, any> = { gym: Building2, home: Home, travel: Backpack };
+                  const PIcon = IconMap[profile.name] || Dumbbell;
+                  const isActive = activeEquipmentProfile === profile.name;
+                  return (
+                    <button
+                      key={profile.name}
+                      onClick={() => adaptWorkoutToProfile(profile.name)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
+                        isActive
+                          ? 'bg-primary-500 text-white shadow-md'
+                          : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/50'
+                      )}
+                    >
+                      <PIcon className="w-3.5 h-3.5" />
+                      {profile.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Exercise List */}

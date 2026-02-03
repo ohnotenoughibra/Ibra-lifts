@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -20,30 +20,49 @@ import {
   Milk,
   Salad,
   Trash2,
+  Camera,
+  Loader2,
+  ImageIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { MealType, MealEntry, MacroTargets, DailyNutrition } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
-// ── Preset foods with realistic macros ──────────────────────────────────────
+// ── Austrian & European preset foods with metric portions ──────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
-  { name: 'Chicken Breast (6oz)', calories: 280, protein: 53, carbs: 0, fat: 6 },
-  { name: 'White Rice (1 cup)', calories: 206, protein: 4, carbs: 45, fat: 0 },
-  { name: 'Protein Shake', calories: 160, protein: 30, carbs: 5, fat: 2 },
-  { name: 'Eggs (3 large)', calories: 234, protein: 18, carbs: 2, fat: 16 },
-  { name: 'Salmon Fillet (6oz)', calories: 350, protein: 38, carbs: 0, fat: 22 },
-  { name: 'Greek Yogurt (1 cup)', calories: 130, protein: 22, carbs: 8, fat: 0 },
-  { name: 'Banana', calories: 105, protein: 1, carbs: 27, fat: 0 },
-  { name: 'Oatmeal (1 cup)', calories: 307, protein: 11, carbs: 55, fat: 5 },
-  { name: 'Sweet Potato (medium)', calories: 103, protein: 2, carbs: 24, fat: 0 },
-  { name: 'Peanut Butter (2 tbsp)', calories: 190, protein: 7, carbs: 7, fat: 16 },
-  { name: 'Avocado (half)', calories: 160, protein: 2, carbs: 9, fat: 15 },
-  { name: 'Steak (8oz sirloin)', calories: 480, protein: 56, carbs: 0, fat: 28 },
+  // Austrian classics
+  { name: 'Wiener Schnitzel (200g)', calories: 530, protein: 32, carbs: 28, fat: 32 },
+  { name: 'Kaiserschmarrn (250g)', calories: 420, protein: 12, carbs: 52, fat: 18 },
+  { name: 'Semmel (1 Stk, 60g)', calories: 160, protein: 5, carbs: 30, fat: 2 },
+  { name: 'Topfenknödel (3 Stk)', calories: 380, protein: 16, carbs: 48, fat: 14 },
+  { name: 'Kasnocken (300g)', calories: 520, protein: 22, carbs: 45, fat: 28 },
+  { name: 'Tiroler Gröstl (350g)', calories: 480, protein: 28, carbs: 38, fat: 24 },
+  // Protein sources (metric)
+  { name: 'Hühnerbrust (170g)', calories: 280, protein: 53, carbs: 0, fat: 6 },
+  { name: 'Lachs (170g)', calories: 350, protein: 38, carbs: 0, fat: 22 },
+  { name: 'Eier (3 Stk)', calories: 234, protein: 18, carbs: 2, fat: 16 },
+  { name: 'Rindfleisch mager (200g)', calories: 320, protein: 44, carbs: 0, fat: 16 },
+  { name: 'Skyr Natur (200g)', calories: 130, protein: 22, carbs: 8, fat: 0 },
+  { name: 'Proteinshake (300ml)', calories: 160, protein: 30, carbs: 5, fat: 2 },
+  // Carb sources
+  { name: 'Haferflocken (80g)', calories: 307, protein: 11, carbs: 55, fat: 5 },
+  { name: 'Vollkornbrot (2 Scheiben)', calories: 200, protein: 8, carbs: 36, fat: 3 },
+  { name: 'Reis (150g gekocht)', calories: 195, protein: 4, carbs: 42, fat: 1 },
+  { name: 'Kartoffeln (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
+  { name: 'Banane (1 Stk)', calories: 105, protein: 1, carbs: 27, fat: 0 },
+  // Fats & snacks
+  { name: 'Erdnussbutter (30g)', calories: 190, protein: 7, carbs: 7, fat: 16 },
+  { name: 'Avocado (halbe)', calories: 160, protein: 2, carbs: 9, fat: 15 },
+  { name: 'Mandeln (30g)', calories: 175, protein: 6, carbs: 6, fat: 15 },
+  // Drinks
+  { name: 'Milchkaffee (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
+  { name: 'Apfelschorle (330ml)', calories: 66, protein: 0, carbs: 16, fat: 0 },
 ];
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
+  breakfast: 'Frühstück',
+  lunch: 'Mittagessen',
+  dinner: 'Abendessen',
   snack: 'Snack',
   pre_workout: 'Pre-Workout',
   post_workout: 'Post-Workout',
@@ -170,6 +189,30 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [formCarbs, setFormCarbs] = useState('');
   const [formFat, setFormFat] = useState('');
 
+  // ── Camera/photo state ──
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<{
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    confidence: string;
+    notes: string;
+  } | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // ── Preset search ──
+  const [presetSearch, setPresetSearch] = useState('');
+
+  const filteredPresets = useMemo(() => {
+    if (!presetSearch.trim()) return PRESET_FOODS;
+    const q = presetSearch.toLowerCase();
+    return PRESET_FOODS.filter((p) => p.name.toLowerCase().includes(q));
+  }, [presetSearch]);
+
   // ── Computed totals ──
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -203,7 +246,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   }, [todayMeals]);
 
   // ── Water tracking ──
-  const WATER_GOAL = 8; // glasses
+  const WATER_GOAL = 8; // glasses (250ml each = 2L)
   const waterLiters = +(waterGlasses * 0.25).toFixed(2);
 
   // ── Macro bar percentages ──
@@ -219,6 +262,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setFormProtein('');
     setFormCarbs('');
     setFormFat('');
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setPreviewImage(null);
   };
 
   const handleAddMeal = () => {
@@ -257,11 +303,81 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     };
     setMeals((prev) => [...prev, entry]);
     setShowPresets(false);
+    setPresetSearch('');
   };
 
   const handleDeleteMeal = (id: string) => {
     setMeals((prev) => prev.filter((m) => m.id !== id));
   };
+
+  // ── Camera / Photo analysis ──
+  const handleCameraClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show form with loading state
+    setShowAddForm(true);
+    setShowPresets(false);
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPreviewImage(dataUrl);
+
+      try {
+        const res = await fetch('/api/nutrition/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setAnalysisError(data.error || 'Analysis failed');
+          setIsAnalyzing(false);
+          return;
+        }
+
+        if (!data.name || data.calories === 0) {
+          setAnalysisError(data.notes || 'Could not identify food in this image');
+          setIsAnalyzing(false);
+          return;
+        }
+
+        // Pre-fill form with results
+        setAnalysisResult(data);
+        setFormName(data.name);
+        setFormCalories(String(data.calories));
+        setFormProtein(String(data.protein));
+        setFormCarbs(String(data.carbs));
+        setFormFat(String(data.fat));
+        setIsAnalyzing(false);
+      } catch (err: any) {
+        setAnalysisError(err.message || 'Network error during analysis');
+        setIsAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Reset file input so same file can be selected again
+    e.target.value = '';
+  };
+
+  // ── European date formatting ──
+  const todayFormatted = new Date().toLocaleDateString('de-AT', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -272,6 +388,16 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       transition={{ duration: 0.3 }}
       className="min-h-screen bg-grappler-900 pb-24"
     >
+      {/* Hidden file input for camera/gallery */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageCapture}
+        className="hidden"
+      />
+
       {/* ── Header ── */}
       <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -300,20 +426,14 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-              Daily Targets
+              Tagesziele
             </h2>
-            <p className="text-xs text-grappler-500">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </p>
+            <p className="text-xs text-grappler-500">{todayFormatted}</p>
           </div>
 
           <div className="grid grid-cols-4 gap-2">
             <MacroRing
-              label="Calories"
+              label="kcal"
               current={totals.calories}
               target={macroTargets.calories}
               unit=""
@@ -337,7 +457,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               size={76}
             />
             <MacroRing
-              label="Fat"
+              label="Fett"
               current={totals.fat}
               target={macroTargets.fat}
               unit="g"
@@ -350,7 +470,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           {totalMacroGrams > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-xs text-grappler-400 uppercase tracking-wide">
-                Macro Split
+                Makro-Verteilung
               </p>
               <div className="h-3 rounded-full overflow-hidden flex bg-grappler-700/50">
                 <motion.div
@@ -383,7 +503,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
-                  Fat {Math.round(fatPct)}%
+                  Fett {Math.round(fatPct)}%
                 </span>
               </div>
             </div>
@@ -400,10 +520,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
               <Droplets className="w-4 h-4 text-blue-400" />
-              Water Intake
+              Wasser
             </h2>
             <span className="text-xs text-grappler-400">
-              {waterLiters}L / {(WATER_GOAL * 0.25).toFixed(1)}L
+              {waterLiters} L / {(WATER_GOAL * 0.25).toFixed(1)} L
             </span>
           </div>
 
@@ -429,17 +549,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </div>
 
           <p className="text-xs text-grappler-500 mt-2">
-            {waterGlasses}/{WATER_GOAL} glasses
+            {waterGlasses}/{WATER_GOAL} Gläser (je 250 ml)
             {waterGlasses >= WATER_GOAL && (
               <span className="text-blue-400 ml-1 font-medium">
                 {' '}
-                -- Goal reached!
+                -- Ziel erreicht!
               </span>
             )}
           </p>
         </motion.div>
 
-        {/* ── Quick Add / Add Meal ── */}
+        {/* ── Quick Add / Camera / Custom ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -448,9 +568,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
         >
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-              Log Food
+              Essen erfassen
             </h2>
             <div className="flex gap-2">
+              <button
+                onClick={handleCameraClick}
+                className="btn btn-secondary btn-sm gap-1"
+                title="Foto aufnehmen"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                Foto
+              </button>
               <button
                 onClick={() => {
                   setShowPresets(!showPresets);
@@ -459,17 +587,20 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="btn btn-secondary btn-sm gap-1"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Quick Add
+                Schnell
               </button>
               <button
                 onClick={() => {
                   setShowAddForm(!showAddForm);
                   setShowPresets(false);
+                  setAnalysisResult(null);
+                  setAnalysisError(null);
+                  setPreviewImage(null);
                 }}
                 className="btn btn-primary btn-sm gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Custom
+                Manuell
               </button>
             </div>
           </div>
@@ -478,7 +609,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           {(showAddForm || showPresets) && (
             <div className="mb-3">
               <label className="text-xs text-grappler-400 mb-1.5 block">
-                Meal Type
+                Mahlzeit
               </label>
               <div className="flex gap-1.5 flex-wrap">
                 {MEAL_TYPE_ORDER.map((type) => (
@@ -499,7 +630,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           )}
 
-          {/* ── Preset foods grid ── */}
+          {/* ── Preset foods grid with search ── */}
           <AnimatePresence>
             {showPresets && (
               <motion.div
@@ -509,13 +640,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="grid grid-cols-2 gap-2 pb-1">
-                  {PRESET_FOODS.map((preset, idx) => (
+                {/* Search bar */}
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    value={presetSearch}
+                    onChange={(e) => setPresetSearch(e.target.value)}
+                    placeholder="Suchen... (z.B. Schnitzel, Reis)"
+                    className="input text-sm"
+                    autoFocus
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pb-1 max-h-72 overflow-y-auto">
+                  {filteredPresets.map((preset, idx) => (
                     <motion.button
                       key={preset.name}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03 }}
+                      transition={{ delay: idx * 0.02 }}
                       onClick={() => handlePresetAdd(preset)}
                       className="bg-grappler-700/30 hover:bg-grappler-700/60 border border-grappler-700/50 rounded-lg p-2.5 text-left transition-all group"
                     >
@@ -524,7 +666,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       </p>
                       <div className="flex gap-2 mt-1 text-[10px] text-grappler-500">
                         <span className="text-orange-400/80">
-                          {preset.calories}cal
+                          {preset.calories} kcal
                         </span>
                         <span className="text-red-400/80">
                           {preset.protein}p
@@ -538,12 +680,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       </div>
                     </motion.button>
                   ))}
+                  {filteredPresets.length === 0 && (
+                    <p className="col-span-2 text-xs text-grappler-500 text-center py-4">
+                      Keine Ergebnisse. Versuche &quot;Manuell&quot; oder &quot;Foto&quot;.
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Custom meal form ── */}
+          {/* ── Custom meal form (also used for camera results) ── */}
           <AnimatePresence>
             {showAddForm && (
               <motion.div
@@ -554,17 +701,76 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="overflow-hidden"
               >
                 <div className="space-y-3 pb-1">
+                  {/* Photo preview + analysis status */}
+                  {(previewImage || isAnalyzing) && (
+                    <div className="relative">
+                      {previewImage && (
+                        <div className="relative rounded-lg overflow-hidden border border-grappler-700/50">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={previewImage}
+                            alt="Food photo"
+                            className="w-full h-40 object-cover"
+                          />
+                          {isAnalyzing && (
+                            <div className="absolute inset-0 bg-grappler-900/70 flex items-center justify-center">
+                              <div className="text-center">
+                                <Loader2 className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-2" />
+                                <p className="text-xs text-grappler-300">Essen wird erkannt...</p>
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              setPreviewImage(null);
+                              setAnalysisResult(null);
+                              setAnalysisError(null);
+                            }}
+                            className="absolute top-2 right-2 p-1 rounded-full bg-grappler-900/80 text-grappler-400 hover:text-grappler-200"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Analysis result badge */}
+                  {analysisResult && (
+                    <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
+                      analysisResult.confidence === 'high'
+                        ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                        : analysisResult.confidence === 'medium'
+                        ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
+                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                    }`}>
+                      <ImageIcon className="w-4 h-4 flex-shrink-0" />
+                      <span>
+                        AI-Erkennung ({analysisResult.confidence === 'high' ? 'sicher' : analysisResult.confidence === 'medium' ? 'wahrscheinlich' : 'unsicher'})
+                        {analysisResult.notes && ` — ${analysisResult.notes}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Analysis error */}
+                  {analysisError && (
+                    <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{analysisError}</span>
+                    </div>
+                  )}
+
                   <div>
                     <label className="text-xs text-grappler-400 mb-1 block">
-                      Food Name
+                      Name
                     </label>
                     <input
                       type="text"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
-                      placeholder="e.g., Grilled chicken salad"
+                      placeholder="z.B. Tiroler Gröstl, Semmelknödel"
                       className="input"
-                      autoFocus
+                      autoFocus={!previewImage}
                     />
                   </div>
 
@@ -572,7 +778,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
                         <Flame className="w-3 h-3 text-orange-400" />
-                        Calories
+                        kcal
                       </label>
                       <input
                         type="number"
@@ -600,7 +806,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
                         <Wheat className="w-3 h-3 text-blue-400" />
-                        Carbs (g)
+                        Kohlenhydrate (g)
                       </label>
                       <input
                         type="number"
@@ -614,7 +820,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
                         <Droplet className="w-3 h-3 text-yellow-400" />
-                        Fat (g)
+                        Fett (g)
                       </label>
                       <input
                         type="number"
@@ -635,13 +841,14 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       }}
                       className="btn btn-secondary btn-sm flex-1"
                     >
-                      Cancel
+                      Abbrechen
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      className="btn btn-primary btn-sm flex-1"
+                      disabled={isAnalyzing}
+                      className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
-                      Add Meal
+                      Hinzufügen
                     </button>
                   </div>
                 </div>
@@ -658,17 +865,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           className="card p-4"
         >
           <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide mb-3">
-            Today&apos;s Meals
+            Heutige Mahlzeiten
           </h2>
 
           {todayMeals.length === 0 ? (
             <div className="text-center py-8">
               <Apple className="w-10 h-10 text-grappler-700 mx-auto mb-2" />
               <p className="text-sm text-grappler-500">
-                No meals logged yet today.
+                Noch keine Mahlzeiten erfasst.
               </p>
               <p className="text-xs text-grappler-600 mt-1">
-                Use Quick Add or Custom above to start tracking.
+                Nutze Foto, Schnell oder Manuell um loszulegen.
               </p>
             </div>
           ) : (
@@ -692,7 +899,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         </span>
                       </div>
                       <span className="text-xs text-grappler-500">
-                        {typeCalories} cal
+                        {typeCalories} kcal
                       </span>
                     </div>
 
@@ -711,13 +918,13 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                             </p>
                             <div className="flex gap-3 mt-0.5 text-[10px]">
                               <span className="text-orange-400">
-                                {meal.calories} cal
+                                {meal.calories} kcal
                               </span>
                               <span className="text-red-400">
                                 {meal.protein}g P
                               </span>
                               <span className="text-blue-400">
-                                {meal.carbs}g C
+                                {meal.carbs}g K
                               </span>
                               <span className="text-yellow-400">
                                 {meal.fat}g F
@@ -749,7 +956,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             className="bg-grappler-800 rounded-xl p-4"
           >
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide mb-3">
-              Daily Summary
+              Tagesbilanz
             </h2>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
@@ -757,10 +964,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.calories}
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.calories} cal
+                  / {macroTargets.calories} kcal
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.calories - totals.calories, 0)} left
+                  {Math.max(macroTargets.calories - totals.calories, 0)} übrig
                 </p>
               </div>
               <div>
@@ -768,10 +975,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.protein}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.protein}g pro
+                  / {macroTargets.protein}g Pro
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.protein - totals.protein, 0)}g left
+                  {Math.max(macroTargets.protein - totals.protein, 0)}g übrig
                 </p>
               </div>
               <div>
@@ -779,10 +986,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.carbs}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.carbs}g carb
+                  / {macroTargets.carbs}g KH
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.carbs - totals.carbs, 0)}g left
+                  {Math.max(macroTargets.carbs - totals.carbs, 0)}g übrig
                 </p>
               </div>
               <div>
@@ -790,10 +997,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.fat}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.fat}g fat
+                  / {macroTargets.fat}g Fett
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.fat - totals.fat, 0)}g left
+                  {Math.max(macroTargets.fat - totals.fat, 0)}g übrig
                 </p>
               </div>
             </div>

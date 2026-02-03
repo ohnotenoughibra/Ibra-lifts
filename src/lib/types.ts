@@ -514,6 +514,27 @@ export interface HRSession {
 // Theme
 export type ThemeMode = 'dark' | 'light';
 
+// Grappling Session Tracking
+export type GrapplingType = 'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'mma' | 'judo' | 'other';
+export type GrapplingIntensity = 'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep';
+
+export interface GrapplingSession {
+  id: string;
+  date: Date;
+  type: GrapplingType;
+  intensity: GrapplingIntensity;
+  duration: number; // minutes
+  rounds?: number;
+  roundDuration?: number; // minutes per round
+  techniques?: string; // what was drilled
+  submissions?: number; // landed
+  taps?: number; // got tapped
+  notes?: string;
+  bodyweightBefore?: number;
+  bodyweightAfter?: number;
+  perceivedExertion: number; // 1-10
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

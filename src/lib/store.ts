@@ -22,7 +22,8 @@ import {
   CustomExercise,
   SessionTemplate,
   ThemeMode,
-  HRSession
+  HRSession,
+  GrapplingSession
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -72,6 +73,9 @@ interface AppState {
 
   // Heart rate sessions
   hrSessions: HRSession[];
+
+  // Grappling sessions
+  grapplingSessions: GrapplingSession[];
 
   // Theme
   themeMode: ThemeMode;
@@ -131,6 +135,10 @@ interface AppState {
   // HR session actions
   addHRSession: (session: Omit<HRSession, 'id'>) => void;
 
+  // Grappling session actions
+  addGrapplingSession: (session: Omit<GrapplingSession, 'id'>) => void;
+  deleteGrapplingSession: (id: string) => void;
+
   // Theme actions
   setThemeMode: (mode: ThemeMode) => void;
 
@@ -186,6 +194,7 @@ export const useAppStore = create<AppState>()(
       customExercises: [],
       sessionTemplates: [],
       hrSessions: [],
+      grapplingSessions: [],
       themeMode: 'dark' as ThemeMode,
       showTip: true,
       currentTipId: null,
@@ -666,6 +675,17 @@ export const useAppStore = create<AppState>()(
         set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }] });
       },
 
+      // Grappling session actions
+      addGrapplingSession: (session) => {
+        const { grapplingSessions } = get();
+        set({ grapplingSessions: [...grapplingSessions, { ...session, id: uuidv4() }] });
+      },
+
+      deleteGrapplingSession: (id) => {
+        const { grapplingSessions } = get();
+        set({ grapplingSessions: grapplingSessions.filter(s => s.id !== id) });
+      },
+
       // Theme actions
       setThemeMode: (mode) => set({ themeMode: mode }),
 
@@ -691,6 +711,7 @@ export const useAppStore = create<AppState>()(
           customExercises: [],
           sessionTemplates: [],
           hrSessions: [],
+          grapplingSessions: [],
           themeMode: 'dark' as ThemeMode,
           showTip: true,
           currentTipId: null
@@ -713,6 +734,7 @@ export const useAppStore = create<AppState>()(
         customExercises: state.customExercises,
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,
+        grapplingSessions: state.grapplingSessions,
         themeMode: state.themeMode
       })
     }

@@ -29,7 +29,16 @@ import {
   Leaf,
   Trophy as TrophyIcon,
   Crosshair,
-  Scaling
+  Scaling,
+  HeartPulse,
+  Siren,
+  Calculator,
+  ListPlus,
+  Layers,
+  LayoutGrid,
+  Sun,
+  Moon,
+  Shield
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -52,9 +61,20 @@ import MobilityWorkouts from './MobilityWorkouts';
 import WeeklyCoach from './WeeklyCoach';
 import ExerciseProfiler from './ExerciseProfiler';
 import StrengthAnalysis from './StrengthAnalysis';
+import PeriodizationCalendar from './PeriodizationCalendar';
+import RecoveryDashboard from './RecoveryDashboard';
+import InjuryLogger from './InjuryLogger';
+import ProgressiveOverload from './ProgressiveOverload';
+import CustomExerciseCreator from './CustomExerciseCreator';
+import OneRepMaxCalc from './OneRepMaxCalc';
+import HRZoneTraining from './HRZoneTraining';
+import SessionTemplates from './SessionTemplates';
+import VolumeHeatMap from './VolumeHeatMap';
+import GrapplingTracker from './GrapplingTracker';
+import ThemeToggle from './ThemeToggle';
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | null;
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -90,6 +110,36 @@ export default function Dashboard() {
   if (overlayView === 'strength') {
     return <StrengthAnalysis onClose={() => setOverlayView(null)} />;
   }
+  if (overlayView === 'periodization') {
+    return <PeriodizationCalendar onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'recovery') {
+    return <RecoveryDashboard onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'injury') {
+    return <InjuryLogger onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'overload') {
+    return <ProgressiveOverload onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'custom_exercise') {
+    return <CustomExerciseCreator onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'one_rm') {
+    return <OneRepMaxCalc onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'hr_zones') {
+    return <HRZoneTraining onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'templates') {
+    return <SessionTemplates onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'volume_map') {
+    return <VolumeHeatMap onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'grappling') {
+    return <GrapplingTracker onClose={() => setOverlayView(null)} />;
+  }
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh pb-20">
@@ -108,6 +158,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <div className="flex items-center gap-1 bg-grappler-800 px-3 py-1.5 rounded-full">
               <Flame className="w-4 h-4 text-orange-500" />
               <span className="text-sm font-medium text-grappler-200">
@@ -531,6 +582,16 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
             { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
             { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
             { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
+            { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
+            { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
+            { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
+            { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
+            { icon: ListPlus, label: 'Custom Ex', view: 'custom_exercise' as OverlayView, color: 'text-indigo-400 bg-indigo-500/20' },
+            { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
+            { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+            { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
+            { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
+            { icon: Shield, label: 'Grappling', view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
           ].map((tool) => (
             <button
               key={tool.label}

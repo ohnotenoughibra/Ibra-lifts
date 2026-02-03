@@ -1547,6 +1547,999 @@ export const exercises: Exercise[] = [
     description: 'Conditioning and grip endurance for grappling cardio.',
     videoUrl: 'https://www.youtube.com/results?search_query=battle+ropes+exercise+proper+form+technique+short',
     cues: ['Alternating waves or slams', 'Drive from hips', 'Keep core tight', 'Maintain intensity for intervals']
+  },
+
+  // ======================================================================
+  // EXPANDED EXERCISE DATABASE - RP Strength-style & Science-Based Variations
+  // ======================================================================
+
+  // SQUAT VARIATIONS
+  {
+    id: 'deficit-squat',
+    name: 'Deficit Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'back'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 9,
+    description: 'Standing on a plate or platform increases ROM and time under tension. Builds deep squat strength critical for wrestling level changes and guard recovery.',
+    videoUrl: 'https://www.youtube.com/results?search_query=deficit+squat+barbell+proper+form+technique+short',
+    cues: [
+      'Stand on 1-2 inch plate or platform',
+      'Same setup as back squat',
+      'Increased depth demands more ankle and hip mobility',
+      'Drive through mid-foot, maintain upright torso',
+      'Start lighter than your normal squat'
+    ]
+  },
+  {
+    id: 'pause-squat',
+    name: 'Pause Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'back'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 10,
+    description: 'Eliminating the stretch reflex builds raw strength out of the hole. RP Strength staple for hypertrophy due to increased time under tension.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pause+squat+barbell+proper+form+technique+short',
+    cues: [
+      '2-3 second pause at the bottom',
+      'Stay tight during the pause - no relaxing',
+      'Maintain brace and upper back tightness',
+      'Explode out of the hole after the pause',
+      'Use 70-80% of normal squat weight'
+    ]
+  },
+  {
+    id: 'pin-squat',
+    name: 'Pin Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'back'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 10,
+    description: 'Squat from a dead stop on safety pins. Eliminates stretch reflex entirely and builds concentric-only strength for explosive takedown entries.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pin+squat+anderson+squat+proper+form+technique+short',
+    cues: [
+      'Set safety pins at desired depth',
+      'Start from the bottom position on pins',
+      'Reset fully between each rep',
+      'Drive explosively from dead stop',
+      'Great for overcoming sticking points'
+    ]
+  },
+  {
+    id: 'belt-squat',
+    name: 'Belt Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Loads the legs without spinal compression. RP Strength favorite for accumulating quad volume without fatiguing the back - ideal when grappling is taxing your spine.',
+    videoUrl: 'https://www.youtube.com/results?search_query=belt+squat+machine+proper+form+technique+short',
+    cues: [
+      'Attach belt around hips to weight',
+      'Stand on elevated platforms',
+      'Squat with upright torso',
+      'Zero spinal loading',
+      'Can go very high volume safely'
+    ]
+  },
+  {
+    id: 'safety-bar-squat',
+    name: 'Safety Bar Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes', 'back'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 9,
+    description: 'The cambered bar shifts load forward, hammering upper back and quads simultaneously. Shoulder-friendly alternative when grappling beats up your shoulders.',
+    videoUrl: 'https://www.youtube.com/results?search_query=safety+squat+bar+proper+form+technique+short',
+    cues: [
+      'Handles in front, pads on shoulders',
+      'Fight to stay upright - bar wants to fold you',
+      'Builds tremendous upper back strength',
+      'Easier on shoulders and wrists than straight bar',
+      'Expect to use 85-90% of back squat weight'
+    ]
+  },
+  {
+    id: 'sissy-squat',
+    name: 'Sissy Squat',
+    category: 'isolation',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 5,
+    description: 'Extreme quad isolation through knee flexion with hip extension. Science shows this targets the rectus femoris uniquely. Brutal quad pump.',
+    videoUrl: 'https://www.youtube.com/results?search_query=sissy+squat+proper+form+technique+short',
+    cues: [
+      'Hold onto something for balance',
+      'Lean back, push knees forward',
+      'Heels come up, deep knee flexion',
+      'Feel the extreme quad stretch',
+      'Start bodyweight only - this is harder than it looks'
+    ]
+  },
+  {
+    id: 'zercher-squat',
+    name: 'Zercher Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes', 'core'],
+    secondaryMuscles: ['biceps', 'back', 'forearms'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 9,
+    description: 'Bar held in the crook of the elbows mimics grappling clinch positions. Builds incredible core bracing and front-loaded squat strength for takedowns.',
+    videoUrl: 'https://www.youtube.com/results?search_query=zercher+squat+proper+form+technique+short',
+    cues: [
+      'Bar in crook of elbows, arms squeezed tight',
+      'Keep elbows close to body',
+      'Squat deep with upright torso',
+      'Use a pad or towel on bar for comfort',
+      'Directly transfers to grappling clinch strength'
+    ]
+  },
+
+  // DEADLIFT VARIATIONS
+  {
+    id: 'deficit-deadlift',
+    name: 'Deficit Deadlift',
+    category: 'compound',
+    primaryMuscles: ['back', 'glutes', 'hamstrings'],
+    secondaryMuscles: ['core', 'forearms', 'quadriceps'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 10,
+    description: 'Standing on a platform increases ROM off the floor. Builds explosive pulling power from disadvantaged positions - like pulling an opponent from the mat.',
+    videoUrl: 'https://www.youtube.com/results?search_query=deficit+deadlift+proper+form+technique+short',
+    cues: [
+      'Stand on 1-3 inch platform',
+      'Same setup as conventional deadlift',
+      'Requires more quad drive off the floor',
+      'Keep back flat despite greater ROM',
+      'Use 80-85% of normal deadlift weight'
+    ]
+  },
+  {
+    id: 'pause-deadlift',
+    name: 'Pause Deadlift',
+    category: 'compound',
+    primaryMuscles: ['back', 'glutes', 'hamstrings'],
+    secondaryMuscles: ['core', 'forearms', 'quadriceps'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 10,
+    description: 'Pausing below the knee builds positional strength and reinforces perfect technique. Exposes and fixes any weakness in your pull.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pause+deadlift+proper+form+technique+short',
+    cues: [
+      '2-3 second pause just below the knee',
+      'Maintain perfect back position during pause',
+      'Stay tight - no relaxing at pause point',
+      'Continue pull smoothly after pause',
+      'Use 70-80% of normal deadlift weight'
+    ]
+  },
+  {
+    id: 'block-pull',
+    name: 'Block Pull',
+    category: 'compound',
+    primaryMuscles: ['back', 'glutes', 'traps'],
+    secondaryMuscles: ['hamstrings', 'core', 'forearms'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 9,
+    description: 'Deadlift from elevated blocks targets lockout strength and allows supramaximal loading. Builds tremendous trap and upper back thickness.',
+    videoUrl: 'https://www.youtube.com/results?search_query=block+pull+deadlift+proper+form+technique+short',
+    cues: [
+      'Set bar on blocks at knee height or just below',
+      'Same setup as deadlift from that position',
+      'Focus on explosive hip drive through lockout',
+      'Can handle more weight than full deadlift',
+      'Great for grip training with heavy loads'
+    ]
+  },
+  {
+    id: 'snatch-grip-deadlift',
+    name: 'Snatch-Grip Deadlift',
+    category: 'compound',
+    primaryMuscles: ['back', 'glutes', 'hamstrings', 'traps'],
+    secondaryMuscles: ['core', 'forearms', 'quadriceps', 'lats'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 9,
+    description: 'Wide grip increases ROM and upper back demand massively. Science shows superior trap and upper back activation compared to conventional. Builds the yoke.',
+    videoUrl: 'https://www.youtube.com/results?search_query=snatch+grip+deadlift+proper+form+technique+short',
+    cues: [
+      'Grip as wide as a snatch - index fingers near the rings',
+      'Lower hips more than conventional',
+      'Increased upper back and trap demand',
+      'Use straps if grip limits you',
+      'Expect to use 70-80% of conventional deadlift'
+    ]
+  },
+  {
+    id: 'jefferson-deadlift',
+    name: 'Jefferson Deadlift',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes', 'hamstrings'],
+    secondaryMuscles: ['core', 'back', 'forearms'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 8,
+    description: 'Straddle stance deadlift with anti-rotation demand. Builds rotational stability and asymmetric strength - highly functional for grappling scrambles.',
+    videoUrl: 'https://www.youtube.com/results?search_query=jefferson+deadlift+proper+form+technique+short',
+    cues: [
+      'Straddle the bar with one foot forward, one back',
+      'Mixed grip - one hand in front, one behind',
+      'Drive up while resisting rotation',
+      'Alternate lead leg each set',
+      'Excellent anti-rotation core training'
+    ]
+  },
+  {
+    id: 'trap-bar-deadlift',
+    name: 'Trap Bar Deadlift',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes', 'back'],
+    secondaryMuscles: ['hamstrings', 'core', 'forearms', 'traps'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 9,
+    description: 'Neutral handles and centered load reduce shear on the spine. Research shows comparable muscle activation to conventional with lower injury risk. Perfect for grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=trap+bar+deadlift+hex+bar+proper+form+technique+short',
+    cues: [
+      'Stand in center of trap bar',
+      'Grip neutral handles',
+      'Drive through the floor like a leg press',
+      'Hips and shoulders rise together',
+      'More quad-dominant than conventional'
+    ]
+  },
+
+  // BENCH PRESS VARIATIONS
+  {
+    id: 'floor-press',
+    name: 'Floor Press',
+    category: 'compound',
+    primaryMuscles: ['chest', 'triceps'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Pressing from the floor limits ROM to build lockout strength and tricep power. Shoulder-friendly pressing when bench aggravates shoulders from grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=floor+press+barbell+proper+form+technique+short',
+    cues: [
+      'Lie on floor, knees bent or legs straight',
+      'Upper arms touch floor each rep',
+      'Pause briefly on the floor - no bounce',
+      'Press to full lockout',
+      'Eliminates leg drive - pure upper body'
+    ]
+  },
+  {
+    id: 'spoto-press',
+    name: 'Spoto Press',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 9,
+    description: 'Pausing 1-2 inches off the chest builds tremendous pec tension and strength off the chest. Named after Eric Spoto. RP Strength recommends this for hypertrophy.',
+    videoUrl: 'https://www.youtube.com/results?search_query=spoto+press+bench+press+variation+proper+form+short',
+    cues: [
+      'Lower bar to 1-2 inches above chest',
+      'Hold the pause - bar does not touch chest',
+      'Maintain full tension throughout',
+      '2-3 second pause in the hover position',
+      'Press explosively after the pause'
+    ]
+  },
+  {
+    id: 'larsen-press',
+    name: 'Larsen Press',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps', 'shoulders', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Bench press with feet elevated off the floor. Eliminates leg drive and forces pure pressing strength with increased core demand.',
+    videoUrl: 'https://www.youtube.com/results?search_query=larsen+press+feet+up+bench+press+proper+form+short',
+    cues: [
+      'Set up like normal bench but lift feet off floor',
+      'Legs straight out or slightly bent in air',
+      'Maintain scapular retraction without leg drive',
+      'Builds honest pressing strength',
+      'Use 80-85% of normal bench weight'
+    ]
+  },
+  {
+    id: 'board-press',
+    name: 'Board Press',
+    category: 'compound',
+    primaryMuscles: ['triceps', 'chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 9,
+    description: 'Reducing ROM with boards on the chest allows overloading the lockout. Builds tricep strength and lockout power for bench press PRs.',
+    videoUrl: 'https://www.youtube.com/results?search_query=board+press+bench+press+variation+proper+form+short',
+    cues: [
+      'Place 2-3 boards on chest (or use Slingshot)',
+      'Lower bar to boards, pause',
+      'Press to lockout',
+      'Can handle 105-110% of full bench',
+      'Great for building lockout confidence'
+    ]
+  },
+  {
+    id: 'db-floor-press',
+    name: 'Dumbbell Floor Press',
+    category: 'compound',
+    primaryMuscles: ['chest', 'triceps'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Dumbbell pressing from the floor. Combines the joint-friendly floor press with the freedom of dumbbells. Excellent for home gym grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+floor+press+proper+form+technique+short',
+    cues: [
+      'Lie on floor with dumbbells',
+      'Upper arms touch floor each rep with brief pause',
+      'Neutral or pronated grip both work',
+      'Great shoulder-friendly pressing option',
+      'No bench required'
+    ]
+  },
+
+  // ROW VARIATIONS
+  {
+    id: 'helms-row',
+    name: 'Helms Row',
+    category: 'compound',
+    primaryMuscles: ['back', 'lats'],
+    secondaryMuscles: ['biceps', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 7,
+    description: 'Chest-supported dumbbell row on an incline bench at 30-45 degrees. Dr. Eric Helms\' preferred row - eliminates cheating while allowing heavier loads than strict rows.',
+    videoUrl: 'https://www.youtube.com/results?search_query=helms+row+incline+chest+supported+row+proper+form+short',
+    cues: [
+      'Incline bench at 30-45 degrees',
+      'Chest against pad, feet on floor',
+      'Row dumbbells to hips',
+      'Full scapular retraction at top',
+      'Let arms fully extend at bottom for stretch'
+    ]
+  },
+
+  // SHOULDER VARIATIONS
+  {
+    id: 'lu-raises',
+    name: 'Lu Raises',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['traps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 4,
+    description: 'Named after Lu Xiaojun. Front raise transitioning to lateral raise in one movement. Hits all delt heads for complete shoulder development. Science-backed for medial delt growth.',
+    videoUrl: 'https://www.youtube.com/results?search_query=lu+raises+shoulder+exercise+proper+form+technique+short',
+    cues: [
+      'Light dumbbells - 5-15 lbs typically',
+      'Front raise to shoulder height',
+      'Rotate arms out to lateral raise position',
+      'Lower from lateral position',
+      'Reverse the movement for next rep'
+    ]
+  },
+  {
+    id: 'behind-neck-press',
+    name: 'Behind-the-Neck Press',
+    category: 'compound',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['triceps', 'traps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: false,
+    aestheticValue: 8,
+    strengthValue: 8,
+    description: 'Presses behind the neck target the lateral and rear delts more than front pressing. Requires good shoulder mobility. Use moderate weight with strict form.',
+    videoUrl: 'https://www.youtube.com/results?search_query=behind+the+neck+press+proper+form+safe+technique+short',
+    cues: [
+      'Only perform if you have healthy shoulders',
+      'Bar descends to upper trap level - not too low',
+      'Wide grip, elbows under the bar',
+      'Press straight up to lockout',
+      'Seated is safer than standing for this variation'
+    ]
+  },
+  {
+    id: 'prone-y-raise',
+    name: 'Prone Y Raise',
+    category: 'isolation',
+    primaryMuscles: ['shoulders', 'traps'],
+    secondaryMuscles: ['back'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'Lying face down and raising arms in a Y-pattern. Research shows excellent lower trap and rotator cuff activation. Essential for shoulder health in grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=prone+Y+raise+exercise+proper+form+technique+short',
+    cues: [
+      'Lie face down on bench or floor',
+      'Arms form a Y-shape - thumbs up',
+      'Raise arms as high as possible',
+      'Squeeze lower traps at the top',
+      'Very light weight or bodyweight only'
+    ]
+  },
+  {
+    id: 'z-press',
+    name: 'Z-Press',
+    category: 'compound',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['triceps', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Seated on the floor with legs extended removes all lower body assistance. Demands extreme core stability and strict pressing strength. Brutal but effective.',
+    videoUrl: 'https://www.youtube.com/results?search_query=z+press+seated+floor+overhead+press+proper+form+short',
+    cues: [
+      'Sit on floor with legs straight out',
+      'Unrack bar from pins at shoulder height',
+      'Press overhead with zero leg drive',
+      'Core must stabilize entire movement',
+      'Expect to use 60-70% of standing OHP'
+    ]
+  },
+
+  // ARM VARIATIONS
+  {
+    id: 'bayesian-curl',
+    name: 'Bayesian Cable Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 4,
+    description: 'Cable curl from behind the body with shoulder in extension. Research shows this maximally loads the long head bicep in the stretched position - the key driver of hypertrophy.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bayesian+cable+curl+proper+form+technique+short',
+    cues: [
+      'Cable set low, face away from machine',
+      'Arm starts behind your body',
+      'Curl forward with elbow pinned',
+      'Maximum stretch on the long head',
+      'The stretch is where the growth happens'
+    ]
+  },
+  {
+    id: 'jm-press',
+    name: 'JM Press',
+    category: 'compound',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: ['chest', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Hybrid between close-grip bench and skull crusher. Named after JM Blakley. Allows heavy tricep loading with a compound movement pattern. Powerlifter secret weapon.',
+    videoUrl: 'https://www.youtube.com/results?search_query=jm+press+tricep+exercise+proper+form+technique+short',
+    cues: [
+      'Close grip on bar, set up like bench press',
+      'Lower bar toward chin/upper chest area',
+      'Elbows drift forward as you lower',
+      'Combines pressing and extension patterns',
+      'Keep the movement controlled - this is technical'
+    ]
+  },
+  {
+    id: 'spider-curl',
+    name: 'Spider Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 3,
+    description: 'Curling face down on an incline bench. Research shows peak contraction emphasis. RP Strength uses this as a shortened-position bicep exercise for complete development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=spider+curl+incline+bench+proper+form+technique+short',
+    cues: [
+      'Lie chest-down on incline bench',
+      'Arms hang straight down',
+      'Curl with strict form - no swing possible',
+      'Peak contraction at the top',
+      'Pairs perfectly with incline curls for full ROM coverage'
+    ]
+  },
+
+  // LEG VARIATIONS
+  {
+    id: 'single-leg-hip-thrust',
+    name: 'Single-Leg Hip Thrust',
+    category: 'compound',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 7,
+    description: 'Unilateral hip thrust for addressing imbalances. Directly transfers to single-leg bridging escapes in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=single+leg+hip+thrust+proper+form+technique+short',
+    cues: [
+      'Upper back on bench, one foot planted',
+      'Other leg elevated or held up',
+      'Drive through planted heel',
+      'Full hip extension at top',
+      'Control the eccentric - no dropping'
+    ]
+  },
+  {
+    id: 'reverse-nordic',
+    name: 'Reverse Nordic Curl',
+    category: 'isolation',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'The quad equivalent of the Nordic curl. Lengthened-position quad training shown in research to produce superior hypertrophy. Essential for bulletproofing knees.',
+    videoUrl: 'https://www.youtube.com/results?search_query=reverse+nordic+curl+proper+form+technique+short',
+    cues: [
+      'Kneel on pad, upright torso',
+      'Lean back slowly from the knees',
+      'Keep hips extended - dont sit back',
+      'Go as far as you can control',
+      'Use hands behind you for assistance initially'
+    ]
+  },
+  {
+    id: 'spanish-squat',
+    name: 'Spanish Squat',
+    category: 'isolation',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Band behind the knees allows you to sit back while loading the quads. Physical therapy gold for patellar tendon health. Perfect for grapplers with knee issues.',
+    videoUrl: 'https://www.youtube.com/results?search_query=spanish+squat+band+knee+rehab+exercise+proper+form+short',
+    cues: [
+      'Loop band behind knees, anchored in front',
+      'Sit back into the band',
+      'Torso stays upright',
+      'Deep knee flexion with zero knee pain',
+      'Excellent for patellar tendinopathy rehab and prevention'
+    ]
+  },
+  {
+    id: 'single-leg-rdl',
+    name: 'Single-Leg Romanian Deadlift',
+    category: 'compound',
+    primaryMuscles: ['hamstrings', 'glutes'],
+    secondaryMuscles: ['core', 'back'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Unilateral hinge pattern building balance and proprioception. Research shows excellent hamstring activation with added stability demands. Critical for single-leg grappling positions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=single+leg+romanian+deadlift+proper+form+technique+short',
+    cues: [
+      'Stand on one leg with slight knee bend',
+      'Hinge forward, free leg goes back',
+      'Keep hips square - dont open up',
+      'Dumbbell or kettlebell in opposite hand',
+      'Squeeze glute to stand up'
+    ]
+  },
+  {
+    id: 'seated-leg-curl',
+    name: 'Seated Leg Curl',
+    category: 'isolation',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 5,
+    description: 'Research shows seated position puts hamstrings in a more lengthened position than lying, producing superior hypertrophy. RP Strength standard for hamstring growth.',
+    videoUrl: 'https://www.youtube.com/results?search_query=seated+leg+curl+machine+proper+form+technique+short',
+    cues: [
+      'Adjust pad to sit above ankles',
+      'Start with legs extended',
+      'Curl heels under the seat',
+      'Slow eccentric is crucial',
+      'More stretch than lying leg curl'
+    ]
+  },
+
+  // GRAPPLING-SPECIFIC: NECK WORK
+  {
+    id: 'neck-curl',
+    name: 'Neck Curl (Flexion)',
+    category: 'grappling_specific',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 7,
+    description: 'Neck flexion training is non-negotiable for grapplers. Builds resistance to guillotines and neck cranks. Start with bodyweight and progress slowly.',
+    videoUrl: 'https://www.youtube.com/results?search_query=neck+curl+flexion+exercise+proper+form+technique+short',
+    cues: [
+      'Lie face up on bench, head hanging off edge',
+      'Light plate on forehead with towel',
+      'Curl chin toward chest',
+      'Slow and controlled - never jerk',
+      'Start VERY light - neck is sensitive',
+      'Build up volume gradually over weeks'
+    ]
+  },
+  {
+    id: 'neck-extension',
+    name: 'Neck Extension',
+    category: 'grappling_specific',
+    primaryMuscles: ['traps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 7,
+    description: 'Posterior neck strength for resisting front headlocks and can openers. Builds the thick neck that protects against chokes and cranks in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=neck+extension+exercise+proper+form+technique+short',
+    cues: [
+      'Lie face down on bench, head off edge',
+      'Light plate on back of head with towel',
+      'Extend head upward',
+      'Controlled tempo throughout',
+      'Can also use neck harness for progressive loading',
+      'Start very light - 2.5 to 5 lbs'
+    ]
+  },
+  {
+    id: 'neck-lateral-flexion',
+    name: 'Neck Lateral Flexion',
+    category: 'grappling_specific',
+    primaryMuscles: ['traps'],
+    secondaryMuscles: [],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 6,
+    description: 'Side-to-side neck strength for resisting lateral neck cranks and maintaining head position in scrambles. Complete neck training requires all planes of movement.',
+    videoUrl: 'https://www.youtube.com/results?search_query=neck+lateral+flexion+exercise+proper+form+short',
+    cues: [
+      'Lie on side, head off bench edge',
+      'Light plate on side of head',
+      'Flex neck sideways toward ceiling',
+      'Train both sides equally',
+      'Very light weight - focus on control'
+    ]
+  },
+
+  // GRIP WORK VARIATIONS
+  {
+    id: 'gripper-crush',
+    name: 'Hand Gripper',
+    category: 'grip',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'carry',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 3,
+    strengthValue: 7,
+    description: 'Progressive crush grip training with calibrated hand grippers. Directly translates to gi gripping and no-gi wrist control.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hand+gripper+captains+of+crush+proper+technique+short',
+    cues: [
+      'Set gripper deep in the hand',
+      'Squeeze to full close',
+      'Hold the close for 1-2 seconds',
+      'Controlled open',
+      'Progress through gripper ratings over time'
+    ]
+  },
+  {
+    id: 'wrist-curl',
+    name: 'Barbell Wrist Curl',
+    category: 'grip',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 5,
+    description: 'Wrist flexor training for grip endurance and forearm size. Builds the muscles used in every grip, pull, and hold in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+wrist+curl+proper+form+technique+short',
+    cues: [
+      'Forearms on thighs, wrists over knees',
+      'Palms facing up',
+      'Curl the barbell up with wrists only',
+      'Full ROM - let bar roll to fingertips then curl back',
+      'High reps for forearm pump'
+    ]
+  },
+  {
+    id: 'reverse-wrist-curl',
+    name: 'Reverse Wrist Curl',
+    category: 'grip',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 5,
+    description: 'Wrist extensor training for balanced forearm development. Prevents tennis elbow and wrist injuries common in grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=reverse+wrist+curl+proper+form+technique+short',
+    cues: [
+      'Forearms on thighs, palms facing down',
+      'Extend wrists upward',
+      'Light weight, high reps',
+      'Essential for elbow health and injury prevention',
+      'Balance with regular wrist curls'
+    ]
+  },
+
+  // MORE SCIENCE-BASED VARIATIONS
+  {
+    id: 'cable-overhead-tricep-extension',
+    name: 'Cable Overhead Tricep Extension',
+    category: 'isolation',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 5,
+    description: 'Overhead cable extension with constant tension. Research shows the long head of the triceps is best trained in the stretched overhead position. RP Strength prioritizes this.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+overhead+tricep+extension+proper+form+technique+short',
+    cues: [
+      'Cable set low, face away from machine',
+      'Arms overhead, extend at the elbows',
+      'Feel the deep stretch on the long head',
+      'Keep upper arms by your ears',
+      'Constant cable tension through full ROM'
+    ]
+  },
+  {
+    id: 'reverse-grip-bench',
+    name: 'Reverse-Grip Bench Press',
+    category: 'compound',
+    primaryMuscles: ['chest', 'triceps'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Supinated grip bench press shown in EMG studies to activate upper chest significantly more than incline bench. Unique stimulus for plateau-busting.',
+    videoUrl: 'https://www.youtube.com/results?search_query=reverse+grip+bench+press+proper+form+technique+short',
+    cues: [
+      'Supinated (underhand) grip on barbell',
+      'Use a spotter for unracking',
+      'Elbows naturally tuck close to body',
+      'Lower to lower chest',
+      'Press back to lockout',
+      'Start very light to learn the groove'
+    ]
+  },
+  {
+    id: 'cable-fly',
+    name: 'Cable Fly',
+    category: 'isolation',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 4,
+    description: 'Unlike dumbbell flies, cables maintain tension at peak contraction. Research supports cable flies for chest hypertrophy due to the resistance profile matching the strength curve.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+fly+chest+exercise+proper+form+technique+short',
+    cues: [
+      'Cables set at various heights for different angles',
+      'Slight bend in elbows throughout',
+      'Bring hands together with a hugging motion',
+      'Squeeze chest hard at peak contraction',
+      'Control the stretch on the way back'
+    ]
+  },
+  {
+    id: 'dumbbell-pullover',
+    name: 'Dumbbell Pullover',
+    category: 'compound',
+    primaryMuscles: ['lats', 'chest'],
+    secondaryMuscles: ['triceps', 'core'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 6,
+    description: 'Trains both lats and chest in the stretched position. Research shows excellent long head tricep and serratus activation. Old school exercise making a science-backed comeback.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+pullover+proper+form+technique+short',
+    cues: [
+      'Lie across a bench, hips lower than shoulders',
+      'Hold one dumbbell overhead with both hands',
+      'Lower behind head with slight elbow bend',
+      'Feel the deep lat and chest stretch',
+      'Pull back to starting position with lats'
+    ]
+  },
+  {
+    id: 'reverse-pec-deck',
+    name: 'Reverse Pec Deck',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['back', 'traps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Machine rear delt isolation with consistent resistance. RP Strength rates machine rear delt work as the most effective for rear delt growth due to the stability it provides.',
+    videoUrl: 'https://www.youtube.com/results?search_query=reverse+pec+deck+rear+delt+machine+proper+form+short',
+    cues: [
+      'Face the machine, chest against pad',
+      'Handles at shoulder height',
+      'Open arms wide, squeeze rear delts',
+      'Slight pause at full contraction',
+      'Control the return - dont let weights slam'
+    ]
+  },
+  {
+    id: 'hip-adductor-machine',
+    name: 'Hip Adductor Machine',
+    category: 'isolation',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: [],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 5,
+    description: 'Adductor strength is critical for closed guard, triangles, and inside control in grappling. Often neglected but research shows it reduces groin injury risk significantly.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hip+adductor+machine+proper+form+technique+short',
+    cues: [
+      'Sit in machine, pads on inner thighs',
+      'Squeeze legs together',
+      'Hold peak contraction briefly',
+      'Control the stretch on the way back',
+      'Direct transfer to closed guard strength'
+    ]
+  },
+  {
+    id: 'hip-abductor-machine',
+    name: 'Hip Abductor Machine',
+    category: 'isolation',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: [],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Gluteus medius training for hip stability and lateral movement. Research shows strong abductors prevent knee valgus in squats and reduce ACL injury risk.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hip+abductor+machine+proper+form+technique+short',
+    cues: [
+      'Sit in machine, pads on outer thighs',
+      'Push legs apart against resistance',
+      'Hold at full abduction',
+      'Lean forward slightly for more glute med activation',
+      'Higher reps work well - 15-20'
+    ]
+  },
+  {
+    id: 'cross-body-hammer-curl',
+    name: 'Cross-Body Hammer Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps', 'forearms'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 4,
+    description: 'Curling across the body targets the brachialis and brachioradialis more than standard hammer curls. Builds the thickness of the outer arm that makes arms look big.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cross+body+hammer+curl+proper+form+technique+short',
+    cues: [
+      'Neutral grip, curl across your body toward opposite shoulder',
+      'Keep elbow pinned at side',
+      'Squeeze at the top across your chest',
+      'Alternate arms',
+      'Great for forearm development'
+    ]
+  },
+  {
+    id: 'kettlebell-bottoms-up-press',
+    name: 'Kettlebell Bottoms-Up Press',
+    category: 'grappling_specific',
+    primaryMuscles: ['shoulders', 'forearms'],
+    secondaryMuscles: ['core', 'triceps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 7,
+    description: 'Pressing a kettlebell upside down demands extreme grip and shoulder stabilizer activation. Builds the reflexive stability grapplers need for controlling opponents.',
+    videoUrl: 'https://www.youtube.com/results?search_query=kettlebell+bottoms+up+press+proper+form+technique+short',
+    cues: [
+      'Hold KB upside down at shoulder height',
+      'Crush the handle - grip creates stability',
+      'Press straight up with control',
+      'Core braced, no lean',
+      'Start very light - this is humbling'
+    ]
   }
 ];
 

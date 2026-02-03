@@ -223,35 +223,35 @@ export const workoutTips: KnowledgeTip[] = [
     category: 'grappling'
   },
 
-  // MOTIVATION
+  // PRACTICAL MINDSET (replacing generic motivation quotes)
   {
-    id: 'tip-motivation-1',
-    content: '"The iron never lies to you. Two hundred pounds is always two hundred pounds." - Henry Rollins',
+    id: 'tip-mindset-1',
+    content: 'Consistency beats intensity. 3 solid sessions per week for a year crushes 6 sessions per week for 2 months.',
     category: 'motivation'
   },
   {
-    id: 'tip-motivation-2',
-    content: '"Strength does not come from physical capacity. It comes from an indomitable will." - Gandhi',
+    id: 'tip-mindset-2',
+    content: 'Bad workout > no workout. Even a 60% effort session maintains neural pathways and keeps the habit alive.',
     category: 'motivation'
   },
   {
-    id: 'tip-motivation-3',
-    content: '"The pain you feel today will be the strength you feel tomorrow."',
+    id: 'tip-mindset-3',
+    content: 'Track your lifts. You can\'t manage what you don\'t measure. Small weekly improvements compound into massive gains over months.',
     category: 'motivation'
   },
   {
-    id: 'tip-motivation-4',
-    content: '"You don\'t have to be great to start, but you have to start to be great."',
+    id: 'tip-mindset-4',
+    content: 'Most lifters quit programs too early. Stick with your current block for the full mesocycle before judging results.',
     category: 'motivation'
   },
   {
-    id: 'tip-motivation-5',
-    content: '"The only person you\'re competing against is who you were yesterday."',
+    id: 'tip-mindset-5',
+    content: 'Autoregulation > rigid programming. If you slept 4 hours, drop the weight 10% and focus on quality reps. Smart training beats ego training.',
     category: 'motivation'
   },
   {
-    id: 'tip-motivation-6',
-    content: '"Champions are made when no one is watching."',
+    id: 'tip-mindset-6',
+    content: 'Your competition prep starts months before the event. The last week is just maintenance — the work was already done.',
     category: 'motivation'
   }
 ];
@@ -579,6 +579,231 @@ Perform 2-3x per week at the end of your session:
 
 Grip work is taxing on the forearms and can affect your grappling. Schedule grip training away from hard rolling days.
 `
+  },
+  {
+    id: 'article-recovery-science',
+    title: 'Recovery Science: What Actually Works',
+    category: 'recovery',
+    tags: ['recovery', 'sleep', 'science'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-01'),
+    source: 'Current recovery research 2024-2025',
+    content: `
+## Evidence-Based Recovery Methods
+
+Not all recovery methods are created equal. Here is what the research actually supports.
+
+### Tier 1: High Evidence
+
+#### Sleep (Non-Negotiable)
+- 7-9 hours for athletes
+- Growth hormone release peaks during deep sleep (stages 3-4)
+- Sleep restriction reduces testosterone by 10-15% after one week
+- Practical: Consistent bedtime, cool room (65-68F), no screens 30min before bed
+
+#### Nutrition Timing
+- 1.6-2.2g protein/kg/day for muscle protein synthesis
+- Post-workout protein within 2-3 hours (the anabolic window is wider than the supplement industry claims)
+- Carb replenishment matters more for same-day double sessions
+
+#### Progressive Overload Management
+- Do not increase volume more than 10% week-over-week
+- Deload every 4-6 weeks (or when performance declines 2+ sessions in a row)
+
+### Tier 2: Moderate Evidence
+
+#### Cold Water Immersion
+- Effective for reducing perceived soreness
+- May blunt hypertrophy adaptations if done immediately post-training
+- Best used: competition weeks or between double sessions, not after hypertrophy work
+
+#### Active Recovery
+- Light movement (walking, easy cycling) beats complete rest
+- Promotes blood flow without adding training stress
+- 20-30 min at conversational pace
+
+### Tier 3: Weak/No Evidence
+
+#### Stretching for Recovery
+- Static stretching does not reduce DOMS (delayed onset muscle soreness)
+- Useful for mobility maintenance, not recovery per se
+
+#### BCAAs
+- If you are hitting protein targets, BCAAs add nothing
+- Save your money for quality whole food protein
+
+#### Compression Garments
+- Minimal effect on actual recovery markers
+- May reduce perceived soreness (placebo is real and that is fine)
+
+## The Recovery Hierarchy for Grapplers
+
+1. Sleep 7-9 hours
+2. Hit protein targets (1.6-2.2g/kg)
+3. Manage training volume intelligently
+4. Active recovery on off days
+5. Everything else is optional
+`
+  },
+  {
+    id: 'article-weight-management',
+    title: 'Weight Management for Grapplers',
+    category: 'nutrition',
+    tags: ['nutrition', 'weight', 'grappling', 'competition'],
+    readTime: 7,
+    publishedAt: new Date('2025-02-15'),
+    content: `
+## Cutting Weight vs. Losing Fat
+
+These are fundamentally different processes and confusing them leads to poor outcomes.
+
+### Fat Loss (Long-Term)
+- 0.5-1% bodyweight per week is sustainable
+- Requires caloric deficit of 300-500 kcal/day
+- Preserve muscle by keeping protein high (2.0-2.4g/kg during a cut)
+- Keep training intensity high, reduce volume slightly
+- Duration: 8-16 weeks
+
+### Water Cut (Competition Week)
+- Only for experienced competitors
+- Maximum 5-8% bodyweight for 24-hour weigh-ins
+- Requires rehydration protocol
+- Should be practiced before using in competition
+- Can impair performance if done wrong
+
+## Practical Nutrition for Grappler-Lifters
+
+### Training Days
+- Higher carbs (3-5g/kg) to fuel sessions
+- Protein distributed across 4-5 meals
+- Pre-training meal 2-3 hours before
+- Post-training protein + carbs within 2-3 hours
+
+### Rest Days
+- Moderate carbs (2-3g/kg)
+- Same protein intake
+- Slightly lower total calories
+- Focus on whole foods, fruits, vegetables
+
+### Supplement Shortlist (Evidence-Based Only)
+1. **Creatine monohydrate** - 5g daily, no loading needed
+2. **Vitamin D** - 2000-4000 IU if not getting sun exposure
+3. **Omega-3** - 2-3g EPA+DHA daily for inflammation management
+4. **Caffeine** - 3-6mg/kg pre-training for performance (cycle usage)
+
+Everything else is marketing.
+`
+  },
+  {
+    id: 'article-training-longevity',
+    title: 'Training for Longevity: Lifting in Your 30s and Beyond',
+    category: 'lifting_technique',
+    tags: ['longevity', 'injury-prevention', 'programming'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-10'),
+    content: `
+## Your Body at 30+
+
+You are not broken, but the game changes. Recovery takes longer, joints need more attention, and smart programming matters more than ever.
+
+### What Changes
+
+1. **Recovery capacity decreases** - You can still train hard, but you need more recovery between sessions
+2. **Connective tissue needs more warm-up** - Those 5-minute warm-ups no longer cut it
+3. **Accumulated wear and tear** - Previous injuries need management, not ignoring
+4. **Hormonal shifts** - Testosterone declines ~1% per year after 30 (training helps maintain it)
+
+### Programming Adjustments
+
+#### Warm-Up Protocol (10-15 minutes, non-negotiable)
+1. General: 5 min light cardio
+2. Activation: Band pull-aparts, glute bridges, bird dogs
+3. Specific: Empty bar/light sets of your first exercise
+4. Ramping sets to working weight
+
+#### Exercise Selection
+- Favor exercises with lower injury risk at same stimulus
+- Trap bar deadlifts over conventional if low back is cranky
+- DB bench over barbell if shoulders are beat up
+- Bulgarian split squats for joint-friendly leg training
+- More machine work for isolation is fine, ego-free training is smart training
+
+#### Volume Management
+- Higher frequency, lower per-session volume
+- Example: 3x/week full body beats 1x/week body part for recovery
+- Autoregulate based on readiness, do not force it on bad days
+
+### Grappling-Specific Considerations
+
+As a grappler in your 30s:
+- Neck training is mandatory (2-3x/week, light)
+- Grip work should be balanced with finger extensor work
+- Hip mobility daily, your guard game depends on it
+- Shoulder prehab before every upper body session
+- Consider reducing sparring intensity on heavy lifting days
+
+### The Long Game
+
+The goal is not to peak at 35. It is to be training at 55. Every session should leave you wanting to come back, not crawling out the door.
+`
+  },
+  {
+    id: 'article-autoregulation',
+    title: 'Autoregulation: Training Smarter with RPE and Readiness',
+    category: 'periodization',
+    tags: ['RPE', 'autoregulation', 'programming', 'science'],
+    readTime: 5,
+    publishedAt: new Date('2025-02-20'),
+    source: 'Helms et al. 2024, Zourdos et al. 2023',
+    content: `
+## Why Rigid Programs Fail
+
+A program that says Squat 315x5 does not account for:
+- You slept 4 hours
+- You had hard sparring yesterday
+- You are stressed from work
+- You are fighting off a cold
+
+Autoregulation adapts the training stimulus to your daily readiness.
+
+## RPE Scale (Rate of Perceived Exertion)
+
+| RPE | Meaning | Reps Left |
+|-----|---------|-----------|
+| 10 | Maximum effort | 0 |
+| 9 | Could do 1 more | 1 |
+| 8 | Could do 2 more | 2 |
+| 7 | Could do 3 more | 3 |
+| 6 | Warm-up weight | 4+ |
+
+### How to Use RPE
+
+Instead of Squat 315x5, program Squat 5 reps @ RPE 8.
+
+This means: find the weight where you could do 5 reps but have 2 left in the tank. On a good day that might be 325. On a bad day, 295. Both are productive sessions.
+
+## Readiness-Based Adjustments
+
+### Green Light (Recovery > 67%, slept well, low stress)
+- Hit prescribed RPE targets
+- Add a top set or extra volume set if feeling strong
+- Good day for PRs
+
+### Yellow Light (Recovery 34-66%, moderate sleep/stress)
+- Drop RPE targets by 0.5-1 point
+- Keep prescribed volume
+- Focus on technique quality
+
+### Red Light (Recovery < 33%, poor sleep, high stress)
+- Drop RPE by 1-2 points
+- Reduce volume by 20-30%
+- Consider swapping to active recovery or mobility
+- This is NOT weakness, this is intelligent training
+
+## The Grappler Gains Auto-Adjustment Engine
+
+This app uses your pre-workout check-in, wearable recovery data, and per-exercise feedback to automatically suggest weight and volume adjustments. Trust the system. It is based on your actual data, not a one-size-fits-all spreadsheet.
+`
   }
 ];
 
@@ -662,8 +887,8 @@ export const categoryInfo: Record<ContentCategory, { name: string; description: 
     icon: '🥋'
   },
   motivation: {
-    name: 'Motivation',
-    description: 'Stay inspired and consistent',
-    icon: '💪'
+    name: 'Training Mindset',
+    description: 'Practical strategies for long-term progress',
+    icon: '🧠'
   }
 };

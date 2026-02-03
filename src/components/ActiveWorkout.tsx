@@ -22,7 +22,8 @@ import {
   Zap,
   Heart,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Video
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
@@ -929,18 +930,57 @@ export default function ActiveWorkout() {
                 {currentExercise.exercise.name}
               </h2>
             </div>
-            <button
-              onClick={() => setShowSwapModal(true)}
-              className="mx-auto mt-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
-            >
-              <Shuffle className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">Swap Exercise</span>
-            </button>
-            <p className="text-sm text-grappler-400">
-              {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
+            <div className="flex items-center justify-center gap-2 mt-1">
+              {currentExercise.exercise.videoUrl && (
+                <a
+                  href={currentExercise.exercise.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">Form Video</span>
+                </a>
+              )}
+              <button
+                onClick={() => setShowSwapModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Swap Exercise</span>
+              </button>
+            </div>
+            {/* Workout Type Context Explanation */}
+            {activeWorkout?.session.type && (
+              <div className={cn(
+                'mt-2 px-3 py-1.5 rounded-lg text-xs text-center',
+                activeWorkout.session.type === 'strength' && 'bg-red-500/10 text-red-400',
+                activeWorkout.session.type === 'hypertrophy' && 'bg-purple-500/10 text-purple-400',
+                activeWorkout.session.type === 'power' && 'bg-orange-500/10 text-orange-400'
+              )}>
+                {activeWorkout.session.type === 'strength' && (
+                  <>Heavy weight, low reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Build max strength. Full recovery between sets.</>
+                )}
+                {activeWorkout.session.type === 'hypertrophy' && (
+                  <>Moderate weight, controlled reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Build muscle. Focus on the squeeze and stretch.</>
+                )}
+                {activeWorkout.session.type === 'power' && (
+                  <>Explosive reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Move the weight fast. Quality over fatigue.</>
+                )}
+              </div>
+            )}
+
+            <p className="text-sm text-grappler-400 mt-2">
+              {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps @ RPE {currentExercise.prescription.rpe}
+              {currentExercise.prescription.percentageOf1RM && (
+                <span className="ml-2 text-primary-400">~{currentExercise.prescription.percentageOf1RM}% 1RM</span>
+              )}
               {currentExercise.prescription.tempo && (
                 <span className="ml-2">Tempo: {currentExercise.prescription.tempo}</span>
               )}
+            </p>
+            <p className="text-xs text-grappler-500 mt-1">
+              Rest: {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} between sets
             </p>
 
             {/* Per-exercise history from last session */}
@@ -949,6 +989,19 @@ export default function ActiveWorkout() {
                 <p className="text-xs text-grappler-400">
                   Last time: <span className="text-grappler-200 font-medium">{previousPerformance.weight} {weightUnit} x {previousPerformance.reps}</span>
                   <span className="text-grappler-500 ml-1">@ RPE {previousPerformance.rpe}</span>
+                </p>
+              </div>
+            )}
+
+            {/* Weight suggestion explanation */}
+            {!previousPerformance && currentLog.sets[0]?.weight === 0 && (
+              <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
+                <p className="text-xs text-grappler-400">
+                  No history yet. Start with a weight you can handle for {currentExercise.prescription.targetReps} reps
+                  with {10 - currentExercise.prescription.rpe} reps left in reserve.
+                  {currentExercise.prescription.rpe <= 7 && ' This should feel moderate.'}
+                  {currentExercise.prescription.rpe === 8 && ' This should be challenging but doable.'}
+                  {currentExercise.prescription.rpe >= 9 && ' This should be near your limit.'}
                 </p>
               </div>
             )}
@@ -986,7 +1039,14 @@ export default function ActiveWorkout() {
           <div className="space-y-4">
             {/* Weight */}
             <div className="bg-grappler-800/50 rounded-xl p-4">
-              <label className="text-xs text-grappler-400 uppercase tracking-wide">Weight ({weightUnit})</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-grappler-400 uppercase tracking-wide">Weight ({weightUnit})</label>
+                {currentSet.weight > 0 && previousPerformance && (
+                  <span className="text-[10px] text-primary-400">
+                    {currentSet.weight > previousPerformance.weight ? '+' : ''}{Math.round(currentSet.weight - previousPerformance.weight)} vs last
+                  </span>
+                )}
+              </div>
               <div className="flex items-center justify-between mt-2">
                 <button
                   onClick={() => updateSetValue('weight', -weightIncrement)}
@@ -1012,7 +1072,12 @@ export default function ActiveWorkout() {
 
             {/* Reps */}
             <div className="bg-grappler-800/50 rounded-xl p-4">
-              <label className="text-xs text-grappler-400 uppercase tracking-wide">Reps</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-grappler-400 uppercase tracking-wide">Reps</label>
+                <span className="text-[10px] text-grappler-500">
+                  Target: {currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}
+                </span>
+              </div>
               <div className="flex items-center justify-between mt-2">
                 <button
                   onClick={() => updateSetValue('reps', -1)}

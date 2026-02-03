@@ -15,6 +15,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 10,
     description: 'The king of posterior chain development. Essential for grappling power.',
+    videoUrl: 'https://www.youtube.com/results?search_query=conventional+deadlift+proper+form+technique+short',
     cues: [
       'Hip-width stance, barbell over mid-foot',
       'Grip just outside legs',
@@ -35,6 +36,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 10,
     description: 'Wide-stance deadlift variant that mimics grappling base positions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=sumo+deadlift+proper+form+technique+short',
     cues: [
       'Wide stance, toes pointed out 45 degrees',
       'Grip inside legs',
@@ -55,6 +57,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 10,
     description: 'Foundational leg strength for shooting takedowns and maintaining base.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+back+squat+proper+form+tutorial+short',
     cues: [
       'Bar on upper traps (high bar) or rear delts (low bar)',
       'Feet shoulder-width, slight toe-out',
@@ -75,6 +78,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 9,
     description: 'Builds tremendous core strength and upright torso position for grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+front+squat+proper+form+tutorial+short',
     cues: [
       'Bar rests on front delts, elbows high',
       'Clean grip or cross-arm grip',
@@ -95,6 +99,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 6,
     description: 'Excellent squat variation for learning mechanics and high reps.',
+    videoUrl: 'https://www.youtube.com/results?search_query=goblet+squat+dumbbell+proper+form+tutorial+short',
     cues: [
       'Hold dumbbell or kettlebell at chest',
       'Elbows inside knees at bottom',
@@ -115,6 +120,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 9,
     description: 'Builds pushing power for frames and sweeps in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+bench+press+proper+form+technique+short',
     cues: [
       'Retract and depress shoulder blades',
       'Slight arch, feet planted firmly',
@@ -135,6 +141,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 8,
     description: 'Upper chest emphasis for complete chest development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=incline+bench+press+barbell+proper+form+short',
     cues: [
       '30-45 degree incline',
       'Same scapular retraction as flat bench',
@@ -154,6 +161,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 9,
     description: 'Essential for shoulder strength and overhead control in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=standing+overhead+press+barbell+proper+form+short',
     cues: [
       'Bar starts at front delts',
       'Brace core, squeeze glutes',
@@ -174,6 +182,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 9,
     description: 'Explosive overhead power transfer for grappling clinch work.',
+    videoUrl: 'https://www.youtube.com/results?search_query=push+press+barbell+proper+form+technique+short',
     cues: [
       'Start like strict press',
       'Dip 4-6 inches, knees over toes',
@@ -194,6 +203,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 9,
     description: 'Builds pulling power essential for grips and transitions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+bent+over+row+proper+form+short',
     cues: [
       'Hinge at hips, torso 45-70 degrees',
       'Pull bar to lower chest/upper abs',
@@ -214,6 +224,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 9,
     description: 'Explosive row from dead stop - mimics explosive pulling in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pendlay+row+proper+form+technique+short',
     cues: [
       'Torso parallel to floor',
       'Bar returns to floor each rep',
@@ -233,6 +244,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 9,
     description: 'The ultimate upper body pull - critical for grip and back strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pull+up+proper+form+technique+tutorial+short',
     cues: [
       'Slightly wider than shoulder grip',
       'Start from dead hang, engage lats',
@@ -253,6 +265,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 10,
     description: 'Progressive overload for serious pulling strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=weighted+pull+up+proper+form+technique+short',
     cues: [
       'Use dip belt or weighted vest',
       'Same form as bodyweight',
@@ -272,6 +285,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 8,
     description: 'Supinated grip emphasizes bicep development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=chin+up+proper+form+technique+tutorial+short',
     cues: [
       'Shoulder-width supinated grip',
       'Pull chin over bar',
@@ -291,6 +305,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 8,
     description: 'Excellent for pushing strength and tricep development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=parallel+bar+dip+proper+form+technique+short',
     cues: [
       'Slight forward lean for chest emphasis',
       'Lower until upper arms parallel or below',
@@ -312,6 +327,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 8,
     description: 'Ultimate grappler exercise - builds strength in all ground positions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=turkish+get+up+form+tutorial+kettlebell+short',
     cues: [
       'Start supine, KB/DB locked out overhead',
       'Roll to elbow, then to hand',
@@ -333,6 +349,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 9,
     description: 'Builds crushing grip and full-body stability for grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=farmers+walk+proper+form+technique+short',
     cues: [
       'Pick up heavy weights at sides',
       'Stand tall, shoulders back',
@@ -353,6 +370,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 8,
     description: 'Unilateral carry builds anti-lateral flexion strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=suitcase+carry+exercise+proper+form+technique+short',
     cues: [
       'Heavy weight in one hand only',
       'Resist leaning to weighted side',
@@ -372,6 +390,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 7,
     description: 'Explosive hip extension and core power for takedowns.',
+    videoUrl: 'https://www.youtube.com/results?search_query=medicine+ball+slam+proper+form+technique+short',
     cues: [
       'Reach ball overhead',
       'Hinge and slam with full force',
@@ -391,6 +410,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 7,
     description: 'Rotational power for throws and sweeps.',
+    videoUrl: 'https://www.youtube.com/results?search_query=medicine+ball+rotational+throw+proper+form+short',
     cues: [
       'Stand sideways to wall',
       'Load hips and rotate',
@@ -410,6 +430,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 8,
     description: 'Builds powerful hip extension for bridging and escapes.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+hip+thrust+proper+form+technique+short',
     cues: [
       'Upper back on bench',
       'Bar over hips with pad',
@@ -430,6 +451,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 8,
     description: 'Eccentric-focused hamstring builder for injury prevention.',
+    videoUrl: 'https://www.youtube.com/results?search_query=romanian+deadlift+proper+form+technique+short',
     cues: [
       'Start standing with bar',
       'Soft knees, hinge at hips',
@@ -452,6 +474,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 3,
     strengthValue: 7,
     description: 'Grip endurance fundamental for maintaining holds.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dead+hang+bar+proper+form+technique+short',
     cues: [
       'Hang from bar with straight arms',
       'Shoulders engaged slightly',
@@ -471,6 +494,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 9,
     description: 'Gi-grip simulation for superior grappling grip strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=towel+pull+up+grip+training+technique+short',
     cues: [
       'Drape towel over bar',
       'Grip towel like a gi',
@@ -490,6 +514,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 2,
     strengthValue: 7,
     description: 'Pinch grip strength for collar ties and grips.',
+    videoUrl: 'https://www.youtube.com/results?search_query=plate+pinch+hold+grip+training+technique+short',
     cues: [
       'Pinch plates together smooth sides out',
       'Hold at side for time',
@@ -508,6 +533,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 4,
     strengthValue: 7,
     description: 'Complete forearm development for crushing grip.',
+    videoUrl: 'https://www.youtube.com/results?search_query=wrist+roller+exercise+proper+form+short',
     cues: [
       'Arms extended in front',
       'Roll weight up with wrists',
@@ -529,6 +555,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 4,
     description: 'Classic arm builder for aesthetic bicep development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+curl+proper+form+technique+short',
     cues: [
       'Shoulder-width grip',
       'Keep elbows pinned at sides',
@@ -549,6 +576,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 4,
     description: 'Unilateral bicep work for balanced development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+curl+proper+form+technique+short',
     cues: [
       'Palms facing forward or supinate during curl',
       'Full stretch at bottom',
@@ -568,6 +596,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 5,
     description: 'Brachialis and forearm emphasis for complete arm development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hammer+curl+proper+form+technique+short',
     cues: [
       'Neutral grip throughout',
       'Curl straight up',
@@ -587,6 +616,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 4,
     description: 'Isolated tricep work for arm size and lockout strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=tricep+pushdown+cable+proper+form+short',
     cues: [
       'Elbows pinned at sides',
       'Push down to full extension',
@@ -606,6 +636,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 5,
     description: 'Long head tricep emphasis for complete tricep development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=skull+crusher+proper+form+technique+short',
     cues: [
       'EZ bar or dumbbells',
       'Lower to forehead or behind head',
@@ -625,6 +656,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 3,
     description: 'Builds the shoulder cap for wider aesthetic appearance.',
+    videoUrl: 'https://www.youtube.com/results?search_query=lateral+raise+dumbbell+proper+form+short',
     cues: [
       'Slight bend in elbows',
       'Raise to shoulder height',
@@ -645,6 +677,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 4,
     description: 'Rear delt development for shoulder health and aesthetics.',
+    videoUrl: 'https://www.youtube.com/results?search_query=rear+delt+fly+dumbbell+proper+form+short',
     cues: [
       'Hinge forward or use machine',
       'Lead with elbows',
@@ -664,6 +697,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 5,
     description: 'Essential for shoulder health and posture.',
+    videoUrl: 'https://www.youtube.com/results?search_query=face+pull+cable+proper+form+technique+short',
     cues: [
       'Cable at face height',
       'Pull to face, externally rotate',
@@ -683,6 +717,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 5,
     description: 'Isolated hamstring work for knee health and leg aesthetics.',
+    videoUrl: 'https://www.youtube.com/results?search_query=lying+leg+curl+machine+proper+form+short',
     cues: [
       'Lie face down, pad above ankles',
       'Curl heels toward glutes',
@@ -702,6 +737,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 4,
     description: 'Isolated quad work for leg definition.',
+    videoUrl: 'https://www.youtube.com/results?search_query=leg+extension+machine+proper+form+short',
     cues: [
       'Pad above ankles',
       'Extend fully, squeeze quads',
@@ -721,6 +757,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 4,
     description: 'Builds lower leg aesthetics and ankle stability.',
+    videoUrl: 'https://www.youtube.com/results?search_query=standing+calf+raise+proper+form+technique+short',
     cues: [
       'Full stretch at bottom',
       'Rise onto balls of feet',
@@ -740,6 +777,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 4,
     description: 'Targets soleus for complete calf development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=seated+calf+raise+proper+form+technique+short',
     cues: [
       'Knees at 90 degrees',
       'Full ROM',
@@ -760,6 +798,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 7,
     description: 'Superior ab exercise for visible abs and functional core.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hanging+leg+raise+proper+form+technique+short',
     cues: [
       'Hang from bar',
       'Raise legs with minimal swing',
@@ -779,6 +818,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 8,
     description: 'Anti-extension core strength for grappling base.',
+    videoUrl: 'https://www.youtube.com/results?search_query=ab+wheel+rollout+proper+form+technique+short',
     cues: [
       'Start kneeling',
       'Roll out keeping core tight',
@@ -798,6 +838,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 7,
     description: 'Anti-rotation core strength essential for grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pallof+press+cable+proper+form+technique+short',
     cues: [
       'Stand sideways to cable',
       'Press out and hold',
@@ -817,6 +858,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 6,
     description: 'Fundamental core stability for all lifting and grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=plank+exercise+proper+form+technique+short',
     cues: [
       'Forearms and toes on ground',
       'Body in straight line',
@@ -836,6 +878,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 6,
     description: 'Lateral core stability for grappling positions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=side+plank+proper+form+technique+short',
     cues: [
       'Forearm and feet stacked',
       'Hips high, body straight',
@@ -856,6 +899,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 7,
     description: 'Controlled back work for thickness and pulling endurance.',
+    videoUrl: 'https://www.youtube.com/results?search_query=seated+cable+row+proper+form+technique+short',
     cues: [
       'Sit upright, slight forward lean to start',
       'Pull to waist',
@@ -875,6 +919,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 7,
     description: 'Lat width builder and pull-up progression.',
+    videoUrl: 'https://www.youtube.com/results?search_query=lat+pulldown+proper+form+technique+short',
     cues: [
       'Grip wider than shoulders',
       'Pull to upper chest',
@@ -894,6 +939,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 8,
     description: 'Unilateral back work for balanced development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=one+arm+dumbbell+row+proper+form+short',
     cues: [
       'One hand on bench',
       'Pull dumbbell to hip',
@@ -913,6 +959,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 8,
     description: 'Greater ROM than barbell for chest development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+bench+press+proper+form+technique+short',
     cues: [
       'Dumbbells at sides of chest',
       'Press up and slightly in',
@@ -932,6 +979,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 7,
     description: 'Shoulder strength with natural movement path.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+shoulder+press+proper+form+short',
     cues: [
       'Start at shoulder height',
       'Press straight up',
@@ -951,6 +999,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 8,
     description: 'Unilateral leg strength for grappling stance stability.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bulgarian+split+squat+proper+form+tutorial+short',
     cues: [
       'Rear foot elevated on bench',
       'Lower until back knee near ground',
@@ -970,6 +1019,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 7,
     description: 'Dynamic leg strength with athletic carryover.',
+    videoUrl: 'https://www.youtube.com/results?search_query=walking+lunges+proper+form+technique+short',
     cues: [
       'Long stride forward',
       'Lower back knee toward ground',
@@ -989,6 +1039,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 7,
     description: 'Explosive hip power for takedowns and scrambles.',
+    videoUrl: 'https://www.youtube.com/results?search_query=kettlebell+swing+proper+form+technique+short',
     cues: [
       'Hike KB back like a football',
       'Explosive hip snap forward',
@@ -1009,6 +1060,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 9,
     description: 'Total body explosive power development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=power+clean+proper+form+technique+tutorial+short',
     cues: [
       'Start like deadlift',
       'First pull to above knee',
@@ -1029,6 +1081,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 4,
     strengthValue: 7,
     description: 'Lower body explosiveness for shooting and sprawling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=box+jump+proper+form+technique+short',
     cues: [
       'Feet shoulder width',
       'Counter-movement arm swing',
@@ -1049,6 +1102,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 5,
     description: 'Trap development for neck protection and aesthetics.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+shrug+proper+form+technique+short',
     cues: [
       'Shoulder-width grip',
       'Shrug straight up, not rolling',
@@ -1072,6 +1126,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 4,
     description: 'Excellent chest isolation with constant cable tension.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+crossover+chest+proper+form+short',
     cues: ['Set cables at shoulder height', 'Step forward for stretch', 'Bring hands together with slight bend in elbows', 'Squeeze chest at peak contraction']
   },
   {
@@ -1086,6 +1141,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 6,
     description: 'Bodyweight pushing fundamental with core engagement.',
+    videoUrl: 'https://www.youtube.com/results?search_query=push+up+proper+form+technique+tutorial+short',
     cues: ['Hands just wider than shoulders', 'Body in straight line', 'Lower chest to floor', 'Full lockout at top']
   },
   {
@@ -1100,6 +1156,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 7,
     description: 'Shoulder-friendly pressing with rotational stability demand.',
+    videoUrl: 'https://www.youtube.com/results?search_query=landmine+press+proper+form+technique+short',
     cues: ['Bar in landmine or corner', 'Press with one or both hands', 'Slight lean forward', 'Great for shoulder rehab']
   },
 
@@ -1116,6 +1173,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 9,
     description: 'Heavy rowing variation for back thickness.',
+    videoUrl: 'https://www.youtube.com/results?search_query=t+bar+row+proper+form+technique+short',
     cues: ['Straddle the bar', 'Close grip for lat emphasis', 'Pull to chest', 'Keep torso at 45 degrees']
   },
   {
@@ -1130,6 +1188,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 8,
     description: 'Landmine row variation with excellent lat stretch and contraction.',
+    videoUrl: 'https://www.youtube.com/results?search_query=meadows+row+landmine+proper+form+short',
     cues: ['Stand perpendicular to landmine', 'Overhand grip on bar end', 'Pull elbow high and back', 'Great lat stretch at bottom']
   },
   {
@@ -1144,6 +1203,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 7,
     description: 'Eliminates momentum for strict back isolation.',
+    videoUrl: 'https://www.youtube.com/results?search_query=chest+supported+row+dumbbell+proper+form+short',
     cues: ['Lie face down on incline bench', 'Pull dumbbells to sides', 'Squeeze shoulder blades', 'No momentum allowed']
   },
   {
@@ -1158,6 +1218,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 8,
     description: 'Strict rowing from elevated bench, zero momentum.',
+    videoUrl: 'https://www.youtube.com/results?search_query=seal+row+proper+form+technique+short',
     cues: ['Lie on elevated flat bench', 'Row from dead stop', 'Full scapular retraction', 'Eliminates all cheating']
   },
 
@@ -1174,6 +1235,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 7,
     description: 'Rotational press for complete deltoid development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=arnold+press+dumbbell+proper+form+short',
     cues: ['Start palms facing you', 'Rotate as you press up', 'Full overhead lockout', 'Reverse the rotation on descent']
   },
   {
@@ -1188,6 +1250,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 3,
     description: 'Constant tension lateral raise for superior delt development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+lateral+raise+proper+form+technique+short',
     cues: ['Cable at low position', 'Cross-body or same side', 'Raise to shoulder height', 'Slow eccentric for growth']
   },
   {
@@ -1202,6 +1265,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 6,
     description: 'Trap and delt builder - use wide grip for shoulder safety.',
+    videoUrl: 'https://www.youtube.com/results?search_query=upright+row+barbell+proper+form+short',
     cues: ['Wide grip reduces impingement risk', 'Pull to chest level', 'Elbows lead the movement', 'Dont go above shoulder height']
   },
 
@@ -1218,6 +1282,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 7,
     description: 'High-volume leg builder without spinal loading.',
+    videoUrl: 'https://www.youtube.com/results?search_query=leg+press+machine+proper+form+technique+short',
     cues: ['Feet shoulder width on platform', 'Lower until 90 degree knee bend', 'Press through full foot', 'Dont lock knees completely']
   },
   {
@@ -1232,6 +1297,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 7,
     description: 'Machine squat for quad-focused development.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hack+squat+machine+proper+form+short',
     cues: ['Back flat against pad', 'Feet lower on platform for quad emphasis', 'Full depth', 'Control the negative']
   },
   {
@@ -1246,6 +1312,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 7,
     description: 'Unilateral leg work mimicking grappling level changes.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+step+up+proper+form+technique+short',
     cues: ['High box for full ROM', 'Drive through front heel', 'Dont push off back foot', 'Control the descent']
   },
   {
@@ -1260,6 +1327,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 6,
     strengthValue: 8,
     description: 'Gold standard for hamstring injury prevention - eccentric focused.',
+    videoUrl: 'https://www.youtube.com/results?search_query=nordic+hamstring+curl+proper+form+tutorial+short',
     cues: ['Kneel with feet anchored', 'Slowly lower body forward', 'Resist with hamstrings', 'Use hands to catch if needed', 'Focus on the slow negative']
   },
   {
@@ -1274,6 +1342,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 8,
     description: 'Posterior chain builder for hip hinge strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=good+morning+barbell+exercise+proper+form+short',
     cues: ['Bar on upper back like squat', 'Soft knees, hinge at hips', 'Lower until torso near parallel', 'Drive hips forward to stand']
   },
   {
@@ -1288,6 +1357,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 6,
     description: 'Accessible glute builder, great for bridging in grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=glute+bridge+proper+form+technique+short',
     cues: ['Lie on back, feet flat', 'Drive hips up', 'Squeeze glutes at top', 'Hold for 2 seconds']
   },
 
@@ -1304,6 +1374,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 4,
     description: 'Stretched position curl for long head bicep emphasis.',
+    videoUrl: 'https://www.youtube.com/results?search_query=incline+dumbbell+curl+proper+form+short',
     cues: ['45 degree incline bench', 'Arms hang straight down', 'Curl without moving upper arms', 'Great stretch at bottom']
   },
   {
@@ -1318,6 +1389,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 9,
     strengthValue: 4,
     description: 'Eliminates cheating for strict bicep isolation.',
+    videoUrl: 'https://www.youtube.com/results?search_query=preacher+curl+proper+form+technique+short',
     cues: ['Armpits on top of pad', 'Full extension at bottom', 'Squeeze at top', 'Control the eccentric']
   },
   {
@@ -1332,6 +1404,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 8,
     strengthValue: 5,
     description: 'Long head tricep emphasis with overhead stretch.',
+    videoUrl: 'https://www.youtube.com/results?search_query=overhead+tricep+extension+proper+form+short',
     cues: ['Dumbbell or cable overhead', 'Lower behind head', 'Keep elbows close', 'Full extension at top']
   },
   {
@@ -1346,6 +1419,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 7,
     strengthValue: 8,
     description: 'Heavy tricep compound for pushing strength.',
+    videoUrl: 'https://www.youtube.com/results?search_query=close+grip+bench+press+proper+form+short',
     cues: ['Hands shoulder width apart', 'Elbows tucked close to body', 'Lower to mid chest', 'Full lockout at top']
   },
 
@@ -1362,6 +1436,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 7,
     description: 'Rotational power for throws and guard passes.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+woodchop+proper+form+technique+short',
     cues: ['Cable high or low', 'Rotate through hips and torso', 'Arms guide, core does the work', 'Control both directions']
   },
   {
@@ -1376,6 +1451,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 6,
     description: 'Anti-extension core stability fundamental.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dead+bug+exercise+proper+form+technique+short',
     cues: ['Lie on back, arms up, knees at 90', 'Lower opposite arm and leg', 'Keep lower back pressed to floor', 'Slow and controlled']
   },
   {
@@ -1390,6 +1466,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 7,
     description: 'Adductor and lateral core strength for guard play.',
+    videoUrl: 'https://www.youtube.com/results?search_query=copenhagen+plank+proper+form+technique+short',
     cues: ['Side plank with top leg on bench', 'Bottom leg hangs free', 'Lift bottom leg to bench', 'Hold or do reps']
   },
 
@@ -1406,6 +1483,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 3,
     strengthValue: 8,
     description: 'Thick bar hold for crushing grip - mimics gi grips.',
+    videoUrl: 'https://www.youtube.com/results?search_query=fat+grip+hold+training+technique+short',
     cues: ['Attach fat grips to barbell or dumbbell', 'Hold at lockout', 'Squeeze as hard as possible', 'Build up hold time']
   },
   {
@@ -1420,6 +1498,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 3,
     strengthValue: 6,
     description: 'Isolated finger flexor work for grip endurance.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+finger+curl+grip+training+short',
     cues: ['Sit with forearms on thighs', 'Let bar roll to fingertips', 'Curl back into palm', 'High reps for endurance']
   },
 
@@ -1436,6 +1515,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 9,
     description: 'Explosive hip power from hang position - simpler than full clean.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hang+clean+proper+form+technique+tutorial+short',
     cues: ['Start at mid-thigh', 'Explosive hip extension', 'Shrug and pull under', 'Catch in front rack']
   },
   {
@@ -1450,6 +1530,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 4,
     strengthValue: 7,
     description: 'Explosive lower body power for takedown entries.',
+    videoUrl: 'https://www.youtube.com/results?search_query=jump+squat+proper+form+technique+short',
     cues: ['Bodyweight or light load', 'Quarter to half squat depth', 'Explode upward maximally', 'Land soft, reset between reps']
   },
   {
@@ -1464,6 +1545,7 @@ export const exercises: Exercise[] = [
     aestheticValue: 5,
     strengthValue: 6,
     description: 'Conditioning and grip endurance for grappling cardio.',
+    videoUrl: 'https://www.youtube.com/results?search_query=battle+ropes+exercise+proper+form+technique+short',
     cues: ['Alternating waves or slams', 'Drive from hips', 'Keep core tight', 'Maintain intensity for intervals']
   }
 ];

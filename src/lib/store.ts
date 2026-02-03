@@ -22,6 +22,7 @@ import {
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
 import { getSuggestedWeight } from './auto-adjust';
+import { getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -84,6 +85,10 @@ interface AppState {
   // Gamification actions
   awardPoints: (points: number, reason: string) => void;
   checkAndAwardBadges: () => void;
+
+  // Workout log editing
+  updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
+  deleteWorkoutLog: (logId: string) => void;
 
   // Body weight actions
   addBodyWeight: (weight: number, notes?: string) => void;
@@ -329,6 +334,7 @@ export const useAppStore = create<AppState>()(
         const { activeWorkout } = get();
         if (!activeWorkout) return;
 
+        // Update logs
         const updatedLogs = [...activeWorkout.exerciseLogs];
         const oldLog = updatedLogs[exerciseIndex];
         updatedLogs[exerciseIndex] = {
@@ -341,9 +347,26 @@ export const useAppStore = create<AppState>()(
           feedback: undefined
         };
 
+        // Also update the session exercises so the UI reflects the new exercise
+        const updatedSession = { ...activeWorkout.session };
+        const updatedExercises = [...updatedSession.exercises];
+        const oldPrescription = updatedExercises[exerciseIndex];
+
+        // Find the full exercise data from the exercises database
+        const foundExercise = getExerciseById(newExerciseId);
+        const newExercise = foundExercise || { ...oldPrescription.exercise, id: newExerciseId, name: newExerciseName };
+
+        updatedExercises[exerciseIndex] = {
+          ...oldPrescription,
+          exerciseId: newExerciseId,
+          exercise: newExercise
+        };
+        updatedSession.exercises = updatedExercises;
+
         set({
           activeWorkout: {
             ...activeWorkout,
+            session: updatedSession,
             exerciseLogs: updatedLogs
           }
         });
@@ -488,6 +511,20 @@ export const useAppStore = create<AppState>()(
             }
           });
         }
+      },
+
+      // Workout log editing
+      updateWorkoutLog: (logId, updates) => {
+        const { workoutLogs } = get();
+        const updatedLogs = workoutLogs.map(log =>
+          log.id === logId ? { ...log, ...updates } : log
+        );
+        set({ workoutLogs: updatedLogs });
+      },
+
+      deleteWorkoutLog: (logId) => {
+        const { workoutLogs } = get();
+        set({ workoutLogs: workoutLogs.filter(log => log.id !== logId) });
       },
 
       // Body weight actions

@@ -19,7 +19,7 @@ import {
   Scale,
   Trophy
 } from 'lucide-react';
-import { ExperienceLevel, Equipment, GoalFocus, SessionsPerWeek } from '@/lib/types';
+import { ExperienceLevel, Equipment, GoalFocus, SessionsPerWeek, OnboardingData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const steps = [
@@ -227,8 +227,8 @@ function AboutYouStep({
   data,
   update,
 }: {
-  data: typeof useAppStore.prototype.onboardingData;
-  update: (data: Partial<typeof data>) => void;
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -277,8 +277,8 @@ function EquipmentStep({
   data,
   update,
 }: {
-  data: typeof useAppStore.prototype.onboardingData;
-  update: (data: Partial<typeof data>) => void;
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
   const options: { value: Equipment; icon: any; title: string; desc: string }[] = [
     {
@@ -351,8 +351,8 @@ function GoalsStep({
   data,
   update,
 }: {
-  data: typeof useAppStore.prototype.onboardingData;
-  update: (data: Partial<typeof data>) => void;
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
   const options: { value: GoalFocus; icon: any; title: string; desc: string; color: string }[] = [
     {
@@ -438,8 +438,8 @@ function ScheduleStep({
   data,
   update,
 }: {
-  data: typeof useAppStore.prototype.onboardingData;
-  update: (data: Partial<typeof data>) => void;
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -506,8 +506,8 @@ function BaselineStep({
   data,
   update,
 }: {
-  data: typeof useAppStore.prototype.onboardingData;
-  update: (data: Partial<typeof data>) => void;
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
   const updateLift = (lift: string, value: string) => {
     const numValue = parseInt(value) || null;

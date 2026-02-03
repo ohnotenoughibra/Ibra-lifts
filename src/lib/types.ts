@@ -2,7 +2,7 @@
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type Equipment = 'full_gym' | 'home_gym' | 'minimal';
 export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power';
-export type SessionsPerWeek = 2 | 3;
+export type SessionsPerWeek = 1 | 2 | 3 | 4 | 5 | 6;
 export type WeightUnit = 'lbs' | 'kg';
 
 export interface UserProfile {
@@ -533,6 +533,20 @@ export interface GrapplingSession {
   bodyweightBefore?: number;
   bodyweightAfter?: number;
   perceivedExertion: number; // 1-10
+}
+
+// Body Composition
+export interface BodyCompositionEntry {
+  id: string;
+  date: Date;
+  weight: number;
+  bodyFatPercent?: number;
+  unit: WeightUnit;
+  chest?: number;     // cm
+  arms?: number;      // cm
+  waist?: number;     // cm
+  legs?: number;      // cm
+  notes?: string;
 }
 
 // Form Types for Onboarding

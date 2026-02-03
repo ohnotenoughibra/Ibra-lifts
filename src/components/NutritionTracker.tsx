@@ -25,8 +25,7 @@ import {
   ImageIcon,
   AlertCircle,
 } from 'lucide-react';
-import { MealType, MealEntry, MacroTargets, DailyNutrition } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import { MealType, MealEntry } from '@/lib/types';
 
 // ── Austrian & European preset foods with metric portions ──────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
@@ -85,13 +84,6 @@ const MEAL_TYPE_ORDER: MealType[] = [
   'post_workout',
   'dinner',
 ];
-
-const DEFAULT_TARGETS: MacroTargets = {
-  calories: 2500,
-  protein: 200,
-  carbs: 280,
-  fat: 80,
-};
 
 // ── Circular progress ring ──────────────────────────────────────────────────
 function MacroRing({
@@ -172,12 +164,26 @@ interface NutritionTrackerProps {
 }
 
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
-  const { user } = useAppStore();
+  const { user, meals, macroTargets, waterLog, addMeal, deleteMeal, setWaterGlasses: storeSetWater, bodyWeightLog } = useAppStore();
 
-  // ── Local state (nutrition not yet in zustand) ──
-  const [macroTargets] = useState<MacroTargets>(DEFAULT_TARGETS);
-  const [meals, setMeals] = useState<MealEntry[]>([]);
-  const [waterGlasses, setWaterGlasses] = useState(0);
+  // ── Derived state from store ──
+  const todayStr = new Date().toISOString().split('T')[0];
+  const waterGlasses = waterLog[todayStr] || 0;
+  const setWaterGlasses = (val: number) => storeSetWater(todayStr, val);
+
+  // ── Dynamic macro targets based on body weight + goal ──
+  const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+  const computedTargets = useMemo(() => {
+    if (!latestWeight || !user) return macroTargets;
+    const bw = latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight;
+    const goal = user.goalFocus;
+    if (goal === 'hypertrophy') {
+      return { calories: Math.round(bw * 35), protein: Math.round(bw * 2.2), carbs: Math.round(bw * 4), fat: Math.round(bw * 1) };
+    } else if (goal === 'strength') {
+      return { calories: Math.round(bw * 33), protein: Math.round(bw * 2), carbs: Math.round(bw * 3.5), fat: Math.round(bw * 1.1) };
+    }
+    return { calories: Math.round(bw * 32), protein: Math.round(bw * 2), carbs: Math.round(bw * 3.5), fat: Math.round(bw * 1) };
+  }, [latestWeight, user, macroTargets]);
 
   // ── Form state ──
   const [showAddForm, setShowAddForm] = useState(false);
@@ -214,8 +220,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   }, [presetSearch]);
 
   // ── Computed totals ──
-  const todayStr = new Date().toISOString().split('T')[0];
-
   const todayMeals = useMemo(
     () =>
       meals.filter(
@@ -271,28 +275,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     const cal = parseInt(formCalories) || 0;
     const pro = parseInt(formProtein) || 0;
     const carb = parseInt(formCarbs) || 0;
-    const fat = parseInt(formFat) || 0;
+    const f = parseInt(formFat) || 0;
     if (!formName.trim() || cal === 0) return;
 
-    const entry: MealEntry = {
-      id: uuidv4(),
+    addMeal({
       date: new Date(),
       mealType: formMealType,
       name: formName.trim(),
       calories: cal,
       protein: pro,
       carbs: carb,
-      fat: fat,
-    };
-
-    setMeals((prev) => [...prev, entry]);
+      fat: f,
+    });
     resetForm();
     setShowAddForm(false);
   };
 
   const handlePresetAdd = (preset: (typeof PRESET_FOODS)[number]) => {
-    const entry: MealEntry = {
-      id: uuidv4(),
+    addMeal({
       date: new Date(),
       mealType: formMealType,
       name: preset.name,
@@ -300,14 +300,13 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       protein: preset.protein,
       carbs: preset.carbs,
       fat: preset.fat,
-    };
-    setMeals((prev) => [...prev, entry]);
+    });
     setShowPresets(false);
     setPresetSearch('');
   };
 
   const handleDeleteMeal = (id: string) => {
-    setMeals((prev) => prev.filter((m) => m.id !== id));
+    deleteMeal(id);
   };
 
   // ── Camera / Photo analysis ──
@@ -435,7 +434,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="kcal"
               current={totals.calories}
-              target={macroTargets.calories}
+              target={computedTargets.calories}
               unit=""
               color="#f97316"
               size={76}
@@ -443,7 +442,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Protein"
               current={totals.protein}
-              target={macroTargets.protein}
+              target={computedTargets.protein}
               unit="g"
               color="#ef4444"
               size={76}
@@ -451,7 +450,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Carbs"
               current={totals.carbs}
-              target={macroTargets.carbs}
+              target={computedTargets.carbs}
               unit="g"
               color="#3b82f6"
               size={76}
@@ -459,7 +458,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Fett"
               current={totals.fat}
-              target={macroTargets.fat}
+              target={computedTargets.fat}
               unit="g"
               color="#eab308"
               size={76}
@@ -964,10 +963,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.calories}
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.calories} kcal
+                  / {computedTargets.calories} kcal
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.calories - totals.calories, 0)} übrig
+                  {Math.max(computedTargets.calories - totals.calories, 0)} übrig
                 </p>
               </div>
               <div>
@@ -975,10 +974,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.protein}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.protein}g Pro
+                  / {computedTargets.protein}g Pro
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.protein - totals.protein, 0)}g übrig
+                  {Math.max(computedTargets.protein - totals.protein, 0)}g übrig
                 </p>
               </div>
               <div>
@@ -986,10 +985,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.carbs}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.carbs}g KH
+                  / {computedTargets.carbs}g KH
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.carbs - totals.carbs, 0)}g übrig
+                  {Math.max(computedTargets.carbs - totals.carbs, 0)}g übrig
                 </p>
               </div>
               <div>
@@ -997,10 +996,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.fat}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {macroTargets.fat}g Fett
+                  / {computedTargets.fat}g Fett
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(macroTargets.fat - totals.fat, 0)}g übrig
+                  {Math.max(computedTargets.fat - totals.fat, 0)}g übrig
                 </p>
               </div>
             </div>

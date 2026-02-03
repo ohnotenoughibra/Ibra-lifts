@@ -406,7 +406,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
                     borderRadius: '8px',
                     color: '#f1f5f9',
                   }}
-                  formatter={(value: number | null, name: string) => {
+                  formatter={(value: any, name: string) => {
                     if (value === null || value === undefined) return ['-', name];
                     const label =
                       name === 'predicted1RM'

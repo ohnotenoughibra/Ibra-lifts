@@ -1,156 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
-import {
-  isDatabaseAvailable,
-  initializeDatabase,
-  upsertProfile,
-  insertWorkoutLog,
-  upsertGamificationStats,
-  insertStrengthProgress,
-  getWorkoutLogs,
-  getStrengthProgress
-} from '@/lib/db';
+import { sql } from '@vercel/postgres';
+import { NextResponse } from 'next/server';
 
-// POST: Sync local data to Vercel Postgres
-export async function POST(request: NextRequest) {
+// GET - Load user data from database
+export async function GET(request: Request) {
   try {
-    const dbAvailable = await isDatabaseAvailable();
-    if (!dbAvailable) {
-      return NextResponse.json({
-        success: false,
-        error: 'Database not configured. App is running in local-only mode.',
-        localOnly: true
-      });
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 });
     }
 
-    // Initialize tables if needed
-    await initializeDatabase();
+    const { rows } = await sql`
+      SELECT data FROM user_store WHERE user_id = ${userId}
+    `;
 
-    const body = await request.json();
-    const { action, data } = body;
-
-    switch (action) {
-      case 'syncProfile': {
-        const result = await upsertProfile({
-          id: data.id,
-          email: data.email || '',
-          name: data.name,
-          age: data.age,
-          experience_level: data.experienceLevel,
-          equipment: data.equipment,
-          goal_focus: data.goalFocus,
-          sessions_per_week: data.sessionsPerWeek
-        });
-        return NextResponse.json({ success: result.success });
-      }
-
-      case 'syncWorkoutLog': {
-        const result = await insertWorkoutLog({
-          id: data.id,
-          user_id: data.userId,
-          mesocycle_id: data.mesocycleId,
-          session_id: data.sessionId,
-          date: new Date(data.date).toISOString().split('T')[0],
-          exercises: data.exercises,
-          total_volume: data.totalVolume,
-          duration: data.duration,
-          overall_rpe: data.overallRPE,
-          soreness: data.soreness,
-          energy: data.energy,
-          notes: data.notes || null,
-          completed: data.completed
-        });
-        return NextResponse.json({ success: result.success });
-      }
-
-      case 'syncGamification': {
-        const result = await upsertGamificationStats({
-          id: data.id,
-          user_id: data.userId,
-          total_points: data.totalPoints,
-          level: data.level,
-          current_streak: data.currentStreak,
-          longest_streak: data.longestStreak,
-          total_workouts: data.totalWorkouts,
-          total_volume: data.totalVolume,
-          personal_records: data.personalRecords
-        });
-        return NextResponse.json({ success: result.success });
-      }
-
-      case 'syncStrengthProgress': {
-        const result = await insertStrengthProgress({
-          id: data.id,
-          user_id: data.userId,
-          date: data.date,
-          exercise_id: data.exerciseId,
-          exercise_name: data.exerciseName,
-          estimated_1rm: data.estimated1RM,
-          actual_weight: data.actualWeight,
-          reps: data.reps
-        });
-        return NextResponse.json({ success: result.success });
-      }
-
-      default:
-        return NextResponse.json(
-          { success: false, error: 'Invalid sync action' },
-          { status: 400 }
-        );
+    if (rows.length === 0) {
+      return NextResponse.json({ data: null });
     }
-  } catch (error) {
-    console.error('Sync error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Sync failed - data is safe locally' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ data: rows[0].data });
+  } catch (error: any) {
+    // If table doesn't exist yet, return null (first use)
+    if (error.message?.includes('does not exist')) {
+      return NextResponse.json({ data: null });
+    }
+    console.error('Sync GET error:', error);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }
 
-// GET: Fetch data from cloud
-export async function GET(request: NextRequest) {
+// POST - Save user data to database
+export async function POST(request: Request) {
   try {
-    const dbAvailable = await isDatabaseAvailable();
-    if (!dbAvailable) {
-      return NextResponse.json({
-        success: false,
-        localOnly: true,
-        message: 'Database not configured. Using local storage.'
-      });
+    const body = await request.json();
+    const { userId, data } = body;
+
+    if (!userId || !data) {
+      return NextResponse.json({ error: 'userId and data required' }, { status: 400 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const type = searchParams.get('type');
+    // Create table if not exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_store (
+        user_id TEXT PRIMARY KEY,
+        data JSONB NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
 
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'userId required' },
-        { status: 400 }
-      );
-    }
+    const jsonData = JSON.stringify(data);
 
-    switch (type) {
-      case 'workoutLogs': {
-        const result = await getWorkoutLogs(userId);
-        return NextResponse.json({ success: true, data: result.data });
-      }
-      case 'strengthProgress': {
-        const exerciseId = searchParams.get('exerciseId') || undefined;
-        const result = await getStrengthProgress(userId, exerciseId);
-        return NextResponse.json({ success: true, data: result.data });
-      }
-      default:
-        return NextResponse.json({
-          success: true,
-          message: 'Sync API available',
-          dbConnected: true
-        });
-    }
+    // Upsert data
+    await sql`
+      INSERT INTO user_store (user_id, data, updated_at)
+      VALUES (${userId}, ${jsonData}::jsonb, NOW())
+      ON CONFLICT (user_id)
+      DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
+    `;
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Fetch error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch data' },
-      { status: 500 }
-    );
+    console.error('Sync POST error:', error);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 }

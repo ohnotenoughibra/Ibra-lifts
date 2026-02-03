@@ -1,0 +1,971 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ChevronLeft,
+  Plus,
+  Check,
+  X,
+  Clock,
+  Flame,
+  Target,
+  Calendar,
+  Trash2,
+  Dumbbell,
+  TrendingUp,
+  Award,
+  ChevronDown,
+} from 'lucide-react';
+import { useAppStore } from '@/lib/store';
+import {
+  GrapplingType,
+  GrapplingIntensity,
+  GrapplingSession,
+} from '@/lib/types';
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+interface GrapplingTrackerProps {
+  onClose: () => void;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const GRAPPLING_TYPES: { id: GrapplingType; label: string; short: string }[] = [
+  { id: 'bjj_gi', label: 'BJJ Gi', short: 'Gi' },
+  { id: 'bjj_nogi', label: 'BJJ No-Gi', short: 'NoGi' },
+  { id: 'wrestling', label: 'Wrestling', short: 'Wres' },
+  { id: 'mma', label: 'MMA', short: 'MMA' },
+  { id: 'judo', label: 'Judo', short: 'Judo' },
+  { id: 'other', label: 'Other', short: 'Other' },
+];
+
+const INTENSITY_OPTIONS: { id: GrapplingIntensity; label: string; color: string }[] = [
+  { id: 'light_flow', label: 'Light / Flow', color: 'bg-green-500/20 text-green-400 border-green-500/50' },
+  { id: 'moderate', label: 'Moderate', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' },
+  { id: 'hard_sparring', label: 'Hard Sparring', color: 'bg-orange-500/20 text-orange-400 border-orange-500/50' },
+  { id: 'competition_prep', label: 'Comp Prep', color: 'bg-red-500/20 text-red-400 border-red-500/50' },
+];
+
+function typeLabel(type: GrapplingType): string {
+  return GRAPPLING_TYPES.find((t) => t.id === type)?.label ?? type;
+}
+
+function typeShort(type: GrapplingType): string {
+  return GRAPPLING_TYPES.find((t) => t.id === type)?.short ?? type;
+}
+
+function intensityLabel(intensity: GrapplingIntensity): string {
+  return INTENSITY_OPTIONS.find((i) => i.id === intensity)?.label ?? intensity;
+}
+
+function intensityColor(intensity: GrapplingIntensity): string {
+  return INTENSITY_OPTIONS.find((i) => i.id === intensity)?.color ?? '';
+}
+
+function typeBadgeColor(type: GrapplingType): string {
+  switch (type) {
+    case 'bjj_gi': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+    case 'bjj_nogi': return 'bg-teal-500/20 text-teal-400 border-teal-500/40';
+    case 'wrestling': return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+    case 'mma': return 'bg-red-500/20 text-red-400 border-red-500/40';
+    case 'judo': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
+    default: return 'bg-grappler-600/30 text-grappler-300 border-grappler-500/40';
+  }
+}
+
+function rpeColor(rpe: number): string {
+  if (rpe <= 3) return 'text-green-400';
+  if (rpe <= 5) return 'text-yellow-400';
+  if (rpe <= 7) return 'text-orange-400';
+  return 'text-red-400';
+}
+
+function rpeBarColor(rpe: number): string {
+  if (rpe <= 3) return 'bg-green-500';
+  if (rpe <= 5) return 'bg-yellow-500';
+  if (rpe <= 7) return 'bg-orange-500';
+  return 'bg-red-500';
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function isThisWeek(date: Date): boolean {
+  const d = new Date(date);
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  return d >= startOfWeek;
+}
+
+function daysSince(date: Date): number {
+  const d = new Date(date);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
+  const {
+    grapplingSessions,
+    addGrapplingSession,
+    deleteGrapplingSession,
+    workoutLogs,
+  } = useAppStore();
+
+  // UI state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'log' | 'stats'>('log');
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  // Form state
+  const [formType, setFormType] = useState<GrapplingType>('bjj_nogi');
+  const [formIntensity, setFormIntensity] = useState<GrapplingIntensity>('moderate');
+  const [formDuration, setFormDuration] = useState(60);
+  const [formRounds, setFormRounds] = useState<number | undefined>(undefined);
+  const [formRoundDuration, setFormRoundDuration] = useState<number | undefined>(undefined);
+  const [formRPE, setFormRPE] = useState(6);
+  const [formTechniques, setFormTechniques] = useState('');
+  const [formSubmissions, setFormSubmissions] = useState<number | undefined>(undefined);
+  const [formTaps, setFormTaps] = useState<number | undefined>(undefined);
+  const [formNotes, setFormNotes] = useState('');
+
+  // Derived data
+  const sortedSessions = useMemo(() => {
+    return [...grapplingSessions].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [grapplingSessions]);
+
+  const weeklyGrappling = useMemo(
+    () => grapplingSessions.filter((s) => isThisWeek(s.date)),
+    [grapplingSessions]
+  );
+
+  const weeklyLifting = useMemo(
+    () => workoutLogs.filter((w) => isThisWeek(w.date)),
+    [workoutLogs]
+  );
+
+  const totalMatTime = useMemo(
+    () => grapplingSessions.reduce((sum, s) => sum + s.duration, 0),
+    [grapplingSessions]
+  );
+
+  const avgRPE = useMemo(() => {
+    if (grapplingSessions.length === 0) return 0;
+    const total = grapplingSessions.reduce((sum, s) => sum + s.perceivedExertion, 0);
+    return Math.round((total / grapplingSessions.length) * 10) / 10;
+  }, [grapplingSessions]);
+
+  const totalSubmissions = useMemo(
+    () => grapplingSessions.reduce((sum, s) => sum + (s.submissions ?? 0), 0),
+    [grapplingSessions]
+  );
+
+  // Sessions per week (average)
+  const sessionsPerWeek = useMemo(() => {
+    if (grapplingSessions.length < 2) return grapplingSessions.length;
+    const dates = grapplingSessions.map((s) => new Date(s.date).getTime());
+    const earliest = Math.min(...dates);
+    const latest = Math.max(...dates);
+    const weeks = Math.max(1, (latest - earliest) / (7 * 24 * 60 * 60 * 1000));
+    return Math.round((grapplingSessions.length / weeks) * 10) / 10;
+  }, [grapplingSessions]);
+
+  // -----------------------------------------------------------------------
+  // Handlers
+  // -----------------------------------------------------------------------
+
+  const resetForm = () => {
+    setFormType('bjj_nogi');
+    setFormIntensity('moderate');
+    setFormDuration(60);
+    setFormRounds(undefined);
+    setFormRoundDuration(undefined);
+    setFormRPE(6);
+    setFormTechniques('');
+    setFormSubmissions(undefined);
+    setFormTaps(undefined);
+    setFormNotes('');
+  };
+
+  const handleSave = () => {
+    addGrapplingSession({
+      date: new Date(),
+      type: formType,
+      intensity: formIntensity,
+      duration: formDuration,
+      rounds: formRounds,
+      roundDuration: formRoundDuration,
+      techniques: formTechniques || undefined,
+      submissions: formSubmissions,
+      taps: formTaps,
+      notes: formNotes || undefined,
+      perceivedExertion: formRPE,
+    });
+    setShowAddForm(false);
+    resetForm();
+  };
+
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 40 }}
+      className="min-h-screen bg-grappler-900 bg-mesh pb-20"
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+              <ChevronLeft className="w-5 h-5 text-grappler-200" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                <Target className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <h1 className="font-bold text-grappler-50 text-lg leading-tight">
+                  Grappling Log
+                </h1>
+                <p className="text-xs text-grappler-500">
+                  Track mat sessions
+                </p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => { resetForm(); setShowAddForm(true); }}
+            className="btn btn-sm gap-1 bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25"
+          >
+            <Plus className="w-4 h-4" />
+            Log
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="px-4 pb-2 flex gap-2">
+          <button
+            onClick={() => setActiveTab('log')}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === 'log'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'text-grappler-400 hover:text-grappler-200'
+            }`}
+          >
+            Sessions
+          </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              activeTab === 'stats'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'text-grappler-400 hover:text-grappler-200'
+            }`}
+          >
+            Stats
+          </button>
+        </div>
+      </header>
+
+      <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+        {/* Weekly Summary Bar */}
+        <div className="bg-grappler-800 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-400" />
+            This Week
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Grappling this week */}
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-emerald-400">{weeklyGrappling.length}</div>
+              <div className="text-xs text-grappler-400 mt-0.5">Grappling</div>
+              <div className="text-xs text-emerald-500/70 mt-0.5">
+                {weeklyGrappling.reduce((s, g) => s + g.duration, 0)}m on mat
+              </div>
+            </div>
+            {/* Lifting this week */}
+            <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-primary-400">{weeklyLifting.length}</div>
+              <div className="text-xs text-grappler-400 mt-0.5">Lifting</div>
+              <div className="text-xs text-primary-500/70 mt-0.5">
+                {weeklyLifting.reduce((s, w) => s + (w.duration || 0), 0)}m in gym
+              </div>
+            </div>
+          </div>
+          {/* Combined weekly bar */}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex-1 h-2.5 bg-grappler-700 rounded-full overflow-hidden flex">
+              {weeklyGrappling.length + weeklyLifting.length > 0 && (
+                <>
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${(weeklyGrappling.length / (weeklyGrappling.length + weeklyLifting.length)) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-primary-500 transition-all duration-500"
+                    style={{
+                      width: `${(weeklyLifting.length / (weeklyGrappling.length + weeklyLifting.length)) * 100}%`,
+                    }}
+                  />
+                </>
+              )}
+            </div>
+            <span className="text-xs text-grappler-500 whitespace-nowrap">
+              {weeklyGrappling.length + weeklyLifting.length} total
+            </span>
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-grappler-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Grappling
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary-500" />
+              Lifting
+            </div>
+          </div>
+        </div>
+
+        {/* Add Session Form */}
+        <AnimatePresence>
+          {showAddForm && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-grappler-800 rounded-xl p-4 space-y-4 border border-emerald-500/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-grappler-50 text-sm">
+                    Log Grappling Session
+                  </h3>
+                  <button
+                    onClick={() => setShowAddForm(false)}
+                    className="p-1 rounded hover:bg-grappler-700 text-grappler-400 hover:text-grappler-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Type selector */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 block">Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {GRAPPLING_TYPES.map((gt) => (
+                      <button
+                        key={gt.id}
+                        onClick={() => setFormType(gt.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${
+                          formType === gt.id
+                            ? typeBadgeColor(gt.id)
+                            : 'bg-grappler-700 border-grappler-600 text-grappler-400 hover:border-grappler-500'
+                        }`}
+                      >
+                        {gt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Intensity selector */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 block">Intensity</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {INTENSITY_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setFormIntensity(opt.id)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border ${
+                          formIntensity === opt.id
+                            ? opt.color
+                            : 'bg-grappler-700 border-grappler-600 text-grappler-400 hover:border-grappler-500'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 block">
+                    Duration (minutes)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[30, 45, 60, 90, 120].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setFormDuration(d)}
+                        className={`flex-1 py-2 rounded-lg text-center text-xs font-medium transition-all duration-200 border ${
+                          formDuration === d
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                            : 'bg-grappler-700 border-grappler-600 text-grappler-400 hover:border-grappler-500'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    value={formDuration}
+                    onChange={(e) => setFormDuration(Number(e.target.value) || 0)}
+                    className="input w-full mt-2 text-sm"
+                    placeholder="Custom duration"
+                    min={1}
+                    max={300}
+                  />
+                </div>
+
+                {/* Rounds + Round Duration */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1.5 block">
+                      Rounds (optional)
+                    </label>
+                    <input
+                      type="number"
+                      value={formRounds ?? ''}
+                      onChange={(e) => setFormRounds(e.target.value ? Number(e.target.value) : undefined)}
+                      className="input w-full text-sm"
+                      placeholder="e.g. 6"
+                      min={0}
+                      max={30}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1.5 block">
+                      Round Length (min)
+                    </label>
+                    <input
+                      type="number"
+                      value={formRoundDuration ?? ''}
+                      onChange={(e) => setFormRoundDuration(e.target.value ? Number(e.target.value) : undefined)}
+                      className="input w-full text-sm"
+                      placeholder="e.g. 5"
+                      min={1}
+                      max={30}
+                    />
+                  </div>
+                </div>
+
+                {/* RPE slider */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 flex items-center justify-between">
+                    <span>Perceived Exertion (RPE)</span>
+                    <span className={`font-bold text-sm ${rpeColor(formRPE)}`}>{formRPE}/10</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={10}
+                    value={formRPE}
+                    onChange={(e) => setFormRPE(Number(e.target.value))}
+                    className="w-full h-2 bg-grappler-700 rounded-full appearance-none cursor-pointer accent-emerald-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-grappler-600 mt-1">
+                    <span>Easy</span>
+                    <span>Moderate</span>
+                    <span>Max</span>
+                  </div>
+                </div>
+
+                {/* Submissions / Taps */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1.5 block">
+                      Subs Landed
+                    </label>
+                    <input
+                      type="number"
+                      value={formSubmissions ?? ''}
+                      onChange={(e) => setFormSubmissions(e.target.value ? Number(e.target.value) : undefined)}
+                      className="input w-full text-sm"
+                      placeholder="0"
+                      min={0}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1.5 block">
+                      Times Tapped
+                    </label>
+                    <input
+                      type="number"
+                      value={formTaps ?? ''}
+                      onChange={(e) => setFormTaps(e.target.value ? Number(e.target.value) : undefined)}
+                      className="input w-full text-sm"
+                      placeholder="0"
+                      min={0}
+                    />
+                  </div>
+                </div>
+
+                {/* Techniques drilled */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 block">
+                    Techniques Drilled (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formTechniques}
+                    onChange={(e) => setFormTechniques(e.target.value)}
+                    placeholder="e.g. Arm bars, guard passing, takedowns..."
+                    className="input w-full text-sm"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-xs text-grappler-400 mb-1.5 block">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={formNotes}
+                    onChange={(e) => setFormNotes(e.target.value)}
+                    placeholder="How did the session go? Key takeaways..."
+                    rows={2}
+                    className="input w-full resize-none text-sm"
+                  />
+                </div>
+
+                {/* Save */}
+                <button
+                  onClick={handleSave}
+                  className="w-full gap-2 btn bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25"
+                >
+                  <Check className="w-4 h-4" />
+                  Save Session
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Tab Content: Sessions Log */}
+        {activeTab === 'log' && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              Session History
+              {sortedSessions.length > 0 && (
+                <span className="ml-auto text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                  {sortedSessions.length}
+                </span>
+              )}
+            </h2>
+
+            {sortedSessions.length === 0 && (
+              <div className="bg-grappler-800/50 rounded-xl p-8 text-center">
+                <Target className="w-10 h-10 text-emerald-400/50 mx-auto mb-3" />
+                <p className="text-sm text-grappler-400 mb-1">
+                  No grappling sessions logged yet.
+                </p>
+                <p className="text-xs text-grappler-500">
+                  Tap &quot;Log&quot; to record your first mat session.
+                </p>
+              </div>
+            )}
+
+            <AnimatePresence mode="popLayout">
+              {sortedSessions.map((session) => {
+                const isExpanded = expandedSessionId === session.id;
+                return (
+                  <motion.div
+                    key={session.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-grappler-800 rounded-xl overflow-hidden"
+                  >
+                    {/* Session row */}
+                    <button
+                      onClick={() =>
+                        setExpandedSessionId(isExpanded ? null : session.id)
+                      }
+                      className="w-full p-4 flex items-center gap-3 text-left hover:bg-grappler-750 transition-colors"
+                    >
+                      {/* Type badge */}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${typeBadgeColor(session.type)}`}
+                      >
+                        {typeShort(session.type)}
+                      </span>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-grappler-100 truncate">
+                            {typeLabel(session.type)}
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${intensityColor(session.intensity)}`}
+                          >
+                            {intensityLabel(session.intensity)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-grappler-400 mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDuration(session.duration)}
+                          </span>
+                          {session.rounds && (
+                            <span>
+                              {session.rounds} rds
+                              {session.roundDuration ? ` x ${session.roundDuration}m` : ''}
+                            </span>
+                          )}
+                          <span>&middot;</span>
+                          <span>
+                            RPE <span className={rpeColor(session.perceivedExertion)}>{session.perceivedExertion}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Date + expand */}
+                      <div className="text-right shrink-0 flex items-center gap-2">
+                        <div>
+                          <div className="text-xs text-grappler-400">
+                            {daysSince(session.date) === 0
+                              ? 'Today'
+                              : daysSince(session.date) === 1
+                                ? 'Yesterday'
+                                : new Date(session.date).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                          </div>
+                        </div>
+                        <motion.div
+                          animate={{ rotate: isExpanded ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-4 h-4 text-grappler-500" />
+                        </motion.div>
+                      </div>
+                    </button>
+
+                    {/* Expanded details */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-4 pb-4 space-y-3 border-t border-grappler-700/50 pt-3">
+                            {/* Sub / Tap row */}
+                            {(session.submissions !== undefined || session.taps !== undefined) && (
+                              <div className="flex gap-3">
+                                {session.submissions !== undefined && (
+                                  <div className="flex items-center gap-1.5 text-xs">
+                                    <Award className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="text-grappler-300">
+                                      {session.submissions} sub{session.submissions !== 1 ? 's' : ''} landed
+                                    </span>
+                                  </div>
+                                )}
+                                {session.taps !== undefined && (
+                                  <div className="flex items-center gap-1.5 text-xs">
+                                    <X className="w-3.5 h-3.5 text-red-400" />
+                                    <span className="text-grappler-300">
+                                      Tapped {session.taps}x
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {session.techniques && (
+                              <div>
+                                <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">
+                                  Techniques
+                                </span>
+                                <p className="text-xs text-grappler-300 mt-0.5">
+                                  {session.techniques}
+                                </p>
+                              </div>
+                            )}
+
+                            {session.notes && (
+                              <div>
+                                <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">
+                                  Notes
+                                </span>
+                                <p className="text-xs text-grappler-400 italic mt-0.5">
+                                  {session.notes}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* RPE bar */}
+                            <div>
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="text-grappler-500">RPE</span>
+                                <span className={`font-bold ${rpeColor(session.perceivedExertion)}`}>
+                                  {session.perceivedExertion}/10
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${rpeBarColor(session.perceivedExertion)}`}
+                                  style={{ width: `${session.perceivedExertion * 10}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Delete */}
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => deleteGrapplingSession(session.id)}
+                                className="flex items-center gap-1.5 text-xs text-grappler-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Tab Content: Stats */}
+        {activeTab === 'stats' && (
+          <div className="space-y-4">
+            {/* Overview stat cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs text-grappler-400">Total Mat Time</span>
+                </div>
+                <div className="text-xl font-bold text-grappler-50">
+                  {formatDuration(totalMatTime)}
+                </div>
+                <div className="text-xs text-grappler-500 mt-0.5">
+                  {grapplingSessions.length} session{grapplingSessions.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Flame className="w-4 h-4 text-orange-400" />
+                  <span className="text-xs text-grappler-400">Avg RPE</span>
+                </div>
+                <div className={`text-xl font-bold ${avgRPE > 0 ? rpeColor(avgRPE) : 'text-grappler-50'}`}>
+                  {avgRPE > 0 ? avgRPE : '--'}
+                </div>
+                <div className="text-xs text-grappler-500 mt-0.5">perceived effort</div>
+              </div>
+
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-primary-400" />
+                  <span className="text-xs text-grappler-400">Frequency</span>
+                </div>
+                <div className="text-xl font-bold text-grappler-50">
+                  {sessionsPerWeek > 0 ? sessionsPerWeek : '--'}
+                </div>
+                <div className="text-xs text-grappler-500 mt-0.5">sessions / week</div>
+              </div>
+
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs text-grappler-400">Total Subs</span>
+                </div>
+                <div className="text-xl font-bold text-emerald-400">
+                  {totalSubmissions > 0 ? totalSubmissions : '--'}
+                </div>
+                <div className="text-xs text-grappler-500 mt-0.5">submissions landed</div>
+              </div>
+            </div>
+
+            {/* Training breakdown by type */}
+            <div className="bg-grappler-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+                <Dumbbell className="w-4 h-4 text-emerald-400" />
+                Training Breakdown
+              </h3>
+              {grapplingSessions.length === 0 ? (
+                <p className="text-xs text-grappler-500 text-center py-4">
+                  Log sessions to see your breakdown.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {GRAPPLING_TYPES.map((gt) => {
+                    const count = grapplingSessions.filter(
+                      (s) => s.type === gt.id
+                    ).length;
+                    if (count === 0) return null;
+                    const pct = Math.round((count / grapplingSessions.length) * 100);
+                    return (
+                      <div key={gt.id}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-grappler-300 flex items-center gap-1.5">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                gt.id === 'bjj_gi' ? 'bg-emerald-500' :
+                                gt.id === 'bjj_nogi' ? 'bg-teal-500' :
+                                gt.id === 'wrestling' ? 'bg-amber-500' :
+                                gt.id === 'mma' ? 'bg-red-500' :
+                                gt.id === 'judo' ? 'bg-blue-500' :
+                                'bg-grappler-500'
+                              }`}
+                            />
+                            {gt.label}
+                          </span>
+                          <span className="text-grappler-400">
+                            {count} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className={`h-full rounded-full ${
+                              gt.id === 'bjj_gi' ? 'bg-emerald-500' :
+                              gt.id === 'bjj_nogi' ? 'bg-teal-500' :
+                              gt.id === 'wrestling' ? 'bg-amber-500' :
+                              gt.id === 'mma' ? 'bg-red-500' :
+                              gt.id === 'judo' ? 'bg-blue-500' :
+                              'bg-grappler-500'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Intensity distribution */}
+            <div className="bg-grappler-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-400" />
+                Intensity Distribution
+              </h3>
+              {grapplingSessions.length === 0 ? (
+                <p className="text-xs text-grappler-500 text-center py-4">
+                  No data yet.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {INTENSITY_OPTIONS.map((opt) => {
+                    const count = grapplingSessions.filter(
+                      (s) => s.intensity === opt.id
+                    ).length;
+                    const pct =
+                      grapplingSessions.length > 0
+                        ? Math.round((count / grapplingSessions.length) * 100)
+                        : 0;
+                    return (
+                      <div
+                        key={opt.id}
+                        className={`rounded-lg p-3 border text-center ${
+                          count > 0
+                            ? opt.color
+                            : 'bg-grappler-700/50 border-grappler-600/50 text-grappler-500'
+                        }`}
+                      >
+                        <div className="text-lg font-bold">{count}</div>
+                        <div className="text-[10px] font-medium mt-0.5">
+                          {opt.label}
+                        </div>
+                        {count > 0 && (
+                          <div className="text-[10px] opacity-70 mt-0.5">{pct}%</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Grappling vs Lifting all-time */}
+            <div className="bg-grappler-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+                <Target className="w-4 h-4 text-emerald-400" />
+                Grappling vs Lifting (All Time)
+              </h3>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex-1 text-center">
+                  <div className="text-2xl font-bold text-emerald-400">
+                    {grapplingSessions.length}
+                  </div>
+                  <div className="text-xs text-grappler-400">Mat Sessions</div>
+                </div>
+                <div className="text-grappler-600 text-xl font-light">vs</div>
+                <div className="flex-1 text-center">
+                  <div className="text-2xl font-bold text-primary-400">
+                    {workoutLogs.length}
+                  </div>
+                  <div className="text-xs text-grappler-400">Gym Sessions</div>
+                </div>
+              </div>
+              {grapplingSessions.length + workoutLogs.length > 0 && (
+                <div className="h-3 bg-grappler-700 rounded-full overflow-hidden flex">
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${(grapplingSessions.length / (grapplingSessions.length + workoutLogs.length)) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-primary-500 transition-all duration-500"
+                    style={{
+                      width: `${(workoutLogs.length / (grapplingSessions.length + workoutLogs.length)) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-2 text-xs text-grappler-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Grappling
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary-500" />
+                  Lifting
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}

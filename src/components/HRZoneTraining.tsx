@@ -444,10 +444,13 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                         fontSize: '12px',
                       }}
                       labelStyle={{ color: '#9ca3af' }}
-                      formatter={(_value: number, _name: string, props: { payload: { bpmMin: number; bpmMax: number; name: string } }) => [
-                        `${props.payload.bpmMin} - ${props.payload.bpmMax} bpm`,
-                        props.payload.name,
-                      ]}
+                      formatter={(_value: number, _name: string, props: { payload?: { bpmMin: number; bpmMax: number; name: string } }) => {
+                        if (!props.payload) return [`${_value} bpm`, _name];
+                        return [
+                          `${props.payload.bpmMin} - ${props.payload.bpmMax} bpm`,
+                          props.payload.name,
+                        ];
+                      }}
                     />
                     <Bar dataKey="bpmMax" radius={[0, 6, 6, 0]}>
                       {zoneBarData.map((entry, i) => (

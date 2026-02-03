@@ -29,6 +29,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import { WearableData, WearableProvider } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -182,15 +183,18 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
   }
 
   // --- Process cycles (strain, calories) ---
+  // Include PENDING_STRAIN cycles — they still carry running strain/calorie data.
+  // Only skip cycles with no score object at all.
   if (apiData.cycles) {
     for (const cycle of apiData.cycles) {
-      // Skip unscored cycles (v2 returns no fallback values)
-      if (cycle.score_state && cycle.score_state !== 'SCORED') continue;
-      const dateKey = whoopDateKey(cycle);
-      if (!dateKey) continue;
+      if (!cycle.score && cycle.score_state && cycle.score_state !== 'SCORED') continue;
+      // For ongoing cycles, `end` may be null — use `updated_at` or `start`, keyed to today
+      const dateKey = whoopDateKey(cycle)
+        || (cycle.updated_at?.substring(0, 10))
+        || new Date().toISOString().substring(0, 10);
       mergeDay(dateKey, {
         id: cycle.id?.toString() || dateKey,
-        date: new Date(cycle.end || cycle.start),
+        date: new Date(cycle.end || cycle.updated_at || cycle.start || new Date()),
         provider: 'whoop' as WearableProvider,
         strain: cycle.score?.strain ?? null,
         caloriesBurned: cycle.score?.kilojoule
@@ -340,8 +344,14 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       if (data.connected) {
         setIsConnected(true);
         setWhoopProfile(data.profile);
-        setWearableData(transformWhoopData(data));
+        const transformed = transformWhoopData(data);
+        setWearableData(transformed);
         setLastSync(new Date());
+
+        // Persist today's data to the global store for workout adjustments
+        if (transformed.length > 0) {
+          useAppStore.getState().setLatestWhoopData(transformed[transformed.length - 1]);
+        }
 
         // Show warnings if some endpoints had issues (partial data)
         if (data.warnings && data.warnings.length > 0) {

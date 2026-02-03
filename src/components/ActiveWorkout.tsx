@@ -28,20 +28,27 @@ import {
   Dumbbell,
   ChevronDown,
   Clock,
+  Activity,
+  Battery,
+  Shield,
+  ArrowDown,
+  ArrowUp,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
 import { getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
-import { calculateReadiness } from '@/lib/auto-adjust';
-import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog } from '@/lib/types';
+import { calculateReadiness, whoopRecoveryToReadiness } from '@/lib/auto-adjust';
+import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
+import { Building2, Home, Backpack } from 'lucide-react';
 import Confetti from 'react-confetti';
 
 export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
-    setPreCheckIn, updateExerciseFeedback, swapExercise
+    setPreCheckIn, updateExerciseFeedback, swapExercise, adaptWorkoutToProfile,
+    activeEquipmentProfile, latestWhoopData, applyWhoopAdjustment
   } = useAppStore();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
@@ -60,8 +67,20 @@ export default function ActiveWorkout() {
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
   const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
 
+  const [whoopApplied, setWhoopApplied] = useState(false);
+  const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
+  const [showGrapplingQ, setShowGrapplingQ] = useState(true);
+
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
+
+  // Compute Whoop readiness for display
+  const whoopReadiness = latestWhoopData ? whoopRecoveryToReadiness({
+    recoveryScore: latestWhoopData.recoveryScore ?? undefined,
+    hrvMs: latestWhoopData.hrv ?? undefined,
+    sleepScore: latestWhoopData.sleepScore ?? undefined,
+    strainScore: latestWhoopData.strain ?? undefined,
+  }) : null;
 
   // Pre-workout check-in state
   const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>({
@@ -450,6 +469,266 @@ export default function ActiveWorkout() {
                       sum + (ex.sets * (30 + ex.prescription.restSeconds)), 0) / 60)} min
                   </span>
                 </div>
+              </div>
+
+              {/* Whoop Readiness Card */}
+              {latestWhoopData && whoopReadiness && !whoopApplied && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    'rounded-xl p-4 mb-4 border',
+                    whoopReadiness.score >= 67
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : whoopReadiness.score >= 34
+                        ? 'bg-yellow-500/10 border-yellow-500/30'
+                        : 'bg-red-500/10 border-red-500/30'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity className="w-4 h-4 text-green-400" />
+                    <span className="text-sm font-semibold text-grappler-100">Whoop Recovery</span>
+                  </div>
+
+                  {/* Metrics Row */}
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    <div className="text-center">
+                      <Battery className={cn('w-4 h-4 mx-auto mb-0.5',
+                        (latestWhoopData.recoveryScore ?? 0) >= 67 ? 'text-green-400' :
+                        (latestWhoopData.recoveryScore ?? 0) >= 34 ? 'text-yellow-400' : 'text-red-400'
+                      )} />
+                      <p className={cn('text-lg font-bold',
+                        (latestWhoopData.recoveryScore ?? 0) >= 67 ? 'text-green-400' :
+                        (latestWhoopData.recoveryScore ?? 0) >= 34 ? 'text-yellow-400' : 'text-red-400'
+                      )}>
+                        {latestWhoopData.recoveryScore ?? '--'}%
+                      </p>
+                      <p className="text-[10px] text-grappler-500">Recovery</p>
+                    </div>
+                    <div className="text-center">
+                      <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
+                      <p className="text-lg font-bold text-grappler-100">
+                        {latestWhoopData.strain?.toFixed(1) ?? '--'}
+                      </p>
+                      <p className="text-[10px] text-grappler-500">Strain</p>
+                    </div>
+                    <div className="text-center">
+                      <Moon className="w-4 h-4 mx-auto mb-0.5 text-indigo-400" />
+                      <p className="text-lg font-bold text-grappler-100">
+                        {latestWhoopData.sleepHours?.toFixed(1) ?? '--'}h
+                      </p>
+                      <p className="text-[10px] text-grappler-500">Sleep</p>
+                    </div>
+                    <div className="text-center">
+                      <Zap className="w-4 h-4 mx-auto mb-0.5 text-orange-400" />
+                      <p className="text-lg font-bold text-grappler-100">
+                        {latestWhoopData.caloriesBurned?.toLocaleString() ?? '--'}
+                      </p>
+                      <p className="text-[10px] text-grappler-500">kcal</p>
+                    </div>
+                  </div>
+
+                  {/* Recommendation + Visual Diff */}
+                  <div className={cn(
+                    'rounded-lg p-3 mb-3 text-sm',
+                    whoopReadiness.recommendation === 'reduce' ? 'bg-red-500/10' :
+                    whoopReadiness.recommendation === 'increase' ? 'bg-green-500/10' : 'bg-grappler-800/50'
+                  )}>
+                    {whoopReadiness.recommendation === 'reduce' && (
+                      <div className="flex items-start gap-2">
+                        <ArrowDown className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-red-300">Lower intensity suggested</p>
+                          <p className="text-xs text-red-400/80 mt-0.5">
+                            -1 set per exercise, RPE reduced by 1
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {whoopReadiness.recommendation === 'increase' && (
+                      <div className="flex items-start gap-2">
+                        <ArrowUp className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-green-300">Push harder today</p>
+                          <p className="text-xs text-green-400/80 mt-0.5">
+                            +1 set per exercise, RPE bumped +0.5
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {whoopReadiness.recommendation === 'maintain' && (
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-grappler-300 flex-shrink-0 mt-0.5" />
+                        <p className="font-medium text-grappler-300">On track — follow the plan as-is</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Follow Whoop vs Follow Plan */}
+                  {whoopReadiness.recommendation !== 'maintain' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          applyWhoopAdjustment();
+                          setWhoopApplied(true);
+                        }}
+                        className={cn(
+                          'btn btn-sm gap-1.5 font-medium',
+                          whoopReadiness.recommendation === 'reduce'
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
+                            : 'bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30'
+                        )}
+                      >
+                        <Activity className="w-3.5 h-3.5" />
+                        Follow Whoop
+                      </button>
+                      <button
+                        onClick={() => setWhoopApplied(true)}
+                        className="btn btn-sm btn-secondary gap-1.5 font-medium"
+                      >
+                        <Dumbbell className="w-3.5 h-3.5" />
+                        Follow Plan
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Whoop Applied Confirmation */}
+              {whoopApplied && latestWhoopData && (
+                <div className={cn(
+                  'rounded-lg px-3 py-2 mb-4 flex items-center gap-2 text-xs',
+                  whoopReadiness?.recommendation === 'reduce'
+                    ? 'bg-red-500/10 text-red-300'
+                    : whoopReadiness?.recommendation === 'increase'
+                      ? 'bg-green-500/10 text-green-300'
+                      : 'bg-grappler-800/50 text-grappler-300'
+                )}>
+                  <Activity className="w-3.5 h-3.5" />
+                  Recovery {latestWhoopData.recoveryScore}% &middot; Strain {latestWhoopData.strain?.toFixed(1)} &middot; {latestWhoopData.caloriesBurned} kcal
+                </div>
+              )}
+
+              {/* Grappling Question */}
+              {showGrapplingQ && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl p-4 mb-4 bg-grappler-800/60 border border-grappler-700/50"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="w-4 h-4 text-lime-400" />
+                    <span className="text-sm font-semibold text-grappler-100">Grappling today?</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([
+                      { v: 'none' as const, label: 'No', color: 'bg-grappler-700 text-grappler-300' },
+                      { v: 'light' as const, label: 'Light', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
+                      { v: 'moderate' as const, label: 'Moderate', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
+                      { v: 'hard' as const, label: 'Hard', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
+                    ]).map(opt => (
+                      <button
+                        key={opt.v}
+                        onClick={() => {
+                          setGrapplingToday(opt.v);
+                          setShowGrapplingQ(false);
+                          // Auto-reduce volume for moderate/hard grappling
+                          if (opt.v === 'hard') {
+                            // Hard grappling day — significant reduction
+                            const { activeWorkout: aw } = useAppStore.getState();
+                            if (aw) {
+                              const reduced = aw.session.exercises.map(ex => ({
+                                ...ex,
+                                sets: Math.max(2, ex.sets - 2),
+                                prescription: { ...ex.prescription, rpe: Math.max(5, ex.prescription.rpe - 2) },
+                              }));
+                              const reducedLogs = aw.exerciseLogs.map((log, i) => ({
+                                ...log,
+                                sets: log.sets.slice(0, reduced[i].sets).map(s => ({
+                                  ...s, rpe: reduced[i].prescription.rpe
+                                })),
+                              }));
+                              useAppStore.setState({
+                                activeWorkout: {
+                                  ...aw,
+                                  session: { ...aw.session, exercises: reduced },
+                                  exerciseLogs: reducedLogs,
+                                },
+                              });
+                            }
+                          } else if (opt.v === 'moderate') {
+                            const { activeWorkout: aw } = useAppStore.getState();
+                            if (aw) {
+                              const reduced = aw.session.exercises.map(ex => ({
+                                ...ex,
+                                sets: Math.max(2, ex.sets - 1),
+                                prescription: { ...ex.prescription, rpe: Math.max(5, ex.prescription.rpe - 1) },
+                              }));
+                              const reducedLogs = aw.exerciseLogs.map((log, i) => ({
+                                ...log,
+                                sets: log.sets.slice(0, reduced[i].sets).map(s => ({
+                                  ...s, rpe: reduced[i].prescription.rpe
+                                })),
+                              }));
+                              useAppStore.setState({
+                                activeWorkout: {
+                                  ...aw,
+                                  session: { ...aw.session, exercises: reduced },
+                                  exerciseLogs: reducedLogs,
+                                },
+                              });
+                            }
+                          }
+                        }}
+                        className={cn(
+                          'py-2 rounded-lg text-xs font-medium border transition-all',
+                          grapplingToday === opt.v
+                            ? opt.color
+                            : 'bg-grappler-800/50 text-grappler-500 border-grappler-700'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {grapplingToday !== 'none' && !showGrapplingQ && (
+                    <p className="text-[10px] text-grappler-500 mt-2">
+                      Volume adjusted for {grapplingToday} grappling session
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Grappling Applied Banner */}
+              {!showGrapplingQ && grapplingToday !== 'none' && (
+                <div className="rounded-lg px-3 py-2 mb-4 flex items-center gap-2 text-xs bg-lime-500/10 text-lime-300">
+                  <Shield className="w-3.5 h-3.5" />
+                  {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned &mdash; volume adjusted
+                </div>
+              )}
+
+              {/* Location Quick-Switch */}
+              <div className="flex items-center gap-1.5 bg-grappler-800/50 rounded-xl p-1.5 mb-5">
+                {DEFAULT_EQUIPMENT_PROFILES.map((profile) => {
+                  const IconMap: Record<string, any> = { gym: Building2, home: Home, travel: Backpack };
+                  const PIcon = IconMap[profile.name] || Dumbbell;
+                  const isActive = activeEquipmentProfile === profile.name;
+                  return (
+                    <button
+                      key={profile.name}
+                      onClick={() => adaptWorkoutToProfile(profile.name)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
+                        isActive
+                          ? 'bg-primary-500 text-white shadow-md'
+                          : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/50'
+                      )}
+                    >
+                      <PIcon className="w-3.5 h-3.5" />
+                      {profile.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Exercise List */}

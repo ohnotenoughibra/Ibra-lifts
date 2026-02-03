@@ -30,12 +30,13 @@ import {
   GrapplingSession,
   MealEntry,
   MacroTargets,
-  MuscleGroupConfig
+  MuscleGroupConfig,
+  WearableData
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
-import { getSuggestedWeight } from './auto-adjust';
-import { getExerciseById } from './exercises';
+import { getSuggestedWeight, whoopRecoveryToReadiness } from './auto-adjust';
+import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -57,6 +58,7 @@ interface AppState {
   // Workout state
   activeWorkout: {
     session: WorkoutSession;
+    baseSession: WorkoutSession; // Original session before any location adaptations
     exerciseLogs: ExerciseLog[];
     startTime: Date;
     preCheckIn?: PreWorkoutCheckIn;
@@ -101,6 +103,9 @@ interface AppState {
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
 
+  // Whoop / wearable data
+  latestWhoopData: WearableData | null;
+
   // Offline queue
   isOnline: boolean;
 
@@ -122,7 +127,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
-  generateNewMesocycle: (weeks?: number) => void;
+  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
   completeMesocycle: () => void;
 
   // Workout actions
@@ -131,6 +136,7 @@ interface AppState {
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
   cancelWorkout: () => void;
   getWeightUnit: () => WeightUnit;
@@ -185,6 +191,10 @@ interface AppState {
   // Equipment profile actions
   setActiveEquipmentProfile: (profile: EquipmentProfileName) => void;
   getActiveEquipment: () => EquipmentType[];
+
+  // Whoop actions
+  setLatestWhoopData: (data: WearableData | null) => void;
+  applyWhoopAdjustment: () => void;
 
   // Online status
   setOnline: (online: boolean) => void;
@@ -250,6 +260,7 @@ export const useAppStore = create<AppState>()(
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
+      latestWhoopData: null,
       isOnline: true,
       lastSyncAt: null,
       showTip: true,
@@ -341,8 +352,83 @@ export const useAppStore = create<AppState>()(
         return preset?.equipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment;
       },
 
+      // Whoop actions
+      setLatestWhoopData: (data) => set({ latestWhoopData: data }),
+
+      applyWhoopAdjustment: () => {
+        const { activeWorkout, latestWhoopData } = get();
+        if (!activeWorkout || !latestWhoopData) return;
+
+        // Calculate readiness from Whoop data
+        const readiness = whoopRecoveryToReadiness({
+          recoveryScore: latestWhoopData.recoveryScore ?? undefined,
+          hrvMs: latestWhoopData.hrv ?? undefined,
+          sleepScore: latestWhoopData.sleepScore ?? undefined,
+          strainScore: latestWhoopData.strain ?? undefined,
+        });
+
+        if (readiness.recommendation === 'maintain') return;
+
+        const updatedExercises = activeWorkout.session.exercises.map(ex => {
+          if (readiness.recommendation === 'reduce') {
+            return {
+              ...ex,
+              sets: Math.max(2, ex.sets - 1),
+              prescription: {
+                ...ex.prescription,
+                rpe: Math.max(5, ex.prescription.rpe - 1),
+              },
+            };
+          } else {
+            // increase
+            return {
+              ...ex,
+              sets: ex.sets + 1,
+              prescription: {
+                ...ex.prescription,
+                rpe: Math.min(10, ex.prescription.rpe + 0.5),
+              },
+            };
+          }
+        });
+
+        const updatedSession = { ...activeWorkout.session, exercises: updatedExercises };
+        const updatedLogs = activeWorkout.exerciseLogs.map((log, i) => {
+          const newEx = updatedExercises[i];
+          const currentSets = log.sets;
+          if (readiness.recommendation === 'reduce') {
+            // Remove last set if needed
+            return {
+              ...log,
+              sets: currentSets.slice(0, newEx.sets).map(s => ({
+                ...s,
+                rpe: newEx.prescription.rpe,
+              })),
+            };
+          } else {
+            // Add an extra set
+            const lastSet = currentSets[currentSets.length - 1];
+            return {
+              ...log,
+              sets: [
+                ...currentSets.map(s => ({ ...s, rpe: newEx.prescription.rpe })),
+                { ...lastSet, setNumber: currentSets.length + 1, completed: false, rpe: newEx.prescription.rpe },
+              ],
+            };
+          }
+        });
+
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            session: updatedSession,
+            exerciseLogs: updatedLogs,
+          },
+        });
+      },
+
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5) => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes) => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
 
@@ -365,7 +451,8 @@ export const useAppStore = create<AppState>()(
           sessionsPerWeek: user.sessionsPerWeek,
           weeks,
           baselineLifts: baselineLifts || undefined,
-          muscleEmphasis: muscleEmphasis || undefined
+          muscleEmphasis: muscleEmphasis || undefined,
+          sessionDurationMinutes,
         });
 
         set({ currentMesocycle: newMesocycle });
@@ -415,6 +502,7 @@ export const useAppStore = create<AppState>()(
         set({
           activeWorkout: {
             session,
+            baseSession: JSON.parse(JSON.stringify(session)), // Deep clone as immutable base
             exerciseLogs,
             startTime: new Date()
           }
@@ -507,9 +595,123 @@ export const useAppStore = create<AppState>()(
         });
       },
 
+      adaptWorkoutToProfile: (profile) => {
+        const { activeWorkout, workoutLogs } = get();
+        if (!activeWorkout) return;
+
+        const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile);
+        if (!preset) return;
+        const profileEquipment = preset.equipment;
+
+        // Update profile state
+        set({ activeEquipmentProfile: profile });
+        const { user } = get();
+        if (user) {
+          set({ user: { ...user, availableEquipment: profileEquipment, updatedAt: new Date() } });
+        }
+
+        // Always adapt from the ORIGINAL base session — not the last adapted state.
+        // This prevents exercises getting "stuck" when switching back and forth.
+        const baseExercises = activeWorkout.baseSession.exercises;
+
+        const isExerciseCompatible = (ex: { equipmentTypes?: EquipmentType[] }) => {
+          const eqTypes = ex.equipmentTypes || [];
+          if (eqTypes.length === 0) return true;
+          return eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+        };
+
+        const updatedExercises = [...baseExercises];
+        const usedIds = new Set<string>();
+        let changed = false;
+
+        // Rebuild exercise logs to match the base session structure
+        const updatedLogs = baseExercises.map((ex, i) => {
+          const existingLog = activeWorkout.exerciseLogs[i];
+          return {
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exercise.name,
+            sets: existingLog
+              ? existingLog.sets.map(s => ({ ...s }))
+              : Array.from({ length: ex.sets }, (_, si) => ({
+                  setNumber: si + 1,
+                  weight: getSuggestedWeight(ex.exerciseId, workoutLogs) || 0,
+                  reps: ex.prescription.targetReps,
+                  rpe: ex.prescription.rpe,
+                  completed: false,
+                })),
+            personalRecord: false as boolean,
+          };
+        });
+
+        for (let i = 0; i < updatedExercises.length; i++) {
+          const ex = updatedExercises[i];
+          usedIds.add(ex.exerciseId);
+
+          if (isExerciseCompatible(ex.exercise)) continue;
+
+          // Original exercise incompatible — find the best compatible alternative
+          const currentMuscles = ex.exercise.primaryMuscles;
+          const currentPattern = ex.exercise.movementPattern;
+
+          const compatibleAlts = allExercises
+            .filter(alt =>
+              alt.id !== ex.exerciseId &&
+              !usedIds.has(alt.id) &&
+              isExerciseCompatible(alt) &&
+              alt.primaryMuscles.some(m => currentMuscles.includes(m))
+            )
+            .sort((a, b) => {
+              const aOverlap = a.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
+              const bOverlap = b.primaryMuscles.filter(m => currentMuscles.includes(m)).length;
+              if (bOverlap !== aOverlap) return bOverlap - aOverlap;
+              const aPattern = a.movementPattern === currentPattern ? 1 : 0;
+              const bPattern = b.movementPattern === currentPattern ? 1 : 0;
+              return bPattern - aPattern;
+            });
+
+          const compatibleAlt = compatibleAlts[0];
+
+          if (compatibleAlt) {
+            usedIds.add(compatibleAlt.id);
+            updatedExercises[i] = {
+              ...ex,
+              exerciseId: compatibleAlt.id,
+              exercise: compatibleAlt,
+            };
+            const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
+            updatedLogs[i] = {
+              exerciseId: compatibleAlt.id,
+              exerciseName: compatibleAlt.name,
+              sets: updatedLogs[i].sets.map(s => ({
+                ...s,
+                weight: suggestedWeight || 0,
+                completed: false,
+              })),
+              personalRecord: false,
+            };
+            changed = true;
+          }
+        }
+
+        // Check if we need to update (either exercises changed or we're restoring originals)
+        const currentIds = activeWorkout.session.exercises.map(e => e.exerciseId).join(',');
+        const newIds = updatedExercises.map(e => e.exerciseId).join(',');
+        if (changed || currentIds !== newIds) {
+          const updatedSession = { ...activeWorkout.baseSession, exercises: updatedExercises };
+          set({
+            activeWorkout: {
+              ...activeWorkout,
+              session: updatedSession,
+              exerciseLogs: updatedLogs,
+            }
+          });
+        }
+      },
+
       completeWorkout: (feedback) => {
         const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user } = get();
-        if (!activeWorkout || !currentMesocycle || !user) return;
+        if (!activeWorkout || !user) return;
+        // Mesocycle can be null for template/quick workouts — still log the workout
 
         // Calculate total volume
         const totalVolume = activeWorkout.exerciseLogs.reduce((total, ex) => {
@@ -530,7 +732,7 @@ export const useAppStore = create<AppState>()(
         const workoutLog: WorkoutLog = {
           id: uuidv4(),
           userId: user.id,
-          mesocycleId: currentMesocycle.id,
+          mesocycleId: currentMesocycle?.id || 'standalone',
           sessionId: activeWorkout.session.id,
           date: new Date(),
           exercises: activeWorkout.exerciseLogs,

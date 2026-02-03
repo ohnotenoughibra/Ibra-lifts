@@ -41,9 +41,7 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(
-      `${appUrl}?whoop_error=missing_credentials`
-    );
+    return NextResponse.redirect(`${appUrl}?whoop_error=missing_credentials`);
   }
 
   try {
@@ -67,7 +65,6 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorBody = await tokenResponse.text();
       console.error('Whoop token exchange failed:', tokenResponse.status, errorBody);
-      console.error('redirect_uri:', redirectUri);
       const detail = encodeURIComponent(
         `token_${tokenResponse.status}: ${errorBody.substring(0, 120)}`
       );
@@ -76,27 +73,31 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await tokenResponse.json();
 
-    const response = NextResponse.redirect(`${appUrl}?whoop_connected=true`);
+    // Return an HTML page that stores tokens in localStorage then redirects.
+    // Vercel's NextResponse.redirect() doesn't reliably set cookies,
+    // so we use client-side storage instead.
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>Connecting Whoop...</title></head>
+<body>
+<p>Connecting your Whoop... please wait.</p>
+<script>
+  try {
+    localStorage.setItem('whoop_access_token', ${JSON.stringify(tokenData.access_token)});
+    localStorage.setItem('whoop_refresh_token', ${JSON.stringify(tokenData.refresh_token || '')});
+    localStorage.setItem('whoop_token_expires', ${JSON.stringify(String(Date.now() + (tokenData.expires_in || 3600) * 1000))});
+    window.location.href = ${JSON.stringify(appUrl + '?whoop_connected=true')};
+  } catch(e) {
+    document.body.innerHTML = '<p>Failed to store tokens: ' + e.message + '</p>';
+  }
+</script>
+</body>
+</html>`;
 
-    response.cookies.set('whoop_access_token', tokenData.access_token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: tokenData.expires_in || 3600,
-      path: '/',
+    return new NextResponse(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
     });
-
-    if (tokenData.refresh_token) {
-      response.cookies.set('whoop_refresh_token', tokenData.refresh_token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60,
-        path: '/',
-      });
-    }
-
-    return response;
   } catch (err: any) {
     console.error('Whoop callback exception:', err);
     return NextResponse.redirect(

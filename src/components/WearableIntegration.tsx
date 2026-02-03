@@ -196,12 +196,46 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
   // Check connection status and fetch data on mount
   const fetchWhoopData = useCallback(async () => {
+    const accessToken = localStorage.getItem('whoop_access_token');
+    const refreshToken = localStorage.getItem('whoop_refresh_token');
+
+    if (!accessToken) {
+      setIsConnected(false);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsSyncing(true);
       setError(null);
 
-      const res = await fetch('/api/whoop/data');
-      const data: WhoopApiResponse = await res.json();
+      const res = await fetch('/api/whoop/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+      });
+      const data: WhoopApiResponse & { new_access_token?: string; new_refresh_token?: string; new_expires_in?: number } = await res.json();
+
+      // Handle token refresh
+      if (data.error === 'token_refreshed' && data.new_access_token) {
+        localStorage.setItem('whoop_access_token', data.new_access_token);
+        if (data.new_refresh_token) localStorage.setItem('whoop_refresh_token', data.new_refresh_token);
+        if (data.new_expires_in) localStorage.setItem('whoop_token_expires', String(Date.now() + data.new_expires_in * 1000));
+        // Retry with new token
+        const retryRes = await fetch('/api/whoop/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: data.new_access_token, refresh_token: data.new_refresh_token }),
+        });
+        const retryData = await retryRes.json();
+        if (retryData.connected) {
+          setIsConnected(true);
+          setWhoopProfile(retryData.profile);
+          setWearableData(transformWhoopData(retryData));
+          setLastSync(new Date());
+          return;
+        }
+      }
 
       if (data.connected) {
         setIsConnected(true);
@@ -211,12 +245,11 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         setLastSync(new Date());
       } else {
         setIsConnected(false);
-        if (data.error && data.error !== 'Not connected to Whoop') {
+        if (data.error && data.error !== 'No access token') {
           setError(data.error);
         }
       }
     } catch {
-      // API not available or network error — not connected
       setIsConnected(false);
     } finally {
       setIsLoading(false);
@@ -225,19 +258,19 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   }, []);
 
   useEffect(() => {
-    fetchWhoopData();
-
     // Check URL params for connection status from OAuth callback
     const params = new URLSearchParams(window.location.search);
-    if (params.get('whoop_connected') === 'true') {
-      fetchWhoopData();
-      // Clean the URL
-      window.history.replaceState({}, '', window.location.pathname);
-    }
     if (params.get('whoop_error')) {
-      setError(`Whoop connection failed: ${params.get('whoop_error')}`);
+      setError(`Whoop connection failed: ${decodeURIComponent(params.get('whoop_error')!)}`);
+      window.history.replaceState({}, '', window.location.pathname);
+      setIsLoading(false);
+      return;
+    }
+    if (params.get('whoop_connected') === 'true') {
       window.history.replaceState({}, '', window.location.pathname);
     }
+
+    fetchWhoopData();
   }, [fetchWhoopData]);
 
   // Derived data
@@ -266,16 +299,14 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     window.location.href = '/api/whoop/auth';
   };
 
-  const handleDisconnect = async () => {
-    try {
-      await fetch('/api/whoop/data', { method: 'DELETE' });
-      setIsConnected(false);
-      setWearableData([]);
-      setWhoopProfile(null);
-      setLastSync(null);
-    } catch {
-      setError('Failed to disconnect');
-    }
+  const handleDisconnect = () => {
+    localStorage.removeItem('whoop_access_token');
+    localStorage.removeItem('whoop_refresh_token');
+    localStorage.removeItem('whoop_token_expires');
+    setIsConnected(false);
+    setWearableData([]);
+    setWhoopProfile(null);
+    setLastSync(null);
   };
 
   const handleSync = () => {

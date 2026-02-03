@@ -47,6 +47,7 @@ export default function ActiveWorkout() {
   const [showPreCheckIn, setShowPreCheckIn] = useState(true);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
@@ -136,9 +137,18 @@ export default function ActiveWorkout() {
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = { ...newSets[currentSetIndex], completed: true };
 
-    // Check for PR
+    // Check for PR - compare against all previous logs for this exercise
     const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
-    const isPR = currentSet.weight > 0 && Math.random() < 0.1;
+    const workoutLogs = useAppStore.getState().workoutLogs;
+    let previousBest1RM = 0;
+    for (const log of workoutLogs) {
+      for (const ex of log.exercises) {
+        if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
+          previousBest1RM = Math.max(previousBest1RM, ex.estimated1RM);
+        }
+      }
+    }
+    const isPR = currentSet.weight > 0 && estimated1RM > previousBest1RM && previousBest1RM > 0;
 
     updateExerciseLog(currentExerciseIndex, {
       ...currentLog,
@@ -664,7 +674,13 @@ export default function ActiveWorkout() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={cancelWorkout} className="btn btn-ghost btn-sm">
+          <button onClick={() => {
+            if (completedSets > 0) {
+              setShowCancelConfirm(true);
+            } else {
+              cancelWorkout();
+            }
+          }} className="btn btn-ghost btn-sm">
             <X className="w-5 h-5" />
           </button>
           <div className="text-center">
@@ -838,8 +854,9 @@ export default function ActiveWorkout() {
                 </button>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={currentSet.weight}
-                  onChange={(e) => setExactValue('weight', parseInt(e.target.value) || 0)}
+                  onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
                   className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
                 />
                 <button
@@ -863,6 +880,7 @@ export default function ActiveWorkout() {
                 </button>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={currentSet.reps}
                   onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
                   className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
@@ -938,6 +956,44 @@ export default function ActiveWorkout() {
           </div>
         )}
       </main>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="card p-6 w-full max-w-sm text-center"
+            >
+              <h2 className="text-lg font-bold text-grappler-50 mb-2">Cancel Workout?</h2>
+              <p className="text-sm text-grappler-400 mb-6">
+                You have {completedSets} completed set{completedSets !== 1 ? 's' : ''}. All progress will be lost.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="btn btn-secondary btn-md flex-1"
+                >
+                  Keep Going
+                </button>
+                <button
+                  onClick={() => { setShowCancelConfirm(false); cancelWorkout(); }}
+                  className="btn btn-md flex-1 bg-red-500 hover:bg-red-600 text-white"
+                >
+                  Discard
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Finish Workout Modal */}
       <AnimatePresence>

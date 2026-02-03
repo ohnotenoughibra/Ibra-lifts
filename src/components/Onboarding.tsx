@@ -258,6 +258,7 @@ function AboutYouStep({
         </label>
         <input
           type="number"
+          inputMode="numeric"
           value={data.age}
           onChange={(e) => update({ age: parseInt(e.target.value) || 0 })}
           min={16}
@@ -574,6 +575,7 @@ function BaselineStep({
             </label>
             <input
               type="number"
+              inputMode="numeric"
               value={(data.baselineLifts as any)[lift.key] || ''}
               onChange={(e) => updateLift(lift.key, e.target.value)}
               placeholder={lift.placeholder}

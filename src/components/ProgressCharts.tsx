@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
+import { getExerciseById } from '@/lib/exercises';
 
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency';
 
@@ -78,7 +79,13 @@ export default function ProgressCharts() {
 
     workoutLogs.forEach(log => {
       const date = new Date(log.date);
-      const weekKey = `Week ${Math.ceil((date.getDate()) / 7)}`;
+      // Use ISO week number for correct week grouping
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+      const weekKey = `Week ${weekNum}`;
 
       if (!volumeByWeek[weekKey]) {
         volumeByWeek[weekKey] = { volume: 0, workouts: 0 };
@@ -99,18 +106,26 @@ export default function ProgressCharts() {
   const muscleDistribution = useMemo(() => {
     const distribution: Record<string, number> = {};
 
+    const muscleNameMap: Record<string, string> = {
+      chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Arms',
+      triceps: 'Arms', quadriceps: 'Legs', hamstrings: 'Legs', glutes: 'Legs',
+      calves: 'Legs', core: 'Core', forearms: 'Arms', traps: 'Back',
+      lats: 'Back', full_body: 'Full Body'
+    };
+
     workoutLogs.forEach(log => {
       log.exercises.forEach(ex => {
-        // Simplified - would need to look up exercise details in real app
-        const muscle = ex.exerciseName.toLowerCase().includes('squat') ? 'Legs' :
-                      ex.exerciseName.toLowerCase().includes('deadlift') ? 'Back' :
-                      ex.exerciseName.toLowerCase().includes('bench') ? 'Chest' :
-                      ex.exerciseName.toLowerCase().includes('row') ? 'Back' :
-                      ex.exerciseName.toLowerCase().includes('press') ? 'Shoulders' :
-                      ex.exerciseName.toLowerCase().includes('curl') ? 'Arms' :
-                      'Other';
+        const exerciseData = getExerciseById(ex.exerciseId);
+        const completedSets = ex.sets.filter(s => s.completed).length;
 
-        distribution[muscle] = (distribution[muscle] || 0) + ex.sets.filter(s => s.completed).length;
+        if (exerciseData) {
+          exerciseData.primaryMuscles.forEach(m => {
+            const label = muscleNameMap[m] || 'Other';
+            distribution[label] = (distribution[label] || 0) + completedSets;
+          });
+        } else {
+          distribution['Other'] = (distribution['Other'] || 0) + completedSets;
+        }
       });
     });
 

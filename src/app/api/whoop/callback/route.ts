@@ -73,9 +73,13 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await tokenResponse.json();
 
+    const accessToken = tokenData.access_token || '';
+    const refreshTokenValue = tokenData.refresh_token || '';
+    const expiresAt = String(Date.now() + (tokenData.expires_in || 3600) * 1000);
+
     // Return an HTML page that stores tokens in localStorage then redirects.
-    // Vercel's NextResponse.redirect() doesn't reliably set cookies,
-    // so we use client-side storage instead.
+    // Also pass tokens via URL hash as fallback in case localStorage fails
+    // in the callback page context (some browsers/Vercel configs).
     const html = `<!DOCTYPE html>
 <html>
 <head><title>Connecting Whoop...</title></head>
@@ -83,12 +87,16 @@ export async function GET(request: NextRequest) {
 <p>Connecting your Whoop... please wait.</p>
 <script>
   try {
-    localStorage.setItem('whoop_access_token', ${JSON.stringify(tokenData.access_token)});
-    localStorage.setItem('whoop_refresh_token', ${JSON.stringify(tokenData.refresh_token || '')});
-    localStorage.setItem('whoop_token_expires', ${JSON.stringify(String(Date.now() + (tokenData.expires_in || 3600) * 1000))});
-    window.location.href = ${JSON.stringify(appUrl + '?whoop_connected=true')};
+    localStorage.setItem('whoop_access_token', ${JSON.stringify(accessToken)});
+    localStorage.setItem('whoop_refresh_token', ${JSON.stringify(refreshTokenValue)});
+    localStorage.setItem('whoop_token_expires', ${JSON.stringify(expiresAt)});
+    window.location.href = ${JSON.stringify(appUrl)}+ '?whoop_connected=true';
   } catch(e) {
-    document.body.innerHTML = '<p>Failed to store tokens: ' + e.message + '</p>';
+    // Fallback: pass tokens via URL hash (never sent to server, stays client-side)
+    var hash = 'whoop_at=' + encodeURIComponent(${JSON.stringify(accessToken)})
+      + '&whoop_rt=' + encodeURIComponent(${JSON.stringify(refreshTokenValue)})
+      + '&whoop_exp=' + encodeURIComponent(${JSON.stringify(expiresAt)});
+    window.location.href = ${JSON.stringify(appUrl)} + '?whoop_connected=true#' + hash;
   }
 </script>
 </body>

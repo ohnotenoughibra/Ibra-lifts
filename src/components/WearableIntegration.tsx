@@ -214,7 +214,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
       });
-      const data: WhoopApiResponse & { new_access_token?: string; new_refresh_token?: string; new_expires_in?: number } = await res.json();
+      const data: WhoopApiResponse & { new_access_token?: string; new_refresh_token?: string; new_expires_in?: number; warnings?: string[] } = await res.json();
 
       // Handle token refresh
       if (data.error === 'token_refreshed' && data.new_access_token) {
@@ -243,14 +243,25 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         const transformed = transformWhoopData(data);
         setWearableData(transformed);
         setLastSync(new Date());
+        // Show warnings if any API endpoints had issues
+        if (data.warnings && data.warnings.length > 0) {
+          setError(`Some data unavailable: ${data.warnings[0]}`);
+        }
       } else {
         setIsConnected(false);
         if (data.error && data.error !== 'No access token') {
           setError(data.error);
         }
+        // If token issue, clear stored tokens
+        if (data.error?.includes('reconnect') || data.error?.includes('No access token')) {
+          localStorage.removeItem('whoop_access_token');
+          localStorage.removeItem('whoop_refresh_token');
+          localStorage.removeItem('whoop_token_expires');
+        }
       }
-    } catch {
+    } catch (err: any) {
       setIsConnected(false);
+      setError(`Failed to fetch Whoop data: ${err.message || 'network error'}`);
     } finally {
       setIsLoading(false);
       setIsSyncing(false);
@@ -267,6 +278,20 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       return;
     }
     if (params.get('whoop_connected') === 'true') {
+      // Check URL hash for fallback tokens (in case localStorage failed in callback page)
+      if (window.location.hash) {
+        try {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const at = hashParams.get('whoop_at');
+          const rt = hashParams.get('whoop_rt');
+          const exp = hashParams.get('whoop_exp');
+          if (at) {
+            localStorage.setItem('whoop_access_token', at);
+            if (rt) localStorage.setItem('whoop_refresh_token', rt);
+            if (exp) localStorage.setItem('whoop_token_expires', exp);
+          }
+        } catch { /* ignore hash parse errors */ }
+      }
       window.history.replaceState({}, '', window.location.pathname);
     }
 

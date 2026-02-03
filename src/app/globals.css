@@ -74,6 +74,23 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Light mode overrides */
+  body.light-mode {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  body.light-mode .card {
+    @apply bg-white/80 border-gray-200/60 shadow-sm;
+  }
+
+  body.light-mode .btn-secondary {
+    @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+  }
+
+  body.light-mode .input {
+    @apply bg-white border-gray-300 text-gray-900 placeholder-gray-400;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;

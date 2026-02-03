@@ -446,6 +446,74 @@ export interface WeeklySummary {
   generatedAt: Date;
 }
 
+// Injury / Pain Logging
+export type BodyRegion =
+  | 'neck' | 'left_shoulder' | 'right_shoulder' | 'upper_back' | 'lower_back'
+  | 'left_elbow' | 'right_elbow' | 'left_wrist' | 'right_wrist'
+  | 'left_hip' | 'right_hip' | 'left_knee' | 'right_knee'
+  | 'left_ankle' | 'right_ankle' | 'chest' | 'core';
+
+export type PainSeverity = 1 | 2 | 3 | 4 | 5;
+export type PainType = 'sharp' | 'dull' | 'burning' | 'stiffness' | 'clicking';
+
+export interface InjuryEntry {
+  id: string;
+  date: Date;
+  bodyRegion: BodyRegion;
+  severity: PainSeverity;
+  painType: PainType;
+  duringExercise?: string;
+  notes?: string;
+  resolved: boolean;
+  resolvedDate?: Date;
+}
+
+// Custom Exercise
+export interface CustomExercise extends Exercise {
+  isCustom: true;
+  createdAt: Date;
+}
+
+// Session Templates
+export interface SessionTemplate {
+  id: string;
+  name: string;
+  createdAt: Date;
+  session: WorkoutSession;
+  timesUsed: number;
+  lastUsed?: Date;
+}
+
+// Heart Rate Zone Training
+export type HRZone = 'zone1' | 'zone2' | 'zone3' | 'zone4' | 'zone5';
+
+export interface HRZoneConfig {
+  maxHR: number;
+  restingHR: number;
+  zones: {
+    zone1: { min: number; max: number; name: string };
+    zone2: { min: number; max: number; name: string };
+    zone3: { min: number; max: number; name: string };
+    zone4: { min: number; max: number; name: string };
+    zone5: { min: number; max: number; name: string };
+  };
+}
+
+export interface HRSession {
+  id: string;
+  date: Date;
+  type: 'grappling_cardio' | 'steady_state' | 'intervals' | 'recovery';
+  duration: number;
+  avgHR: number;
+  maxHR: number;
+  timeInZones: Record<HRZone, number>; // seconds per zone
+  caloriesBurned: number;
+  notes?: string;
+}
+
+// Theme
+export type ThemeMode = 'dark' | 'light';
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

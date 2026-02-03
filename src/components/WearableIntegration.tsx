@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart,
@@ -24,9 +24,12 @@ import {
   Minus,
   Thermometer,
   Wind,
+  Loader2,
+  ExternalLink,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WearableData, WearableSettings, WearableProvider } from '@/lib/types';
+import { WearableData, WearableProvider } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -39,7 +42,6 @@ interface WearableIntegrationProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Return a colour class string for a given Whoop-style recovery score. */
 function recoveryColor(score: number): string {
   if (score >= 67) return 'text-green-400';
   if (score >= 34) return 'text-yellow-400';
@@ -78,51 +80,98 @@ function trendIcon(current: number, previous: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data generator – realistic data for a 34-year-old active grappler
+// Transform Whoop API data into our WearableData format
 // ---------------------------------------------------------------------------
 
-function generateMockData(): WearableData[] {
-  const today = new Date();
-  const data: WearableData[] = [];
+interface WhoopApiResponse {
+  connected: boolean;
+  profile?: any;
+  recovery?: any[];
+  cycles?: any[];
+  sleep?: any[];
+  workouts?: any[];
+  body?: any;
+  lastSync?: string;
+  error?: string;
+}
 
-  // Realistic ranges for a 34-year-old who trains BJJ + lifting
-  const baseHRV = 58; // ms – decent for mid-30s athlete
-  const baseRHR = 54; // bpm
-  const baseSleep = 7.2; // hours
+function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
+  const dataMap = new Map<string, Partial<WearableData>>();
 
-  const daySeeds = [
-    // day-6 (oldest) through day-0 (today)
-    { hrvDelta: -4, rhrDelta: 2, sleepH: 6.8, recovery: 52, strain: 14.2, sleepScore: 68, respRate: 15.8, skinTemp: 0.2, cals: 2650 },
-    { hrvDelta: 3, rhrDelta: -1, sleepH: 7.5, recovery: 71, strain: 16.8, sleepScore: 78, respRate: 15.2, skinTemp: 0.0, cals: 2820 },
-    { hrvDelta: -8, rhrDelta: 4, sleepH: 5.9, recovery: 38, strain: 18.4, sleepScore: 55, respRate: 16.1, skinTemp: 0.4, cals: 3100 },
-    { hrvDelta: 6, rhrDelta: -2, sleepH: 8.1, recovery: 82, strain: 10.5, sleepScore: 88, respRate: 14.9, skinTemp: -0.1, cals: 2400 },
-    { hrvDelta: 2, rhrDelta: 0, sleepH: 7.3, recovery: 68, strain: 15.1, sleepScore: 75, respRate: 15.4, skinTemp: 0.1, cals: 2780 },
-    { hrvDelta: -2, rhrDelta: 1, sleepH: 6.5, recovery: 45, strain: 17.3, sleepScore: 62, respRate: 15.7, skinTemp: 0.3, cals: 2950 },
-    { hrvDelta: 5, rhrDelta: -1, sleepH: 7.8, recovery: 76, strain: 12.7, sleepScore: 82, respRate: 15.0, skinTemp: 0.0, cals: 2550 },
-  ];
+  // Process cycles (strain, avg HR, calories)
+  if (apiData.cycles) {
+    for (const cycle of apiData.cycles) {
+      const dateKey = cycle.start?.substring(0, 10);
+      if (!dateKey) continue;
+      const existing = dataMap.get(dateKey) || {};
+      dataMap.set(dateKey, {
+        ...existing,
+        id: cycle.id?.toString() || dateKey,
+        date: new Date(cycle.start),
+        provider: 'whoop' as WearableProvider,
+        strain: cycle.score?.strain ?? null,
+        caloriesBurned: cycle.score?.kilojoule
+          ? Math.round(cycle.score.kilojoule * 0.239006) // kJ to kcal
+          : null,
+      });
+    }
+  }
 
-  daySeeds.forEach((seed, i) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() - (6 - i));
-    date.setHours(6, 30, 0, 0);
+  // Process recovery (recovery score, HRV, resting HR)
+  if (apiData.recovery) {
+    for (const rec of apiData.recovery) {
+      const dateKey = rec.created_at?.substring(0, 10) || rec.cycle?.start?.substring(0, 10);
+      if (!dateKey) continue;
+      const existing = dataMap.get(dateKey) || {};
+      dataMap.set(dateKey, {
+        ...existing,
+        id: existing.id || rec.cycle_id?.toString() || dateKey,
+        date: existing.date || new Date(dateKey),
+        provider: 'whoop' as WearableProvider,
+        recoveryScore: rec.score?.recovery_score ?? null,
+        hrv: rec.score?.hrv_rmssd_milli
+          ? Math.round(rec.score.hrv_rmssd_milli)
+          : null,
+        restingHR: rec.score?.resting_heart_rate
+          ? Math.round(rec.score.resting_heart_rate)
+          : null,
+        respiratoryRate: rec.score?.respiratory_rate ?? null,
+        skinTemp: rec.score?.skin_temp_celsius != null
+          ? Math.round((rec.score.skin_temp_celsius * 9/5) * 10) / 10 // C deviation to F deviation
+          : null,
+      });
+    }
+  }
 
-    data.push({
-      id: `mock-${i}`,
-      date,
-      provider: 'whoop' as WearableProvider,
-      hrv: baseHRV + seed.hrvDelta,
-      restingHR: baseRHR + seed.rhrDelta,
-      sleepScore: seed.sleepScore,
-      sleepHours: seed.sleepH,
-      recoveryScore: seed.recovery,
-      strain: seed.strain,
-      respiratoryRate: seed.respRate,
-      skinTemp: seed.skinTemp,
-      caloriesBurned: seed.cals,
-    });
-  });
+  // Process sleep
+  if (apiData.sleep) {
+    for (const sl of apiData.sleep) {
+      const dateKey = sl.start?.substring(0, 10);
+      if (!dateKey) continue;
+      const existing = dataMap.get(dateKey) || {};
 
-  return data;
+      // Calculate total sleep hours from milliseconds
+      const totalSleepMs = sl.score?.stage_summary?.total_in_bed_time_milli ?? 0;
+      const sleepHours = totalSleepMs > 0
+        ? Math.round((totalSleepMs / 3600000) * 10) / 10
+        : null;
+
+      dataMap.set(dateKey, {
+        ...existing,
+        date: existing.date || new Date(dateKey),
+        provider: 'whoop' as WearableProvider,
+        sleepScore: sl.score?.sleep_performance_percentage ?? null,
+        sleepHours,
+      });
+    }
+  }
+
+  // Convert map to sorted array
+  const result: WearableData[] = Array.from(dataMap.values())
+    .filter((d): d is WearableData => d.date != null && d.id != null)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,56 +179,127 @@ function generateMockData(): WearableData[] {
 // ---------------------------------------------------------------------------
 
 export default function WearableIntegration({ onClose }: WearableIntegrationProps) {
-  // -- Local state (no store wearable state yet) --
-  const [wearableData] = useState<WearableData[]>(generateMockData);
-  const [settings, setSettings] = useState<WearableSettings>({
-    provider: 'whoop',
-    connected: true,
-    lastSync: new Date(),
-    autoAdjustFromRecovery: true,
-  });
+  const [wearableData, setWearableData] = useState<WearableData[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualRecovery, setManualRecovery] = useState('');
   const [manualHRV, setManualHRV] = useState('');
   const [manualRHR, setManualRHR] = useState('');
   const [manualSleepHours, setManualSleepHours] = useState('');
   const [manualStrain, setManualStrain] = useState('');
+  const [autoAdjust, setAutoAdjust] = useState(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [whoopProfile, setWhoopProfile] = useState<any>(null);
 
-  // -- Derived data --
-  const today = wearableData[wearableData.length - 1];
+  // Check connection status and fetch data on mount
+  const fetchWhoopData = useCallback(async () => {
+    try {
+      setIsSyncing(true);
+      setError(null);
+
+      const res = await fetch('/api/whoop/data');
+      const data: WhoopApiResponse = await res.json();
+
+      if (data.connected) {
+        setIsConnected(true);
+        setWhoopProfile(data.profile);
+        const transformed = transformWhoopData(data);
+        setWearableData(transformed);
+        setLastSync(new Date());
+      } else {
+        setIsConnected(false);
+        if (data.error && data.error !== 'Not connected to Whoop') {
+          setError(data.error);
+        }
+      }
+    } catch {
+      // API not available or network error — not connected
+      setIsConnected(false);
+    } finally {
+      setIsLoading(false);
+      setIsSyncing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchWhoopData();
+
+    // Check URL params for connection status from OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('whoop_connected') === 'true') {
+      fetchWhoopData();
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    if (params.get('whoop_error')) {
+      setError(`Whoop connection failed: ${params.get('whoop_error')}`);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [fetchWhoopData]);
+
+  // Derived data
+  const today = wearableData.length > 0 ? wearableData[wearableData.length - 1] : null;
   const yesterday = wearableData.length >= 2 ? wearableData[wearableData.length - 2] : null;
 
   const chartData = useMemo(
     () =>
       wearableData.map((d) => ({
         day: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-        recovery: d.recoveryScore,
-        hrv: d.hrv,
-        strain: d.strain,
+        recovery: d.recoveryScore ?? 0,
+        hrv: d.hrv ?? 0,
+        strain: d.strain ?? 0,
       })),
     [wearableData],
   );
 
   const avgRecovery = useMemo(() => {
-    const scores = wearableData.map((d) => d.recoveryScore).filter((s): s is number => s !== null);
+    const scores = wearableData.map((d) => d.recoveryScore).filter((s): s is number => s != null);
     return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
   }, [wearableData]);
 
-  // -- Handlers --
+  // Handlers
   const handleConnect = () => {
-    setSettings((prev) => ({
-      ...prev,
-      connected: !prev.connected,
-      lastSync: prev.connected ? prev.lastSync : new Date(),
-    }));
+    // Redirect to OAuth flow
+    window.location.href = '/api/whoop/auth';
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await fetch('/api/whoop/data', { method: 'DELETE' });
+      setIsConnected(false);
+      setWearableData([]);
+      setWhoopProfile(null);
+      setLastSync(null);
+    } catch {
+      setError('Failed to disconnect');
+    }
   };
 
   const handleSync = () => {
-    setSettings((prev) => ({ ...prev, lastSync: new Date() }));
+    fetchWhoopData();
   };
 
   const handleManualSubmit = () => {
-    // In a real implementation this would write to the store / API
+    // Add manual entry to local data
+    const newEntry: WearableData = {
+      id: `manual-${Date.now()}`,
+      date: new Date(),
+      provider: 'whoop' as WearableProvider,
+      recoveryScore: manualRecovery ? parseInt(manualRecovery) : null,
+      hrv: manualHRV ? parseInt(manualHRV) : null,
+      restingHR: manualRHR ? parseInt(manualRHR) : null,
+      sleepHours: manualSleepHours ? parseFloat(manualSleepHours) : null,
+      sleepScore: null,
+      strain: manualStrain ? parseFloat(manualStrain) : null,
+      respiratoryRate: null,
+      skinTemp: null,
+      caloriesBurned: null,
+    };
+
+    setWearableData(prev => [...prev, newEntry]);
     setShowManualEntry(false);
     setManualRecovery('');
     setManualHRV('');
@@ -188,14 +308,13 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     setManualStrain('');
   };
 
-  // -- Readiness recommendation --
+  // Readiness recommendation
   const readiness = useMemo(() => {
     const score = today?.recoveryScore ?? 0;
     if (score >= 67) {
       return {
-        zone: 'green' as const,
         title: 'Peak Readiness',
-        message: 'Full send \u2014 your body is recovered. Hit it hard today.',
+        message: 'Full send — your body is recovered. Hit it hard today.',
         accent: 'text-green-400',
         bg: 'bg-green-500/10 border-green-500/30',
         icon: <Zap className="w-5 h-5 text-green-400" />,
@@ -203,7 +322,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     }
     if (score >= 34) {
       return {
-        zone: 'yellow' as const,
         title: 'Moderate Readiness',
         message: 'Moderate intensity recommended. Consider lighter loads or fewer sets.',
         accent: 'text-yellow-400',
@@ -212,7 +330,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       };
     }
     return {
-      zone: 'red' as const,
       title: 'Recovery Day',
       message: 'Recovery day recommended. Consider mobility work or light cardio.',
       accent: 'text-red-400',
@@ -221,8 +338,18 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     };
   }, [today]);
 
-  // -- Strain gauge percentage (0-21 scale mapped to 0-100%) --
   const strainPct = today?.strain != null ? Math.min((today.strain / 21) * 100, 100) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-grappler-900 bg-mesh flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-green-400 animate-spin mx-auto mb-3" />
+          <p className="text-grappler-400 text-sm">Connecting to Whoop...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -231,9 +358,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       exit={{ opacity: 0, x: 40 }}
       className="min-h-screen bg-grappler-900 bg-mesh pb-20"
     >
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                              */}
-      {/* ------------------------------------------------------------------ */}
+      {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -246,14 +371,22 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               </div>
               <div>
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">Whoop</h1>
-                <p className="text-xs text-grappler-500">Wearable Integration</p>
+                <p className="text-xs text-grappler-500">
+                  {whoopProfile
+                    ? `${whoopProfile.first_name || ''} ${whoopProfile.last_name || ''}`.trim() || 'Connected'
+                    : 'Wearable Integration'}
+                </p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {settings.connected && (
-              <button onClick={handleSync} className="btn btn-ghost btn-sm p-1.5">
-                <RefreshCw className="w-4 h-4 text-grappler-400" />
+            {isConnected && (
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="btn btn-ghost btn-sm p-1.5"
+              >
+                <RefreshCw className={cn('w-4 h-4 text-grappler-400', isSyncing && 'animate-spin')} />
               </button>
             )}
             <button
@@ -267,51 +400,67 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       </header>
 
       <div className="px-4 py-4 space-y-5">
-        {/* ---------------------------------------------------------------- */}
-        {/* Connection Status                                                 */}
-        {/* ---------------------------------------------------------------- */}
+        {/* Error Banner */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-red-300">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="text-xs text-red-400 hover:text-red-300 mt-1"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Connection Status */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
           className={cn(
             'card p-4 flex items-center justify-between',
-            settings.connected ? 'border-green-500/30' : 'border-red-500/30',
+            isConnected ? 'border-green-500/30' : 'border-red-500/30',
           )}
         >
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 'w-3 h-3 rounded-full',
-                settings.connected ? 'bg-green-400 shadow-lg shadow-green-400/40' : 'bg-red-400',
+                isConnected ? 'bg-green-400 shadow-lg shadow-green-400/40' : 'bg-red-400',
               )}
             />
             <div>
               <p className="text-sm font-medium text-grappler-100">
-                {settings.connected ? 'Connected' : 'Not Connected'}
+                {isConnected ? 'Connected' : 'Not Connected'}
               </p>
-              {settings.connected && settings.lastSync && (
+              {isConnected && lastSync && (
                 <p className="text-xs text-grappler-500">
-                  Last sync {new Date(settings.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  Last sync {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               )}
             </div>
           </div>
           <button
-            onClick={handleConnect}
+            onClick={isConnected ? handleDisconnect : handleConnect}
             className={cn(
               'btn btn-sm',
-              settings.connected ? 'btn-secondary' : 'btn-primary',
+              isConnected ? 'btn-secondary' : 'btn-primary',
             )}
           >
-            {settings.connected ? 'Disconnect' : 'Connect'}
+            {isConnected ? 'Disconnect' : 'Connect'}
           </button>
         </motion.div>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Today's Metrics Grid                                              */}
-        {/* ---------------------------------------------------------------- */}
-        {settings.connected && today && (
+        {/* Today's Metrics */}
+        {isConnected && today && (
           <>
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -351,7 +500,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     </span>
                     <span className="text-grappler-500 text-sm pb-1">/ 100</span>
                   </div>
-                  {/* Recovery bar */}
                   <div className="mt-3 h-2 bg-grappler-700 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -379,7 +527,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     {today.strain?.toFixed(1) ?? '--'}
                   </p>
                   <span className="text-xs text-grappler-500">/ 21.0</span>
-                  {/* Strain gauge */}
                   <div className="mt-2 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -475,71 +622,69 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               </div>
             </motion.div>
 
-            {/* -------------------------------------------------------------- */}
-            {/* 7-Day Recovery Trend                                            */}
-            {/* -------------------------------------------------------------- */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="card p-4"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="text-sm font-semibold text-grappler-200">7-Day Recovery Trend</h3>
-                <span className="text-xs text-grappler-500">
-                  Avg: <span className={cn('font-medium', recoveryColor(avgRecovery))}>{avgRecovery}%</span>
-                </span>
-              </div>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="recoveryGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="day"
-                      stroke="#64748b"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      stroke="#64748b"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#1e293b',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                      }}
-                      labelStyle={{ color: '#e2e8f0' }}
-                      formatter={(value: number) => [`${value}%`, 'Recovery']}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="recovery"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      fill="url(#recoveryGradient)"
-                      dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
-                      activeDot={{ r: 6, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
+            {/* 7-Day Recovery Trend */}
+            {chartData.length > 1 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="card p-4"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-semibold text-grappler-200">7-Day Recovery Trend</h3>
+                  <span className="text-xs text-grappler-500">
+                    Avg: <span className={cn('font-medium', recoveryColor(avgRecovery))}>{avgRecovery}%</span>
+                  </span>
+                </div>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="recoveryGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="day"
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        stroke="#64748b"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                        }}
+                        labelStyle={{ color: '#e2e8f0' }}
+                        formatter={(value: any) => [`${value}%`, 'Recovery']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="recovery"
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        fill="url(#recoveryGradient)"
+                        dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </motion.div>
+            )}
 
-            {/* -------------------------------------------------------------- */}
-            {/* Training Readiness Recommendation                               */}
-            {/* -------------------------------------------------------------- */}
+            {/* Training Readiness */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -559,9 +704,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               </div>
             </motion.div>
 
-            {/* -------------------------------------------------------------- */}
-            {/* Auto-Adjust Toggle                                              */}
-            {/* -------------------------------------------------------------- */}
+            {/* Auto-Adjust Toggle */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -578,22 +721,17 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   </p>
                 </div>
                 <button
-                  onClick={() =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      autoAdjustFromRecovery: !prev.autoAdjustFromRecovery,
-                    }))
-                  }
+                  onClick={() => setAutoAdjust(!autoAdjust)}
                   className={cn(
                     'relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                    settings.autoAdjustFromRecovery ? 'bg-green-500' : 'bg-grappler-600',
+                    autoAdjust ? 'bg-green-500' : 'bg-grappler-600',
                   )}
                   role="switch"
-                  aria-checked={settings.autoAdjustFromRecovery}
+                  aria-checked={autoAdjust}
                 >
                   <motion.div
                     className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md"
-                    animate={{ x: settings.autoAdjustFromRecovery ? 20 : 0 }}
+                    animate={{ x: autoAdjust ? 20 : 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 </button>
@@ -602,10 +740,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
           </>
         )}
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Not Connected Prompt                                              */}
-        {/* ---------------------------------------------------------------- */}
-        {!settings.connected && (
+        {/* Not Connected State */}
+        {!isConnected && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -618,17 +754,19 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               Connect Your Whoop
             </h3>
             <p className="text-sm text-grappler-400 mb-6 max-w-xs mx-auto">
-              Link your Whoop strap to get recovery-based workout recommendations and automatic intensity adjustments.
+              Link your Whoop strap to get real recovery data, strain scores, and automatic intensity adjustments based on your actual readiness.
             </p>
-            <button onClick={handleConnect} className="btn btn-primary btn-md">
-              Connect Whoop
+            <button onClick={handleConnect} className="btn btn-primary btn-md gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Connect via Whoop
             </button>
+            <p className="text-xs text-grappler-600 mt-4">
+              You can also enter data manually using the settings icon above
+            </p>
           </motion.div>
         )}
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Manual Entry Form                                                 */}
-        {/* ---------------------------------------------------------------- */}
+        {/* Manual Entry */}
         <AnimatePresence>
           {showManualEntry && (
             <motion.div

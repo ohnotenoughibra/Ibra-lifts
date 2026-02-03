@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart,
@@ -32,8 +32,23 @@ import { cn } from '@/lib/utils';
 import { WearableData, WearableProvider } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const LS_KEYS = {
+  accessToken: 'whoop_access_token',
+  refreshToken: 'whoop_refresh_token',
+  tokenExpires: 'whoop_token_expires',
+  oauthState: 'whoop_oauth_state',
+} as const;
+
+/** Buffer before expiry to trigger proactive refresh (5 minutes) */
+const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
+
 interface WearableIntegrationProps {
   onClose: () => void;
 }
@@ -79,6 +94,45 @@ function trendIcon(current: number, previous: number) {
   return <Minus className="w-3.5 h-3.5 text-grappler-500" />;
 }
 
+/** Check if the stored access token is expired or about to expire */
+function isTokenExpired(): boolean {
+  try {
+    const expiresStr = localStorage.getItem(LS_KEYS.tokenExpires);
+    if (!expiresStr) return true;
+    const expiresAt = parseInt(expiresStr, 10);
+    if (isNaN(expiresAt)) return true;
+    return Date.now() >= expiresAt - TOKEN_EXPIRY_BUFFER_MS;
+  } catch {
+    return true;
+  }
+}
+
+/** Read a token from localStorage safely */
+function getToken(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** Store a token in localStorage safely */
+function setToken(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch { /* best effort */ }
+}
+
+/** Clear all Whoop tokens from localStorage */
+function clearTokens(): void {
+  try {
+    localStorage.removeItem(LS_KEYS.accessToken);
+    localStorage.removeItem(LS_KEYS.refreshToken);
+    localStorage.removeItem(LS_KEYS.tokenExpires);
+    localStorage.removeItem(LS_KEYS.oauthState);
+  } catch { /* best effort */ }
+}
+
 // ---------------------------------------------------------------------------
 // Transform Whoop API data into our WearableData format
 // ---------------------------------------------------------------------------
@@ -93,12 +147,18 @@ interface WhoopApiResponse {
   body?: any;
   lastSync?: string;
   error?: string;
+  requiresReconnect?: boolean;
+  // Inline token refresh — no second round-trip needed
+  new_access_token?: string;
+  new_refresh_token?: string;
+  new_expires_in?: number;
+  warnings?: string[];
 }
 
 function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
   const dataMap = new Map<string, Partial<WearableData>>();
 
-  // Process cycles (strain, avg HR, calories)
+  // Process cycles (strain, calories)
   if (apiData.cycles) {
     for (const cycle of apiData.cycles) {
       const dateKey = cycle.start?.substring(0, 10);
@@ -111,13 +171,13 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         provider: 'whoop' as WearableProvider,
         strain: cycle.score?.strain ?? null,
         caloriesBurned: cycle.score?.kilojoule
-          ? Math.round(cycle.score.kilojoule * 0.239006) // kJ to kcal
+          ? Math.round(cycle.score.kilojoule * 0.239006)
           : null,
       });
     }
   }
 
-  // Process recovery (recovery score, HRV, resting HR)
+  // Process recovery (recovery score, HRV, resting HR, resp rate, skin temp)
   if (apiData.recovery) {
     for (const rec of apiData.recovery) {
       const dateKey = rec.created_at?.substring(0, 10) || rec.cycle?.start?.substring(0, 10);
@@ -137,7 +197,7 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
           : null,
         respiratoryRate: rec.score?.respiratory_rate ?? null,
         skinTemp: rec.score?.skin_temp_celsius != null
-          ? Math.round((rec.score.skin_temp_celsius * 9/5) * 10) / 10 // C deviation to F deviation
+          ? Math.round((rec.score.skin_temp_celsius * 9 / 5) * 10) / 10
           : null,
       });
     }
@@ -149,8 +209,6 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
       const dateKey = sl.start?.substring(0, 10);
       if (!dateKey) continue;
       const existing = dataMap.get(dateKey) || {};
-
-      // Calculate total sleep hours from milliseconds
       const totalSleepMs = sl.score?.stage_summary?.total_in_bed_time_milli ?? 0;
       const sleepHours = totalSleepMs > 0
         ? Math.round((totalSleepMs / 3600000) * 10) / 10
@@ -166,12 +224,9 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     }
   }
 
-  // Convert map to sorted array
-  const result: WearableData[] = Array.from(dataMap.values())
+  return Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,15 +248,23 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [whoopProfile, setWhoopProfile] = useState<any>(null);
+  const fetchInFlight = useRef(false);
 
-  // Check connection status and fetch data on mount
+  // ------------------------------------------------------------------
+  // Core data fetcher — handles token refresh inline
+  // ------------------------------------------------------------------
   const fetchWhoopData = useCallback(async () => {
-    const accessToken = localStorage.getItem('whoop_access_token');
-    const refreshToken = localStorage.getItem('whoop_refresh_token');
+    // Prevent concurrent fetches
+    if (fetchInFlight.current) return;
+    fetchInFlight.current = true;
+
+    const accessToken = getToken(LS_KEYS.accessToken);
+    const refreshToken = getToken(LS_KEYS.refreshToken);
 
     if (!accessToken) {
       setIsConnected(false);
       setIsLoading(false);
+      fetchInFlight.current = false;
       return;
     }
 
@@ -212,51 +275,53 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       const res = await fetch('/api/whoop/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+        body: JSON.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        }),
       });
-      const data: WhoopApiResponse & { new_access_token?: string; new_refresh_token?: string; new_expires_in?: number; warnings?: string[] } = await res.json();
 
-      // Handle token refresh
-      if (data.error === 'token_refreshed' && data.new_access_token) {
-        localStorage.setItem('whoop_access_token', data.new_access_token);
-        if (data.new_refresh_token) localStorage.setItem('whoop_refresh_token', data.new_refresh_token);
-        if (data.new_expires_in) localStorage.setItem('whoop_token_expires', String(Date.now() + data.new_expires_in * 1000));
-        // Retry with new token
-        const retryRes = await fetch('/api/whoop/data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: data.new_access_token, refresh_token: data.new_refresh_token }),
-        });
-        const retryData = await retryRes.json();
-        if (retryData.connected) {
-          setIsConnected(true);
-          setWhoopProfile(retryData.profile);
-          setWearableData(transformWhoopData(retryData));
-          setLastSync(new Date());
-          return;
+      // Handle non-JSON responses (e.g., 502 from Vercel)
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Server returned ${res.status}. Please try again.`);
+      }
+
+      const data: WhoopApiResponse = await res.json();
+
+      // --- Handle inline token refresh ---
+      // The server refreshed our token and still returned data — update localStorage
+      if (data.new_access_token) {
+        setToken(LS_KEYS.accessToken, data.new_access_token);
+        if (data.new_refresh_token) {
+          setToken(LS_KEYS.refreshToken, data.new_refresh_token);
+        }
+        if (data.new_expires_in) {
+          setToken(LS_KEYS.tokenExpires, String(Date.now() + data.new_expires_in * 1000));
         }
       }
 
+      // --- Handle response ---
       if (data.connected) {
         setIsConnected(true);
         setWhoopProfile(data.profile);
-        const transformed = transformWhoopData(data);
-        setWearableData(transformed);
+        setWearableData(transformWhoopData(data));
         setLastSync(new Date());
-        // Show warnings if any API endpoints had issues
+
+        // Show warnings if some endpoints had issues (partial data)
         if (data.warnings && data.warnings.length > 0) {
           setError(`Some data unavailable: ${data.warnings[0]}`);
         }
       } else {
+        // Connection failed
         setIsConnected(false);
-        if (data.error && data.error !== 'No access token') {
+
+        if (data.requiresReconnect) {
+          // Tokens are dead — clear everything and show reconnect prompt
+          clearTokens();
+          setError(data.error || 'Session expired. Please reconnect your Whoop.');
+        } else if (data.error) {
           setError(data.error);
-        }
-        // If token issue, clear stored tokens
-        if (data.error?.includes('reconnect') || data.error?.includes('No access token')) {
-          localStorage.removeItem('whoop_access_token');
-          localStorage.removeItem('whoop_refresh_token');
-          localStorage.removeItem('whoop_token_expires');
         }
       }
     } catch (err: any) {
@@ -265,40 +330,54 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     } finally {
       setIsLoading(false);
       setIsSyncing(false);
+      fetchInFlight.current = false;
     }
   }, []);
 
+  // ------------------------------------------------------------------
+  // On mount: handle OAuth callback params, then fetch data
+  // ------------------------------------------------------------------
   useEffect(() => {
-    // Check URL params for connection status from OAuth callback
     const params = new URLSearchParams(window.location.search);
+
+    // --- Handle OAuth error ---
     if (params.get('whoop_error')) {
-      setError(`Whoop connection failed: ${decodeURIComponent(params.get('whoop_error')!)}`);
+      const rawError = params.get('whoop_error')!;
+      setError(`Whoop connection failed: ${decodeURIComponent(rawError)}`);
+      // Clean up URL completely (search params + hash)
       window.history.replaceState({}, '', window.location.pathname);
       setIsLoading(false);
       return;
     }
+
+    // --- Handle OAuth success ---
     if (params.get('whoop_connected') === 'true') {
-      // Check URL hash for fallback tokens (in case localStorage failed in callback page)
-      if (window.location.hash) {
+      // Check URL hash for fallback tokens (if localStorage failed in callback page)
+      if (window.location.hash && window.location.hash.length > 1) {
         try {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const at = hashParams.get('whoop_at');
           const rt = hashParams.get('whoop_rt');
           const exp = hashParams.get('whoop_exp');
           if (at) {
-            localStorage.setItem('whoop_access_token', at);
-            if (rt) localStorage.setItem('whoop_refresh_token', rt);
-            if (exp) localStorage.setItem('whoop_token_expires', exp);
+            setToken(LS_KEYS.accessToken, at);
+            if (rt) setToken(LS_KEYS.refreshToken, rt);
+            if (exp) setToken(LS_KEYS.tokenExpires, exp);
           }
-        } catch { /* ignore hash parse errors */ }
+        } catch {
+          // Hash parse errors — tokens should already be in localStorage from callback
+        }
       }
+      // Clean up URL completely
       window.history.replaceState({}, '', window.location.pathname);
     }
 
     fetchWhoopData();
   }, [fetchWhoopData]);
 
+  // ------------------------------------------------------------------
   // Derived data
+  // ------------------------------------------------------------------
   const today = wearableData.length > 0 ? wearableData[wearableData.length - 1] : null;
   const yesterday = wearableData.length >= 2 ? wearableData[wearableData.length - 2] : null;
 
@@ -314,24 +393,28 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   );
 
   const avgRecovery = useMemo(() => {
-    const scores = wearableData.map((d) => d.recoveryScore).filter((s): s is number => s != null);
-    return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    const scores = wearableData
+      .map((d) => d.recoveryScore)
+      .filter((s): s is number => s != null);
+    return scores.length > 0
+      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : 0;
   }, [wearableData]);
 
+  // ------------------------------------------------------------------
   // Handlers
+  // ------------------------------------------------------------------
   const handleConnect = () => {
-    // Redirect to OAuth flow
     window.location.href = '/api/whoop/auth';
   };
 
   const handleDisconnect = () => {
-    localStorage.removeItem('whoop_access_token');
-    localStorage.removeItem('whoop_refresh_token');
-    localStorage.removeItem('whoop_token_expires');
+    clearTokens();
     setIsConnected(false);
     setWearableData([]);
     setWhoopProfile(null);
     setLastSync(null);
+    setError(null);
   };
 
   const handleSync = () => {
@@ -339,7 +422,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   };
 
   const handleManualSubmit = () => {
-    // Add manual entry to local data
     const newEntry: WearableData = {
       id: `manual-${Date.now()}`,
       date: new Date(),
@@ -355,7 +437,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       caloriesBurned: null,
     };
 
-    setWearableData(prev => [...prev, newEntry]);
+    setWearableData((prev) => [...prev, newEntry]);
     setShowManualEntry(false);
     setManualRecovery('');
     setManualHRV('');
@@ -364,7 +446,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     setManualStrain('');
   };
 
-  // Readiness recommendation
+  // ------------------------------------------------------------------
+  // Training readiness (derived from today's recovery score)
+  // ------------------------------------------------------------------
   const readiness = useMemo(() => {
     const score = today?.recoveryScore ?? 0;
     if (score >= 67) {
@@ -396,6 +480,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
   const strainPct = today?.strain != null ? Math.min((today.strain / 21) * 100, 100) : 0;
 
+  // ------------------------------------------------------------------
+  // Loading state
+  // ------------------------------------------------------------------
   if (isLoading) {
     return (
       <div className="min-h-screen bg-grappler-900 bg-mesh flex items-center justify-center">
@@ -407,6 +494,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     );
   }
 
+  // ------------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------------
   return (
     <motion.div
       initial={{ opacity: 0, x: 40 }}
@@ -429,7 +519,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">Whoop</h1>
                 <p className="text-xs text-grappler-500">
                   {whoopProfile
-                    ? `${whoopProfile.first_name || ''} ${whoopProfile.last_name || ''}`.trim() || 'Connected'
+                    ? `${whoopProfile.first_name || ''} ${whoopProfile.last_name || ''}`.trim() ||
+                      'Connected'
                     : 'Wearable Integration'}
                 </p>
               </div>
@@ -442,7 +533,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 disabled={isSyncing}
                 className="btn btn-ghost btn-sm p-1.5"
               >
-                <RefreshCw className={cn('w-4 h-4 text-grappler-400', isSyncing && 'animate-spin')} />
+                <RefreshCw
+                  className={cn('w-4 h-4 text-grappler-400', isSyncing && 'animate-spin')}
+                />
               </button>
             )}
             <button
@@ -464,14 +557,24 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
             className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3"
           >
             <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-red-300">{error}</p>
-              <button
-                onClick={() => setError(null)}
-                className="text-xs text-red-400 hover:text-red-300 mt-1"
-              >
-                Dismiss
-              </button>
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => setError(null)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Dismiss
+                </button>
+                {!isConnected && (
+                  <button
+                    onClick={handleConnect}
+                    className="text-xs text-green-400 hover:text-green-300 font-medium"
+                  >
+                    Reconnect
+                  </button>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -490,7 +593,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
             <div
               className={cn(
                 'w-3 h-3 rounded-full',
-                isConnected ? 'bg-green-400 shadow-lg shadow-green-400/40' : 'bg-red-400',
+                isConnected
+                  ? 'bg-green-400 shadow-lg shadow-green-400/40'
+                  : 'bg-red-400',
               )}
             />
             <div>
@@ -499,7 +604,11 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               </p>
               {isConnected && lastSync && (
                 <p className="text-xs text-grappler-500">
-                  Last sync {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  Last sync{' '}
+                  {lastSync.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </p>
               )}
             </div>
@@ -551,7 +660,12 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     </span>
                   </div>
                   <div className="flex items-end gap-2">
-                    <span className={cn('text-4xl font-bold', recoveryColor(today.recoveryScore ?? 0))}>
+                    <span
+                      className={cn(
+                        'text-4xl font-bold',
+                        recoveryColor(today.recoveryScore ?? 0),
+                      )}
+                    >
                       {today.recoveryScore ?? '--'}
                     </span>
                     <span className="text-grappler-500 text-sm pb-1">/ 100</span>
@@ -566,8 +680,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                         (today.recoveryScore ?? 0) >= 67
                           ? 'bg-gradient-to-r from-green-500 to-green-400'
                           : (today.recoveryScore ?? 0) >= 34
-                          ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
-                          : 'bg-gradient-to-r from-red-500 to-red-400',
+                            ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
+                            : 'bg-gradient-to-r from-red-500 to-red-400',
                       )}
                     />
                   </div>
@@ -603,7 +717,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     <p className="text-2xl font-bold text-grappler-50">
                       {today.hrv ?? '--'}
                     </p>
-                    {yesterday?.hrv != null && today.hrv != null && trendIcon(today.hrv, yesterday.hrv)}
+                    {yesterday?.hrv != null &&
+                      today.hrv != null &&
+                      trendIcon(today.hrv, yesterday.hrv)}
                   </div>
                   <span className="text-xs text-grappler-500">ms</span>
                 </div>
@@ -618,7 +734,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     <p className="text-2xl font-bold text-grappler-50">
                       {today.restingHR ?? '--'}
                     </p>
-                    {yesterday?.restingHR != null && today.restingHR != null &&
+                    {yesterday?.restingHR != null &&
+                      today.restingHR != null &&
                       trendIcon(yesterday.restingHR, today.restingHR)}
                   </div>
                   <span className="text-xs text-grappler-500">bpm</span>
@@ -634,7 +751,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     {today.sleepScore ?? '--'}
                   </p>
                   <span className="text-xs text-grappler-500">
-                    {today.sleepHours != null ? `${today.sleepHours.toFixed(1)} hrs` : '-- hrs'}
+                    {today.sleepHours != null
+                      ? `${today.sleepHours.toFixed(1)} hrs`
+                      : '-- hrs'}
                   </span>
                 </div>
 
@@ -687,14 +806,22 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 className="card p-4"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-semibold text-grappler-200">7-Day Recovery Trend</h3>
+                  <h3 className="text-sm font-semibold text-grappler-200">
+                    7-Day Recovery Trend
+                  </h3>
                   <span className="text-xs text-grappler-500">
-                    Avg: <span className={cn('font-medium', recoveryColor(avgRecovery))}>{avgRecovery}%</span>
+                    Avg:{' '}
+                    <span className={cn('font-medium', recoveryColor(avgRecovery))}>
+                      {avgRecovery}%
+                    </span>
                   </span>
                 </div>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
+                    >
                       <defs>
                         <linearGradient id="recoveryGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
@@ -732,7 +859,12 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                         strokeWidth={2}
                         fill="url(#recoveryGradient)"
                         dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }}
+                        activeDot={{
+                          r: 6,
+                          fill: '#22c55e',
+                          stroke: '#fff',
+                          strokeWidth: 2,
+                        }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -810,7 +942,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               Connect Your Whoop
             </h3>
             <p className="text-sm text-grappler-400 mb-6 max-w-xs mx-auto">
-              Link your Whoop strap to get real recovery data, strain scores, and automatic intensity adjustments based on your actual readiness.
+              Link your Whoop strap to get real recovery data, strain scores, and
+              automatic intensity adjustments based on your actual readiness.
             </p>
             <button onClick={handleConnect} className="btn btn-primary btn-md gap-2">
               <ExternalLink className="w-4 h-4" />
@@ -847,7 +980,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-grappler-400 mb-1 block">Recovery (0-100)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">
+                      Recovery (0-100)
+                    </label>
                     <input
                       type="number"
                       min={0}
@@ -870,7 +1005,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-grappler-400 mb-1 block">Resting HR (bpm)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">
+                      Resting HR (bpm)
+                    </label>
                     <input
                       type="number"
                       min={0}
@@ -893,7 +1030,9 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs text-grappler-400 mb-1 block">Strain (0-21)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">
+                      Strain (0-21)
+                    </label>
                     <input
                       type="number"
                       min={0}

@@ -155,19 +155,42 @@ interface WhoopApiResponse {
   warnings?: string[];
 }
 
+/**
+ * Normalize a Whoop timestamp to a YYYY-MM-DD date key.
+ *
+ * Whoop cycles/sleep start at sleep onset (e.g., 23:00 Feb 2) but conceptually
+ * belong to the next calendar day (Feb 3). Recovery is created at wake-up on
+ * Feb 3. Using raw `start` timestamps would put cycle data on Feb 2 and recovery
+ * on Feb 3 — they'd never merge.
+ *
+ * Fix: prefer the `end` timestamp (wake-up / cycle-end), which lands on the
+ * correct calendar day. Fall back to `start`, then `created_at`.
+ */
+function whoopDateKey(record: any): string | null {
+  // Prefer end time (represents the "day" the data belongs to)
+  const ts = record.end || record.start || record.created_at;
+  return ts?.substring(0, 10) || null;
+}
+
 function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
   const dataMap = new Map<string, Partial<WearableData>>();
 
-  // Process cycles (strain, calories)
+  // Helper: merge new fields into an existing day entry
+  function mergeDay(dateKey: string, fields: Partial<WearableData>) {
+    const existing = dataMap.get(dateKey) || {};
+    dataMap.set(dateKey, { ...existing, ...fields });
+  }
+
+  // --- Process cycles (strain, calories) ---
   if (apiData.cycles) {
     for (const cycle of apiData.cycles) {
-      const dateKey = cycle.start?.substring(0, 10);
+      // Skip unscored cycles (v2 returns no fallback values)
+      if (cycle.score_state && cycle.score_state !== 'SCORED') continue;
+      const dateKey = whoopDateKey(cycle);
       if (!dateKey) continue;
-      const existing = dataMap.get(dateKey) || {};
-      dataMap.set(dateKey, {
-        ...existing,
+      mergeDay(dateKey, {
         id: cycle.id?.toString() || dateKey,
-        date: new Date(cycle.start),
+        date: new Date(cycle.end || cycle.start),
         provider: 'whoop' as WearableProvider,
         strain: cycle.score?.strain ?? null,
         caloriesBurned: cycle.score?.kilojoule
@@ -177,16 +200,25 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     }
   }
 
-  // Process recovery (recovery score, HRV, resting HR, resp rate, skin temp)
+  // --- Process recovery (recovery score, HRV, resting HR, skin temp) ---
   if (apiData.recovery) {
     for (const rec of apiData.recovery) {
-      const dateKey = rec.created_at?.substring(0, 10) || rec.cycle?.start?.substring(0, 10);
+      if (rec.score_state && rec.score_state !== 'SCORED') continue;
+      const dateKey = whoopDateKey(rec);
       if (!dateKey) continue;
       const existing = dataMap.get(dateKey) || {};
-      dataMap.set(dateKey, {
-        ...existing,
-        id: existing.id || rec.cycle_id?.toString() || dateKey,
-        date: existing.date || new Date(dateKey),
+
+      // Skin temp: v2 returns absolute Celsius (e.g., 33.4).
+      // Convert to Fahrenheit: C * 9/5 + 32.
+      let skinTemp: number | null = null;
+      if (rec.score?.skin_temp_celsius != null) {
+        const c = rec.score.skin_temp_celsius;
+        skinTemp = Math.round((c * 9 / 5 + 32) * 10) / 10;
+      }
+
+      mergeDay(dateKey, {
+        id: existing.id || rec.cycle_id?.toString() || rec.id?.toString() || dateKey,
+        date: existing.date || new Date(rec.end || rec.start || rec.created_at || dateKey),
         provider: 'whoop' as WearableProvider,
         recoveryScore: rec.score?.recovery_score ?? null,
         hrv: rec.score?.hrv_rmssd_milli
@@ -195,18 +227,20 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         restingHR: rec.score?.resting_heart_rate
           ? Math.round(rec.score.resting_heart_rate)
           : null,
-        respiratoryRate: rec.score?.respiratory_rate ?? null,
-        skinTemp: rec.score?.skin_temp_celsius != null
-          ? Math.round((rec.score.skin_temp_celsius * 9 / 5) * 10) / 10
-          : null,
+        // v2 moved respiratory_rate from recovery to sleep — keep checking
+        // here for backwards compat but it'll usually be null in v2
+        respiratoryRate: existing.respiratoryRate ?? rec.score?.respiratory_rate ?? null,
+        skinTemp,
       });
     }
   }
 
-  // Process sleep
+  // --- Process sleep (sleep score, hours, respiratory rate) ---
   if (apiData.sleep) {
     for (const sl of apiData.sleep) {
-      const dateKey = sl.start?.substring(0, 10);
+      if (sl.score_state && sl.score_state !== 'SCORED') continue;
+      // Use END time (wake-up) as the date key — matches recovery's day
+      const dateKey = whoopDateKey(sl);
       if (!dateKey) continue;
       const existing = dataMap.get(dateKey) || {};
       const totalSleepMs = sl.score?.stage_summary?.total_in_bed_time_milli ?? 0;
@@ -214,12 +248,13 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         ? Math.round((totalSleepMs / 3600000) * 10) / 10
         : null;
 
-      dataMap.set(dateKey, {
-        ...existing,
-        date: existing.date || new Date(dateKey),
+      mergeDay(dateKey, {
+        date: existing.date || new Date(sl.end || sl.start || dateKey),
         provider: 'whoop' as WearableProvider,
         sleepScore: sl.score?.sleep_performance_percentage ?? null,
         sleepHours,
+        // v2: respiratory_rate lives in sleep score, not recovery
+        respiratoryRate: sl.score?.respiratory_rate ?? existing.respiratoryRate ?? null,
       });
     }
   }
@@ -777,10 +812,10 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   </span>
                   <p className="text-2xl font-bold text-grappler-50">
                     {today.skinTemp != null
-                      ? `${today.skinTemp >= 0 ? '+' : ''}${today.skinTemp.toFixed(1)}`
+                      ? `${today.skinTemp.toFixed(1)}`
                       : '--'}
                   </p>
-                  <span className="text-xs text-grappler-500">&deg;F deviation</span>
+                  <span className="text-xs text-grappler-500">&deg;F</span>
                 </div>
 
                 {/* Calories */}

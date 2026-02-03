@@ -134,6 +134,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
       secondaryMuscles: form.secondaryMuscles,
       movementPattern: form.movementPattern,
       equipmentRequired: form.equipmentRequired,
+      equipmentTypes: [],
       grapplerFriendly: form.grapplerFriendly,
       aestheticValue: form.aestheticValue,
       strengthValue: form.strengthValue,

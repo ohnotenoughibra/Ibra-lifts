@@ -142,6 +142,9 @@ function selectExercisesForType(
       score = ex.strengthValue * 2 + ex.aestheticValue;
     } else if (goalFocus === 'hypertrophy') {
       score = ex.aestheticValue * 2 + ex.strengthValue;
+    } else if (goalFocus === 'power') {
+      // Power prioritizes explosive movements and strength
+      score = ex.strengthValue * 1.5 + ex.aestheticValue + (ex.movementPattern === 'explosive' || ex.movementPattern === 'rotation' ? 4 : 0);
     } else {
       score = ex.strengthValue + ex.aestheticValue + (ex.grapplerFriendly ? 3 : 0);
     }
@@ -152,13 +155,37 @@ function selectExercisesForType(
     return score;
   };
 
-  // Select compounds first
-  const compounds = availableExercises
+  // Get target movement patterns for this session type to ensure balance
+  const patterns = MOVEMENT_PATTERNS_PER_SESSION.grappler_hybrid;
+  const targetPatterns: string[] = type in patterns
+    ? (patterns as any)[type] as string[]
+    : ['hinge', 'squat', 'push', 'pull'];
+
+  // Select compounds by matching target movement patterns first
+  const compoundPool = availableExercises
     .filter(e => e.category === 'compound')
-    .sort((a, b) => scoreExercise(b) - scoreExercise(a))
-    .slice(0, priorities.compounds);
-  selected.push(...compounds);
-  compounds.forEach(e => usedExerciseIds.add(e.id));
+    .sort((a, b) => scoreExercise(b) - scoreExercise(a));
+
+  const usedPatterns = new Set<string>();
+  for (const pattern of targetPatterns) {
+    if (selected.length >= priorities.compounds) break;
+    const match = compoundPool.find(
+      e => e.movementPattern === pattern && !usedExerciseIds.has(e.id) && !selected.includes(e)
+    );
+    if (match) {
+      selected.push(match);
+      usedExerciseIds.add(match.id);
+      usedPatterns.add(pattern);
+    }
+  }
+  // Fill remaining compound slots with highest-scored exercises
+  for (const ex of compoundPool) {
+    if (selected.length >= priorities.compounds) break;
+    if (!usedExerciseIds.has(ex.id) && !selected.includes(ex)) {
+      selected.push(ex);
+      usedExerciseIds.add(ex.id);
+    }
+  }
 
   // Add power/grappling-specific exercises
   const grapplingExercises = availableExercises
@@ -318,16 +345,34 @@ function generateMesocycleWeek(
       usedExerciseIds
     );
 
-    // Apply multipliers to prescriptions
-    if (isDeload) {
-      session.exercises = session.exercises.map(ex => ({
+    // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
+    session.exercises = session.exercises.map(ex => {
+      const adjustedSets = isDeload
+        ? Math.max(2, Math.floor(ex.sets * volumeMultiplier))
+        : Math.min(8, Math.round(ex.sets * volumeMultiplier));
+
+      const basePercentage = ex.prescription.percentageOf1RM ?? 75;
+      const adjustedPercentage = Math.min(
+        100,
+        Math.round(basePercentage * intensityMultiplier)
+      );
+
+      const adjustedRPE = isDeload
+        ? Math.max(5, ex.prescription.rpe - 2)
+        : Math.min(10, +(ex.prescription.rpe * intensityMultiplier).toFixed(1));
+
+      return {
         ...ex,
-        sets: Math.max(2, Math.floor(ex.sets * volumeMultiplier)),
+        sets: adjustedSets,
         prescription: {
           ...ex.prescription,
-          rpe: Math.max(5, ex.prescription.rpe - 2)
-        }
-      }));
+          percentageOf1RM: adjustedPercentage,
+          rpe: adjustedRPE,
+        },
+      };
+    });
+
+    if (isDeload) {
       session.name = `Deload - ${session.name}`;
     }
 

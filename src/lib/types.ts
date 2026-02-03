@@ -288,6 +288,24 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Body Weight Tracking
+export interface BodyWeightEntry {
+  id: string;
+  date: Date;
+  weight: number;
+  unit: WeightUnit;
+  notes?: string;
+}
+
+// Superset / Circuit support
+export interface SupersetGroup {
+  id: string;
+  exerciseIds: string[];
+  type: 'superset' | 'circuit' | 'dropset';
+  restBetweenExercises: number; // seconds
+  restAfterGroup: number; // seconds
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

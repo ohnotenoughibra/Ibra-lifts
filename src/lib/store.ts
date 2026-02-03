@@ -16,7 +16,8 @@ import {
   PreWorkoutCheckIn,
   PostWorkoutFeedback,
   ExerciseFeedback,
-  WorkoutAdjustment
+  WorkoutAdjustment,
+  BodyWeightEntry
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -51,6 +52,9 @@ interface AppState {
   // Gamification
   gamificationStats: GamificationStats;
 
+  // Body weight tracking
+  bodyWeightLog: BodyWeightEntry[];
+
   // UI state
   showTip: boolean;
   currentTipId: string | null;
@@ -80,6 +84,10 @@ interface AppState {
   // Gamification actions
   awardPoints: (points: number, reason: string) => void;
   checkAndAwardBadges: () => void;
+
+  // Body weight actions
+  addBodyWeight: (weight: number, notes?: string) => void;
+  deleteBodyWeight: (id: string) => void;
 
   // UI actions
   setShowTip: (show: boolean) => void;
@@ -128,6 +136,7 @@ export const useAppStore = create<AppState>()(
       activeWorkout: null,
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
+      bodyWeightLog: [],
       showTip: true,
       currentTipId: null,
 
@@ -481,6 +490,24 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      // Body weight actions
+      addBodyWeight: (weight, notes) => {
+        const { bodyWeightLog, user } = get();
+        const entry: BodyWeightEntry = {
+          id: uuidv4(),
+          date: new Date(),
+          weight,
+          unit: user?.weightUnit || 'lbs',
+          notes
+        };
+        set({ bodyWeightLog: [...bodyWeightLog, entry] });
+      },
+
+      deleteBodyWeight: (id) => {
+        const { bodyWeightLog } = get();
+        set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
+      },
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -498,6 +525,7 @@ export const useAppStore = create<AppState>()(
           activeWorkout: null,
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
+          bodyWeightLog: [],
           showTip: true,
           currentTipId: null
         })
@@ -513,7 +541,8 @@ export const useAppStore = create<AppState>()(
         currentMesocycle: state.currentMesocycle,
         mesocycleHistory: state.mesocycleHistory,
         workoutLogs: state.workoutLogs,
-        gamificationStats: state.gamificationStats
+        gamificationStats: state.gamificationStats,
+        bodyWeightLog: state.bodyWeightLog
       })
     }
   )
@@ -528,3 +557,4 @@ export const useCurrentMesocycle = () => useAppStore((state) => state.currentMes
 export const useActiveWorkout = () => useAppStore((state) => state.activeWorkout);
 export const useWorkoutLogs = () => useAppStore((state) => state.workoutLogs);
 export const useGamificationStats = () => useAppStore((state) => state.gamificationStats);
+export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog);

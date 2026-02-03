@@ -17,17 +17,28 @@ import {
   Zap,
   Star,
   TrendingUp,
-  Clock
+  Clock,
+  AlertTriangle,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  History
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
+import { shouldDeload } from '@/lib/auto-adjust';
+import { generateQuickWorkout } from '@/lib/workout-generator';
+import { exportToCSV, exportToJSON, downloadFile } from '@/lib/data-export';
 import WorkoutView from './WorkoutView';
 import ProgressCharts from './ProgressCharts';
 import KnowledgeHub from './KnowledgeHub';
 import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
+import WorkoutHistory from './WorkoutHistory';
+import TrainingCalendar from './TrainingCalendar';
+import BodyWeightTracker from './BodyWeightTracker';
 
-type TabType = 'home' | 'program' | 'progress' | 'learn' | 'profile';
+type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -103,6 +114,16 @@ export default function Dashboard() {
               <ProgressCharts />
             </motion.div>
           )}
+          {activeTab === 'history' && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <HistoryTab />
+            </motion.div>
+          )}
           {activeTab === 'learn' && (
             <motion.div
               key="learn"
@@ -133,6 +154,7 @@ export default function Dashboard() {
             { id: 'home', icon: Dumbbell, label: 'Home' },
             { id: 'program', icon: Calendar, label: 'Program' },
             { id: 'progress', icon: BarChart3, label: 'Progress' },
+            { id: 'history', icon: History, label: 'History' },
             { id: 'learn', icon: BookOpen, label: 'Learn' },
             { id: 'profile', icon: User, label: 'Profile' },
           ].map((tab) => (
@@ -140,24 +162,119 @@ export default function Dashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
               className={cn(
-                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
               )}
             >
               <tab.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 w-12 h-0.5 bg-primary-500 rounded-full"
+                  className="absolute bottom-0 w-10 h-0.5 bg-primary-500 rounded-full"
                 />
               )}
             </button>
           ))}
         </div>
       </nav>
+    </div>
+  );
+}
+
+// History Tab - combines workout history, calendar, body weight, and data export
+function HistoryTab() {
+  const { workoutLogs, user } = useAppStore();
+  const [historyView, setHistoryView] = useState<'log' | 'calendar' | 'weight'>('log');
+  const [showExport, setShowExport] = useState(false);
+  const weightUnit = user?.weightUnit || 'lbs';
+
+  const handleExportCSV = () => {
+    const csv = exportToCSV(workoutLogs, weightUnit);
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(csv, `grappler-gains-${date}.csv`, 'text/csv');
+  };
+
+  const handleExportJSON = () => {
+    const json = exportToJSON(workoutLogs);
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(json, `grappler-gains-${date}.json`, 'application/json');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-navigation */}
+      <div className="flex gap-2">
+        {[
+          { id: 'log', label: 'Workouts' },
+          { id: 'calendar', label: 'Calendar' },
+          { id: 'weight', label: 'Body Weight' }
+        ].map((view) => (
+          <button
+            key={view.id}
+            onClick={() => setHistoryView(view.id as typeof historyView)}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              historyView === view.id
+                ? 'bg-primary-500 text-white'
+                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+            )}
+          >
+            {view.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setShowExport(!showExport)}
+          className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200"
+          title="Export Data"
+        >
+          <Download className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Export options */}
+      <AnimatePresence>
+        {showExport && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="card p-4">
+              <p className="text-sm text-grappler-300 mb-3">Export your training data</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleExportCSV}
+                  disabled={workoutLogs.length === 0}
+                  className="btn btn-secondary btn-sm flex-1 gap-2"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  CSV
+                </button>
+                <button
+                  onClick={handleExportJSON}
+                  disabled={workoutLogs.length === 0}
+                  className="btn btn-secondary btn-sm flex-1 gap-2"
+                >
+                  <FileJson className="w-4 h-4" />
+                  JSON
+                </button>
+              </div>
+              {workoutLogs.length === 0 && (
+                <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Content */}
+      {historyView === 'log' && <WorkoutHistory />}
+      {historyView === 'calendar' && <TrainingCalendar />}
+      {historyView === 'weight' && <BodyWeightTracker />}
     </div>
   );
 }
@@ -169,6 +286,9 @@ function HomeTab() {
   const motivationalMessage = getMotivationalMessage(gamificationStats);
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
+
+  // Deload detection
+  const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
 
   // Get next workout
   const getNextWorkout = () => {
@@ -183,8 +303,35 @@ function HomeTab() {
 
   const nextWorkout = getNextWorkout();
 
+  // Quick workout handler
+  const handleQuickWorkout = () => {
+    if (!user) return;
+    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus);
+    startWorkout(quickSession);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Deload Alert */}
+      {deloadCheck && deloadCheck.needed && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
+              <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
+              <p className="text-xs text-grappler-400 mt-2">
+                Consider reducing volume by 40-50% this week for recovery.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Welcome Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -261,53 +408,68 @@ function HomeTab() {
         ))}
       </div>
 
-      {/* Next Workout Card */}
-      {nextWorkout && (
+      {/* Workout Buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Next Workout */}
+        {nextWorkout && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="card p-4"
+          >
+            <p className="text-xs text-grappler-400 mb-1">Next Workout</p>
+            <h3 className="text-sm font-bold text-grappler-50 mb-1 truncate">
+              {nextWorkout.name}
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-grappler-400 mb-3">
+              <span className="flex items-center gap-1">
+                <Dumbbell className="w-3 h-3" />
+                {nextWorkout.exercises.length}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                ~{nextWorkout.estimatedDuration}m
+              </span>
+            </div>
+            <button
+              onClick={() => startWorkout(nextWorkout)}
+              className="btn btn-primary btn-sm w-full gap-1"
+            >
+              <Play className="w-4 h-4" />
+              Start
+            </button>
+          </motion.div>
+        )}
+
+        {/* Quick Workout */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="card p-6"
+          transition={{ delay: 0.35 }}
+          className="card p-4"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-grappler-400">Next Workout</p>
-              <h3 className="text-lg font-bold text-grappler-50">
-                {nextWorkout.name}
-              </h3>
-            </div>
-            <div
-              className={cn(
-                'px-3 py-1 rounded-full text-sm font-medium',
-                nextWorkout.type === 'strength' && 'badge-strength',
-                nextWorkout.type === 'hypertrophy' && 'badge-hypertrophy',
-                nextWorkout.type === 'power' && 'badge-power'
-              )}
-            >
-              {nextWorkout.type}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm text-grappler-400 mb-4">
+          <p className="text-xs text-grappler-400 mb-1">Quick Session</p>
+          <h3 className="text-sm font-bold text-grappler-50 mb-1">30-Min Blast</h3>
+          <div className="flex items-center gap-2 text-xs text-grappler-400 mb-3">
             <span className="flex items-center gap-1">
-              <Dumbbell className="w-4 h-4" />
-              {nextWorkout.exercises.length} exercises
+              <Zap className="w-3 h-3" />
+              4 compounds
             </span>
             <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              ~{nextWorkout.estimatedDuration} min
+              <Clock className="w-3 h-3" />
+              ~30m
             </span>
           </div>
-
           <button
-            onClick={() => startWorkout(nextWorkout)}
-            className="btn btn-primary btn-lg w-full gap-2"
+            onClick={handleQuickWorkout}
+            className="btn btn-secondary btn-sm w-full gap-1"
           >
-            <Play className="w-5 h-5" />
-            Start Workout
+            <Zap className="w-4 h-4" />
+            Quick Start
           </button>
         </motion.div>
-      )}
+      </div>
 
       {/* Recent Activity */}
       {workoutLogs.length > 0 && (
@@ -319,7 +481,7 @@ function HomeTab() {
         >
           <h3 className="font-bold text-grappler-50 mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {workoutLogs.slice(-3).reverse().map((log, i) => (
+            {workoutLogs.slice(-3).reverse().map((log) => (
               <div
                 key={log.id}
                 className="flex items-center justify-between py-2 border-b border-grappler-700 last:border-0"
@@ -339,7 +501,7 @@ function HomeTab() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-grappler-200">
-                    {formatNumber(log.totalVolume)} lbs
+                    {formatNumber(log.totalVolume)} {user?.weightUnit || 'lbs'}
                   </p>
                   <p className="text-xs text-grappler-500">{log.duration} min</p>
                 </div>

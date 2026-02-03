@@ -27,7 +27,6 @@ import {
   Activity,
   Apple,
   Leaf,
-  Trophy as TrophyIcon,
   Crosshair,
   Scaling,
   HeartPulse,
@@ -473,6 +472,7 @@ function HistoryTab() {
 // Home Tab Content
 function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const { user, gamificationStats, currentMesocycle, workoutLogs, startWorkout } = useAppStore();
+  const [showMoreTools, setShowMoreTools] = useState(false);
 
   const motivationalMessage = getMotivationalMessage(gamificationStats);
   const progress = levelProgress(gamificationStats.totalPoints);
@@ -484,11 +484,8 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   // Get next workout
   const getNextWorkout = () => {
     if (!currentMesocycle) return null;
-
-    // Find current week (simplified - would need proper date logic in production)
     const currentWeek = currentMesocycle.weeks[0];
     const nextSession = currentWeek.sessions[0];
-
     return nextSession;
   };
 
@@ -497,12 +494,48 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
-    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus);
+    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment);
     startWorkout(quickSession);
   };
 
+  // Tools split into featured (top 4) and more
+  const featuredTools = [
+    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
+    { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+    { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
+    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+  ];
+  const moreTools = [
+    { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
+    { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
+    { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+    { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
+    { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
+    { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
+    { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
+    { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
+    { icon: ListPlus, label: 'Custom Ex', view: 'custom_exercise' as OverlayView, color: 'text-indigo-400 bg-indigo-500/20' },
+    { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
+    { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+    { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
+    { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
+    { icon: Shield, label: 'Grappling', view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
+  ];
+
+  const ToolButton = ({ tool }: { tool: typeof featuredTools[0] }) => (
+    <button
+      onClick={() => onNavigate(tool.view)}
+      className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+    >
+      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tool.color)}>
+        <tool.icon className="w-4.5 h-4.5" />
+      </div>
+      <span className="text-[10px] font-medium text-grappler-300">{tool.label}</span>
+    </button>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Deload Alert */}
       {deloadCheck && deloadCheck.needed && (
         <motion.div
@@ -515,75 +548,83 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
             <div>
               <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
               <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
-              <p className="text-xs text-grappler-400 mt-2">
-                Consider reducing volume by 40-50% this week for recovery.
-              </p>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Welcome Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card p-6"
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold text-grappler-50">
-              Welcome back, {user?.name || 'Athlete'}!
-            </h2>
-            <p className="text-grappler-400 text-sm mt-1">{motivationalMessage}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary-400">
-              Lvl {gamificationStats.level}
-            </p>
-            <p className="text-xs text-grappler-400">
-              {getLevelTitle(gamificationStats.level)}
-            </p>
-          </div>
-        </div>
+      {/* Hero: Start Next Workout */}
+      {nextWorkout ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <button
+            onClick={() => startWorkout(nextWorkout)}
+            className="w-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl p-5 text-left active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">Next Workout</p>
+                <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
+                <div className="flex items-center gap-3 mt-2 text-sm text-white/80">
+                  <span className="flex items-center gap-1">
+                    <Dumbbell className="w-3.5 h-3.5" />
+                    {nextWorkout.exercises.length} exercises
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    ~{nextWorkout.estimatedDuration}m
+                  </span>
+                </div>
+              </div>
+              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <Play className="w-7 h-7 text-white" />
+              </div>
+            </div>
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-5 text-center"
+        >
+          <Dumbbell className="w-10 h-10 text-grappler-600 mx-auto mb-2" />
+          <p className="text-sm text-grappler-400 mb-3">No program yet — generate one to get started</p>
+          <button
+            onClick={handleQuickWorkout}
+            className="btn btn-primary btn-md gap-2"
+          >
+            <Zap className="w-4 h-4" />
+            Quick 30-Min Workout
+          </button>
+        </motion.div>
+      )}
 
-        {/* XP Progress Bar */}
-        <div className="mb-2">
-          <div className="flex justify-between text-xs text-grappler-400 mb-1">
-            <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
-            <span>{formatNumber(pointsNeeded)} to next level</span>
+      {/* Quick Workout (secondary, only if next workout exists) */}
+      {nextWorkout && (
+        <button
+          onClick={handleQuickWorkout}
+          className="w-full card p-3.5 flex items-center gap-3 hover:bg-grappler-700/50 transition-colors"
+        >
+          <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center">
+            <Zap className="w-5 h-5 text-accent-400" />
           </div>
-          <div className="progress-bar">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, delay: 0.3 }}
-              className="progress-bar-fill bg-gradient-to-r from-primary-500 to-accent-500"
-            />
+          <div className="text-left flex-1">
+            <p className="font-medium text-grappler-100 text-sm">Quick 30-Min Workout</p>
+            <p className="text-xs text-grappler-500">4 compound exercises</p>
           </div>
-        </div>
-      </motion.div>
+          <ChevronRight className="w-4 h-4 text-grappler-500" />
+        </button>
+      )}
 
-      {/* Quick Stats */}
+      {/* Compact Stats Row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          {
-            icon: Flame,
-            value: gamificationStats.currentStreak,
-            label: 'Day Streak',
-            color: 'text-orange-500',
-          },
-          {
-            icon: Trophy,
-            value: gamificationStats.personalRecords,
-            label: 'PRs Hit',
-            color: 'text-yellow-500',
-          },
-          {
-            icon: Target,
-            value: gamificationStats.totalWorkouts,
-            label: 'Workouts',
-            color: 'text-green-500',
-          },
+          { icon: Flame, value: gamificationStats.currentStreak, label: 'Streak', color: 'text-orange-500' },
+          { icon: Trophy, value: gamificationStats.personalRecords, label: 'PRs', color: 'text-yellow-500' },
+          { icon: Target, value: gamificationStats.totalWorkouts, label: 'Workouts', color: 'text-green-500' },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -602,202 +643,78 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
       {/* Training Streak Heatmap */}
       <StreakHeatmap workoutLogs={workoutLogs} />
 
-      {/* Workout Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Next Workout */}
-        {nextWorkout && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="card p-4"
-          >
-            <p className="text-xs text-grappler-400 mb-1">Next Workout</p>
-            <h3 className="text-sm font-bold text-grappler-50 mb-1 truncate">
-              {nextWorkout.name}
-            </h3>
-            <div className="flex items-center gap-2 text-xs text-grappler-400 mb-3">
-              <span className="flex items-center gap-1">
-                <Dumbbell className="w-3 h-3" />
-                {nextWorkout.exercises.length}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                ~{nextWorkout.estimatedDuration}m
-              </span>
-            </div>
-            <button
-              onClick={() => startWorkout(nextWorkout)}
-              className="btn btn-primary btn-sm w-full gap-1"
-            >
-              <Play className="w-4 h-4" />
-              Start
-            </button>
-          </motion.div>
-        )}
-
-        {/* Quick Workout */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="card p-4"
-        >
-          <p className="text-xs text-grappler-400 mb-1">Quick Session</p>
-          <h3 className="text-sm font-bold text-grappler-50 mb-1">30-Min Blast</h3>
-          <div className="flex items-center gap-2 text-xs text-grappler-400 mb-3">
-            <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3" />
-              4 compounds
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              ~30m
-            </span>
-          </div>
-          <button
-            onClick={handleQuickWorkout}
-            className="btn btn-secondary btn-sm w-full gap-1"
-          >
-            <Zap className="w-4 h-4" />
-            Quick Start
-          </button>
-        </motion.div>
-      </div>
-
-      {/* Tools & Features Grid */}
+      {/* Featured Tools (4) + expandable More */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.38 }}
+        transition={{ delay: 0.2 }}
       >
-        <h3 className="font-bold text-grappler-50 mb-3">Tools</h3>
         <div className="grid grid-cols-4 gap-2">
-          {[
-            { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
-            { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
-            { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
-            { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
-            { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
-            { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
-            { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
-            { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
-            { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
-            { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
-            { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
-            { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
-            { icon: ListPlus, label: 'Custom Ex', view: 'custom_exercise' as OverlayView, color: 'text-indigo-400 bg-indigo-500/20' },
-            { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
-            { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
-            { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
-            { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
-            { icon: Shield, label: 'Grappling', view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
-          ].map((tool) => (
-            <button
-              key={tool.label}
-              onClick={() => onNavigate(tool.view)}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-            >
-              <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tool.color)}>
-                <tool.icon className="w-4.5 h-4.5" />
-              </div>
-              <span className="text-[10px] font-medium text-grappler-300">{tool.label}</span>
-            </button>
+          {featuredTools.map((tool) => (
+            <ToolButton key={tool.label} tool={tool} />
           ))}
         </div>
+
+        {/* More Tools toggle */}
+        <button
+          onClick={() => setShowMoreTools(!showMoreTools)}
+          className="w-full mt-2 py-2 flex items-center justify-center gap-1 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+        >
+          {showMoreTools ? 'Show Less' : `More Tools (${moreTools.length})`}
+          <ChevronRight className={cn('w-3 h-3 transition-transform', showMoreTools && 'rotate-90')} />
+        </button>
+
+        <AnimatePresence>
+          {showMoreTools && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-4 gap-2 pt-1">
+                {moreTools.map((tool) => (
+                  <ToolButton key={tool.label} tool={tool} />
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity (compact) */}
       {workoutLogs.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="card p-6"
-        >
-          <h3 className="font-bold text-grappler-50 mb-4">Recent Activity</h3>
-          <div className="space-y-3">
+        <div className="card p-4">
+          <h3 className="font-semibold text-grappler-100 text-sm mb-3">Recent</h3>
+          <div className="space-y-2">
             {workoutLogs.slice(-3).reverse().map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between py-2 border-b border-grappler-700 last:border-0"
+                className="flex items-center justify-between py-1.5"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-grappler-700 rounded-lg flex items-center justify-center">
-                    <Dumbbell className="w-5 h-5 text-grappler-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-grappler-200 text-sm">
-                      {log.exercises.length} exercises completed
-                    </p>
-                    <p className="text-xs text-grappler-500">
-                      {formatDate(log.date)}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Dumbbell className="w-4 h-4 text-grappler-500" />
+                  <span className="text-sm text-grappler-300">{log.exercises.length} exercises</span>
+                  <span className="text-xs text-grappler-500">{formatDate(log.date)}</span>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-grappler-200">
-                    {formatNumber(log.totalVolume)} {user?.weightUnit || 'lbs'}
-                  </p>
-                  <p className="text-xs text-grappler-500">{log.duration} min</p>
-                </div>
+                <span className="text-xs text-grappler-400">{log.duration}m</span>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Badges Preview */}
-      {gamificationStats.badges.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="card p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-grappler-50">Recent Badges</h3>
-            <span className="text-sm text-grappler-400">
-              {gamificationStats.badges.length} earned
-            </span>
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
-            {gamificationStats.badges.slice(-5).map((userBadge) => (
-              <div
-                key={userBadge.id}
-                className="flex-shrink-0 w-16 text-center"
-              >
-                <div className="w-14 h-14 bg-grappler-700 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl">
-                  {userBadge.badge.icon}
-                </div>
-                <p className="text-xs text-grappler-400 truncate">
-                  {userBadge.badge.name}
-                </p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Current Mesocycle Info */}
+      {/* Current Block Info (compact) */}
       {currentMesocycle && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="card p-6"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-grappler-400">Current Block</p>
-              <h3 className="font-bold text-grappler-50">{currentMesocycle.name}</h3>
-              <p className="text-sm text-grappler-400 mt-1">
-                {currentMesocycle.weeks.length} weeks • {currentMesocycle.goalFocus} focus
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-grappler-500" />
+        <div className="card p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-grappler-500">Current Block</p>
+            <p className="font-medium text-grappler-100 text-sm">{currentMesocycle.name}</p>
           </div>
-        </motion.div>
+          <span className="text-xs text-grappler-400">
+            {currentMesocycle.weeks.length}w • {currentMesocycle.goalFocus}
+          </span>
+        </div>
       )}
     </div>
   );

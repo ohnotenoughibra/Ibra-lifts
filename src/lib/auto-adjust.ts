@@ -394,8 +394,9 @@ export function getSuggestedWeight(
   exerciseId: string,
   previousLogs: WorkoutLog[]
 ): number | null {
-  // Find the most recent log containing this exercise
-  for (const log of previousLogs) {
+  // Find the most recent log containing this exercise (search from newest to oldest)
+  const sortedLogs = [...previousLogs].reverse();
+  for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
       // Get the working weight (highest weight used)

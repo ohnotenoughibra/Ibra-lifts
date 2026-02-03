@@ -1510,8 +1510,6 @@ export function getAlternativesForExercise(exerciseId: string, equipment: Equipm
     .filter(e =>
       e.id !== exerciseId &&
       e.equipmentRequired.includes(equipment) &&
-      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m)) &&
-      e.movementPattern === exercise.movementPattern ||
       e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))
     )
     .sort((a, b) => {

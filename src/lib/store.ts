@@ -17,7 +17,12 @@ import {
   PostWorkoutFeedback,
   ExerciseFeedback,
   WorkoutAdjustment,
-  BodyWeightEntry
+  BodyWeightEntry,
+  InjuryEntry,
+  CustomExercise,
+  SessionTemplate,
+  ThemeMode,
+  HRSession
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -56,6 +61,21 @@ interface AppState {
   // Body weight tracking
   bodyWeightLog: BodyWeightEntry[];
 
+  // Injury tracking
+  injuryLog: InjuryEntry[];
+
+  // Custom exercises
+  customExercises: CustomExercise[];
+
+  // Session templates
+  sessionTemplates: SessionTemplate[];
+
+  // Heart rate sessions
+  hrSessions: HRSession[];
+
+  // Theme
+  themeMode: ThemeMode;
+
   // UI state
   showTip: boolean;
   currentTipId: string | null;
@@ -93,6 +113,26 @@ interface AppState {
   // Body weight actions
   addBodyWeight: (weight: number, notes?: string) => void;
   deleteBodyWeight: (id: string) => void;
+
+  // Injury actions
+  addInjury: (injury: Omit<InjuryEntry, 'id'>) => void;
+  resolveInjury: (id: string) => void;
+  deleteInjury: (id: string) => void;
+
+  // Custom exercise actions
+  addCustomExercise: (exercise: Omit<CustomExercise, 'isCustom' | 'createdAt'>) => void;
+  deleteCustomExercise: (id: string) => void;
+
+  // Session template actions
+  saveAsTemplate: (name: string, session: WorkoutSession) => void;
+  deleteTemplate: (id: string) => void;
+  useTemplate: (id: string) => void;
+
+  // HR session actions
+  addHRSession: (session: Omit<HRSession, 'id'>) => void;
+
+  // Theme actions
+  setThemeMode: (mode: ThemeMode) => void;
 
   // UI actions
   setShowTip: (show: boolean) => void;
@@ -142,6 +182,11 @@ export const useAppStore = create<AppState>()(
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
       bodyWeightLog: [],
+      injuryLog: [],
+      customExercises: [],
+      sessionTemplates: [],
+      hrSessions: [],
+      themeMode: 'dark' as ThemeMode,
       showTip: true,
       currentTipId: null,
 
@@ -545,6 +590,85 @@ export const useAppStore = create<AppState>()(
         set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
       },
 
+      // Injury actions
+      addInjury: (injury) => {
+        const { injuryLog } = get();
+        set({ injuryLog: [...injuryLog, { ...injury, id: uuidv4() }] });
+      },
+
+      resolveInjury: (id) => {
+        const { injuryLog } = get();
+        set({
+          injuryLog: injuryLog.map(i =>
+            i.id === id ? { ...i, resolved: true, resolvedDate: new Date() } : i
+          )
+        });
+      },
+
+      deleteInjury: (id) => {
+        const { injuryLog } = get();
+        set({ injuryLog: injuryLog.filter(i => i.id !== id) });
+      },
+
+      // Custom exercise actions
+      addCustomExercise: (exercise) => {
+        const { customExercises } = get();
+        const custom: CustomExercise = {
+          ...exercise,
+          isCustom: true,
+          createdAt: new Date()
+        };
+        set({ customExercises: [...customExercises, custom] });
+      },
+
+      deleteCustomExercise: (id) => {
+        const { customExercises } = get();
+        set({ customExercises: customExercises.filter(e => e.id !== id) });
+      },
+
+      // Session template actions
+      saveAsTemplate: (name, session) => {
+        const { sessionTemplates } = get();
+        const template: SessionTemplate = {
+          id: uuidv4(),
+          name,
+          createdAt: new Date(),
+          session,
+          timesUsed: 0
+        };
+        set({ sessionTemplates: [...sessionTemplates, template] });
+      },
+
+      deleteTemplate: (id) => {
+        const { sessionTemplates } = get();
+        set({ sessionTemplates: sessionTemplates.filter(t => t.id !== id) });
+      },
+
+      useTemplate: (id) => {
+        const { sessionTemplates } = get();
+        const template = sessionTemplates.find(t => t.id === id);
+        if (!template) return;
+
+        // Update usage stats
+        set({
+          sessionTemplates: sessionTemplates.map(t =>
+            t.id === id ? { ...t, timesUsed: t.timesUsed + 1, lastUsed: new Date() } : t
+          )
+        });
+
+        // Start the workout from the template
+        get().startWorkout(template.session);
+      },
+
+      // HR session actions
+      addHRSession: (session) => {
+        const { hrSessions } = get();
+        set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }] });
+      },
+
+      // Theme actions
+      setThemeMode: (mode) => set({ themeMode: mode }),
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -563,6 +687,11 @@ export const useAppStore = create<AppState>()(
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
           bodyWeightLog: [],
+          injuryLog: [],
+          customExercises: [],
+          sessionTemplates: [],
+          hrSessions: [],
+          themeMode: 'dark' as ThemeMode,
           showTip: true,
           currentTipId: null
         })
@@ -579,7 +708,12 @@ export const useAppStore = create<AppState>()(
         mesocycleHistory: state.mesocycleHistory,
         workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,
-        bodyWeightLog: state.bodyWeightLog
+        bodyWeightLog: state.bodyWeightLog,
+        injuryLog: state.injuryLog,
+        customExercises: state.customExercises,
+        sessionTemplates: state.sessionTemplates,
+        hrSessions: state.hrSessions,
+        themeMode: state.themeMode
       })
     }
   )

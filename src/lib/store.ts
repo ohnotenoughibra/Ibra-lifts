@@ -35,7 +35,7 @@ import {
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
 import { getSuggestedWeight } from './auto-adjust';
-import { getExerciseById } from './exercises';
+import { getExerciseById, getAlternativesForExercise } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -131,6 +131,7 @@ interface AppState {
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
   cancelWorkout: () => void;
   getWeightUnit: () => WeightUnit;
@@ -505,6 +506,80 @@ export const useAppStore = create<AppState>()(
             exerciseLogs: updatedLogs
           }
         });
+      },
+
+      adaptWorkoutToProfile: (profile) => {
+        const { activeWorkout, workoutLogs } = get();
+        if (!activeWorkout) return;
+
+        const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile);
+        if (!preset) return;
+        const profileEquipment = preset.equipment;
+
+        // Update profile state
+        set({ activeEquipmentProfile: profile });
+        const { user } = get();
+        if (user) {
+          set({ user: { ...user, availableEquipment: profileEquipment, updatedAt: new Date() } });
+        }
+
+        // Check each exercise — if incompatible with new profile, swap it
+        const updatedExercises = [...activeWorkout.session.exercises];
+        const updatedLogs = [...activeWorkout.exerciseLogs];
+        let changed = false;
+
+        for (let i = 0; i < updatedExercises.length; i++) {
+          const ex = updatedExercises[i];
+          const exData = ex.exercise;
+          const eqTypes = exData.equipmentTypes || [];
+
+          // Check if exercise is compatible: all non-bodyweight equipment must be available
+          const isCompatible = eqTypes.length === 0 ||
+            eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+
+          if (!isCompatible) {
+            // Find a compatible alternative with same primary muscles
+            const alts = getAlternativesForExercise(ex.exerciseId, user?.equipment || 'full_gym', 20);
+            const compatibleAlt = alts.find(alt => {
+              const altEq = alt.equipmentTypes || [];
+              return altEq.length === 0 || altEq.every(et => et === 'bodyweight' || profileEquipment.includes(et));
+            });
+
+            if (compatibleAlt) {
+              updatedExercises[i] = {
+                ...ex,
+                exerciseId: compatibleAlt.id,
+                exercise: compatibleAlt,
+              };
+              const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
+              updatedLogs[i] = {
+                ...updatedLogs[i],
+                exerciseId: compatibleAlt.id,
+                exerciseName: compatibleAlt.name,
+                sets: updatedLogs[i].sets.map(s => ({
+                  ...s,
+                  weight: suggestedWeight || 0,
+                  completed: false,
+                })),
+                personalRecord: false,
+                estimated1RM: undefined,
+                feedback: undefined,
+              };
+              changed = true;
+            }
+          }
+        }
+
+        if (changed) {
+          const updatedSession = { ...activeWorkout.session, exercises: updatedExercises };
+          set({
+            activeWorkout: {
+              ...activeWorkout,
+              session: updatedSession,
+              exerciseLogs: updatedLogs,
+            }
+          });
+        }
       },
 
       completeWorkout: (feedback) => {

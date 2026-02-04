@@ -104,6 +104,7 @@ const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: 
 const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
+const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | null;
@@ -207,7 +208,8 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayView] = useState<OverlayView>(null);
-  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
+  const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
+  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, mesocycleHistory, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -272,6 +274,25 @@ export default function Dashboard() {
     return <CommunityShare onClose={() => setOverlayView(null)} />;
   }
 
+  // Mesocycle report overlay
+  if (reportMesocycleId) {
+    const allMesos = [...mesocycleHistory, ...(currentMesocycle ? [currentMesocycle] : [])];
+    const targetMeso = allMesos.find(m => m.id === reportMesocycleId);
+    if (targetMeso) {
+      const targetIdx = allMesos.indexOf(targetMeso);
+      const prevMeso = targetIdx > 0 ? allMesos[targetIdx - 1] : null;
+      return (
+        <MesocycleReportView
+          mesocycle={targetMeso}
+          workoutLogs={workoutLogs}
+          previousMesocycle={prevMeso}
+          weightUnit={user?.weightUnit || 'lbs'}
+          onClose={() => setReportMesocycleId(null)}
+        />
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh pb-20">
       {/* Header */}
@@ -316,7 +337,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <HomeTab onNavigate={setOverlayView} />
+              <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} />
             </motion.div>
           )}
           {activeTab === 'program' && (
@@ -336,7 +357,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <ProgressCharts />
+              <ProgressCharts onViewReport={setReportMesocycleId} />
             </motion.div>
           )}
           {activeTab === 'history' && (
@@ -652,7 +673,7 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
 }
 
 // Home Tab Content
-function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
+function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void }) {
   const {
     user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
@@ -1171,7 +1192,14 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
             </div>
           )}
 
-          <div className="text-center">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => onViewReport(currentMesocycle.id)}
+              className="btn btn-md gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600"
+            >
+              <BarChart3 className="w-4 h-4" />
+              View Report
+            </button>
             <button
               onClick={handleGenerateNext}
               className="btn btn-primary btn-md gap-2"

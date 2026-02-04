@@ -41,6 +41,10 @@ const GRAPPLING_TYPES: { id: GrapplingType; label: string; short: string }[] = [
   { id: 'wrestling', label: 'Wrestling', short: 'Wres' },
   { id: 'mma', label: 'MMA', short: 'MMA' },
   { id: 'judo', label: 'Judo', short: 'Judo' },
+  { id: 'boxing', label: 'Boxing', short: 'Box' },
+  { id: 'kickboxing', label: 'Kickboxing', short: 'KB' },
+  { id: 'muay_thai', label: 'Muay Thai', short: 'MT' },
+  { id: 'striking', label: 'Striking', short: 'Strk' },
   { id: 'other', label: 'Other', short: 'Other' },
 ];
 
@@ -74,6 +78,10 @@ function typeBadgeColor(type: GrapplingType): string {
     case 'wrestling': return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
     case 'mma': return 'bg-red-500/20 text-red-400 border-red-500/40';
     case 'judo': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
+    case 'boxing': return 'bg-rose-500/20 text-rose-400 border-rose-500/40';
+    case 'kickboxing': return 'bg-orange-500/20 text-orange-400 border-orange-500/40';
+    case 'muay_thai': return 'bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/40';
+    case 'striking': return 'bg-pink-500/20 text-pink-400 border-pink-500/40';
     default: return 'bg-grappler-600/30 text-grappler-300 border-grappler-500/40';
   }
 }
@@ -720,6 +728,49 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                                 <p className="text-xs text-grappler-400 italic mt-0.5">
                                   {session.notes}
                                 </p>
+                              </div>
+                            )}
+
+                            {/* Whoop HR data (auto-synced) */}
+                            {session.whoopHR && (
+                              <div className="bg-grappler-900/50 rounded-lg p-3 space-y-2">
+                                <span className="text-[10px] uppercase tracking-wider text-primary-400 font-semibold flex items-center gap-1">
+                                  <Flame className="w-3 h-3" /> Whoop Data
+                                </span>
+                                <div className="grid grid-cols-4 gap-2 text-xs">
+                                  <div className="text-center">
+                                    <div className="text-grappler-500">Avg HR</div>
+                                    <div className="text-grappler-200 font-medium">{session.whoopHR.avgHR}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-grappler-500">Max HR</div>
+                                    <div className="text-grappler-200 font-medium">{session.whoopHR.maxHR}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-grappler-500">Strain</div>
+                                    <div className="text-grappler-200 font-medium">{session.whoopHR.strain.toFixed(1)}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-grappler-500">Cal</div>
+                                    <div className="text-grappler-200 font-medium">{session.whoopHR.calories}</div>
+                                  </div>
+                                </div>
+                                {session.whoopHR.zones && session.whoopHR.zones.length > 0 && (
+                                  <div className="flex h-2 rounded-full overflow-hidden gap-px mt-1">
+                                    {session.whoopHR.zones.map((z) => {
+                                      const colors = ['#94a3b8','#3b82f6','#22c55e','#f59e0b','#ef4444','#dc2626'];
+                                      const total = session.whoopHR!.zones!.reduce((s, zn) => s + zn.minutes, 0);
+                                      return total > 0 ? (
+                                        <div
+                                          key={z.zone}
+                                          className="rounded-sm"
+                                          style={{ width: `${(z.minutes / total) * 100}%`, backgroundColor: colors[z.zone] || '#666' }}
+                                          title={`Zone ${z.zone}: ${z.minutes.toFixed(0)}m`}
+                                        />
+                                      ) : null;
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             )}
 

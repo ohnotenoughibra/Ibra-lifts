@@ -27,6 +27,9 @@ import {
   Loader2,
   ExternalLink,
   AlertCircle,
+  Droplets,
+  BedDouble,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -235,6 +238,7 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         // here for backwards compat but it'll usually be null in v2
         respiratoryRate: existing.respiratoryRate ?? rec.score?.respiratory_rate ?? null,
         skinTemp,
+        spo2: rec.score?.spo2_percentage ?? null,
       });
     }
   }
@@ -252,6 +256,10 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         ? Math.round((totalSleepMs / 3600000) * 10) / 10
         : null;
 
+      const stages = sl.score?.stage_summary;
+      const deepMs = stages?.total_slow_wave_sleep_time_milli;
+      const remMs = stages?.total_rem_sleep_time_milli;
+
       mergeDay(dateKey, {
         date: existing.date || new Date(sl.end || sl.start || dateKey),
         provider: 'whoop' as WearableProvider,
@@ -259,7 +267,30 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         sleepHours,
         // v2: respiratory_rate lives in sleep score, not recovery
         respiratoryRate: sl.score?.respiratory_rate ?? existing.respiratoryRate ?? null,
+        sleepEfficiency: sl.score?.sleep_efficiency_percentage ?? null,
+        deepSleepMinutes: deepMs != null ? Math.round(deepMs / 60000) : null,
+        remSleepMinutes: remMs != null ? Math.round(remMs / 60000) : null,
+        sleepDisturbances: stages?.disturbance_count ?? null,
       });
+    }
+  }
+
+  // --- Carry forward strain/calories to the latest entry ---
+  // The current physiological cycle is typically PENDING_SCORE (no strain data).
+  // The most recent SCORED cycle ends up on the previous date key. Recovery and
+  // sleep for today land on today's key. This leaves today's entry missing
+  // strain/calories even though the last scored values are from the adjacent cycle.
+  const sortedKeys = Array.from(dataMap.keys()).sort();
+  if (sortedKeys.length >= 2) {
+    const latestEntry = dataMap.get(sortedKeys[sortedKeys.length - 1]);
+    const prevEntry = dataMap.get(sortedKeys[sortedKeys.length - 2]);
+    if (latestEntry && prevEntry) {
+      if (latestEntry.strain == null && prevEntry.strain != null) {
+        latestEntry.strain = prevEntry.strain;
+      }
+      if (latestEntry.caloriesBurned == null && prevEntry.caloriesBurned != null) {
+        latestEntry.caloriesBurned = prevEntry.caloriesBurned;
+      }
     }
   }
 
@@ -525,6 +556,11 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       respiratoryRate: null,
       skinTemp: null,
       caloriesBurned: null,
+      spo2: null,
+      sleepEfficiency: null,
+      deepSleepMinutes: null,
+      remSleepMinutes: null,
+      sleepDisturbances: null,
     };
 
     setWearableData((prev) => [...prev, newEntry]);
@@ -884,6 +920,62 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   </p>
                   <span className="text-xs text-grappler-500">kcal</span>
                 </div>
+
+                {/* SpO2 */}
+                {today.spo2 != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Droplets className="w-4 h-4" />
+                      SpO2
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.spo2.toFixed(0)}
+                    </p>
+                    <span className="text-xs text-grappler-500">%</span>
+                  </div>
+                )}
+
+                {/* Sleep Efficiency */}
+                {today.sleepEfficiency != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <BedDouble className="w-4 h-4" />
+                      Efficiency
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.sleepEfficiency.toFixed(0)}
+                    </p>
+                    <span className="text-xs text-grappler-500">%</span>
+                  </div>
+                )}
+
+                {/* Deep Sleep */}
+                {today.deepSleepMinutes != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Brain className="w-4 h-4" />
+                      Deep Sleep
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.deepSleepMinutes}
+                    </p>
+                    <span className="text-xs text-grappler-500">min</span>
+                  </div>
+                )}
+
+                {/* REM Sleep */}
+                {today.remSleepMinutes != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Moon className="w-4 h-4" />
+                      REM Sleep
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.remSleepMinutes}
+                    </p>
+                    <span className="text-xs text-grappler-500">min</span>
+                  </div>
+                )}
               </div>
             </motion.div>
 

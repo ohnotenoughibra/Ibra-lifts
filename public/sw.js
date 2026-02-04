@@ -124,8 +124,8 @@ async function replaySyncQueue() {
         });
         await cache.delete(request);
       } catch {
-        // Still offline or server error — leave in queue for next sync
-        break;
+        // Still offline or server error — leave in queue, try remaining entries
+        continue;
       }
     }
   } catch {

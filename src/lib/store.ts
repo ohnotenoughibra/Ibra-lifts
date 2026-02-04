@@ -1307,8 +1307,8 @@ export const useAppStore = create<AppState>()(
             // Check if we're approaching the limit (5MB typical)
             const currentSize = new Blob([json]).size;
             if (currentSize > 4.5 * 1024 * 1024) {
-              // Approaching limit - prune old workout logs (keep last 50)
-              const data = value as any;
+              // Approaching limit — clone via JSON to avoid mutating live store
+              const data = JSON.parse(json);
               if (data?.state?.workoutLogs?.length > 50) {
                 data.state.workoutLogs = data.state.workoutLogs.slice(-50);
               }
@@ -1324,9 +1324,9 @@ export const useAppStore = create<AppState>()(
             }
           } catch (e: any) {
             if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-              // Emergency pruning
+              // Emergency pruning — clone to avoid mutating live store
               try {
-                const data = (value as any);
+                const data = JSON.parse(JSON.stringify(value));
                 if (data?.state) {
                   if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
                   if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);

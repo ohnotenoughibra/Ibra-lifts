@@ -55,7 +55,11 @@ export async function POST(request: Request) {
 
     // Send email via Resend if configured
     if (resend) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl) {
+        console.error('[reset-password] NEXT_PUBLIC_APP_URL not set — cannot generate reset link');
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      }
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
       await resend.emails.send({

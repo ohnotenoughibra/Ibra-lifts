@@ -1,12 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, Check } from 'lucide-react';
 
 export default function ResetPasswordPage() {
-  const [step, setStep] = useState<'request' | 'reset' | 'done'>('request');
+  return (
+    <Suspense>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState<'request' | 'reset' | 'sent' | 'done'>('request');
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -14,6 +24,15 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If token is in URL (from email link), go straight to reset step
+  useEffect(() => {
+    const urlToken = searchParams.get('token');
+    if (urlToken) {
+      setToken(urlToken);
+      setStep('reset');
+    }
+  }, [searchParams]);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +49,12 @@ export default function ResetPasswordPage() {
       const data = await res.json();
 
       if (data.token) {
+        // Token returned directly (no email service — dev/self-hosted fallback)
         setToken(data.token);
         setStep('reset');
       } else {
-        // No token returned = user not found, but we don't reveal that
-        setStep('reset');
+        // Email was sent, or user not found (same response for security)
+        setStep('sent');
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -98,11 +118,12 @@ export default function ResetPasswordPage() {
             <Dumbbell className="w-8 h-8 text-primary-400" />
           </div>
           <h1 className="text-2xl font-black text-grappler-50">
-            {step === 'done' ? 'Password Reset' : 'Forgot Password'}
+            {step === 'done' ? 'Password Reset' : step === 'sent' ? 'Check Your Email' : 'Forgot Password'}
           </h1>
           <p className="text-sm text-grappler-400 mt-1">
             {step === 'request' && 'Enter your email to reset your password'}
             {step === 'reset' && 'Enter your new password'}
+            {step === 'sent' && 'We sent you a reset link'}
             {step === 'done' && 'Your password has been updated'}
           </p>
         </div>
@@ -211,6 +232,23 @@ export default function ResetPasswordPage() {
           </form>
         )}
 
+        {step === 'sent' && (
+          <div className="text-center">
+            <div className="w-16 h-16 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-primary-400" />
+            </div>
+            <p className="text-sm text-grappler-300 mb-6">
+              If an account exists for <span className="text-grappler-100 font-medium">{email}</span>, we sent a reset link to your inbox. Check your spam folder too.
+            </p>
+            <button
+              onClick={() => { setStep('request'); setError(''); }}
+              className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              Try a different email
+            </button>
+          </div>
+        )}
+
         {step === 'done' && (
           <div className="text-center">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -226,7 +264,7 @@ export default function ResetPasswordPage() {
         )}
 
         {/* Back to login */}
-        {step !== 'done' && (
+        {step !== 'done' && step !== 'sent' && (
           <p className="text-center mt-6">
             <Link href="/login" className="text-sm text-grappler-400 hover:text-grappler-200 inline-flex items-center gap-1 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" />

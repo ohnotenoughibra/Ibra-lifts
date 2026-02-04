@@ -408,6 +408,9 @@ export default function Dashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
+              aria-label={tab.label}
+              aria-selected={activeTab === tab.id}
+              role="tab"
               className={cn(
                 'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all',
                 activeTab === tab.id
@@ -471,8 +474,29 @@ function HistoryTab() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file format and size
+    if (!file.name.endsWith('.json')) {
+      setImportStatus({ type: 'error', message: 'Only .json backup files are supported' });
+      e.target.value = '';
+      setTimeout(() => setImportStatus(null), 5000);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setImportStatus({ type: 'error', message: 'File too large (max 10MB)' });
+      e.target.value = '';
+      setTimeout(() => setImportStatus(null), 5000);
+      return;
+    }
+
     try {
       const text = await readFileAsText(file);
+      // Validate it's parseable JSON before importing
+      try { JSON.parse(text); } catch {
+        setImportStatus({ type: 'error', message: 'File is not valid JSON' });
+        e.target.value = '';
+        setTimeout(() => setImportStatus(null), 5000);
+        return;
+      }
       const result = importFullBackup(text);
 
       if (result.success) {
@@ -1268,7 +1292,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       )}
 
       {/* Weekly Consistency + Stats Row */}
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

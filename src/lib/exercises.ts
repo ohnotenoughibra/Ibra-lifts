@@ -2668,6 +2668,906 @@ export const exercises: Exercise[] = [
       'Core braced, no lean',
       'Start very light - this is humbling'
     ]
+  },
+
+  // ─── ADDITIONAL DEADLIFT VARIATIONS ───
+  {
+    id: 'stiff-leg-deadlift',
+    name: 'Stiff-Leg Deadlift',
+    category: 'compound',
+    primaryMuscles: ['hamstrings', 'glutes'],
+    secondaryMuscles: ['back', 'core'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['barbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Straighter leg variation than the RDL. Maximal hamstring stretch under load — builds the posterior chain length grapplers need for guard retention and hip flexibility.',
+    videoUrl: 'https://www.youtube.com/results?search_query=stiff+leg+deadlift+proper+form+short',
+    cues: [
+      'Slight knee bend, kept constant throughout',
+      'Hinge at hips, push butt back',
+      'Bar stays close to legs',
+      'Feel deep hamstring stretch at bottom',
+      'Squeeze glutes to lockout'
+    ]
+  },
+  {
+    id: 'dumbbell-romanian-deadlift',
+    name: 'Dumbbell Romanian Deadlift',
+    category: 'compound',
+    primaryMuscles: ['hamstrings', 'glutes'],
+    secondaryMuscles: ['back', 'core', 'forearms'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Dumbbell version allows greater range of motion and unilateral loading. Excellent for addressing side-to-side imbalances common in grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+romanian+deadlift+form+short',
+    cues: [
+      'Dumbbells at sides or in front',
+      'Soft knee bend, hinge at hips',
+      'Shoulders pulled back, chest proud',
+      'Lower until hamstrings are fully stretched',
+      'Drive hips forward to stand'
+    ]
+  },
+
+  // ─── ADDITIONAL SQUAT VARIATIONS ───
+  {
+    id: 'box-squat',
+    name: 'Box Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'back'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['barbell', 'box'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 9,
+    description: 'Sit back to a box, pause, then explode up. Eliminates the stretch reflex and builds starting strength from a dead stop — directly transfers to explosive shots and stand-ups.',
+    videoUrl: 'https://www.youtube.com/results?search_query=box+squat+proper+form+technique+short',
+    cues: [
+      'Set box to parallel or just below',
+      'Sit back onto box with control',
+      'Keep shins vertical, knees out',
+      'Pause on box — release hip flexors, stay tight',
+      'Explode up by driving through heels'
+    ]
+  },
+  {
+    id: 'pistol-squat',
+    name: 'Pistol Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'calves'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Single-leg squat to full depth. Demands balance, mobility, and unilateral strength — mimics the single-leg base recovery common in grappling scrambles.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pistol+squat+tutorial+progression+short',
+    cues: [
+      'Stand on one leg, extend the other forward',
+      'Arms out front for counterbalance',
+      'Descend slowly, keeping heel flat',
+      'Go as deep as mobility allows',
+      'Drive through whole foot to stand'
+    ]
+  },
+  {
+    id: 'reverse-lunge',
+    name: 'Reverse Lunge',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['dumbbell', 'barbell', 'bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Step back instead of forward — less knee stress and better glute activation. Trains the deceleration patterns grapplers need when pulling guard or absorbing takedowns.',
+    videoUrl: 'https://www.youtube.com/results?search_query=reverse+lunge+proper+form+short',
+    cues: [
+      'Step back, lower until both knees at 90 degrees',
+      'Keep torso upright',
+      'Front shin stays vertical',
+      'Drive through front heel to return',
+      'Control the step back — no crashing down'
+    ]
+  },
+  {
+    id: 'hack-squat-barbell',
+    name: 'Barbell Hack Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes', 'hamstrings'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['barbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Barbell held behind the legs for a quad-dominant squat. A forgotten old-school exercise that builds massive quad sweep without heavy spinal loading.',
+    videoUrl: 'https://www.youtube.com/results?search_query=barbell+hack+squat+form+short',
+    cues: [
+      'Bar behind legs, grip just outside hips',
+      'Feet slightly forward of bar',
+      'Stay upright, squat down and back',
+      'Push through heels, stand tall',
+      'Keep bar close to legs throughout'
+    ]
+  },
+
+  // ─── ADDITIONAL BENCH / CHEST VARIATIONS ───
+  {
+    id: 'decline-bench-press',
+    name: 'Decline Bench Press',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['barbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Decline angle emphasizes lower chest fibers and typically allows heavier loads than flat bench. Builds the pushing strength for frames and bench presses in bottom positions.',
+    videoUrl: 'https://www.youtube.com/results?search_query=decline+bench+press+form+short',
+    cues: [
+      'Secure legs in decline bench pads',
+      'Retract and depress shoulder blades',
+      'Unrack and lower to lower chest/sternum',
+      'Press up and slightly back',
+      'Stay tight — don\'t let the angle relax your arch'
+    ]
+  },
+  {
+    id: 'dumbbell-incline-bench-press',
+    name: 'Dumbbell Incline Bench Press',
+    category: 'compound',
+    primaryMuscles: ['chest', 'shoulders'],
+    secondaryMuscles: ['triceps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 9,
+    strengthValue: 7,
+    description: 'Combines the upper chest emphasis of the incline with the greater ROM of dumbbells. Superior for building the chest fullness and shoulder stability grapplers benefit from.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+incline+bench+press+form+short',
+    cues: [
+      'Set bench to 30-45 degree angle',
+      'Start with dumbbells at chest, elbows 45 degrees',
+      'Press up and slightly together',
+      'Control the eccentric — feel the stretch',
+      'Full ROM at bottom, squeeze at top'
+    ]
+  },
+  {
+    id: 'decline-dumbbell-press',
+    name: 'Decline Dumbbell Press',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['dumbbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Decline angle with dumbbells allows deeper stretch and independent arm action. Good for addressing chest imbalances while targeting the lower pec fibers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=decline+dumbbell+press+form+short',
+    cues: [
+      'Secure legs in decline bench',
+      'Hold dumbbells at chest height',
+      'Press up, bringing dumbbells slightly together',
+      'Control the descent for a deep stretch',
+      'Keep wrists stacked over elbows'
+    ]
+  },
+  {
+    id: 'dumbbell-fly',
+    name: 'Dumbbell Fly',
+    category: 'isolation',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 4,
+    description: 'Classic chest isolation through horizontal adduction. Builds pec width and the stretch-shortening cycle used in underhooks and frames.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+fly+proper+form+short',
+    cues: [
+      'Slight bend in elbows, locked throughout',
+      'Lower in wide arc until deep chest stretch',
+      'Squeeze pecs to bring dumbbells together',
+      'Think hugging a tree',
+      'Don\'t go too heavy — this is about stretch and squeeze'
+    ]
+  },
+  {
+    id: 'incline-dumbbell-fly',
+    name: 'Incline Dumbbell Fly',
+    category: 'isolation',
+    primaryMuscles: ['chest', 'shoulders'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 3,
+    description: 'Incline angle shifts emphasis to upper chest. Great for building the clavicular pec head that creates the upper chest shelf.',
+    videoUrl: 'https://www.youtube.com/results?search_query=incline+dumbbell+fly+form+short',
+    cues: [
+      'Bench at 30-45 degrees',
+      'Slight elbow bend, fixed angle',
+      'Open arms wide until deep stretch',
+      'Squeeze upper chest to close',
+      'Lighter weight, higher reps'
+    ]
+  },
+  {
+    id: 'pec-deck',
+    name: 'Pec Deck Machine',
+    category: 'isolation',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 3,
+    description: 'Machine-guided chest fly for constant tension through the full range of motion. Safe to push close to failure without a spotter.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pec+deck+machine+form+short',
+    cues: [
+      'Set seat so handles are at chest height',
+      'Slight forward lean, chest up',
+      'Squeeze pecs to bring handles together',
+      'Control the return — don\'t let it snap back',
+      'Maintain constant tension, no resting at end range'
+    ]
+  },
+  {
+    id: 'machine-chest-press',
+    name: 'Machine Chest Press',
+    category: 'compound',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['triceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 5,
+    description: 'Plate-loaded or selectorized chest press machine. Safe for pushing to failure and useful for high-volume chest work without stabilizer fatigue.',
+    videoUrl: 'https://www.youtube.com/results?search_query=machine+chest+press+form+short',
+    cues: [
+      'Seat height: handles at mid-chest',
+      'Retract shoulder blades against pad',
+      'Press forward, don\'t fully lock elbows',
+      'Slow, controlled return',
+      'Keep feet flat on floor'
+    ]
+  },
+
+  // ─── ADDITIONAL PULL VARIATIONS ───
+  {
+    id: 'neutral-grip-pull-up',
+    name: 'Neutral-Grip Pull-Up',
+    category: 'compound',
+    primaryMuscles: ['back', 'biceps'],
+    secondaryMuscles: ['forearms', 'core'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['pull_up_bar'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Palms facing each other. The most shoulder-friendly pull-up variation — balances bicep and lat recruitment while reducing shoulder impingement risk.',
+    videoUrl: 'https://www.youtube.com/results?search_query=neutral+grip+pull+up+form+short',
+    cues: [
+      'Grip parallel handles, palms facing each other',
+      'Start from dead hang, engage lats',
+      'Pull elbows down to sides',
+      'Chin over bar height',
+      'Control the descent — no kipping'
+    ]
+  },
+  {
+    id: 'straight-arm-pulldown',
+    name: 'Straight-Arm Lat Pulldown',
+    category: 'isolation',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['core', 'triceps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['cable'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Isolates the lats without bicep involvement. Builds the lat sweep and teaches the scapular depression pattern crucial for collar tie defense and guard sweeps.',
+    videoUrl: 'https://www.youtube.com/results?search_query=straight+arm+pulldown+form+short',
+    cues: [
+      'Stand facing cable, slight forward lean',
+      'Arms nearly straight, slight elbow bend',
+      'Pull bar to thighs in an arc',
+      'Squeeze lats hard at the bottom',
+      'Control return — feel the lat stretch'
+    ]
+  },
+  {
+    id: 'close-grip-lat-pulldown',
+    name: 'Close-Grip Lat Pulldown',
+    category: 'compound',
+    primaryMuscles: ['back', 'biceps'],
+    secondaryMuscles: ['forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['cable'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Close or V-grip attachment increases ROM and bicep recruitment. Great for building back thickness and the pulling strength needed for collar ties.',
+    videoUrl: 'https://www.youtube.com/results?search_query=close+grip+lat+pulldown+form+short',
+    cues: [
+      'V-handle or close-grip attachment',
+      'Lean back slightly, chest up',
+      'Pull to upper chest, elbows driving past sides',
+      'Squeeze shoulder blades together at bottom',
+      'Slow eccentric, full stretch at top'
+    ]
+  },
+  {
+    id: 'inverted-row',
+    name: 'Inverted Row',
+    category: 'compound',
+    primaryMuscles: ['back'],
+    secondaryMuscles: ['biceps', 'core', 'shoulders'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight', 'pull_up_bar'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Bodyweight horizontal row using a bar or rings. Scalable difficulty by adjusting body angle. Excellent for high-rep back work and grip endurance.',
+    videoUrl: 'https://www.youtube.com/results?search_query=inverted+row+proper+form+short',
+    cues: [
+      'Set bar at waist height, hang underneath',
+      'Body straight from heels to shoulders',
+      'Pull chest to bar, squeeze shoulder blades',
+      'Control the descent',
+      'Harder: feet elevated, easier: more upright'
+    ]
+  },
+
+  // ─── ADDITIONAL SHOULDER / PRESS VARIATIONS ───
+  {
+    id: 'dumbbell-lateral-raise-seated',
+    name: 'Seated Lateral Raise',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell', 'bench'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 3,
+    description: 'Seated position eliminates momentum and body English, forcing the medial delts to do all the work. Builds wider shoulders and the lateral pushing strength for framing.',
+    videoUrl: 'https://www.youtube.com/results?search_query=seated+lateral+raise+form+short',
+    cues: [
+      'Sit upright, dumbbells at sides',
+      'Raise to shoulder height, slight forward lean',
+      'Lead with elbows, not wrists',
+      'Pause at top, slow lower',
+      'No swinging — the seat keeps you honest'
+    ]
+  },
+  {
+    id: 'front-raise',
+    name: 'Front Raise',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['chest'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 3,
+    description: 'Targets the anterior deltoid head. Useful for building the front shoulder cap, though often already trained from pressing movements.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+front+raise+form+short',
+    cues: [
+      'Stand tall, dumbbells in front of thighs',
+      'Raise one or both arms to shoulder height',
+      'Slight elbow bend, thumbs up or neutral',
+      'Control the descent — no swinging',
+      'Don\'t raise above shoulder height'
+    ]
+  },
+
+  // ─── ADDITIONAL ARM VARIATIONS ───
+  {
+    id: 'ez-bar-curl',
+    name: 'EZ-Bar Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['ez_bar'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Angled grip reduces wrist strain compared to straight bar. Allows heavier loads than dumbbell curls — the go-to curl for building mass.',
+    videoUrl: 'https://www.youtube.com/results?search_query=ez+bar+curl+proper+form+short',
+    cues: [
+      'Grip on the inner or outer angles',
+      'Elbows pinned at sides',
+      'Curl up with control, squeeze at top',
+      'Slow eccentric — 2-3 seconds down',
+      'Don\'t swing the body'
+    ]
+  },
+  {
+    id: 'concentration-curl',
+    name: 'Concentration Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 3,
+    description: 'Elbow braced against the inner thigh eliminates cheating. Highest peak bicep activation of any curl variation according to EMG studies.',
+    videoUrl: 'https://www.youtube.com/results?search_query=concentration+curl+form+short',
+    cues: [
+      'Sit, brace elbow against inner thigh',
+      'Start with arm fully extended',
+      'Curl up, supinate hard at the top',
+      'Squeeze the peak contraction',
+      'Lower slowly with full control'
+    ]
+  },
+  {
+    id: 'rope-pushdown',
+    name: 'Rope Pushdown',
+    category: 'isolation',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['cable'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Rope attachment allows wrists to rotate and split at the bottom, hitting the lateral tricep head harder than a straight bar. Builds the arm extension power for stiff-arms.',
+    videoUrl: 'https://www.youtube.com/results?search_query=rope+pushdown+tricep+form+short',
+    cues: [
+      'Elbows pinned at sides',
+      'Push down and spread the rope at the bottom',
+      'Squeeze triceps hard at lockout',
+      'Control the return — don\'t let it snap up',
+      'Torso slightly forward, not upright'
+    ]
+  },
+  {
+    id: 'tricep-kickback',
+    name: 'Tricep Kickback',
+    category: 'isolation',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 3,
+    description: 'Isolation at full elbow extension. EMG studies show high long-head tricep activation. Best done light with strict form for building the horseshoe.',
+    videoUrl: 'https://www.youtube.com/results?search_query=tricep+kickback+form+short',
+    cues: [
+      'Hinge forward, upper arm parallel to floor',
+      'Extend elbow until arm is fully straight',
+      'Squeeze at the top for 1-2 seconds',
+      'Don\'t swing — only the forearm moves',
+      'Use lighter weight than you think'
+    ]
+  },
+  {
+    id: 'close-grip-pushup',
+    name: 'Close-Grip Push-Up',
+    category: 'compound',
+    primaryMuscles: ['triceps', 'chest'],
+    secondaryMuscles: ['shoulders', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Hands shoulder-width or narrower shifts emphasis to triceps. A bodyweight staple for building pressing endurance and lockout strength with zero equipment.',
+    videoUrl: 'https://www.youtube.com/results?search_query=close+grip+push+up+form+short',
+    cues: [
+      'Hands shoulder-width or narrower',
+      'Elbows stay close to body, not flared',
+      'Lower chest to hands',
+      'Push through palms, lock out',
+      'Body stays rigid — no sagging hips'
+    ]
+  },
+
+  // ─── ADDITIONAL LEG ACCESSORIES ───
+  {
+    id: 'pendulum-squat',
+    name: 'Pendulum Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 6,
+    description: 'Machine-guided arc puts the quads under maximal stretch and load without spinal compression. One of the best quad builders available.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pendulum+squat+machine+form+short',
+    cues: [
+      'Position feet low on platform for quad focus',
+      'Descend deep — the machine supports you',
+      'Drive through the balls of the feet',
+      'Control the arc, don\'t bounce',
+      'Keep back pressed against pad'
+    ]
+  },
+  {
+    id: 'v-squat',
+    name: 'V-Squat / Lever Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 6,
+    description: 'Plate-loaded lever squat with fixed path. Allows heavy loading without spinal compression. Great for high-volume quad work in a fatigued state.',
+    videoUrl: 'https://www.youtube.com/results?search_query=v+squat+machine+form+short',
+    cues: [
+      'Shoulders under pads, feet on platform',
+      'Narrow stance for quads, wide for glutes',
+      'Squat deep with control',
+      'Drive through whole foot',
+      'Don\'t let knees cave in'
+    ]
+  },
+  {
+    id: 'standing-leg-curl',
+    name: 'Standing Leg Curl',
+    category: 'isolation',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 4,
+    description: 'Unilateral hamstring curl standing. Trains each leg independently and allows a strong peak contraction. Good for addressing hamstring imbalances.',
+    videoUrl: 'https://www.youtube.com/results?search_query=standing+leg+curl+machine+form+short',
+    cues: [
+      'Stand facing the pad, one ankle behind roller',
+      'Hold handles for stability',
+      'Curl heel to glute with control',
+      'Squeeze hamstring at the top',
+      'Slow eccentric — resist the weight back down'
+    ]
+  },
+  {
+    id: 'donkey-calf-raise',
+    name: 'Donkey Calf Raise',
+    category: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['machine', 'bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 4,
+    description: 'Hips hinged forward puts the gastrocnemius in a greater stretch than standing raises. Arnold\'s favorite calf exercise for a reason — maximal calf stretch under load.',
+    videoUrl: 'https://www.youtube.com/results?search_query=donkey+calf+raise+form+short',
+    cues: [
+      'Hinge forward, support upper body',
+      'Toes on raised surface, heels hanging',
+      'Drop heels for deep stretch',
+      'Rise onto toes, squeeze at top',
+      'Pause at both the stretch and contraction'
+    ]
+  },
+  {
+    id: 'smith-machine-calf-raise',
+    name: 'Smith Machine Calf Raise',
+    category: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['machine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 4,
+    description: 'Smith bar on shoulders with toes on a platform. The guided bar path lets you focus entirely on calf contraction without balancing.',
+    videoUrl: 'https://www.youtube.com/results?search_query=smith+machine+calf+raise+form+short',
+    cues: [
+      'Bar on upper traps, toes on block/plate',
+      'Drop heels below platform for full stretch',
+      'Rise up onto toes as high as possible',
+      'Hold the peak contraction 1-2 seconds',
+      'Slow descent — no bouncing'
+    ]
+  },
+
+  // ─── ADDITIONAL CORE VARIATIONS ───
+  {
+    id: 'cable-crunch',
+    name: 'Cable Crunch',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: [],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['cable'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 5,
+    description: 'Kneeling cable crunch allows progressive overload on the abs — something most bodyweight ab exercises can\'t offer. Builds the ab thickness visible through a gi.',
+    videoUrl: 'https://www.youtube.com/results?search_query=cable+crunch+proper+form+short',
+    cues: [
+      'Kneel facing cable, rope behind head',
+      'Hinge at the spine, not the hips',
+      'Crunch rib cage toward pelvis',
+      'Squeeze abs hard at the bottom',
+      'Control the return — no yanking'
+    ]
+  },
+  {
+    id: 'dragon-flag',
+    name: 'Dragon Flag',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['back'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bench', 'bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 7,
+    description: 'Bruce Lee\'s signature core exercise. Full-body anti-extension that demands extreme core rigidity — transfers directly to maintaining body alignment during grappling.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dragon+flag+tutorial+progression+short',
+    cues: [
+      'Grip behind head on bench edge',
+      'Roll up to vertical, body straight',
+      'Lower body as one rigid unit',
+      'Don\'t let hips pike or sag',
+      'Start with negatives if too hard'
+    ]
+  },
+  {
+    id: 'l-sit-hold',
+    name: 'L-Sit Hold',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['quadriceps', 'triceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight', 'dip_station'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 6,
+    description: 'Isometric hold with legs extended parallel to the floor. Demands hip flexor strength, core compression, and shoulder depression — all critical for guard play.',
+    videoUrl: 'https://www.youtube.com/results?search_query=l+sit+hold+tutorial+progression+short',
+    cues: [
+      'Hands on parallettes, dip bars, or floor',
+      'Lock arms straight, depress shoulders',
+      'Lift legs to horizontal, toes pointed',
+      'Keep lower back flat, not rounded',
+      'Start with tucked knees if needed'
+    ]
+  },
+
+  // ─── EXPLOSIVE / POWER ADDITIONS ───
+  {
+    id: 'broad-jump',
+    name: 'Broad Jump',
+    category: 'power',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'calves', 'core'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 7,
+    description: 'Horizontal power from a standing start. Directly trains the explosive hip extension and forward drive used in takedown entries and sprawls.',
+    videoUrl: 'https://www.youtube.com/results?search_query=standing+broad+jump+technique+short',
+    cues: [
+      'Feet hip-width, arms back',
+      'Swing arms forward and jump out',
+      'Triple extend — ankles, knees, hips',
+      'Land softly, absorb with bent knees',
+      'Stick the landing before resetting'
+    ]
+  },
+  {
+    id: 'plyo-push-up',
+    name: 'Plyometric Push-Up',
+    category: 'power',
+    primaryMuscles: ['chest', 'triceps'],
+    secondaryMuscles: ['shoulders', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Explosive push-up where hands leave the ground. Builds the explosive upper body power for hand fighting, frames, and explosive escapes from bottom.',
+    videoUrl: 'https://www.youtube.com/results?search_query=plyometric+push+up+form+short',
+    cues: [
+      'Start in push-up position',
+      'Lower with control, then explode up',
+      'Hands fully leave the ground',
+      'Land softly, absorb into next rep',
+      'Clap optional — power is the goal, not flash'
+    ]
+  },
+  {
+    id: 'kettlebell-snatch',
+    name: 'Kettlebell Snatch',
+    category: 'power',
+    primaryMuscles: ['shoulders', 'back', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'forearms'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['kettlebell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 7,
+    description: 'Full-body explosive lift taking the kettlebell from floor to overhead in one motion. Builds the hip snap, shoulder stability, and grip endurance grapplers need.',
+    videoUrl: 'https://www.youtube.com/results?search_query=kettlebell+snatch+technique+short',
+    cues: [
+      'Start like a swing, hinge and drive hips',
+      'Pull the bell close to body as it rises',
+      'Punch hand through at the top',
+      'Lock out overhead, arm straight',
+      'Let it arc back down smoothly'
+    ]
+  },
+  {
+    id: 'kettlebell-clean-press',
+    name: 'Kettlebell Clean & Press',
+    category: 'power',
+    primaryMuscles: ['shoulders', 'back', 'glutes'],
+    secondaryMuscles: ['core', 'forearms', 'triceps'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['kettlebell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 8,
+    description: 'Clean the kettlebell to rack position then press overhead. Combines explosive pulling with strict pressing — the most complete kettlebell exercise for fighters.',
+    videoUrl: 'https://www.youtube.com/results?search_query=kettlebell+clean+and+press+form+short',
+    cues: [
+      'Swing and clean to rack — bell rests on forearm',
+      'Absorb with slight knee bend',
+      'Press straight up from rack',
+      'Lower to rack, then swing back down',
+      'Keep wrist straight, don\'t let bell bang forearm'
+    ]
+  },
+
+  // ─── GRAPPLING-SPECIFIC ADDITIONS ───
+  {
+    id: 'rope-climb',
+    name: 'Rope Climb',
+    category: 'grappling_specific',
+    primaryMuscles: ['back', 'biceps', 'forearms'],
+    secondaryMuscles: ['core', 'shoulders'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 8,
+    description: 'Classic functional pulling. Builds grip endurance, pulling power, and the full-body coordination needed for climbing from bottom position and controlling opponents.',
+    videoUrl: 'https://www.youtube.com/results?search_query=rope+climb+technique+tutorial+short',
+    cues: [
+      'Grab high, wrap rope around one foot',
+      'Step up, clamp rope with feet',
+      'Reach higher and repeat',
+      'Legless version for advanced: arms only',
+      'Control the descent — don\'t slide'
+    ]
+  },
+  {
+    id: 'sandbag-carry',
+    name: 'Sandbag Bear Hug Carry',
+    category: 'grappling_specific',
+    primaryMuscles: ['core', 'back', 'biceps'],
+    secondaryMuscles: ['forearms', 'shoulders', 'quadriceps'],
+    movementPattern: 'carry',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 8,
+    description: 'Hug a heavy sandbag against your chest and walk. The unstable, shifting load mimics controlling a resisting opponent. One of the most grappling-specific exercises possible.',
+    videoUrl: 'https://www.youtube.com/results?search_query=sandbag+bear+hug+carry+short',
+    cues: [
+      'Deadlift sandbag, wrap arms around it',
+      'Squeeze it tight against chest',
+      'Walk with short, controlled steps',
+      'Keep chest up, core braced',
+      'Don\'t let it slip — squeeze harder'
+    ]
+  },
+  {
+    id: 'sandbag-over-shoulder',
+    name: 'Sandbag Over Shoulder',
+    category: 'grappling_specific',
+    primaryMuscles: ['back', 'glutes', 'core'],
+    secondaryMuscles: ['hamstrings', 'shoulders', 'biceps'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 8,
+    description: 'Lift sandbag from floor and throw it over one shoulder. Mimics the explosive hip and back drive of a takedown or throw better than any barbell movement.',
+    videoUrl: 'https://www.youtube.com/results?search_query=sandbag+over+shoulder+technique+short',
+    cues: [
+      'Straddle the bag, grip underneath',
+      'Deadlift to lap, then bear hug',
+      'Explode hips and pull over shoulder',
+      'Alternate shoulders each rep',
+      'Reset from the ground each time'
+    ]
+  },
+  {
+    id: 'landmine-rotation',
+    name: 'Landmine Rotation',
+    category: 'grappling_specific',
+    primaryMuscles: ['core', 'shoulders'],
+    secondaryMuscles: ['back', 'chest'],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['barbell', 'landmine'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Rotate the barbell in a landmine attachment side to side. Trains anti-rotation and rotational power — the exact force vectors used in framing, sweeping, and throwing.',
+    videoUrl: 'https://www.youtube.com/results?search_query=landmine+rotation+exercise+form+short',
+    cues: [
+      'Hold end of barbell at chest height with both hands',
+      'Rotate to one side, pivoting on feet',
+      'Drive the bar across to the other side',
+      'Control the arc — don\'t swing wildly',
+      'Core stays braced throughout'
+    ]
   }
 ];
 

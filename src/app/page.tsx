@@ -115,12 +115,9 @@ export default function Home() {
     }
   }, [isOnboarded]);
 
-  // Hydration timer
+  // Hydration — set loading false once the component mounts (no artificial delay)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    setIsLoading(false);
   }, []);
 
   const handleInstall = useCallback(async () => {

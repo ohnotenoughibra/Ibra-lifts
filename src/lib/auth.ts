@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
+import { ensureAuthTables } from './db-init';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -18,16 +19,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials.password as string;
 
         try {
-          // Ensure auth table exists (first-time setup)
-          await sql`
-            CREATE TABLE IF NOT EXISTS auth_users (
-              id TEXT PRIMARY KEY,
-              name TEXT,
-              email TEXT UNIQUE NOT NULL,
-              password_hash TEXT NOT NULL,
-              created_at TIMESTAMPTZ DEFAULT NOW()
-            )
-          `;
+          await ensureAuthTables();
 
           const { rows } = await sql`
             SELECT id, name, email, password_hash FROM auth_users WHERE email = ${email}

@@ -3,12 +3,21 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { Resend } from 'resend';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { ensureAuthTables } from '@/lib/db-init';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // POST - Request a password reset (generates token + sends email)
 export async function POST(request: Request) {
   try {
+    // Rate limit: 3 reset requests per IP per minute
+    const ip = getClientIP(request);
+    const { limited } = rateLimit(`reset:${ip}`, 3, 60 * 1000);
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -17,17 +26,7 @@ export async function POST(request: Request) {
 
     const trimmedEmail = email.toLowerCase().trim();
 
-    // Ensure reset tokens table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS password_reset_tokens (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        token TEXT UNIQUE NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        used BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
+    await ensureAuthTables();
 
     // Check if user exists
     const { rows } = await sql`
@@ -86,8 +85,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, emailSent: true });
     }
 
-    // No email service — return token directly (dev/self-hosted fallback)
-    return NextResponse.json({ success: true, token });
+    // No email service configured
+    if (process.env.NODE_ENV === 'development') {
+      // Dev only — return token for local testing
+      return NextResponse.json({ success: true, token });
+    }
+    // Production without email: log warning, don't expose token
+    console.warn('[reset-password] No email service configured — user cannot receive reset link');
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Password reset request error:', error);
     return NextResponse.json({ error: 'Failed to process reset request' }, { status: 500 });

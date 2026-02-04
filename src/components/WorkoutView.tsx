@@ -23,7 +23,7 @@ import {
   Shuffle,
   Star,
   ArrowRight,
-  Printer,
+  FileDown,
   TrendingUp,
   Save,
   Settings,
@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
 import { Building2, Home, Backpack } from 'lucide-react';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
+import { exportProgramPdf } from '@/lib/pdf-export';
 
 interface WorkoutViewProps {
   onOpenBuilder?: () => void;
@@ -185,11 +186,11 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             <Settings className="w-4 h-4" />
           </button>
           <button
-            onClick={() => window.print()}
-            className="btn btn-ghost btn-sm gap-1 no-print"
-            title="Print program"
+            onClick={() => exportProgramPdf(currentMesocycle, user?.weightUnit || 'lbs')}
+            className="btn btn-ghost btn-sm gap-1"
+            title="Export program as PDF"
           >
-            <Printer className="w-4 h-4" />
+            <FileDown className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowEmphasisPicker(true)}

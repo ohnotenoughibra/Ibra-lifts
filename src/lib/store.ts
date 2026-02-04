@@ -112,6 +112,14 @@ interface AppState {
   // Sync metadata
   lastSyncAt: number | null;
 
+  // Post-workout summary (transient, not persisted)
+  lastCompletedWorkout: {
+    log: WorkoutLog;
+    points: number;
+    hadPR: boolean;
+    newStreak: number;
+  } | null;
+
   // UI state
   showTip: boolean;
   currentTipId: string | null;
@@ -199,6 +207,9 @@ interface AppState {
   // Online status
   setOnline: (online: boolean) => void;
 
+  // Post-workout summary actions
+  dismissWorkoutSummary: () => void;
+
   // UI actions
   setShowTip: (show: boolean) => void;
   setCurrentTipId: (id: string | null) => void;
@@ -265,6 +276,7 @@ export const useAppStore = create<AppState>()(
       latestWhoopData: null,
       isOnline: true,
       lastSyncAt: null,
+      lastCompletedWorkout: null,
       showTip: true,
       currentTipId: null,
 
@@ -776,6 +788,12 @@ export const useAppStore = create<AppState>()(
         set({
           activeWorkout: null,
           workoutLogs: [...workoutLogs, workoutLog],
+          lastCompletedWorkout: {
+            log: workoutLog,
+            points,
+            hadPR,
+            newStreak: newStreak,
+          },
           gamificationStats: {
             ...gamificationStats,
             totalPoints: newTotalPoints,
@@ -1015,6 +1033,9 @@ export const useAppStore = create<AppState>()(
 
       // Online status
       setOnline: (online) => set({ isOnline: online }),
+
+      // Post-workout summary actions
+      dismissWorkoutSummary: () => set({ lastCompletedWorkout: null }),
 
       // UI actions
       setShowTip: (show) => set({ showTip: show }),

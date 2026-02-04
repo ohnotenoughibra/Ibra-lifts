@@ -18,7 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const authUserId = session?.user?.id;
   const isOnboarded = useAppStore((state) => state.isOnboarded);
   const setOnline = useAppStore((state) => state.setOnline);
@@ -45,6 +45,24 @@ export default function Home() {
       setAuthUserId(authUserId);
     }
   }, [authUserId, setAuthUserId]);
+
+  // Wait for Zustand store to rehydrate from localStorage AND auth session to resolve
+  // This prevents the onboarding flash on returning users
+  useEffect(() => {
+    const unsub = useAppStore.persist.onFinishHydration(() => {
+      // Store is rehydrated — now check if session is also ready
+      if (sessionStatus !== 'loading') {
+        setIsLoading(false);
+      }
+    });
+
+    // If store already hydrated before this effect ran
+    if (useAppStore.persist.hasHydrated() && sessionStatus !== 'loading') {
+      setIsLoading(false);
+    }
+
+    return unsub;
+  }, [sessionStatus]);
 
   // Offline / online detection
   useEffect(() => {
@@ -126,10 +144,7 @@ export default function Home() {
     }
   }, [isOnboarded]);
 
-  // Hydration — set loading false once the component mounts (no artificial delay)
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
+  // Note: isLoading is managed by the hydration+session effect above
 
   const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;

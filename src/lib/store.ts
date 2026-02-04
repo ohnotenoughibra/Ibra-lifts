@@ -141,6 +141,7 @@ interface AppState {
   completeOnboarding: (authUserId?: string) => void;
   setAuthUserId: (id: string) => void;
   logout: () => void;
+  restartOnboarding: () => void;
   setBaselineLifts: (lifts: BaselineLifts) => void;
 
   // Muscle emphasis actions
@@ -324,6 +325,32 @@ export const useAppStore = create<AppState>()(
 
       logout: () => {
         get().resetStore();
+      },
+
+      restartOnboarding: () => {
+        // Keep user data, workouts, history — just re-enter onboarding to reconfigure
+        // Pre-fill onboarding data from current user profile so they can tweak, not start blank
+        const { user, onboardingData } = get();
+        if (user) {
+          set({
+            isOnboarded: false,
+            onboardingData: {
+              ...onboardingData,
+              name: user.name,
+              age: user.age,
+              experienceLevel: user.experienceLevel,
+              goalFocus: user.goalFocus,
+              sessionsPerWeek: user.sessionsPerWeek,
+              sessionDurationMinutes: user.sessionDurationMinutes,
+              equipment: user.equipment,
+              trainingIdentity: user.trainingIdentity,
+              combatSport: user.combatSport,
+              weightUnit: user.weightUnit,
+            },
+          });
+        } else {
+          set({ isOnboarded: false });
+        }
       },
 
       completeOnboarding: (authUserId) => {

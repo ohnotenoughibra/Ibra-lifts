@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Trophy,
@@ -20,6 +20,7 @@ import {
   Heart,
   Brain,
   Flame,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Mesocycle, WorkoutLog, WeightUnit } from '@/lib/types';
@@ -36,6 +37,7 @@ interface MesocycleReportProps {
   previousMesocycle?: Mesocycle | null;
   weightUnit: WeightUnit;
   onClose: () => void;
+  onDelete?: (mesocycleId: string) => void;
 }
 
 function DeltaBadge({ value, suffix = '', invert = false }: { value: number; suffix?: string; invert?: boolean }) {
@@ -73,7 +75,10 @@ export default function MesocycleReport({
   previousMesocycle,
   weightUnit,
   onClose,
+  onDelete,
 }: MesocycleReportProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const report = useMemo(() => {
     return generateMesocycleReport(
       mesocycle,
@@ -88,8 +93,39 @@ export default function MesocycleReport({
   // Volume bar chart — simple CSS bars
   const maxWeekVol = Math.max(...report.volumeByWeek, 1);
 
+  const handleDelete = () => {
+    onDelete?.(mesocycle.id);
+    onClose();
+  };
+
   return (
     <div className="min-h-screen bg-grappler-950">
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-bold text-grappler-100">Delete Mesocycle?</h3>
+            <p className="text-sm text-grappler-400">
+              This will permanently delete <span className="text-grappler-200 font-medium">{mesocycle.name}</span> and all {report.workoutsCompleted} workout logs associated with it. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 btn btn-md bg-grappler-700 text-grappler-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 btn btn-md bg-red-600 text-white hover:bg-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
@@ -100,6 +136,14 @@ export default function MesocycleReport({
             <h1 className="text-lg font-bold text-grappler-100 truncate">Block Report</h1>
             <p className="text-xs text-grappler-500">{mesocycle.name}</p>
           </div>
+          {onDelete && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 text-grappler-400 hover:text-red-400" />
+            </button>
+          )}
           <Trophy className="w-6 h-6 text-primary-400" />
         </div>
       </div>

@@ -209,7 +209,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayView] = useState<OverlayView>(null);
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
-  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, mesocycleHistory, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
+  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, mesocycleHistory, deleteMesocycle, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -288,6 +288,7 @@ export default function Dashboard() {
           previousMesocycle={prevMeso}
           weightUnit={user?.weightUnit || 'lbs'}
           onClose={() => setReportMesocycleId(null)}
+          onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
         />
       );
     }

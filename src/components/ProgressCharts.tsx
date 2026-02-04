@@ -29,7 +29,8 @@ import {
   Award,
   BarChart3,
   PieChartIcon,
-  Activity
+  Activity,
+  ChevronRight,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
@@ -37,7 +38,11 @@ import { getExerciseById } from '@/lib/exercises';
 
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency';
 
-export default function ProgressCharts() {
+interface ProgressChartsProps {
+  onViewReport?: (mesoId: string) => void;
+}
+
+export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {}) {
   const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');
@@ -422,20 +427,27 @@ export default function ProgressCharts() {
         <div className="card p-4">
           <h3 className="font-medium text-grappler-200 mb-4">Completed Mesocycles</h3>
           <div className="space-y-3">
-            {mesocycleHistory.map((meso, i) => (
-              <div
-                key={meso.id}
-                className="flex items-center justify-between py-2 border-b border-grappler-700 last:border-0"
-              >
-                <div>
-                  <p className="font-medium text-grappler-200">{meso.name}</p>
-                  <p className="text-xs text-grappler-500">
-                    {meso.weeks.length} weeks • {meso.goalFocus} focus
-                  </p>
-                </div>
-                <span className="badge badge-success">Completed</span>
-              </div>
-            ))}
+            {mesocycleHistory.map((meso, i) => {
+              const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
+              const totalVol = mesoLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+              const prs = mesoLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+              return (
+                <button
+                  key={meso.id}
+                  onClick={() => onViewReport?.(meso.id)}
+                  className="w-full flex items-center justify-between py-2.5 border-b border-grappler-700 last:border-0 text-left hover:bg-grappler-800/30 rounded-lg px-2 -mx-2 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-grappler-200 truncate">{meso.name}</p>
+                    <p className="text-xs text-grappler-500">
+                      {meso.weeks.length} weeks · {meso.goalFocus} · {mesoLogs.length} sessions · {formatNumber(totalVol)} {weightUnit}
+                      {prs > 0 && <span className="text-yellow-400"> · {prs} PRs</span>}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-grappler-500 shrink-0 ml-2" />
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

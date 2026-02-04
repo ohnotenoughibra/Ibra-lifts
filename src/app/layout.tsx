@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Providers from '@/components/Providers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -46,9 +47,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-screen bg-grappler-900 bg-mesh">
-        <div className="relative min-h-screen">
-          {children}
-        </div>
+        <Providers>
+          <div className="relative min-h-screen">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

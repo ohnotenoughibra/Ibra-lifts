@@ -23,6 +23,7 @@ import {
   Shuffle,
   Star,
   ArrowRight,
+  Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment } from '@/lib/types';
@@ -143,13 +144,22 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             {currentMesocycle.weeks.length} weeks • {currentMesocycle.goalFocus} focus
           </p>
         </div>
-        <button
-          onClick={() => setShowEmphasisPicker(true)}
-          className="btn btn-secondary btn-sm gap-2"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          New Block
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.print()}
+            className="btn btn-ghost btn-sm gap-1 no-print"
+            title="Print program"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowEmphasisPicker(true)}
+            className="btn btn-secondary btn-sm gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            New Block
+          </button>
+        </div>
       </div>
 
       {/* Muscle Emphasis Picker */}

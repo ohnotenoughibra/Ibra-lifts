@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 const TOTAL_STEPS = 4;
 
-export default function Onboarding() {
+export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -33,7 +33,7 @@ export default function Onboarding() {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
-      completeOnboarding();
+      completeOnboarding(authUserId);
     }
   };
 

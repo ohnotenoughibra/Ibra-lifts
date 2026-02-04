@@ -150,6 +150,7 @@ interface AppState {
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
   completeMesocycle: () => void;
+  deleteMesocycle: (mesocycleId: string) => void;
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -159,7 +160,7 @@ interface AppState {
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
   swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
-  completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
+  completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback; durationOverride?: number }) => void;
   cancelWorkout: () => void;
   getWeightUnit: () => WeightUnit;
   convertWeight: (weight: number, to: WeightUnit) => number;
@@ -577,6 +578,14 @@ export const useAppStore = create<AppState>()(
         get().checkAndAwardBadges();
       },
 
+      deleteMesocycle: (mesocycleId) => {
+        const { mesocycleHistory, workoutLogs } = get();
+        set({
+          mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
+          workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
+        });
+      },
+
       // Workout actions
       startWorkout: (session) => {
         const { workoutLogs } = get();
@@ -853,8 +862,8 @@ export const useAppStore = create<AppState>()(
           }, 0);
         }, 0);
 
-        // Calculate duration
-        const duration = Math.round(
+        // Calculate duration — use override if provided (retroactive logging)
+        const duration = feedback.durationOverride ?? Math.round(
           (new Date().getTime() - activeWorkout.startTime.getTime()) / 1000 / 60
         );
 

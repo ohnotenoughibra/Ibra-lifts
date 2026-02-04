@@ -114,6 +114,7 @@ export default function ActiveWorkout() {
     mood: 3,
     wouldRepeat: true
   });
+  const [durationOverride, setDurationOverride] = useState<number | null>(null);
 
   // Workout timer — uses startTime timestamp so it survives app backgrounding
   const [, forceUpdate] = useState(0);
@@ -2047,6 +2048,53 @@ export default function ActiveWorkout() {
                     className="input min-h-[80px] resize-none"
                   />
                 </div>
+
+                {/* Duration override — show when elapsed time is unrealistically short */}
+                {(() => {
+                  const elapsedMs = Date.now() - new Date(activeWorkout!.startTime).getTime();
+                  const elapsedMin = Math.round(elapsedMs / 1000 / 60);
+                  const totalSets = activeWorkout!.exerciseLogs.reduce(
+                    (s, ex) => s + ex.sets.filter(set => set.completed).length, 0
+                  );
+                  const exerciseCount = activeWorkout!.exerciseLogs.length;
+                  // Detect retroactive logging: < 15 min with 3+ exercises or 6+ completed sets
+                  const isFastLog = elapsedMin < 15 && (exerciseCount >= 3 || totalSets >= 6);
+                  if (!isFastLog && durationOverride === null) return null;
+                  // Estimate: ~2.5 min per set (includes rest)
+                  const estimated = Math.max(20, Math.round(totalSets * 2.5));
+                  const currentVal = durationOverride ?? estimated;
+                  // Auto-set on first render
+                  if (durationOverride === null) {
+                    setTimeout(() => setDurationOverride(estimated), 0);
+                  }
+                  return (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+                      <label className="text-sm text-yellow-300 mb-1 block font-medium">
+                        Actual workout duration
+                      </label>
+                      <p className="text-[11px] text-grappler-500 mb-2">
+                        Looks like you logged this after the session. How long did it actually take?
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min={5}
+                          max={300}
+                          value={currentVal}
+                          onChange={(e) => setDurationOverride(Math.max(5, parseInt(e.target.value) || 5))}
+                          className="input w-24 text-center text-lg font-bold"
+                        />
+                        <span className="text-sm text-grappler-400">minutes</span>
+                        <button
+                          onClick={() => setDurationOverride(null)}
+                          className="ml-auto text-[10px] text-grappler-500 underline"
+                        >
+                          Use actual time ({elapsedMin}m)
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -2070,7 +2118,8 @@ export default function ActiveWorkout() {
                       mood: feedback.mood,
                       wouldRepeat: feedback.wouldRepeat,
                       notes: feedback.notes
-                    }
+                    },
+                    ...(durationOverride !== null ? { durationOverride } : {})
                   })}
                   className="btn btn-primary btn-md flex-1"
                 >

@@ -66,6 +66,9 @@ export default function ActiveWorkout() {
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
   const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showLocationConfirm, setShowLocationConfirm] = useState<EquipmentProfileName | null>(null);
+  const [showDraftRecovery, setShowDraftRecovery] = useState(false);
+  const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
@@ -139,6 +142,17 @@ export default function ActiveWorkout() {
     }, 500);
     return () => clearInterval(interval);
   }, [isResting, restEndTime]);
+
+  // Draft recovery — detect if this workout was restored from persistence
+  useEffect(() => {
+    if (!activeWorkout) return;
+    const startTime = new Date(activeWorkout.startTime).getTime();
+    const elapsed = Date.now() - startTime;
+    // If more than 30 minutes have passed, show recovery prompt
+    if (elapsed > 30 * 60 * 1000) {
+      setShowDraftRecovery(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!activeWorkout) return null;
 
@@ -501,6 +515,42 @@ export default function ActiveWorkout() {
                 <div className="w-10" />
               </div>
 
+              {/* Draft Recovery Banner */}
+              {showDraftRecovery && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-4 mb-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <RotateCcw className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-bold text-amber-300 text-sm">Workout Recovered</h3>
+                      <p className="text-xs text-amber-400/80 mt-1">
+                        You had an in-progress workout. Your sets and data have been preserved.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setShowDraftRecovery(false)}
+                      className="flex-1 btn btn-sm bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
+                    >
+                      Continue Workout
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDraftRecovery(false);
+                        cancelWorkout();
+                      }}
+                      className="btn btn-sm btn-secondary"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Session Info */}
               <div className={cn(
                 'rounded-xl p-5 mb-5 border text-center',
@@ -698,15 +748,25 @@ export default function ActiveWorkout() {
                           setGrapplingToday(opt.v);
                           setShowGrapplingQ(false);
                           // Auto-reduce volume for moderate/hard grappling
-                          if (opt.v === 'hard') {
-                            // Hard grappling day — significant reduction
+                          if (opt.v === 'hard' || opt.v === 'moderate') {
                             const { activeWorkout: aw } = useAppStore.getState();
                             if (aw) {
-                              const reduced = aw.session.exercises.map(ex => ({
-                                ...ex,
-                                sets: Math.max(2, ex.sets - 2),
-                                prescription: { ...ex.prescription, rpe: Math.max(5, ex.prescription.rpe - 2) },
-                              }));
+                              const setReduction = opt.v === 'hard' ? 2 : 1;
+                              const rpeReduction = opt.v === 'hard' ? 2 : 1;
+                              let totalSetsRemoved = 0;
+                              let totalRpeReduced = 0;
+
+                              const reduced = aw.session.exercises.map(ex => {
+                                const newSets = Math.max(2, ex.sets - setReduction);
+                                const newRpe = Math.max(5, ex.prescription.rpe - rpeReduction);
+                                totalSetsRemoved += ex.sets - newSets;
+                                if (ex.prescription.rpe !== newRpe) totalRpeReduced++;
+                                return {
+                                  ...ex,
+                                  sets: newSets,
+                                  prescription: { ...ex.prescription, rpe: newRpe },
+                                };
+                              });
                               const reducedLogs = aw.exerciseLogs.map((log, i) => ({
                                 ...log,
                                 sets: log.sets.slice(0, reduced[i].sets).map(s => ({
@@ -720,27 +780,10 @@ export default function ActiveWorkout() {
                                   exerciseLogs: reducedLogs,
                                 },
                               });
-                            }
-                          } else if (opt.v === 'moderate') {
-                            const { activeWorkout: aw } = useAppStore.getState();
-                            if (aw) {
-                              const reduced = aw.session.exercises.map(ex => ({
-                                ...ex,
-                                sets: Math.max(2, ex.sets - 1),
-                                prescription: { ...ex.prescription, rpe: Math.max(5, ex.prescription.rpe - 1) },
-                              }));
-                              const reducedLogs = aw.exerciseLogs.map((log, i) => ({
-                                ...log,
-                                sets: log.sets.slice(0, reduced[i].sets).map(s => ({
-                                  ...s, rpe: reduced[i].prescription.rpe
-                                })),
-                              }));
-                              useAppStore.setState({
-                                activeWorkout: {
-                                  ...aw,
-                                  session: { ...aw.session, exercises: reduced },
-                                  exerciseLogs: reducedLogs,
-                                },
+                              setGrapplingReduction({
+                                level: opt.v,
+                                setsRemoved: totalSetsRemoved,
+                                rpeReduced: totalRpeReduced,
                               });
                             }
                           }
@@ -766,9 +809,40 @@ export default function ActiveWorkout() {
 
               {/* Grappling Applied Banner */}
               {!showGrapplingQ && grapplingToday !== 'none' && (
-                <div className="rounded-lg px-3 py-2 mb-4 flex items-center gap-2 text-xs bg-lime-500/10 text-lime-300">
-                  <Shield className="w-3.5 h-3.5" />
-                  {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned &mdash; volume adjusted
+                <div className={cn(
+                  'rounded-xl px-3 py-2.5 mb-4 text-xs',
+                  grapplingToday === 'hard' ? 'bg-red-500/10 border border-red-500/20' :
+                  grapplingToday === 'moderate' ? 'bg-yellow-500/10 border border-yellow-500/20' :
+                  'bg-lime-500/10 border border-lime-500/20'
+                )}>
+                  <div className="flex items-center gap-2">
+                    <Shield className={cn('w-3.5 h-3.5',
+                      grapplingToday === 'hard' ? 'text-red-400' :
+                      grapplingToday === 'moderate' ? 'text-yellow-400' : 'text-lime-400'
+                    )} />
+                    <span className={cn('font-medium',
+                      grapplingToday === 'hard' ? 'text-red-300' :
+                      grapplingToday === 'moderate' ? 'text-yellow-300' : 'text-lime-300'
+                    )}>
+                      {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned
+                    </span>
+                  </div>
+                  {grapplingReduction && (grapplingReduction.setsRemoved > 0 || grapplingReduction.rpeReduced > 0) && (
+                    <div className="mt-1.5 ml-5.5 flex items-center gap-3 text-grappler-400">
+                      {grapplingReduction.setsRemoved > 0 && (
+                        <span className="flex items-center gap-1">
+                          <ArrowDown className="w-3 h-3" />
+                          {grapplingReduction.setsRemoved} sets removed
+                        </span>
+                      )}
+                      {grapplingReduction.rpeReduced > 0 && (
+                        <span className="flex items-center gap-1">
+                          <ArrowDown className="w-3 h-3" />
+                          RPE lowered on {grapplingReduction.rpeReduced} exercises
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -781,7 +855,10 @@ export default function ActiveWorkout() {
                   return (
                     <button
                       key={profile.name}
-                      onClick={() => adaptWorkoutToProfile(profile.name)}
+                      onClick={() => {
+                        if (isActive) return;
+                        setShowLocationConfirm(profile.name);
+                      }}
                       className={cn(
                         'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
                         isActive
@@ -795,6 +872,48 @@ export default function ActiveWorkout() {
                   );
                 })}
               </div>
+
+              {/* Location Switch Confirmation Dialog */}
+              <AnimatePresence>
+                {showLocationConfirm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden mb-4"
+                  >
+                    <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/30">
+                      <div className="flex items-start gap-2 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-300">Switch location?</p>
+                          <p className="text-xs text-grappler-400 mt-1">
+                            Switching to <span className="text-grappler-200 font-medium capitalize">{showLocationConfirm}</span> will
+                            replace exercises that aren&apos;t available at that location. Your logged sets will be reset for swapped exercises.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            adaptWorkoutToProfile(showLocationConfirm);
+                            setShowLocationConfirm(null);
+                          }}
+                          className="flex-1 btn btn-sm bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
+                        >
+                          Switch
+                        </button>
+                        <button
+                          onClick={() => setShowLocationConfirm(null)}
+                          className="btn btn-sm btn-secondary"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Exercise List */}
               <div className="space-y-3">

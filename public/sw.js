@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v1';
+const CACHE_NAME = 'roots-gains-v2';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -96,4 +96,105 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => caches.match(request))
   );
+});
+
+// ── Background Sync ──
+// Queue sync requests when offline, replay when back online
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-store') {
+    event.waitUntil(replaySyncQueue());
+  }
+});
+
+async function replaySyncQueue() {
+  try {
+    const cache = await caches.open('roots-gains-sync-queue');
+    const requests = await cache.keys();
+
+    for (const request of requests) {
+      const response = await cache.match(request);
+      if (!response) continue;
+
+      const body = await response.json();
+      try {
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        await cache.delete(request);
+      } catch {
+        // Still offline or server error — leave in queue for next sync
+        break;
+      }
+    }
+  } catch {
+    // Cache API or network error — retry on next sync event
+  }
+}
+
+// ── Push Notifications ──
+self.addEventListener('push', (event) => {
+  let data = { title: 'Roots Gains', body: 'Time to train!', tag: 'default' };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag,
+    vibrate: [100, 50, 100],
+    data: {
+      url: '/',
+    },
+    actions: [
+      { action: 'open', title: 'Open App' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus existing tab if available
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      return self.clients.openWindow(urlToOpen);
+    })
+  );
+});
+
+// ── Service Worker Update Detection ──
+// Notify clients when a new version is available
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  // Respond to version check
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({ version: CACHE_NAME });
+  }
 });

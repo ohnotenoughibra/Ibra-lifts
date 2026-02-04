@@ -41,10 +41,13 @@ import {
   Shield,
   Share2,
   Copy,
-  Check
+  Check,
+  Users,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
+import { getExerciseById } from '@/lib/exercises';
+import SyncConflictResolver from './SyncConflictResolver';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
@@ -98,9 +101,10 @@ const HRZoneTraining = dynamic(() => import('./HRZoneTraining'), { loading: () =
 const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: () => <OverlaySkeleton /> });
 const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
+const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const weeks = 12;
@@ -201,7 +205,7 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayView] = useState<OverlayView>(null);
-  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs } = useAppStore();
+  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -261,6 +265,9 @@ export default function Dashboard() {
   }
   if (overlayView === 'grappling') {
     return <GrapplingTracker onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'community_share') {
+    return <CommunityShare onClose={() => setOverlayView(null)} />;
   }
 
   return (
@@ -396,6 +403,15 @@ export default function Dashboard() {
           ))}
         </div>
       </nav>
+
+      {/* Sync Conflict Resolver */}
+      {syncConflict && (
+        <SyncConflictResolver
+          conflict={syncConflict}
+          onResolve={resolveSyncConflict}
+          onDismiss={dismissSyncConflict}
+        />
+      )}
     </div>
   );
 }
@@ -642,6 +658,7 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const weightUnit = user?.weightUnit || 'lbs';
 
   // Share workout summary handler
   const handleShareWorkout = async () => {
@@ -672,7 +689,6 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const motivationalMessage = getMotivationalMessage(gamificationStats);
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
-  const weightUnit = user?.weightUnit || 'lbs';
 
   // Deload detection
   const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
@@ -758,12 +774,26 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 
-  // Estimated 1RM trends for key lifts
+  // Estimated 1RM trends — dynamically finds the user's most frequently performed lifts
   const e1rmTrends = (() => {
-    const keyLifts = ['barbell-back-squat', 'conventional-deadlift', 'barbell-bench-press', 'overhead-press'];
+    // Count how many times each exercise appears across all workout logs
+    const exerciseFreq: Record<string, number> = {};
+    for (const log of workoutLogs) {
+      for (const ex of log.exercises) {
+        exerciseFreq[ex.exerciseId] = (exerciseFreq[ex.exerciseId] || 0) + 1;
+      }
+    }
+
+    // Sort by frequency and take the top exercises that have at least 2 occurrences
+    const topExercises = Object.entries(exerciseFreq)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id]) => id);
+
     const trends: { name: string; current: number; previous: number; exerciseId: string }[] = [];
 
-    for (const liftId of keyLifts) {
+    for (const liftId of topExercises) {
       const logsWithLift = workoutLogs
         .filter(log => log.exercises.some(ex => ex.exerciseId === liftId))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -784,8 +814,9 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
         const current = getE1rm(logsWithLift[0]);
         const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
         if (current > 0) {
-          const name = liftId.replace(/^barbell-|^conventional-/g, '').replace(/-/g, ' ');
-          trends.push({ name: name.charAt(0).toUpperCase() + name.slice(1), current, previous, exerciseId: liftId });
+          const exercise = getExerciseById(liftId);
+          const name = exercise?.name || liftId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          trends.push({ name, current, previous, exerciseId: liftId });
         }
       }
     }
@@ -872,11 +903,12 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   // Tools split into featured (top 4) and more
   const featuredTools = [
     { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
-    { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+    { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
     { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
-    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+    { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
   ];
   const moreTools = [
+    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
     { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
     { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },

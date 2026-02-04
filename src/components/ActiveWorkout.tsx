@@ -81,8 +81,16 @@ export default function ActiveWorkout() {
   const whoopReadiness = latestWhoopData ? whoopRecoveryToReadiness({
     recoveryScore: latestWhoopData.recoveryScore ?? undefined,
     hrvMs: latestWhoopData.hrv ?? undefined,
+    restingHR: latestWhoopData.restingHR ?? undefined,
     sleepScore: latestWhoopData.sleepScore ?? undefined,
     strainScore: latestWhoopData.strain ?? undefined,
+    spo2: latestWhoopData.spo2 ?? undefined,
+    sleepEfficiency: latestWhoopData.sleepEfficiency ?? undefined,
+    deepSleepMinutes: latestWhoopData.deepSleepMinutes ?? undefined,
+    sleepHours: latestWhoopData.sleepHours ?? undefined,
+    sleepNeededHours: latestWhoopData.sleepNeededHours ?? undefined,
+    sleepConsistency: latestWhoopData.sleepConsistency ?? undefined,
+    sleepDisturbances: latestWhoopData.sleepDisturbances ?? undefined,
   }) : null;
 
   // Pre-workout check-in state

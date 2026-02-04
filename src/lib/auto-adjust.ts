@@ -6,7 +6,8 @@ import {
   PostWorkoutFeedback,
   WorkoutAdjustment,
   WorkoutSession,
-  ExercisePrescription
+  ExercisePrescription,
+  WhoopWorkout
 } from './types';
 
 // RP-style auto-adjustment engine
@@ -485,6 +486,13 @@ export function whoopRecoveryToReadiness(whoopData: {
   skinTempC?: number;
   respiratoryRate?: number;
   strainScore?: number; // 0-21
+  spo2?: number; // 90-100%
+  sleepEfficiency?: number; // 0-100%
+  deepSleepMinutes?: number;
+  sleepHours?: number;
+  sleepNeededHours?: number;
+  sleepConsistency?: number; // 0-100%
+  sleepDisturbances?: number;
 }): ReadinessScore {
   const factors: string[] = [];
   let score = 50;
@@ -510,6 +518,70 @@ export function whoopRecoveryToReadiness(whoopData: {
   if (whoopData.strainScore !== undefined && whoopData.strainScore > 15) {
     score -= 10;
     factors.push(`High previous strain: ${whoopData.strainScore.toFixed(1)}`);
+  }
+
+  // --- New metrics from Whoop API v2 ---
+
+  // Deep sleep: critical for muscle recovery and growth hormone release
+  if (whoopData.deepSleepMinutes !== undefined) {
+    if (whoopData.deepSleepMinutes >= 60) {
+      score += 5;
+      factors.push(`Deep sleep: ${whoopData.deepSleepMinutes}min (excellent)`);
+    } else if (whoopData.deepSleepMinutes < 30) {
+      score -= 8;
+      factors.push(`Low deep sleep: ${whoopData.deepSleepMinutes}min — recovery impaired`);
+    }
+  }
+
+  // Sleep efficiency: time asleep vs time in bed
+  if (whoopData.sleepEfficiency !== undefined) {
+    if (whoopData.sleepEfficiency >= 90) {
+      score += 3;
+    } else if (whoopData.sleepEfficiency < 75) {
+      score -= 5;
+      factors.push(`Low sleep efficiency: ${whoopData.sleepEfficiency.toFixed(0)}%`);
+    }
+  }
+
+  // Sleep debt: actual hours vs needed hours
+  if (whoopData.sleepHours !== undefined && whoopData.sleepNeededHours !== undefined) {
+    const debt = whoopData.sleepHours - whoopData.sleepNeededHours;
+    if (debt < -1.5) {
+      score -= 10;
+      factors.push(`Sleep debt: ${debt.toFixed(1)}hrs under your need`);
+    } else if (debt < -0.5) {
+      score -= 4;
+      factors.push(`Mild sleep debt: ${Math.abs(debt).toFixed(1)}hrs short`);
+    }
+  }
+
+  // Sleep consistency: irregular schedules hurt recovery
+  if (whoopData.sleepConsistency !== undefined && whoopData.sleepConsistency < 60) {
+    score -= 4;
+    factors.push(`Irregular sleep schedule (${whoopData.sleepConsistency.toFixed(0)}% consistency)`);
+  }
+
+  // SpO2: low blood oxygen indicates altitude, illness, or overtraining
+  if (whoopData.spo2 !== undefined && whoopData.spo2 < 95) {
+    score -= 8;
+    factors.push(`Low SpO2: ${whoopData.spo2.toFixed(0)}% — possible illness or overtraining`);
+  }
+
+  // Resting HR: elevated RHR signals incomplete recovery
+  if (whoopData.restingHR !== undefined) {
+    if (whoopData.restingHR > 70) {
+      score -= 5;
+      factors.push(`Elevated resting HR: ${whoopData.restingHR} bpm`);
+    } else if (whoopData.restingHR < 50) {
+      score += 3;
+      factors.push(`Low resting HR: ${whoopData.restingHR} bpm (well recovered)`);
+    }
+  }
+
+  // Sleep disturbances: fragmented sleep reduces recovery quality
+  if (whoopData.sleepDisturbances !== undefined && whoopData.sleepDisturbances > 10) {
+    score -= 4;
+    factors.push(`Restless night: ${whoopData.sleepDisturbances} disturbances`);
   }
 
   score = Math.max(0, Math.min(100, score));
@@ -538,4 +610,53 @@ export function mergeReadinessScores(manual: ReadinessScore | null, whoop: Readi
   else recommendation = 'maintain';
 
   return { score, factors, recommendation };
+}
+
+/**
+ * Match a Whoop workout to an app workout log by time overlap.
+ * Finds the Whoop workout whose time window best overlaps with the app log's
+ * start/end window (start = log.date - duration, end = log.date).
+ * Returns the HR data to attach to the log, or undefined if no match.
+ */
+export function matchWhoopWorkout(
+  logDate: Date,
+  logDurationMinutes: number,
+  whoopWorkouts: WhoopWorkout[],
+): WorkoutLog['whoopHR'] | undefined {
+  if (!whoopWorkouts || whoopWorkouts.length === 0) return undefined;
+
+  const logEnd = new Date(logDate).getTime();
+  const logStart = logEnd - logDurationMinutes * 60 * 1000;
+
+  // Allow 30-minute tolerance on each side for matching
+  const TOLERANCE_MS = 30 * 60 * 1000;
+
+  let bestMatch: WhoopWorkout | undefined;
+  let bestOverlap = 0;
+
+  for (const ww of whoopWorkouts) {
+    const wwStart = new Date(ww.start).getTime();
+    const wwEnd = new Date(ww.end).getTime();
+
+    // Calculate overlap between [logStart-tol, logEnd+tol] and [wwStart, wwEnd]
+    const overlapStart = Math.max(logStart - TOLERANCE_MS, wwStart);
+    const overlapEnd = Math.min(logEnd + TOLERANCE_MS, wwEnd);
+    const overlap = Math.max(0, overlapEnd - overlapStart);
+
+    if (overlap > bestOverlap) {
+      bestOverlap = overlap;
+      bestMatch = ww;
+    }
+  }
+
+  // Require at least 10 minutes of overlap to count as a match
+  if (!bestMatch || bestOverlap < 10 * 60 * 1000) return undefined;
+
+  return {
+    avgHR: bestMatch.avgHR ?? 0,
+    maxHR: bestMatch.maxHR ?? 0,
+    strain: bestMatch.strain ?? 0,
+    calories: bestMatch.calories ?? 0,
+    zones: bestMatch.zones.length > 0 ? bestMatch.zones : undefined,
+  };
 }

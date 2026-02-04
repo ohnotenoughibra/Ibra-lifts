@@ -576,13 +576,29 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         setWhoopProfile(data.profile);
         const transformed = transformWhoopData(data);
         setWearableData(transformed);
-        setWhoopWorkouts(transformWhoopWorkouts(data));
+        const whoopWkts = transformWhoopWorkouts(data);
+        setWhoopWorkouts(whoopWkts);
         setWhoopBody(transformWhoopBody(data));
         setLastSync(new Date());
 
-        // Persist today's data to the global store for workout adjustments
+        // Persist to the global store for workout adjustments and analytics
         if (transformed.length > 0) {
           useAppStore.getState().setLatestWhoopData(transformed[transformed.length - 1]);
+          useAppStore.getState().setWearableHistory(transformed);
+        }
+        useAppStore.getState().setWhoopWorkouts(whoopWkts);
+
+        // Auto-sync Whoop body weight to body weight log
+        const bodyData = transformWhoopBody(data);
+        if (bodyData?.weightKg) {
+          const weightUnit = useAppStore.getState().user?.weightUnit || 'lbs';
+          const weight = weightUnit === 'kg' ? bodyData.weightKg : Math.round(bodyData.weightKg * 2.20462 * 10) / 10;
+          const bwLog = useAppStore.getState().bodyWeightLog;
+          const today = new Date().toDateString();
+          const alreadyLogged = bwLog.some(e => new Date(e.date).toDateString() === today && e.notes === 'Whoop sync');
+          if (!alreadyLogged) {
+            useAppStore.getState().addBodyWeight(weight, 'Whoop sync');
+          }
         }
 
         // Show warnings if some endpoints had issues (partial data)
@@ -696,6 +712,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     setWhoopProfile(null);
     setLastSync(null);
     setError(null);
+    useAppStore.getState().setWhoopWorkouts([]);
   };
 
   const handleSync = () => {

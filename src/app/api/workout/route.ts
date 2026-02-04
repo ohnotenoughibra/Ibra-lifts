@@ -10,7 +10,7 @@ const workoutRequestSchema = z.object({
   weeks: z.number().int().min(1).max(12).optional().default(5),
   quickWorkout: z.boolean().optional().default(false),
   duration: z.number().int().min(10).max(120).optional().default(30),
-  periodizationType: z.enum(['undulating', 'block']).optional().default('undulating'),
+  periodizationType: z.enum(['linear', 'undulating', 'block']).optional().default('undulating'),
 });
 
 export async function POST(request: NextRequest) {

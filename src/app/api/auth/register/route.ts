@@ -2,9 +2,18 @@ import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { ensureAuthTables } from '@/lib/db-init';
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: 5 registrations per IP per minute
+    const ip = getClientIP(request);
+    const { limited } = rateLimit(`register:${ip}`, 5, 60 * 1000);
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const { name, email, password } = await request.json();
 
     if (!email || !password || !name) {
@@ -17,16 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
-    // Ensure auth_users table exists
-    await sql`
-      CREATE TABLE IF NOT EXISTS auth_users (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `;
+    await ensureAuthTables();
 
     // Check if user already exists
     const { rows: existing } = await sql`

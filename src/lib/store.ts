@@ -36,7 +36,7 @@ import {
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
-import { generateMesocycle } from './workout-generator';
+import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
@@ -588,9 +588,18 @@ export const useAppStore = create<AppState>()(
 
       // Workout actions
       startWorkout: (session) => {
-        const { workoutLogs } = get();
+        const { workoutLogs, user } = get();
+
+        // Autoregulate: adjust session based on recent feedback (intermediate+ only)
+        let activeSession = session;
+        if (user && user.experienceLevel !== 'beginner' && workoutLogs.length >= 2) {
+          const recent = workoutLogs.slice(-3); // last 3 workouts
+          const { session: adjusted } = autoregulateSession(session, recent);
+          activeSession = adjusted;
+        }
+
         // Pre-fill weights from previous session using auto-adjust
-        const exerciseLogs = session.exercises.map((ex) => {
+        const exerciseLogs = activeSession.exercises.map((ex) => {
           const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs);
           // Get per-set data from previous session to prefill reps individually
           const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs);
@@ -610,8 +619,8 @@ export const useAppStore = create<AppState>()(
 
         set({
           activeWorkout: {
-            session,
-            baseSession: JSON.parse(JSON.stringify(session)), // Deep clone as immutable base
+            session: activeSession,
+            baseSession: JSON.parse(JSON.stringify(session)), // Deep clone original as immutable base
             exerciseLogs,
             startTime: new Date()
           }

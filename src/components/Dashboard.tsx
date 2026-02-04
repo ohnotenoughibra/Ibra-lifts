@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -45,6 +46,7 @@ import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { exportToCSV, exportToJSON, downloadFile } from '@/lib/data-export';
+// Core tabs — always loaded
 import WorkoutView from './WorkoutView';
 import ProgressCharts from './ProgressCharts';
 import KnowledgeHub from './KnowledgeHub';
@@ -52,26 +54,47 @@ import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
 import WorkoutHistory from './WorkoutHistory';
 import TrainingCalendar from './TrainingCalendar';
-import BodyWeightTracker from './BodyWeightTracker';
-import WorkoutBuilder from './WorkoutBuilder';
-import NutritionTracker from './NutritionTracker';
-import WearableIntegration from './WearableIntegration';
-import CompetitionPrep from './CompetitionPrep';
-import MobilityWorkouts from './MobilityWorkouts';
-import WeeklyCoach from './WeeklyCoach';
-import ExerciseProfiler from './ExerciseProfiler';
-import StrengthAnalysis from './StrengthAnalysis';
-import PeriodizationCalendar from './PeriodizationCalendar';
-import RecoveryDashboard from './RecoveryDashboard';
-import InjuryLogger from './InjuryLogger';
-import ProgressiveOverload from './ProgressiveOverload';
-import CustomExerciseCreator from './CustomExerciseCreator';
-import OneRepMaxCalc from './OneRepMaxCalc';
-import HRZoneTraining from './HRZoneTraining';
-import SessionTemplates from './SessionTemplates';
-import VolumeHeatMap from './VolumeHeatMap';
-import GrapplingTracker from './GrapplingTracker';
 import ThemeToggle from './ThemeToggle';
+
+// Overlay components — lazy-loaded (only when opened)
+function OverlaySkeleton() {
+  return (
+    <div className="min-h-screen bg-grappler-950 animate-pulse">
+      <div className="sticky top-0 z-10 bg-grappler-950/95 border-b border-grappler-800 p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-grappler-800" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 w-40 bg-grappler-800 rounded" />
+          <div className="h-3 w-56 bg-grappler-800/60 rounded" />
+        </div>
+      </div>
+      <div className="p-4 space-y-4">
+        <div className="h-32 bg-grappler-800/50 rounded-xl" />
+        <div className="h-24 bg-grappler-800/50 rounded-xl" />
+        <div className="h-24 bg-grappler-800/50 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), { loading: () => <OverlaySkeleton /> });
+const WorkoutBuilder = dynamic(() => import('./WorkoutBuilder'), { loading: () => <OverlaySkeleton /> });
+const NutritionTracker = dynamic(() => import('./NutritionTracker'), { loading: () => <OverlaySkeleton /> });
+const WearableIntegration = dynamic(() => import('./WearableIntegration'), { loading: () => <OverlaySkeleton /> });
+const CompetitionPrep = dynamic(() => import('./CompetitionPrep'), { loading: () => <OverlaySkeleton /> });
+const MobilityWorkouts = dynamic(() => import('./MobilityWorkouts'), { loading: () => <OverlaySkeleton /> });
+const WeeklyCoach = dynamic(() => import('./WeeklyCoach'), { loading: () => <OverlaySkeleton /> });
+const ExerciseProfiler = dynamic(() => import('./ExerciseProfiler'), { loading: () => <OverlaySkeleton /> });
+const StrengthAnalysis = dynamic(() => import('./StrengthAnalysis'), { loading: () => <OverlaySkeleton /> });
+const PeriodizationCalendar = dynamic(() => import('./PeriodizationCalendar'), { loading: () => <OverlaySkeleton /> });
+const RecoveryDashboard = dynamic(() => import('./RecoveryDashboard'), { loading: () => <OverlaySkeleton /> });
+const InjuryLogger = dynamic(() => import('./InjuryLogger'), { loading: () => <OverlaySkeleton /> });
+const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
+const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
+const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
+const HRZoneTraining = dynamic(() => import('./HRZoneTraining'), { loading: () => <OverlaySkeleton /> });
+const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: () => <OverlaySkeleton /> });
+const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
+const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | null;

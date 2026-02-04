@@ -154,6 +154,7 @@ interface AppState {
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
   cancelWorkout: () => void;
@@ -649,6 +650,39 @@ export const useAppStore = create<AppState>()(
             session: updatedSession,
             exerciseLogs: updatedLogs
           }
+        });
+      },
+
+      swapProgramExercise: (weekIndex, sessionId, exerciseIndex, newExerciseId) => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return;
+
+        const newExercise = getExerciseById(newExerciseId);
+        if (!newExercise) return;
+
+        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
+          if (wIdx !== weekIndex) return week;
+          return {
+            ...week,
+            sessions: week.sessions.map(session => {
+              if (session.id !== sessionId) return session;
+              const updatedExercises = [...session.exercises];
+              const oldPrescription = updatedExercises[exerciseIndex];
+              updatedExercises[exerciseIndex] = {
+                ...oldPrescription,
+                exerciseId: newExerciseId,
+                exercise: newExercise,
+              };
+              return { ...session, exercises: updatedExercises };
+            }),
+          };
+        });
+
+        set({
+          currentMesocycle: {
+            ...currentMesocycle,
+            weeks: updatedWeeks,
+          },
         });
       },
 

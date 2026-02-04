@@ -19,11 +19,15 @@ import {
   Search,
   SlidersHorizontal,
   X,
-  Check
+  Check,
+  Shuffle,
+  Star,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment } from '@/lib/types';
 import { Building2, Home, Backpack } from 'lucide-react';
+import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 
 interface WorkoutViewProps {
   onOpenBuilder?: () => void;
@@ -36,7 +40,7 @@ const PROFILE_ICONS: Record<string, any> = {
 };
 
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user } = useAppStore();
 
   // Track which sessions have been completed in this mesocycle
   const completedSessionIds = new Set(
@@ -224,6 +228,8 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             getWorkoutTypeIcon={getWorkoutTypeIcon}
             getWorkoutTypeColor={getWorkoutTypeColor}
             completedSessionIds={completedSessionIds}
+            onSwapExercise={swapProgramExercise}
+            userEquipment={user?.equipment || 'full_gym'}
           />
         ))}
       </div>
@@ -467,6 +473,117 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
   );
 }
 
+// --- Exercise Card with Swap ---
+interface ExerciseCardProps {
+  exercise: ExercisePrescription;
+  index: number;
+  weekIndex: number;
+  sessionId: string;
+  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  userEquipment: Equipment;
+}
+
+function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment }: ExerciseCardProps) {
+  const [showAlternatives, setShowAlternatives] = useState(false);
+
+  const alternatives: ExerciseRecommendation[] = showAlternatives
+    ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 6)
+    : [];
+
+  return (
+    <div className="bg-grappler-700/50 rounded-lg overflow-hidden">
+      <div className="p-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-grappler-100">{ex.exercise.name}</p>
+            <p className="text-sm text-grappler-400">
+              {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-xs text-grappler-400">
+                Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
+              </p>
+              {ex.prescription.percentageOf1RM && (
+                <p className="text-xs text-grappler-500">
+                  ~{ex.prescription.percentageOf1RM}% 1RM
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setShowAlternatives(!showAlternatives)}
+              className={cn(
+                'p-1.5 rounded-lg transition-colors',
+                showAlternatives
+                  ? 'bg-accent-500/20 text-accent-400'
+                  : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
+              )}
+              title="Swap exercise"
+            >
+              <Shuffle className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Alternatives Panel */}
+      <AnimatePresence>
+        {showAlternatives && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-grappler-600/50 px-3 py-2">
+              <p className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wider mb-2">
+                Swap with
+              </p>
+              {alternatives.length === 0 ? (
+                <p className="text-xs text-grappler-500 py-2">No alternatives found for your equipment.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {alternatives.map((alt) => (
+                    <button
+                      key={alt.exercise.id}
+                      onClick={() => {
+                        onSwap(weekIndex, sessionId, index, alt.exercise.id);
+                        setShowAlternatives(false);
+                      }}
+                      className="w-full text-left p-2 rounded-lg bg-grappler-800/50 hover:bg-grappler-600/50 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-grappler-200 group-hover:text-grappler-50 truncate">
+                            {alt.exercise.name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="flex items-center gap-0.5 text-[10px] text-accent-400">
+                              <Star className="w-2.5 h-2.5" />
+                              {alt.matchScore}% match
+                            </span>
+                            {alt.tags.slice(0, 2).map(tag => (
+                              <span key={tag} className="text-[10px] text-grappler-500">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <ArrowRight className="w-3.5 h-3.5 text-grappler-500 group-hover:text-accent-400 transition-colors flex-shrink-0" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 interface WeekCardProps {
   week: MesocycleWeek;
   weekIndex: number;
@@ -478,6 +595,8 @@ interface WeekCardProps {
   getWorkoutTypeIcon: (type: WorkoutType) => any;
   getWorkoutTypeColor: (type: WorkoutType) => string;
   completedSessionIds: Set<string>;
+  onSwapExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  userEquipment: 'full_gym' | 'home_gym' | 'minimal';
 }
 
 function WeekCard({
@@ -490,7 +609,9 @@ function WeekCard({
   onStartWorkout,
   getWorkoutTypeIcon,
   getWorkoutTypeColor,
-  completedSessionIds
+  completedSessionIds,
+  onSwapExercise,
+  userEquipment,
 }: WeekCardProps) {
   return (
     <motion.div
@@ -609,29 +730,15 @@ function WeekCard({
                       {/* Exercises */}
                       <div className="space-y-2">
                         {session.exercises.map((ex, i) => (
-                          <div
-                            key={i}
-                            className="bg-grappler-700/50 rounded-lg p-3"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-grappler-100">{ex.exercise.name}</p>
-                                <p className="text-sm text-grappler-400">
-                                  {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-grappler-400">
-                                  Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
-                                </p>
-                                {ex.prescription.percentageOf1RM && (
-                                  <p className="text-xs text-grappler-500">
-                                    ~{ex.prescription.percentageOf1RM}% 1RM
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                          <ExerciseCard
+                            key={`${session.id}-${i}-${ex.exerciseId}`}
+                            exercise={ex}
+                            index={i}
+                            weekIndex={weekIndex}
+                            sessionId={session.id}
+                            onSwap={onSwapExercise}
+                            userEquipment={userEquipment}
+                          />
                         ))}
                       </div>
                     </motion.div>

@@ -18,7 +18,8 @@ import {
   Wrench,
   Search,
   SlidersHorizontal,
-  X
+  X,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
@@ -35,7 +36,16 @@ const PROFILE_ICONS: Record<string, any> = {
 };
 
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs } = useAppStore();
+
+  // Track which sessions have been completed in this mesocycle
+  const completedSessionIds = new Set(
+    currentMesocycle
+      ? workoutLogs
+          .filter(log => log.mesocycleId === currentMesocycle.id)
+          .map(log => log.sessionId)
+      : []
+  );
   const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
@@ -213,6 +223,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             onStartWorkout={startWorkout}
             getWorkoutTypeIcon={getWorkoutTypeIcon}
             getWorkoutTypeColor={getWorkoutTypeColor}
+            completedSessionIds={completedSessionIds}
           />
         ))}
       </div>
@@ -466,6 +477,7 @@ interface WeekCardProps {
   onStartWorkout: (session: WorkoutSession) => void;
   getWorkoutTypeIcon: (type: WorkoutType) => any;
   getWorkoutTypeColor: (type: WorkoutType) => string;
+  completedSessionIds: Set<string>;
 }
 
 function WeekCard({
@@ -477,7 +489,8 @@ function WeekCard({
   setExpandedSession,
   onStartWorkout,
   getWorkoutTypeIcon,
-  getWorkoutTypeColor
+  getWorkoutTypeColor,
+  completedSessionIds
 }: WeekCardProps) {
   return (
     <motion.div
@@ -511,7 +524,7 @@ function WeekCard({
               )}
             </h3>
             <p className="text-sm text-grappler-400">
-              {week.sessions.length} sessions
+              {week.sessions.filter(s => completedSessionIds.has(s.id)).length}/{week.sessions.length} sessions done
             </p>
           </div>
         </div>
@@ -535,20 +548,26 @@ function WeekCard({
               const Icon = getWorkoutTypeIcon(session.type);
               const colorClass = getWorkoutTypeColor(session.type);
               const isSessionExpanded = expandedSession === session.id;
+              const isCompleted = completedSessionIds.has(session.id);
 
               return (
-                <div key={session.id} className="bg-grappler-800/50 rounded-lg overflow-hidden">
+                <div key={session.id} className={cn('bg-grappler-800/50 rounded-lg overflow-hidden', isCompleted && 'opacity-60')}>
                   {/* Session Header with inline Start */}
                   <div className="p-4 flex items-center gap-3">
                     <button
                       onClick={() => setExpandedSession(isSessionExpanded ? null : session.id)}
                       className="flex items-center gap-3 flex-1 min-w-0"
                     >
-                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', colorClass)}>
+                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 relative', colorClass)}>
                         <Icon className="w-5 h-5" />
+                        {isCompleted && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
                       </div>
                       <div className="text-left min-w-0">
-                        <h4 className="font-medium text-grappler-100 truncate">{session.name}</h4>
+                        <h4 className="font-medium text-grappler-100 truncate">{session.name}{isCompleted ? ' (Done)' : ''}</h4>
                         <div className="flex items-center gap-3 text-xs text-grappler-400">
                           <span className="flex items-center gap-1">
                             <Dumbbell className="w-3 h-3" />

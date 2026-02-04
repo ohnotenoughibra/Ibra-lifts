@@ -20,6 +20,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
 import { CompetitionType, CompetitionEvent } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
 
 interface CompetitionPrepProps {
   onClose: () => void;
@@ -221,6 +222,8 @@ function createExampleEvent(): CompetitionEvent {
 }
 
 export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
+  const { user } = useAppStore();
+  const weightUnit = user?.weightUnit || 'lbs';
   const [events, setEvents] = useState<CompetitionEvent[]>([createExampleEvent()]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -416,6 +419,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
               event={selectedEvent}
               onBack={() => setSelectedEventId(null)}
               onDelete={() => handleDeleteEvent(selectedEvent.id)}
+              weightUnit={weightUnit}
             />
           ) : (
             <motion.div
@@ -442,6 +446,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                     index={i}
                     onSelect={() => setSelectedEventId(event.id)}
                     onDelete={() => handleDeleteEvent(event.id)}
+                    weightUnit={weightUnit}
                   />
                 ))
               )}
@@ -454,7 +459,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
 }
 
 // ---- Weight Cut Safety Warnings ----
-function WeightCutWarnings({ currentWeight, targetWeight, daysRemaining }: { currentWeight: number; targetWeight: number; daysRemaining: number }) {
+function WeightCutWarnings({ currentWeight, targetWeight, daysRemaining, weightUnit }: { currentWeight: number; targetWeight: number; daysRemaining: number; weightUnit: string }) {
   const toLose = currentWeight - targetWeight;
   const cutPercent = (toLose / currentWeight) * 100;
   const weeksRemaining = Math.max(1, daysRemaining / 7);
@@ -467,12 +472,12 @@ function WeightCutWarnings({ currentWeight, targetWeight, daysRemaining }: { cur
     warnings.push({ level: 'danger', message: `Cutting ${cutPercent.toFixed(1)}% of body weight — risk of muscle loss, hormonal disruption, and performance decline.` });
   }
   if (weeklyLossPercent > 1.5) {
-    warnings.push({ level: 'danger', message: `Required pace: ${weeklyLossRate.toFixed(1)} lbs/week (${weeklyLossPercent.toFixed(1)}%/week). Safe limit is ~1% per week.` });
+    warnings.push({ level: 'danger', message: `Required pace: ${weeklyLossRate.toFixed(1)} ${weightUnit}/week (${weeklyLossPercent.toFixed(1)}%/week). Safe limit is ~1% per week.` });
   } else if (weeklyLossPercent > 1.0) {
-    warnings.push({ level: 'caution', message: `Pace: ${weeklyLossRate.toFixed(1)} lbs/week (${weeklyLossPercent.toFixed(1)}%/week). Aggressive but manageable with careful nutrition.` });
+    warnings.push({ level: 'caution', message: `Pace: ${weeklyLossRate.toFixed(1)} ${weightUnit}/week (${weeklyLossPercent.toFixed(1)}%/week). Aggressive but manageable with careful nutrition.` });
   }
   if (toLose > 15 && daysRemaining < 14) {
-    warnings.push({ level: 'danger', message: `${toLose.toFixed(1)} lbs to lose in ${daysRemaining} days requires extreme measures. Consider moving up a weight class.` });
+    warnings.push({ level: 'danger', message: `${toLose.toFixed(1)} ${weightUnit} to lose in ${daysRemaining} days requires extreme measures. Consider moving up a weight class.` });
   }
   if (toLose > 5 && daysRemaining < 3) {
     warnings.push({ level: 'danger', message: `Water cut territory — consult a professional. Ensure a rehydration plan is in place.` });
@@ -514,11 +519,13 @@ function EventCard({
   index,
   onSelect,
   onDelete,
+  weightUnit,
 }: {
   event: CompetitionEvent;
   index: number;
   onSelect: () => void;
   onDelete: () => void;
+  weightUnit: string;
 }) {
   const daysRemaining = getDaysRemaining(new Date(event.date));
   const phase = getCurrentPhase(event);
@@ -587,9 +594,9 @@ function EventCard({
           <div className="flex items-center justify-between text-xs text-grappler-400 mb-1">
             <span className="flex items-center gap-1">
               <Scale className="w-3 h-3" />
-              {event.currentWeight ? `${event.currentWeight} lbs` : 'No weigh-in yet'}
+              {event.currentWeight ? `${event.currentWeight} ${weightUnit}` : 'No weigh-in yet'}
             </span>
-            <span>Target: {event.weightClass} lbs</span>
+            <span>Target: {event.weightClass} {weightUnit}</span>
           </div>
           <div className="h-2 bg-grappler-700 rounded-full overflow-hidden">
             <motion.div
@@ -637,10 +644,12 @@ function EventDetail({
   event,
   onBack,
   onDelete,
+  weightUnit,
 }: {
   event: CompetitionEvent;
   onBack: () => void;
   onDelete: () => void;
+  weightUnit: string;
 }) {
   const daysRemaining = getDaysRemaining(new Date(event.date));
   const weeksRemaining = getWeeksRemaining(new Date(event.date));
@@ -753,11 +762,11 @@ function EventDetail({
               <p className="text-2xl font-bold text-grappler-50">
                 {event.currentWeight || '--'}
               </p>
-              <p className="text-xs text-grappler-400">Current (lbs)</p>
+              <p className="text-xs text-grappler-400">Current ({weightUnit})</p>
             </div>
             <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-grappler-50">{event.weightClass}</p>
-              <p className="text-xs text-grappler-400">Target (lbs)</p>
+              <p className="text-xs text-grappler-400">Target ({weightUnit})</p>
             </div>
           </div>
           <div className="space-y-1">
@@ -782,7 +791,7 @@ function EventDetail({
             </div>
             {event.currentWeight && event.weightClass && event.currentWeight > event.weightClass && (
               <p className="text-xs text-yellow-400 mt-1">
-                {(event.currentWeight - event.weightClass).toFixed(1)} lbs to lose
+                {(event.currentWeight - event.weightClass).toFixed(1)} {weightUnit} to lose
               </p>
             )}
             {event.currentWeight && event.weightClass && event.currentWeight <= event.weightClass && (
@@ -798,6 +807,7 @@ function EventDetail({
           currentWeight={event.currentWeight}
           targetWeight={event.weightClass}
           daysRemaining={daysRemaining}
+          weightUnit={weightUnit}
         />
       )}
 

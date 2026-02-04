@@ -23,6 +23,7 @@ import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/g
 
 export default function ProfileSettings() {
   const { user, gamificationStats, baselineLifts, resetStore } = useAppStore();
+  const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -133,7 +134,7 @@ export default function ProfileSettings() {
               <div key={lift.label} className="bg-grappler-800/50 rounded-lg p-3">
                 <p className="text-xs text-grappler-400 mb-1">{lift.label}</p>
                 <p className="text-lg font-bold text-grappler-100">
-                  {lift.value ? `${lift.value} lbs` : 'Not set'}
+                  {lift.value ? `${lift.value} ${weightUnit}` : 'Not set'}
                 </p>
               </div>
             ))}
@@ -226,7 +227,7 @@ export default function ProfileSettings() {
           <StatRow
             icon={Dumbbell}
             label="Total Volume"
-            value={`${formatNumber(gamificationStats.totalVolume)} lbs`}
+            value={`${formatNumber(gamificationStats.totalVolume)} ${weightUnit}`}
           />
           <StatRow
             icon={Star}

@@ -38,7 +38,8 @@ import { getExerciseById } from '@/lib/exercises';
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency';
 
 export default function ProgressCharts() {
-  const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle } = useAppStore();
+  const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user } = useAppStore();
+  const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');
 
   // Calculate strength progress data
@@ -206,7 +207,7 @@ export default function ProgressCharts() {
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="stat-label">Total Volume</span>
           </div>
-          <p className="stat-value">{formatNumber(gamificationStats.totalVolume)} lbs</p>
+          <p className="stat-value">{formatNumber(gamificationStats.totalVolume)} {weightUnit}</p>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2">
@@ -322,7 +323,7 @@ export default function ProgressCharts() {
                         border: '1px solid #334155',
                         borderRadius: '8px'
                       }}
-                      formatter={(value: number) => [`${formatNumber(value)} lbs`, 'Volume']}
+                      formatter={(value: number) => [`${formatNumber(value)} ${weightUnit}`, 'Volume']}
                     />
                     <Area
                       type="monotone"

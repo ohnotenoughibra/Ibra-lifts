@@ -127,7 +127,7 @@ export const badges: Badge[] = [
   {
     id: 'volume-10k',
     name: 'Volume Seeker',
-    description: 'Lift 10,000 lbs total volume',
+    description: 'Lift 10,000 total volume',
     icon: '📊',
     category: 'volume',
     requirement: 'total_volume >= 10000',
@@ -136,7 +136,7 @@ export const badges: Badge[] = [
   {
     id: 'volume-100k',
     name: 'Volume Crusher',
-    description: 'Lift 100,000 lbs total volume',
+    description: 'Lift 100,000 total volume',
     icon: '📦',
     category: 'volume',
     requirement: 'total_volume >= 100000',
@@ -145,7 +145,7 @@ export const badges: Badge[] = [
   {
     id: 'volume-500k',
     name: 'Volume Legend',
-    description: 'Lift 500,000 lbs total volume',
+    description: 'Lift 500,000 total volume',
     icon: '🏛️',
     category: 'volume',
     requirement: 'total_volume >= 500000',
@@ -154,7 +154,7 @@ export const badges: Badge[] = [
   {
     id: 'volume-1m',
     name: 'Million Pound Club',
-    description: 'Lift 1,000,000 lbs total volume',
+    description: 'Lift 1,000,000 total volume',
     icon: '💰',
     category: 'volume',
     requirement: 'total_volume >= 1000000',

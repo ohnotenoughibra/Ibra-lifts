@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -37,14 +38,18 @@ import {
   LayoutGrid,
   Sun,
   Moon,
-  Shield
+  Shield,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
-import { exportToCSV, exportToJSON, downloadFile } from '@/lib/data-export';
+import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
+// Core tabs — always loaded
 import WorkoutView from './WorkoutView';
 import ProgressCharts from './ProgressCharts';
 import KnowledgeHub from './KnowledgeHub';
@@ -52,26 +57,47 @@ import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
 import WorkoutHistory from './WorkoutHistory';
 import TrainingCalendar from './TrainingCalendar';
-import BodyWeightTracker from './BodyWeightTracker';
-import WorkoutBuilder from './WorkoutBuilder';
-import NutritionTracker from './NutritionTracker';
-import WearableIntegration from './WearableIntegration';
-import CompetitionPrep from './CompetitionPrep';
-import MobilityWorkouts from './MobilityWorkouts';
-import WeeklyCoach from './WeeklyCoach';
-import ExerciseProfiler from './ExerciseProfiler';
-import StrengthAnalysis from './StrengthAnalysis';
-import PeriodizationCalendar from './PeriodizationCalendar';
-import RecoveryDashboard from './RecoveryDashboard';
-import InjuryLogger from './InjuryLogger';
-import ProgressiveOverload from './ProgressiveOverload';
-import CustomExerciseCreator from './CustomExerciseCreator';
-import OneRepMaxCalc from './OneRepMaxCalc';
-import HRZoneTraining from './HRZoneTraining';
-import SessionTemplates from './SessionTemplates';
-import VolumeHeatMap from './VolumeHeatMap';
-import GrapplingTracker from './GrapplingTracker';
 import ThemeToggle from './ThemeToggle';
+
+// Overlay components — lazy-loaded (only when opened)
+function OverlaySkeleton() {
+  return (
+    <div className="min-h-screen bg-grappler-950 animate-pulse">
+      <div className="sticky top-0 z-10 bg-grappler-950/95 border-b border-grappler-800 p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-grappler-800" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 w-40 bg-grappler-800 rounded" />
+          <div className="h-3 w-56 bg-grappler-800/60 rounded" />
+        </div>
+      </div>
+      <div className="p-4 space-y-4">
+        <div className="h-32 bg-grappler-800/50 rounded-xl" />
+        <div className="h-24 bg-grappler-800/50 rounded-xl" />
+        <div className="h-24 bg-grappler-800/50 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), { loading: () => <OverlaySkeleton /> });
+const WorkoutBuilder = dynamic(() => import('./WorkoutBuilder'), { loading: () => <OverlaySkeleton /> });
+const NutritionTracker = dynamic(() => import('./NutritionTracker'), { loading: () => <OverlaySkeleton /> });
+const WearableIntegration = dynamic(() => import('./WearableIntegration'), { loading: () => <OverlaySkeleton /> });
+const CompetitionPrep = dynamic(() => import('./CompetitionPrep'), { loading: () => <OverlaySkeleton /> });
+const MobilityWorkouts = dynamic(() => import('./MobilityWorkouts'), { loading: () => <OverlaySkeleton /> });
+const WeeklyCoach = dynamic(() => import('./WeeklyCoach'), { loading: () => <OverlaySkeleton /> });
+const ExerciseProfiler = dynamic(() => import('./ExerciseProfiler'), { loading: () => <OverlaySkeleton /> });
+const StrengthAnalysis = dynamic(() => import('./StrengthAnalysis'), { loading: () => <OverlaySkeleton /> });
+const PeriodizationCalendar = dynamic(() => import('./PeriodizationCalendar'), { loading: () => <OverlaySkeleton /> });
+const RecoveryDashboard = dynamic(() => import('./RecoveryDashboard'), { loading: () => <OverlaySkeleton /> });
+const InjuryLogger = dynamic(() => import('./InjuryLogger'), { loading: () => <OverlaySkeleton /> });
+const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
+const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
+const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
+const HRZoneTraining = dynamic(() => import('./HRZoneTraining'), { loading: () => <OverlaySkeleton /> });
+const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: () => <OverlaySkeleton /> });
+const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
+const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | null;
@@ -247,7 +273,7 @@ export default function Dashboard() {
               <Dumbbell className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-grappler-50">Grappler Gains</h1>
+              <h1 className="font-bold text-grappler-50">Roots Gains</h1>
               <p className="text-xs text-grappler-400">
                 Level {gamificationStats.level} {getLevelTitle(gamificationStats.level)}
               </p>
@@ -374,23 +400,57 @@ export default function Dashboard() {
   );
 }
 
-// History Tab - combines workout history, calendar, body weight, and data export
+// History Tab - combines workout history, calendar, body weight, and data export/import
 function HistoryTab() {
   const { workoutLogs, user } = useAppStore();
   const [historyView, setHistoryView] = useState<'log' | 'calendar' | 'weight'>('log');
   const [showExport, setShowExport] = useState(false);
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   const handleExportCSV = () => {
     const csv = exportToCSV(workoutLogs, weightUnit);
     const date = new Date().toISOString().split('T')[0];
-    downloadFile(csv, `grappler-gains-${date}.csv`, 'text/csv');
+    downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
   };
 
   const handleExportJSON = () => {
     const json = exportToJSON(workoutLogs);
     const date = new Date().toISOString().split('T')[0];
-    downloadFile(json, `grappler-gains-${date}.json`, 'application/json');
+    downloadFile(json, `roots-gains-${date}.json`, 'application/json');
+  };
+
+  const handleExportBackup = () => {
+    const backup = exportFullBackup();
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await readFileAsText(file);
+      const result = importFullBackup(text);
+
+      if (result.success) {
+        setImportStatus({
+          type: 'success',
+          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.templates ?? 0} templates`
+        });
+      } else {
+        setImportStatus({ type: 'error', message: result.error || 'Import failed' });
+      }
+    } catch {
+      setImportStatus({ type: 'error', message: 'Could not read file' });
+    }
+
+    // Reset file input so the same file can be re-selected
+    e.target.value = '';
+    setConfirmImport(false);
+    setTimeout(() => setImportStatus(null), 5000);
   };
 
   return (
@@ -418,13 +478,32 @@ function HistoryTab() {
         <button
           onClick={() => setShowExport(!showExport)}
           className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200"
-          title="Export Data"
+          title="Export / Import Data"
         >
           <Download className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Export options */}
+      {/* Import status toast */}
+      <AnimatePresence>
+        {importStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={cn(
+              'rounded-xl px-4 py-3 text-sm font-medium',
+              importStatus.type === 'success'
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            )}
+          >
+            {importStatus.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Export / Import options */}
       <AnimatePresence>
         {showExport && (
           <motion.div
@@ -433,29 +512,84 @@ function HistoryTab() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="card p-4">
-              <p className="text-sm text-grappler-300 mb-3">Export your training data</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExportCSV}
-                  disabled={workoutLogs.length === 0}
-                  className="btn btn-secondary btn-sm flex-1 gap-2"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  CSV
-                </button>
-                <button
-                  onClick={handleExportJSON}
-                  disabled={workoutLogs.length === 0}
-                  className="btn btn-secondary btn-sm flex-1 gap-2"
-                >
-                  <FileJson className="w-4 h-4" />
-                  JSON
-                </button>
+            <div className="card p-4 space-y-4">
+              {/* Export section */}
+              <div>
+                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={workoutLogs.length === 0}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    CSV
+                  </button>
+                  <button
+                    onClick={handleExportJSON}
+                    disabled={workoutLogs.length === 0}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <FileJson className="w-4 h-4" />
+                    JSON
+                  </button>
+                </div>
+                {workoutLogs.length === 0 && (
+                  <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
+                )}
               </div>
-              {workoutLogs.length === 0 && (
-                <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
-              )}
+
+              {/* Full backup section */}
+              <div className="border-t border-grappler-700 pt-4">
+                <p className="text-sm text-grappler-300 mb-1 font-medium">Full backup</p>
+                <p className="text-xs text-grappler-500 mb-3">Export everything — workouts, programs, templates, nutrition, settings. Use this to transfer data to another device or keep a backup.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExportBackup}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Backup
+                  </button>
+                </div>
+              </div>
+
+              {/* Import section */}
+              <div className="border-t border-grappler-700 pt-4">
+                <p className="text-sm text-grappler-300 mb-1 font-medium">Restore from backup</p>
+                <p className="text-xs text-grappler-500 mb-3">Import a backup file to restore your data. This will overwrite your current data.</p>
+                {!confirmImport ? (
+                  <button
+                    onClick={() => setConfirmImport(true)}
+                    className="btn btn-sm w-full gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600"
+                  >
+                    <FileJson className="w-4 h-4" />
+                    Import Backup File
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
+                      This will replace all your current data. Make sure to download a backup first.
+                    </p>
+                    <label className="btn btn-primary btn-sm w-full gap-2 cursor-pointer">
+                      <FileJson className="w-4 h-4" />
+                      Choose File
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportFile}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      onClick={() => setConfirmImport(false)}
+                      className="btn btn-sm w-full bg-grappler-700 text-grappler-400 hover:bg-grappler-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -469,33 +603,270 @@ function HistoryTab() {
   );
 }
 
+// Rest day tips by training identity / sport
+function getRestDayTip(identity?: string, sport?: string): { tip: string; category: string } {
+  const combatTips = [
+    { tip: 'Do 10 min of light flow rolling or shadow work to keep your movement patterns sharp.', category: 'Active Recovery' },
+    { tip: 'Spend 15 min on hip openers and thoracic spine mobility — your guard game will thank you.', category: 'Mobility' },
+    { tip: 'Foam roll your lats, hip flexors, and calves for 10 min to speed up recovery.', category: 'Soft Tissue' },
+    { tip: 'Practice breathing drills: 4-7-8 pattern for 5 min to lower cortisol and improve recovery.', category: 'Recovery' },
+    { tip: 'Light grip work with a stress ball or rice bucket — maintains grip endurance without fatigue.', category: 'Maintenance' },
+    { tip: 'Cold exposure (2-3 min cold shower) can reduce inflammation from training.', category: 'Recovery' },
+  ];
+  const strikingTips = [
+    { tip: 'Shadow box at 30% intensity for 10 min — keep your timing sharp without loading the body.', category: 'Active Recovery' },
+    { tip: 'Focus on shoulder and hip mobility today. Strikers lose rotation range faster than you think.', category: 'Mobility' },
+    { tip: 'Foam roll your hip flexors, calves, and forearms for faster recovery between sessions.', category: 'Soft Tissue' },
+  ];
+  const generalTips = [
+    { tip: 'A 20-min walk keeps blood flowing to recovering muscles without adding stress.', category: 'Active Recovery' },
+    { tip: 'Stretch your hip flexors and chest — sitting all day tightens what lifting already loads.', category: 'Mobility' },
+    { tip: 'Prioritize 7-9 hours of sleep tonight. Growth hormone peaks during deep sleep.', category: 'Recovery' },
+    { tip: 'Hydrate well — aim for at least half your bodyweight (lbs) in ounces of water.', category: 'Nutrition' },
+    { tip: 'Foam roll major muscle groups for 10 min — it reduces next-day soreness significantly.', category: 'Soft Tissue' },
+  ];
+
+  if (identity === 'combat') {
+    const pool = sport === 'striking' ? [...combatTips, ...strikingTips] : combatTips;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return generalTips[Math.floor(Math.random() * generalTips.length)];
+}
+
 // Home Tab Content
 function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
-  const { user, gamificationStats, currentMesocycle, workoutLogs, startWorkout } = useAppStore();
+  const {
+    user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
+    lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
+    mesocycleHistory, competitions, bodyWeightLog
+  } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Share workout summary handler
+  const handleShareWorkout = async () => {
+    if (!lastCompletedWorkout) return;
+    const log = lastCompletedWorkout.log;
+    const exercises = log.exercises.map(ex => `  ${ex.exerciseName}`).join('\n');
+    const text = [
+      `Workout Complete!`,
+      `${log.exercises.length} exercises | ${formatNumber(log.totalVolume)} ${weightUnit} volume | ${log.duration}m`,
+      ``,
+      exercises,
+      lastCompletedWorkout.hadPR ? `\nNew Personal Record!` : '',
+      `${lastCompletedWorkout.newStreak} day streak`,
+      `\n-- Roots Gains`
+    ].filter(Boolean).join('\n');
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  };
 
   const motivationalMessage = getMotivationalMessage(gamificationStats);
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
+  const weightUnit = user?.weightUnit || 'lbs';
 
   // Deload detection
   const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
 
-  // Get next workout
+  // Get next workout — find the first uncompleted session in the mesocycle
   const getNextWorkout = () => {
     if (!currentMesocycle) return null;
-    const currentWeek = currentMesocycle.weeks[0];
-    const nextSession = currentWeek.sessions[0];
-    return nextSession;
+
+    const completedSessionIds = new Set(
+      workoutLogs
+        .filter(log => log.mesocycleId === currentMesocycle.id)
+        .map(log => log.sessionId)
+    );
+
+    for (const week of currentMesocycle.weeks) {
+      for (const session of week.sessions) {
+        if (!completedSessionIds.has(session.id)) {
+          return { session, weekNumber: week.weekNumber, isDeload: week.isDeload };
+        }
+      }
+    }
+    return null;
   };
 
-  const nextWorkout = getNextWorkout();
+  const nextWorkoutInfo = getNextWorkout();
+  const nextWorkout = nextWorkoutInfo?.session ?? null;
+
+  // Mesocycle progress calculation
+  const mesocycleProgress = (() => {
+    if (!currentMesocycle) return null;
+    const totalSessions = currentMesocycle.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+    const completedSessionIds = new Set(
+      workoutLogs
+        .filter(log => log.mesocycleId === currentMesocycle.id)
+        .map(log => log.sessionId)
+    );
+    const completedCount = currentMesocycle.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
+  })();
+
+  // Weekly consistency: how many days this week had a workout
+  const weeklyConsistency = (() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const daysThisWeek = new Set(
+      workoutLogs
+        .filter(log => new Date(log.date) >= startOfWeek)
+        .map(log => new Date(log.date).toDateString())
+    );
+    return { done: daysThisWeek.size, target: user?.sessionsPerWeek || 3 };
+  })();
+
+  // Training load warning for combat athletes
+  const trainingLoadWarning = (() => {
+    if (user?.trainingIdentity !== 'combat') return null;
+    const last7Days = workoutLogs.filter(log => {
+      const diff = (Date.now() - new Date(log.date).getTime()) / (1000 * 60 * 60 * 24);
+      return diff <= 7;
+    });
+    const avgRPE = last7Days.length > 0
+      ? last7Days.reduce((sum, l) => sum + (l.overallRPE || 7), 0) / last7Days.length
+      : 0;
+    const highVolumeDays = last7Days.filter(l => l.totalVolume > 15000).length;
+
+    if (avgRPE >= 9 && last7Days.length >= 3) {
+      return 'High average RPE this week. Consider lighter lifting before your next mat session.';
+    }
+    if (highVolumeDays >= 3) {
+      return 'Heavy lifting volume this week — watch for accumulated fatigue on the mats.';
+    }
+    if (last7Days.length >= (user?.sessionsPerWeek || 3) + 1) {
+      return 'More lifting sessions than planned this week. Make sure you have enough recovery for sport training.';
+    }
+    return null;
+  })();
+
+  // Check if today is a rest day (no workout logged today)
+  const todayStr = new Date().toDateString();
+  const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
+  const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
+
+  // Estimated 1RM trends for key lifts
+  const e1rmTrends = (() => {
+    const keyLifts = ['barbell-back-squat', 'conventional-deadlift', 'barbell-bench-press', 'overhead-press'];
+    const trends: { name: string; current: number; previous: number; exerciseId: string }[] = [];
+
+    for (const liftId of keyLifts) {
+      const logsWithLift = workoutLogs
+        .filter(log => log.exercises.some(ex => ex.exerciseId === liftId))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      if (logsWithLift.length >= 1) {
+        const getE1rm = (log: WorkoutLog) => {
+          const ex = log.exercises.find(e => e.exerciseId === liftId);
+          if (!ex) return 0;
+          const bestSet = ex.sets.filter(s => s.completed).sort((a, b) => {
+            const a1rm = a.weight / (1.0278 - 0.0278 * a.reps);
+            const b1rm = b.weight / (1.0278 - 0.0278 * b.reps);
+            return b1rm - a1rm;
+          })[0];
+          if (!bestSet || bestSet.weight === 0) return 0;
+          return bestSet.reps === 1 ? bestSet.weight : Math.round(bestSet.weight / (1.0278 - 0.0278 * bestSet.reps));
+        };
+
+        const current = getE1rm(logsWithLift[0]);
+        const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
+        if (current > 0) {
+          const name = liftId.replace(/^barbell-|^conventional-/g, '').replace(/-/g, ' ');
+          trends.push({ name: name.charAt(0).toUpperCase() + name.slice(1), current, previous, exerciseId: liftId });
+        }
+      }
+    }
+    return trends;
+  })();
+
+  // Mesocycle comparison: compare current block to previous
+  const mesocycleComparison = (() => {
+    if (!currentMesocycle || mesocycleHistory.length === 0) return null;
+    const prevBlock = mesocycleHistory[mesocycleHistory.length - 1];
+    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    const prevLogs = workoutLogs.filter(l => l.mesocycleId === prevBlock.id);
+    if (prevLogs.length === 0) return null;
+
+    const avgVolCurrent = currentLogs.length > 0 ? Math.round(currentLogs.reduce((s, l) => s + l.totalVolume, 0) / currentLogs.length) : 0;
+    const avgVolPrev = Math.round(prevLogs.reduce((s, l) => s + l.totalVolume, 0) / prevLogs.length);
+    const volDelta = avgVolCurrent - avgVolPrev;
+
+    const avgRPECurrent = currentLogs.length > 0 ? +(currentLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / currentLogs.length).toFixed(1) : 0;
+    const avgRPEPrev = +(prevLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / prevLogs.length).toFixed(1);
+
+    return {
+      prevName: prevBlock.name,
+      sessions: { current: currentLogs.length, prev: prevLogs.length },
+      avgVolume: { current: avgVolCurrent, prev: avgVolPrev, delta: volDelta },
+      avgRPE: { current: avgRPECurrent, prev: avgRPEPrev },
+    };
+  })();
+
+  // Competition countdown (nearest active event)
+  const nextCompetition = (() => {
+    const now = Date.now();
+    const active = competitions
+      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (active.length === 0) return null;
+    const event = active[0];
+    const daysUntil = Math.ceil((new Date(event.date).getTime() - now) / (1000 * 60 * 60 * 24));
+    return { ...event, daysUntil };
+  })();
+
+  // Body recomp: weight trend vs volume trend (last 4 weeks)
+  const recompData = (() => {
+    if (bodyWeightLog.length < 2 && workoutLogs.length < 2) return null;
+    const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
+
+    // Weight trend
+    const recentWeights = bodyWeightLog
+      .filter(e => new Date(e.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let weightDelta: number | null = null;
+    if (recentWeights.length >= 2) {
+      weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
+    }
+
+    // Volume trend
+    const recentLogs = workoutLogs
+      .filter(l => new Date(l.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let volumeDelta: number | null = null;
+    if (recentLogs.length >= 4) {
+      const half = Math.floor(recentLogs.length / 2);
+      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
+      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (recentLogs.length - half);
+      volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
+    }
+
+    if (weightDelta === null && volumeDelta === null) return null;
+    return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
+  })();
 
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
-    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment);
+    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity);
     startWorkout(quickSession);
+  };
+
+  // Handle mesocycle completion — auto-generate next
+  const handleGenerateNext = () => {
+    generateNewMesocycle();
   };
 
   // Tools split into featured (top 4) and more
@@ -536,6 +907,115 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
 
   return (
     <div className="space-y-5">
+      {/* Post-Workout Summary Card */}
+      <AnimatePresence>
+        {lastCompletedWorkout && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/30 rounded-2xl p-5"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-green-300 text-sm">Workout Complete!</h3>
+                  <p className="text-xs text-green-400/70">+{lastCompletedWorkout.points} XP earned</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleShareWorkout}
+                  className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                  title="Share workout"
+                >
+                  {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={dismissWorkoutSummary}
+                  className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              <div className="text-center">
+                <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.exercises.length}</p>
+                <p className="text-[10px] text-grappler-400">Exercises</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-grappler-100">{formatNumber(lastCompletedWorkout.log.totalVolume)}</p>
+                <p className="text-[10px] text-grappler-400">Volume ({weightUnit})</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.duration}m</p>
+                <p className="text-[10px] text-grappler-400">Duration</p>
+              </div>
+            </div>
+            {lastCompletedWorkout.hadPR && (
+              <div className="mt-3 flex items-center gap-2 bg-yellow-500/10 rounded-lg px-3 py-2">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="text-xs font-medium text-yellow-300">New Personal Record!</span>
+              </div>
+            )}
+            <div className="mt-3 flex items-center gap-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Training Load Warning for Combat Athletes */}
+      {trainingLoadWarning && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-amber-300 text-sm">Training Load</h3>
+              <p className="text-xs text-amber-400/80 mt-1">{trainingLoadWarning}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Competition Countdown */}
+      {nextCompetition && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-xs text-yellow-400/70 uppercase tracking-wide font-medium">{nextCompetition.type.replace(/_/g, ' ')}</p>
+                <h3 className="font-bold text-yellow-300 text-sm">{nextCompetition.name}</h3>
+                <p className="text-xs text-grappler-400 mt-0.5">
+                  {new Date(nextCompetition.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {nextCompetition.weightClass ? ` | ${nextCompetition.weightClass} ${weightUnit}` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
+              <p className="text-[10px] text-yellow-400/70">days out</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Deload Alert */}
       {deloadCheck && deloadCheck.needed && (
         <motion.div
@@ -565,7 +1045,9 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">Next Workout</p>
+                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
+                  {nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}${nextWorkoutInfo.isDeload ? ' · Deload' : ''}` : 'Next Workout'}
+                </p>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
                 <div className="flex items-center gap-3 mt-2 text-sm text-white/80">
                   <span className="flex items-center gap-1">
@@ -583,6 +1065,57 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
               </div>
             </div>
           </button>
+        </motion.div>
+      ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
+        /* Mesocycle Complete — Prompt to generate next */
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-5 bg-gradient-to-br from-primary-500/10 to-accent-500/10 border border-primary-500/20"
+        >
+          <div className="text-center">
+            <Trophy className="w-10 h-10 text-primary-400 mx-auto mb-2" />
+            <h3 className="font-bold text-grappler-100 text-sm">Block Complete!</h3>
+            <p className="text-xs text-grappler-400 mt-1 mb-4">
+              You finished all {mesocycleProgress.total} sessions in {currentMesocycle.name}.
+            </p>
+          </div>
+
+          {/* Mesocycle comparison */}
+          {mesocycleComparison && (
+            <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 space-y-2">
+              <p className="text-[10px] text-grappler-500 uppercase tracking-wide">vs {mesocycleComparison.prevName}</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-xs text-grappler-400">Sessions</p>
+                  <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.sessions.current}</p>
+                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.sessions.prev}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-grappler-400">Avg Volume</p>
+                  <p className="text-sm font-bold text-grappler-100">{formatNumber(mesocycleComparison.avgVolume.current)}</p>
+                  <p className={cn('text-[10px] font-medium', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                    {mesocycleComparison.avgVolume.delta > 0 ? '+' : ''}{formatNumber(mesocycleComparison.avgVolume.delta)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-grappler-400">Avg RPE</p>
+                  <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.avgRPE.current}</p>
+                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.avgRPE.prev}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center">
+            <button
+              onClick={handleGenerateNext}
+              className="btn btn-primary btn-md gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Generate Next Block
+            </button>
+          </div>
         </motion.div>
       ) : (
         <motion.div
@@ -619,8 +1152,39 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
         </button>
       )}
 
-      {/* Compact Stats Row */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Mesocycle Progress Bar */}
+      {mesocycleProgress && currentMesocycle && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary-400" />
+              {currentMesocycle.name}
+            </h3>
+            <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total} sessions</span>
+          </div>
+          <div className="w-full h-2.5 bg-grappler-700 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${mesocycleProgress.percent}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+            />
+          </div>
+          <p className="text-[10px] text-grappler-500 mt-1.5">{mesocycleProgress.percent}% complete</p>
+        </div>
+      )}
+
+      {/* Weekly Consistency + Stats Row */}
+      <div className="grid grid-cols-4 gap-2.5">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="stat-card items-center text-center"
+        >
+          <BarChart3 className="w-5 h-5 mb-1 text-primary-400" />
+          <p className="stat-value">{weeklyConsistency.done}/{weeklyConsistency.target}</p>
+          <p className="stat-label">This Week</p>
+        </motion.div>
         {[
           { icon: Flame, value: gamificationStats.currentStreak, label: 'Streak', color: 'text-orange-500' },
           { icon: Trophy, value: gamificationStats.personalRecords, label: 'PRs', color: 'text-yellow-500' },
@@ -630,7 +1194,7 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * i }}
+            transition={{ delay: 0.1 * (i + 1) }}
             className="stat-card items-center text-center"
           >
             <stat.icon className={cn('w-5 h-5 mb-1', stat.color)} />
@@ -639,6 +1203,93 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
           </motion.div>
         ))}
       </div>
+
+      {/* Estimated 1RM Trends */}
+      {e1rmTrends.length > 0 && (
+        <div className="card p-4">
+          <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-accent-400" />
+            Estimated 1RM
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {e1rmTrends.map((lift) => {
+              const diff = lift.current - lift.previous;
+              const isUp = diff > 0;
+              return (
+                <div key={lift.exerciseId} className="flex items-center justify-between bg-grappler-800/50 rounded-lg px-3 py-2">
+                  <div>
+                    <p className="text-xs text-grappler-400 capitalize">{lift.name}</p>
+                    <p className="text-sm font-bold text-grappler-100">{lift.current} {weightUnit}</p>
+                  </div>
+                  {diff !== 0 && (
+                    <span className={cn('text-xs font-medium', isUp ? 'text-green-400' : 'text-red-400')}>
+                      {isUp ? '+' : ''}{diff}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Body Recomp Tracking */}
+      {recompData && (
+        <div className="card p-4">
+          <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+            <Scaling className="w-4 h-4 text-purple-400" />
+            Body Recomp (4 weeks)
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {recompData.latestWeight !== null && (
+              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+                <p className="text-xs text-grappler-400">Weight</p>
+                <p className="text-sm font-bold text-grappler-100">{recompData.latestWeight} {weightUnit}</p>
+                {recompData.weightDelta !== null && (
+                  <p className={cn('text-[10px] font-medium', recompData.weightDelta > 0 ? 'text-amber-400' : recompData.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+                    {recompData.weightDelta > 0 ? '+' : ''}{recompData.weightDelta} {weightUnit}
+                  </p>
+                )}
+              </div>
+            )}
+            {recompData.volumeDelta !== null && (
+              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+                <p className="text-xs text-grappler-400">Avg Volume</p>
+                <p className={cn('text-sm font-bold', recompData.volumeDelta > 0 ? 'text-green-400' : recompData.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
+                  {recompData.volumeDelta > 0 ? '+' : ''}{formatNumber(recompData.volumeDelta)}
+                </p>
+                <p className="text-[10px] text-grappler-500">vs first 2 weeks</p>
+              </div>
+            )}
+          </div>
+          {recompData.weightDelta !== null && recompData.volumeDelta !== null && (
+            <p className="text-[10px] text-grappler-500 mt-2">
+              {recompData.weightDelta <= 0 && recompData.volumeDelta > 0
+                ? 'Losing weight while lifting more — solid recomp!'
+                : recompData.weightDelta > 0 && recompData.volumeDelta > 0
+                ? 'Weight and volume both up — lean bulk territory.'
+                : recompData.weightDelta < 0 && recompData.volumeDelta < 0
+                ? 'Both trending down — make sure you\'re fueling enough.'
+                : 'Tracking trends — keep logging to see patterns.'}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Rest Day Tip */}
+      {restDayTip && (
+        <div className="card p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Leaf className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-400 font-medium uppercase tracking-wide">{restDayTip.category}</p>
+              <p className="text-sm text-grappler-300 mt-1">{restDayTip.tip}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Training Streak Heatmap */}
       <StreakHeatmap workoutLogs={workoutLogs} />

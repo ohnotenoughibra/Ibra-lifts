@@ -52,7 +52,7 @@ const filterPills: { key: FilterOption; label: string }[] = [
   { key: 'shoulders', label: 'Shoulders' },
   { key: 'thoracic', label: 'Thoracic' },
   { key: 'full_body', label: 'Full Body' },
-  { key: 'grappler', label: 'Grappler-Specific' },
+  { key: 'grappler', label: 'Rootsler-Specific' },
 ];
 
 function formatDuration(seconds: number): string {
@@ -383,7 +383,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
             ))}
             {selectedRoutine.forGrapplers && (
               <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-1 rounded-full">
-                For Grapplers
+                For Rootslers
               </span>
             )}
           </div>
@@ -663,7 +663,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
                 </h3>
                 {routine.forGrapplers && (
                   <span className="text-[10px] bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
-                    Grappler
+                    Rootsler
                   </span>
                 )}
               </div>

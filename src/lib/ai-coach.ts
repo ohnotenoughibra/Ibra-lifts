@@ -7,7 +7,7 @@ import {
   WearableData
 } from './types';
 
-// AI Coach module for Grappler Gains
+// AI Coach module for Roots Gains
 // Generates weekly summaries, exercise response profiles, sticking point analysis,
 // and contextual coach messages based on training data.
 
@@ -212,7 +212,7 @@ export function generateWeeklySummary(
   } else if (avgSleepScore !== null && avgSleepScore < 60) {
     nextWeekFocus = 'Focus on recovery: aim for 7+ hours of sleep and manage training stress';
   } else {
-    nextWeekFocus = 'Continue progressive overload on main lifts. Add 2.5-5lbs or 1 rep where possible.';
+    nextWeekFocus = 'Continue progressive overload on main lifts. Add a small increment or 1 rep where possible.';
   }
 
   return {

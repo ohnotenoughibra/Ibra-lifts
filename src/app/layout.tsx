@@ -2,15 +2,27 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Grappler Gains - Science-Based Workout App for Combat Athletes',
-  description: 'Build strength and muscle with evidence-based programming designed for grapplers. Featuring undulating periodization, gamification, and smart progression.',
-  keywords: ['workout app', 'grappling', 'BJJ', 'strength training', 'hypertrophy', 'periodization'],
-  authors: [{ name: 'Grappler Gains' }],
+  title: 'Roots Gains - Science-Based Workout App for Martial Artists',
+  description: 'Build strength and muscle with evidence-based programming designed for Roots Collective members. Featuring undulating periodization, gamification, and smart progression.',
+  keywords: ['workout app', 'martial arts', 'BJJ', 'strength training', 'hypertrophy', 'periodization'],
+  authors: [{ name: 'Roots Gains' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Grappler Gains',
+    title: 'Roots Gains',
+  },
+  openGraph: {
+    title: 'Roots Gains',
+    description: 'Science-based workout programming for martial artists. Periodization, auto-progression, RPE tracking.',
+    type: 'website',
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Roots Gains — Science-based workout app' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Roots Gains',
+    description: 'Science-based workout programming for martial artists.',
+    images: ['/og-image.png'],
   },
 };
 

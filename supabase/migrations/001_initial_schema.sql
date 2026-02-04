@@ -1,4 +1,4 @@
--- Grappler Gains Database Schema
+-- Roots Gains Database Schema
 -- Run this in your Supabase SQL editor to set up the database
 
 -- Enable UUID extension

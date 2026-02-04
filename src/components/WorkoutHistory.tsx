@@ -205,13 +205,13 @@ export default function WorkoutHistory() {
               <div key={i} className="bg-grappler-800/50 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm font-medium text-grappler-100">{p.exercise}</p>
-                  <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} lbs</span></p>
+                  <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} {weightUnit}</span></p>
                 </div>
-                <p className="text-[11px] text-grappler-500 mb-2">Gaining ~{p.weeklyGain} lbs/week</p>
+                <p className="text-[11px] text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
                 <div className="flex gap-2">
                   {p.milestones.map((m, j) => (
                     <div key={j} className="flex-1 bg-grappler-700/40 rounded-lg px-3 py-2 text-center">
-                      <p className="text-sm font-bold text-primary-400">{m.target} lbs</p>
+                      <p className="text-sm font-bold text-primary-400">{m.target} {weightUnit}</p>
                       <p className="text-[10px] text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
                     </div>
                   ))}

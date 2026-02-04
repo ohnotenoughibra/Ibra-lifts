@@ -22,7 +22,8 @@ import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, resetStore } = useAppStore();
+  const { user, gamificationStats, baselineLifts, resetStore, setUser } = useAppStore();
+  const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -117,6 +118,41 @@ export default function ProfileSettings() {
         </div>
       </div>
 
+      {/* Training Day Schedule */}
+      {user && (
+        <div className="card overflow-hidden">
+          <div className="p-4 border-b border-grappler-700">
+            <h3 className="font-medium text-grappler-200">Training Schedule</h3>
+            <p className="text-xs text-grappler-500 mt-1">Tap days you plan to lift</p>
+          </div>
+          <div className="p-4 flex gap-2 justify-between">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
+              const selected = user.trainingDays?.includes(i) ?? false;
+              return (
+                <button
+                  key={day}
+                  onClick={() => {
+                    const current = user.trainingDays || [];
+                    const next = selected
+                      ? current.filter(d => d !== i)
+                      : [...current, i].sort();
+                    setUser({ ...user, trainingDays: next, updatedAt: new Date() });
+                  }}
+                  className={cn(
+                    'w-10 h-10 rounded-full text-xs font-medium transition-all',
+                    selected
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-grappler-800 text-grappler-500 hover:text-grappler-300'
+                  )}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Baseline Lifts */}
       {baselineLifts && (
         <div className="card overflow-hidden">
@@ -133,7 +169,7 @@ export default function ProfileSettings() {
               <div key={lift.label} className="bg-grappler-800/50 rounded-lg p-3">
                 <p className="text-xs text-grappler-400 mb-1">{lift.label}</p>
                 <p className="text-lg font-bold text-grappler-100">
-                  {lift.value ? `${lift.value} lbs` : 'Not set'}
+                  {lift.value ? `${lift.value} ${weightUnit}` : 'Not set'}
                 </p>
               </div>
             ))}
@@ -226,7 +262,7 @@ export default function ProfileSettings() {
           <StatRow
             icon={Dumbbell}
             label="Total Volume"
-            value={`${formatNumber(gamificationStats.totalVolume)} lbs`}
+            value={`${formatNumber(gamificationStats.totalVolume)} ${weightUnit}`}
           />
           <StatRow
             icon={Star}

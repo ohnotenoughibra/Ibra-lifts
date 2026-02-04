@@ -13,7 +13,10 @@ import {
   BaselineLifts,
   MuscleGroup,
   MuscleGroupConfig,
-  MuscleEmphasis
+  MuscleEmphasis,
+  ExperienceLevel,
+  TrainingIdentity,
+  CombatSport
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
@@ -146,6 +149,11 @@ const MOVEMENT_PATTERNS_PER_SESSION = {
     upper: ['push', 'pull', 'push', 'pull'],
     lower: ['squat', 'hinge', 'carry', 'squat']
   },
+  push_pull_legs: {
+    push: ['push', 'push', 'push', 'push'],
+    pull: ['pull', 'pull', 'hinge', 'pull'],
+    legs: ['squat', 'hinge', 'squat', 'carry']
+  },
   grappler_hybrid: {
     strength: ['hinge', 'squat', 'push', 'pull', 'carry'],
     hypertrophy: ['push', 'pull', 'squat', 'hinge'],
@@ -163,7 +171,31 @@ interface GeneratorOptions {
   baselineLifts?: BaselineLifts;
   periodizationType?: 'undulating' | 'block';
   muscleEmphasis?: MuscleGroupConfig;
-  sessionDurationMinutes?: number; // Max session time (e.g. 60, 75, 90)
+  sessionDurationMinutes?: number;
+  trainingIdentity?: TrainingIdentity;
+  combatSport?: CombatSport;
+  experienceLevel?: ExperienceLevel;
+}
+
+// Experience-level modifiers for volume and intensity
+const EXPERIENCE_MODIFIERS: Record<ExperienceLevel, { volumeScale: number; rpeOffset: number; maxSets: number }> = {
+  beginner:     { volumeScale: 0.7, rpeOffset: -1.5, maxSets: 4 },
+  intermediate: { volumeScale: 1.0, rpeOffset: 0,    maxSets: 6 },
+  advanced:     { volumeScale: 1.15, rpeOffset: 0.5,  maxSets: 8 },
+};
+
+// Determine split type based on sessions/week and training identity
+function determineSplitType(sessionsPerWeek: number, identity?: TrainingIdentity): SplitType {
+  if (identity === 'combat') {
+    // Combat athletes benefit from full-body or upper/lower to leave room for sport training
+    if (sessionsPerWeek <= 3) return 'full_body';
+    if (sessionsPerWeek <= 4) return 'upper_lower';
+    return 'grappler_hybrid';
+  }
+  // Recreational / general fitness
+  if (sessionsPerWeek <= 3) return 'full_body';
+  if (sessionsPerWeek <= 4) return 'upper_lower';
+  return 'push_pull_legs';
 }
 
 // Filter exercises by the user's specific equipment inventory
@@ -269,17 +301,27 @@ function selectExercisesForType(
   goalFocus: GoalFocus,
   usedExerciseIds: Set<string>,
   muscleEmphasis?: MuscleGroupConfig,
-  availableEquipment?: EquipmentType[]
+  availableEquipment?: EquipmentType[],
+  trainingIdentity?: TrainingIdentity,
+  combatSport?: CombatSport
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
   const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
-  const priorities = EXERCISE_PRIORITIES[type];
+  const priorities = { ...EXERCISE_PRIORITIES[type] };
+
+  // Adjust exercise slot counts based on training identity
+  if (trainingIdentity !== 'combat') {
+    // Non-combat athletes get fewer grappling-specific slots, more isolation
+    priorities.grapplingSpecific = 0;
+    priorities.isolation += 1;
+  }
+
   const selected: Exercise[] = [];
 
   // Track which muscles are already covered by selected exercises
   const coveredMuscles = new Set<string>();
 
-  // Priority scoring based on goal focus + muscle emphasis + muscle coverage
+  // Priority scoring based on goal focus + identity + sport + muscle emphasis
   const scoreExercise = (ex: Exercise): number => {
     let score = 0;
     if (goalFocus === 'strength') {
@@ -289,8 +331,35 @@ function selectExercisesForType(
     } else if (goalFocus === 'power') {
       score = ex.strengthValue * 1.5 + ex.aestheticValue + (ex.movementPattern === 'explosive' || ex.movementPattern === 'rotation' ? 4 : 0);
     } else {
-      score = ex.strengthValue + ex.aestheticValue + (ex.grapplerFriendly ? 3 : 0);
+      // Balanced — boost grappler-friendly only for combat athletes
+      score = ex.strengthValue + ex.aestheticValue + (trainingIdentity === 'combat' && ex.grapplerFriendly ? 3 : 0);
     }
+
+    // Sport-specific scoring boosts for combat athletes
+    if (trainingIdentity === 'combat') {
+      if (combatSport === 'grappling_gi' || combatSport === 'grappling_nogi') {
+        // Grapplers need grip, pulling power, hip strength, and core
+        if (ex.category === 'grip') score += 4;
+        if (ex.movementPattern === 'pull') score += 2;
+        if (ex.movementPattern === 'hinge') score += 1.5;
+        if (ex.primaryMuscles.includes('core')) score += 1;
+        if (ex.grapplerFriendly) score += 2;
+      } else if (combatSport === 'striking') {
+        // Strikers need rotational power, shoulders, and explosiveness
+        if (ex.movementPattern === 'rotation') score += 4;
+        if (ex.movementPattern === 'explosive') score += 3;
+        if (ex.primaryMuscles.includes('shoulders')) score += 1.5;
+        if (ex.primaryMuscles.includes('core')) score += 1.5;
+      } else if (combatSport === 'mma') {
+        // MMA is a blend — reward all-round athletic exercises
+        if (ex.grapplerFriendly) score += 1.5;
+        if (ex.movementPattern === 'rotation') score += 2;
+        if (ex.movementPattern === 'explosive') score += 2;
+        if (ex.category === 'grip') score += 2;
+        if (ex.primaryMuscles.includes('core')) score += 1;
+      }
+    }
+
     // Penalty for already used exercises
     if (usedExerciseIds.has(ex.id)) {
       score -= 5;
@@ -309,10 +378,17 @@ function selectExercisesForType(
     return score;
   };
 
-  // Get target movement patterns for this session type to ensure balance
-  const patterns = MOVEMENT_PATTERNS_PER_SESSION.grappler_hybrid;
-  const targetPatterns: string[] = type in patterns
-    ? (patterns as any)[type] as string[]
+  // Pick movement pattern template based on split type
+  const splitType = determineSplitType(0, trainingIdentity); // just for pattern lookup
+  const patternSource = splitType === 'grappler_hybrid'
+    ? MOVEMENT_PATTERNS_PER_SESSION.grappler_hybrid
+    : splitType === 'upper_lower'
+    ? MOVEMENT_PATTERNS_PER_SESSION.upper_lower
+    : splitType === 'push_pull_legs'
+    ? MOVEMENT_PATTERNS_PER_SESSION.push_pull_legs
+    : MOVEMENT_PATTERNS_PER_SESSION.full_body;
+  const targetPatterns: string[] = type in patternSource
+    ? (patternSource as any)[type] as string[]
     : ['hinge', 'squat', 'push', 'pull'];
 
   // Select compounds with weighted randomization (not always the same top picks)
@@ -369,8 +445,8 @@ function selectExercisesForType(
     isolations.forEach(e => { usedExerciseIds.add(e.id); trackMuscles(e); });
   }
 
-  // Add grip work for grapplers
-  if (goalFocus === 'balanced' || goalFocus === 'strength') {
+  // Add grip work for combat athletes (especially grapplers and MMA)
+  if (trainingIdentity === 'combat' && (goalFocus === 'balanced' || goalFocus === 'strength')) {
     const gripPool = availableExercises.filter(e => e.category === 'grip' && !usedExerciseIds.has(e.id));
     const gripWork = gripPool.length > 0 ? [gripPool[Math.floor(Math.random() * gripPool.length)]] : [];
     selected.push(...gripWork);
@@ -387,26 +463,37 @@ function generateWorkoutSession(
   usedExerciseIds: Set<string>,
   muscleEmphasis?: MuscleGroupConfig,
   availableEquipment?: EquipmentType[],
-  maxDurationMinutes?: number
+  maxDurationMinutes?: number,
+  trainingIdentity?: TrainingIdentity,
+  combatSport?: CombatSport,
+  experienceLevel?: ExperienceLevel
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment);
+  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport);
   const config = WORKOUT_PRESCRIPTIONS[type];
+  const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
 
   let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
-    // Adjust sets based on exercise category
+    // Adjust sets based on exercise category and experience level
     let sets = randomBetween(config.sets[0], config.sets[1]);
+    sets = Math.round(sets * expMod.volumeScale);
+    sets = Math.max(2, Math.min(expMod.maxSets, sets));
+
     if (exercise.category === 'isolation') {
-      sets = Math.min(sets, 4); // Cap isolation sets
+      sets = Math.min(sets, 4);
     }
     if (exercise.category === 'compound' && type === 'strength') {
-      sets = Math.max(sets, 4); // Ensure enough compound volume for strength
+      sets = Math.max(sets, experienceLevel === 'beginner' ? 3 : 4);
     }
+
+    const prescription = createSetPrescription(type);
+    // Adjust RPE based on experience level
+    prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset).toFixed(1)));
 
     return {
       exerciseId: exercise.id,
       exercise,
       sets,
-      prescription: createSetPrescription(type),
+      prescription,
       alternatives: findAlternatives(exercise, equipment)
     };
   });
@@ -582,7 +669,10 @@ function generateMesocycleWeek(
   weekIndex: number = 0,
   muscleEmphasis?: MuscleGroupConfig,
   availableEquipment?: EquipmentType[],
-  sessionDurationMinutes?: number
+  sessionDurationMinutes?: number,
+  trainingIdentity?: TrainingIdentity,
+  combatSport?: CombatSport,
+  experienceLevel?: ExperienceLevel
 ): MesocycleWeek {
   const workoutTypes = periodizationType === 'block'
     ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
@@ -602,7 +692,10 @@ function generateMesocycleWeek(
       usedExerciseIds,
       muscleEmphasis,
       availableEquipment,
-      sessionDurationMinutes
+      sessionDurationMinutes,
+      trainingIdentity,
+      combatSport,
+      experienceLevel
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -649,18 +742,24 @@ function generateMesocycleWeek(
 }
 
 export function generateMesocycle(options: GeneratorOptions): Mesocycle {
-  const { userId, goalFocus, equipment, availableEquipment, sessionsPerWeek, weeks, muscleEmphasis, sessionDurationMinutes } = options;
+  const {
+    userId, goalFocus, equipment, availableEquipment, sessionsPerWeek,
+    weeks, muscleEmphasis, sessionDurationMinutes,
+    trainingIdentity, combatSport, experienceLevel
+  } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
-
   const periodizationType = options.periodizationType || 'undulating';
 
   for (let i = 1; i <= weeks; i++) {
-    // Last week is typically a deload
     const isDeload = i === weeks;
     const weekIndex = i - 1;
     mesocycleWeeks.push(
-      generateMesocycleWeek(i, isDeload, sessionsPerWeek, equipment, goalFocus, periodizationType, weekIndex, muscleEmphasis, availableEquipment, sessionDurationMinutes)
+      generateMesocycleWeek(
+        i, isDeload, sessionsPerWeek, equipment, goalFocus,
+        periodizationType, weekIndex, muscleEmphasis, availableEquipment,
+        sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel
+      )
     );
   }
 
@@ -668,22 +767,31 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + weeks * 7);
 
-  const mesocycleNames: Record<GoalFocus, string[]> = {
+  // Sport-specific mesocycle names
+  const combatNames: Record<GoalFocus, string[]> = {
+    strength: ['Combat Strength', 'Mat-Ready Power', 'Fight Strength Phase'],
+    hypertrophy: ['Combat Muscle', 'Functional Size Block', 'Athletic Build Phase'],
+    balanced: ['Grappler\'s Edge', 'Combat Ready', 'Fight Prep'],
+    power: ['Explosive Fighter', 'Strike Power Phase', 'Athletic Power Block'],
+  };
+  const generalNames: Record<GoalFocus, string[]> = {
     strength: ['Strength Foundation', 'Power Block', 'Max Effort Phase'],
     hypertrophy: ['Growth Phase', 'Muscle Building Block', 'Hypertrophy Wave'],
-    balanced: ['Grappler\'s Edge', 'Combat Ready', 'Functional Power'],
-    power: ['Explosive Phase', 'Athletic Power', 'Speed Strength Block']
+    balanced: ['Balanced Fitness', 'All-Round Builder', 'Functional Power'],
+    power: ['Explosive Phase', 'Athletic Power', 'Speed Strength Block'],
   };
+  const namePool = trainingIdentity === 'combat' ? combatNames : generalNames;
+  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity);
 
   return {
     id: uuidv4(),
     userId,
-    name: pickRandom(mesocycleNames[goalFocus]),
+    name: pickRandom(namePool[goalFocus]),
     startDate,
     endDate,
     weeks: mesocycleWeeks,
     goalFocus,
-    splitType: 'grappler_hybrid',
+    splitType,
     status: 'active',
     createdAt: new Date()
   };
@@ -747,18 +855,19 @@ export function suggestAdjustments(
   return { volumeAdjustment, intensityAdjustment, message };
 }
 
-// Generate a quick workout for time-crunched grapplers
+// Generate a quick workout
 export function generateQuickWorkout(
   equipment: Equipment,
   durationMinutes: number = 30,
   goalFocus: GoalFocus = 'balanced',
-  availableEquipment?: EquipmentType[]
+  availableEquipment?: EquipmentType[],
+  trainingIdentity?: TrainingIdentity
 ): WorkoutSession {
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
                             goalFocus === 'hypertrophy' ? 'hypertrophy' : 'power';
 
   const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment)
-    .filter(e => e.grapplerFriendly && e.category === 'compound');
+    .filter(e => e.category === 'compound' && (trainingIdentity === 'combat' ? e.grapplerFriendly : true));
 
   // Select 3-4 key compounds
   const selected = shuffleArray(availableExercises).slice(0, 4);
@@ -771,9 +880,11 @@ export function generateQuickWorkout(
     notes: 'Keep rest periods short for time efficiency'
   }));
 
+  const sessionName = trainingIdentity === 'combat' ? 'Quick Combat Session' : 'Quick Strength Session';
+
   return {
     id: uuidv4(),
-    name: 'Quick Grappler Session',
+    name: sessionName,
     type,
     dayNumber: 1,
     exercises: exercisePrescriptions,

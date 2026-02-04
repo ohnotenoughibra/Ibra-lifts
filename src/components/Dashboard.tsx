@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
+import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
@@ -773,12 +774,26 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 
-  // Estimated 1RM trends for key lifts
+  // Estimated 1RM trends — dynamically finds the user's most frequently performed lifts
   const e1rmTrends = (() => {
-    const keyLifts = ['barbell-back-squat', 'conventional-deadlift', 'barbell-bench-press', 'overhead-press'];
+    // Count how many times each exercise appears across all workout logs
+    const exerciseFreq: Record<string, number> = {};
+    for (const log of workoutLogs) {
+      for (const ex of log.exercises) {
+        exerciseFreq[ex.exerciseId] = (exerciseFreq[ex.exerciseId] || 0) + 1;
+      }
+    }
+
+    // Sort by frequency and take the top exercises that have at least 2 occurrences
+    const topExercises = Object.entries(exerciseFreq)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id]) => id);
+
     const trends: { name: string; current: number; previous: number; exerciseId: string }[] = [];
 
-    for (const liftId of keyLifts) {
+    for (const liftId of topExercises) {
       const logsWithLift = workoutLogs
         .filter(log => log.exercises.some(ex => ex.exerciseId === liftId))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -799,8 +814,9 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
         const current = getE1rm(logsWithLift[0]);
         const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
         if (current > 0) {
-          const name = liftId.replace(/^barbell-|^conventional-/g, '').replace(/-/g, ' ');
-          trends.push({ name: name.charAt(0).toUpperCase() + name.slice(1), current, previous, exerciseId: liftId });
+          const exercise = getExerciseById(liftId);
+          const name = exercise?.name || liftId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          trends.push({ name, current, previous, exerciseId: liftId });
         }
       }
     }

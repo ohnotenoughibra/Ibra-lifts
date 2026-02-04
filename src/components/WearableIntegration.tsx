@@ -35,6 +35,7 @@ import {
   Gauge,
   Scale,
   Ruler,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -557,6 +558,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const [whoopProfile, setWhoopProfile] = useState<any>(null);
   const [whoopWorkouts, setWhoopWorkouts] = useState<WhoopWorkout[]>([]);
   const [whoopBody, setWhoopBody] = useState<WhoopBodyMeasurement | null>(null);
+  const [showSleepDetails, setShowSleepDetails] = useState(false);
+  const [showVitals, setShowVitals] = useState(false);
   const fetchInFlight = useRef(false);
 
   // ------------------------------------------------------------------
@@ -1021,407 +1024,335 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
           </button>
         </motion.div>
 
-        {/* Today's Metrics */}
+        {/* Connected Dashboard */}
         {isConnected && today && (
           <>
+            {/* ── RECOVERY HERO ── */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
+              className={cn('rounded-2xl p-5 border', readiness.bg)}
             >
-              <h2 className="text-sm font-semibold text-grappler-400 uppercase tracking-wider mb-3">
-                Today&apos;s Metrics
-              </h2>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Recovery Score */}
-                <div
-                  className={cn(
-                    'bg-grappler-800 rounded-xl p-4 border col-span-2',
-                    recoveryBorder(today.recoveryScore ?? 0),
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5">
-                      <Battery className="w-4 h-4" />
-                      Recovery
-                    </span>
-                    <span
-                      className={cn(
-                        'text-xs font-medium px-2 py-0.5 rounded-full',
-                        recoveryBg(today.recoveryScore ?? 0),
-                        recoveryColor(today.recoveryScore ?? 0),
-                      )}
-                    >
-                      {recoveryLabel(today.recoveryScore ?? 0)}
-                    </span>
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <span
-                      className={cn(
-                        'text-4xl font-bold',
-                        recoveryColor(today.recoveryScore ?? 0),
-                      )}
-                    >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <span className="text-xs font-semibold text-grappler-400 uppercase tracking-wider">Recovery</span>
+                  <div className="flex items-end gap-2 mt-1">
+                    <span className={cn('text-5xl font-black tabular-nums', recoveryColor(today.recoveryScore ?? 0))}>
                       {today.recoveryScore ?? '--'}
                     </span>
-                    <span className="text-grappler-500 text-sm pb-1">/ 100</span>
+                    <span className="text-grappler-500 text-base pb-2">%</span>
                   </div>
-                  <div className="mt-3 h-2 bg-grappler-700 rounded-full overflow-hidden">
+                  <div className="mt-3 h-2.5 bg-black/20 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${today.recoveryScore ?? 0}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                       className={cn(
                         'h-full rounded-full',
-                        (today.recoveryScore ?? 0) >= 67
-                          ? 'bg-gradient-to-r from-green-500 to-green-400'
-                          : (today.recoveryScore ?? 0) >= 34
-                            ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
+                        (today.recoveryScore ?? 0) >= 67 ? 'bg-gradient-to-r from-green-500 to-green-400'
+                          : (today.recoveryScore ?? 0) >= 34 ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
                             : 'bg-gradient-to-r from-red-500 to-red-400',
                       )}
                     />
                   </div>
                 </div>
-
-                {/* Strain */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Zap className="w-4 h-4" />
-                    Strain
-                  </span>
-                  <p className={cn('text-2xl font-bold', strainColor(today.strain ?? 0))}>
-                    {today.strain?.toFixed(1) ?? '--'}
-                  </p>
-                  <span className="text-xs text-grappler-500">/ 21.0</span>
-                  <div className="mt-2 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${strainPct}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-500"
-                    />
-                  </div>
-                </div>
-
-                {/* HRV */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Activity className="w-4 h-4" />
-                    HRV
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.hrv ?? '--'}
-                    </p>
-                    {yesterday?.hrv != null &&
-                      today.hrv != null &&
-                      trendIcon(today.hrv, yesterday.hrv)}
-                  </div>
-                  <span className="text-xs text-grappler-500">ms</span>
-                </div>
-
-                {/* Resting HR */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Heart className="w-4 h-4" />
-                    Resting HR
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.restingHR ?? '--'}
-                    </p>
-                    {yesterday?.restingHR != null &&
-                      today.restingHR != null &&
-                      trendIcon(yesterday.restingHR, today.restingHR)}
-                  </div>
-                  <span className="text-xs text-grappler-500">bpm</span>
-                </div>
-
-                {/* Sleep */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Moon className="w-4 h-4" />
-                    Sleep
-                  </span>
-                  <p className="text-2xl font-bold text-grappler-50">
-                    {today.sleepScore ?? '--'}
-                  </p>
-                  <span className="text-xs text-grappler-500">
-                    {today.sleepHours != null
-                      ? `${today.sleepHours.toFixed(1)} hrs`
-                      : '-- hrs'}
+                <div className="flex flex-col items-end gap-1 ml-4">
+                  <span className={cn(
+                    'text-xs font-semibold px-2.5 py-1 rounded-full',
+                    recoveryBg(today.recoveryScore ?? 0),
+                    recoveryColor(today.recoveryScore ?? 0),
+                  )}>
+                    {recoveryLabel(today.recoveryScore ?? 0)}
                   </span>
                 </div>
-
-                {/* Respiratory Rate */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Wind className="w-4 h-4" />
-                    Resp. Rate
-                  </span>
-                  <p className="text-2xl font-bold text-grappler-50">
-                    {today.respiratoryRate?.toFixed(1) ?? '--'}
-                  </p>
-                  <span className="text-xs text-grappler-500">rpm</span>
+              </div>
+              {/* Training readiness advice inline */}
+              <div className="flex items-center gap-2.5 mt-4 pt-3 border-t border-white/5">
+                <div className="shrink-0">{readiness.icon}</div>
+                <div>
+                  <p className={cn('text-xs font-semibold', readiness.accent)}>{readiness.title}</p>
+                  <p className="text-xs text-grappler-400 leading-relaxed">{readiness.message}</p>
                 </div>
-
-                {/* Skin Temp */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Thermometer className="w-4 h-4" />
-                    Skin Temp
-                  </span>
-                  <p className="text-2xl font-bold text-grappler-50">
-                    {today.skinTemp != null
-                      ? `${today.skinTemp.toFixed(1)}`
-                      : '--'}
-                  </p>
-                  <span className="text-xs text-grappler-500">&deg;F</span>
-                </div>
-
-                {/* Calories */}
-                <div className="bg-grappler-800 rounded-xl p-4">
-                  <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                    <Zap className="w-4 h-4" />
-                    Calories
-                  </span>
-                  <p className="text-2xl font-bold text-grappler-50">
-                    {today.caloriesBurned?.toLocaleString() ?? '--'}
-                  </p>
-                  <span className="text-xs text-grappler-500">kcal</span>
-                </div>
-
-                {/* SpO2 */}
-                {today.spo2 != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Droplets className="w-4 h-4" />
-                      SpO2
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.spo2.toFixed(0)}
-                    </p>
-                    <span className="text-xs text-grappler-500">%</span>
-                  </div>
-                )}
-
-                {/* Sleep Efficiency */}
-                {today.sleepEfficiency != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <BedDouble className="w-4 h-4" />
-                      Efficiency
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.sleepEfficiency.toFixed(0)}
-                    </p>
-                    <span className="text-xs text-grappler-500">%</span>
-                  </div>
-                )}
-
-                {/* Deep Sleep */}
-                {today.deepSleepMinutes != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Brain className="w-4 h-4" />
-                      Deep Sleep
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.deepSleepMinutes}
-                    </p>
-                    <span className="text-xs text-grappler-500">min</span>
-                  </div>
-                )}
-
-                {/* REM Sleep */}
-                {today.remSleepMinutes != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Moon className="w-4 h-4" />
-                      REM Sleep
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.remSleepMinutes}
-                    </p>
-                    <span className="text-xs text-grappler-500">min</span>
-                  </div>
-                )}
-
-                {/* Light Sleep */}
-                {today.lightSleepMinutes != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Moon className="w-4 h-4 opacity-50" />
-                      Light Sleep
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.lightSleepMinutes}
-                    </p>
-                    <span className="text-xs text-grappler-500">min</span>
-                  </div>
-                )}
-
-                {/* Sleep Consistency */}
-                {today.sleepConsistency != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Timer className="w-4 h-4" />
-                      Consistency
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.sleepConsistency.toFixed(0)}
-                    </p>
-                    <span className="text-xs text-grappler-500">%</span>
-                  </div>
-                )}
-
-                {/* Sleep Need vs Actual */}
-                {today.sleepNeededHours != null && today.sleepHours != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <BedDouble className="w-4 h-4" />
-                      Sleep Debt
-                    </span>
-                    <p className={cn(
-                      'text-2xl font-bold',
-                      today.sleepHours >= today.sleepNeededHours ? 'text-green-400' : 'text-orange-400',
-                    )}>
-                      {today.sleepHours >= today.sleepNeededHours ? '+' : ''}
-                      {(today.sleepHours - today.sleepNeededHours).toFixed(1)}
-                    </p>
-                    <span className="text-xs text-grappler-500">
-                      hrs ({today.sleepNeededHours.toFixed(1)} needed)
-                    </span>
-                  </div>
-                )}
-
-                {/* Avg Heart Rate */}
-                {today.avgHeartRate != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Heart className="w-4 h-4" />
-                      Avg HR
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.avgHeartRate}
-                    </p>
-                    <span className="text-xs text-grappler-500">bpm</span>
-                  </div>
-                )}
-
-                {/* Max Heart Rate */}
-                {today.maxHeartRate != null && (
-                  <div className="bg-grappler-800 rounded-xl p-4">
-                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                      <Heart className="w-4 h-4 text-red-400" />
-                      Max HR
-                    </span>
-                    <p className="text-2xl font-bold text-grappler-50">
-                      {today.maxHeartRate}
-                    </p>
-                    <span className="text-xs text-grappler-500">bpm</span>
-                  </div>
-                )}
               </div>
             </motion.div>
 
-            {/* 7-Day Recovery Trend */}
+            {/* ── KEY METRICS ROW ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="grid grid-cols-3 gap-2.5"
+            >
+              {/* Strain */}
+              <div className="bg-grappler-800 rounded-xl p-3.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Zap className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-[11px] text-grappler-500">Strain</span>
+                </div>
+                <p className={cn('text-xl font-bold', strainColor(today.strain ?? 0))}>
+                  {today.strain?.toFixed(1) ?? '--'}
+                </p>
+                <div className="mt-1.5 h-1 bg-grappler-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${strainPct}%` }}
+                    transition={{ duration: 0.8 }}
+                    className="h-full rounded-full bg-gradient-to-r from-blue-500 via-yellow-400 to-red-500"
+                  />
+                </div>
+              </div>
+              {/* HRV */}
+              <div className="bg-grappler-800 rounded-xl p-3.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Activity className="w-3.5 h-3.5 text-primary-400" />
+                  <span className="text-[11px] text-grappler-500">HRV</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xl font-bold text-grappler-50">{today.hrv ?? '--'}</p>
+                  {yesterday?.hrv != null && today.hrv != null && trendIcon(today.hrv, yesterday.hrv)}
+                </div>
+                <span className="text-[10px] text-grappler-600">ms</span>
+              </div>
+              {/* Resting HR */}
+              <div className="bg-grappler-800 rounded-xl p-3.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Heart className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-[11px] text-grappler-500">RHR</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xl font-bold text-grappler-50">{today.restingHR ?? '--'}</p>
+                  {yesterday?.restingHR != null && today.restingHR != null && trendIcon(yesterday.restingHR, today.restingHR)}
+                </div>
+                <span className="text-[10px] text-grappler-600">bpm</span>
+              </div>
+            </motion.div>
+
+            {/* ── SLEEP SECTION ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-grappler-800 rounded-xl overflow-hidden"
+            >
+              <button
+                onClick={() => setShowSleepDetails(!showSleepDetails)}
+                className="w-full p-4 flex items-center justify-between hover:bg-grappler-750 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Moon className="w-4 h-4 text-purple-400" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-grappler-100">Sleep</p>
+                    <p className="text-xs text-grappler-500">
+                      {today.sleepHours != null ? `${today.sleepHours.toFixed(1)} hrs` : '--'}
+                      {today.sleepScore != null && ` · Score ${today.sleepScore}`}
+                      {today.sleepEfficiency != null && ` · ${today.sleepEfficiency.toFixed(0)}% eff.`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {today.sleepNeededHours != null && today.sleepHours != null && (
+                    <span className={cn(
+                      'text-xs font-semibold px-2 py-0.5 rounded-full',
+                      today.sleepHours >= today.sleepNeededHours ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400',
+                    )}>
+                      {today.sleepHours >= today.sleepNeededHours ? '+' : ''}{(today.sleepHours - today.sleepNeededHours).toFixed(1)}h
+                    </span>
+                  )}
+                  <motion.div animate={{ rotate: showSleepDetails ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown className="w-4 h-4 text-grappler-500" />
+                  </motion.div>
+                </div>
+              </button>
+
+              {/* Sleep stage bar (always visible) */}
+              {(today.deepSleepMinutes != null || today.remSleepMinutes != null || today.lightSleepMinutes != null) && (
+                <div className="px-4 pb-3">
+                  {(() => {
+                    const deep = today.deepSleepMinutes ?? 0;
+                    const rem = today.remSleepMinutes ?? 0;
+                    const light = today.lightSleepMinutes ?? 0;
+                    const total = deep + rem + light;
+                    if (total === 0) return null;
+                    return (
+                      <>
+                        <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
+                          <div className="rounded-l-full bg-indigo-500" style={{ width: `${(deep / total) * 100}%` }} />
+                          <div className="bg-purple-400" style={{ width: `${(rem / total) * 100}%` }} />
+                          <div className="rounded-r-full bg-purple-300/40" style={{ width: `${(light / total) * 100}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-1.5 text-[10px]">
+                          <span className="text-indigo-400">Deep {deep}m</span>
+                          <span className="text-purple-400">REM {rem}m</span>
+                          <span className="text-purple-300/60">Light {light}m</span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Expanded sleep details */}
+              <AnimatePresence>
+                {showSleepDetails && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4 grid grid-cols-2 gap-2.5 border-t border-grappler-700/50 pt-3">
+                      {today.sleepConsistency != null && (
+                        <div className="bg-grappler-900/50 rounded-lg p-3">
+                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Timer className="w-3 h-3" /> Consistency</span>
+                          <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepConsistency.toFixed(0)}%</p>
+                        </div>
+                      )}
+                      {today.sleepDisturbances != null && (
+                        <div className="bg-grappler-900/50 rounded-lg p-3">
+                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Disturbances</span>
+                          <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepDisturbances}</p>
+                        </div>
+                      )}
+                      {today.sleepNeededHours != null && (
+                        <div className="bg-grappler-900/50 rounded-lg p-3">
+                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><BedDouble className="w-3 h-3" /> Needed</span>
+                          <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepNeededHours.toFixed(1)} hrs</p>
+                        </div>
+                      )}
+                      {today.sleepEfficiency != null && (
+                        <div className="bg-grappler-900/50 rounded-lg p-3">
+                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Moon className="w-3 h-3" /> Efficiency</span>
+                          <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepEfficiency.toFixed(0)}%</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* ── VITALS SECTION ── */}
+            {(today.respiratoryRate != null || today.spo2 != null || today.skinTemp != null || today.caloriesBurned != null) && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="bg-grappler-800 rounded-xl overflow-hidden"
+              >
+                <button
+                  onClick={() => setShowVitals(!showVitals)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-grappler-750 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-4 h-4 text-emerald-400" />
+                    <p className="text-sm font-medium text-grappler-100">Vitals & Activity</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {today.caloriesBurned != null && (
+                      <span className="text-xs text-grappler-400">{today.caloriesBurned.toLocaleString()} kcal</span>
+                    )}
+                    <motion.div animate={{ rotate: showVitals ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <ChevronDown className="w-4 h-4 text-grappler-500" />
+                    </motion.div>
+                  </div>
+                </button>
+                <AnimatePresence>
+                  {showVitals && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 grid grid-cols-2 gap-2.5 border-t border-grappler-700/50 pt-3">
+                        {today.respiratoryRate != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Wind className="w-3 h-3" /> Resp. Rate</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.respiratoryRate.toFixed(1)} <span className="text-xs font-normal text-grappler-500">rpm</span></p>
+                          </div>
+                        )}
+                        {today.skinTemp != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Skin Temp</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.skinTemp.toFixed(1)}&deg;F</p>
+                          </div>
+                        )}
+                        {today.spo2 != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Droplets className="w-3 h-3" /> SpO2</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.spo2.toFixed(0)}%</p>
+                          </div>
+                        )}
+                        {today.caloriesBurned != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Zap className="w-3 h-3" /> Calories</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.caloriesBurned.toLocaleString()} <span className="text-xs font-normal text-grappler-500">kcal</span></p>
+                          </div>
+                        )}
+                        {today.avgHeartRate != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3" /> Avg HR</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.avgHeartRate} <span className="text-xs font-normal text-grappler-500">bpm</span></p>
+                          </div>
+                        )}
+                        {today.maxHeartRate != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3 text-red-400" /> Max HR</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.maxHeartRate} <span className="text-xs font-normal text-grappler-500">bpm</span></p>
+                          </div>
+                        )}
+                        {whoopBody && whoopBody.weightKg != null && (
+                          <div className="bg-grappler-900/50 rounded-lg p-3">
+                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Scale className="w-3 h-3" /> Weight</span>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{Math.round(whoopBody.weightKg * 2.20462)} <span className="text-xs font-normal text-grappler-500">lbs</span></p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* ── 7-DAY TREND ── */}
             {chartData.length > 1 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                transition={{ delay: 0.3 }}
                 className="card p-4"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-semibold text-grappler-200">
-                    7-Day Recovery Trend
-                  </h3>
+                  <h3 className="text-sm font-semibold text-grappler-200">7-Day Trend</h3>
                   <span className="text-xs text-grappler-500">
-                    Avg:{' '}
-                    <span className={cn('font-medium', recoveryColor(avgRecovery))}>
-                      {avgRecovery}%
-                    </span>
+                    Avg <span className={cn('font-medium', recoveryColor(avgRecovery))}>{avgRecovery}%</span>
                   </span>
                 </div>
-                <div className="h-48">
+                <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
-                    >
+                    <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="recoveryGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
                           <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis
-                        dataKey="day"
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        stroke="#64748b"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
+                      <XAxis dataKey="day" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis domain={[0, 100]} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
                       <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #334155',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
                         labelStyle={{ color: '#e2e8f0' }}
                         formatter={(value: any) => [`${value}%`, 'Recovery']}
                       />
-                      <Area
-                        type="monotone"
-                        dataKey="recovery"
-                        stroke="#22c55e"
-                        strokeWidth={2}
-                        fill="url(#recoveryGradient)"
-                        dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
-                        activeDot={{
-                          r: 6,
-                          fill: '#22c55e',
-                          stroke: '#fff',
-                          strokeWidth: 2,
-                        }}
-                      />
+                      <Area type="monotone" dataKey="recovery" stroke="#22c55e" strokeWidth={2} fill="url(#recoveryGradient)" dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#22c55e', stroke: '#fff', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </motion.div>
             )}
 
-            {/* Training Readiness */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className={cn('card p-4 border', readiness.bg)}
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5">{readiness.icon}</div>
-                <div>
-                  <h3 className={cn('font-semibold text-sm', readiness.accent)}>
-                    {readiness.title}
-                  </h3>
-                  <p className="text-sm text-grappler-300 mt-1 leading-relaxed">
-                    {readiness.message}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Auto-Adjust Toggle */}
+            {/* ── AUTO-ADJUST ── */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1430,32 +1361,21 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1 pr-4">
-                  <p className="text-sm font-medium text-grappler-100">
-                    Auto-adjust workout intensity
-                  </p>
-                  <p className="text-xs text-grappler-500 mt-0.5">
-                    Automatically scale volume and load based on your recovery score
-                  </p>
+                  <p className="text-sm font-medium text-grappler-100">Auto-adjust workouts</p>
+                  <p className="text-xs text-grappler-500 mt-0.5">Scale volume &amp; load based on recovery</p>
                 </div>
                 <button
                   onClick={() => setAutoAdjust(!autoAdjust)}
-                  className={cn(
-                    'relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0',
-                    autoAdjust ? 'bg-green-500' : 'bg-grappler-600',
-                  )}
+                  className={cn('relative w-12 h-7 rounded-full transition-colors duration-200 flex-shrink-0', autoAdjust ? 'bg-green-500' : 'bg-grappler-600')}
                   role="switch"
                   aria-checked={autoAdjust}
                 >
-                  <motion.div
-                    className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md"
-                    animate={{ x: autoAdjust ? 20 : 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
+                  <motion.div className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md" animate={{ x: autoAdjust ? 20 : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
                 </button>
               </div>
             </motion.div>
 
-            {/* Recent Workouts */}
+            {/* ── RECENT WORKOUTS ── */}
             {whoopWorkouts.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -1465,143 +1385,55 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <h2 className="text-sm font-semibold text-grappler-400 uppercase tracking-wider mb-3">
                   Recent Workouts
                 </h2>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {whoopWorkouts.slice(0, 5).map((w) => {
-                    const durationMin = Math.round(
-                      (new Date(w.end).getTime() - new Date(w.start).getTime()) / 60000
-                    );
+                    const durationMin = Math.round((new Date(w.end).getTime() - new Date(w.start).getTime()) / 60000);
                     return (
-                      <div
-                        key={w.id}
-                        className="bg-grappler-800 rounded-xl p-4 border border-grappler-700/50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
+                      <div key={w.id} className="bg-grappler-800 rounded-xl p-3.5">
+                        <div className="flex items-center justify-between mb-2.5">
                           <div className="flex items-center gap-2">
-                            <Dumbbell className="w-4 h-4 text-primary-400" />
-                            <span className="text-sm font-medium text-grappler-100">
-                              {w.sportName}
-                            </span>
+                            <Dumbbell className="w-3.5 h-3.5 text-primary-400" />
+                            <span className="text-sm font-medium text-grappler-100">{w.sportName}</span>
                           </div>
-                          <span className="text-xs text-grappler-500">
-                            {new Date(w.start).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                          <span className="text-[11px] text-grappler-500">
+                            {new Date(w.start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
-                          {w.strain != null && (
-                            <div>
-                              <p className={cn('text-lg font-bold', strainColor(w.strain))}>
-                                {w.strain.toFixed(1)}
-                              </p>
-                              <p className="text-xs text-grappler-500">Strain</p>
-                            </div>
-                          )}
-                          {w.calories != null && (
-                            <div>
-                              <p className="text-lg font-bold text-grappler-50">
-                                {w.calories}
-                              </p>
-                              <p className="text-xs text-grappler-500">kcal</p>
-                            </div>
-                          )}
-                          {w.avgHR != null && (
-                            <div>
-                              <p className="text-lg font-bold text-grappler-50">{w.avgHR}</p>
-                              <p className="text-xs text-grappler-500">Avg HR</p>
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-lg font-bold text-grappler-50">{durationMin}</p>
-                            <p className="text-xs text-grappler-500">min</p>
+                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className="bg-grappler-900/50 rounded-lg py-1.5">
+                            <p className={cn('text-sm font-bold', strainColor(w.strain ?? 0))}>{w.strain?.toFixed(1) ?? '--'}</p>
+                            <p className="text-[10px] text-grappler-600">Strain</p>
+                          </div>
+                          <div className="bg-grappler-900/50 rounded-lg py-1.5">
+                            <p className="text-sm font-bold text-grappler-100">{w.calories ?? '--'}</p>
+                            <p className="text-[10px] text-grappler-600">kcal</p>
+                          </div>
+                          <div className="bg-grappler-900/50 rounded-lg py-1.5">
+                            <p className="text-sm font-bold text-grappler-100">{w.avgHR ?? '--'}</p>
+                            <p className="text-[10px] text-grappler-600">Avg HR</p>
+                          </div>
+                          <div className="bg-grappler-900/50 rounded-lg py-1.5">
+                            <p className="text-sm font-bold text-grappler-100">{durationMin}</p>
+                            <p className="text-[10px] text-grappler-600">min</p>
                           </div>
                         </div>
-                        {/* HR Zone Bar */}
                         {w.zones.length > 0 && (
-                          <div className="mt-3">
-                            <div className="flex h-2 rounded-full overflow-hidden">
+                          <div className="mt-2.5">
+                            <div className="flex h-2 rounded-full overflow-hidden gap-px">
                               {w.zones.map((z) => {
                                 const totalMin = w.zones.reduce((s, zn) => s + zn.minutes, 0);
                                 const pct = totalMin > 0 ? (z.minutes / totalMin) * 100 : 0;
-                                const colors = [
-                                  'bg-gray-400',
-                                  'bg-blue-400',
-                                  'bg-green-400',
-                                  'bg-yellow-400',
-                                  'bg-orange-400',
-                                  'bg-red-400',
-                                ];
+                                const zoneColors = ['#94a3b8', '#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444'];
                                 return (
-                                  <div
-                                    key={z.zone}
-                                    className={cn('h-full', colors[z.zone] || 'bg-gray-400')}
-                                    style={{ width: `${pct}%` }}
-                                  />
+                                  <div key={z.zone} className="rounded-sm" style={{ width: `${pct}%`, backgroundColor: zoneColors[z.zone] || '#666' }} />
                                 );
                               })}
-                            </div>
-                            <div className="flex justify-between mt-1">
-                              <span className="text-[10px] text-grappler-600">Zone 0</span>
-                              <span className="text-[10px] text-grappler-600">Zone 5</span>
                             </div>
                           </div>
                         )}
                       </div>
                     );
                   })}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Body Measurements */}
-            {whoopBody && (whoopBody.weightKg != null || whoopBody.maxHeartRate != null) && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-              >
-                <h2 className="text-sm font-semibold text-grappler-400 uppercase tracking-wider mb-3">
-                  Body Measurements
-                </h2>
-                <div className="grid grid-cols-3 gap-3">
-                  {whoopBody.weightKg != null && (
-                    <div className="bg-grappler-800 rounded-xl p-4">
-                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                        <Scale className="w-4 h-4" />
-                        Weight
-                      </span>
-                      <p className="text-2xl font-bold text-grappler-50">
-                        {Math.round(whoopBody.weightKg * 2.20462)}
-                      </p>
-                      <span className="text-xs text-grappler-500">lbs</span>
-                    </div>
-                  )}
-                  {whoopBody.heightMeters != null && (
-                    <div className="bg-grappler-800 rounded-xl p-4">
-                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                        <Ruler className="w-4 h-4" />
-                        Height
-                      </span>
-                      <p className="text-2xl font-bold text-grappler-50">
-                        {Math.round(whoopBody.heightMeters * 100)}
-                      </p>
-                      <span className="text-xs text-grappler-500">cm</span>
-                    </div>
-                  )}
-                  {whoopBody.maxHeartRate != null && (
-                    <div className="bg-grappler-800 rounded-xl p-4">
-                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
-                        <Gauge className="w-4 h-4" />
-                        Max HR
-                      </span>
-                      <p className="text-2xl font-bold text-grappler-50">
-                        {whoopBody.maxHeartRate}
-                      </p>
-                      <span className="text-xs text-grappler-500">bpm</span>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             )}

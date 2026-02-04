@@ -273,7 +273,7 @@ export default function Dashboard() {
               <Dumbbell className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-grappler-50">Grappler Gains</h1>
+              <h1 className="font-bold text-grappler-50">Roots Gains</h1>
               <p className="text-xs text-grappler-400">
                 Level {gamificationStats.level} {getLevelTitle(gamificationStats.level)}
               </p>
@@ -412,19 +412,19 @@ function HistoryTab() {
   const handleExportCSV = () => {
     const csv = exportToCSV(workoutLogs, weightUnit);
     const date = new Date().toISOString().split('T')[0];
-    downloadFile(csv, `grappler-gains-${date}.csv`, 'text/csv');
+    downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
   };
 
   const handleExportJSON = () => {
     const json = exportToJSON(workoutLogs);
     const date = new Date().toISOString().split('T')[0];
-    downloadFile(json, `grappler-gains-${date}.json`, 'application/json');
+    downloadFile(json, `roots-gains-${date}.json`, 'application/json');
   };
 
   const handleExportBackup = () => {
     const backup = exportFullBackup();
     const date = new Date().toISOString().split('T')[0];
-    downloadFile(backup, `grappler-gains-backup-${date}.json`, 'application/json');
+    downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
   };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -655,7 +655,7 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
       exercises,
       lastCompletedWorkout.hadPR ? `\nNew Personal Record!` : '',
       `${lastCompletedWorkout.newStreak} day streak`,
-      `\n-- Grappler Gains`
+      `\n-- Roots Gains`
     ].filter(Boolean).join('\n');
 
     if (navigator.share) {

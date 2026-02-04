@@ -84,7 +84,7 @@ export function exportFullBackup(): string {
   const backup = {
     _version: 1,
     _exportedAt: new Date().toISOString(),
-    _app: 'grappler-gains',
+    _app: 'roots-gains',
     user: state.user,
     isOnboarded: state.isOnboarded,
     baselineLifts: state.baselineLifts,
@@ -119,9 +119,9 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
       return { success: false, error: 'Invalid file — not a JSON object' };
     }
 
-    // Check if it's a grappler-gains backup
-    if (data._app !== 'grappler-gains' && !data.workoutLogs && !data.user) {
-      return { success: false, error: 'This file is not a Grappler Gains backup' };
+    // Check if it's a roots-gains backup (also accept legacy grappler-gains backups)
+    if (data._app !== 'roots-gains' && data._app !== 'grappler-gains' && !data.workoutLogs && !data.user) {
+      return { success: false, error: 'This file is not a Roots Gains backup' };
     }
 
     // Validate critical arrays

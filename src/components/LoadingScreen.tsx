@@ -38,7 +38,7 @@ export default function LoadingScreen() {
           transition={{ delay: 0.2 }}
           className="text-3xl font-bold gradient-text"
         >
-          Grappler Gains
+          Roots Gains
         </motion.h1>
 
         {/* Loading indicator */}
@@ -72,7 +72,7 @@ export default function LoadingScreen() {
           transition={{ delay: 0.6 }}
           className="text-grappler-400 text-sm"
         >
-          Science-based training for combat athletes
+          Science-based training for Rootslers
         </motion.p>
       </motion.div>
     </div>

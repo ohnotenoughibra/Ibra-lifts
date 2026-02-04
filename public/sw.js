@@ -1,4 +1,4 @@
-const CACHE_NAME = 'grappler-gains-v1';
+const CACHE_NAME = 'roots-gains-v1';
 
 // App shell files to cache on install
 const APP_SHELL = [

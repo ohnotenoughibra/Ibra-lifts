@@ -1,7 +1,7 @@
 {
-  "name": "Grappler Gains",
-  "short_name": "GrapplerGains",
-  "description": "Science-based workout app for combat athletes",
+  "name": "Roots Gains",
+  "short_name": "RootsGains",
+  "description": "Science-based workout app for Roots Collective members",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

@@ -32,13 +32,14 @@ import {
   MacroTargets,
   MuscleGroupConfig,
   WearableData,
-  CompetitionEvent
+  CompetitionEvent,
+  WhoopWorkout
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
-import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness } from './auto-adjust';
+import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -111,6 +112,8 @@ interface AppState {
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
+  wearableHistory: WearableData[]; // 7-day trend for multi-day analysis
+  whoopWorkouts: WhoopWorkout[]; // Recent Whoop-tracked workouts for HR correlation
 
   // Offline queue
   isOnline: boolean;
@@ -221,6 +224,8 @@ interface AppState {
 
   // Whoop actions
   setLatestWhoopData: (data: WearableData | null) => void;
+  setWearableHistory: (data: WearableData[]) => void;
+  setWhoopWorkouts: (data: WhoopWorkout[]) => void;
   applyWhoopAdjustment: () => void;
 
   // Online status
@@ -298,6 +303,8 @@ export const useAppStore = create<AppState>()(
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
       competitions: [],
       latestWhoopData: null,
+      wearableHistory: [],
+      whoopWorkouts: [],
       isOnline: true,
       lastSyncAt: null,
       lastCompletedWorkout: null,
@@ -448,17 +455,27 @@ export const useAppStore = create<AppState>()(
 
       // Whoop actions
       setLatestWhoopData: (data) => set({ latestWhoopData: data }),
+      setWearableHistory: (data) => set({ wearableHistory: data }),
+      setWhoopWorkouts: (data) => set({ whoopWorkouts: data }),
 
       applyWhoopAdjustment: () => {
         const { activeWorkout, latestWhoopData } = get();
         if (!activeWorkout || !latestWhoopData) return;
 
-        // Calculate readiness from Whoop data
+        // Calculate readiness from Whoop data (all available metrics)
         const readiness = whoopRecoveryToReadiness({
           recoveryScore: latestWhoopData.recoveryScore ?? undefined,
           hrvMs: latestWhoopData.hrv ?? undefined,
+          restingHR: latestWhoopData.restingHR ?? undefined,
           sleepScore: latestWhoopData.sleepScore ?? undefined,
           strainScore: latestWhoopData.strain ?? undefined,
+          spo2: latestWhoopData.spo2 ?? undefined,
+          sleepEfficiency: latestWhoopData.sleepEfficiency ?? undefined,
+          deepSleepMinutes: latestWhoopData.deepSleepMinutes ?? undefined,
+          sleepHours: latestWhoopData.sleepHours ?? undefined,
+          sleepNeededHours: latestWhoopData.sleepNeededHours ?? undefined,
+          sleepConsistency: latestWhoopData.sleepConsistency ?? undefined,
+          sleepDisturbances: latestWhoopData.sleepDisturbances ?? undefined,
         });
 
         if (readiness.recommendation === 'maintain') return;
@@ -879,6 +896,10 @@ export const useAppStore = create<AppState>()(
         // Check for PRs
         const hadPR = activeWorkout.exerciseLogs.some((ex) => ex.personalRecord);
 
+        // Auto-correlate with Whoop workout HR data if available
+        const { whoopWorkouts } = get();
+        const whoopHR = matchWhoopWorkout(new Date(), duration, whoopWorkouts);
+
         // Create workout log
         const workoutLog: WorkoutLog = {
           id: uuidv4(),
@@ -895,7 +916,8 @@ export const useAppStore = create<AppState>()(
           soreness: feedback.soreness,
           energy: feedback.energy,
           notes: feedback.notes,
-          completed: true
+          completed: true,
+          whoopHR,
         };
 
         // Calculate date-aware streak

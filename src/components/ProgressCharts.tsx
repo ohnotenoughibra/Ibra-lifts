@@ -31,19 +31,20 @@ import {
   PieChartIcon,
   Activity,
   ChevronRight,
+  Heart,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getExerciseById } from '@/lib/exercises';
 
-type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency';
+type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency' | 'recovery';
 
 interface ProgressChartsProps {
   onViewReport?: (mesoId: string) => void;
 }
 
 export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {}) {
-  const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user } = useAppStore();
+  const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');
 
@@ -75,6 +76,33 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
 
     return exerciseProgress;
   }, [workoutLogs]);
+
+  // Calculate strength-to-bodyweight ratios for key lifts
+  const strengthRatios = useMemo(() => {
+    if (bodyWeightLog.length === 0) return null;
+    // Get most recent body weight
+    const sortedBW = [...bodyWeightLog].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latestBW = sortedBW[0].weight;
+    if (!latestBW || latestBW <= 0) return null;
+
+    // Find best estimated 1RM for key compound lifts
+    const keyLifts = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row'];
+    const ratios: { name: string; ratio: number; e1rm: number }[] = [];
+
+    for (const liftName of keyLifts) {
+      const data = strengthData[liftName];
+      if (data && data.length > 0) {
+        const best = Math.max(...data.map(d => d.estimated1RM));
+        ratios.push({
+          name: liftName.replace('Barbell ', ''),
+          ratio: Math.round(best / latestBW * 100) / 100,
+          e1rm: Math.round(best),
+        });
+      }
+    }
+
+    return ratios.length > 0 ? { ratios, bodyWeight: latestBW } : null;
+  }, [strengthData, bodyWeightLog]);
 
   // Calculate volume progress data
   const volumeData = useMemo(() => {
@@ -138,6 +166,22 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     return Object.entries(distribution).map(([name, value]) => ({ name, value }));
   }, [workoutLogs]);
 
+  // Calculate recovery trend from wearable history
+  const recoveryTrend = useMemo(() => {
+    if (!wearableHistory || wearableHistory.length === 0) return [];
+
+    return wearableHistory
+      .slice(-14) // Last 14 days
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(w => ({
+        date: formatDate(w.date),
+        recovery: w.recoveryScore ?? undefined,
+        hrv: w.hrv ?? undefined,
+        strain: w.strain ?? undefined,
+        sleep: w.sleepHours != null ? Math.round(w.sleepHours * 10) / 10 : undefined,
+      }));
+  }, [wearableHistory]);
+
   // Calculate insights
   const insights = useMemo(() => {
     const results: { type: 'positive' | 'negative' | 'neutral'; message: string }[] = [];
@@ -177,6 +221,67 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
       });
     }
 
+    // Recovery trend insight
+    if (recoveryTrend.length >= 3) {
+      const recentRecoveries = recoveryTrend.slice(-3).filter(d => d.recovery != null);
+      if (recentRecoveries.length >= 2) {
+        const avg = recentRecoveries.reduce((s, d) => s + (d.recovery ?? 0), 0) / recentRecoveries.length;
+        if (avg < 40) {
+          results.push({
+            type: 'negative',
+            message: `Recovery trending low (${Math.round(avg)}% avg) — consider extra rest or a deload.`
+          });
+        } else if (avg >= 70) {
+          results.push({
+            type: 'positive',
+            message: `Recovery is strong (${Math.round(avg)}% avg) — good window for high-intensity work.`
+          });
+        }
+      }
+    }
+
+    // HRV Coefficient of Variation — research-backed overreaching detection
+    if (recoveryTrend.length >= 5) {
+      const hrvValues = recoveryTrend.slice(-7).filter(d => d.hrv != null).map(d => d.hrv!);
+      if (hrvValues.length >= 4) {
+        const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
+        const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
+        const cv = (Math.sqrt(variance) / mean) * 100;
+        if (cv > 15) {
+          results.push({
+            type: 'negative',
+            message: `HRV variability is high (CV ${cv.toFixed(0)}%) — possible overreaching. Prioritize recovery.`
+          });
+        } else if (cv < 5 && mean > 50) {
+          results.push({
+            type: 'positive',
+            message: `HRV is stable and healthy (CV ${cv.toFixed(0)}%, avg ${Math.round(mean)}ms) — consistent recovery.`
+          });
+        }
+      }
+    }
+
+    // Strain-to-Recovery ratio — overtraining indicator
+    if (recoveryTrend.length >= 3) {
+      const recent = recoveryTrend.slice(-5);
+      const pairs = recent.filter(d => d.strain != null && d.recovery != null);
+      if (pairs.length >= 3) {
+        const avgStrain = pairs.reduce((s, d) => s + (d.strain ?? 0), 0) / pairs.length;
+        const avgRecovery = pairs.reduce((s, d) => s + (d.recovery ?? 0), 0) / pairs.length;
+        if (avgStrain > 14 && avgRecovery < 50) {
+          results.push({
+            type: 'negative',
+            message: `High strain (${avgStrain.toFixed(1)}) with low recovery (${Math.round(avgRecovery)}%) — reduce training load.`
+          });
+        } else if (avgStrain > 10 && avgRecovery >= 66) {
+          results.push({
+            type: 'positive',
+            message: `Good strain-recovery balance (${avgStrain.toFixed(1)} strain, ${Math.round(avgRecovery)}% recovery).`
+          });
+        }
+      }
+    }
+
     // Default insight
     if (results.length === 0) {
       results.push({
@@ -186,7 +291,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     }
 
     return results;
-  }, [volumeData, gamificationStats]);
+  }, [volumeData, gamificationStats, recoveryTrend]);
 
   const COLORS = ['#0ea5e9', '#d946ef', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -195,6 +300,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     { id: 'volume', label: 'Volume', icon: BarChart3 },
     { id: 'distribution', label: 'Distribution', icon: PieChartIcon },
     { id: 'frequency', label: 'Frequency', icon: Calendar },
+    { id: 'recovery', label: 'Recovery', icon: Heart },
   ];
 
   return (
@@ -222,6 +328,30 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
           <p className="stat-value">{gamificationStats.personalRecords}</p>
         </div>
       </div>
+
+      {/* Relative Strength (strength-to-bodyweight ratios) */}
+      {strengthRatios && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="w-4 h-4 text-primary-400" />
+            <h3 className="font-medium text-grappler-200 text-sm">Relative Strength</h3>
+            <span className="text-xs text-grappler-500 ml-auto">{strengthRatios.bodyWeight} {weightUnit} BW</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {strengthRatios.ratios.map(r => (
+              <div key={r.name} className="flex items-center justify-between bg-grappler-800/50 rounded-lg px-3 py-2">
+                <span className="text-xs text-grappler-400">{r.name}</span>
+                <span className={cn(
+                  'text-sm font-semibold',
+                  r.ratio >= 2 ? 'text-green-400' : r.ratio >= 1.5 ? 'text-primary-400' : r.ratio >= 1 ? 'text-yellow-400' : 'text-grappler-300'
+                )}>
+                  {r.ratio}x
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Insights */}
       <div className="space-y-2">
@@ -424,6 +554,103 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 <Calendar className="w-8 h-8 text-grappler-600" />
                 <p className="font-medium">No frequency data yet</p>
                 <p className="text-xs text-grappler-600">Train consistently to see your workout frequency over time</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeView === 'recovery' && (
+          <div>
+            <h3 className="font-medium text-grappler-200 mb-4">Recovery & Readiness Trends</h3>
+            {recoveryTrend.length > 0 ? (
+              <div className="space-y-4">
+                {/* Recovery & HRV Chart */}
+                <div className="h-56">
+                  <p className="text-xs text-grappler-400 mb-2">Recovery % & HRV (ms)</p>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={recoveryTrend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
+                      <YAxis yAxisId="left" stroke="#22c55e" fontSize={11} domain={[0, 100]} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#0ea5e9" fontSize={11} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="recovery"
+                        name="Recovery %"
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={{ fill: '#22c55e', r: 3 }}
+                        connectNulls
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="hrv"
+                        name="HRV (ms)"
+                        stroke="#0ea5e9"
+                        strokeWidth={2}
+                        dot={{ fill: '#0ea5e9', r: 3 }}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Strain & Sleep Chart */}
+                <div className="h-56">
+                  <p className="text-xs text-grappler-400 mb-2">Strain & Sleep (hrs)</p>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={recoveryTrend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
+                      <YAxis yAxisId="left" stroke="#f59e0b" fontSize={11} domain={[0, 21]} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#d946ef" fontSize={11} domain={[0, 12]} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #334155',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="strain"
+                        name="Strain"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={{ fill: '#f59e0b', r: 3 }}
+                        connectNulls
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="sleep"
+                        name="Sleep (hrs)"
+                        stroke="#d946ef"
+                        strokeWidth={2}
+                        dot={{ fill: '#d946ef', r: 3 }}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
+                <Heart className="w-8 h-8 text-grappler-600" />
+                <p className="font-medium">No wearable data yet</p>
+                <p className="text-xs text-grappler-600">Connect Whoop or add manual entries to track recovery trends</p>
               </div>
             )}
           </div>

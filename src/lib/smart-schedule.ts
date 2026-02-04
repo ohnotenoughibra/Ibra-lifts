@@ -193,6 +193,15 @@ export function getTodayRecommendation(
   combatTrainingDays: CombatTrainingDay[],
   whoopRecovery?: number, // 0-100%
   sleepHours?: number,
+  whoopExtended?: {
+    deepSleepMinutes?: number;
+    sleepEfficiency?: number;
+    spo2?: number;
+    strain?: number;
+    sleepDebtHours?: number; // actual - needed (negative = debt)
+    avgRecovery7d?: number; // 7-day average recovery
+    hrvCV?: number; // HRV coefficient of variation (%) — overreaching signal
+  },
 ): { shouldTrain: boolean; message: string; intensity: 'full' | 'reduced' | 'skip' } {
   const today = new Date().getDay(); // 0=Sun
   const isLiftDay = trainingDays.includes(today);
@@ -237,6 +246,45 @@ export function getTodayRecommendation(
   if (sleepHours !== undefined && sleepHours < 6) {
     intensityAdvice = 'reduced';
     factors.push(`Low sleep (${sleepHours}h)`);
+  }
+
+  // Extended Whoop metrics
+  if (whoopExtended) {
+    // Low deep sleep impairs muscle recovery
+    if (whoopExtended.deepSleepMinutes !== undefined && whoopExtended.deepSleepMinutes < 30) {
+      intensityAdvice = 'reduced';
+      factors.push(`Low deep sleep (${whoopExtended.deepSleepMinutes}min)`);
+    }
+
+    // Low SpO2 — possible illness
+    if (whoopExtended.spo2 !== undefined && whoopExtended.spo2 < 95) {
+      intensityAdvice = 'reduced';
+      factors.push(`Low SpO2 (${whoopExtended.spo2.toFixed(0)}%) — check how you feel`);
+    }
+
+    // Sleep debt accumulation
+    if (whoopExtended.sleepDebtHours !== undefined && whoopExtended.sleepDebtHours < -1.5) {
+      intensityAdvice = 'reduced';
+      factors.push(`Sleep debt (${Math.abs(whoopExtended.sleepDebtHours).toFixed(1)}hrs short)`);
+    }
+
+    // High previous-day strain
+    if (whoopExtended.strain !== undefined && whoopExtended.strain > 18) {
+      intensityAdvice = 'reduced';
+      factors.push(`Very high previous strain (${whoopExtended.strain.toFixed(1)})`);
+    }
+
+    // Multi-day recovery trend declining
+    if (whoopExtended.avgRecovery7d !== undefined && whoopExtended.avgRecovery7d < 40) {
+      intensityAdvice = 'reduced';
+      factors.push(`7-day recovery trend low (${whoopExtended.avgRecovery7d}% avg)`);
+    }
+
+    // HRV CV overreaching signal — research indicates CV>15% signals homeostatic disturbance
+    if (whoopExtended.hrvCV !== undefined && whoopExtended.hrvCV > 15) {
+      intensityAdvice = 'reduced';
+      factors.push(`HRV instability detected (CV ${whoopExtended.hrvCV.toFixed(0)}%) — possible overreaching`);
+    }
   }
 
   // Hard combat yesterday

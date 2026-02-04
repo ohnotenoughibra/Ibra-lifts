@@ -235,6 +235,14 @@ export interface WorkoutLog {
   energy: number; // 1-10
   notes?: string;
   completed: boolean;
+  // Whoop-correlated heart rate data (auto-matched by time overlap)
+  whoopHR?: {
+    avgHR: number;
+    maxHR: number;
+    strain: number;
+    calories: number;
+    zones?: { zone: number; minutes: number }[];
+  };
 }
 
 // Gamification Types

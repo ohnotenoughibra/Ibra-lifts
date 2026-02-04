@@ -1116,11 +1116,46 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       {/* Smart Daily Recommendation */}
       {user?.trainingDays && user.trainingDays.length > 0 && (() => {
         const latestWhoop = useAppStore.getState().latestWhoopData;
+        const wearableHistory = useAppStore.getState().wearableHistory;
+        // Compute 7-day average recovery from wearable history
+        const recentRecoveries = wearableHistory
+          .filter(w => w.recoveryScore != null)
+          .slice(-7)
+          .map(w => w.recoveryScore!);
+        const avgRecovery7d = recentRecoveries.length > 0
+          ? Math.round(recentRecoveries.reduce((a, b) => a + b, 0) / recentRecoveries.length)
+          : undefined;
+        // Sleep debt = actual sleep - needed sleep (negative means debt)
+        const sleepDebtHours = (latestWhoop?.sleepHours != null && latestWhoop?.sleepNeededHours != null)
+          ? latestWhoop.sleepHours - latestWhoop.sleepNeededHours
+          : undefined;
+        // HRV Coefficient of Variation (research-backed overreaching signal)
+        const hrvValues = wearableHistory
+          .filter(w => w.hrv != null)
+          .slice(-7)
+          .map(w => w.hrv!);
+        let hrvCV: number | undefined;
+        if (hrvValues.length >= 4) {
+          const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
+          if (mean > 0) {
+            const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
+            hrvCV = (Math.sqrt(variance) / mean) * 100;
+          }
+        }
         const rec = getTodayRecommendation(
           user.trainingDays,
           user.combatTrainingDays || [],
           latestWhoop?.recoveryScore ?? undefined,
           latestWhoop?.sleepHours ?? undefined,
+          {
+            deepSleepMinutes: latestWhoop?.deepSleepMinutes ?? undefined,
+            sleepEfficiency: latestWhoop?.sleepEfficiency ?? undefined,
+            spo2: latestWhoop?.spo2 ?? undefined,
+            strain: latestWhoop?.strain ?? undefined,
+            sleepDebtHours,
+            avgRecovery7d,
+            hrvCV,
+          },
         );
         const bgClass = rec.intensity === 'full'
           ? 'from-green-500/15 to-emerald-500/10 border-green-500/30'

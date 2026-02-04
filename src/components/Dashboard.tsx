@@ -612,15 +612,32 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   // Deload detection
   const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
 
-  // Get next workout
+  // Get next workout — find the first uncompleted session in the mesocycle
   const getNextWorkout = () => {
     if (!currentMesocycle) return null;
-    const currentWeek = currentMesocycle.weeks[0];
-    const nextSession = currentWeek.sessions[0];
-    return nextSession;
+
+    // Collect all session IDs already completed for this mesocycle
+    const completedSessionIds = new Set(
+      workoutLogs
+        .filter(log => log.mesocycleId === currentMesocycle.id)
+        .map(log => log.sessionId)
+    );
+
+    // Walk through weeks/sessions in order, return first uncompleted
+    for (const week of currentMesocycle.weeks) {
+      for (const session of week.sessions) {
+        if (!completedSessionIds.has(session.id)) {
+          return { session, weekNumber: week.weekNumber, isDeload: week.isDeload };
+        }
+      }
+    }
+
+    // All sessions completed — mesocycle is done
+    return null;
   };
 
-  const nextWorkout = getNextWorkout();
+  const nextWorkoutInfo = getNextWorkout();
+  const nextWorkout = nextWorkoutInfo?.session ?? null;
 
   // Quick workout handler
   const handleQuickWorkout = () => {
@@ -696,7 +713,9 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">Next Workout</p>
+                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
+                  {nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}${nextWorkoutInfo.isDeload ? ' · Deload' : ''}` : 'Next Workout'}
+                </p>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
                 <div className="flex items-center gap-3 mt-2 text-sm text-white/80">
                   <span className="flex items-center gap-1">

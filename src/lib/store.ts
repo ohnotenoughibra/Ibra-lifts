@@ -372,6 +372,7 @@ export const useAppStore = create<AppState>()(
           trainingIdentity: onboardingData.trainingIdentity || 'combat',
           combatSport: onboardingData.combatSport,
           trainingDays: onboardingData.trainingDays,
+          combatTrainingDays: onboardingData.combatTrainingDays,
           createdAt: new Date(),
           updatedAt: new Date()
         };

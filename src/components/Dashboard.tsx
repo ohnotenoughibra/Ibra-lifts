@@ -43,6 +43,7 @@ import {
   Copy,
   Check,
   Users,
+  CalendarDays,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -51,6 +52,7 @@ import SyncConflictResolver from './SyncConflictResolver';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
+import { getTodayRecommendation } from '@/lib/smart-schedule';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 // Core tabs — always loaded
 import WorkoutView from './WorkoutView';
@@ -1064,6 +1066,36 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
           </div>
         </motion.div>
       )}
+
+      {/* Smart Daily Recommendation */}
+      {user?.trainingDays && user.trainingDays.length > 0 && (() => {
+        const latestWhoop = useAppStore.getState().latestWhoopData;
+        const rec = getTodayRecommendation(
+          user.trainingDays,
+          user.combatTrainingDays || [],
+          latestWhoop?.recoveryScore ?? undefined,
+          latestWhoop?.sleepHours ?? undefined,
+        );
+        const bgClass = rec.intensity === 'full'
+          ? 'from-green-500/15 to-emerald-500/10 border-green-500/30'
+          : rec.intensity === 'reduced'
+          ? 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30'
+          : 'from-grappler-700/40 to-grappler-800/40 border-grappler-700';
+        const iconColor = rec.intensity === 'full' ? 'text-green-400' : rec.intensity === 'reduced' ? 'text-yellow-400' : 'text-grappler-400';
+        return (
+          <div className={cn('rounded-xl p-3.5 border bg-gradient-to-r', bgClass)}>
+            <div className="flex items-center gap-3">
+              <CalendarDays className={cn('w-5 h-5 flex-shrink-0', iconColor)} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-grappler-200">
+                  {new Date().toLocaleDateString(undefined, { weekday: 'long' })}
+                </p>
+                <p className="text-[11px] text-grappler-400 mt-0.5 leading-relaxed">{rec.message}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Hero: Start Next Workout */}
       {nextWorkout ? (

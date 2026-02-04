@@ -51,6 +51,7 @@ export interface UserProfile {
   weightUnit: WeightUnit;
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
+  trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   createdAt: Date;
   updatedAt: Date;
 }
@@ -624,4 +625,5 @@ export interface OnboardingData {
   baselineLifts: Partial<BaselineLifts>;
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
+  trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
 }

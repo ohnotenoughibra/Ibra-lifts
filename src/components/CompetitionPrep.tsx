@@ -17,7 +17,6 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
 import { CompetitionType, CompetitionEvent } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
@@ -204,27 +203,9 @@ function getWeightProgress(current?: number, target?: number): number {
   return Math.max(0, Math.min(100, 100 - (overshoot / maxOvershoot) * 100));
 }
 
-// Example event for pre-population
-function createExampleEvent(): CompetitionEvent {
-  const eventDate = new Date();
-  eventDate.setDate(eventDate.getDate() + 56); // 8 weeks from now
-  return {
-    id: uuidv4(),
-    name: 'Spring BJJ Open',
-    type: 'bjj_tournament',
-    date: eventDate,
-    weightClass: 181,
-    currentWeight: 192,
-    notes: 'IBJJF rules, Gi and No-Gi divisions',
-    peakingWeeks: 3,
-    isActive: true,
-  };
-}
-
 export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
-  const { user } = useAppStore();
+  const { user, competitions: events, addCompetition, deleteCompetition } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
-  const [events, setEvents] = useState<CompetitionEvent[]>([createExampleEvent()]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -240,17 +221,14 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const handleAddEvent = () => {
     if (!formName.trim() || !formDate) return;
 
-    const newEvent: CompetitionEvent = {
-      id: uuidv4(),
+    addCompetition({
       name: formName.trim(),
       type: formType,
       date: new Date(formDate),
       weightClass: formWeightClass ? parseFloat(formWeightClass) : undefined,
       peakingWeeks: formPeakingWeeks,
       isActive: true,
-    };
-
-    setEvents((prev) => [...prev, newEvent]);
+    });
     setFormName('');
     setFormType('bjj_tournament');
     setFormDate('');
@@ -260,7 +238,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   };
 
   const handleDeleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    deleteCompetition(id);
     if (selectedEventId === id) setSelectedEventId(null);
   };
 

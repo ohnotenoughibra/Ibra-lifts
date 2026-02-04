@@ -31,7 +31,8 @@ import {
   MealEntry,
   MacroTargets,
   MuscleGroupConfig,
-  WearableData
+  WearableData,
+  CompetitionEvent
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
@@ -102,6 +103,9 @@ interface AppState {
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
+
+  // Competitions
+  competitions: CompetitionEvent[];
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
@@ -200,6 +204,10 @@ interface AppState {
   setActiveEquipmentProfile: (profile: EquipmentProfileName) => void;
   getActiveEquipment: () => EquipmentType[];
 
+  // Competition actions
+  addCompetition: (event: Omit<CompetitionEvent, 'id'>) => void;
+  deleteCompetition: (id: string) => void;
+
   // Whoop actions
   setLatestWhoopData: (data: WearableData | null) => void;
   applyWhoopAdjustment: () => void;
@@ -273,6 +281,7 @@ export const useAppStore = create<AppState>()(
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
+      competitions: [],
       latestWhoopData: null,
       isOnline: true,
       lastSyncAt: null,
@@ -308,6 +317,7 @@ export const useAppStore = create<AppState>()(
           weightUnit: onboardingData.weightUnit || 'lbs',
           trainingIdentity: onboardingData.trainingIdentity || 'combat',
           combatSport: onboardingData.combatSport,
+          trainingDays: onboardingData.trainingDays,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -367,6 +377,17 @@ export const useAppStore = create<AppState>()(
         if (user?.availableEquipment?.length) return user.availableEquipment;
         const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile);
         return preset?.equipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment;
+      },
+
+      // Competition actions
+      addCompetition: (event) => {
+        const { competitions } = get();
+        set({ competitions: [...competitions, { ...event, id: uuidv4() }] });
+      },
+
+      deleteCompetition: (id) => {
+        const { competitions } = get();
+        set({ competitions: competitions.filter(c => c.id !== id) });
       },
 
       // Whoop actions
@@ -771,18 +792,49 @@ export const useAppStore = create<AppState>()(
           completed: true
         };
 
+        // Calculate date-aware streak
+        const fmtDate = (d: Date) => {
+          const dt = new Date(d);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = fmtDate(today);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = fmtDate(yesterday);
+
+        const alreadyWorkedOutToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === todayStr);
+
+        let newStreak: number;
+        if (alreadyWorkedOutToday) {
+          // Already trained today — don't double-count
+          newStreak = gamificationStats.currentStreak;
+        } else {
+          const lastLog = workoutLogs.length > 0
+            ? workoutLogs.reduce((latest, log) => new Date(log.date) > new Date(latest.date) ? log : latest)
+            : null;
+          if (!lastLog) {
+            newStreak = 1; // first workout ever
+          } else {
+            const lastDateStr = fmtDate(new Date(lastLog.date));
+            newStreak = lastDateStr === yesterdayStr
+              ? gamificationStats.currentStreak + 1
+              : 1; // gap — reset streak
+          }
+        }
+
         // Calculate points
         const { points, breakdown } = calculateWorkoutPoints(
           workoutLog,
           hadPR,
-          gamificationStats.currentStreak + 1
+          newStreak
         );
 
         // Update stats
         const newTotalWorkouts = gamificationStats.totalWorkouts + 1;
         const newTotalVolume = gamificationStats.totalVolume + totalVolume;
         const newTotalPoints = gamificationStats.totalPoints + points;
-        const newStreak = gamificationStats.currentStreak + 1;
         const newPRs = gamificationStats.personalRecords + (hadPR ? 1 : 0);
 
         set({
@@ -1066,6 +1118,7 @@ export const useAppStore = create<AppState>()(
           waterLog: {},
           bodyComposition: [],
           muscleEmphasis: null,
+          competitions: [],
           isOnline: true,
           lastSyncAt: null,
           showTip: true,
@@ -1154,6 +1207,7 @@ export const useAppStore = create<AppState>()(
         waterLog: state.waterLog,
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
+        competitions: state.competitions,
         lastSyncAt: state.lastSyncAt,
       })
     }

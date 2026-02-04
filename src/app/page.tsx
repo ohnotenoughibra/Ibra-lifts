@@ -300,14 +300,69 @@ export default function Home() {
   );
 }
 
-/** Schedule a local notification for streak reminder (if supported) */
+/** Schedule smart training notifications */
 function scheduleStreakReminder() {
-  if (!('serviceWorker' in navigator)) return;
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
 
-  // Use the Notification API directly for a simple scheduled check
-  // In production, this would be a server-side push via VAPID keys
-  // For now, register the intent — the actual push requires a backend
+  // Check if we should show a weekly planning reminder (Sunday evening)
+  const now = new Date();
+  const isSunday = now.getDay() === 0;
+  const isEvening = now.getHours() >= 18 && now.getHours() <= 21;
+  const shownToday = localStorage.getItem('roots-weekly-notif-date') === now.toDateString();
+
+  if (isSunday && isEvening && !shownToday) {
+    const store = useAppStore.getState();
+    const user = store.user;
+    if (user?.trainingDays && user.trainingDays.length > 0) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const liftDays = user.trainingDays.map(d => dayNames[d]).join(', ');
+      const combatHardDays = (user.combatTrainingDays || [])
+        .filter(d => d.intensity === 'hard')
+        .map(d => dayNames[d.day]);
+
+      let body = `You have ${user.trainingDays.length} lifting sessions this week (${liftDays}).`;
+      if (combatHardDays.length > 0) {
+        body += ` Hard sport training: ${combatHardDays.join(', ')} — plan recovery around it.`;
+      }
+
+      new Notification('Plan Your Week', {
+        body,
+        icon: '/icon-192x192.png',
+        tag: 'weekly-plan',
+      });
+      localStorage.setItem('roots-weekly-notif-date', now.toDateString());
+    }
+  }
+
+  // Schedule a check every 4 hours for training day reminders
+  const checkInterval = 4 * 60 * 60 * 1000;
+  const lastCheck = localStorage.getItem('roots-daily-notif-ts');
+  if (!lastCheck || Date.now() - parseInt(lastCheck) > checkInterval) {
+    const store = useAppStore.getState();
+    const user = store.user;
+    if (user?.trainingDays?.includes(now.getDay()) && now.getHours() >= 8 && now.getHours() <= 10) {
+      // Morning of a training day
+      const hasTrainedToday = store.workoutLogs.some(
+        log => new Date(log.date).toDateString() === now.toDateString()
+      );
+      if (!hasTrainedToday) {
+        const latestWhoop = store.latestWhoopData;
+        let body = 'Lifting day! Open Roots Gains to start your session.';
+        if (latestWhoop?.recoveryScore != null && latestWhoop.recoveryScore < 50) {
+          body = `Recovery is ${latestWhoop.recoveryScore}% — consider a lighter session today.`;
+        }
+        new Notification('Training Day', {
+          body,
+          icon: '/icon-192x192.png',
+          tag: 'daily-train',
+        });
+      }
+    }
+    localStorage.setItem('roots-daily-notif-ts', String(Date.now()));
+  }
+
   if (process.env.NODE_ENV === 'development') {
-    console.log('[notifications] Streak reminder notifications enabled');
+    console.log('[notifications] Smart training notifications active');
   }
 }

@@ -52,6 +52,7 @@ export interface UserProfile {
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
+  combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
   createdAt: Date;
   updatedAt: Date;
 }
@@ -610,6 +611,15 @@ export type TrainingIdentity = 'combat' | 'recreational' | 'general_fitness';
 // Combat sport sub-types
 export type CombatSport = 'mma' | 'grappling_gi' | 'grappling_nogi' | 'striking';
 
+// Combat training schedule — which days and how hard
+export type CombatIntensity = 'light' | 'moderate' | 'hard';
+
+export interface CombatTrainingDay {
+  day: number;           // 0=Sun, 1=Mon, ... 6=Sat
+  intensity: CombatIntensity;
+  label?: string;        // e.g., "Sparring", "Drilling", "Competition prep"
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;
@@ -626,4 +636,5 @@ export interface OnboardingData {
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
+  combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
 }

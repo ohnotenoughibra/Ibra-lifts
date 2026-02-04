@@ -149,6 +149,11 @@ const MOVEMENT_PATTERNS_PER_SESSION = {
     upper: ['push', 'pull', 'push', 'pull'],
     lower: ['squat', 'hinge', 'carry', 'squat']
   },
+  push_pull_legs: {
+    push: ['push', 'push', 'push', 'push'],
+    pull: ['pull', 'pull', 'hinge', 'pull'],
+    legs: ['squat', 'hinge', 'squat', 'carry']
+  },
   grappler_hybrid: {
     strength: ['hinge', 'squat', 'push', 'pull', 'carry'],
     hypertrophy: ['push', 'pull', 'squat', 'hinge'],
@@ -379,6 +384,8 @@ function selectExercisesForType(
     ? MOVEMENT_PATTERNS_PER_SESSION.grappler_hybrid
     : splitType === 'upper_lower'
     ? MOVEMENT_PATTERNS_PER_SESSION.upper_lower
+    : splitType === 'push_pull_legs'
+    ? MOVEMENT_PATTERNS_PER_SESSION.push_pull_legs
     : MOVEMENT_PATTERNS_PER_SESSION.full_body;
   const targetPatterns: string[] = type in patternSource
     ? (patternSource as any)[type] as string[]

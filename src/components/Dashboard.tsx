@@ -38,7 +38,10 @@ import {
   LayoutGrid,
   Sun,
   Moon,
-  Shield
+  Shield,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -634,9 +637,37 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
 function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
   const {
     user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
-    lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle
+    lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
+    mesocycleHistory, competitions, bodyWeightLog
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // Share workout summary handler
+  const handleShareWorkout = async () => {
+    if (!lastCompletedWorkout) return;
+    const log = lastCompletedWorkout.log;
+    const exercises = log.exercises.map(ex => `  ${ex.exerciseName}`).join('\n');
+    const text = [
+      `Workout Complete!`,
+      `${log.exercises.length} exercises | ${formatNumber(log.totalVolume)} ${weightUnit} volume | ${log.duration}m`,
+      ``,
+      exercises,
+      lastCompletedWorkout.hadPR ? `\nNew Personal Record!` : '',
+      `${lastCompletedWorkout.newStreak} day streak`,
+      `\n-- Grappler Gains`
+    ].filter(Boolean).join('\n');
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  };
 
   const motivationalMessage = getMotivationalMessage(gamificationStats);
   const progress = levelProgress(gamificationStats.totalPoints);
@@ -761,6 +792,71 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
     return trends;
   })();
 
+  // Mesocycle comparison: compare current block to previous
+  const mesocycleComparison = (() => {
+    if (!currentMesocycle || mesocycleHistory.length === 0) return null;
+    const prevBlock = mesocycleHistory[mesocycleHistory.length - 1];
+    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    const prevLogs = workoutLogs.filter(l => l.mesocycleId === prevBlock.id);
+    if (prevLogs.length === 0) return null;
+
+    const avgVolCurrent = currentLogs.length > 0 ? Math.round(currentLogs.reduce((s, l) => s + l.totalVolume, 0) / currentLogs.length) : 0;
+    const avgVolPrev = Math.round(prevLogs.reduce((s, l) => s + l.totalVolume, 0) / prevLogs.length);
+    const volDelta = avgVolCurrent - avgVolPrev;
+
+    const avgRPECurrent = currentLogs.length > 0 ? +(currentLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / currentLogs.length).toFixed(1) : 0;
+    const avgRPEPrev = +(prevLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / prevLogs.length).toFixed(1);
+
+    return {
+      prevName: prevBlock.name,
+      sessions: { current: currentLogs.length, prev: prevLogs.length },
+      avgVolume: { current: avgVolCurrent, prev: avgVolPrev, delta: volDelta },
+      avgRPE: { current: avgRPECurrent, prev: avgRPEPrev },
+    };
+  })();
+
+  // Competition countdown (nearest active event)
+  const nextCompetition = (() => {
+    const now = Date.now();
+    const active = competitions
+      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (active.length === 0) return null;
+    const event = active[0];
+    const daysUntil = Math.ceil((new Date(event.date).getTime() - now) / (1000 * 60 * 60 * 24));
+    return { ...event, daysUntil };
+  })();
+
+  // Body recomp: weight trend vs volume trend (last 4 weeks)
+  const recompData = (() => {
+    if (bodyWeightLog.length < 2 && workoutLogs.length < 2) return null;
+    const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
+
+    // Weight trend
+    const recentWeights = bodyWeightLog
+      .filter(e => new Date(e.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let weightDelta: number | null = null;
+    if (recentWeights.length >= 2) {
+      weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
+    }
+
+    // Volume trend
+    const recentLogs = workoutLogs
+      .filter(l => new Date(l.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let volumeDelta: number | null = null;
+    if (recentLogs.length >= 4) {
+      const half = Math.floor(recentLogs.length / 2);
+      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
+      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (recentLogs.length - half);
+      volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
+    }
+
+    if (weightDelta === null && volumeDelta === null) return null;
+    return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
+  })();
+
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
@@ -830,12 +926,21 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
                   <p className="text-xs text-green-400/70">+{lastCompletedWorkout.points} XP earned</p>
                 </div>
               </div>
-              <button
-                onClick={dismissWorkoutSummary}
-                className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1"
-              >
-                Dismiss
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleShareWorkout}
+                  className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                  title="Share workout"
+                >
+                  {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={dismissWorkoutSummary}
+                  className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3">
               <div className="text-center">
@@ -877,6 +982,35 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
             <div>
               <h3 className="font-bold text-amber-300 text-sm">Training Load</h3>
               <p className="text-xs text-amber-400/80 mt-1">{trainingLoadWarning}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Competition Countdown */}
+      {nextCompetition && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-xs text-yellow-400/70 uppercase tracking-wide font-medium">{nextCompetition.type.replace(/_/g, ' ')}</p>
+                <h3 className="font-bold text-yellow-300 text-sm">{nextCompetition.name}</h3>
+                <p className="text-xs text-grappler-400 mt-0.5">
+                  {new Date(nextCompetition.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {nextCompetition.weightClass ? ` | ${nextCompetition.weightClass} ${weightUnit}` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
+              <p className="text-[10px] text-yellow-400/70">days out</p>
             </div>
           </div>
         </motion.div>
@@ -937,20 +1071,51 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card p-5 text-center bg-gradient-to-br from-primary-500/10 to-accent-500/10 border border-primary-500/20"
+          className="card p-5 bg-gradient-to-br from-primary-500/10 to-accent-500/10 border border-primary-500/20"
         >
-          <Trophy className="w-10 h-10 text-primary-400 mx-auto mb-2" />
-          <h3 className="font-bold text-grappler-100 text-sm">Block Complete!</h3>
-          <p className="text-xs text-grappler-400 mt-1 mb-4">
-            You finished all {mesocycleProgress.total} sessions in {currentMesocycle.name}.
-          </p>
-          <button
-            onClick={handleGenerateNext}
-            className="btn btn-primary btn-md gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            Generate Next Block
-          </button>
+          <div className="text-center">
+            <Trophy className="w-10 h-10 text-primary-400 mx-auto mb-2" />
+            <h3 className="font-bold text-grappler-100 text-sm">Block Complete!</h3>
+            <p className="text-xs text-grappler-400 mt-1 mb-4">
+              You finished all {mesocycleProgress.total} sessions in {currentMesocycle.name}.
+            </p>
+          </div>
+
+          {/* Mesocycle comparison */}
+          {mesocycleComparison && (
+            <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 space-y-2">
+              <p className="text-[10px] text-grappler-500 uppercase tracking-wide">vs {mesocycleComparison.prevName}</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-xs text-grappler-400">Sessions</p>
+                  <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.sessions.current}</p>
+                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.sessions.prev}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-grappler-400">Avg Volume</p>
+                  <p className="text-sm font-bold text-grappler-100">{formatNumber(mesocycleComparison.avgVolume.current)}</p>
+                  <p className={cn('text-[10px] font-medium', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                    {mesocycleComparison.avgVolume.delta > 0 ? '+' : ''}{formatNumber(mesocycleComparison.avgVolume.delta)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-grappler-400">Avg RPE</p>
+                  <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.avgRPE.current}</p>
+                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.avgRPE.prev}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center">
+            <button
+              onClick={handleGenerateNext}
+              className="btn btn-primary btn-md gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Generate Next Block
+            </button>
+          </div>
         </motion.div>
       ) : (
         <motion.div
@@ -1065,6 +1230,49 @@ function HomeTab({ onNavigate }: { onNavigate: (view: OverlayView) => void }) {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Body Recomp Tracking */}
+      {recompData && (
+        <div className="card p-4">
+          <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+            <Scaling className="w-4 h-4 text-purple-400" />
+            Body Recomp (4 weeks)
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {recompData.latestWeight !== null && (
+              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+                <p className="text-xs text-grappler-400">Weight</p>
+                <p className="text-sm font-bold text-grappler-100">{recompData.latestWeight} {weightUnit}</p>
+                {recompData.weightDelta !== null && (
+                  <p className={cn('text-[10px] font-medium', recompData.weightDelta > 0 ? 'text-amber-400' : recompData.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+                    {recompData.weightDelta > 0 ? '+' : ''}{recompData.weightDelta} {weightUnit}
+                  </p>
+                )}
+              </div>
+            )}
+            {recompData.volumeDelta !== null && (
+              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+                <p className="text-xs text-grappler-400">Avg Volume</p>
+                <p className={cn('text-sm font-bold', recompData.volumeDelta > 0 ? 'text-green-400' : recompData.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
+                  {recompData.volumeDelta > 0 ? '+' : ''}{formatNumber(recompData.volumeDelta)}
+                </p>
+                <p className="text-[10px] text-grappler-500">vs first 2 weeks</p>
+              </div>
+            )}
+          </div>
+          {recompData.weightDelta !== null && recompData.volumeDelta !== null && (
+            <p className="text-[10px] text-grappler-500 mt-2">
+              {recompData.weightDelta <= 0 && recompData.volumeDelta > 0
+                ? 'Losing weight while lifting more — solid recomp!'
+                : recompData.weightDelta > 0 && recompData.volumeDelta > 0
+                ? 'Weight and volume both up — lean bulk territory.'
+                : recompData.weightDelta < 0 && recompData.volumeDelta < 0
+                ? 'Both trending down — make sure you\'re fueling enough.'
+                : 'Tracking trends — keep logging to see patterns.'}
+            </p>
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
-# Grappler Gains
+# Roots Gains
 
-A science-based workout app designed for combat athletes (BJJ, wrestling, MMA) with limited lifting time. Built with Next.js, React, and Tailwind CSS.
+A science-based workout app by Roots Collective for martial artists with limited lifting time. Built with Next.js, React, and Tailwind CSS.
 
 ## Features
 
@@ -57,8 +57,8 @@ A science-based workout app designed for combat athletes (BJJ, wrestling, MMA) w
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/grappler-gains.git
-cd grappler-gains
+git clone https://github.com/yourusername/roots-gains.git
+cd roots-gains
 
 # Install dependencies
 npm install
@@ -82,7 +82,7 @@ For cloud storage with Vercel Postgres, the env vars are **auto-set** when you a
 
 ### One-Click Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/grappler-gains)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/roots-gains)
 
 ### Manual Deployment
 

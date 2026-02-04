@@ -331,7 +331,7 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
             {exercise.grapplerFriendly && (
               <Badge variant="success">
                 <Shield className="w-3 h-3" />
-                Grappler
+                Rootsler
               </Badge>
             )}
           </div>
@@ -447,7 +447,7 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
                 {exercise.grapplerFriendly && (
                   <Badge variant="success">
                     <Shield className="w-3 h-3" />
-                    Grappler Friendly
+                    Rootsler Friendly
                   </Badge>
                 )}
               </div>

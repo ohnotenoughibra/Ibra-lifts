@@ -8,9 +8,9 @@ import {
   EquipmentType
 } from './types';
 
-// Mobility & Deload module for Grappler Gains
+// Mobility & Deload module for Roots Gains
 // Provides structured mobility routines, deload session generation,
-// and active recovery sessions tailored for grapplers who lift.
+// and active recovery sessions tailored for Rootslers who lift.
 
 const ytSearch = (q: string) =>
   `https://www.youtube.com/results?search_query=${encodeURIComponent(q + ' form demo')}`;
@@ -26,7 +26,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
     // 1. Grappler's Hip Opener
     {
       id: uuidv4(),
-      name: "Grappler's Hip Opener",
+      name: "Rootsler's Hip Opener",
       focus: ['hips'] as MobilityFocus[],
       duration: 15,
       forGrapplers: true,

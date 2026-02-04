@@ -1126,7 +1126,7 @@ export const useAppStore = create<AppState>()(
         })
     }),
     {
-      name: 'grappler-gains-storage',
+      name: 'roots-gains-storage',
       storage: {
         getItem: (name: string) => {
           try {

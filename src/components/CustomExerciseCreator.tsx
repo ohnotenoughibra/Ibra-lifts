@@ -346,10 +346,10 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                   </div>
                 </div>
 
-                {/* Grappler Friendly Toggle */}
+                {/* Rootsler Friendly Toggle */}
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-grappler-200">
-                    Grappler Friendly
+                    Rootsler Friendly
                   </label>
                   <button
                     onClick={() =>

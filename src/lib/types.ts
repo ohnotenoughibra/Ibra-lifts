@@ -49,6 +49,8 @@ export interface UserProfile {
   sessionsPerWeek: SessionsPerWeek;
   sessionDurationMinutes: number;
   weightUnit: WeightUnit;
+  trainingIdentity: TrainingIdentity;
+  combatSport?: CombatSport;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -601,6 +603,12 @@ export interface MuscleGroupConfig {
   core: MuscleEmphasis;
 }
 
+// User identity — what kind of athlete are they
+export type TrainingIdentity = 'combat' | 'recreational' | 'general_fitness';
+
+// Combat sport sub-types
+export type CombatSport = 'mma' | 'grappling_gi' | 'grappling_nogi' | 'striking';
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;
@@ -614,4 +622,6 @@ export interface OnboardingData {
   sessionDurationMinutes: number;
   weightUnit: WeightUnit;
   baselineLifts: Partial<BaselineLifts>;
+  trainingIdentity: TrainingIdentity;
+  combatSport?: CombatSport;
 }

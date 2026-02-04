@@ -218,7 +218,8 @@ const initialOnboardingData: OnboardingData = {
   sessionsPerWeek: 3,
   sessionDurationMinutes: 60,
   weightUnit: 'lbs',
-  baselineLifts: {}
+  baselineLifts: {},
+  trainingIdentity: 'combat',
 };
 
 const initialGamificationStats: GamificationStats = {
@@ -293,6 +294,8 @@ export const useAppStore = create<AppState>()(
           sessionsPerWeek: onboardingData.sessionsPerWeek,
           sessionDurationMinutes: onboardingData.sessionDurationMinutes || 60,
           weightUnit: onboardingData.weightUnit || 'lbs',
+          trainingIdentity: onboardingData.trainingIdentity || 'combat',
+          combatSport: onboardingData.combatSport,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -457,6 +460,9 @@ export const useAppStore = create<AppState>()(
           baselineLifts: baselineLifts || undefined,
           muscleEmphasis: muscleEmphasis || undefined,
           sessionDurationMinutes: duration,
+          trainingIdentity: user.trainingIdentity,
+          combatSport: user.combatSport,
+          experienceLevel: user.experienceLevel,
         });
 
         set({ currentMesocycle: newMesocycle });

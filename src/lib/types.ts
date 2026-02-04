@@ -596,7 +596,7 @@ export interface HRSession {
 export type ThemeMode = 'dark' | 'light';
 
 // Grappling Session Tracking
-export type GrapplingType = 'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'mma' | 'judo' | 'other';
+export type GrapplingType = 'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'mma' | 'judo' | 'boxing' | 'kickboxing' | 'muay_thai' | 'striking' | 'other';
 export type GrapplingIntensity = 'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep';
 
 export interface GrapplingSession {
@@ -614,6 +614,15 @@ export interface GrapplingSession {
   bodyweightBefore?: number;
   bodyweightAfter?: number;
   perceivedExertion: number; // 1-10
+  // Whoop-synced HR data (auto-populated when imported from Whoop)
+  whoopHR?: {
+    avgHR: number;
+    maxHR: number;
+    strain: number;
+    calories: number;
+    zones?: { zone: number; minutes: number }[];
+  };
+  whoopWorkoutId?: string; // links back to the Whoop workout for dedup
 }
 
 // Body Composition

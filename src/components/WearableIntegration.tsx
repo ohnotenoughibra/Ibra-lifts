@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement } from '@/lib/types';
+import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, GrapplingType, GrapplingIntensity } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -454,6 +454,89 @@ function transformWhoopBody(apiData: WhoopApiResponse): WhoopBodyMeasurement | n
 }
 
 // ---------------------------------------------------------------------------
+// Whoop combat sport → GrapplingType mapping
+// ---------------------------------------------------------------------------
+
+const WHOOP_COMBAT_SPORT_MAP: Record<number, GrapplingType> = {
+  38: 'wrestling',
+  39: 'boxing',
+  57: 'other',        // Generic "Martial Arts"
+  70: 'bjj_nogi',     // Brazilian Jiu Jitsu (can't detect gi vs nogi)
+  71: 'kickboxing',
+  84: 'mma',
+};
+
+/**
+ * Estimate grappling intensity from Whoop strain.
+ * Whoop strain is 0-21 scale (logarithmic cardiovascular load).
+ */
+function strainToIntensity(strain: number | null): GrapplingIntensity {
+  if (strain == null || strain < 8) return 'light_flow';
+  if (strain < 13) return 'moderate';
+  if (strain < 17) return 'hard_sparring';
+  return 'competition_prep';
+}
+
+/**
+ * Auto-import Whoop combat sport workouts as grappling sessions.
+ * Only imports workouts that haven't already been imported (dedup by whoopWorkoutId).
+ */
+function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
+  const store = useAppStore.getState();
+  const existingSessions = store.grapplingSessions;
+
+  // Find combat sport workouts not yet imported
+  const combatWorkouts = whoopWorkouts.filter(w => {
+    const grapplingType = WHOOP_COMBAT_SPORT_MAP[w.sportId];
+    if (!grapplingType) return false;
+    // Check dedup — skip if already imported
+    return !existingSessions.some(s => s.whoopWorkoutId === w.id);
+  });
+
+  for (const ww of combatWorkouts) {
+    const grapplingType = WHOOP_COMBAT_SPORT_MAP[ww.sportId]!;
+    const durationMin = Math.round(
+      (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
+    );
+
+    store.addGrapplingSession({
+      date: new Date(ww.start),
+      type: grapplingType,
+      intensity: strainToIntensity(ww.strain),
+      duration: durationMin,
+      perceivedExertion: ww.strain != null ? Math.min(10, Math.round(ww.strain / 2.1)) : 5,
+      notes: `Auto-imported from Whoop (${ww.sportName})`,
+      whoopHR: {
+        avgHR: ww.avgHR ?? 0,
+        maxHR: ww.maxHR ?? 0,
+        strain: ww.strain ?? 0,
+        calories: ww.calories ?? 0,
+        zones: ww.zones.length > 0 ? ww.zones : undefined,
+      },
+      whoopWorkoutId: ww.id,
+    });
+
+    // Also create an HRSession for the cardio tracking view
+    const hrZones: Record<string, number> = { zone1: 0, zone2: 0, zone3: 0, zone4: 0, zone5: 0 };
+    for (const z of ww.zones) {
+      if (z.zone >= 1 && z.zone <= 5) {
+        hrZones[`zone${z.zone}`] = Math.round(z.minutes * 60); // seconds
+      }
+    }
+    store.addHRSession({
+      date: new Date(ww.start),
+      type: 'grappling_cardio',
+      duration: durationMin,
+      avgHR: ww.avgHR ?? 0,
+      maxHR: ww.maxHR ?? 0,
+      timeInZones: hrZones as any,
+      caloriesBurned: ww.calories ?? 0,
+      notes: `Whoop: ${ww.sportName}`,
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -599,6 +682,11 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
           if (!alreadyLogged) {
             useAppStore.getState().addBodyWeight(weight, 'Whoop sync');
           }
+        }
+
+        // Auto-import combat sport workouts as grappling sessions + HR sessions
+        if (whoopWkts.length > 0) {
+          autoImportCombatWorkouts(whoopWkts);
         }
 
         // Show warnings if some endpoints had issues (partial data)

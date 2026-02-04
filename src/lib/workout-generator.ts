@@ -16,7 +16,8 @@ import {
   MuscleEmphasis,
   ExperienceLevel,
   TrainingIdentity,
-  CombatSport
+  CombatSport,
+  WorkoutLog
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
@@ -84,6 +85,28 @@ const UNDULATING_SCHEMES: Record<number, WorkoutType[]> = {
   5: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy'],
   6: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy', 'power'],
 };
+
+// Linear periodization: all sessions use the same type based on goal focus
+const GOAL_TO_LINEAR_TYPE: Record<GoalFocus, WorkoutType> = {
+  strength: 'strength',
+  hypertrophy: 'hypertrophy',
+  balanced: 'hypertrophy', // safest for beginners
+  power: 'power',
+};
+
+// Wave loading multipliers for DUP — 3-week ascending wave cycles
+// Creates undulating volume/intensity instead of flat linear increase
+function getWaveMultipliers(weekNumber: number): { volume: number; intensity: number } {
+  const wavePos = (weekNumber - 1) % 3; // position within 3-week wave
+  const waveNum = Math.floor((weekNumber - 1) / 3); // which wave cycle
+  const base = waveNum * 0.03; // slight overall progression between wave cycles
+  switch (wavePos) {
+    case 0: return { volume: 1.0 + base, intensity: 1.0 + base };       // moderate
+    case 1: return { volume: 1.08 + base, intensity: 1.0 + base };      // high volume
+    case 2: return { volume: 1.02 + base, intensity: 1.04 + base };     // high intensity
+    default: return { volume: 1.0, intensity: 1.0 };
+  }
+}
 
 // Block periodization: each week focuses on one training quality
 const BLOCK_SCHEMES: Record<number, WorkoutType[][]> = {
@@ -169,7 +192,7 @@ interface GeneratorOptions {
   sessionsPerWeek: 1 | 2 | 3 | 4 | 5 | 6;
   weeks: number;
   baselineLifts?: BaselineLifts;
-  periodizationType?: 'undulating' | 'block';
+  periodizationType?: 'linear' | 'undulating' | 'block';
   muscleEmphasis?: MuscleGroupConfig;
   sessionDurationMinutes?: number;
   trainingIdentity?: TrainingIdentity;
@@ -665,7 +688,7 @@ function generateMesocycleWeek(
   sessionsPerWeek: number,
   equipment: Equipment,
   goalFocus: GoalFocus,
-  periodizationType: 'undulating' | 'block' = 'undulating',
+  periodizationType: 'linear' | 'undulating' | 'block' = 'undulating',
   weekIndex: number = 0,
   muscleEmphasis?: MuscleGroupConfig,
   availableEquipment?: EquipmentType[],
@@ -674,14 +697,41 @@ function generateMesocycleWeek(
   combatSport?: CombatSport,
   experienceLevel?: ExperienceLevel
 ): MesocycleWeek {
-  const workoutTypes = periodizationType === 'block'
-    ? (BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek])
-    : UNDULATING_SCHEMES[sessionsPerWeek];
+  // Determine workout types based on periodization strategy
+  let workoutTypes: WorkoutType[];
+  if (periodizationType === 'linear') {
+    // Linear: all sessions use the same type — ideal for beginners
+    const linearType = GOAL_TO_LINEAR_TYPE[goalFocus];
+    workoutTypes = Array(sessionsPerWeek).fill(linearType);
+  } else if (periodizationType === 'block') {
+    workoutTypes = BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek];
+  } else {
+    workoutTypes = UNDULATING_SCHEMES[sessionsPerWeek];
+  }
   const usedExerciseIds = new Set<string>();
 
-  // Adjust volume and intensity for deload
-  const volumeMultiplier = isDeload ? 0.6 : 1 + (weekNumber - 1) * 0.05; // Progressive overload
-  const intensityMultiplier = isDeload ? 0.85 : 1 + (weekNumber - 1) * 0.02;
+  // Adjust volume and intensity for deload or progression
+  let volumeMultiplier: number;
+  let intensityMultiplier: number;
+
+  if (isDeload) {
+    volumeMultiplier = 0.6;
+    intensityMultiplier = 0.85;
+  } else if (periodizationType === 'linear') {
+    // Linear: steady 5% per week (simple, predictable for beginners)
+    volumeMultiplier = 1 + (weekNumber - 1) * 0.05;
+    intensityMultiplier = 1 + (weekNumber - 1) * 0.02;
+  } else {
+    // DUP / Block: wave loading — undulating volume & intensity
+    const wave = getWaveMultipliers(weekNumber);
+    volumeMultiplier = wave.volume;
+    intensityMultiplier = wave.intensity;
+  }
+
+  // Combat athletes: reduce gym volume to account for sport training load
+  if (trainingIdentity === 'combat' && !isDeload) {
+    volumeMultiplier *= 0.85; // 15% reduction
+  }
 
   const sessions: WorkoutSession[] = workoutTypes.map((type, index) => {
     const session = generateWorkoutSession(
@@ -749,7 +799,17 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
-  const periodizationType = options.periodizationType || 'undulating';
+
+  // Auto-select periodization by experience level if not explicitly set
+  let periodizationType: 'linear' | 'undulating' | 'block';
+  if (options.periodizationType) {
+    periodizationType = options.periodizationType;
+  } else if (experienceLevel === 'beginner') {
+    periodizationType = 'linear';
+  } else {
+    // intermediate + advanced default to DUP
+    periodizationType = 'undulating';
+  }
 
   for (let i = 1; i <= weeks; i++) {
     const isDeload = i === weeks;
@@ -921,4 +981,70 @@ export function analyzeMuscleGroupVolume(
   }
 
   return volumeByMuscle;
+}
+
+// ── Autoregulation ──────────────────────────────────────────────────────────
+// Adjusts a planned session based on recent workout feedback.
+// Call this when loading a session for the user to start.
+
+export function autoregulateSession(
+  session: WorkoutSession,
+  recentLogs: WorkoutLog[],
+): { session: WorkoutSession; message: string } {
+  if (recentLogs.length === 0) {
+    return { session, message: 'No recent data — using planned prescription.' };
+  }
+
+  // Use the most recent 1-2 logs for feedback signals
+  const latest = recentLogs.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  ).slice(0, 2);
+
+  const avgRPE = latest.reduce((s, l) => s + l.overallRPE, 0) / latest.length;
+  const avgSoreness = latest.reduce((s, l) => s + l.soreness, 0) / latest.length;
+
+  // Map postFeedback performance to a numeric score
+  const perfMap: Record<string, number> = {
+    worse_than_expected: 3,
+    as_expected: 6,
+    better_than_expected: 9,
+  };
+  const perfScores = latest
+    .filter(l => l.postFeedback?.overallPerformance)
+    .map(l => perfMap[l.postFeedback!.overallPerformance] || 6);
+  const avgPerf = perfScores.length > 0
+    ? perfScores.reduce((s, v) => s + v, 0) / perfScores.length
+    : 6;
+
+  const { volumeAdjustment, intensityAdjustment, message } = suggestAdjustments(
+    avgRPE, avgSoreness, avgPerf
+  );
+
+  // No adjustment needed
+  if (volumeAdjustment === 0 && intensityAdjustment === 0) {
+    return { session, message };
+  }
+
+  // Apply adjustments to each exercise
+  const adjustedExercises = session.exercises.map(ex => {
+    const newSets = Math.max(2, Math.round(ex.sets * (1 + volumeAdjustment)));
+    const basePercentage = ex.prescription.percentageOf1RM ?? 75;
+    const newPercentage = Math.min(100, Math.round(basePercentage * (1 + intensityAdjustment)));
+    const newRPE = Math.max(5, Math.min(10, +(ex.prescription.rpe * (1 + intensityAdjustment)).toFixed(1)));
+
+    return {
+      ...ex,
+      sets: newSets,
+      prescription: {
+        ...ex.prescription,
+        percentageOf1RM: newPercentage,
+        rpe: newRPE,
+      },
+    };
+  });
+
+  return {
+    session: { ...session, exercises: adjustedExercises },
+    message,
+  };
 }

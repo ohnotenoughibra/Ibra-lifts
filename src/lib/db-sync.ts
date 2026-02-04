@@ -2,8 +2,37 @@
 // Falls back gracefully to localStorage-only when DB is not configured
 
 const SYNC_DEBOUNCE_MS = 3000; // Debounce saves to avoid hammering the DB
+const SYNC_MAX_WAIT_MS = 15000; // Max wait before forcing a sync (prevents starvation)
+const SYNC_QUEUE_KEY = 'roots-gains-sync-queue-v1'; // localStorage key for queue persistence
+
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-let pendingSyncQueue: Array<{ userId: string; data: Record<string, unknown> }> = [];
+let maxWaitTimeout: ReturnType<typeof setTimeout> | null = null;
+let pendingPayload: { userId: string; data: Record<string, unknown> } | null = null;
+
+// ── localStorage-backed sync queue ──────────────────────────────────────────
+
+function loadQueueFromStorage(): Array<{ userId: string; data: Record<string, unknown> }> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveQueueToStorage(queue: Array<{ userId: string; data: Record<string, unknown> }>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (queue.length === 0) {
+      localStorage.removeItem(SYNC_QUEUE_KEY);
+    } else {
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    }
+  } catch {
+    // Quota exceeded — not critical, the in-memory queue still works
+  }
+}
 
 export async function loadFromDatabase(userId: string): Promise<Record<string, unknown> | null> {
   try {
@@ -81,7 +110,7 @@ export function resolveConflicts(
 
 /**
  * Queue a sync request using Background Sync API if available,
- * otherwise fall back to the in-memory queue.
+ * otherwise fall back to a localStorage-persisted queue.
  */
 async function queueForBackgroundSync(userId: string, data: Record<string, unknown>): Promise<void> {
   // Try Background Sync API (caches the request for the SW to replay)
@@ -103,55 +132,87 @@ async function queueForBackgroundSync(userId: string, data: Record<string, unkno
       }
       return;
     } catch {
-      // Background Sync not supported or failed — fall through to memory queue
+      // Background Sync not supported or failed — fall through to localStorage queue
     }
   }
 
-  // Fallback: in-memory queue
-  pendingSyncQueue.push({ userId, data });
+  // Fallback: localStorage-persisted queue (survives page refresh)
+  const queue = loadQueueFromStorage();
+  queue.push({ userId, data });
+  saveQueueToStorage(queue);
   if (process.env.NODE_ENV === 'development') {
-    console.log('[db-sync] Offline — queued in memory for later sync');
+    console.log('[db-sync] Offline — queued in localStorage for later sync');
   }
 }
 
+/** Actually perform the sync POST */
+async function doSync(userId: string, data: Record<string, unknown>): Promise<void> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    await queueForBackgroundSync(userId, data);
+    return;
+  }
+
+  const res = await fetch('/api/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
+  });
+  if (res.ok) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[db-sync] Data synced to database');
+    }
+  }
+}
+
+/**
+ * Save data to the database with debounce + max-wait to prevent starvation.
+ *
+ * - Resets a short debounce timer on every call (coalesces rapid changes)
+ * - Guarantees a sync fires within SYNC_MAX_WAIT_MS of the first unsynced change
+ */
 export function saveToDatabase(userId: string, data: Record<string, unknown>): void {
-  // Debounce to avoid too many writes
+  pendingPayload = { userId, data };
+
+  // Reset the short debounce timer
   if (syncTimeout) clearTimeout(syncTimeout);
 
-  syncTimeout = setTimeout(async () => {
-    try {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        await queueForBackgroundSync(userId, data);
-        return;
-      }
+  const flush = async () => {
+    if (!pendingPayload) return;
+    const { userId: uid, data: payload } = pendingPayload;
+    pendingPayload = null;
 
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
-      });
-      if (res.ok) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[db-sync] Data synced to database');
-        }
-      }
+    // Clear both timers
+    if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
+    if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
+
+    try {
+      await doSync(uid, payload);
     } catch {
-      await queueForBackgroundSync(userId, data);
+      await queueForBackgroundSync(uid, payload);
     }
-  }, SYNC_DEBOUNCE_MS);
+  };
+
+  // Short debounce — coalesces rapid successive saves
+  syncTimeout = setTimeout(flush, SYNC_DEBOUNCE_MS);
+
+  // Max-wait — guarantees sync fires even under continuous rapid saves
+  if (!maxWaitTimeout) {
+    maxWaitTimeout = setTimeout(flush, SYNC_MAX_WAIT_MS);
+  }
 }
 
-/** Flush any pending syncs that queued while offline */
+/** Flush any pending syncs that queued while offline (from localStorage + memory) */
 export async function flushSyncQueue(): Promise<void> {
-  if (pendingSyncQueue.length === 0) return;
-  const queue = [...pendingSyncQueue];
-  pendingSyncQueue = [];
+  const queue = loadQueueFromStorage();
+  if (queue.length === 0) return;
 
   // Only sync the latest entry per userId
   const latestByUser = new Map<string, Record<string, unknown>>();
   for (const item of queue) {
     latestByUser.set(item.userId, item.data);
   }
+
+  const failedQueue: Array<{ userId: string; data: Record<string, unknown> }> = [];
 
   for (const [userId, data] of Array.from(latestByUser.entries())) {
     try {
@@ -164,9 +225,12 @@ export async function flushSyncQueue(): Promise<void> {
         console.log(`[db-sync] Flushed queued sync for ${userId}`);
       }
     } catch {
-      pendingSyncQueue.push({ userId, data });
+      failedQueue.push({ userId, data });
     }
   }
+
+  // Persist any failed items back
+  saveQueueToStorage(failedQueue);
 }
 
 export async function initDatabase(): Promise<boolean> {

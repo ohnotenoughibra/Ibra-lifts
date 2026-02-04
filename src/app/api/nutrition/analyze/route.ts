@@ -30,6 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No image provided.' }, { status: 400 });
   }
 
+  // Reject images larger than 4MB base64 (~3MB binary)
+  if (image.length > 4 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Image too large. Maximum size is 3MB.' }, { status: 413 });
+  }
+
   // Validate it looks like a data URL or raw base64
   const isDataUrl = image.startsWith('data:image/');
   if (!isDataUrl && image.length < 100) {

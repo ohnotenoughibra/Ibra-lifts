@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -16,7 +17,8 @@ import {
   Calendar,
   Edit2,
   Save,
-  X
+  X,
+  DoorOpen
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
@@ -277,11 +279,24 @@ export default function ProfileSettings() {
         </div>
       </div>
 
+      {/* Sign Out */}
+      <div className="card p-4">
+        <button
+          onClick={() => {
+            signOut({ callbackUrl: '/login' });
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
+        >
+          <DoorOpen className="w-4 h-4" />
+          Sign Out
+        </button>
+      </div>
+
       {/* Danger Zone */}
       <div className="card p-4 border border-red-500/30">
         <h3 className="font-medium text-red-400 mb-2">Reset Data</h3>
         <p className="text-sm text-grappler-400 mb-4">
-          This will erase all your progress, workouts, and achievements.
+          This will erase all your progress, workouts, and achievements. Your account will remain — only training data is deleted.
         </p>
         <button
           onClick={() => {

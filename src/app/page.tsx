@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { useAppStore } from '@/lib/store';
 import { useDbSync } from '@/lib/useDbSync';
 import { flushSyncQueue } from '@/lib/db-sync';
@@ -17,8 +18,11 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const { data: session } = useSession();
+  const authUserId = session?.user?.id;
   const isOnboarded = useAppStore((state) => state.isOnboarded);
   const setOnline = useAppStore((state) => state.setOnline);
+  const setAuthUserId = useAppStore((state) => state.setAuthUserId);
 
   // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -32,8 +36,15 @@ export default function Home() {
   const [swUpdateAvailable, setSwUpdateAvailable] = useState(false);
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
-  // Sync Zustand store with Vercel Postgres for persistent cloud backup
-  useDbSync();
+  // Sync Zustand store with Vercel Postgres — keyed to authenticated user
+  useDbSync(authUserId);
+
+  // When auth session is available, ensure the store user ID matches
+  useEffect(() => {
+    if (authUserId) {
+      setAuthUserId(authUserId);
+    }
+  }, [authUserId, setAuthUserId]);
 
   // Offline / online detection
   useEffect(() => {
@@ -166,7 +177,7 @@ export default function Home() {
   }
 
   if (!isOnboarded) {
-    return <Onboarding />;
+    return <Onboarding authUserId={authUserId} />;
   }
 
   return (

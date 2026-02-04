@@ -1,14 +1,26 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 
 // GET - Load user data from database
 export async function GET(request: Request) {
   try {
+    // Verify auth session
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    }
+
+    // Ensure the requested userId matches the authenticated user
+    if (userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { rows } = await sql`
@@ -33,11 +45,22 @@ export async function GET(request: Request) {
 // POST - Save user data to database
 export async function POST(request: Request) {
   try {
+    // Verify auth session
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { userId, data } = body;
 
     if (!userId || !data) {
       return NextResponse.json({ error: 'userId and data required' }, { status: 400 });
+    }
+
+    // Ensure the requested userId matches the authenticated user
+    if (userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Create table if not exists

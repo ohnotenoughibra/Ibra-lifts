@@ -20,6 +20,7 @@ import {
   Share2,
   Filter,
   ChevronRight,
+  Printer,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
 import { SetLog, MuscleGroup } from '@/lib/types';
@@ -233,7 +234,16 @@ export default function WorkoutHistory() {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-bold text-grappler-50">Workout History</h2>
-        <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors no-print"
+            title="Print workout history"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+          <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
+        </div>
       </div>
 
       {/* Progress Projection */}

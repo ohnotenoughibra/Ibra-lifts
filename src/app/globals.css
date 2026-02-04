@@ -496,3 +496,105 @@ body.light-mode .recharts-tooltip-label {
 body.light-mode .recharts-tooltip-item {
   color: #475569 !important;
 }
+
+/* ── Print Styles ── */
+@media print {
+  /* Reset dark theme for print */
+  body,
+  body.light-mode {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide non-printable UI */
+  .no-print,
+  nav,
+  header,
+  .fixed,
+  button:not(.print-only),
+  .animate-ping,
+  .pulse-ring,
+  .bg-mesh {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Make cards print-friendly */
+  .card {
+    background: #fff !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Override all grappler text colors for print */
+  [class*="text-grappler-"] {
+    color: #1a1a1a !important;
+  }
+
+  [class*="text-grappler-400"],
+  [class*="text-grappler-500"],
+  [class*="text-grappler-600"] {
+    color: #555 !important;
+  }
+
+  /* Override backgrounds */
+  [class*="bg-grappler-"],
+  [class*="bg-primary-"],
+  [class*="bg-accent-"] {
+    background: transparent !important;
+  }
+
+  /* Borders */
+  [class*="border-grappler-"] {
+    border-color: #ddd !important;
+  }
+
+  /* Print-specific layout */
+  .print-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Make workout tables readable */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+    font-size: 11px;
+  }
+
+  .print-table th {
+    background: #f0f0f0 !important;
+    font-weight: 600;
+  }
+
+  /* Page settings */
+  @page {
+    margin: 1.5cm;
+    size: portrait;
+  }
+
+  /* Badge colors should be preserved */
+  .badge-strength,
+  .badge-hypertrophy,
+  .badge-power {
+    border: 1px solid #999 !important;
+    background: #f5f5f5 !important;
+    color: #333 !important;
+  }
+}

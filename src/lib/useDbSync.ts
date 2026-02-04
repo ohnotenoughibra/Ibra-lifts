@@ -5,11 +5,19 @@ import { useAppStore } from './store';
 import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 
-export function useDbSync() {
+/**
+ * Sync Zustand store with Vercel Postgres.
+ * @param authUserId — The authenticated user's ID from NextAuth session.
+ *                      When provided, this overrides store.user?.id for all DB operations.
+ */
+export function useDbSync(authUserId?: string | null) {
   const store = useAppStore();
   const lastSyncRef = useRef<string>('');
   const initialLoadDone = useRef(false);
   const dbInitDone = useRef(false);
+
+  // The effective user ID: prefer auth session ID over store ID
+  const effectiveUserId = authUserId || store.user?.id;
 
   // Initialize database table on first mount
   useEffect(() => {
@@ -25,9 +33,9 @@ export function useDbSync() {
 
   // Load from database on mount (if user exists)
   useEffect(() => {
-    if (!store.user?.id || initialLoadDone.current) return;
+    if (!effectiveUserId || initialLoadDone.current) return;
 
-    loadFromDatabase(store.user.id).then((dbData) => {
+    loadFromDatabase(effectiveUserId).then((dbData) => {
       if (dbData) {
         const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
         const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
@@ -109,11 +117,11 @@ export function useDbSync() {
       }
       initialLoadDone.current = true;
     });
-  }, [store.user?.id]);
+  }, [effectiveUserId]);
 
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
-    if (!store.user?.id || !initialLoadDone.current) return;
+    if (!effectiveUserId || !initialLoadDone.current) return;
 
     // Create a fingerprint of the data to detect actual changes
     const syncData = {
@@ -138,7 +146,7 @@ export function useDbSync() {
     const fingerprint = JSON.stringify(syncData);
     if (fingerprint !== lastSyncRef.current) {
       lastSyncRef.current = fingerprint;
-      saveToDatabase(store.user.id, syncData);
+      saveToDatabase(effectiveUserId, syncData);
     }
   }, [
     store.user,

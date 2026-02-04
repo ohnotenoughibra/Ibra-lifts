@@ -138,7 +138,9 @@ interface AppState {
   setUser: (user: UserProfile | null) => void;
   setAuthenticated: (auth: boolean) => void;
   updateOnboardingData: (data: Partial<OnboardingData>) => void;
-  completeOnboarding: () => void;
+  completeOnboarding: (authUserId?: string) => void;
+  setAuthUserId: (id: string) => void;
+  logout: () => void;
   setBaselineLifts: (lifts: BaselineLifts) => void;
 
   // Muscle emphasis actions
@@ -312,13 +314,25 @@ export const useAppStore = create<AppState>()(
           onboardingData: { ...state.onboardingData, ...data }
         })),
 
-      completeOnboarding: () => {
+      // Set the auth user ID into the existing user profile (for returning users)
+      setAuthUserId: (id) => {
+        const { user } = get();
+        if (user && user.id !== id) {
+          set({ user: { ...user, id, updatedAt: new Date() } });
+        }
+      },
+
+      logout: () => {
+        get().resetStore();
+      },
+
+      completeOnboarding: (authUserId) => {
         const { onboardingData } = get();
 
-        // Create user profile
+        // Create user profile — use auth user ID if available
         const user: UserProfile = {
-          id: uuidv4(),
-          email: '', // Will be set from auth
+          id: authUserId || uuidv4(),
+          email: '', // Will be populated from session
           name: onboardingData.name,
           age: onboardingData.age,
           experienceLevel: onboardingData.experienceLevel,

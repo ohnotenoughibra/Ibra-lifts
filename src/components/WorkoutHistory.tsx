@@ -20,11 +20,12 @@ import {
   Share2,
   Filter,
   ChevronRight,
-  Printer,
+  FileDown,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
 import { SetLog, MuscleGroup } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
+import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 
 export default function WorkoutHistory() {
   const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog } = useAppStore();
@@ -236,11 +237,11 @@ export default function WorkoutHistory() {
         <h2 className="text-lg font-bold text-grappler-50">Workout History</h2>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors no-print"
-            title="Print workout history"
+            onClick={() => exportWorkoutHistoryPdf(workoutLogs, user?.weightUnit || 'lbs')}
+            className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+            title="Export as PDF"
           >
-            <Printer className="w-4 h-4" />
+            <FileDown className="w-4 h-4" />
           </button>
           <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
         </div>

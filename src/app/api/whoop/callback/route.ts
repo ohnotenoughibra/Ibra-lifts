@@ -132,6 +132,20 @@ export async function GET(request: NextRequest) {
     stored = true;
   } catch(e) { /* localStorage unavailable */ }
 
+  // --- Persist tokens to DB (so they survive across devices/sessions) ---
+  try {
+    fetch(appUrl + '/api/whoop/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: expiresAt
+      })
+    }).catch(function() { /* best effort — localStorage is primary fallback */ });
+  } catch(e) { /* ignore */ }
+
   // --- Redirect ---
   if (stored) {
     window.location.replace(appUrl + '?whoop_connected=true');

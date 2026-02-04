@@ -290,6 +290,37 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const fetchInFlight = useRef(false);
 
   // ------------------------------------------------------------------
+  // DB token persistence helpers (cross-device sign-in)
+  // ------------------------------------------------------------------
+  const loadTokensFromDb = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/whoop/tokens', { credentials: 'include' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.tokens?.access_token) {
+        setToken(LS_KEYS.accessToken, data.tokens.access_token);
+        if (data.tokens.refresh_token) setToken(LS_KEYS.refreshToken, data.tokens.refresh_token);
+        if (data.tokens.expires_at) setToken(LS_KEYS.tokenExpires, data.tokens.expires_at);
+        return true;
+      }
+    } catch { /* DB unavailable */ }
+    return false;
+  }, []);
+
+  const saveTokensToDb = useCallback((at: string, rt: string, exp: string) => {
+    fetch('/api/whoop/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ access_token: at, refresh_token: rt, expires_at: exp }),
+    }).catch(() => {});
+  }, []);
+
+  const clearTokensFromDb = useCallback(() => {
+    fetch('/api/whoop/tokens', { method: 'DELETE', credentials: 'include' }).catch(() => {});
+  }, []);
+
+  // ------------------------------------------------------------------
   // Core data fetcher — handles token refresh inline
   // ------------------------------------------------------------------
   const fetchWhoopData = useCallback(async () => {
@@ -297,8 +328,17 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     if (fetchInFlight.current) return;
     fetchInFlight.current = true;
 
-    const accessToken = getToken(LS_KEYS.accessToken);
-    const refreshToken = getToken(LS_KEYS.refreshToken);
+    let accessToken = getToken(LS_KEYS.accessToken);
+    let refreshToken = getToken(LS_KEYS.refreshToken);
+
+    // If localStorage is empty, try loading from DB (cross-device persistence)
+    if (!accessToken) {
+      const loaded = await loadTokensFromDb();
+      if (loaded) {
+        accessToken = getToken(LS_KEYS.accessToken);
+        refreshToken = getToken(LS_KEYS.refreshToken);
+      }
+    }
 
     if (!accessToken) {
       setIsConnected(false);
@@ -329,15 +369,18 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       const data: WhoopApiResponse = await res.json();
 
       // --- Handle inline token refresh ---
-      // The server refreshed our token and still returned data — update localStorage
+      // The server refreshed our token and still returned data — update localStorage + DB
       if (data.new_access_token) {
+        const newExp = data.new_expires_in ? String(Date.now() + data.new_expires_in * 1000) : '';
         setToken(LS_KEYS.accessToken, data.new_access_token);
         if (data.new_refresh_token) {
           setToken(LS_KEYS.refreshToken, data.new_refresh_token);
         }
-        if (data.new_expires_in) {
-          setToken(LS_KEYS.tokenExpires, String(Date.now() + data.new_expires_in * 1000));
+        if (newExp) {
+          setToken(LS_KEYS.tokenExpires, newExp);
         }
+        // Persist refreshed tokens to DB
+        saveTokensToDb(data.new_access_token, data.new_refresh_token || refreshToken || '', newExp);
       }
 
       // --- Handle response ---
@@ -364,6 +407,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         if (data.requiresReconnect) {
           // Tokens are dead — clear everything and show reconnect prompt
           clearTokens();
+          clearTokensFromDb();
           setError(data.error || 'Session expired. Please reconnect your Whoop.');
         } else if (data.error) {
           setError(data.error);
@@ -377,7 +421,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       setIsSyncing(false);
       fetchInFlight.current = false;
     }
-  }, []);
+  }, [loadTokensFromDb, saveTokensToDb, clearTokensFromDb]);
 
   // ------------------------------------------------------------------
   // On mount: handle OAuth callback params, then fetch data
@@ -455,6 +499,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
   const handleDisconnect = () => {
     clearTokens();
+    clearTokensFromDb();
     setIsConnected(false);
     setWearableData([]);
     setWhoopProfile(null);

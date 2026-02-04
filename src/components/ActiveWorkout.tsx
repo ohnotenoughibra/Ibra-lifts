@@ -1557,10 +1557,12 @@ export default function ActiveWorkout() {
                 </button>
                 <input
                   type="number"
-                  inputMode="numeric"
-                  value={currentSet.weight}
+                  inputMode="decimal"
+                  value={currentSet.weight || ''}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
+                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
                 />
                 <button
                   onClick={() => updateSetValue('weight', weightIncrement)}
@@ -1589,9 +1591,11 @@ export default function ActiveWorkout() {
                 <input
                   type="number"
                   inputMode="numeric"
-                  value={currentSet.reps}
+                  value={currentSet.reps || ''}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
+                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
                 />
                 <button
                   onClick={() => updateSetValue('reps', 1)}

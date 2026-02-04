@@ -3604,25 +3604,47 @@ export function getTopStrengthExercises(limit: number = 10): Exercise[] {
   return [...exercises].sort((a, b) => b.strengthValue - a.strengthValue).slice(0, limit);
 }
 
+// Related movement patterns — exercises from related patterns are valid alternatives
+const RELATED_PATTERNS: Record<string, string[]> = {
+  squat: ['hinge'],     // squats and hinges both train legs/posterior chain
+  hinge: ['squat'],     // deadlifts → squats and vice versa
+  push: ['pull'],       // push/pull supersets are common alternatives
+  pull: ['push'],
+  carry: ['squat', 'hinge'],
+  rotation: ['push', 'pull'],
+  explosive: ['squat', 'hinge', 'push'],
+};
+
 // Get alternative exercises that target the same primary muscles
-export function getAlternativesForExercise(exerciseId: string, equipment: Equipment, limit: number = 5): Exercise[] {
+export function getAlternativesForExercise(exerciseId: string, equipment: Equipment, limit: number = 8): Exercise[] {
   const exercise = exercises.find(e => e.id === exerciseId);
   if (!exercise) return [];
+
+  const allMuscles = [...exercise.primaryMuscles, ...exercise.secondaryMuscles];
 
   return exercises
     .filter(e =>
       e.id !== exerciseId &&
       e.equipmentRequired.includes(equipment) &&
-      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))
+      // Match on primary-to-primary OR primary-to-secondary overlap
+      (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m)) ||
+       e.primaryMuscles.some(m => exercise.secondaryMuscles.includes(m)) ||
+       e.secondaryMuscles.some(m => exercise.primaryMuscles.includes(m)))
     )
     .sort((a, b) => {
-      // Score by muscle overlap
-      const aOverlap = a.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
-      const bOverlap = b.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
-      if (bOverlap !== aOverlap) return bOverlap - aOverlap;
-      // Then by same movement pattern
-      const aPattern = a.movementPattern === exercise.movementPattern ? 1 : 0;
-      const bPattern = b.movementPattern === exercise.movementPattern ? 1 : 0;
+      // Score by primary overlap first
+      const aPrimary = a.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
+      const bPrimary = b.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
+      if (bPrimary !== aPrimary) return bPrimary - aPrimary;
+      // Total muscle overlap
+      const aTotal = [...a.primaryMuscles, ...a.secondaryMuscles].filter(m => allMuscles.includes(m)).length;
+      const bTotal = [...b.primaryMuscles, ...b.secondaryMuscles].filter(m => allMuscles.includes(m)).length;
+      if (bTotal !== aTotal) return bTotal - aTotal;
+      // Movement pattern match
+      const aPattern = a.movementPattern === exercise.movementPattern ? 2 :
+        (RELATED_PATTERNS[exercise.movementPattern]?.includes(a.movementPattern) ? 1 : 0);
+      const bPattern = b.movementPattern === exercise.movementPattern ? 2 :
+        (RELATED_PATTERNS[exercise.movementPattern]?.includes(b.movementPattern) ? 1 : 0);
       return bPattern - aPattern;
     })
     .slice(0, limit);
@@ -3639,17 +3661,31 @@ export interface ExerciseRecommendation {
 export function getRecommendedAlternatives(
   exerciseId: string,
   equipment: Equipment,
-  limit: number = 8
+  limit: number = 12
 ): ExerciseRecommendation[] {
   const exercise = exercises.find(e => e.id === exerciseId);
   if (!exercise) return [];
 
+  const allMuscles = [...exercise.primaryMuscles, ...exercise.secondaryMuscles];
+  const relatedPatterns = RELATED_PATTERNS[exercise.movementPattern] || [];
+
   return exercises
-    .filter(e =>
-      e.id !== exerciseId &&
-      e.equipmentRequired.includes(equipment) &&
-      e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))
-    )
+    .filter(e => {
+      if (e.id === exerciseId) return false;
+      if (!e.equipmentRequired.includes(equipment)) return false;
+
+      // Primary-to-primary overlap (strongest match)
+      if (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))) return true;
+      // Primary-to-secondary overlap (e.g., BSS primary quads when current exercise has quads as secondary)
+      if (e.primaryMuscles.some(m => exercise.secondaryMuscles.includes(m))) return true;
+      // Secondary-to-primary overlap (e.g., lunges that have quads as primary)
+      if (e.secondaryMuscles.some(m => exercise.primaryMuscles.includes(m))) return true;
+      // Same or related movement pattern with any muscle overlap
+      if ((e.movementPattern === exercise.movementPattern || relatedPatterns.includes(e.movementPattern)) &&
+          [...e.primaryMuscles, ...e.secondaryMuscles].some(m => allMuscles.includes(m))) return true;
+
+      return false;
+    })
     .map(alt => {
       let score = 0;
       const reasons: string[] = [];
@@ -3666,6 +3702,16 @@ export function getRecommendedAlternatives(
         reasons.push(`Targets ${alt.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).join(', ')}`);
       }
 
+      // Cross-muscle overlap: alt's primary hits current's secondary (up to 10 points)
+      const crossOverlap = alt.primaryMuscles.filter(m => exercise.secondaryMuscles.includes(m) && !exercise.primaryMuscles.includes(m)).length;
+      if (crossOverlap > 0) {
+        score += Math.min(10, crossOverlap * 5);
+        if (primaryOverlap === 0) {
+          reasons.push(`Focuses on ${alt.primaryMuscles.filter(m => exercise.secondaryMuscles.includes(m)).join(', ')}`);
+          tags.push('Synergist focus');
+        }
+      }
+
       // Secondary muscle overlap (up to 15 points)
       const secondaryOverlap = alt.secondaryMuscles.filter(m =>
         exercise.secondaryMuscles.includes(m) || exercise.primaryMuscles.includes(m)
@@ -3677,6 +3723,10 @@ export function getRecommendedAlternatives(
         score += 20;
         reasons.push(`Same ${exercise.movementPattern} pattern`);
         tags.push('Same movement');
+      } else if (relatedPatterns.includes(alt.movementPattern)) {
+        // Related movement pattern (8 points)
+        score += 8;
+        tags.push('Related movement');
       }
 
       // Same category bonus (10 points)
@@ -3689,6 +3739,15 @@ export function getRecommendedAlternatives(
       if (alt.grapplerFriendly) {
         score += 10;
         tags.push('Grappler friendly');
+      }
+
+      // Unilateral bonus (if current exercise is bilateral)
+      const unilateralKeywords = ['single', 'split', 'bulgarian', 'lunge', 'one-arm', 'one-leg', 'pistol'];
+      const isAltUnilateral = unilateralKeywords.some(kw => alt.name.toLowerCase().includes(kw));
+      const isCurrentBilateral = !unilateralKeywords.some(kw => exercise.name.toLowerCase().includes(kw));
+      if (isAltUnilateral && isCurrentBilateral) {
+        score += 3;
+        tags.push('Unilateral');
       }
 
       // Comparable strength/aesthetic value (up to 5 points)

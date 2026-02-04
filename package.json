@@ -1,7 +1,7 @@
 {
-  "name": "grappler-gains",
+  "name": "roots-gains",
   "version": "1.0.0",
-  "description": "Science-based workout app for grapplers with undulating periodization",
+  "description": "Science-based workout app for martial artists with undulating periodization",
   "private": true,
   "scripts": {
     "dev": "next dev",

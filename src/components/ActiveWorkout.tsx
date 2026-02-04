@@ -52,7 +52,6 @@ export default function ActiveWorkout() {
   } = useAppStore();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
-  const [restTimer, setRestTimer] = useState(0);
   const [isResting, setIsResting] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
@@ -113,35 +112,33 @@ export default function ActiveWorkout() {
     wouldRepeat: true
   });
 
-  // Workout timer
-  const [elapsedTime, setElapsedTime] = useState(0);
+  // Workout timer — uses startTime timestamp so it survives app backgrounding
+  const [, forceUpdate] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
+      forceUpdate(n => n + 1);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Rest timer
+  // Rest timer — timestamp-based so it keeps counting while app is backgrounded
+  const [restEndTime, setRestEndTime] = useState<number | null>(null);
+  const restTimer = restEndTime ? Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000)) : 0;
+
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isResting && restTimer > 0) {
-      interval = setInterval(() => {
-        setRestTimer(prev => {
-          if (prev <= 1) {
-            setIsResting(false);
-            // Vibrate when rest is done
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate([200, 100, 200, 100, 300]);
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (!isResting || !restEndTime) return;
+    const interval = setInterval(() => {
+      const remaining = Math.ceil((restEndTime - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setIsResting(false);
+        setRestEndTime(null);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([200, 100, 200, 100, 300]);
+        }
+      }
+    }, 500);
     return () => clearInterval(interval);
-  }, [isResting, restTimer]);
+  }, [isResting, restEndTime]);
 
   if (!activeWorkout) return null;
 
@@ -171,6 +168,15 @@ export default function ActiveWorkout() {
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = { ...newSets[currentSetIndex], completed: true };
 
+    // Carry forward weight/reps to next set so the user doesn't have to re-enter
+    if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
+      newSets[currentSetIndex + 1] = {
+        ...newSets[currentSetIndex + 1],
+        weight: newSets[currentSetIndex].weight,
+        reps: newSets[currentSetIndex].reps,
+      };
+    }
+
     // Check for PR - compare against all previous logs for this exercise
     const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
     const workoutLogs = useAppStore.getState().workoutLogs;
@@ -196,8 +202,8 @@ export default function ActiveWorkout() {
       setTimeout(() => setShowPRCelebration(false), 3000);
     }
 
-    // Start rest timer
-    setRestTimer(currentExercise.prescription.restSeconds);
+    // Start rest timer — store end timestamp so it survives backgrounding
+    setRestEndTime(Date.now() + currentExercise.prescription.restSeconds * 1000);
     setIsResting(true);
 
     // Check if this was the last set of current exercise
@@ -292,7 +298,7 @@ export default function ActiveWorkout() {
 
   const skipRest = () => {
     setIsResting(false);
-    setRestTimer(0);
+    setRestEndTime(null);
   };
 
   const formatRestTime = (seconds: number) => {
@@ -1110,7 +1116,7 @@ export default function ActiveWorkout() {
             <h1 className="font-bold text-grappler-50">{activeWorkout.session.name}</h1>
             <p className="text-xs text-grappler-400">
               <Timer className="w-3 h-3 inline mr-1" />
-              {formatTime(Math.floor(elapsedTime / 60))}
+              {formatTime(Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 60000))}
               {readiness && (
                 <span className={cn(
                   'ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium',
@@ -1551,10 +1557,12 @@ export default function ActiveWorkout() {
                 </button>
                 <input
                   type="number"
-                  inputMode="numeric"
-                  value={currentSet.weight}
+                  inputMode="decimal"
+                  value={currentSet.weight || ''}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
+                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
                 />
                 <button
                   onClick={() => updateSetValue('weight', weightIncrement)}
@@ -1583,9 +1591,11 @@ export default function ActiveWorkout() {
                 <input
                   type="number"
                   inputMode="numeric"
-                  value={currentSet.reps}
+                  value={currentSet.reps || ''}
+                  placeholder="0"
+                  onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none"
+                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
                 />
                 <button
                   onClick={() => updateSetValue('reps', 1)}

@@ -1,4 +1,5 @@
 import { WorkoutLog, WeightUnit } from './types';
+import { useAppStore } from './store';
 
 // Export workout data as CSV
 export function exportToCSV(logs: WorkoutLog[], weightUnit: WeightUnit): string {
@@ -75,6 +76,110 @@ export function downloadFile(content: string, filename: string, mimeType: string
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+// Full app backup — exports all persistent state for restore/transfer
+export function exportFullBackup(): string {
+  const state = useAppStore.getState();
+  const backup = {
+    _version: 1,
+    _exportedAt: new Date().toISOString(),
+    _app: 'roots-gains',
+    user: state.user,
+    isOnboarded: state.isOnboarded,
+    baselineLifts: state.baselineLifts,
+    currentMesocycle: state.currentMesocycle,
+    mesocycleHistory: state.mesocycleHistory,
+    workoutLogs: state.workoutLogs,
+    gamificationStats: state.gamificationStats,
+    bodyWeightLog: state.bodyWeightLog,
+    injuryLog: state.injuryLog,
+    customExercises: state.customExercises,
+    sessionTemplates: state.sessionTemplates,
+    hrSessions: state.hrSessions,
+    grapplingSessions: state.grapplingSessions,
+    meals: state.meals,
+    macroTargets: state.macroTargets,
+    waterLog: state.waterLog,
+    bodyComposition: state.bodyComposition,
+    muscleEmphasis: state.muscleEmphasis,
+    activeEquipmentProfile: state.activeEquipmentProfile,
+    themeMode: state.themeMode,
+  };
+  return JSON.stringify(backup, null, 2);
+}
+
+// Validate and import a full backup
+export function importFullBackup(jsonString: string): { success: boolean; error?: string; stats?: { workouts: number; exercises: number; templates: number } } {
+  try {
+    const data = JSON.parse(jsonString);
+
+    // Basic validation
+    if (!data || typeof data !== 'object') {
+      return { success: false, error: 'Invalid file — not a JSON object' };
+    }
+
+    // Check if it's a roots-gains backup (also accept legacy grappler-gains backups)
+    if (data._app !== 'roots-gains' && data._app !== 'grappler-gains' && !data.workoutLogs && !data.user) {
+      return { success: false, error: 'This file is not a Roots Gains backup' };
+    }
+
+    // Validate critical arrays
+    if (data.workoutLogs && !Array.isArray(data.workoutLogs)) {
+      return { success: false, error: 'Invalid backup — workoutLogs is not an array' };
+    }
+
+    const state = useAppStore.getState();
+
+    // Build update object — only include fields that exist in the backup
+    const update: Record<string, unknown> = {};
+
+    if (data.user) update.user = data.user;
+    if (data.isOnboarded !== undefined) update.isOnboarded = data.isOnboarded;
+    if (data.isOnboarded) update.isAuthenticated = true;
+    if (data.baselineLifts) update.baselineLifts = data.baselineLifts;
+    if (data.currentMesocycle) update.currentMesocycle = data.currentMesocycle;
+    if (Array.isArray(data.mesocycleHistory)) update.mesocycleHistory = data.mesocycleHistory;
+    if (Array.isArray(data.workoutLogs)) update.workoutLogs = data.workoutLogs;
+    if (data.gamificationStats) update.gamificationStats = data.gamificationStats;
+    if (Array.isArray(data.bodyWeightLog)) update.bodyWeightLog = data.bodyWeightLog;
+    if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
+    if (Array.isArray(data.customExercises)) update.customExercises = data.customExercises;
+    if (Array.isArray(data.sessionTemplates)) update.sessionTemplates = data.sessionTemplates;
+    if (Array.isArray(data.hrSessions)) update.hrSessions = data.hrSessions;
+    if (Array.isArray(data.grapplingSessions)) update.grapplingSessions = data.grapplingSessions;
+    if (Array.isArray(data.meals)) update.meals = data.meals;
+    if (data.macroTargets) update.macroTargets = data.macroTargets;
+    if (data.waterLog && typeof data.waterLog === 'object') update.waterLog = data.waterLog;
+    if (Array.isArray(data.bodyComposition)) update.bodyComposition = data.bodyComposition;
+    if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
+    if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
+    if (data.themeMode) update.themeMode = data.themeMode;
+
+    // Apply the update
+    useAppStore.setState(update);
+
+    return {
+      success: true,
+      stats: {
+        workouts: data.workoutLogs?.length ?? 0,
+        exercises: data.customExercises?.length ?? 0,
+        templates: data.sessionTemplates?.length ?? 0,
+      }
+    };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Failed to parse backup file' };
+  }
+}
+
+// Read a file selected by the user and return its text content
+export function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
 }
 
 // Export summary stats

@@ -2077,7 +2077,7 @@ export const exercises: Exercise[] = [
     description: 'Named after Lu Xiaojun. Front raise transitioning to lateral raise in one movement. Hits all delt heads for complete shoulder development. Science-backed for medial delt growth.',
     videoUrl: 'https://www.youtube.com/results?search_query=lu+raises+shoulder+exercise+proper+form+technique+short',
     cues: [
-      'Light dumbbells - 5-15 lbs typically',
+      'Light dumbbells - 2-7 kg / 5-15 lbs typically',
       'Front raise to shoulder height',
       'Rotate arms out to lateral raise position',
       'Lower from lateral position',
@@ -2375,7 +2375,7 @@ export const exercises: Exercise[] = [
       'Extend head upward',
       'Controlled tempo throughout',
       'Can also use neck harness for progressive loading',
-      'Start very light - 2.5 to 5 lbs'
+      'Start very light - 1-2.5 kg / 2.5-5 lbs'
     ]
   },
   {

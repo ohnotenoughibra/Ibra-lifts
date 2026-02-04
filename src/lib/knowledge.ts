@@ -800,7 +800,7 @@ This means: find the weight where you could do 5 reps but have 2 left in the tan
 - Consider swapping to active recovery or mobility
 - This is NOT weakness, this is intelligent training
 
-## The Grappler Gains Auto-Adjustment Engine
+## The Roots Gains Auto-Adjustment Engine
 
 This app uses your pre-workout check-in, wearable recovery data, and per-exercise feedback to automatically suggest weight and volume adjustments. Trust the system. It is based on your actual data, not a one-size-fits-all spreadsheet.
 `

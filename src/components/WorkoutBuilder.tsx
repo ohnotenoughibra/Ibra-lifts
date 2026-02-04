@@ -77,7 +77,7 @@ const MESOCYCLE_TEMPLATES = [
   },
   {
     id: 'grappler_hybrid',
-    name: 'Grappler Hybrid',
+    name: 'Rootsler Hybrid',
     description: 'Strength + power + grip work designed around mat time. Our recommended split',
     sessions: 3,
     focus: 'balanced' as const,
@@ -479,7 +479,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                           <p className="font-medium text-grappler-100 truncate">{exercise.name}</p>
                           {exercise.grapplerFriendly && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-400 flex-shrink-0">
-                              Grappler
+                              Rootsler
                             </span>
                           )}
                         </div>

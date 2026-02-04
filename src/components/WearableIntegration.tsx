@@ -30,10 +30,15 @@ import {
   Droplets,
   BedDouble,
   Brain,
+  Dumbbell,
+  Timer,
+  Gauge,
+  Scale,
+  Ruler,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { WearableData, WearableProvider } from '@/lib/types';
+import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -203,6 +208,8 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         caloriesBurned: cycle.score?.kilojoule
           ? Math.round(cycle.score.kilojoule * 0.239006)
           : null,
+        avgHeartRate: cycle.score?.average_heart_rate ?? null,
+        maxHeartRate: cycle.score?.max_heart_rate ?? null,
       });
     }
   }
@@ -259,6 +266,20 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
       const stages = sl.score?.stage_summary;
       const deepMs = stages?.total_slow_wave_sleep_time_milli;
       const remMs = stages?.total_rem_sleep_time_milli;
+      const lightMs = stages?.total_light_sleep_time_milli;
+
+      // Calculate total sleep need from all components
+      const need = sl.score?.sleep_needed;
+      let sleepNeededHours: number | null = null;
+      if (need) {
+        const totalNeedMs = (need.baseline_milli || 0)
+          + (need.need_from_sleep_debt_milli || 0)
+          + (need.need_from_recent_strain_milli || 0)
+          + (need.need_from_recent_nap_milli || 0);
+        if (totalNeedMs > 0) {
+          sleepNeededHours = Math.round((totalNeedMs / 3600000) * 10) / 10;
+        }
+      }
 
       mergeDay(dateKey, {
         date: existing.date || new Date(sl.end || sl.start || dateKey),
@@ -270,7 +291,11 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
         sleepEfficiency: sl.score?.sleep_efficiency_percentage ?? null,
         deepSleepMinutes: deepMs != null ? Math.round(deepMs / 60000) : null,
         remSleepMinutes: remMs != null ? Math.round(remMs / 60000) : null,
+        lightSleepMinutes: lightMs != null ? Math.round(lightMs / 60000) : null,
         sleepDisturbances: stages?.disturbance_count ?? null,
+        sleepCycleCount: stages?.sleep_cycle_count ?? null,
+        sleepConsistency: sl.score?.sleep_consistency_percentage ?? null,
+        sleepNeededHours,
       });
     }
   }
@@ -285,11 +310,18 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     const latestEntry = dataMap.get(sortedKeys[sortedKeys.length - 1]);
     const prevEntry = dataMap.get(sortedKeys[sortedKeys.length - 2]);
     if (latestEntry && prevEntry) {
+      // Carry forward cycle-derived metrics (strain, calories, HR)
       if (latestEntry.strain == null && prevEntry.strain != null) {
         latestEntry.strain = prevEntry.strain;
       }
       if (latestEntry.caloriesBurned == null && prevEntry.caloriesBurned != null) {
         latestEntry.caloriesBurned = prevEntry.caloriesBurned;
+      }
+      if (latestEntry.avgHeartRate == null && prevEntry.avgHeartRate != null) {
+        latestEntry.avgHeartRate = prevEntry.avgHeartRate;
+      }
+      if (latestEntry.maxHeartRate == null && prevEntry.maxHeartRate != null) {
+        latestEntry.maxHeartRate = prevEntry.maxHeartRate;
       }
     }
   }
@@ -297,6 +329,128 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
   return Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+// ---------------------------------------------------------------------------
+// Whoop sport ID → display name
+// ---------------------------------------------------------------------------
+
+const WHOOP_SPORTS: Record<number, string> = {
+  [-1]: 'Activity',
+  0: 'Running',
+  1: 'Cycling',
+  16: 'Baseball',
+  17: 'Basketball',
+  18: 'Rowing',
+  19: 'Fencing',
+  20: 'Field Hockey',
+  21: 'Football',
+  22: 'Golf',
+  24: 'Ice Hockey',
+  25: 'Lacrosse',
+  27: 'Rugby',
+  28: 'Sailing',
+  29: 'Skiing',
+  30: 'Soccer',
+  31: 'Softball',
+  32: 'Squash',
+  33: 'Swimming',
+  34: 'Tennis',
+  35: 'Track & Field',
+  36: 'Volleyball',
+  37: 'Water Polo',
+  38: 'Wrestling',
+  39: 'Boxing',
+  42: 'Dance',
+  43: 'Pilates',
+  44: 'Yoga',
+  45: 'Weightlifting',
+  47: 'Cross Country Skiing',
+  48: 'Functional Fitness',
+  49: 'Duathlon',
+  51: 'Gymnastics',
+  52: 'HIIT',
+  53: 'Hiking',
+  55: 'Horseback Riding',
+  56: 'Kayaking',
+  57: 'Martial Arts',
+  59: 'Mountain Biking',
+  60: 'Paddleboarding',
+  62: 'Rock Climbing',
+  63: 'Snowboarding',
+  64: 'Surfing',
+  65: 'Triathlon',
+  66: 'Walking',
+  70: 'Brazilian Jiu Jitsu',
+  71: 'Kickboxing',
+  73: 'Meditation',
+  74: 'Other',
+  75: 'Spin',
+  76: 'Stairmaster',
+  77: 'Stretching',
+  82: 'Elliptical',
+  83: 'Jump Rope',
+  84: 'MMA',
+  86: 'Obstacle Course Racing',
+  87: 'Powerlifting',
+  88: 'Sauna',
+  89: 'Strength Training',
+  90: 'Assault Bike',
+};
+
+// ---------------------------------------------------------------------------
+// Transform Whoop workouts
+// ---------------------------------------------------------------------------
+
+function transformWhoopWorkouts(apiData: WhoopApiResponse): WhoopWorkout[] {
+  if (!apiData.workouts) return [];
+
+  return apiData.workouts
+    .filter((w: any) => w.score_state === 'SCORED' && w.score)
+    .map((w: any) => {
+      const zones: { zone: number; minutes: number }[] = [];
+      const zd = w.score?.zone_duration;
+      if (zd) {
+        for (let i = 0; i <= 5; i++) {
+          const ms = zd[`zone_${i === 0 ? 'zero' : ['one', 'two', 'three', 'four', 'five'][i - 1]}_milli`];
+          if (ms != null && ms > 0) {
+            zones.push({ zone: i, minutes: Math.round(ms / 60000) });
+          }
+        }
+      }
+
+      return {
+        id: w.id?.toString() || `workout-${Date.now()}`,
+        sportId: w.sport_id ?? -1,
+        sportName: WHOOP_SPORTS[w.sport_id] || 'Workout',
+        start: new Date(w.start),
+        end: new Date(w.end),
+        strain: w.score?.strain ?? null,
+        avgHR: w.score?.average_heart_rate ?? null,
+        maxHR: w.score?.max_heart_rate ?? null,
+        calories: w.score?.kilojoule
+          ? Math.round(w.score.kilojoule * 0.239006)
+          : null,
+        distanceMeters: w.score?.distance_meter ?? null,
+        zones,
+      } satisfies WhoopWorkout;
+    })
+    .sort((a: WhoopWorkout, b: WhoopWorkout) =>
+      new Date(b.start).getTime() - new Date(a.start).getTime()
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Transform Whoop body measurement
+// ---------------------------------------------------------------------------
+
+function transformWhoopBody(apiData: WhoopApiResponse): WhoopBodyMeasurement | null {
+  if (!apiData.body) return null;
+  return {
+    heightMeters: apiData.body.height_meter ?? null,
+    weightKg: apiData.body.weight_kilogram ?? null,
+    maxHeartRate: apiData.body.max_heart_rate ?? null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -318,6 +472,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [whoopProfile, setWhoopProfile] = useState<any>(null);
+  const [whoopWorkouts, setWhoopWorkouts] = useState<WhoopWorkout[]>([]);
+  const [whoopBody, setWhoopBody] = useState<WhoopBodyMeasurement | null>(null);
   const fetchInFlight = useRef(false);
 
   // ------------------------------------------------------------------
@@ -420,6 +576,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         setWhoopProfile(data.profile);
         const transformed = transformWhoopData(data);
         setWearableData(transformed);
+        setWhoopWorkouts(transformWhoopWorkouts(data));
+        setWhoopBody(transformWhoopBody(data));
         setLastSync(new Date());
 
         // Persist today's data to the global store for workout adjustments
@@ -533,6 +691,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     clearTokensFromDb();
     setIsConnected(false);
     setWearableData([]);
+    setWhoopWorkouts([]);
+    setWhoopBody(null);
     setWhoopProfile(null);
     setLastSync(null);
     setError(null);
@@ -561,6 +721,12 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       deepSleepMinutes: null,
       remSleepMinutes: null,
       sleepDisturbances: null,
+      lightSleepMinutes: null,
+      sleepCycleCount: null,
+      sleepConsistency: null,
+      sleepNeededHours: null,
+      avgHeartRate: null,
+      maxHeartRate: null,
     };
 
     setWearableData((prev) => [...prev, newEntry]);
@@ -976,6 +1142,82 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     <span className="text-xs text-grappler-500">min</span>
                   </div>
                 )}
+
+                {/* Light Sleep */}
+                {today.lightSleepMinutes != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Moon className="w-4 h-4 opacity-50" />
+                      Light Sleep
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.lightSleepMinutes}
+                    </p>
+                    <span className="text-xs text-grappler-500">min</span>
+                  </div>
+                )}
+
+                {/* Sleep Consistency */}
+                {today.sleepConsistency != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Timer className="w-4 h-4" />
+                      Consistency
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.sleepConsistency.toFixed(0)}
+                    </p>
+                    <span className="text-xs text-grappler-500">%</span>
+                  </div>
+                )}
+
+                {/* Sleep Need vs Actual */}
+                {today.sleepNeededHours != null && today.sleepHours != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <BedDouble className="w-4 h-4" />
+                      Sleep Debt
+                    </span>
+                    <p className={cn(
+                      'text-2xl font-bold',
+                      today.sleepHours >= today.sleepNeededHours ? 'text-green-400' : 'text-orange-400',
+                    )}>
+                      {today.sleepHours >= today.sleepNeededHours ? '+' : ''}
+                      {(today.sleepHours - today.sleepNeededHours).toFixed(1)}
+                    </p>
+                    <span className="text-xs text-grappler-500">
+                      hrs ({today.sleepNeededHours.toFixed(1)} needed)
+                    </span>
+                  </div>
+                )}
+
+                {/* Avg Heart Rate */}
+                {today.avgHeartRate != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Heart className="w-4 h-4" />
+                      Avg HR
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.avgHeartRate}
+                    </p>
+                    <span className="text-xs text-grappler-500">bpm</span>
+                  </div>
+                )}
+
+                {/* Max Heart Rate */}
+                {today.maxHeartRate != null && (
+                  <div className="bg-grappler-800 rounded-xl p-4">
+                    <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                      <Heart className="w-4 h-4 text-red-400" />
+                      Max HR
+                    </span>
+                    <p className="text-2xl font-bold text-grappler-50">
+                      {today.maxHeartRate}
+                    </p>
+                    <span className="text-xs text-grappler-500">bpm</span>
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -1107,6 +1349,157 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 </button>
               </div>
             </motion.div>
+
+            {/* Recent Workouts */}
+            {whoopWorkouts.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <h2 className="text-sm font-semibold text-grappler-400 uppercase tracking-wider mb-3">
+                  Recent Workouts
+                </h2>
+                <div className="space-y-3">
+                  {whoopWorkouts.slice(0, 5).map((w) => {
+                    const durationMin = Math.round(
+                      (new Date(w.end).getTime() - new Date(w.start).getTime()) / 60000
+                    );
+                    return (
+                      <div
+                        key={w.id}
+                        className="bg-grappler-800 rounded-xl p-4 border border-grappler-700/50"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Dumbbell className="w-4 h-4 text-primary-400" />
+                            <span className="text-sm font-medium text-grappler-100">
+                              {w.sportName}
+                            </span>
+                          </div>
+                          <span className="text-xs text-grappler-500">
+                            {new Date(w.start).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {w.strain != null && (
+                            <div>
+                              <p className={cn('text-lg font-bold', strainColor(w.strain))}>
+                                {w.strain.toFixed(1)}
+                              </p>
+                              <p className="text-xs text-grappler-500">Strain</p>
+                            </div>
+                          )}
+                          {w.calories != null && (
+                            <div>
+                              <p className="text-lg font-bold text-grappler-50">
+                                {w.calories}
+                              </p>
+                              <p className="text-xs text-grappler-500">kcal</p>
+                            </div>
+                          )}
+                          {w.avgHR != null && (
+                            <div>
+                              <p className="text-lg font-bold text-grappler-50">{w.avgHR}</p>
+                              <p className="text-xs text-grappler-500">Avg HR</p>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-lg font-bold text-grappler-50">{durationMin}</p>
+                            <p className="text-xs text-grappler-500">min</p>
+                          </div>
+                        </div>
+                        {/* HR Zone Bar */}
+                        {w.zones.length > 0 && (
+                          <div className="mt-3">
+                            <div className="flex h-2 rounded-full overflow-hidden">
+                              {w.zones.map((z) => {
+                                const totalMin = w.zones.reduce((s, zn) => s + zn.minutes, 0);
+                                const pct = totalMin > 0 ? (z.minutes / totalMin) * 100 : 0;
+                                const colors = [
+                                  'bg-gray-400',
+                                  'bg-blue-400',
+                                  'bg-green-400',
+                                  'bg-yellow-400',
+                                  'bg-orange-400',
+                                  'bg-red-400',
+                                ];
+                                return (
+                                  <div
+                                    key={z.zone}
+                                    className={cn('h-full', colors[z.zone] || 'bg-gray-400')}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-between mt-1">
+                              <span className="text-[10px] text-grappler-600">Zone 0</span>
+                              <span className="text-[10px] text-grappler-600">Zone 5</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Body Measurements */}
+            {whoopBody && (whoopBody.weightKg != null || whoopBody.maxHeartRate != null) && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+              >
+                <h2 className="text-sm font-semibold text-grappler-400 uppercase tracking-wider mb-3">
+                  Body Measurements
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {whoopBody.weightKg != null && (
+                    <div className="bg-grappler-800 rounded-xl p-4">
+                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                        <Scale className="w-4 h-4" />
+                        Weight
+                      </span>
+                      <p className="text-2xl font-bold text-grappler-50">
+                        {Math.round(whoopBody.weightKg * 2.20462)}
+                      </p>
+                      <span className="text-xs text-grappler-500">lbs</span>
+                    </div>
+                  )}
+                  {whoopBody.heightMeters != null && (
+                    <div className="bg-grappler-800 rounded-xl p-4">
+                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                        <Ruler className="w-4 h-4" />
+                        Height
+                      </span>
+                      <p className="text-2xl font-bold text-grappler-50">
+                        {Math.round(whoopBody.heightMeters * 100)}
+                      </p>
+                      <span className="text-xs text-grappler-500">cm</span>
+                    </div>
+                  )}
+                  {whoopBody.maxHeartRate != null && (
+                    <div className="bg-grappler-800 rounded-xl p-4">
+                      <span className="text-sm text-grappler-400 flex items-center gap-1.5 mb-2">
+                        <Gauge className="w-4 h-4" />
+                        Max HR
+                      </span>
+                      <p className="text-2xl font-bold text-grappler-50">
+                        {whoopBody.maxHeartRate}
+                      </p>
+                      <span className="text-xs text-grappler-500">bpm</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
           </>
         )}
 

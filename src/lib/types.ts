@@ -393,6 +393,11 @@ export interface WearableData {
   respiratoryRate: number | null;
   skinTemp: number | null;
   caloriesBurned: number | null;
+  spo2: number | null;              // Blood oxygen % (Whoop 4.0+)
+  sleepEfficiency: number | null;   // % of time in bed actually asleep
+  deepSleepMinutes: number | null;  // Slow wave sleep (minutes)
+  remSleepMinutes: number | null;   // REM sleep (minutes)
+  sleepDisturbances: number | null; // Number of wake events during sleep
   notes?: string;
 }
 

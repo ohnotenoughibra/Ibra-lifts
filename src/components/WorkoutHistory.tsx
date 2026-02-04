@@ -32,6 +32,7 @@ export default function WorkoutHistory() {
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
+  const [editDuration, setEditDuration] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,8 +60,10 @@ export default function WorkoutHistory() {
   ];
 
   const startEditing = (logId: string) => {
+    const log = workoutLogs.find(l => l.id === logId);
     setEditingLogId(logId);
     setEditData({});
+    setEditDuration(log?.duration ?? null);
   };
 
   const updateEditValue = (exerciseIdx: number, setIdx: number, field: keyof SetLog, value: number) => {
@@ -99,9 +102,14 @@ export default function WorkoutHistory() {
       sum + ex.sets.reduce((s, set) => s + (set.completed ? set.weight * set.reps : 0), 0), 0
     );
 
-    updateWorkoutLog(logId, { exercises: updatedExercises, totalVolume });
+    const updates: Partial<typeof log> = { exercises: updatedExercises, totalVolume };
+    if (editDuration !== null && editDuration !== log.duration) {
+      updates.duration = editDuration;
+    }
+    updateWorkoutLog(logId, updates);
     setEditingLogId(null);
     setEditData({});
+    setEditDuration(null);
   };
 
   const handleDelete = (logId: string) => {
@@ -474,7 +482,7 @@ export default function WorkoutHistory() {
                             <Save className="w-3.5 h-3.5" /> Save Changes
                           </button>
                           <button
-                            onClick={() => { setEditingLogId(null); setEditData({}); }}
+                            onClick={() => { setEditingLogId(null); setEditData({}); setEditDuration(null); }}
                             className="btn btn-secondary btn-sm gap-1"
                           >
                             <X className="w-3.5 h-3.5" /> Cancel
@@ -514,6 +522,23 @@ export default function WorkoutHistory() {
                         </>
                       )}
                     </div>
+
+                    {/* Duration edit (visible in edit mode) */}
+                    {editingLogId === log.id && (
+                      <div className="flex items-center gap-3 bg-grappler-800/50 rounded-lg px-3 py-2">
+                        <Clock className="w-4 h-4 text-grappler-400 flex-shrink-0" />
+                        <span className="text-xs text-grappler-400">Duration</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={300}
+                          value={editDuration ?? log.duration}
+                          onChange={(e) => setEditDuration(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="w-16 px-2 py-1 bg-grappler-700 border border-grappler-600 rounded text-sm text-grappler-200 text-center"
+                        />
+                        <span className="text-xs text-grappler-500">min</span>
+                      </div>
+                    )}
 
                     {/* Pre-check-in summary */}
                     {log.preCheckIn && (

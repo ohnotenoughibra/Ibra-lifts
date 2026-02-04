@@ -24,9 +24,12 @@ import {
   Star,
   ArrowRight,
   Printer,
+  TrendingUp,
+  Save,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment } from '@/lib/types';
+import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
 import { Building2, Home, Backpack } from 'lucide-react';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 
@@ -41,7 +44,7 @@ const PROFILE_ICONS: Record<string, any> = {
 };
 
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user, saveAsTemplate } = useAppStore();
 
   // Track which sessions have been completed in this mesocycle
   const completedSessionIds = new Set(
@@ -56,10 +59,36 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
   const [blockWeeks, setBlockWeeks] = useState(5);
   const [sessionMinutes, setSessionMinutes] = useState(0); // 0 = no limit
+  const [showProgramSettings, setShowProgramSettings] = useState(false);
+  const [programModified, setProgramModified] = useState(false);
+  const [showSaveTemplateBanner, setShowSaveTemplateBanner] = useState(false);
+  const [templateName, setTemplateName] = useState('');
 
   const handleGenerateWithEmphasis = () => {
     setShowEmphasisPicker(false);
     generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
+  };
+
+  // Track program modifications (exercise swaps)
+  const handleSwapExercise = (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => {
+    swapProgramExercise(weekIndex, sessionId, exerciseIndex, newExerciseId);
+    if (!programModified) {
+      setProgramModified(true);
+      // Show save-as-template banner after first modification
+      setTimeout(() => setShowSaveTemplateBanner(true), 500);
+    }
+  };
+
+  // Regenerate program with new settings
+  const handleRegenerateProgram = (weeks: number, sessionsPerWeek: SessionsPerWeek) => {
+    // Update user sessions per week preference in the store
+    if (user) {
+      useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+    }
+    generateNewMesocycle(weeks, sessionMinutes || undefined);
+    setShowProgramSettings(false);
+    setProgramModified(false);
+    setShowSaveTemplateBanner(false);
   };
 
   if (!currentMesocycle) {
@@ -141,10 +170,20 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
         <div>
           <h2 className="text-xl font-bold text-grappler-50">{currentMesocycle.name}</h2>
           <p className="text-sm text-grappler-400">
-            {currentMesocycle.weeks.length} weeks • {currentMesocycle.goalFocus} focus
+            {currentMesocycle.weeks.length} weeks • {currentMesocycle.weeks[0]?.sessions?.length || 0} sessions/week • {currentMesocycle.goalFocus} focus
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowProgramSettings(!showProgramSettings)}
+            className={cn(
+              'btn btn-ghost btn-sm gap-1 no-print',
+              showProgramSettings && 'bg-grappler-700/50 text-grappler-200'
+            )}
+            title="Program settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
           <button
             onClick={() => window.print()}
             className="btn btn-ghost btn-sm gap-1 no-print"
@@ -161,6 +200,75 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           </button>
         </div>
       </div>
+
+      {/* Program Settings Panel */}
+      <AnimatePresence>
+        {showProgramSettings && (
+          <ProgramSettingsPanel
+            currentWeeks={currentMesocycle.weeks.length}
+            currentSessionsPerWeek={(currentMesocycle.weeks[0]?.sessions?.length || 3) as SessionsPerWeek}
+            onRegenerate={handleRegenerateProgram}
+            onClose={() => setShowProgramSettings(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Save as Template Banner */}
+      <AnimatePresence>
+        {showSaveTemplateBanner && currentMesocycle.weeks[0] && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="card p-4 border border-accent-500/30 bg-accent-500/5">
+              <div className="flex items-start gap-3">
+                <Save className="w-5 h-5 text-accent-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-grappler-200">Save your modifications?</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">
+                    You&apos;ve customized exercises — save a session as a reusable template.
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <input
+                      type="text"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="Template name..."
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 text-sm outline-none focus:border-accent-500"
+                    />
+                    <button
+                      onClick={() => {
+                        if (templateName.trim() && currentMesocycle.weeks[0]) {
+                          // Save the first session of week 1 as template
+                          const session = currentMesocycle.weeks[0].sessions[0];
+                          if (session) {
+                            saveAsTemplate(templateName.trim(), session);
+                            setShowSaveTemplateBanner(false);
+                            setTemplateName('');
+                          }
+                        }
+                      }}
+                      disabled={!templateName.trim()}
+                      className="btn btn-accent btn-sm gap-1 disabled:opacity-40"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setShowSaveTemplateBanner(false)}
+                      className="p-1.5 text-grappler-500 hover:text-grappler-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Muscle Emphasis Picker */}
       <AnimatePresence>
@@ -238,7 +346,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             getWorkoutTypeIcon={getWorkoutTypeIcon}
             getWorkoutTypeColor={getWorkoutTypeColor}
             completedSessionIds={completedSessionIds}
-            onSwapExercise={swapProgramExercise}
+            onSwapExercise={handleSwapExercise}
             userEquipment={user?.equipment || 'full_gym'}
           />
         ))}
@@ -495,10 +603,27 @@ interface ExerciseCardProps {
 
 function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment }: ExerciseCardProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const workoutLogs = useAppStore((s) => s.workoutLogs);
+  const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
 
   const alternatives: ExerciseRecommendation[] = showAlternatives
-    ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 6)
+    ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8)
     : [];
+
+  // Get previous performance for an alternative exercise (same as ActiveWorkout)
+  const getAltHistory = (exerciseId: string) => {
+    const sorted = [...workoutLogs].reverse();
+    for (const log of sorted) {
+      const found = log.exercises.find(e => e.exerciseId === exerciseId);
+      if (found && found.sets.length > 0) {
+        const bestSet = found.sets
+          .filter(s => s.completed)
+          .reduce((best, s) => (s.weight > best.weight ? s : best), found.sets[0]);
+        return { weight: bestSet.weight, reps: bestSet.reps, date: new Date(log.date) };
+      }
+    }
+    return null;
+  };
 
   return (
     <div className="bg-grappler-700/50 rounded-lg overflow-hidden">
@@ -537,7 +662,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
         </div>
       </div>
 
-      {/* Alternatives Panel */}
+      {/* Alternatives Panel — matches workout swap quality */}
       <AnimatePresence>
         {showAlternatives && (
           <motion.div
@@ -547,43 +672,77 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-2">
-              <p className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wider mb-2">
+              <p className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wider mb-1">
                 Swap with
+              </p>
+              <p className="text-[10px] text-grappler-500 mb-2">
+                Sorted by match score — how well each exercise replaces the current one
               </p>
               {alternatives.length === 0 ? (
                 <p className="text-xs text-grappler-500 py-2">No alternatives found for your equipment.</p>
               ) : (
                 <div className="space-y-1.5">
-                  {alternatives.map((alt) => (
-                    <button
-                      key={alt.exercise.id}
-                      onClick={() => {
-                        onSwap(weekIndex, sessionId, index, alt.exercise.id);
-                        setShowAlternatives(false);
-                      }}
-                      className="w-full text-left p-2 rounded-lg bg-grappler-800/50 hover:bg-grappler-600/50 transition-colors group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-grappler-200 group-hover:text-grappler-50 truncate">
-                            {alt.exercise.name}
+                  {alternatives.map((rec) => {
+                    const altHistory = getAltHistory(rec.exercise.id);
+                    return (
+                      <button
+                        key={rec.exercise.id}
+                        onClick={() => {
+                          onSwap(weekIndex, sessionId, index, rec.exercise.id);
+                          setShowAlternatives(false);
+                        }}
+                        className="w-full text-left p-2.5 rounded-lg border border-grappler-700/50 hover:border-primary-500/50 bg-grappler-800/50 hover:bg-grappler-700/50 transition-all group"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <p className="text-sm font-semibold text-grappler-200 group-hover:text-primary-300 transition-colors">
+                            {rec.exercise.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="flex items-center gap-0.5 text-[10px] text-accent-400">
-                              <Star className="w-2.5 h-2.5" />
-                              {alt.matchScore}% match
-                            </span>
-                            {alt.tags.slice(0, 2).map(tag => (
-                              <span key={tag} className="text-[10px] text-grappler-500">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                          <span className={cn(
+                            'text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2',
+                            rec.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                            rec.matchScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-grappler-700 text-grappler-400'
+                          )}>
+                            {rec.matchScore}%
+                          </span>
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-grappler-500 group-hover:text-accent-400 transition-colors flex-shrink-0" />
-                      </div>
-                    </button>
-                  ))}
+
+                        {/* Reason */}
+                        {rec.reasons.length > 0 && (
+                          <p className="text-[10px] text-grappler-400 mb-1">
+                            {rec.reasons[0]}
+                          </p>
+                        )}
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {rec.tags.slice(0, 4).map((tag, i) => (
+                            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Previous performance */}
+                        {altHistory && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <TrendingUp className="w-3 h-3 text-primary-400" />
+                            <p className="text-[10px] text-primary-400">
+                              You did {altHistory.weight} {weightUnit} x {altHistory.reps} on {altHistory.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Muscle info */}
+                        <p className="text-[9px] text-grappler-500 mt-1">
+                          {rec.exercise.primaryMuscles.join(', ')}
+                          {rec.exercise.secondaryMuscles.length > 0 && (
+                            <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
+                          )}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -591,6 +750,114 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// Program Settings Panel — adjust mesocycle length and sessions per week
+function ProgramSettingsPanel({
+  currentWeeks,
+  currentSessionsPerWeek,
+  onRegenerate,
+  onClose,
+}: {
+  currentWeeks: number;
+  currentSessionsPerWeek: SessionsPerWeek;
+  onRegenerate: (weeks: number, sessionsPerWeek: SessionsPerWeek) => void;
+  onClose: () => void;
+}) {
+  const [weeks, setWeeks] = useState(currentWeeks);
+  const [sessions, setSessions] = useState<SessionsPerWeek>(currentSessionsPerWeek);
+
+  const hasChanges = weeks !== currentWeeks || sessions !== currentSessionsPerWeek;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="overflow-hidden"
+    >
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+            <Settings className="w-4 h-4 text-primary-400" />
+            Program Settings
+          </h3>
+          <button onClick={onClose} className="p-1 text-grappler-500 hover:text-grappler-300">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Mesocycle Length */}
+        <div className="mb-4">
+          <label className="text-xs text-grappler-400 mb-2 block">Mesocycle Length</label>
+          <div className="flex gap-2">
+            {[3, 4, 5, 6, 8].map((w) => (
+              <button
+                key={w}
+                onClick={() => setWeeks(w)}
+                className={cn(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                  weeks === w
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-grappler-700/50 text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700'
+                )}
+              >
+                {w}w
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sessions Per Week */}
+        <div className="mb-4">
+          <label className="text-xs text-grappler-400 mb-2 block">Sessions Per Week</label>
+          <div className="flex gap-2">
+            {([2, 3, 4, 5, 6] as SessionsPerWeek[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSessions(s)}
+                className={cn(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                  sessions === s
+                    ? 'bg-primary-500 text-white shadow-md'
+                    : 'bg-grappler-700/50 text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700'
+                )}
+              >
+                {s}x
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {hasChanges && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => onRegenerate(weeks, sessions)}
+              className="btn btn-primary btn-sm flex-1 gap-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Regenerate Program
+            </button>
+            <button
+              onClick={() => {
+                setWeeks(currentWeeks);
+                setSessions(currentSessionsPerWeek);
+              }}
+              className="btn btn-ghost btn-sm"
+            >
+              Reset
+            </button>
+          </div>
+        )}
+
+        {!hasChanges && (
+          <p className="text-[11px] text-grappler-500 text-center">
+            Change settings above then regenerate to apply
+          </p>
+        )}
+      </div>
+    </motion.div>
   );
 }
 

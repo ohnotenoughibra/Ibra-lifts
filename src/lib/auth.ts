@@ -33,19 +33,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             SELECT id, name, email, password_hash FROM auth_users WHERE email = ${email}
           `;
 
-          if (rows.length === 0) return null;
+          if (rows.length === 0) {
+            console.log('[auth] No user found for email:', email);
+            return null;
+          }
 
           const user = rows[0];
-          // bcrypt.compare is timing-safe against side-channel attacks
           const passwordMatch = await bcrypt.compare(password, user.password_hash);
-          if (!passwordMatch) return null;
+          if (!passwordMatch) {
+            console.log('[auth] Password mismatch for:', email);
+            return null;
+          }
 
           return {
             id: user.id,
             name: user.name,
             email: user.email,
           };
-        } catch {
+        } catch (error) {
+          console.error('[auth] Authorize error:', error);
           return null;
         }
       },

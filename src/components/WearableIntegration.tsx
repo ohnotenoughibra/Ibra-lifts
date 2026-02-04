@@ -542,6 +542,8 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
 // ---------------------------------------------------------------------------
 
 export default function WearableIntegration({ onClose }: WearableIntegrationProps) {
+  const user = useAppStore(s => s.user);
+  const weightUnit = user?.weightUnit || 'lbs';
   const [wearableData, setWearableData] = useState<WearableData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -1305,7 +1307,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                         {whoopBody && whoopBody.weightKg != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
                             <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Scale className="w-3 h-3" /> Weight</span>
-                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{Math.round(whoopBody.weightKg * 2.20462)} <span className="text-xs font-normal text-grappler-500">lbs</span></p>
+                            <p className="text-lg font-bold text-grappler-100 mt-0.5">{weightUnit === 'kg' ? Math.round(whoopBody.weightKg * 10) / 10 : Math.round(whoopBody.weightKg * 2.20462 * 10) / 10} <span className="text-xs font-normal text-grappler-500">{weightUnit}</span></p>
                           </div>
                         )}
                       </div>

@@ -45,7 +45,7 @@ import type { WorkoutLog } from '@/lib/types';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
-import { exportToCSV, exportToJSON, downloadFile } from '@/lib/data-export';
+import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 // Core tabs — always loaded
 import WorkoutView from './WorkoutView';
 import ProgressCharts from './ProgressCharts';
@@ -397,11 +397,13 @@ export default function Dashboard() {
   );
 }
 
-// History Tab - combines workout history, calendar, body weight, and data export
+// History Tab - combines workout history, calendar, body weight, and data export/import
 function HistoryTab() {
   const { workoutLogs, user } = useAppStore();
   const [historyView, setHistoryView] = useState<'log' | 'calendar' | 'weight'>('log');
   const [showExport, setShowExport] = useState(false);
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   const handleExportCSV = () => {
@@ -414,6 +416,38 @@ function HistoryTab() {
     const json = exportToJSON(workoutLogs);
     const date = new Date().toISOString().split('T')[0];
     downloadFile(json, `grappler-gains-${date}.json`, 'application/json');
+  };
+
+  const handleExportBackup = () => {
+    const backup = exportFullBackup();
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(backup, `grappler-gains-backup-${date}.json`, 'application/json');
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await readFileAsText(file);
+      const result = importFullBackup(text);
+
+      if (result.success) {
+        setImportStatus({
+          type: 'success',
+          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.templates ?? 0} templates`
+        });
+      } else {
+        setImportStatus({ type: 'error', message: result.error || 'Import failed' });
+      }
+    } catch {
+      setImportStatus({ type: 'error', message: 'Could not read file' });
+    }
+
+    // Reset file input so the same file can be re-selected
+    e.target.value = '';
+    setConfirmImport(false);
+    setTimeout(() => setImportStatus(null), 5000);
   };
 
   return (
@@ -441,13 +475,32 @@ function HistoryTab() {
         <button
           onClick={() => setShowExport(!showExport)}
           className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200"
-          title="Export Data"
+          title="Export / Import Data"
         >
           <Download className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Export options */}
+      {/* Import status toast */}
+      <AnimatePresence>
+        {importStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={cn(
+              'rounded-xl px-4 py-3 text-sm font-medium',
+              importStatus.type === 'success'
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            )}
+          >
+            {importStatus.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Export / Import options */}
       <AnimatePresence>
         {showExport && (
           <motion.div
@@ -456,29 +509,84 @@ function HistoryTab() {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="card p-4">
-              <p className="text-sm text-grappler-300 mb-3">Export your training data</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleExportCSV}
-                  disabled={workoutLogs.length === 0}
-                  className="btn btn-secondary btn-sm flex-1 gap-2"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  CSV
-                </button>
-                <button
-                  onClick={handleExportJSON}
-                  disabled={workoutLogs.length === 0}
-                  className="btn btn-secondary btn-sm flex-1 gap-2"
-                >
-                  <FileJson className="w-4 h-4" />
-                  JSON
-                </button>
+            <div className="card p-4 space-y-4">
+              {/* Export section */}
+              <div>
+                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={workoutLogs.length === 0}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    CSV
+                  </button>
+                  <button
+                    onClick={handleExportJSON}
+                    disabled={workoutLogs.length === 0}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <FileJson className="w-4 h-4" />
+                    JSON
+                  </button>
+                </div>
+                {workoutLogs.length === 0 && (
+                  <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
+                )}
               </div>
-              {workoutLogs.length === 0 && (
-                <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
-              )}
+
+              {/* Full backup section */}
+              <div className="border-t border-grappler-700 pt-4">
+                <p className="text-sm text-grappler-300 mb-1 font-medium">Full backup</p>
+                <p className="text-xs text-grappler-500 mb-3">Export everything — workouts, programs, templates, nutrition, settings. Use this to transfer data to another device or keep a backup.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleExportBackup}
+                    className="btn btn-secondary btn-sm flex-1 gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Backup
+                  </button>
+                </div>
+              </div>
+
+              {/* Import section */}
+              <div className="border-t border-grappler-700 pt-4">
+                <p className="text-sm text-grappler-300 mb-1 font-medium">Restore from backup</p>
+                <p className="text-xs text-grappler-500 mb-3">Import a backup file to restore your data. This will overwrite your current data.</p>
+                {!confirmImport ? (
+                  <button
+                    onClick={() => setConfirmImport(true)}
+                    className="btn btn-sm w-full gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600"
+                  >
+                    <FileJson className="w-4 h-4" />
+                    Import Backup File
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
+                      This will replace all your current data. Make sure to download a backup first.
+                    </p>
+                    <label className="btn btn-primary btn-sm w-full gap-2 cursor-pointer">
+                      <FileJson className="w-4 h-4" />
+                      Choose File
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportFile}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      onClick={() => setConfirmImport(false)}
+                      className="btn btn-sm w-full bg-grappler-700 text-grappler-400 hover:bg-grappler-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

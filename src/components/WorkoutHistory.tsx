@@ -17,10 +17,13 @@ import {
   Trash2,
   Save,
   X,
-  Share2
+  Share2,
+  Filter,
+  ChevronRight,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
-import { SetLog } from '@/lib/types';
+import { SetLog, MuscleGroup } from '@/lib/types';
+import { getExerciseById } from '@/lib/exercises';
 
 export default function WorkoutHistory() {
   const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog } = useAppStore();
@@ -32,7 +35,26 @@ export default function WorkoutHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'strength' | 'hypertrophy' | 'power'>('all');
   const [dateFilter, setDateFilter] = useState<'7d' | '30d' | '90d' | 'all'>('all');
+  const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'all'>('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'volume' | 'rpe'>('date');
   const weightUnit = user?.weightUnit || 'lbs';
+
+  const muscleGroups: { id: MuscleGroup | 'all'; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'chest', label: 'Chest' },
+    { id: 'back', label: 'Back' },
+    { id: 'shoulders', label: 'Shoulders' },
+    { id: 'quadriceps', label: 'Quads' },
+    { id: 'hamstrings', label: 'Hamstrings' },
+    { id: 'glutes', label: 'Glutes' },
+    { id: 'biceps', label: 'Biceps' },
+    { id: 'triceps', label: 'Triceps' },
+    { id: 'core', label: 'Core' },
+    { id: 'lats', label: 'Lats' },
+    { id: 'calves', label: 'Calves' },
+    { id: 'forearms', label: 'Forearms' },
+  ];
 
   const startEditing = (logId: string) => {
     setEditingLogId(logId);
@@ -105,17 +127,38 @@ export default function WorkoutHistory() {
       );
     }
 
+    // Muscle group filter
+    if (muscleFilter !== 'all') {
+      logs = logs.filter(l =>
+        l.exercises.some(ex => {
+          const exerciseData = getExerciseById(ex.exerciseId);
+          if (!exerciseData) return false;
+          return exerciseData.primaryMuscles.includes(muscleFilter) ||
+                 exerciseData.secondaryMuscles.includes(muscleFilter);
+        })
+      );
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       logs = logs.filter(l =>
         l.sessionId?.toLowerCase().includes(q) ||
-        l.exercises.some(e => e.exerciseName.toLowerCase().includes(q))
+        l.exercises.some(e => e.exerciseName.toLowerCase().includes(q)) ||
+        l.notes?.toLowerCase().includes(q)
       );
     }
 
+    // Sort
+    if (sortBy === 'volume') {
+      logs.sort((a, b) => b.totalVolume - a.totalVolume);
+    } else if (sortBy === 'rpe') {
+      logs.sort((a, b) => (b.overallRPE || 0) - (a.overallRPE || 0));
+    }
+    // 'date' is already default (newest first)
+
     return logs;
-  }, [workoutLogs, searchQuery, typeFilter, dateFilter]);
+  }, [workoutLogs, searchQuery, typeFilter, dateFilter, muscleFilter, sortBy]);
 
   // Calculate progress projection for main lifts
   const progressProjections = useMemo(() => {
@@ -224,15 +267,26 @@ export default function WorkoutHistory() {
 
       {/* Search & Filters */}
       <div className="space-y-3 mb-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-grappler-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search exercises or sessions..."
-            className="input pl-10 w-full"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-grappler-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search exercises, sessions, notes..."
+              className="input pl-10 w-full"
+            />
+          </div>
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={cn(
+              'p-2.5 rounded-lg transition-colors',
+              showAdvancedFilters ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+            )}
+          >
+            <Filter className="w-4 h-4" />
+          </button>
         </div>
         <div className="flex gap-2">
           {(['all', 'strength', 'hypertrophy', 'power'] as const).map(t => (
@@ -267,6 +321,75 @@ export default function WorkoutHistory() {
             </button>
           ))}
         </div>
+
+        {/* Advanced Filters */}
+        <AnimatePresence>
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3 pt-1">
+                {/* Muscle group filter */}
+                <div>
+                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {muscleGroups.map(mg => (
+                      <button
+                        key={mg.id}
+                        onClick={() => setMuscleFilter(mg.id)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors',
+                          muscleFilter === mg.id
+                            ? 'bg-accent-500 text-white'
+                            : 'bg-grappler-700 text-grappler-400 hover:text-grappler-200'
+                        )}
+                      >
+                        {mg.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sort */}
+                <div>
+                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
+                  <div className="flex gap-2">
+                    {([
+                      { value: 'date', label: 'Date' },
+                      { value: 'volume', label: 'Volume' },
+                      { value: 'rpe', label: 'RPE' },
+                    ] as const).map(s => (
+                      <button
+                        key={s.value}
+                        onClick={() => setSortBy(s.value)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-lg text-xs font-medium',
+                          sortBy === s.value ? 'bg-accent-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                        )}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active filters summary */}
+                {(muscleFilter !== 'all' || sortBy !== 'date') && (
+                  <button
+                    onClick={() => { setMuscleFilter('all'); setSortBy('date'); }}
+                    className="text-xs text-primary-400 hover:text-primary-300"
+                  >
+                    Clear advanced filters
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <p className="text-xs text-grappler-500">{filteredLogs.length} workout{filteredLogs.length !== 1 ? 's' : ''} found</p>
       </div>
 

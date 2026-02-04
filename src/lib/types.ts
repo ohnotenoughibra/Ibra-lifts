@@ -393,7 +393,40 @@ export interface WearableData {
   respiratoryRate: number | null;
   skinTemp: number | null;
   caloriesBurned: number | null;
+  spo2: number | null;              // Blood oxygen % (Whoop 4.0+)
+  sleepEfficiency: number | null;   // % of time in bed actually asleep
+  deepSleepMinutes: number | null;  // Slow wave sleep (minutes)
+  remSleepMinutes: number | null;   // REM sleep (minutes)
+  sleepDisturbances: number | null; // Number of wake events during sleep
+  lightSleepMinutes: number | null; // Light sleep (minutes)
+  sleepCycleCount: number | null;   // Number of complete sleep cycles
+  sleepConsistency: number | null;  // % consistency of sleep/wake times
+  sleepNeededHours: number | null;  // Total sleep need (baseline + debt + strain)
+  avgHeartRate: number | null;      // Cycle average heart rate (bpm)
+  maxHeartRate: number | null;      // Cycle max heart rate (bpm)
   notes?: string;
+}
+
+// Individual Whoop workout entry (multiple per day possible)
+export interface WhoopWorkout {
+  id: string;
+  sportId: number;
+  sportName: string;
+  start: Date;
+  end: Date;
+  strain: number | null;
+  avgHR: number | null;
+  maxHR: number | null;
+  calories: number | null;
+  distanceMeters: number | null;
+  zones: { zone: number; minutes: number }[];
+}
+
+// Whoop body measurement snapshot
+export interface WhoopBodyMeasurement {
+  heightMeters: number | null;
+  weightKg: number | null;
+  maxHeartRate: number | null;
 }
 
 export interface WearableSettings {

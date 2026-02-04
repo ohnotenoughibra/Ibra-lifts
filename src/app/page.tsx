@@ -328,7 +328,7 @@ function scheduleStreakReminder() {
 
       new Notification('Plan Your Week', {
         body,
-        icon: '/icon-192x192.png',
+        icon: '/icon-192.png',
         tag: 'weekly-plan',
       });
       localStorage.setItem('roots-weekly-notif-date', now.toDateString());
@@ -354,7 +354,7 @@ function scheduleStreakReminder() {
         }
         new Notification('Training Day', {
           body,
-          icon: '/icon-192x192.png',
+          icon: '/icon-192.png',
           tag: 'daily-train',
         });
       }

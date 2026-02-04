@@ -116,7 +116,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
             disabled={currentStep === 1}
             className={cn(
               'btn btn-secondary btn-md gap-2',
-              currentStep === 1 && 'opacity-0 pointer-events-none'
+              currentStep === 1 && 'opacity-0 pointer-events-none invisible'
             )}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -396,13 +396,13 @@ function Step3_Setup({
       {/* Days per week */}
       <div>
         <label className="block text-sm font-medium text-grappler-300 mb-1.5">Days per week</label>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
             <button
               key={n}
               onClick={() => update({ sessionsPerWeek: n })}
               className={cn(
-                'py-3 rounded-lg text-lg font-bold transition-all',
+                'py-3 min-h-[48px] rounded-lg text-lg font-bold transition-all',
                 data.sessionsPerWeek === n
                   ? 'bg-primary-500 text-white'
                   : 'bg-grappler-700 text-grappler-400'

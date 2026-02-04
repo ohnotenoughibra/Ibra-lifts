@@ -305,8 +305,10 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-grappler-500">
-                Complete workouts to see strength progress
+              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
+                <TrendingUp className="w-8 h-8 text-grappler-600" />
+                <p className="font-medium">No strength data yet</p>
+                <p className="text-xs text-grappler-600">Complete a few workouts to track your estimated 1RM over time</p>
               </div>
             )}
           </div>
@@ -346,8 +348,10 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-grappler-500">
-                Complete workouts to see volume trends
+              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
+                <BarChart3 className="w-8 h-8 text-grappler-600" />
+                <p className="font-medium">No volume data yet</p>
+                <p className="text-xs text-grappler-600">Log sets and reps to see your weekly volume trends</p>
               </div>
             )}
           </div>
@@ -385,8 +389,10 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-grappler-500">
-                Complete workouts to see distribution
+              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
+                <PieChartIcon className="w-8 h-8 text-grappler-600" />
+                <p className="font-medium">No distribution data yet</p>
+                <p className="text-xs text-grappler-600">Train different muscle groups to see your split breakdown</p>
               </div>
             )}
           </div>
@@ -414,8 +420,10 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-grappler-500">
-                Complete workouts to see frequency data
+              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
+                <Calendar className="w-8 h-8 text-grappler-600" />
+                <p className="font-medium">No frequency data yet</p>
+                <p className="text-xs text-grappler-600">Train consistently to see your workout frequency over time</p>
               </div>
             )}
           </div>

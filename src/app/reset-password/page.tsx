@@ -1,11 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, Check } from 'lucide-react';
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<'request' | 'reset' | 'sent' | 'done'>('request');
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
@@ -14,6 +24,15 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If token is in URL (from email link), go straight to reset step
+  useEffect(() => {
+    const urlToken = searchParams.get('token');
+    if (urlToken) {
+      setToken(urlToken);
+      setStep('reset');
+    }
+  }, [searchParams]);
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +49,11 @@ export default function ResetPasswordPage() {
       const data = await res.json();
 
       if (data.token) {
-        // Token returned directly (no email service configured)
+        // Token returned directly (no email service — dev/self-hosted fallback)
         setToken(data.token);
         setStep('reset');
       } else {
-        // No token — either user not found or email was sent
+        // Email was sent, or user not found (same response for security)
         setStep('sent');
       }
     } catch {
@@ -104,7 +123,7 @@ export default function ResetPasswordPage() {
           <p className="text-sm text-grappler-400 mt-1">
             {step === 'request' && 'Enter your email to reset your password'}
             {step === 'reset' && 'Enter your new password'}
-            {step === 'sent' && 'We processed your request'}
+            {step === 'sent' && 'We sent you a reset link'}
             {step === 'done' && 'Your password has been updated'}
           </p>
         </div>
@@ -219,7 +238,7 @@ export default function ResetPasswordPage() {
               <Mail className="w-8 h-8 text-primary-400" />
             </div>
             <p className="text-sm text-grappler-300 mb-6">
-              If an account exists for <span className="text-grappler-100 font-medium">{email}</span>, you will receive reset instructions. Check your inbox.
+              If an account exists for <span className="text-grappler-100 font-medium">{email}</span>, we sent a reset link to your inbox. Check your spam folder too.
             </p>
             <button
               onClick={() => { setStep('request'); setError(''); }}

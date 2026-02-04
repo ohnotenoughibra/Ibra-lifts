@@ -35,7 +35,7 @@ import {
 } from './types';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
-import { getSuggestedWeight, whoopRecoveryToReadiness } from './auto-adjust';
+import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -489,13 +489,15 @@ export const useAppStore = create<AppState>()(
         // Pre-fill weights from previous session using auto-adjust
         const exerciseLogs = session.exercises.map((ex) => {
           const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs);
+          // Get per-set data from previous session to prefill reps individually
+          const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs);
           return {
             exerciseId: ex.exerciseId,
             exerciseName: ex.exercise.name,
             sets: Array.from({ length: ex.sets }, (_, i) => ({
               setNumber: i + 1,
-              weight: suggestedWeight || 0,
-              reps: ex.prescription.targetReps,
+              weight: previousSets?.[i]?.weight ?? suggestedWeight ?? 0,
+              reps: previousSets?.[i]?.reps ?? ex.prescription.targetReps,
               rpe: ex.prescription.rpe,
               completed: false
             })),

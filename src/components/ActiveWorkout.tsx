@@ -168,6 +168,15 @@ export default function ActiveWorkout() {
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = { ...newSets[currentSetIndex], completed: true };
 
+    // Carry forward weight/reps to next set so the user doesn't have to re-enter
+    if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
+      newSets[currentSetIndex + 1] = {
+        ...newSets[currentSetIndex + 1],
+        weight: newSets[currentSetIndex].weight,
+        reps: newSets[currentSetIndex].reps,
+      };
+    }
+
     // Check for PR - compare against all previous logs for this exercise
     const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
     const workoutLogs = useAppStore.getState().workoutLogs;

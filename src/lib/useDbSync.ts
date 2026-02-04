@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, initDatabase } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase } from './db-sync';
+import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 
 export function useDbSync() {
   const store = useAppStore();
@@ -15,7 +16,7 @@ export function useDbSync() {
     if (!dbInitDone.current) {
       dbInitDone.current = true;
       initDatabase().then((ok) => {
-        if (ok) {
+        if (ok && process.env.NODE_ENV === 'development') {
           console.log('[db-sync] Database initialized');
         }
       });
@@ -28,14 +29,57 @@ export function useDbSync() {
 
     loadFromDatabase(store.user.id).then((dbData) => {
       if (dbData) {
-        // Check if DB data is newer than localStorage data
-        const dbUpdated = new Date(dbData.user?.updatedAt || 0).getTime();
+        const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
         const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
+
+        // Check if there's a real conflict (both sides have changes since last sync)
+        const localLogs = store.workoutLogs || [];
+        const remoteLogs = Array.isArray(dbData.workoutLogs) ? dbData.workoutLogs : [];
+        const hasLocalUniqueData = localLogs.some(
+          l => !remoteLogs.find((r: Record<string, unknown>) => r.id === l.id)
+        );
+        const hasRemoteUniqueData = remoteLogs.some(
+          (r: Record<string, unknown>) => !localLogs.find(l => l.id === r.id)
+        );
+
+        // Both sides have unique data = conflict
+        if (hasLocalUniqueData && hasRemoteUniqueData) {
+          const localData: Record<string, unknown> = {
+            workoutLogs: store.workoutLogs,
+            gamificationStats: store.gamificationStats,
+            currentMesocycle: store.currentMesocycle,
+            sessionTemplates: store.sessionTemplates,
+            bodyWeightLog: store.bodyWeightLog,
+          };
+          const remoteData: Record<string, unknown> = {
+            workoutLogs: dbData.workoutLogs,
+            gamificationStats: dbData.gamificationStats,
+            currentMesocycle: dbData.currentMesocycle,
+            sessionTemplates: dbData.sessionTemplates,
+            bodyWeightLog: dbData.bodyWeightLog,
+          };
+          const conflictFields = buildConflictFields(localData, remoteData);
+
+          if (conflictFields.length > 0) {
+            // Surface the conflict to the store for the UI to pick up
+            useAppStore.setState({
+              syncConflict: {
+                localData,
+                remoteData,
+                localUpdatedAt: new Date(localUpdated),
+                remoteUpdatedAt: new Date(dbUpdated),
+                conflictFields,
+              },
+              pendingRemoteData: dbData,
+            });
+            initialLoadDone.current = true;
+            return;
+          }
+        }
 
         if (dbUpdated > localUpdated) {
           // DB is newer - hydrate store from DB
-          // Only merge specific data fields to avoid clobbering active UI state
-          const fieldsToMerge: Record<string, any> = {};
+          const fieldsToMerge: Record<string, unknown> = {};
           if (dbData.workoutLogs) fieldsToMerge.workoutLogs = dbData.workoutLogs;
           if (dbData.bodyWeightLog) fieldsToMerge.bodyWeightLog = dbData.bodyWeightLog;
           if (dbData.gamificationStats) fieldsToMerge.gamificationStats = dbData.gamificationStats;
@@ -55,9 +99,11 @@ export function useDbSync() {
 
           if (Object.keys(fieldsToMerge).length > 0) {
             useAppStore.setState(fieldsToMerge);
-            console.log('[db-sync] Loaded data from database (DB was newer)');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[db-sync] Loaded data from database (DB was newer)');
+            }
           }
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.log('[db-sync] Local data is current, no merge needed');
         }
       }

@@ -34,6 +34,8 @@ import {
   WearableData,
   CompetitionEvent
 } from './types';
+import type { SyncConflict } from '@/components/SyncConflictResolver';
+import { resolveConflicts } from './db-sync';
 import { generateMesocycle } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness } from './auto-adjust';
@@ -124,6 +126,10 @@ interface AppState {
     newStreak: number;
   } | null;
 
+  // Sync conflict resolution
+  syncConflict: SyncConflict | null;
+  pendingRemoteData: Record<string, unknown> | null;
+
   // UI state
   showTip: boolean;
   currentTipId: string | null;
@@ -148,6 +154,7 @@ interface AppState {
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback }) => void;
   cancelWorkout: () => void;
@@ -218,6 +225,10 @@ interface AppState {
   // Post-workout summary actions
   dismissWorkoutSummary: () => void;
 
+  // Sync conflict actions
+  resolveSyncConflict: (resolution: 'local' | 'remote' | 'merge') => void;
+  dismissSyncConflict: () => void;
+
   // UI actions
   setShowTip: (show: boolean) => void;
   setCurrentTipId: (id: string | null) => void;
@@ -286,6 +297,8 @@ export const useAppStore = create<AppState>()(
       isOnline: true,
       lastSyncAt: null,
       lastCompletedWorkout: null,
+      syncConflict: null,
+      pendingRemoteData: null,
       showTip: true,
       currentTipId: null,
 
@@ -637,6 +650,39 @@ export const useAppStore = create<AppState>()(
             session: updatedSession,
             exerciseLogs: updatedLogs
           }
+        });
+      },
+
+      swapProgramExercise: (weekIndex, sessionId, exerciseIndex, newExerciseId) => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return;
+
+        const newExercise = getExerciseById(newExerciseId);
+        if (!newExercise) return;
+
+        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
+          if (wIdx !== weekIndex) return week;
+          return {
+            ...week,
+            sessions: week.sessions.map(session => {
+              if (session.id !== sessionId) return session;
+              const updatedExercises = [...session.exercises];
+              const oldPrescription = updatedExercises[exerciseIndex];
+              updatedExercises[exerciseIndex] = {
+                ...oldPrescription,
+                exerciseId: newExerciseId,
+                exercise: newExercise,
+              };
+              return { ...session, exercises: updatedExercises };
+            }),
+          };
+        });
+
+        set({
+          currentMesocycle: {
+            ...currentMesocycle,
+            weeks: updatedWeeks,
+          },
         });
       },
 
@@ -1088,6 +1134,65 @@ export const useAppStore = create<AppState>()(
 
       // Post-workout summary actions
       dismissWorkoutSummary: () => set({ lastCompletedWorkout: null }),
+
+      // Sync conflict actions
+      resolveSyncConflict: (resolution) => {
+        const { pendingRemoteData, syncConflict } = get();
+        if (!pendingRemoteData || !syncConflict) {
+          set({ syncConflict: null, pendingRemoteData: null });
+          return;
+        }
+
+        if (resolution === 'local') {
+          // Keep local data, overwrite remote on next sync
+          set({ syncConflict: null, pendingRemoteData: null });
+        } else if (resolution === 'remote') {
+          // Use remote data
+          const fieldsToMerge: Record<string, unknown> = {};
+          if (pendingRemoteData.workoutLogs) fieldsToMerge.workoutLogs = pendingRemoteData.workoutLogs;
+          if (pendingRemoteData.bodyWeightLog) fieldsToMerge.bodyWeightLog = pendingRemoteData.bodyWeightLog;
+          if (pendingRemoteData.gamificationStats) fieldsToMerge.gamificationStats = pendingRemoteData.gamificationStats;
+          if (pendingRemoteData.injuryLog) fieldsToMerge.injuryLog = pendingRemoteData.injuryLog;
+          if (pendingRemoteData.customExercises) fieldsToMerge.customExercises = pendingRemoteData.customExercises;
+          if (pendingRemoteData.sessionTemplates) fieldsToMerge.sessionTemplates = pendingRemoteData.sessionTemplates;
+          if (pendingRemoteData.hrSessions) fieldsToMerge.hrSessions = pendingRemoteData.hrSessions;
+          if (pendingRemoteData.grapplingSessions) fieldsToMerge.grapplingSessions = pendingRemoteData.grapplingSessions;
+          if (pendingRemoteData.currentMesocycle) fieldsToMerge.currentMesocycle = pendingRemoteData.currentMesocycle;
+          if (pendingRemoteData.mesocycleHistory) fieldsToMerge.mesocycleHistory = pendingRemoteData.mesocycleHistory;
+          if (pendingRemoteData.baselineLifts) fieldsToMerge.baselineLifts = pendingRemoteData.baselineLifts;
+          if (pendingRemoteData.user) fieldsToMerge.user = pendingRemoteData.user;
+          set({ ...fieldsToMerge, syncConflict: null, pendingRemoteData: null });
+        } else {
+          // Smart merge: union arrays, prefer newest for scalars
+          const localState = get();
+          const localData: Record<string, unknown> = {
+            workoutLogs: localState.workoutLogs,
+            bodyWeightLog: localState.bodyWeightLog,
+            gamificationStats: localState.gamificationStats,
+            injuryLog: localState.injuryLog,
+            customExercises: localState.customExercises,
+            sessionTemplates: localState.sessionTemplates,
+            hrSessions: localState.hrSessions,
+            grapplingSessions: localState.grapplingSessions,
+            currentMesocycle: localState.currentMesocycle,
+            mesocycleHistory: localState.mesocycleHistory,
+            lastSyncAt: localState.lastSyncAt || 0,
+            user: localState.user,
+          };
+          const merged = resolveConflicts(localData, pendingRemoteData);
+          const updates: Record<string, unknown> = {};
+          if (merged.workoutLogs) updates.workoutLogs = merged.workoutLogs;
+          if (merged.bodyWeightLog) updates.bodyWeightLog = merged.bodyWeightLog;
+          if (merged.gamificationStats) updates.gamificationStats = merged.gamificationStats;
+          if (merged.injuryLog) updates.injuryLog = merged.injuryLog;
+          if (merged.customExercises) updates.customExercises = merged.customExercises;
+          if (merged.sessionTemplates) updates.sessionTemplates = merged.sessionTemplates;
+          if (merged.hrSessions) updates.hrSessions = merged.hrSessions;
+          if (merged.grapplingSessions) updates.grapplingSessions = merged.grapplingSessions;
+          set({ ...updates, syncConflict: null, pendingRemoteData: null });
+        }
+      },
+      dismissSyncConflict: () => set({ syncConflict: null, pendingRemoteData: null }),
 
       // UI actions
       setShowTip: (show) => set({ showTip: show }),

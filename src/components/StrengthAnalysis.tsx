@@ -65,7 +65,8 @@ const stickingPointConfig: Record<
 };
 
 export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
-  const { workoutLogs } = useAppStore();
+  const { workoutLogs, user } = useAppStore();
+  const weightUnit = user?.weightUnit || 'lbs';
   const [analyses, setAnalyses] = useState<StickingPointAnalysis[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<StickingPointAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -305,7 +306,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                           borderRadius: '8px',
                         }}
                         formatter={(value: number, name: string) => {
-                          if (name === 'Weight') return [`${value} lbs`, 'Weight'];
+                          if (name === 'Weight') return [`${value} ${weightUnit}`, 'Weight'];
                           return [value.toFixed(1), 'RPE'];
                         }}
                       />

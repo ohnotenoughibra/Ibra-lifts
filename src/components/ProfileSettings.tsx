@@ -18,13 +18,14 @@ import {
   Edit2,
   Save,
   X,
-  DoorOpen
+  DoorOpen,
+  RefreshCw
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, resetStore, setUser } = useAppStore();
+  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -277,6 +278,25 @@ export default function ProfileSettings() {
             value={`${gamificationStats.longestStreak} days`}
           />
         </div>
+      </div>
+
+      {/* Reconfigure Training */}
+      <div className="card p-4">
+        <h3 className="font-medium text-grappler-200 mb-1 text-sm">Training Setup</h3>
+        <p className="text-xs text-grappler-500 mb-3">
+          Re-run the setup to change your goals, equipment, schedule, or training style. Your history and progress are kept.
+        </p>
+        <button
+          onClick={() => {
+            if (confirm('This will take you through the setup again. Your workouts and history will be preserved.')) {
+              restartOnboarding();
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500/10 text-primary-400 font-medium text-sm hover:bg-primary-500/20 transition-colors border border-primary-500/20"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Reconfigure Training
+        </button>
       </div>
 
       {/* Sign Out */}

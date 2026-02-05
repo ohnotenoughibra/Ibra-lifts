@@ -100,7 +100,7 @@ export function analyzeRecovery(
         actionItems: [
           'Consider skipping intense training today',
           'Focus on sleep quality tonight',
-          'Hydrate extra (100+ oz water)',
+          'Hydrate extra (3+ litres water)',
           'Light mobility or walk is okay',
         ],
         timestamp: new Date(),
@@ -472,7 +472,7 @@ export function getRecoveryTips(analysis: RecoveryCoachAnalysis): string[] {
 
   // General tips (evidence-based: protein timing window is 2-4 hours, not 30 min)
   tips.push('Distribute protein evenly across meals (25-40g per meal) for optimal MPS');
-  tips.push('Stay hydrated: aim for 0.5-1 oz water per lb bodyweight');
+  tips.push('Stay hydrated: aim for 35-40ml water per kg bodyweight');
 
   return tips.slice(0, 5); // Return top 5 tips
 }

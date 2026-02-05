@@ -9,7 +9,7 @@ export interface ContextualMacros {
   recommendations: string[];
   preworkoutTiming?: string;
   postworkoutTiming?: string;
-  hydrationGoal: number; // oz
+  hydrationGoal: number; // ml
   carbCycleNote?: string;
 }
 
@@ -117,7 +117,7 @@ export function getContextualNutrition(
       preworkoutTiming = 'Eat 2-3 hours before, nothing heavy';
       postworkoutTiming = 'Protein shake immediately, meal within 2 hours';
       carbCycleNote = 'High carb day - replenish glycogen from intense rolling';
-      recommendations.push('Hydration is critical - aim for 100+ oz water');
+      recommendations.push('Hydration is critical - aim for 3+ litres water');
       recommendations.push('Include electrolytes during/after training');
       recommendations.push('Post-training: fast digesting carbs + protein');
       break;
@@ -184,12 +184,14 @@ export function getContextualNutrition(
     fat: Math.round(baseMacros.fat * fatMultiplier),
   };
 
-  // Hydration goal based on body weight and training
-  let hydrationGoal = Math.round(bodyWeightLbs * 0.5); // 0.5 oz per lb baseline
+  // Hydration goal based on body weight and training (in ml)
+  // ~35ml per kg is a good baseline (equivalent to 0.5oz per lb)
+  const bodyWeightKg = bodyWeightLbs / 2.205;
+  let hydrationGoal = Math.round(bodyWeightKg * 35); // 35ml per kg baseline
   if (dayType === 'grappling_hard') {
-    hydrationGoal += 32; // Extra 32 oz for hard training
+    hydrationGoal += 1000; // Extra 1L for hard training
   } else if (dayType !== 'rest') {
-    hydrationGoal += 16; // Extra 16 oz for any training
+    hydrationGoal += 500; // Extra 500ml for any training
   }
 
   return {

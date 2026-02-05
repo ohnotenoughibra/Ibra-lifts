@@ -99,16 +99,31 @@ export default function ActiveWorkout() {
     sleepDisturbances: latestWhoopData.sleepDisturbances ?? undefined,
   }, personalBaseline) : null;
 
-  // Pre-workout check-in state
-  const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>({
-    sleepQuality: 3,
-    sleepHours: 7,
+  // Pre-workout check-in state - initialized with Whoop data if available
+  const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>(() => ({
+    sleepQuality: latestWhoopData?.sleepScore
+      ? Math.round((latestWhoopData.sleepScore / 100) * 5) // Convert 0-100 to 1-5
+      : 3,
+    sleepHours: latestWhoopData?.sleepHours ?? 7,
     nutrition: 'full_meal',
     stress: 2,
     soreness: 2,
     motivation: 4,
     notes: ''
-  });
+  }));
+
+  // Update check-in when Whoop data becomes available
+  useEffect(() => {
+    if (latestWhoopData) {
+      setCheckIn(prev => ({
+        ...prev,
+        sleepHours: latestWhoopData.sleepHours ?? prev.sleepHours,
+        sleepQuality: latestWhoopData.sleepScore
+          ? Math.round((latestWhoopData.sleepScore / 100) * 5)
+          : prev.sleepQuality,
+      }));
+    }
+  }, [latestWhoopData]);
 
   // Exercise feedback state
   const [exerciseFeedback, setExerciseFeedbackState] = useState<Partial<ExerciseFeedback>>({
@@ -822,6 +837,24 @@ export default function ActiveWorkout() {
                 </motion.div>
               )}
 
+              {/* Grappling "No" Banner - Allow changing */}
+              {!showGrapplingQ && grapplingToday === 'none' && (
+                <div className="rounded-xl px-3 py-2.5 mb-4 text-xs bg-grappler-800/50 border border-grappler-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-3.5 h-3.5 text-grappler-500" />
+                      <span className="font-medium text-grappler-400">No grappling today</span>
+                    </div>
+                    <button
+                      onClick={() => setShowGrapplingQ(true)}
+                      className="text-grappler-400 hover:text-grappler-200 text-[10px] underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Grappling Applied Banner */}
               {!showGrapplingQ && grapplingToday !== 'none' && (
                 <div className={cn(
@@ -830,17 +863,25 @@ export default function ActiveWorkout() {
                   grapplingToday === 'moderate' ? 'bg-yellow-500/10 border border-yellow-500/20' :
                   'bg-lime-500/10 border border-lime-500/20'
                 )}>
-                  <div className="flex items-center gap-2">
-                    <Shield className={cn('w-3.5 h-3.5',
-                      grapplingToday === 'hard' ? 'text-red-400' :
-                      grapplingToday === 'moderate' ? 'text-yellow-400' : 'text-lime-400'
-                    )} />
-                    <span className={cn('font-medium',
-                      grapplingToday === 'hard' ? 'text-red-300' :
-                      grapplingToday === 'moderate' ? 'text-yellow-300' : 'text-lime-300'
-                    )}>
-                      {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className={cn('w-3.5 h-3.5',
+                        grapplingToday === 'hard' ? 'text-red-400' :
+                        grapplingToday === 'moderate' ? 'text-yellow-400' : 'text-lime-400'
+                      )} />
+                      <span className={cn('font-medium',
+                        grapplingToday === 'hard' ? 'text-red-300' :
+                        grapplingToday === 'moderate' ? 'text-yellow-300' : 'text-lime-300'
+                      )}>
+                        {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowGrapplingQ(true)}
+                      className="text-grappler-400 hover:text-grappler-200 text-[10px] underline"
+                    >
+                      Change
+                    </button>
                   </div>
                   {grapplingReduction && (grapplingReduction.setsRemoved > 0 || grapplingReduction.rpeReduced > 0) && (
                     <div className="mt-1.5 ml-5.5 flex items-center gap-3 text-grappler-400">

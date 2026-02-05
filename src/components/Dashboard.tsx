@@ -130,13 +130,17 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   // "Mon Jan 15 2024" format is unambiguous and based on local time
   const toDateKey = (d: Date | string): string => {
     if (typeof d === 'string') {
-      // For ISO strings, parse them properly
       return new Date(d).toDateString();
     }
     return d.toDateString();
   };
 
-  const today = new Date();
+  // Memoize today to avoid recreating on each render
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0); // Noon to avoid any edge cases
+    return d;
+  }, []);
   const todayKey = today.toDateString();
 
   // Build sets for lifting dates using toDateString keys
@@ -197,7 +201,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     }
 
     return streak;
-  }, [todayKey]);
+  }, [today, todayKey]);
 
   const liftingStreak = calculateStreak(liftingDateKeys);
   const trainingStreak = includeOtherSessions ? calculateStreak(sessionDateKeys) : 0;
@@ -214,15 +218,19 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
 
   const grid = useMemo(() => {
     const result: DayData[][] = [];
+
+    // Start from the Sunday of (weeks) weeks ago
     const startDate = new Date(today);
     startDate.setHours(0, 0, 0, 0);
-    startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
+    // Go back to start of current week (Sunday), then back (weeks-1) more weeks
+    const daysFromSunday = startDate.getDay(); // 0=Sun, 1=Mon, etc.
+    startDate.setDate(startDate.getDate() - daysFromSunday - (weeks - 1) * 7);
 
     for (let w = 0; w < weeks; w++) {
       const week: DayData[] = [];
       for (let d = 0; d < 7; d++) {
         const date = new Date(startDate);
-        date.setDate(date.getDate() + w * 7 + d);
+        date.setDate(startDate.getDate() + w * 7 + d);
         const dateKey = date.toDateString();
         const isFuture = date.getTime() > today.getTime();
 
@@ -238,7 +246,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
       result.push(week);
     }
     return result;
-  }, [liftingDateKeys, sessionDateKeys, todayKey]);
+  }, [today, liftingDateKeys, sessionDateKeys, todayKey]);
 
   // Get day color based on activity type
   const getDayColor = (day: DayData) => {

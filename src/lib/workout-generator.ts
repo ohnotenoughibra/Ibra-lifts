@@ -17,6 +17,7 @@ import {
   ExperienceLevel,
   TrainingIdentity,
   CombatSport,
+  BiologicalSex,
   WorkoutLog
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
@@ -75,6 +76,84 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
     tempo: '1-0-X-0' // Fast eccentric, explosive concentric
   }
 };
+
+/**
+ * Sex-based programming modifiers — evidence-based.
+ *
+ * Women vs Men differences (Hunter, 2014; Ansdell et al., 2020; Roberts et al., 2020):
+ * - Women are more fatigue-resistant (higher Type I fiber %, lower absolute loads = less CNS fatigue)
+ * - Women recover faster between sets AND sessions
+ * - Women can do more reps at a given %1RM (flatter strength-endurance curve)
+ * - Women tolerate higher relative volume (MEV/MAV/MRV all higher)
+ * - Women need less aggressive deloads
+ * - Women benefit from slightly higher rep ranges for hypertrophy
+ * - Women's upper body responds well to higher frequency + volume (proportionally weaker)
+ *
+ * Men defaults match existing prescriptions (most exercise science was done on men).
+ */
+const SEX_MODIFIERS: Record<BiologicalSex, {
+  volumeScale: number;        // Multiplier for weekly volume landmarks
+  restScale: number;           // Multiplier for rest periods
+  repRangeShift: number;       // Add to rep range for hypertrophy (e.g., 6-12 → 8-15)
+  deloadVolumeMultiplier: number; // Deload volume (women: less aggressive)
+  rpeOffset: number;           // Women can sustain slightly higher RPE
+  upperBodyVolumeBoost: number; // Extra sets for upper body (women need proportionally more)
+}> = {
+  male: {
+    volumeScale: 1.0,
+    restScale: 1.0,
+    repRangeShift: 0,
+    deloadVolumeMultiplier: 0.6,
+    rpeOffset: 0,
+    upperBodyVolumeBoost: 0,
+  },
+  female: {
+    volumeScale: 1.15,             // ~15% more volume tolerated (Haff & Triplett, 2016)
+    restScale: 0.75,               // ~25% shorter rest needed (faster phosphocreatine recovery)
+    repRangeShift: 2,              // +2 reps — hypertrophy 8-15 vs 6-12 (flatter strength curve)
+    deloadVolumeMultiplier: 0.7,   // Less aggressive deload (faster recovery)
+    rpeOffset: 0.3,               // Can sustain slightly higher RPE
+    upperBodyVolumeBoost: 2,       // +2 sets/week for upper body (proportionally weaker)
+  },
+};
+
+/** Get workout prescriptions adjusted for biological sex */
+function getSexAdjustedPrescription(type: WorkoutType, sex?: BiologicalSex): typeof WORKOUT_PRESCRIPTIONS[WorkoutType] {
+  const base = WORKOUT_PRESCRIPTIONS[type];
+  if (!sex || sex === 'male') return base;
+
+  const mod = SEX_MODIFIERS[sex];
+  const adjustedRest: [number, number] = [
+    Math.round(base.restSeconds[0] * mod.restScale),
+    Math.round(base.restSeconds[1] * mod.restScale),
+  ];
+
+  if (type === 'hypertrophy') {
+    // Women: shift rep range up (8-15 instead of 6-12) and shorter rest
+    return {
+      ...base,
+      reps: [base.reps[0] + mod.repRangeShift, base.reps[1] + mod.repRangeShift] as [number, number],
+      rpe: [base.rpe[0] + mod.rpeOffset, Math.min(10, base.rpe[1] + mod.rpeOffset)] as [number, number],
+      percentageOf1RM: [base.percentageOf1RM[0] - 5, base.percentageOf1RM[1] - 5] as [number, number], // Slightly lower %1RM for higher reps
+      restSeconds: adjustedRest,
+    };
+  }
+
+  if (type === 'strength') {
+    // Women: same rep range but can tolerate slightly higher RPE, shorter rest
+    return {
+      ...base,
+      rpe: [base.rpe[0] + mod.rpeOffset, Math.min(10, base.rpe[1] + mod.rpeOffset)] as [number, number],
+      restSeconds: adjustedRest,
+    };
+  }
+
+  // Power: same rep scheme, shorter rest
+  return {
+    ...base,
+    restSeconds: adjustedRest,
+  };
+}
 
 // Undulating periodization schemes for 1-6 sessions/week
 const UNDULATING_SCHEMES: Record<number, WorkoutType[]> = {
@@ -198,6 +277,7 @@ interface GeneratorOptions {
   trainingIdentity?: TrainingIdentity;
   combatSport?: CombatSport;
   experienceLevel?: ExperienceLevel;
+  biologicalSex?: BiologicalSex;
   // Sport training load for adaptive volume scaling
   sportSessionsPerWeek?: number;           // Number of sport training sessions per week
   avgSportIntensity?: 'light' | 'moderate' | 'hard';  // Average intensity of sport sessions
@@ -308,8 +388,8 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function createSetPrescription(type: WorkoutType): SetPrescription {
-  const config = WORKOUT_PRESCRIPTIONS[type];
+function createSetPrescription(type: WorkoutType, biologicalSex?: BiologicalSex): SetPrescription {
+  const config = getSexAdjustedPrescription(type, biologicalSex);
   return {
     targetReps: randomBetween(config.reps[0], config.reps[1]),
     minReps: config.reps[0],
@@ -492,17 +572,29 @@ function generateWorkoutSession(
   maxDurationMinutes?: number,
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
-  experienceLevel?: ExperienceLevel
+  experienceLevel?: ExperienceLevel,
+  biologicalSex?: BiologicalSex
 ): WorkoutSession {
   const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport);
-  const config = WORKOUT_PRESCRIPTIONS[type];
+  const config = getSexAdjustedPrescription(type, biologicalSex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
+  const sexMod = SEX_MODIFIERS[biologicalSex || 'male'];
 
   let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
     // Adjust sets based on exercise category and experience level
     let sets = randomBetween(config.sets[0], config.sets[1]);
-    sets = Math.round(sets * expMod.volumeScale);
+    sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale);
     sets = Math.max(2, Math.min(expMod.maxSets, sets));
+
+    // Women: boost upper body volume (evidence-based — proportionally weaker upper body)
+    const isUpperBody = exercise.primaryMuscles.some(m =>
+      ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'lats'].includes(m)
+    );
+    if (isUpperBody && sexMod.upperBodyVolumeBoost > 0) {
+      sets = Math.min(expMod.maxSets, sets + Math.round(sexMod.upperBodyVolumeBoost / selectedExercises.filter(e =>
+        e.primaryMuscles.some(m => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'lats'].includes(m))
+      ).length));
+    }
 
     if (exercise.category === 'isolation') {
       sets = Math.min(sets, 4);
@@ -511,7 +603,7 @@ function generateWorkoutSession(
       sets = Math.max(sets, experienceLevel === 'beginner' ? 3 : 4);
     }
 
-    const prescription = createSetPrescription(type);
+    const prescription = createSetPrescription(type, biologicalSex);
     // Adjust RPE based on experience level
     prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset).toFixed(1)));
 
@@ -700,7 +792,8 @@ function generateMesocycleWeek(
   combatSport?: CombatSport,
   experienceLevel?: ExperienceLevel,
   sportSessionsPerWeek?: number,
-  avgSportIntensity?: 'light' | 'moderate' | 'hard'
+  avgSportIntensity?: 'light' | 'moderate' | 'hard',
+  biologicalSex?: BiologicalSex
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -719,9 +812,12 @@ function generateMesocycleWeek(
   let volumeMultiplier: number;
   let intensityMultiplier: number;
 
+  const sexMod = SEX_MODIFIERS[biologicalSex || 'male'];
+
   if (isDeload) {
-    volumeMultiplier = 0.6;
-    intensityMultiplier = 0.85;
+    // Women need less aggressive deloads — faster recovery between mesocycles
+    volumeMultiplier = sexMod.deloadVolumeMultiplier;
+    intensityMultiplier = biologicalSex === 'female' ? 0.88 : 0.85;
   } else if (periodizationType === 'linear') {
     // Linear: steady 5% per week (simple, predictable for beginners)
     volumeMultiplier = 1 + (weekNumber - 1) * 0.05;
@@ -775,7 +871,8 @@ function generateMesocycleWeek(
       sessionDurationMinutes,
       trainingIdentity,
       combatSport,
-      experienceLevel
+      experienceLevel,
+      biologicalSex
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -826,7 +923,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     userId, goalFocus, equipment, availableEquipment, sessionsPerWeek,
     weeks, muscleEmphasis, sessionDurationMinutes,
     trainingIdentity, combatSport, experienceLevel,
-    sportSessionsPerWeek, avgSportIntensity
+    sportSessionsPerWeek, avgSportIntensity, biologicalSex
   } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
@@ -850,7 +947,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
         sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
-        sportSessionsPerWeek, avgSportIntensity
+        sportSessionsPerWeek, avgSportIntensity, biologicalSex
       )
     );
   }

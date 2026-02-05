@@ -951,32 +951,32 @@ function ProgramSettingsPanel({
           </div>
         </div>
 
-        {hasChanges && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onRegenerate(weeks, sessions)}
-              className="btn btn-primary btn-sm flex-1 gap-1"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Regenerate Program
-            </button>
+        {/* Always show regenerate option */}
+        <div className="space-y-2">
+          <button
+            onClick={() => onRegenerate(weeks, sessions)}
+            className="btn btn-primary btn-sm w-full gap-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {hasChanges ? 'Apply Changes & Regenerate' : 'Regenerate with New Exercises'}
+          </button>
+          {hasChanges && (
             <button
               onClick={() => {
                 setWeeks(currentWeeks);
                 setSessions(currentSessionsPerWeek);
               }}
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm w-full"
             >
-              Reset
+              Reset Changes
             </button>
-          </div>
-        )}
-
-        {!hasChanges && (
+          )}
           <p className="text-[11px] text-grappler-500 text-center">
-            Change settings above then regenerate to apply
+            {hasChanges
+              ? 'This will create a new program with your updated settings'
+              : 'Keep the same settings but get fresh exercise selections'}
           </p>
-        )}
+        </div>
       </div>
     </motion.div>
   );

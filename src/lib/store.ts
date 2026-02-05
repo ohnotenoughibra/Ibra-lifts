@@ -156,6 +156,14 @@ interface AppState {
   deleteMesocycle: (mesocycleId: string) => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
   getCurrentMesocycleLogCount: () => number;
+  getImportableWorkoutLogs: () => {
+    currentMesocycle: WorkoutLog[];
+    otherMesocycles: WorkoutLog[];
+    orphaned: WorkoutLog[];
+    total: number;
+    importable: WorkoutLog[];
+  };
+  importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => void;
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -620,6 +628,58 @@ export const useAppStore = create<AppState>()(
         const { currentMesocycle, workoutLogs } = get();
         if (!currentMesocycle) return 0;
         return workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id).length;
+      },
+
+      // Get recent workout logs that could be imported (from last 30 days, not in current mesocycle)
+      getImportableWorkoutLogs: () => {
+        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Get all mesocycle IDs (current + history)
+        const knownMesocycleIds = new Set<string>();
+        if (currentMesocycle) knownMesocycleIds.add(currentMesocycle.id);
+        mesocycleHistory.forEach(m => knownMesocycleIds.add(m.id));
+
+        // Find logs from last 30 days
+        const recentLogs = workoutLogs.filter(log => {
+          const logDate = new Date(log.date);
+          return logDate >= thirtyDaysAgo;
+        });
+
+        // Separate into current mesocycle, other known mesocycles, and orphaned
+        const currentMesoLogs = currentMesocycle
+          ? recentLogs.filter(log => log.mesocycleId === currentMesocycle.id)
+          : [];
+        const otherMesoLogs = recentLogs.filter(log =>
+          log.mesocycleId !== currentMesocycle?.id &&
+          knownMesocycleIds.has(log.mesocycleId)
+        );
+        const orphanedLogs = recentLogs.filter(log =>
+          !knownMesocycleIds.has(log.mesocycleId) || log.mesocycleId === 'standalone'
+        );
+
+        return {
+          currentMesocycle: currentMesoLogs,
+          otherMesocycles: otherMesoLogs,
+          orphaned: orphanedLogs,
+          total: recentLogs.length,
+          importable: [...otherMesoLogs, ...orphanedLogs],
+        };
+      },
+
+      // Import workout logs into current mesocycle
+      importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => {
+        const { currentMesocycle, workoutLogs } = get();
+        if (!currentMesocycle) return;
+
+        set({
+          workoutLogs: workoutLogs.map(log =>
+            logIds.includes(log.id)
+              ? { ...log, mesocycleId: currentMesocycle.id }
+              : log
+          ),
+        });
       },
 
       // Workout actions

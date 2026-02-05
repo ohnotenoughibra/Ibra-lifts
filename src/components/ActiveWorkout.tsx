@@ -72,6 +72,7 @@ export default function ActiveWorkout() {
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
   const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showLocationConfirm, setShowLocationConfirm] = useState<EquipmentProfileName | null>(null);
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
@@ -189,6 +190,33 @@ export default function ActiveWorkout() {
   const currentExercise = activeWorkout.session.exercises[currentExerciseIndex];
   const currentLog = activeWorkout.exerciseLogs[currentExerciseIndex];
   const currentSet = currentLog.sets[currentSetIndex];
+
+  // Real-time PR detection - check if current input would beat historical best
+  const prDetection = useMemo(() => {
+    if (!currentLog || currentSet.weight <= 0 || currentSet.reps <= 0) {
+      return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
+    }
+
+    const currentE1RM = calculate1RM(currentSet.weight, currentSet.reps);
+    const workoutLogs = useAppStore.getState().workoutLogs;
+
+    let bestE1RM = 0;
+    let hasHistory = false;
+
+    for (const log of workoutLogs) {
+      for (const ex of log.exercises) {
+        if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
+          hasHistory = true;
+          bestE1RM = Math.max(bestE1RM, ex.estimated1RM);
+        }
+      }
+    }
+
+    // It's a potential PR if: first time doing this exercise OR beating historical best
+    const isPotentialPR = !hasHistory || currentE1RM > bestE1RM;
+
+    return { isPotentialPR, currentE1RM, bestE1RM, isFirstTime: !hasHistory };
+  }, [currentLog, currentSet.weight, currentSet.reps]);
 
   const updateSetValue = (field: 'weight' | 'reps' | 'rpe', delta: number) => {
     const newSets = [...currentLog.sets];
@@ -479,6 +507,51 @@ export default function ActiveWorkout() {
 
   const rpeSuggestion = getRPEWeightSuggestion();
   const exerciseHistory = showHistory ? getExerciseFullHistory(currentExercise.exerciseId) : [];
+
+  // Extended history for modal - gets last 10 sessions and computes all-time best
+  const extendedHistory = useMemo(() => {
+    if (!showHistoryModal) return { sessions: [], allTimeBest: null, bestE1RM: 0 };
+
+    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const sorted = [...allLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sessions: { weight: number; reps: number; rpe: number; sets: number; date: Date; estimated1RM: number }[] = [];
+    let allTimeBest: { weight: number; reps: number; date: Date; estimated1RM: number } | null = null;
+    let bestE1RM = 0;
+
+    for (const log of sorted) {
+      const ex = log.exercises.find(e => e.exerciseId === currentLog.exerciseId);
+      if (ex && ex.sets.length > 0) {
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
+        const e1RM = ex.estimated1RM || calculate1RM(bestSet.weight, bestSet.reps);
+
+        // Track all-time best by estimated 1RM
+        if (e1RM > bestE1RM) {
+          bestE1RM = e1RM;
+          allTimeBest = {
+            weight: bestSet.weight,
+            reps: bestSet.reps,
+            date: new Date(log.date),
+            estimated1RM: e1RM,
+          };
+        }
+
+        if (sessions.length < 10) {
+          sessions.push({
+            weight: bestSet.weight,
+            reps: bestSet.reps,
+            rpe: bestSet.rpe,
+            sets: completedSets.length,
+            date: new Date(log.date),
+            estimated1RM: e1RM,
+          });
+        }
+      }
+    }
+
+    return { sessions, allTimeBest, bestE1RM };
+  }, [showHistoryModal, currentLog.exerciseId]);
 
   // Get adjustment reason for this exercise's suggested weight
   const getAdjustmentReason = (): string | null => {
@@ -1263,6 +1336,151 @@ export default function ActiveWorkout() {
         )}
       </AnimatePresence>
 
+      {/* Enhanced Exercise History Modal */}
+      <AnimatePresence>
+        {showHistoryModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center"
+            onClick={() => setShowHistoryModal(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-hidden"
+            >
+              {/* Handle bar */}
+              <div className="flex justify-center py-3">
+                <div className="w-12 h-1.5 bg-grappler-700 rounded-full" />
+              </div>
+
+              <div className="px-5 pb-8 overflow-y-auto max-h-[calc(85vh-3rem)]">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-grappler-50">{currentExercise.exercise.name}</h2>
+                    <p className="text-xs text-grappler-400">Exercise History</p>
+                  </div>
+                  <button
+                    onClick={() => setShowHistoryModal(false)}
+                    className="p-2 text-grappler-400 hover:text-grappler-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* All-Time Best Card */}
+                {extendedHistory.allTimeBest && (
+                  <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-yellow-500/30 rounded-xl flex items-center justify-center">
+                        <Trophy className="w-6 h-6 text-yellow-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-yellow-400/80 uppercase tracking-wide">All-Time Best</p>
+                        <p className="text-xl font-bold text-yellow-300">
+                          {extendedHistory.allTimeBest.weight} {weightUnit} x {extendedHistory.allTimeBest.reps}
+                        </p>
+                        <p className="text-xs text-grappler-400">
+                          Est. 1RM: {Math.round(extendedHistory.allTimeBest.estimated1RM)} {weightUnit} •{' '}
+                          {extendedHistory.allTimeBest.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress Chart */}
+                {extendedHistory.sessions.length >= 2 && (
+                  <div className="bg-grappler-800/50 rounded-xl p-4 mb-4">
+                    <p className="text-xs text-grappler-400 uppercase tracking-wide mb-3">Estimated 1RM Progression</p>
+                    <div className="h-32 flex items-end gap-1">
+                      {(() => {
+                        const reversed = [...extendedHistory.sessions].reverse();
+                        const maxE1RM = Math.max(...reversed.map(s => s.estimated1RM));
+                        const minE1RM = Math.min(...reversed.map(s => s.estimated1RM));
+                        const range = maxE1RM - minE1RM || 1;
+
+                        return reversed.map((session, i) => {
+                          const heightPct = ((session.estimated1RM - minE1RM) / range) * 70 + 30; // 30-100% height
+                          const isLatest = i === reversed.length - 1;
+                          const isPeak = session.estimated1RM === maxE1RM;
+
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                              <div
+                                className={cn(
+                                  'w-full rounded-t-md transition-all',
+                                  isPeak ? 'bg-yellow-500' : isLatest ? 'bg-primary-500' : 'bg-grappler-600'
+                                )}
+                                style={{ height: `${heightPct}%` }}
+                              />
+                              <p className="text-[8px] text-grappler-500 truncate w-full text-center">
+                                {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                    <div className="flex justify-between mt-2 text-[10px] text-grappler-500">
+                      <span>Oldest</span>
+                      <span>Most Recent</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Session List */}
+                <div className="space-y-2">
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">
+                    Recent Sessions ({extendedHistory.sessions.length})
+                  </p>
+                  {extendedHistory.sessions.map((session, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-lg',
+                        i === 0 ? 'bg-primary-500/10 border border-primary-500/30' : 'bg-grappler-800/50'
+                      )}
+                    >
+                      <div>
+                        <p className={cn(
+                          'text-sm font-medium',
+                          i === 0 ? 'text-primary-300' : 'text-grappler-200'
+                        )}>
+                          {session.weight} {weightUnit} x {session.reps}
+                        </p>
+                        <p className="text-xs text-grappler-500">
+                          {session.sets} sets @ RPE {session.rpe}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-grappler-400">
+                          {session.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </p>
+                        <p className="text-xs text-grappler-500">
+                          e1RM: {Math.round(session.estimated1RM)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {extendedHistory.sessions.length === 0 && (
+                    <p className="text-sm text-grappler-500 text-center py-6">
+                      No history yet for this exercise
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
@@ -1581,7 +1799,7 @@ export default function ActiveWorkout() {
             )}
 
             {/* Per-exercise history from last session */}
-            {previousPerformance && (
+            {previousPerformance ? (
               <div className="mt-2 flex items-center gap-2">
                 <div className="px-3 py-1.5 bg-grappler-800/60 rounded-lg">
                   <p className="text-xs text-grappler-400">
@@ -1590,13 +1808,21 @@ export default function ActiveWorkout() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors"
+                  onClick={() => setShowHistoryModal(true)}
+                  className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-grappler-800/50"
                 >
-                  <Clock className="w-3 h-3" />
-                  {showHistory ? 'Hide' : 'History'}
+                  <TrendingUp className="w-3 h-3" />
+                  Full History
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="mt-2 text-xs text-grappler-500 hover:text-grappler-400 flex items-center gap-1 transition-colors"
+              >
+                <Clock className="w-3 h-3" />
+                View History
+              </button>
             )}
 
             {/* Full exercise history panel */}
@@ -1699,12 +1925,46 @@ export default function ActiveWorkout() {
             ))}
           </div>
 
+          {/* PR Detection Banner */}
+          <AnimatePresence>
+            {prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                className="mb-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-xl p-3 flex items-center gap-3"
+              >
+                <div className="w-10 h-10 bg-yellow-500/30 rounded-lg flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-yellow-300">PR Territory!</p>
+                  <p className="text-xs text-yellow-400/80">
+                    {prDetection.isFirstTime
+                      ? 'First time doing this exercise — set a benchmark!'
+                      : `Est. 1RM: ${Math.round(prDetection.currentE1RM)} ${weightUnit} (prev best: ${Math.round(prDetection.bestE1RM)})`}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Input Fields */}
           <div className="space-y-4">
             {/* Weight */}
-            <div className="bg-grappler-800/50 rounded-xl p-4">
+            <div className={cn(
+              'rounded-xl p-4 transition-all duration-300',
+              prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                ? 'bg-yellow-500/10 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/10'
+                : 'bg-grappler-800/50'
+            )}>
               <div className="flex items-center justify-between">
-                <label className="text-xs text-grappler-400 uppercase tracking-wide">Weight ({weightUnit})</label>
+                <label className={cn(
+                  'text-xs uppercase tracking-wide',
+                  prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                    ? 'text-yellow-400'
+                    : 'text-grappler-400'
+                )}>Weight ({weightUnit})</label>
                 {currentSet.weight > 0 && previousPerformance && (
                   <span className="text-[10px] text-primary-400">
                     {currentSet.weight > previousPerformance.weight ? '+' : ''}{Math.round(currentSet.weight - previousPerformance.weight)} vs last
@@ -1725,7 +1985,12 @@ export default function ActiveWorkout() {
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
+                  className={cn(
+                    'w-24 text-center text-3xl font-bold bg-transparent focus:outline-none placeholder:text-grappler-600',
+                    prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                      ? 'text-yellow-300'
+                      : 'text-grappler-50'
+                  )}
                 />
                 <button
                   onClick={() => updateSetValue('weight', weightIncrement)}
@@ -1737,9 +2002,19 @@ export default function ActiveWorkout() {
             </div>
 
             {/* Reps */}
-            <div className="bg-grappler-800/50 rounded-xl p-4">
+            <div className={cn(
+              'rounded-xl p-4 transition-all duration-300',
+              prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                ? 'bg-yellow-500/10 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/10'
+                : 'bg-grappler-800/50'
+            )}>
               <div className="flex items-center justify-between">
-                <label className="text-xs text-grappler-400 uppercase tracking-wide">Reps</label>
+                <label className={cn(
+                  'text-xs uppercase tracking-wide',
+                  prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                    ? 'text-yellow-400'
+                    : 'text-grappler-400'
+                )}>Reps</label>
                 <span className="text-[10px] text-grappler-500">
                   Target: {currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}
                 </span>
@@ -1758,7 +2033,12 @@ export default function ActiveWorkout() {
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
-                  className="w-24 text-center text-3xl font-bold bg-transparent text-grappler-50 focus:outline-none placeholder:text-grappler-600"
+                  className={cn(
+                    'w-24 text-center text-3xl font-bold bg-transparent focus:outline-none placeholder:text-grappler-600',
+                    prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
+                      ? 'text-yellow-300'
+                      : 'text-grappler-50'
+                  )}
                 />
                 <button
                   onClick={() => updateSetValue('reps', 1)}

@@ -40,11 +40,15 @@ export type WeightUnit = 'lbs' | 'kg';
 // Wearable usage preference
 export type WearableUsage = 'whoop' | 'other_wearable' | 'no_wearable';
 
+export type BiologicalSex = 'male' | 'female';
+
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
   age: number;
+  heightCm?: number;           // height in centimetres
+  sex?: BiologicalSex;         // for BMR calculation (Mifflin-St Jeor)
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];

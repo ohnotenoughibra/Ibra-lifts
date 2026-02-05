@@ -420,10 +420,13 @@ function transformWhoopWorkouts(apiData: WhoopApiResponse): WhoopWorkout[] {
         }
       }
 
+      // Prefer WHOOP's actual sport name from API, fall back to our mapping, then 'Workout'
+      const sportName = w.sport_name || WHOOP_SPORTS[w.sport_id] || 'Workout';
+
       return {
         id: w.id?.toString() || `workout-${Date.now()}`,
         sportId: w.sport_id ?? -1,
-        sportName: WHOOP_SPORTS[w.sport_id] || 'Workout',
+        sportName,
         start: new Date(w.start),
         end: new Date(w.end),
         strain: w.score?.strain ?? null,
@@ -470,6 +473,44 @@ const WHOOP_COMBAT_SPORT_MAP: Record<number, GrapplingType> = {
   71: 'kickboxing',
   84: 'mma',
 };
+
+/**
+ * Keyword patterns for detecting grappling/combat sports from sport names.
+ * This catches sports that might have unknown sport IDs but recognizable names.
+ * Maps keyword patterns (lowercase) to GrapplingType.
+ */
+const GRAPPLING_NAME_PATTERNS: Array<{ pattern: RegExp; type: GrapplingType }> = [
+  { pattern: /\bjiu[\s-]?jitsu\b/i, type: 'bjj_nogi' },
+  { pattern: /\bbjj\b/i, type: 'bjj_nogi' },
+  { pattern: /\bbrazilian\b/i, type: 'bjj_nogi' },
+  { pattern: /\bwrestling\b/i, type: 'wrestling' },
+  { pattern: /\bgrappling\b/i, type: 'bjj_nogi' },
+  { pattern: /\bjudo\b/i, type: 'judo' },
+  { pattern: /\bmma\b/i, type: 'mma' },
+  { pattern: /\bmixed\s*martial\s*arts?\b/i, type: 'mma' },
+  { pattern: /\bboxing\b/i, type: 'boxing' },
+  { pattern: /\bkickboxing\b/i, type: 'kickboxing' },
+  { pattern: /\bmuay\s*thai\b/i, type: 'muay_thai' },
+  { pattern: /\bstriking\b/i, type: 'striking' },
+  { pattern: /\bsambo\b/i, type: 'wrestling' },
+  { pattern: /\bcatch\s*wrestling\b/i, type: 'wrestling' },
+  { pattern: /\bsubmission\b/i, type: 'bjj_nogi' },
+  { pattern: /\bno[\s-]?gi\b/i, type: 'bjj_nogi' },
+  { pattern: /\bgi\s+class\b/i, type: 'bjj_gi' },
+];
+
+/**
+ * Detect grappling type from sport name using keyword patterns.
+ * Returns the GrapplingType if a match is found, null otherwise.
+ */
+function detectGrapplingFromName(sportName: string): GrapplingType | null {
+  for (const { pattern, type } of GRAPPLING_NAME_PATTERNS) {
+    if (pattern.test(sportName)) {
+      return type;
+    }
+  }
+  return null;
+}
 
 /**
  * Sport IDs that represent generic/unspecified workout types.
@@ -566,9 +607,10 @@ function strainToIntensity(strain: number | null): GrapplingIntensity {
 
 /**
  * Auto-import Whoop combat sport workouts as grappling sessions.
- * Uses two detection methods:
+ * Uses three detection methods (in priority order):
  * 1. Explicit sport ID mapping (wrestling, BJJ, boxing, MMA, kickboxing)
- * 2. Heuristic detection for generic "Workout" entries that match grappling patterns
+ * 2. Name-based detection (matches keywords like "jiu jitsu", "grappling", etc.)
+ * 3. Heuristic detection for generic "Workout" entries that match grappling patterns
  *
  * Only imports workouts that haven't already been imported (dedup by whoopWorkoutId).
  */
@@ -577,7 +619,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
   const existingSessions = store.grapplingSessions;
 
   // Find combat sport workouts not yet imported
-  // Check both explicit mapping AND heuristic detection
+  // Check sport ID, name patterns, AND heuristic detection
   const combatWorkouts = whoopWorkouts.filter(w => {
     // Skip if already imported
     if (existingSessions.some(s => s.whoopWorkoutId === w.id)) {
@@ -589,7 +631,12 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
       return true;
     }
 
-    // Method 2: Heuristic detection for generic workouts
+    // Method 2: Name-based detection (catches "Jiu Jitsu", "Grappling", etc.)
+    if (detectGrapplingFromName(w.sportName)) {
+      return true;
+    }
+
+    // Method 3: Heuristic detection for generic workouts
     // This catches workouts labeled as "Workout", "Other", "Activity", etc.
     // that have characteristics matching grappling/combat sports
     if (isLikelyGrapplingWorkout(w)) {
@@ -600,17 +647,20 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
   });
 
   for (const ww of combatWorkouts) {
-    // Determine grappling type: use explicit mapping if available, otherwise infer
-    const explicitType = WHOOP_COMBAT_SPORT_MAP[ww.sportId];
-    const grapplingType = explicitType ?? inferGrapplingTypeFromWorkout(ww);
-    const wasHeuristic = !explicitType;
+    // Determine grappling type using priority: sport ID > name detection > heuristic
+    const typeFromId = WHOOP_COMBAT_SPORT_MAP[ww.sportId];
+    const typeFromName = detectGrapplingFromName(ww.sportName);
+    const grapplingType = typeFromId ?? typeFromName ?? inferGrapplingTypeFromWorkout(ww);
+
+    // Track detection method for notes
+    const detectionMethod = typeFromId ? 'id' : typeFromName ? 'name' : 'heuristic';
 
     const durationMin = Math.round(
       (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
     );
 
     // Build descriptive note based on detection method
-    const notePrefix = wasHeuristic
+    const notePrefix = detectionMethod === 'heuristic'
       ? `Auto-detected as grappling from "${ww.sportName}" (based on strain/HR patterns)`
       : `Auto-imported from Whoop (${ww.sportName})`;
 
@@ -646,7 +696,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
       maxHR: ww.maxHR ?? 0,
       timeInZones: hrZones as any,
       caloriesBurned: ww.calories ?? 0,
-      notes: wasHeuristic
+      notes: detectionMethod === 'heuristic'
         ? `Whoop: ${ww.sportName} (auto-detected as grappling)`
         : `Whoop: ${ww.sportName}`,
     });

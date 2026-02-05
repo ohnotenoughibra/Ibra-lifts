@@ -52,6 +52,7 @@ import {
   Grip,
   Watch,
   ClipboardCheck,
+  Award,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -1087,6 +1088,62 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
   })();
 
+  // Training period summaries (weekly, monthly, yearly)
+  const periodSummaries = (() => {
+    const now = new Date();
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const startOfThisYear = new Date(now.getFullYear(), 0, 1);
+    const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+    const endOfLastYear = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+
+    // Include training sessions if user does combat/general fitness
+    const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
+
+    const getStats = (fromDate: Date, toDate: Date) => {
+      const filteredLogs = workoutLogs.filter(l => {
+        const d = new Date(l.date);
+        return d >= fromDate && d <= toDate;
+      });
+      const filteredSessions = includeOtherSessions
+        ? trainingSessions.filter(s => {
+            const d = new Date(s.date);
+            return d >= fromDate && d <= toDate;
+          })
+        : [];
+      const totalVolume = filteredLogs.reduce((sum, l) => sum + l.totalVolume, 0);
+      const prs = filteredLogs.reduce((sum, l) => sum + l.exercises.filter(e => e.personalRecord).length, 0);
+      const uniqueDays = new Set([
+        ...filteredLogs.map(l => new Date(l.date).toDateString()),
+        ...filteredSessions.map(s => new Date(s.date).toDateString())
+      ]);
+      return {
+        workouts: filteredLogs.length,
+        sessions: filteredSessions.length,
+        trainingDays: uniqueDays.size,
+        volume: totalVolume,
+        prs,
+      };
+    };
+
+    return {
+      thisWeek: getStats(startOfThisWeek, now),
+      lastWeek: getStats(startOfLastWeek, new Date(startOfThisWeek.getTime() - 1)),
+      thisMonth: getStats(startOfThisMonth, now),
+      lastMonth: getStats(startOfLastMonth, new Date(startOfThisMonth.getTime() - 1)),
+      thisYear: getStats(startOfThisYear, now),
+      lastYear: getStats(startOfLastYear, endOfLastYear),
+    };
+  })();
+
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
@@ -1254,6 +1311,25 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
               <div className="mt-3 flex items-center gap-2 bg-yellow-500/10 rounded-lg px-3 py-2">
                 <Star className="w-4 h-4 text-yellow-400" />
                 <span className="text-xs font-medium text-yellow-300">New Personal Record!</span>
+              </div>
+            )}
+            {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {lastCompletedWorkout.newBadges.map((badge) => (
+                  <motion.div
+                    key={badge.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2"
+                  >
+                    <span className="text-lg">{badge.icon}</span>
+                    <div className="flex-1">
+                      <span className="text-xs font-medium text-purple-300">{badge.name}</span>
+                      <span className="text-[10px] text-purple-400/70 ml-2">+{badge.points} XP</span>
+                    </div>
+                    <Award className="w-4 h-4 text-purple-400" />
+                  </motion.div>
+                ))}
               </div>
             )}
             <div className="mt-3 flex items-center gap-2">
@@ -1540,36 +1616,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         </div>
       )}
 
-      {/* Weekly Consistency + Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stat-card items-center text-center"
-        >
-          <BarChart3 className="w-5 h-5 mb-1 text-primary-400" />
-          <p className="stat-value">{weeklyConsistency.done}/{weeklyConsistency.target}</p>
-          <p className="stat-label">This Week</p>
-        </motion.div>
-        {[
-          { icon: Flame, value: gamificationStats.currentStreak, label: 'Streak', color: 'text-orange-500' },
-          { icon: Trophy, value: gamificationStats.personalRecords, label: 'PRs', color: 'text-yellow-500' },
-          { icon: Target, value: gamificationStats.totalWorkouts, label: 'Workouts', color: 'text-green-500' },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * (i + 1) }}
-            className="stat-card items-center text-center"
-          >
-            <stat.icon className={cn('w-5 h-5 mb-1', stat.color)} />
-            <p className="stat-value">{stat.value}</p>
-            <p className="stat-label">{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
       {/* Estimated 1RM Trends */}
       {e1rmTrends.length > 0 && (
         <div className="card p-4">
@@ -1659,6 +1705,103 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
       {/* Training Streak Heatmap */}
       <StreakHeatmap workoutLogs={workoutLogs} />
+
+      {/* ─── Training Roundup ─── */}
+      <div className="card p-4">
+        <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2 mb-3">
+          <BarChart3 className="w-4 h-4 text-primary-400" />
+          Training Roundup
+        </h3>
+        <div className="space-y-3">
+          {/* This Week */}
+          <div className="bg-grappler-800/50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-300">This Week</span>
+              {periodSummaries.lastWeek.trainingDays > 0 && (
+                <span className={cn(
+                  'text-[10px] font-medium',
+                  periodSummaries.thisWeek.trainingDays > periodSummaries.lastWeek.trainingDays ? 'text-green-400' :
+                  periodSummaries.thisWeek.trainingDays < periodSummaries.lastWeek.trainingDays ? 'text-amber-400' : 'text-grappler-500'
+                )}>
+                  vs last week
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
+                <p className="text-[10px] text-grappler-500">Days</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
+                <p className="text-[10px] text-grappler-500">Lifts</p>
+              </div>
+              {periodSummaries.thisWeek.sessions > 0 && (
+                <div>
+                  <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
+                  <p className="text-[10px] text-grappler-500">Training</p>
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
+                <p className="text-[10px] text-grappler-500">PRs</p>
+              </div>
+            </div>
+          </div>
+
+          {/* This Month */}
+          <div className="bg-grappler-800/30 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-400">This Month</span>
+              <span className="text-[10px] text-grappler-500">{formatNumber(periodSummaries.thisMonth.volume)} {weightUnit} vol</span>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-grappler-300">
+                <span className="font-bold text-grappler-100">{periodSummaries.thisMonth.trainingDays}</span> training days
+              </span>
+              <span className="text-grappler-400">•</span>
+              <span className="text-grappler-300">
+                <span className="font-bold text-yellow-400">{periodSummaries.thisMonth.prs}</span> PRs
+              </span>
+              {periodSummaries.lastMonth.trainingDays > 0 && (
+                <>
+                  <span className="text-grappler-400">•</span>
+                  <span className={cn(
+                    'text-[10px]',
+                    periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? 'text-green-400' : 'text-grappler-500'
+                  )}>
+                    {periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? '+' : ''}
+                    {periodSummaries.thisMonth.trainingDays - periodSummaries.lastMonth.trainingDays} vs last
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Year to Date */}
+          <div className="bg-grappler-800/20 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-400">{today.getFullYear()} Year to Date</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="text-grappler-300">
+                <span className="font-bold text-grappler-100">{periodSummaries.thisYear.workouts}</span> workouts
+              </span>
+              {periodSummaries.thisYear.sessions > 0 && (
+                <span className="text-grappler-300">
+                  <span className="font-bold text-blue-400">{periodSummaries.thisYear.sessions}</span> sessions
+                </span>
+              )}
+              <span className="text-grappler-300">
+                <span className="font-bold text-yellow-400">{periodSummaries.thisYear.prs}</span> PRs
+              </span>
+              <span className="text-grappler-300">
+                <span className="font-bold text-primary-400">{formatNumber(periodSummaries.thisYear.volume)}</span> {weightUnit}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Today at a Glance ─── */}
       <motion.div
@@ -1797,41 +1940,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* Recent Activity (compact) */}
-      {workoutLogs.length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-grappler-100 text-sm mb-3">Recent</h3>
-          <div className="space-y-2">
-            {workoutLogs.slice(-3).reverse().map((log) => (
-              <div
-                key={log.id}
-                className="flex items-center justify-between py-1.5"
-              >
-                <div className="flex items-center gap-2">
-                  <Dumbbell className="w-4 h-4 text-grappler-500" />
-                  <span className="text-sm text-grappler-300">{log.exercises.length} exercises</span>
-                  <span className="text-xs text-grappler-500">{formatDate(log.date)}</span>
-                </div>
-                <span className="text-xs text-grappler-400">{log.duration}m</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Current Block Info (compact) */}
-      {currentMesocycle && (
-        <div className="card p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-grappler-500">Current Block</p>
-            <p className="font-medium text-grappler-100 text-sm">{currentMesocycle.name}</p>
-          </div>
-          <span className="text-xs text-grappler-400">
-            {currentMesocycle.weeks.length}w • {currentMesocycle.goalFocus}
-          </span>
-        </div>
-      )}
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>

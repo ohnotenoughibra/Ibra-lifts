@@ -590,7 +590,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       <Droplets className="w-4 h-4 text-blue-400" />
                       <span className="text-xs text-gray-300">Hydration Goal</span>
                     </div>
-                    <span className="text-sm font-medium text-blue-300">{contextualNutrition.hydrationGoal} oz</span>
+                    <span className="text-sm font-medium text-blue-300">{(contextualNutrition.hydrationGoal / 1000).toFixed(1)} L</span>
                   </div>
 
                   {/* Recommendations */}

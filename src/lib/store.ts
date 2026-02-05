@@ -192,6 +192,7 @@ interface AppState {
 
   // Gamification actions
   recalculateGamificationStats: () => void;
+  recalculatePRs: () => void;
   awardPoints: (points: number, reason: string) => void;
   checkAndAwardBadges: () => void;
 
@@ -752,8 +753,8 @@ export const useAppStore = create<AppState>()(
 
         set({ workoutLogs: updatedLogs });
 
-        // Recalculate gamification stats after migration
-        get().recalculateGamificationStats();
+        // Recalculate PRs and gamification stats after migration
+        get().recalculatePRs();
       },
 
       getCurrentMesocycleLogCount: () => {
@@ -874,8 +875,8 @@ export const useAppStore = create<AppState>()(
 
         set({ workoutLogs: updatedLogs });
 
-        // Recalculate gamification stats after import
-        get().recalculateGamificationStats();
+        // Recalculate PRs and gamification stats after import
+        get().recalculatePRs();
       },
 
       // Workout actions
@@ -1367,6 +1368,70 @@ export const useAppStore = create<AppState>()(
         get().checkAndAwardBadges();
       },
 
+      recalculatePRs: () => {
+        const { workoutLogs } = get();
+        if (workoutLogs.length === 0) return;
+
+        // Sort logs by date (oldest first) to process in chronological order
+        const sortedLogs = [...workoutLogs].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // Track best estimated 1RM for each exercise
+        const bestE1RMs: Record<string, number> = {};
+
+        // Calculate estimated 1RM using Brzycki formula
+        const calcE1RM = (weight: number, reps: number) => {
+          if (reps === 0 || weight === 0) return 0;
+          if (reps === 1) return weight;
+          return Math.round(weight / (1.0278 - 0.0278 * reps));
+        };
+
+        // Process each log and update PR flags
+        const updatedLogs = sortedLogs.map(log => {
+          const updatedExercises = log.exercises.map(ex => {
+            // Find best set in this exercise
+            let bestSetE1RM = 0;
+            for (const set of ex.sets) {
+              if (set.completed && set.weight > 0 && set.reps > 0) {
+                const e1rm = calcE1RM(set.weight, set.reps);
+                if (e1rm > bestSetE1RM) {
+                  bestSetE1RM = e1rm;
+                }
+              }
+            }
+
+            // Check if this is a PR
+            const previousBest = bestE1RMs[ex.exerciseId] || 0;
+            const isPR = bestSetE1RM > 0 && bestSetE1RM > previousBest;
+
+            // Update best for this exercise
+            if (bestSetE1RM > previousBest) {
+              bestE1RMs[ex.exerciseId] = bestSetE1RM;
+            }
+
+            // Update estimated1RM on the exercise
+            return {
+              ...ex,
+              personalRecord: isPR,
+              estimated1RM: bestSetE1RM > 0 ? bestSetE1RM : ex.estimated1RM,
+            };
+          });
+
+          return { ...log, exercises: updatedExercises };
+        });
+
+        // Re-sort back to original order (newest first for display)
+        const finalLogs = updatedLogs.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        set({ workoutLogs: finalLogs });
+
+        // Recalculate gamification stats to update PR count
+        get().recalculateGamificationStats();
+      },
+
       awardPoints: (points, reason) => {
         const { gamificationStats } = get();
         const newTotal = gamificationStats.totalPoints + points;
@@ -1481,8 +1546,8 @@ export const useAppStore = create<AppState>()(
 
         set({ workoutLogs: [...workoutLogs, workoutLog] });
 
-        // Recalculate all gamification stats to properly account for this past workout
-        get().recalculateGamificationStats();
+        // Recalculate PRs and gamification stats to properly account for this past workout
+        get().recalculatePRs();
       },
 
       // Body weight actions

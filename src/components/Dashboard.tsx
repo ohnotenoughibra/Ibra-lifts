@@ -50,6 +50,8 @@ import {
   RefreshCw,
   Sparkles,
   Grip,
+  Watch,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -1104,10 +1106,25 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     }
   };
 
+  // Wearable-adaptive tool label and icon
+  const getWearableTool = () => {
+    if (user?.wearableUsage === 'whoop') {
+      return { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' };
+    }
+    if (user?.wearableUsage === 'other_wearable') {
+      const providerLabel = user?.wearableProvider === 'apple_health' ? 'Apple' :
+        user?.wearableProvider === 'oura' ? 'Oura' :
+        user?.wearableProvider === 'garmin' ? 'Garmin' : 'Wearable';
+      return { icon: Watch, label: providerLabel, view: 'wearable' as OverlayView, color: 'text-blue-400 bg-blue-500/20' };
+    }
+    // No wearable - show manual check-in focused view
+    return { icon: ClipboardCheck, label: 'Check-In', view: 'quick_actions' as OverlayView, color: 'text-amber-400 bg-amber-500/20' };
+  };
+
   const featuredTools = [
     { icon: Sparkles, label: 'Quick Log', view: 'quick_actions' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
     { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
-    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+    getWearableTool(),
     { icon: Zap, label: 'Recovery AI', view: 'recovery_coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
     { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
   ];
@@ -1118,6 +1135,10 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
     { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
     { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
+    // Show wearable in "more" if user doesn't have one configured (so they can set up later)
+    ...(user?.wearableUsage === 'no_wearable' || !user?.wearableUsage
+      ? [{ icon: Activity, label: 'Wearables', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' }]
+      : []),
     { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
     { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
     { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },

@@ -19,8 +19,11 @@ import {
   Eye,
   Smile,
   Trophy,
+  Watch,
+  Activity,
+  X,
 } from 'lucide-react';
-import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity } from '@/lib/types';
+import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarDays, AlertTriangle } from 'lucide-react';
 
@@ -347,6 +350,12 @@ function Step3_Setup({
   data: OnboardingData;
   update: (data: Partial<OnboardingData>) => void;
 }) {
+  const wearableOptions: { value: WearableUsage; icon: any; title: string; desc: string; color: string }[] = [
+    { value: 'whoop', icon: Activity, title: 'Whoop', desc: 'Auto-sync recovery & strain data', color: 'emerald' },
+    { value: 'other_wearable', icon: Watch, title: 'Other Wearable', desc: 'Apple Watch, Oura, Garmin, etc.', color: 'blue' },
+    { value: 'no_wearable', icon: X, title: 'No Wearable', desc: 'I\'ll log manually', color: 'gray' },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="text-center mb-4">
@@ -483,6 +492,111 @@ function Step3_Setup({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Wearable Section */}
+      <div className="pt-2 border-t border-grappler-700">
+        <label className="block text-sm font-medium text-grappler-300 mb-2 flex items-center gap-1.5">
+          <Watch className="w-3.5 h-3.5 text-grappler-400" />
+          Do you use a fitness wearable?
+        </label>
+        <p className="text-xs text-grappler-500 mb-3">
+          We can use your recovery data to optimize training recommendations
+        </p>
+        <div className="space-y-2">
+          {wearableOptions.map((opt) => {
+            const selected = data.wearableUsage === opt.value;
+            const colorClasses = {
+              emerald: { border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400', iconBg: 'bg-emerald-500/20' },
+              blue: { border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400', iconBg: 'bg-blue-500/20' },
+              gray: { border: 'border-grappler-600', bg: 'bg-grappler-700/50', text: 'text-grappler-400', iconBg: 'bg-grappler-700' },
+            };
+            const colors = colorClasses[opt.color as keyof typeof colorClasses];
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  update({ wearableUsage: opt.value });
+                  // Set default provider for whoop
+                  if (opt.value === 'whoop') {
+                    update({ wearableProvider: 'whoop' });
+                  } else if (opt.value === 'no_wearable') {
+                    update({ wearableProvider: undefined });
+                  }
+                }}
+                className={cn(
+                  'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',
+                  selected ? `${colors.border} ${colors.bg}` : 'border-grappler-700 hover:border-grappler-600'
+                )}
+              >
+                <div className={cn(
+                  'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+                  selected ? colors.iconBg : 'bg-grappler-700/50'
+                )}>
+                  <opt.icon className={cn('w-4 h-4', selected ? colors.text : 'text-grappler-500')} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-grappler-100">{opt.title}</p>
+                  <p className="text-[10px] text-grappler-400">{opt.desc}</p>
+                </div>
+                {selected && opt.value === 'whoop' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Recommended
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {/* Other wearable provider selector */}
+        <AnimatePresence>
+          {data.wearableUsage === 'other_wearable' && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mt-3"
+            >
+              <label className="block text-xs text-grappler-400 mb-1.5">Which wearable?</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: 'apple_health' as WearableProvider, label: 'Apple Watch' },
+                  { value: 'oura' as WearableProvider, label: 'Oura' },
+                  { value: 'garmin' as WearableProvider, label: 'Garmin' },
+                ]).map((w) => (
+                  <button
+                    key={w.value}
+                    onClick={() => update({ wearableProvider: w.value })}
+                    className={cn(
+                      'py-2 rounded-lg text-xs font-medium transition-all',
+                      data.wearableProvider === w.value
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-grappler-700 text-grappler-400'
+                    )}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Benefit note for wearable users */}
+        {(data.wearableUsage === 'whoop' || data.wearableUsage === 'other_wearable') && (
+          <div className="mt-3 bg-primary-500/10 border border-primary-500/20 rounded-lg p-2.5">
+            <p className="text-xs text-primary-300">
+              <strong className="text-primary-200">Benefits:</strong> Auto-adjusted workout intensity,
+              recovery-based suggestions, sleep tracking, and personalized readiness scores.
+            </p>
+          </div>
+        )}
+        {data.wearableUsage === 'no_wearable' && (
+          <div className="mt-3 bg-grappler-800/50 border border-grappler-700 rounded-lg p-2.5">
+            <p className="text-xs text-grappler-400">
+              No problem! We'll use your manual check-ins (sleep, soreness, energy) to guide your training.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -854,7 +968,20 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
   features.push(`${data.sessionDurationMinutes} min sessions`);
   features.push('Progressive overload built in');
   features.push('Deload week for recovery');
-  features.push('Recovery-aware scheduling');
+  // Wearable-specific features
+  if (data.wearableUsage === 'whoop') {
+    features.push('Whoop integration — auto-sync recovery & strain');
+    features.push('Workout intensity auto-adjusted to recovery score');
+  } else if (data.wearableUsage === 'other_wearable') {
+    const providerName = data.wearableProvider === 'apple_health' ? 'Apple Watch' :
+      data.wearableProvider === 'oura' ? 'Oura' :
+      data.wearableProvider === 'garmin' ? 'Garmin' : 'Wearable';
+    features.push(`${providerName} data support`);
+    features.push('Recovery-aware scheduling');
+  } else {
+    features.push('Manual check-in for recovery tracking');
+    features.push('Recovery-aware scheduling');
+  }
 
   return (
     <div className="space-y-5">

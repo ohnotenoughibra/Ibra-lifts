@@ -47,6 +47,7 @@ import {
   Plus,
   X,
   Scale,
+  RefreshCw,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -773,10 +774,13 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions, bodyWeightLog,
-    grapplingSessions, latestWhoopData, meals
+    grapplingSessions, latestWhoopData, meals,
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showMigrateDialog, setShowMigrateDialog] = useState(false);
+  const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Today's Summary Data ───
@@ -1039,9 +1043,33 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     startWorkout(quickSession);
   };
 
-  // Handle mesocycle completion — auto-generate next
+  // Handle mesocycle completion — auto-generate next with migration check
   const handleGenerateNext = () => {
+    const currentLogCount = getCurrentMesocycleLogCount();
+    if (currentMesocycle && currentLogCount > 0) {
+      setPreviousMesocycleId(currentMesocycle.id);
+      setShowMigrateDialog(true);
+    } else {
+      generateNewMesocycle();
+    }
+  };
+
+  // Handle migration dialog response
+  const handleMigrateResponse = (shouldMigrate: boolean) => {
+    const oldMesocycleId = previousMesocycleId;
     generateNewMesocycle();
+
+    if (shouldMigrate && oldMesocycleId) {
+      setTimeout(() => {
+        const newMesocycle = useAppStore.getState().currentMesocycle;
+        if (newMesocycle && oldMesocycleId) {
+          migrateWorkoutLogsToMesocycle(oldMesocycleId, newMesocycle.id);
+        }
+      }, 0);
+    }
+
+    setShowMigrateDialog(false);
+    setPreviousMesocycleId(null);
   };
 
   // Tools split into featured (top 4) and more
@@ -1715,6 +1743,70 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           </span>
         </div>
       )}
+
+      {/* Workout Migration Dialog */}
+      <AnimatePresence>
+        {showMigrateDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowMigrateDialog(false);
+              setPreviousMesocycleId(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-primary-500/20">
+                  <RefreshCw className="w-5 h-5 text-primary-400" />
+                </div>
+                <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
+              </div>
+
+              <p className="text-sm text-grappler-400 mb-2">
+                You have <span className="text-primary-400 font-semibold">{getCurrentMesocycleLogCount()} workout{getCurrentMesocycleLogCount() !== 1 ? 's' : ''}</span> logged in your current program.
+              </p>
+              <p className="text-sm text-grappler-400 mb-5">
+                Do you want to carry this progress into your new program, or start fresh?
+              </p>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleMigrateResponse(true)}
+                  className="btn btn-primary w-full gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Keep My Progress
+                </button>
+                <button
+                  onClick={() => handleMigrateResponse(false)}
+                  className="btn btn-secondary w-full gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Start Fresh
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMigrateDialog(false);
+                    setPreviousMesocycleId(null);
+                  }}
+                  className="btn btn-ghost w-full text-grappler-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

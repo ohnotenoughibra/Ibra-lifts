@@ -342,7 +342,17 @@ export default function Dashboard() {
   const [overlayView, setOverlayView] = useState<OverlayView>(null);
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
-  const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, mesocycleHistory, deleteMesocycle, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
+  // Use individual selectors to avoid full re-renders when unrelated state changes
+  const user = useAppStore(s => s.user);
+  const gamificationStats = useAppStore(s => s.gamificationStats);
+  const currentMesocycle = useAppStore(s => s.currentMesocycle);
+  const activeWorkout = useAppStore(s => s.activeWorkout);
+  const workoutLogs = useAppStore(s => s.workoutLogs);
+  const mesocycleHistory = useAppStore(s => s.mesocycleHistory);
+  const deleteMesocycle = useAppStore(s => s.deleteMesocycle);
+  const syncConflict = useAppStore(s => s.syncConflict);
+  const resolveSyncConflict = useAppStore(s => s.resolveSyncConflict);
+  const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -472,7 +482,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="px-4 py-6">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
           {activeTab === 'home' && (
             <motion.div
               key="home"

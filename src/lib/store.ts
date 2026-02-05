@@ -1426,10 +1426,16 @@ export const useAppStore = create<AppState>()(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
+        // Batch the workoutLogs update — gamification recalc runs on next tick
+        // to avoid cascading set() calls that cause blank-screen re-render storms
         set({ workoutLogs: finalLogs });
 
-        // Recalculate gamification stats to update PR count
-        get().recalculateGamificationStats();
+        // Defer gamification recalc to avoid synchronous cascading set() calls
+        // (recalculateGamificationStats -> checkAndAwardBadges -> set())
+        // which cause rapid re-renders that break AnimatePresence transitions
+        queueMicrotask(() => {
+          get().recalculateGamificationStats();
+        });
       },
 
       awardPoints: (points, reason) => {

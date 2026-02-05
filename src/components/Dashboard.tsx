@@ -915,7 +915,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   })();
 
   // Check if today is a rest day (no workout logged today)
-  const todayStr = new Date().toDateString();
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 

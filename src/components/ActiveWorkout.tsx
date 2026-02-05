@@ -607,6 +607,8 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
+            role="dialog"
+            aria-modal="true"
           >
             <div className="flex-1 overflow-y-auto p-4 pb-32">
               {/* Header */}
@@ -723,28 +725,28 @@ export default function ActiveWorkout() {
                       )}>
                         {latestWhoopData.recoveryScore ?? '--'}%
                       </p>
-                      <p className="text-[10px] text-grappler-500">Recovery</p>
+                      <p className="text-xs text-grappler-500">Recovery</p>
                     </div>
                     <div className="text-center">
                       <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.strain?.toFixed(1) ?? '--'}
                       </p>
-                      <p className="text-[10px] text-grappler-500">Strain</p>
+                      <p className="text-xs text-grappler-500">Strain</p>
                     </div>
                     <div className="text-center">
                       <Moon className="w-4 h-4 mx-auto mb-0.5 text-indigo-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.sleepHours?.toFixed(1) ?? '--'}h
                       </p>
-                      <p className="text-[10px] text-grappler-500">Sleep</p>
+                      <p className="text-xs text-grappler-500">Sleep</p>
                     </div>
                     <div className="text-center">
                       <Zap className="w-4 h-4 mx-auto mb-0.5 text-orange-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.caloriesBurned?.toLocaleString() ?? '--'}
                       </p>
-                      <p className="text-[10px] text-grappler-500">kcal</p>
+                      <p className="text-xs text-grappler-500">kcal</p>
                     </div>
                   </div>
 
@@ -905,7 +907,7 @@ export default function ActiveWorkout() {
                     ))}
                   </div>
                   {grapplingToday !== 'none' && !showGrapplingQ && (
-                    <p className="text-[10px] text-grappler-500 mt-2">
+                    <p className="text-xs text-grappler-500 mt-2">
                       Volume adjusted for {grapplingToday} grappling session
                     </p>
                   )}
@@ -922,7 +924,7 @@ export default function ActiveWorkout() {
                     </div>
                     <button
                       onClick={() => setShowGrapplingQ(true)}
-                      className="text-grappler-400 hover:text-grappler-200 text-[10px] underline"
+                      className="text-grappler-400 hover:text-grappler-200 text-xs underline"
                     >
                       Change
                     </button>
@@ -953,7 +955,7 @@ export default function ActiveWorkout() {
                     </div>
                     <button
                       onClick={() => setShowGrapplingQ(true)}
-                      className="text-grappler-400 hover:text-grappler-200 text-[10px] underline"
+                      className="text-grappler-400 hover:text-grappler-200 text-xs underline"
                     >
                       Change
                     </button>
@@ -1019,7 +1021,7 @@ export default function ActiveWorkout() {
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
-                    className="text-[10px] text-grappler-500 text-center -mt-4 mb-4"
+                    className="text-xs text-grappler-500 text-center -mt-4 mb-4"
                   >
                     Exercises will adapt to {showLocationConfirm} equipment
                     <button
@@ -1095,7 +1097,7 @@ export default function ActiveWorkout() {
               >
                 <span className="text-sm font-medium text-grappler-300 flex items-center gap-2">
                   <Brain className="w-4 h-4" /> Quick Check-In
-                  <span className="text-[10px] text-grappler-500">(optional)</span>
+                  <span className="text-xs text-grappler-500">(optional)</span>
                 </span>
                 <ChevronDown className={cn('w-4 h-4 text-grappler-400 transition-transform', showCheckInSection && 'rotate-180')} />
               </button>
@@ -1188,7 +1190,7 @@ export default function ActiveWorkout() {
                           { label: 'Motivation', key: 'motivation' as const, icon: Zap, lowLabel: 'Low', highLabel: 'High', invert: false },
                         ]).map(({ label, key, icon: Icon, invert }) => (
                           <div key={key} className="bg-grappler-800/40 rounded-lg p-3">
-                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                            <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                               <Icon className="w-3 h-3" /> {label}
                             </label>
                             <div className="flex gap-0.5">
@@ -1197,7 +1199,7 @@ export default function ActiveWorkout() {
                                   key={v}
                                   onClick={() => setCheckIn({ ...checkIn, [key]: v })}
                                   className={cn(
-                                    'flex-1 py-1 rounded text-[10px] font-medium',
+                                    'flex-1 py-1 rounded text-xs font-medium',
                                     checkIn[key] === v
                                       ? invert
                                         ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
@@ -1245,6 +1247,8 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
           >
             <motion.div
               initial={{ y: 100, opacity: 0 }}
@@ -1293,7 +1297,7 @@ export default function ActiveWorkout() {
                       {/* Tags */}
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         {rec.tags.slice(0, 4).map((tag, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
+                          <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
                             {tag}
                           </span>
                         ))}
@@ -1310,7 +1314,7 @@ export default function ActiveWorkout() {
                       )}
 
                       {/* Muscle info */}
-                      <p className="text-[10px] text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-500 mt-1">
                         {rec.exercise.primaryMuscles.join(', ')}
                         {rec.exercise.secondaryMuscles.length > 0 && (
                           <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
@@ -1344,6 +1348,8 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center"
+            role="dialog"
+            aria-modal="true"
             onClick={() => setShowHistoryModal(false)}
           >
             <motion.div
@@ -1428,7 +1434,7 @@ export default function ActiveWorkout() {
                         });
                       })()}
                     </div>
-                    <div className="flex justify-between mt-2 text-[10px] text-grappler-500">
+                    <div className="flex justify-between mt-2 text-xs text-grappler-500">
                       <span>Oldest</span>
                       <span>Most Recent</span>
                     </div>
@@ -1500,7 +1506,7 @@ export default function ActiveWorkout() {
               {formatTime(Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 60000))}
               {readiness && (
                 <span className={cn(
-                  'ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                  'ml-2 px-1.5 py-0.5 rounded text-xs font-medium',
                   readiness.score >= 65 ? 'bg-green-500/20 text-green-400' :
                   readiness.score >= 35 ? 'bg-yellow-500/20 text-yellow-400' :
                   'bg-red-500/20 text-red-400'
@@ -1786,12 +1792,12 @@ export default function ActiveWorkout() {
                     onClick={() => {
                       setExactValue('weight', rpeSuggestion.suggested);
                     }}
-                    className="text-[10px] text-primary-400 bg-primary-500/20 px-2 py-0.5 rounded-full hover:bg-primary-500/30 transition-colors"
+                    className="text-xs text-primary-400 bg-primary-500/20 px-2 py-0.5 rounded-full hover:bg-primary-500/30 transition-colors"
                   >
                     Use
                   </button>
                 </div>
-                <p className="text-[10px] text-grappler-500 mt-0.5">
+                <p className="text-xs text-grappler-500 mt-0.5">
                   Based on {rpeSuggestion.lastWeight}{weightUnit} @ RPE {rpeSuggestion.lastRPE} last time
                   {rpeSuggestion.targetRPE !== rpeSuggestion.lastRPE && ` → target RPE ${rpeSuggestion.targetRPE}`}
                 </p>
@@ -1836,7 +1842,7 @@ export default function ActiveWorkout() {
                   className="mt-2 overflow-hidden"
                 >
                   <div className="bg-grappler-800/40 rounded-lg p-3 space-y-2">
-                    <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium">Last {exerciseHistory.length} sessions</p>
+                    <p className="text-xs text-grappler-500 uppercase tracking-wide font-medium">Last {exerciseHistory.length} sessions</p>
                     {exerciseHistory.map((h, i) => (
                       <div key={i} className="flex items-center justify-between text-xs">
                         <span className="text-grappler-500">
@@ -1853,7 +1859,7 @@ export default function ActiveWorkout() {
                         )}
                         {h.feedback && (
                           <span className={cn(
-                            'text-[10px] px-1.5 py-0.5 rounded',
+                            'text-xs px-1.5 py-0.5 rounded',
                             h.feedback.difficulty === 'too_easy' && 'bg-green-500/20 text-green-400',
                             h.feedback.difficulty === 'just_right' && 'bg-blue-500/20 text-blue-400',
                             h.feedback.difficulty === 'challenging' && 'bg-yellow-500/20 text-yellow-400',
@@ -1869,7 +1875,7 @@ export default function ActiveWorkout() {
                     ))}
                     {exerciseHistory.length >= 2 && (
                       <div className="pt-1 border-t border-grappler-700/50">
-                        <p className="text-[10px] text-grappler-500">
+                        <p className="text-xs text-grappler-500">
                           {exerciseHistory[0].weight > exerciseHistory[exerciseHistory.length - 1].weight
                             ? `↑ +${exerciseHistory[0].weight - exerciseHistory[exerciseHistory.length - 1].weight} ${weightUnit} over ${exerciseHistory.length} sessions`
                             : exerciseHistory[0].weight < exerciseHistory[exerciseHistory.length - 1].weight
@@ -1966,7 +1972,7 @@ export default function ActiveWorkout() {
                     : 'text-grappler-400'
                 )}>Weight ({weightUnit})</label>
                 {currentSet.weight > 0 && previousPerformance && (
-                  <span className="text-[10px] text-primary-400">
+                  <span className="text-xs text-primary-400">
                     {currentSet.weight > previousPerformance.weight ? '+' : ''}{Math.round(currentSet.weight - previousPerformance.weight)} vs last
                   </span>
                 )}
@@ -2015,7 +2021,7 @@ export default function ActiveWorkout() {
                     ? 'text-yellow-400'
                     : 'text-grappler-400'
                 )}>Reps</label>
-                <span className="text-[10px] text-grappler-500">
+                <span className="text-xs text-grappler-500">
                   Target: {currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}
                 </span>
               </div>
@@ -2151,7 +2157,7 @@ export default function ActiveWorkout() {
                     )}>
                       {ex.exercise.name}
                     </p>
-                    <p className="text-[10px] text-grappler-500">
+                    <p className="text-xs text-grappler-500">
                       {doneSets}/{log.sets.length} sets
                       {isCurrent && !isDone && (
                         <span className="text-primary-400 ml-1">— in progress</span>
@@ -2159,7 +2165,7 @@ export default function ActiveWorkout() {
                     </p>
                   </div>
                   {i === currentExerciseIndex + 1 && !isDone && (
-                    <span className="text-[10px] bg-grappler-700 text-grappler-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                    <span className="text-xs bg-grappler-700 text-grappler-300 px-2 py-0.5 rounded-full flex-shrink-0">
                       up next
                     </span>
                   )}
@@ -2178,6 +2184,8 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -2216,6 +2224,8 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
           >
             <motion.div
               initial={{ y: 100, opacity: 0 }}
@@ -2410,7 +2420,7 @@ export default function ActiveWorkout() {
                         <span className="text-sm text-grappler-400">minutes</span>
                         <button
                           onClick={() => setDurationOverride(null)}
-                          className="ml-auto text-[10px] text-grappler-500 underline"
+                          className="ml-auto text-xs text-grappler-500 underline"
                         >
                           Use actual time ({elapsedMin}m)
                         </button>

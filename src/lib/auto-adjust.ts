@@ -201,7 +201,7 @@ export function calculateExerciseAdjustments(
       break;
     case 'challenging':
       // Perfect - small increase (2.5-5%)
-      const challengeIncrease = Math.max(2.5, Math.round(lastWeight * 0.025 / 2.5) * 2.5);
+      const challengeIncrease = Math.max(2.5, Math.round(lastWeight * 0.05 / 2.5) * 2.5);
       adjustments.push({
         exerciseId: feedback.exerciseId,
         exerciseName: exerciseLog.exerciseName,
@@ -466,7 +466,7 @@ export function getSuggestedWeight(
           case 'too_hard':
             return Math.max(0, maxWeight - Math.max(5, Math.round(maxWeight * 0.07 / 5) * 5));
           case 'challenging':
-            return maxWeight + Math.max(2.5, Math.round(maxWeight * 0.025 / 2.5) * 2.5);
+            return maxWeight + Math.max(2.5, Math.round(maxWeight * 0.05 / 2.5) * 2.5);
           default:
             return maxWeight;
         }

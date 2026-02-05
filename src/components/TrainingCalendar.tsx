@@ -13,7 +13,8 @@ export default function TrainingCalendar() {
     workoutLogs, trainingSessions, user,
     addTrainingSession, addPastWorkout,
     deleteWorkoutLog, deleteTrainingSession,
-    updateWorkoutLog, updateTrainingSession
+    updateWorkoutLog, updateTrainingSession,
+    recalculatePRs
   } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const now = new Date();
@@ -220,6 +221,9 @@ export default function TrainingCalendar() {
       exercises: editedExercises,
       totalVolume,
     });
+
+    // Recalculate PRs after saving changes
+    recalculatePRs();
 
     setWorkoutBeingEdited(null);
     setEditedExercises([]);

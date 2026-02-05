@@ -902,72 +902,58 @@ export default function ActiveWorkout() {
                 </div>
               )}
 
-              {/* Location Quick-Switch */}
+              {/* Location Quick-Switch (minimal) */}
               <div className="flex items-center gap-1.5 bg-grappler-800/50 rounded-xl p-1.5 mb-5">
                 {DEFAULT_EQUIPMENT_PROFILES.map((profile) => {
                   const IconMap: Record<string, any> = { gym: Building2, home: Home, travel: Backpack };
                   const PIcon = IconMap[profile.name] || Dumbbell;
                   const isActive = activeEquipmentProfile === profile.name;
+                  const isPending = showLocationConfirm === profile.name;
                   return (
                     <button
                       key={profile.name}
                       onClick={() => {
                         if (isActive) return;
-                        setShowLocationConfirm(profile.name);
+                        if (isPending) {
+                          // Second tap confirms
+                          adaptWorkoutToProfile(profile.name);
+                          setShowLocationConfirm(null);
+                        } else {
+                          setShowLocationConfirm(profile.name);
+                        }
                       }}
                       className={cn(
                         'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
                         isActive
                           ? 'bg-primary-500 text-white shadow-md'
+                          : isPending
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
                           : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/50'
                       )}
                     >
                       <PIcon className="w-3.5 h-3.5" />
-                      {profile.label}
+                      {isPending ? 'Tap to confirm' : profile.label}
                     </button>
                   );
                 })}
               </div>
-
-              {/* Location Switch Confirmation Dialog */}
+              {/* Minimal hint when pending */}
               <AnimatePresence>
                 {showLocationConfirm && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden mb-4"
+                  <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="text-[10px] text-grappler-500 text-center -mt-4 mb-4"
                   >
-                    <div className="rounded-xl p-4 bg-amber-500/10 border border-amber-500/30">
-                      <div className="flex items-start gap-2 mb-3">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-semibold text-amber-300">Switch location?</p>
-                          <p className="text-xs text-grappler-400 mt-1">
-                            Switching to <span className="text-grappler-200 font-medium capitalize">{showLocationConfirm}</span> will
-                            replace exercises that aren&apos;t available at that location. Your logged sets will be reset for swapped exercises.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            adaptWorkoutToProfile(showLocationConfirm);
-                            setShowLocationConfirm(null);
-                          }}
-                          className="flex-1 btn btn-sm bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
-                        >
-                          Switch
-                        </button>
-                        <button
-                          onClick={() => setShowLocationConfirm(null)}
-                          className="btn btn-sm btn-secondary"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
+                    Exercises will adapt to {showLocationConfirm} equipment
+                    <button
+                      onClick={() => setShowLocationConfirm(null)}
+                      className="ml-2 text-grappler-400 hover:text-grappler-300 underline"
+                    >
+                      cancel
+                    </button>
+                  </motion.p>
                 )}
               </AnimatePresence>
 

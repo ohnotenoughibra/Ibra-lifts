@@ -613,8 +613,7 @@ export default function ActiveWorkout() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    ~{Math.round(activeWorkout.session.exercises.reduce((sum, ex) =>
-                      sum + (ex.sets * (30 + ex.prescription.restSeconds)), 0) / 60)} min
+                    ~{activeWorkout.session.estimatedDuration} min
                   </span>
                 </div>
               </div>

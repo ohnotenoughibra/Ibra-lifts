@@ -41,8 +41,6 @@ export type WeightUnit = 'lbs' | 'kg';
 // Wearable usage preference
 export type WearableUsage = 'whoop' | 'other_wearable' | 'no_wearable';
 
-export type BiologicalSex = 'male' | 'female';
-
 export interface UserProfile {
   id: string;
   email: string;
@@ -880,7 +878,7 @@ export interface OnboardingData {
   step: number;
   name: string;
   age: number;
-  biologicalSex?: BiologicalSex;
+  sex?: BiologicalSex;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];

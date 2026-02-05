@@ -291,6 +291,8 @@ const initialOnboardingData: OnboardingData = {
   weightUnit: 'lbs',
   baselineLifts: {},
   trainingIdentity: 'combat',
+  wearableUsage: undefined,
+  wearableProvider: undefined,
 };
 
 const initialGamificationStats: GamificationStats = {
@@ -416,6 +418,9 @@ export const useAppStore = create<AppState>()(
           combatSport: onboardingData.combatSport,
           trainingDays: onboardingData.trainingDays,
           combatTrainingDays: onboardingData.combatTrainingDays,
+          // Wearable preferences
+          wearableUsage: onboardingData.wearableUsage,
+          wearableProvider: onboardingData.wearableProvider,
           createdAt: new Date(),
           updatedAt: new Date()
         };

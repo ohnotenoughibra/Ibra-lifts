@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -38,7 +38,7 @@ import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
 import { getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
-import { calculateReadiness, whoopRecoveryToReadiness } from '@/lib/auto-adjust';
+import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
 import { Building2, Home, Backpack } from 'lucide-react';
@@ -48,8 +48,14 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, adaptWorkoutToProfile,
-    activeEquipmentProfile, latestWhoopData, applyWhoopAdjustment
+    activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment
   } = useAppStore();
+
+  // Calculate personal baseline from wearable history for accurate HRV/RHR analysis
+  const personalBaseline = useMemo(() =>
+    calculatePersonalBaseline(wearableHistory),
+    [wearableHistory]
+  );
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [isResting, setIsResting] = useState(false);
@@ -77,7 +83,7 @@ export default function ActiveWorkout() {
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
 
-  // Compute Whoop readiness for display
+  // Compute Whoop readiness for display (uses personal baseline for accurate HRV/RHR analysis)
   const whoopReadiness = latestWhoopData ? whoopRecoveryToReadiness({
     recoveryScore: latestWhoopData.recoveryScore ?? undefined,
     hrvMs: latestWhoopData.hrv ?? undefined,
@@ -91,7 +97,7 @@ export default function ActiveWorkout() {
     sleepNeededHours: latestWhoopData.sleepNeededHours ?? undefined,
     sleepConsistency: latestWhoopData.sleepConsistency ?? undefined,
     sleepDisturbances: latestWhoopData.sleepDisturbances ?? undefined,
-  }) : null;
+  }, personalBaseline) : null;
 
   // Pre-workout check-in state
   const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>({

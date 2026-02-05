@@ -470,8 +470,8 @@ export function getRecoveryTips(analysis: RecoveryCoachAnalysis): string[] {
     tips.push('Foam rolling for 10 min can help reduce muscle tension');
   }
 
-  // General tips
-  tips.push('Protein within 30 min post-workout aids recovery');
+  // General tips (evidence-based: protein timing window is 2-4 hours, not 30 min)
+  tips.push('Distribute protein evenly across meals (25-40g per meal) for optimal MPS');
   tips.push('Stay hydrated: aim for 0.5-1 oz water per lb bodyweight');
 
   return tips.slice(0, 5); // Return top 5 tips

@@ -37,6 +37,9 @@ export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power';
 export type SessionsPerWeek = 1 | 2 | 3 | 4 | 5 | 6;
 export type WeightUnit = 'lbs' | 'kg';
 
+// Wearable usage preference
+export type WearableUsage = 'whoop' | 'other_wearable' | 'no_wearable';
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -53,6 +56,9 @@ export interface UserProfile {
   combatSport?: CombatSport;
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
+  // Wearable preferences
+  wearableUsage?: WearableUsage;
+  wearableProvider?: WearableProvider;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -853,4 +859,7 @@ export interface OnboardingData {
   combatSport?: CombatSport;
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
+  // Wearable preferences
+  wearableUsage?: WearableUsage;
+  wearableProvider?: WearableProvider;
 }

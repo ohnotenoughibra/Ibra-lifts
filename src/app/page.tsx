@@ -368,7 +368,43 @@ function scheduleStreakReminder() {
     localStorage.setItem('roots-daily-notif-ts', String(Date.now()));
   }
 
+  // ── Meal logging reminders ──
+  // Remind at ~12:30 and ~19:00 if no meals logged recently
+  const mealReminderKey = `roots-meal-notif-${now.toDateString()}-${now.getHours() < 15 ? 'lunch' : 'dinner'}`;
+  const mealReminderShown = localStorage.getItem(mealReminderKey);
+  if (!mealReminderShown) {
+    const hour = now.getHours();
+    const isLunchWindow = hour >= 12 && hour <= 14;
+    const isDinnerWindow = hour >= 19 && hour <= 21;
+
+    if (isLunchWindow || isDinnerWindow) {
+      const store = useAppStore.getState();
+      const todayMeals = store.meals.filter(
+        m => new Date(m.date).toDateString() === now.toDateString()
+      );
+
+      const mealName = isLunchWindow ? 'lunch' : 'dinner';
+      const hasMealType = todayMeals.some(m =>
+        isLunchWindow ? (m.mealType === 'lunch' || m.mealType === 'pre_workout') : m.mealType === 'dinner'
+      );
+
+      if (!hasMealType) {
+        const totalCal = todayMeals.reduce((s, m) => s + m.calories, 0);
+        const body = totalCal > 0
+          ? `You've logged ${totalCal} kcal so far. Don't forget to log ${mealName}!`
+          : `No meals logged yet today. Tap to log your ${mealName}.`;
+
+        new Notification('Log Your Meal', {
+          body,
+          icon: '/icon-192.png',
+          tag: `meal-${mealName}`,
+        });
+        localStorage.setItem(mealReminderKey, '1');
+      }
+    }
+  }
+
   if (process.env.NODE_ENV === 'development') {
-    console.log('[notifications] Smart training notifications active');
+    console.log('[notifications] Smart training + meal notifications active');
   }
 }

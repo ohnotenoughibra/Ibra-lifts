@@ -37,7 +37,9 @@ import {
   QuickLog,
   GripTest,
   GripExerciseLog,
-  ACTIVITY_CATEGORY_MAP
+  ACTIVITY_CATEGORY_MAP,
+  DietPhase,
+  WeeklyCheckIn,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -108,6 +110,10 @@ interface AppState {
   meals: MealEntry[];
   macroTargets: MacroTargets;
   waterLog: Record<string, number>; // dateStr -> glasses
+
+  // Diet coaching
+  activeDietPhase: DietPhase | null;
+  weeklyCheckIns: WeeklyCheckIn[];
 
   // Body composition
   bodyComposition: BodyCompositionEntry[];
@@ -252,6 +258,12 @@ interface AppState {
   setMacroTargets: (targets: MacroTargets) => void;
   setWaterGlasses: (date: string, glasses: number) => void;
 
+  // Diet coaching actions
+  startDietPhase: (phase: Omit<DietPhase, 'id'>) => void;
+  endDietPhase: () => void;
+  addWeeklyCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id'>) => void;
+  incrementPhaseWeek: () => void;
+
   // Body composition actions
   addBodyComposition: (entry: Omit<BodyCompositionEntry, 'id'>) => void;
   deleteBodyComposition: (id: string) => void;
@@ -345,6 +357,8 @@ export const useAppStore = create<AppState>()(
       meals: [],
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
       waterLog: {},
+      activeDietPhase: null,
+      weeklyCheckIns: [],
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
@@ -1796,6 +1810,38 @@ export const useAppStore = create<AppState>()(
         set({ waterLog: { ...waterLog, [date]: glasses } });
       },
 
+      // Diet coaching actions
+      startDietPhase: (phase) => {
+        set({
+          activeDietPhase: { ...phase, id: uuidv4() },
+          macroTargets: phase.currentMacros,
+        });
+      },
+
+      endDietPhase: () => {
+        set({ activeDietPhase: null });
+      },
+
+      addWeeklyCheckIn: (checkIn) => {
+        const { weeklyCheckIns } = get();
+        set({
+          weeklyCheckIns: [...weeklyCheckIns, { ...checkIn, id: uuidv4() }],
+          macroTargets: checkIn.newMacros,
+        });
+      },
+
+      incrementPhaseWeek: () => {
+        const { activeDietPhase } = get();
+        if (activeDietPhase) {
+          set({
+            activeDietPhase: {
+              ...activeDietPhase,
+              weeksCompleted: activeDietPhase.weeksCompleted + 1,
+            },
+          });
+        }
+      },
+
       // Body composition actions
       addBodyComposition: (entry) => {
         const { bodyComposition } = get();
@@ -1902,6 +1948,8 @@ export const useAppStore = create<AppState>()(
           meals: [],
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
           waterLog: {},
+          activeDietPhase: null,
+          weeklyCheckIns: [],
           bodyComposition: [],
           muscleEmphasis: null,
           competitions: [],

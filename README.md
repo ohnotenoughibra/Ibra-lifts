@@ -1,155 +1,124 @@
 # Roots Gains
 
-A science-based workout app by Roots Collective for martial artists with limited lifting time. Built with Next.js, React, and Tailwind CSS.
+Science-based strength training for martial artists. Built for grapplers, strikers, and MMA fighters who need to get strong without burning out before practice.
 
-## Features
+**Stack:** Next.js 14 / React 18 / Tailwind CSS / Zustand / Vercel Postgres
 
-### Core Training Features
-- **Undulating Periodization**: Automatically varies training intensity (strength/hypertrophy/power) within each week for optimal gains
-- **Grappler-Specific Programming**: Exercises chosen for functional carryover to grappling (deadlifts, rows, Turkish get-ups, grip work)
-- **2-3 Sessions/Week**: Designed for athletes who need to balance lifting with mat time
-- **Smart Progression**: RPE-based autoregulation with automatic deload suggestions
-
-### Workout Types
-- **Strength Days** (85-95% 1RM, 3-5 reps): Heavy compounds for maximal force production
-- **Hypertrophy Days** (65-85% 1RM, 6-12 reps): Moderate volume for muscle growth
-- **Power Days** (40-60% 1RM, explosive): Speed-strength for athletic performance
-
-### Goal Options
-- **Strength Focus**: Heavier loads, lower reps, compound-dominant
-- **Aesthetics Focus**: Higher volume, more isolation work, emphasis on muscle definition
-- **Balanced (Recommended)**: Best of both worlds, optimized for grappling performance
-
-### Gamification System
-- **Points**: Earn XP for completing workouts, hitting PRs, maintaining streaks
-- **Levels**: Progress from Novice to Legendary Grappler
-- **Badges**: 30+ achievements including "PR Crusher", "Iron Grip", "Turkish Master"
-- **Streaks**: Track consistency with daily/weekly streak counters
-
-### Analytics & Progress
-- **Strength Tracking**: Estimated 1RM progress over time per exercise
-- **Volume Analysis**: Weekly/monthly volume trends with muscle group breakdown
-- **Insights**: AI-generated observations about your progress
-- **PR Detection**: Automatic personal record recognition with celebrations
-
-### Knowledge Hub
-- **Science-Based Tips**: Pop-up tips during workouts based on current research
-- **Educational Articles**: Deep dives on periodization, hypertrophy science, grappler-specific training
-- **Form Cues**: Exercise-specific coaching cues from evidence-based sources
-
-## Tech Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **UI**: React 18 + Tailwind CSS
-- **State Management**: Zustand with persistence
-- **Charts**: Recharts
-- **Animations**: Framer Motion
-- **Database**: Vercel Postgres (optional - works offline with localStorage)
-- **Deployment**: Vercel
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm or yarn
-
-### Installation
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/roots-gains.git
-cd roots-gains
-
-# Install dependencies
 npm install
-
-# Copy environment variables
 cp .env.example .env.local
-
-# Start development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:3000`
+Open `http://localhost:3000`. No database needed for local dev — everything runs on localStorage.
 
-### Environment Variables
+See [QUICKSTART.md](./QUICKSTART.md) for full setup, deployment, and configuration docs.
 
-No env variables needed for local development. The app uses localStorage.
+## What It Does
 
-For cloud storage with Vercel Postgres, the env vars are **auto-set** when you add a database in the Vercel dashboard (see deployment steps below).
+Roots Gains generates periodized lifting programs (5-12 weeks) using Daily Undulating Periodization. Each week alternates between strength, hypertrophy, and power sessions so you get stronger without accumulating too much fatigue alongside combat training.
 
-## Deployment on Vercel
+### Core Features
 
-### One-Click Deploy
+- **Smart Programming** — DUP-based mesocycles with auto-progression. RPE feedback adjusts weight automatically. Deload weeks inserted when recovery drops.
+- **Combat-Aware Scheduling** — Tracks grappling/striking sessions. Auto-reduces lifting volume on hard sparring days. Avoids heavy deadlifts the day before competition prep.
+- **50+ Exercise Database** — Compound-heavy, grappling-relevant exercises with form cues, YouTube links, and equipment alternatives.
+- **Whoop Integration** — Pulls HRV, recovery score, sleep data. Adjusts workout intensity based on readiness.
+- **Nutrition Tracking** — Contextual macros that adjust based on training type, recovery score, and competition proximity.
+- **Gamification** — XP, levels (Novice to Legendary Grappler), 30+ badges, streaks. Keeps you showing up.
+- **Full Offline Support** — PWA with service worker. Works without internet. Syncs when back online.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/roots-gains)
+### Everything Else
 
-### Manual Deployment
+Progress charts, 1RM tracking, PR detection, volume heatmaps, injury logging, mobility routines, grip strength tracking, competition prep with peaking/tapering, session templates, workout builder, body weight tracking, PDF/CSV export, full backup/restore, weekly AI coach summaries, exercise response profiling, community sharing.
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Deploy! (works immediately with localStorage)
+## Training Splits
 
-### Adding Vercel Postgres (Optional - for cloud storage)
+| Split | Best For |
+|-------|----------|
+| Full Body | 2-3 days/week, most grapplers |
+| Upper/Lower | 4 days/week |
+| Push/Pull/Legs | 5-6 days/week |
+| Grappler Hybrid | 2-3 days with combat sport integration |
 
-1. In your Vercel project dashboard, go to **Storage** tab
-2. Click **Create Database** > **Postgres**
-3. Select the free "Hobby" plan
-4. Click **Connect** to link it to your project
-5. Vercel automatically sets all `POSTGRES_*` env variables
-6. Redeploy - the app will auto-detect the database and sync data
+## Workout Types
 
-No manual env variable setup needed. Vercel handles it all.
+| Type | Intensity | Reps | Purpose |
+|------|-----------|------|---------|
+| Strength | 85-95% 1RM | 3-5 | Maximal force production |
+| Hypertrophy | 65-85% 1RM | 6-12 | Muscle growth |
+| Power | 60-80% 1RM | 3-6, explosive | Speed-strength for combat |
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js app router
-│   ├── api/               # API routes
-│   │   ├── workout/       # Workout generation
-│   │   ├── progress/      # Progress calculations
-│   │   └── sync/          # Cloud sync (Vercel Postgres)
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Main page
-├── components/            # React components
-│   ├── ActiveWorkout.tsx  # In-workout UI
-│   ├── Dashboard.tsx      # Main dashboard
-│   ├── KnowledgeHub.tsx   # Educational content
-│   ├── LoadingScreen.tsx  # Loading state
-│   ├── Onboarding.tsx     # User onboarding flow
-│   ├── ProfileSettings.tsx# User profile & badges
-│   ├── ProgressCharts.tsx # Analytics & charts
-│   └── WorkoutView.tsx    # Program overview
-└── lib/                   # Core logic
-    ├── exercises.ts       # Exercise database (50+ exercises)
-    ├── gamification.ts    # Points, badges, levels
-    ├── knowledge.ts       # Tips & articles
-    ├── store.ts           # Zustand state management
-    ├── db.ts              # Vercel Postgres client
-    ├── types.ts           # TypeScript types
-    ├── utils.ts           # Utility functions
-    └── workout-generator.ts# Periodization logic
+  app/
+    api/
+      auth/           # Registration, login, password reset
+      workout/        # Mesocycle generation
+      progress/       # 1RM calculations
+      sync/           # Vercel Postgres cloud sync
+      whoop/          # Whoop OAuth + data
+      nutrition/      # AI food analysis (optional)
+    page.tsx          # Entry point (hydration, session, onboarding)
+    layout.tsx        # Root layout, PWA meta, providers
+
+  components/         # 38 React components
+    Dashboard.tsx     # Main shell, tab routing, FAB
+    ActiveWorkout.tsx # Live workout tracker
+    WorkoutView.tsx   # Program overview + session picker
+    TrainingCalendar.tsx  # Calendar with inline editing
+    Onboarding.tsx    # First-run setup flow
+    ...               # See QUICKSTART.md for full list
+
+  lib/                # Core logic, 26 modules
+    store.ts          # Zustand state (persisted to localStorage)
+    exercises.ts      # Exercise database (50+ entries)
+    workout-generator.ts  # DUP periodization engine
+    auto-adjust.ts    # RPE-based weight progression
+    gamification.ts   # Points, levels, badges
+    recovery-coach.ts # Recovery alerts + readiness scoring
+    smart-schedule.ts # Training day recommendations
+    contextual-nutrition.ts  # Macro adjustments by training type
+    db-sync.ts        # localStorage <-> Postgres sync
+    ...
 ```
+
+## Environment Variables
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `AUTH_SECRET` | Yes (prod) | NextAuth JWT signing. Generate with `npx auth secret` |
+| `POSTGRES_URL` | No | Auto-set by Vercel when you add a Postgres database |
+| `RESEND_API_KEY` | No | Password reset emails via [Resend](https://resend.com) |
+| `WHOOP_CLIENT_ID` | No | Whoop wearable integration |
+| `WHOOP_CLIENT_SECRET` | No | Whoop wearable integration |
+| `OPENAI_API_KEY` | No | Camera-based food recognition |
+
+The app works fully without any env variables in development (localStorage only, no auth).
+
+## Deployment
+
+```bash
+# Push to GitHub, then:
+vercel deploy --prod
+```
+
+Or connect the repo in the Vercel dashboard for automatic deployments on push.
+
+**Adding cloud sync:** Vercel dashboard > Storage > Create Database > Postgres > Connect. All `POSTGRES_*` vars are set automatically. Redeploy and sync is live.
 
 ## Scientific Basis
 
-This app is built on evidence-based training principles from 2023-2025 research:
-
-### Periodization
-- Daily Undulating Periodization (DUP) produces superior strength gains in trained individuals compared to linear models (Grgic et al., 2024)
-- Particularly effective for athletes training 2-3x per week
-
-### Hypertrophy
-- 10-20 sets per muscle group per week is optimal
-- Training at long muscle lengths produces superior hypertrophy (2024-2025 studies)
-- 3-4 second eccentrics increase muscle growth per set
-
-### Grappling-Specific
-- Posterior chain strength (deadlifts, rows) directly transfers to grappling
-- Grip endurance often determines late-match outcomes
-- Turkish Get-Ups train every ground position
+- **Periodization:** DUP produces superior strength gains in trained athletes vs. linear models (Grgic et al., 2024)
+- **Volume:** 10-20 sets/muscle group/week is the evidence-based range for hypertrophy (Schoenfeld et al.)
+- **Progression:** 5% load increase per wave cycle for intermediate lifters, RPE-gated
+- **Recovery:** Personal HRV baselines with rolling 7-day averages, not population norms
+- **Nutrition:** Post-workout protein timing has a flexible 2-3 hour window (current meta-analyses), not the old "30-minute anabolic window"
+- **Combat sports:** Posterior chain strength transfers directly to grappling; grip endurance determines late-match outcomes
 
 ## Customization
 
@@ -161,14 +130,12 @@ Edit `src/lib/exercises.ts`:
 {
   id: 'your-exercise',
   name: 'Your Exercise Name',
-  category: 'compound', // or 'isolation', 'power', 'grappling_specific', 'grip'
+  category: 'compound',
   primaryMuscles: ['back', 'lats'],
   secondaryMuscles: ['biceps'],
   movementPattern: 'pull',
-  equipmentRequired: ['full_gym', 'home_gym'],
+  equipmentRequired: ['full_gym'],
   grapplerFriendly: true,
-  aestheticValue: 8,
-  strengthValue: 9,
   description: 'Exercise description',
   cues: ['Form cue 1', 'Form cue 2']
 }
@@ -183,35 +150,17 @@ Edit `src/lib/gamification.ts`:
   id: 'your-badge',
   name: 'Badge Name',
   description: 'How to earn it',
-  icon: '🏆',
+  icon: 'medal-icon',
   category: 'strength',
   requirement: 'personal_records >= 10',
   points: 500
 }
 ```
 
-### Adding Knowledge Content
-
-Edit `src/lib/knowledge.ts` to add tips or articles.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
-MIT License - feel free to use this for your own projects!
-
-## Acknowledgments
-
-- Training science from Dr. Mike Israetel, Dr. Eric Helms, and other researchers
-- Grappling insights from athletes like Gordon Ryan and John Danaher
-- UI inspiration from Renaissance Periodization app
+MIT
 
 ---
 
-Built with 💪 for grapplers who want to get stronger without sacrificing mat time.
+Built by Roots Collective for athletes who want to get stronger without sacrificing mat time.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -1089,7 +1089,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   })();
 
   // Training period summaries (weekly, monthly, yearly)
-  const periodSummaries = (() => {
+  const periodSummaries = useMemo(() => {
     const now = new Date();
     const startOfThisWeek = new Date(now);
     startOfThisWeek.setDate(now.getDate() - now.getDay());
@@ -1109,18 +1109,22 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
 
     const getStats = (fromDate: Date, toDate: Date) => {
-      const filteredLogs = workoutLogs.filter(l => {
-        const d = new Date(l.date);
-        return d >= fromDate && d <= toDate;
+      const filteredLogs = (workoutLogs || []).filter(l => {
+        try {
+          const d = new Date(l.date);
+          return d >= fromDate && d <= toDate;
+        } catch { return false; }
       });
       const filteredSessions = includeOtherSessions
-        ? trainingSessions.filter(s => {
-            const d = new Date(s.date);
-            return d >= fromDate && d <= toDate;
+        ? (trainingSessions || []).filter(s => {
+            try {
+              const d = new Date(s.date);
+              return d >= fromDate && d <= toDate;
+            } catch { return false; }
           })
         : [];
-      const totalVolume = filteredLogs.reduce((sum, l) => sum + l.totalVolume, 0);
-      const prs = filteredLogs.reduce((sum, l) => sum + l.exercises.filter(e => e.personalRecord).length, 0);
+      const totalVolume = filteredLogs.reduce((sum, l) => sum + (l.totalVolume || 0), 0);
+      const prs = filteredLogs.reduce((sum, l) => sum + (l.exercises?.filter(e => e.personalRecord).length || 0), 0);
       const uniqueDays = new Set([
         ...filteredLogs.map(l => new Date(l.date).toDateString()),
         ...filteredSessions.map(s => new Date(s.date).toDateString())
@@ -1142,7 +1146,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       thisYear: getStats(startOfThisYear, now),
       lastYear: getStats(startOfLastYear, endOfLastYear),
     };
-  })();
+  }, [workoutLogs, trainingSessions, user?.trainingIdentity]);
 
   // Quick workout handler
   const handleQuickWorkout = () => {

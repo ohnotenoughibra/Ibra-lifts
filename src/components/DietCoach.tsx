@@ -11,7 +11,7 @@ import {
   getPhaseRecommendation,
   calculateAdherence,
 } from '@/lib/diet-coach';
-import { DietGoal } from '@/lib/types';
+import { DietGoal, BiologicalSex } from '@/lib/types';
 import {
   Scale,
   TrendingDown,
@@ -26,6 +26,8 @@ import {
   Flame,
   Dumbbell,
   Shield,
+  Ruler,
+  User,
 } from 'lucide-react';
 
 const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
@@ -62,18 +64,28 @@ export default function DietCoach() {
     addWeeklyCheckIn,
     incrementPhaseWeek,
     setMacroTargets,
+    setUser,
   } = useAppStore();
 
   const [expanded, setExpanded] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
+  const [setupStep, setSetupStep] = useState<'info' | 'goal'>('info');
   const [selectedGoal, setSelectedGoal] = useState<DietGoal>('cut');
   const [showCheckIn, setShowCheckIn] = useState(false);
 
-  // Get body weight in kg
+  // Setup form state — pre-fill from user profile / weight log
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
-  const bodyWeightKg = latestWeight
+  const defaultWeightKg = latestWeight
     ? (latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight)
-    : 80; // default
+    : 80;
+
+  const [formWeight, setFormWeight] = useState(String(Math.round(defaultWeightKg)));
+  const [formHeight, setFormHeight] = useState(String(user?.heightCm || 175));
+  const [formSex, setFormSex] = useState<BiologicalSex>(user?.sex || 'male');
+
+  const bodyWeightKg = parseFloat(formWeight) || defaultWeightKg;
+  const heightCm = parseFloat(formHeight) || 175;
+  const age = user?.age || 25;
 
   // Analyze weight trend
   const weightTrend = useMemo(
@@ -100,8 +112,16 @@ export default function DietCoach() {
 
   // Handle starting a new diet phase
   const handleStartPhase = () => {
+    // Save height & sex to user profile
+    if (user) {
+      setUser({ ...user, heightCm, sex: formSex, updatedAt: new Date() });
+    }
+
     const newMacros = calculateMacros({
       bodyWeightKg,
+      heightCm,
+      age,
+      sex: formSex,
       goal: selectedGoal,
       activityMultiplier,
     });
@@ -118,6 +138,7 @@ export default function DietCoach() {
     });
 
     setShowSetup(false);
+    setSetupStep('info');
   };
 
   // Handle weekly check-in
@@ -225,15 +246,105 @@ export default function DietCoach() {
                 </div>
               )}
 
-              {/* Setup flow */}
-              {showSetup && (
+              {/* Setup flow — Step 1: Your info */}
+              {showSetup && setupStep === 'info' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Your Info</p>
+                  <p className="text-[10px] text-grappler-500">
+                    Used for Mifflin-St Jeor BMR — the most accurate validated formula (ADA 2005).
+                  </p>
+
+                  {/* Weight */}
+                  <div>
+                    <label className="text-[10px] text-grappler-400 mb-1 block">Weight (kg)</label>
+                    <div className="flex items-center gap-2">
+                      <Scale className="w-4 h-4 text-grappler-500" />
+                      <input
+                        type="number"
+                        value={formWeight}
+                        onChange={(e) => setFormWeight(e.target.value)}
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        placeholder="80"
+                        min="30"
+                        max="250"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Height */}
+                  <div>
+                    <label className="text-[10px] text-grappler-400 mb-1 block">Height (cm)</label>
+                    <div className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4 text-grappler-500" />
+                      <input
+                        type="number"
+                        value={formHeight}
+                        onChange={(e) => setFormHeight(e.target.value)}
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        placeholder="175"
+                        min="120"
+                        max="230"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sex */}
+                  <div>
+                    <label className="text-[10px] text-grappler-400 mb-1 block">Biological sex (for BMR calculation)</label>
+                    <div className="flex gap-2">
+                      {(['male', 'female'] as BiologicalSex[]).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setFormSex(s)}
+                          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                            formSex === s
+                              ? 'bg-violet-500/20 border-violet-500/50 border text-violet-300'
+                              : 'bg-grappler-800/40 border border-grappler-700/30 text-grappler-400 hover:border-grappler-600/50'
+                          }`}
+                        >
+                          <User className="w-3.5 h-3.5" />
+                          {s === 'male' ? 'Male' : 'Female'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* BMR preview */}
+                  {formWeight && formHeight && (
+                    <div className="p-2.5 bg-grappler-800/30 rounded-lg">
+                      <p className="text-[10px] text-grappler-500">
+                        Estimated BMR: {Math.round(10 * bodyWeightKg + 6.25 * heightCm - 5 * age + (formSex === 'male' ? 5 : -161))} kcal/day
+                        &middot; Age {age}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowSetup(false); setSetupStep('info'); }}
+                      className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => setSetupStep('goal')}
+                      className="flex-1 py-2 bg-violet-500 hover:bg-violet-600 rounded-xl text-xs font-medium text-white transition-colors flex items-center justify-center gap-1"
+                    >
+                      Next <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Setup flow — Step 2: Choose goal */}
+              {showSetup && setupStep === 'goal' && (
                 <div className="space-y-3">
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Choose Your Goal</p>
                   <div className="space-y-2">
                     {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
                       const config = GOAL_CONFIG[goal];
                       const isSelected = selectedGoal === goal;
-                      const previewMacros = calculateMacros({ bodyWeightKg, goal, activityMultiplier });
+                      const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier });
                       return (
                         <button
                           key={goal}
@@ -270,16 +381,16 @@ export default function DietCoach() {
 
                   <div className="p-2.5 bg-grappler-800/30 rounded-lg">
                     <p className="text-[10px] text-grappler-500">
-                      Based on {Math.round(bodyWeightKg)}kg body weight &middot; Protein set first, fat floor protected, carbs fill remaining
+                      {Math.round(bodyWeightKg)}kg &middot; {Math.round(heightCm)}cm &middot; {formSex} &middot; Protein set first, fat floor protected, carbs fill remaining
                     </p>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowSetup(false)}
+                      onClick={() => setSetupStep('info')}
                       className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
                     >
-                      Cancel
+                      Back
                     </button>
                     <button
                       onClick={handleStartPhase}
@@ -391,6 +502,9 @@ export default function DietCoach() {
                               onClick={() => {
                                 const newMacros = calculateMacros({
                                   bodyWeightKg,
+                                  heightCm,
+                                  age,
+                                  sex: formSex,
                                   goal: phaseStatus.nextGoal!,
                                   activityMultiplier,
                                 });

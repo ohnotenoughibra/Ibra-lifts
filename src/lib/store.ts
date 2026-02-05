@@ -1137,7 +1137,7 @@ export const useAppStore = create<AppState>()(
       },
 
       completeWorkout: (feedback) => {
-        const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user } = get();
+        const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user, trainingSessions } = get();
         if (!activeWorkout || !user) return;
         // Mesocycle can be null for template/quick workouts — still log the workout
 
@@ -1180,7 +1180,7 @@ export const useAppStore = create<AppState>()(
           whoopHR,
         };
 
-        // Calculate date-aware streak
+        // Calculate date-aware streak (respects trainingIdentity)
         const fmtDate = (d: Date) => {
           const dt = new Date(d);
           return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -1192,21 +1192,33 @@ export const useAppStore = create<AppState>()(
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = fmtDate(yesterday);
 
-        const alreadyWorkedOutToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === todayStr);
+        // Collect all training dates - include training sessions if user does combat/general fitness
+        const includeOtherSessions = user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness';
+        const allTrainingDates = new Set<string>();
+
+        // Add all workout log dates
+        workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+
+        // Add training session dates if applicable
+        if (includeOtherSessions && trainingSessions.length > 0) {
+          trainingSessions.forEach(session => allTrainingDates.add(fmtDate(new Date(session.date))));
+        }
+
+        const alreadyTrainedToday = allTrainingDates.has(todayStr);
 
         let newStreak: number;
-        if (alreadyWorkedOutToday) {
+        if (alreadyTrainedToday) {
           // Already trained today — don't double-count
           newStreak = gamificationStats.currentStreak;
         } else {
-          const lastLog = workoutLogs.length > 0
-            ? workoutLogs.reduce((latest, log) => new Date(log.date) > new Date(latest.date) ? log : latest)
-            : null;
-          if (!lastLog) {
-            newStreak = 1; // first workout ever
+          // Get all dates sorted descending to find the last training date
+          const sortedDates = Array.from(allTrainingDates).sort().reverse();
+          const lastTrainingDate = sortedDates[0] || null;
+
+          if (!lastTrainingDate) {
+            newStreak = 1; // first training ever
           } else {
-            const lastDateStr = fmtDate(new Date(lastLog.date));
-            newStreak = lastDateStr === yesterdayStr
+            newStreak = lastTrainingDate === yesterdayStr
               ? gamificationStats.currentStreak + 1
               : 1; // gap — reset streak
           }
@@ -1474,16 +1486,69 @@ export const useAppStore = create<AppState>()(
 
       // Training session actions (unified system for grappling, striking, cardio, etc.)
       addTrainingSession: (session) => {
-        const { trainingSessions } = get();
+        const { trainingSessions, workoutLogs, gamificationStats, user } = get();
         // Auto-determine category from type if not provided
         const category = session.category || ACTIVITY_CATEGORY_MAP[session.type] || 'other';
-        set({
-          trainingSessions: [...trainingSessions, {
-            ...session,
-            id: uuidv4(),
-            category,
-          }]
-        });
+
+        const newSession = {
+          ...session,
+          id: uuidv4(),
+          category,
+        };
+
+        // Update streak if user does combat/general fitness training
+        const includeInStreak = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
+
+        if (includeInStreak) {
+          // Calculate streak including this new session
+          const fmtDate = (d: Date) => {
+            const dt = new Date(d);
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+          };
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayStr = fmtDate(today);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = fmtDate(yesterday);
+
+          // Collect all existing training dates
+          const allTrainingDates = new Set<string>();
+          workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+          trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
+
+          const sessionDateStr = fmtDate(new Date(session.date));
+          const alreadyTrainedOnSessionDate = allTrainingDates.has(sessionDateStr);
+
+          let newStreak = gamificationStats.currentStreak;
+          if (!alreadyTrainedOnSessionDate) {
+            // This session is on a new day - check streak continuity
+            const sortedDates = Array.from(allTrainingDates).sort().reverse();
+            const lastTrainingDate = sortedDates[0] || null;
+
+            if (!lastTrainingDate) {
+              newStreak = 1; // first training ever
+            } else if (sessionDateStr === todayStr && lastTrainingDate === yesterdayStr) {
+              newStreak = gamificationStats.currentStreak + 1;
+            } else if (sessionDateStr === todayStr && lastTrainingDate !== todayStr) {
+              // Training today but gap from last session
+              newStreak = 1;
+            }
+          }
+
+          set({
+            trainingSessions: [...trainingSessions, newSession],
+            gamificationStats: {
+              ...gamificationStats,
+              currentStreak: newStreak,
+              longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
+            }
+          });
+        } else {
+          set({
+            trainingSessions: [...trainingSessions, newSession]
+          });
+        }
       },
 
       updateTrainingSession: (id, updates) => {

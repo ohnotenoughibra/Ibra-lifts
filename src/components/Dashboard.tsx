@@ -122,33 +122,51 @@ type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobil
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const gamificationStats = useAppStore(s => s.gamificationStats);
+  const trainingSessions = useAppStore(s => s.trainingSessions);
+  const user = useAppStore(s => s.user);
   const weeks = 12;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Build a Set of workout date strings
-  const workoutDates = new Set(
-    workoutLogs.map(log => {
-      const d = new Date(log.date);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })
+  const fmtDate = (d: Date) => {
+    const dt = new Date(d);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+
+  // Build sets for lifting and training session dates
+  const liftingDates = new Set(workoutLogs.map(log => fmtDate(new Date(log.date))));
+
+  // Include training sessions if user does combat/general fitness
+  const includeOtherSessions = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
+  const sessionDates = new Set(
+    includeOtherSessions
+      ? trainingSessions.map(s => fmtDate(new Date(s.date)))
+      : []
   );
 
   // Generate grid: 12 weeks x 7 days
-  const grid: { date: Date; hasWorkout: boolean; isToday: boolean; isFuture: boolean }[][] = [];
+  type DayData = {
+    date: Date;
+    hasLifting: boolean;
+    hasSession: boolean;
+    isToday: boolean;
+    isFuture: boolean;
+  };
+  const grid: DayData[][] = [];
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
 
   for (let w = 0; w < weeks; w++) {
-    const week: typeof grid[0] = [];
+    const week: DayData[] = [];
     for (let d = 0; d < 7; d++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + w * 7 + d);
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const dateStr = fmtDate(date);
       const isFuture = date > today;
       week.push({
         date,
-        hasWorkout: workoutDates.has(dateStr),
+        hasLifting: liftingDates.has(dateStr),
+        hasSession: sessionDates.has(dateStr),
         isToday: date.getTime() === today.getTime(),
         isFuture,
       });
@@ -157,8 +175,24 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   }
 
   // Use the persisted streak from gamificationStats for consistency
-  // This accounts for "yesterday's workout counts" logic in the store
   const streak = gamificationStats.currentStreak;
+
+  // Get day color based on activity type
+  const getDayColor = (day: DayData) => {
+    if (day.isFuture) return 'bg-grappler-800/30';
+    if (day.hasLifting && day.hasSession) return 'bg-gradient-to-br from-green-500 to-blue-500'; // Both
+    if (day.hasLifting) return 'bg-green-500'; // Lifting only
+    if (day.hasSession) return 'bg-blue-500'; // Session only (grappling/cardio)
+    return 'bg-grappler-700/40'; // No activity
+  };
+
+  const getDayTitle = (day: DayData) => {
+    const dateStr = day.date.toLocaleDateString();
+    if (day.hasLifting && day.hasSession) return `${dateStr} — lifting + training`;
+    if (day.hasLifting) return `${dateStr} — lifting`;
+    if (day.hasSession) return `${dateStr} — training`;
+    return dateStr;
+  };
 
   return (
     <div className="card p-4">
@@ -180,14 +214,10 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
                 key={di}
                 className={cn(
                   'w-3 h-3 rounded-sm transition-colors',
-                  day.isFuture
-                    ? 'bg-grappler-800/30'
-                    : day.hasWorkout
-                      ? 'bg-green-500'
-                      : 'bg-grappler-700/40',
+                  getDayColor(day),
                   day.isToday && 'ring-1 ring-primary-400'
                 )}
-                title={`${day.date.toLocaleDateString()}${day.hasWorkout ? ' \u2014 trained' : ''}`}
+                title={getDayTitle(day)}
               />
             ))}
           </div>
@@ -195,14 +225,27 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       </div>
       <div className="flex items-center justify-between mt-2">
         <span className="text-[10px] text-grappler-500">{weeks * 7} days</span>
-        <div className="flex items-center gap-1 text-[10px] text-grappler-500">
-          <span>Less</span>
-          <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-          <span>More</span>
-        </div>
+        {includeOtherSessions ? (
+          <div className="flex items-center gap-2 text-[10px] text-grappler-500">
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+              <span>Lifting</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+              <span>Training</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-[10px] text-grappler-500">
+            <span>Less</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+            <span>More</span>
+          </div>
+        )}
       </div>
     </div>
   );

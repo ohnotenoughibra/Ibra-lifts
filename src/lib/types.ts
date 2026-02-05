@@ -356,6 +356,27 @@ export interface QuickLog {
   notes?: string;
 }
 
+// Grip strength tracking
+export interface GripTest {
+  id: string;
+  type: 'hang_time' | 'dynamometer';
+  value: number; // seconds for hang_time, lbs for dynamometer
+  hand?: 'left' | 'right' | 'both';
+  date: Date;
+  notes?: string;
+}
+
+export interface GripExerciseLog {
+  id: string;
+  exerciseId: string;
+  date: Date;
+  value: number; // primary metric (time, reps, or distance depending on exercise)
+  weight?: number;
+  reps?: number;
+  distance?: number;
+  notes?: string;
+}
+
 // Superset / Circuit support
 export interface SupersetGroup {
   id: string;

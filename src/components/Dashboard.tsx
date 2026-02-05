@@ -49,6 +49,7 @@ import {
   Scale,
   RefreshCw,
   Sparkles,
+  Grip,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -111,9 +112,10 @@ const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: 
 const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
+const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const weeks = 12;
@@ -282,6 +284,9 @@ export default function Dashboard() {
   }
   if (overlayView === 'quick_actions') {
     return <QuickActions onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'grip_strength') {
+    return <GripStrengthModule onClose={() => setOverlayView(null)} />;
   }
 
   // Mesocycle report overlay
@@ -1099,6 +1104,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
     { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
     { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+    { icon: Grip, label: 'Grip', view: 'grip_strength' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
     { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
     { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },

@@ -34,7 +34,9 @@ import {
   WearableData,
   CompetitionEvent,
   WhoopWorkout,
-  QuickLog
+  QuickLog,
+  GripTest,
+  GripExerciseLog
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -78,6 +80,10 @@ interface AppState {
 
   // Quick logging (water, sleep, energy, readiness, mobility)
   quickLogs: QuickLog[];
+
+  // Grip strength tracking
+  gripTests: GripTest[];
+  gripExerciseLogs: GripExerciseLog[];
 
   // Injury tracking
   injuryLog: InjuryEntry[];
@@ -198,6 +204,12 @@ interface AppState {
   addQuickLog: (log: Omit<QuickLog, 'id'>) => void;
   deleteQuickLog: (id: string) => void;
 
+  // Grip strength actions
+  addGripTest: (test: Omit<GripTest, 'id'>) => void;
+  addGripExerciseLog: (log: Omit<GripExerciseLog, 'id'>) => void;
+  deleteGripTest: (id: string) => void;
+  deleteGripExerciseLog: (id: string) => void;
+
   // Injury actions
   addInjury: (injury: Omit<InjuryEntry, 'id'>) => void;
   resolveInjury: (id: string) => void;
@@ -308,6 +320,8 @@ export const useAppStore = create<AppState>()(
       gamificationStats: initialGamificationStats,
       bodyWeightLog: [],
       quickLogs: [],
+      gripTests: [],
+      gripExerciseLogs: [],
       injuryLog: [],
       customExercises: [],
       sessionTemplates: [],
@@ -1318,6 +1332,35 @@ export const useAppStore = create<AppState>()(
         set({ quickLogs: quickLogs.filter(l => l.id !== id) });
       },
 
+      // Grip strength actions
+      addGripTest: (test) => {
+        const { gripTests } = get();
+        const entry: GripTest = {
+          ...test,
+          id: uuidv4(),
+        };
+        set({ gripTests: [...gripTests, entry] });
+      },
+
+      addGripExerciseLog: (log) => {
+        const { gripExerciseLogs } = get();
+        const entry: GripExerciseLog = {
+          ...log,
+          id: uuidv4(),
+        };
+        set({ gripExerciseLogs: [...gripExerciseLogs, entry] });
+      },
+
+      deleteGripTest: (id) => {
+        const { gripTests } = get();
+        set({ gripTests: gripTests.filter(t => t.id !== id) });
+      },
+
+      deleteGripExerciseLog: (id) => {
+        const { gripExerciseLogs } = get();
+        set({ gripExerciseLogs: gripExerciseLogs.filter(l => l.id !== id) });
+      },
+
       // Injury actions
       addInjury: (injury) => {
         const { injuryLog } = get();
@@ -1521,6 +1564,8 @@ export const useAppStore = create<AppState>()(
           gamificationStats: initialGamificationStats,
           bodyWeightLog: [],
           quickLogs: [],
+          gripTests: [],
+          gripExerciseLogs: [],
           injuryLog: [],
           customExercises: [],
           sessionTemplates: [],

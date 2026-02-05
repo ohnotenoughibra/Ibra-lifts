@@ -43,21 +43,59 @@ export default function WorkoutHistory() {
   const [sortBy, setSortBy] = useState<'date' | 'volume' | 'rpe'>('date');
   const weightUnit = user?.weightUnit || 'lbs';
 
-  const muscleGroups: { id: MuscleGroup | 'all'; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'chest', label: 'Chest' },
-    { id: 'back', label: 'Back' },
-    { id: 'shoulders', label: 'Shoulders' },
-    { id: 'quadriceps', label: 'Quads' },
-    { id: 'hamstrings', label: 'Hamstrings' },
-    { id: 'glutes', label: 'Glutes' },
-    { id: 'biceps', label: 'Biceps' },
-    { id: 'triceps', label: 'Triceps' },
-    { id: 'core', label: 'Core' },
-    { id: 'lats', label: 'Lats' },
-    { id: 'calves', label: 'Calves' },
-    { id: 'forearms', label: 'Forearms' },
-  ];
+  // Dynamic workout types based on actual user data
+  const availableTypes = useMemo(() => {
+    const types = new Set<'strength' | 'hypertrophy' | 'power'>();
+    workoutLogs.forEach(log => {
+      // Check session ID for type
+      if (log.sessionId?.toLowerCase().includes('strength')) types.add('strength');
+      if (log.sessionId?.toLowerCase().includes('hypertrophy')) types.add('hypertrophy');
+      if (log.sessionId?.toLowerCase().includes('power')) types.add('power');
+    });
+    return Array.from(types);
+  }, [workoutLogs]);
+
+  // Dynamic muscle groups based on what user has actually trained
+  const muscleGroups = useMemo(() => {
+    const muscleLabels: Record<MuscleGroup, string> = {
+      chest: 'Chest',
+      back: 'Back',
+      shoulders: 'Shoulders',
+      quadriceps: 'Quads',
+      hamstrings: 'Hamstrings',
+      glutes: 'Glutes',
+      biceps: 'Biceps',
+      triceps: 'Triceps',
+      core: 'Core',
+      lats: 'Lats',
+      calves: 'Calves',
+      forearms: 'Forearms',
+      traps: 'Traps',
+      full_body: 'Full Body',
+    };
+
+    const foundMuscles = new Set<MuscleGroup>();
+    workoutLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        const exerciseData = getExerciseById(ex.exerciseId);
+        if (exerciseData) {
+          exerciseData.primaryMuscles.forEach(m => foundMuscles.add(m));
+          exerciseData.secondaryMuscles.forEach(m => foundMuscles.add(m));
+        }
+      });
+    });
+
+    const groups: { id: MuscleGroup | 'all'; label: string }[] = [{ id: 'all', label: 'All' }];
+    // Add only muscles the user has trained, maintaining a logical order
+    const orderedMuscles: MuscleGroup[] = ['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'core', 'forearms', 'traps', 'full_body'];
+    orderedMuscles.forEach(muscle => {
+      if (foundMuscles.has(muscle)) {
+        groups.push({ id: muscle, label: muscleLabels[muscle] });
+      }
+    });
+
+    return groups;
+  }, [workoutLogs]);
 
   const startEditing = (logId: string) => {
     const log = workoutLogs.find(l => l.id === logId);
@@ -307,20 +345,32 @@ export default function WorkoutHistory() {
             <Filter className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex gap-2">
-          {(['all', 'strength', 'hypertrophy', 'power'] as const).map(t => (
+        {/* Only show type filter if user has logged different workout types */}
+        {availableTypes.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
             <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
+              onClick={() => setTypeFilter('all')}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium capitalize',
-                typeFilter === t ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                'px-3 py-1.5 rounded-lg text-xs font-medium',
+                typeFilter === 'all' ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
               )}
             >
-              {t}
+              All
             </button>
-          ))}
-        </div>
+            {availableTypes.map(t => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium capitalize',
+                  typeFilter === t ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           {([
             { value: '7d', label: '7 days' },

@@ -1615,7 +1615,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
           {/* Strength */}
           <button
-            onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout, currentMesocycle) : onNavigate('builder')}
+            onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
             className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
           >
             <Dumbbell className="w-4 h-4 text-primary-400" />

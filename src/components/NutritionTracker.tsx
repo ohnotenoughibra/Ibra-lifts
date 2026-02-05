@@ -202,7 +202,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setWaterGlasses: storeSetWater,
     bodyWeightLog,
     currentMesocycle,
-    grapplingSessions,
+    trainingSessions,
     latestWhoopData,
     workoutLogs,
   } = useAppStore();
@@ -249,26 +249,26 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     return null;
   }, [workoutLogs, currentMesocycle]);
 
-  const todayGrappling = useMemo(() => {
+  const todayTraining = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return grapplingSessions.filter(g => {
-      const gDate = new Date(g.date);
-      gDate.setHours(0, 0, 0, 0);
-      return gDate.getTime() === today.getTime();
+    return trainingSessions.filter(s => {
+      const sDate = new Date(s.date);
+      sDate.setHours(0, 0, 0, 0);
+      return sDate.getTime() === today.getTime();
     });
-  }, [grapplingSessions]);
+  }, [trainingSessions]);
 
   const contextualNutrition = useMemo<ContextualMacros>(() => {
     return getContextualNutrition(
       computedTargets,
       bodyWeightLbs,
       todaySession,
-      todayGrappling,
+      todayTraining,
       latestWhoopData,
       user
     );
-  }, [computedTargets, bodyWeightLbs, todaySession, todayGrappling, latestWhoopData, user]);
+  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user]);
 
   const supplements = useMemo(() => {
     return getSupplementRecommendations(contextualNutrition.dayType);

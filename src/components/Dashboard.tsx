@@ -788,7 +788,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions, bodyWeightLog,
-    grapplingSessions, latestWhoopData, meals,
+    trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
@@ -801,8 +801,8 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   const today = new Date();
   const todayStr = today.toDateString();
 
-  // Today's grappling sessions
-  const todayGrappling = grapplingSessions.filter(s =>
+  // Today's training sessions (combat, cardio, etc.)
+  const todayTraining = trainingSessions.filter(s =>
     new Date(s.date).toDateString() === todayStr
   );
 
@@ -1670,7 +1670,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
           >
             <Shield className="w-4 h-4 text-lime-400" />
-            <span className="text-lg font-bold text-grappler-100">{todayGrappling.length}</span>
+            <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
             <span className="text-[10px] text-grappler-500">Grappling</span>
           </button>
 
@@ -1696,7 +1696,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         </div>
 
         {/* Quick insight if no activity yet */}
-        {todayGrappling.length === 0 && todayWorkouts.length === 0 && todayMeals.length === 0 && (
+        {todayTraining.length === 0 && todayWorkouts.length === 0 && todayMeals.length === 0 && (
           <p className="text-xs text-grappler-500 text-center mt-3 py-2 border-t border-grappler-800">
             No activity logged yet today. Tap above to get started!
           </p>

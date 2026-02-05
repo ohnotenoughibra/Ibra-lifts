@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, GrapplingType, GrapplingIntensity } from '@/lib/types';
+import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, TrainingIntensity } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -459,14 +459,14 @@ function transformWhoopBody(apiData: WhoopApiResponse): WhoopBodyMeasurement | n
 }
 
 // ---------------------------------------------------------------------------
-// Whoop combat sport → GrapplingType mapping
+// Whoop combat sport → ActivityType mapping
 // ---------------------------------------------------------------------------
 
 /**
- * Explicit WHOOP sport ID → GrapplingType mapping.
+ * Explicit WHOOP sport ID → ActivityType mapping.
  * These are known combat/martial arts activities that directly map.
  */
-const WHOOP_COMBAT_SPORT_MAP: Record<number, GrapplingType> = {
+const WHOOP_COMBAT_SPORT_MAP: Record<number, ActivityType> = {
   38: 'wrestling',
   39: 'boxing',
   57: 'other',        // Generic "Martial Arts" — could be judo, sambo, etc.
@@ -478,9 +478,9 @@ const WHOOP_COMBAT_SPORT_MAP: Record<number, GrapplingType> = {
 /**
  * Keyword patterns for detecting grappling/combat sports from sport names.
  * This catches sports that might have unknown sport IDs but recognizable names.
- * Maps keyword patterns (lowercase) to GrapplingType.
+ * Maps keyword patterns (lowercase) to ActivityType.
  */
-const GRAPPLING_NAME_PATTERNS: Array<{ pattern: RegExp; type: GrapplingType }> = [
+const GRAPPLING_NAME_PATTERNS: Array<{ pattern: RegExp; type: ActivityType }> = [
   { pattern: /\bjiu[\s-]?jitsu\b/i, type: 'bjj_nogi' },
   { pattern: /\bbjj\b/i, type: 'bjj_nogi' },
   { pattern: /\bbrazilian\b/i, type: 'bjj_nogi' },
@@ -492,7 +492,7 @@ const GRAPPLING_NAME_PATTERNS: Array<{ pattern: RegExp; type: GrapplingType }> =
   { pattern: /\bboxing\b/i, type: 'boxing' },
   { pattern: /\bkickboxing\b/i, type: 'kickboxing' },
   { pattern: /\bmuay\s*thai\b/i, type: 'muay_thai' },
-  { pattern: /\bstriking\b/i, type: 'striking' },
+  { pattern: /\bstriking\b/i, type: 'boxing' },
   { pattern: /\bsambo\b/i, type: 'wrestling' },
   { pattern: /\bcatch\s*wrestling\b/i, type: 'wrestling' },
   { pattern: /\bsubmission\b/i, type: 'bjj_nogi' },
@@ -502,9 +502,9 @@ const GRAPPLING_NAME_PATTERNS: Array<{ pattern: RegExp; type: GrapplingType }> =
 
 /**
  * Detect grappling type from sport name using keyword patterns.
- * Returns the GrapplingType if a match is found, null otherwise.
+ * Returns the ActivityType if a match is found, null otherwise.
  */
-function detectGrapplingFromName(sportName: string): GrapplingType | null {
+function detectGrapplingFromName(sportName: string): ActivityType | null {
   for (const { pattern, type } of GRAPPLING_NAME_PATTERNS) {
     if (pattern.test(sportName)) {
       return type;
@@ -589,7 +589,7 @@ function isLikelyGrapplingWorkout(workout: WhoopWorkout): boolean {
  * Determine the most likely grappling type for a heuristically-detected workout.
  * Since we don't know the exact sport, we use intensity indicators.
  */
-function inferGrapplingTypeFromWorkout(workout: WhoopWorkout): GrapplingType {
+function inferActivityTypeFromWorkout(workout: WhoopWorkout): ActivityType {
   // For heuristically-detected workouts, default to bjj_nogi as it's most common
   // User can manually adjust if needed
   return 'bjj_nogi';
@@ -599,7 +599,7 @@ function inferGrapplingTypeFromWorkout(workout: WhoopWorkout): GrapplingType {
  * Estimate grappling intensity from Whoop strain.
  * Whoop strain is 0-21 scale (logarithmic cardiovascular load).
  */
-function strainToIntensity(strain: number | null): GrapplingIntensity {
+function strainToIntensity(strain: number | null): TrainingIntensity {
   if (strain == null || strain < 8) return 'light_flow';
   if (strain < 13) return 'moderate';
   if (strain < 17) return 'hard_sparring';
@@ -609,9 +609,9 @@ function strainToIntensity(strain: number | null): GrapplingIntensity {
 interface AutoImportResult {
   imported: number;
   sessions: Array<{
-    type: GrapplingType;
+    type: ActivityType;
     duration: number;
-    intensity: GrapplingIntensity;
+    intensity: TrainingIntensity;
     detectionMethod: 'id' | 'name' | 'heuristic';
     sportName: string;
   }>;
@@ -629,7 +629,7 @@ interface AutoImportResult {
  */
 function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResult {
   const store = useAppStore.getState();
-  const existingSessions = store.grapplingSessions;
+  const existingSessions = store.trainingSessions;
   const importedSessions: AutoImportResult['sessions'] = [];
 
   // Find combat sport workouts not yet imported
@@ -664,7 +664,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
     // Determine grappling type using priority: sport ID > name detection > heuristic
     const typeFromId = WHOOP_COMBAT_SPORT_MAP[ww.sportId];
     const typeFromName = detectGrapplingFromName(ww.sportName);
-    const grapplingType = typeFromId ?? typeFromName ?? inferGrapplingTypeFromWorkout(ww);
+    const grapplingType = typeFromId ?? typeFromName ?? inferActivityTypeFromWorkout(ww);
 
     // Track detection method for notes
     const detectionMethod: 'id' | 'name' | 'heuristic' = typeFromId ? 'id' : typeFromName ? 'name' : 'heuristic';
@@ -677,13 +677,20 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
 
     // Build descriptive note based on detection method
     const notePrefix = detectionMethod === 'heuristic'
-      ? `Auto-detected as grappling from "${ww.sportName}" (based on strain/HR patterns)`
+      ? `Auto-detected from "${ww.sportName}" (based on strain/HR patterns)`
       : `Auto-imported from Whoop (${ww.sportName})`;
 
-    store.addGrapplingSession({
+    // Determine category from activity type
+    const activityCategory = WHOOP_COMBAT_SPORT_MAP[ww.sportId]
+      ? (['bjj_gi', 'bjj_nogi', 'wrestling', 'judo', 'sambo'].includes(grapplingType) ? 'grappling' :
+         ['boxing', 'kickboxing', 'muay_thai'].includes(grapplingType) ? 'striking' : 'mma')
+      : 'other';
+
+    store.addTrainingSession({
       date: new Date(ww.start),
+      category: activityCategory,
       type: grapplingType,
-      intensity,
+      plannedIntensity: intensity,
       duration: durationMin,
       perceivedExertion: ww.strain != null ? Math.min(10, Math.round(ww.strain / 2.1)) : 5,
       notes: notePrefix,

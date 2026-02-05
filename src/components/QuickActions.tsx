@@ -20,16 +20,21 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { QuickLog, BodyWeightEntry, GrapplingSession, GrapplingType } from '@/lib/types';
+import {
+  ACTIVITY_CATEGORY_MAP,
+  type ActivityType,
+  type TrainingIntensity,
+  type SessionTiming,
+} from '@/lib/types';
 
 interface QuickActionsProps {
   onClose: () => void;
 }
 
-type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'readiness' | 'grappling' | 'mobility' | null;
+type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'readiness' | 'training' | 'mobility' | null;
 
 export default function QuickActions({ onClose }: QuickActionsProps) {
-  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, grapplingSessions, addGrapplingSession } = useAppStore();
+  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession } = useAppStore();
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
   const [waterOz, setWaterOz] = useState(8);
@@ -39,13 +44,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [readinessScore, setReadinessScore] = useState<1 | 2 | 3 | 4 | 5>(3);
-  const [grapplingMinutes, setGrapplingMinutes] = useState(60);
+  const [trainingMinutes, setTrainingMinutes] = useState(60);
   // Default type based on user's combat sport
-  const defaultType: GrapplingType = user?.combatSport === 'striking' ? 'muay_thai' :
+  const defaultType: ActivityType = user?.combatSport === 'striking' ? 'muay_thai' :
     user?.combatSport === 'mma' ? 'mma' :
     user?.combatSport === 'grappling_gi' ? 'bjj_gi' : 'bjj_nogi';
-  const [grapplingType, setGrapplingType] = useState<GrapplingType>(defaultType);
-  const [grapplingIntensity, setGrapplingIntensity] = useState<'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep'>('moderate');
+  const [activityType, setActivityType] = useState<ActivityType>(defaultType);
+  const [trainingIntensity, setTrainingIntensity] = useState<TrainingIntensity>('moderate');
+  const [sessionTiming, setSessionTiming] = useState<SessionTiming>('standalone');
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [mobilityMinutes, setMobilityMinutes] = useState(15);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -70,10 +76,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     return wDate.getTime() === today.getTime();
   });
 
-  const todayGrappling = grapplingSessions?.filter(g => {
-    const gDate = new Date(g.date);
-    gDate.setHours(0, 0, 0, 0);
-    return gDate.getTime() === today.getTime();
+  const todayTraining = trainingSessions?.filter(s => {
+    const sDate = new Date(s.date);
+    sDate.setHours(0, 0, 0, 0);
+    return sDate.getTime() === today.getTime();
   }) || [];
 
   const handleSaveLog = (type: QuickLogType) => {
@@ -100,16 +106,18 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
         addQuickLog({ type: 'readiness', value: readinessScore, timestamp: new Date() });
         message = `Readiness: ${readinessScore}/5 logged`;
         break;
-      case 'grappling':
-        addGrapplingSession({
+      case 'training':
+        addTrainingSession({
           date: new Date(),
-          type: grapplingType,
-          duration: grapplingMinutes,
-          intensity: grapplingIntensity,
+          category: ACTIVITY_CATEGORY_MAP[activityType] || 'other',
+          type: activityType,
+          duration: trainingMinutes,
+          plannedIntensity: trainingIntensity,
+          timing: sessionTiming,
           perceivedExertion,
           notes: 'Quick logged',
         });
-        message = `${grapplingMinutes}min ${grapplingType.toUpperCase()} session logged`;
+        message = `${trainingMinutes}min ${activityType.replace(/_/g, ' ').toUpperCase()} session logged`;
         break;
       case 'mobility':
         addQuickLog({ type: 'mobility', value: mobilityMinutes, unit: 'min', timestamp: new Date() });
@@ -165,14 +173,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       highlight: !!todayLogs.find(l => l.type === 'readiness'),
     },
     {
-      id: 'grappling' as QuickLogType,
+      id: 'training' as QuickLogType,
       icon: Shield,
       label: user?.combatSport === 'striking' ? 'Striking' :
              user?.combatSport === 'mma' ? 'MMA' :
-             user?.combatSport === 'grappling_gi' || user?.combatSport === 'grappling_nogi' ? 'Grappling' : 'Combat',
+             user?.combatSport === 'grappling_gi' || user?.combatSport === 'grappling_nogi' ? 'Grappling' : 'Training',
       color: 'text-lime-400 bg-lime-500/20',
-      stat: todayGrappling.length > 0 ? `${todayGrappling.reduce((s, g) => s + g.duration, 0)}min` : 'None',
-      highlight: todayGrappling.length > 0,
+      stat: todayTraining.length > 0 ? `${todayTraining.reduce((s, t) => s + t.duration, 0)}min` : 'None',
+      highlight: todayTraining.length > 0,
     },
     {
       id: 'mobility' as QuickLogType,
@@ -374,25 +382,25 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           </div>
         );
 
-      case 'grappling':
+      case 'training':
         return (
           <div className="space-y-4">
             <div className="text-center">
               <Shield className="w-12 h-12 mx-auto text-lime-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Quick Grappling Log</h3>
+              <h3 className="text-lg font-semibold text-white">Quick Training Log</h3>
             </div>
             <div className="space-y-3">
               <label className="text-sm text-gray-400">Duration (minutes)</label>
               <div className="flex items-center justify-center gap-4">
                 <button
-                  onClick={() => setGrapplingMinutes(Math.max(5, grapplingMinutes - 15))}
+                  onClick={() => setTrainingMinutes(Math.max(5, trainingMinutes - 15))}
                   className="btn btn-circle btn-ghost"
                 >
                   <Minus className="w-5 h-5" />
                 </button>
-                <div className="text-4xl font-bold text-white w-24 text-center">{grapplingMinutes}</div>
+                <div className="text-4xl font-bold text-white w-24 text-center">{trainingMinutes}</div>
                 <button
-                  onClick={() => setGrapplingMinutes(grapplingMinutes + 15)}
+                  onClick={() => setTrainingMinutes(trainingMinutes + 15)}
                   className="btn btn-circle btn-ghost"
                 >
                   <Plus className="w-5 h-5" />
@@ -400,31 +408,49 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Type</label>
+              <label className="text-sm text-gray-400">Activity Type</label>
               <div className="flex gap-2 justify-center flex-wrap">
                 {/* Show types based on user's combat sport preference */}
                 {(user?.combatSport === 'striking' ? [
-                  { value: 'muay_thai' as const, label: 'Muay Thai' },
-                  { value: 'kickboxing' as const, label: 'Kickboxing' },
-                  { value: 'boxing' as const, label: 'Boxing' },
-                  { value: 'mma' as const, label: 'MMA' },
+                  { value: 'muay_thai' as ActivityType, label: 'Muay Thai' },
+                  { value: 'kickboxing' as ActivityType, label: 'Kickboxing' },
+                  { value: 'boxing' as ActivityType, label: 'Boxing' },
+                  { value: 'mma' as ActivityType, label: 'MMA' },
                 ] : user?.combatSport === 'mma' ? [
-                  { value: 'mma' as const, label: 'MMA' },
-                  { value: 'bjj_nogi' as const, label: 'No-Gi' },
-                  { value: 'wrestling' as const, label: 'Wrestling' },
-                  { value: 'muay_thai' as const, label: 'Muay Thai' },
+                  { value: 'mma' as ActivityType, label: 'MMA' },
+                  { value: 'bjj_nogi' as ActivityType, label: 'No-Gi' },
+                  { value: 'wrestling' as ActivityType, label: 'Wrestling' },
+                  { value: 'muay_thai' as ActivityType, label: 'Muay Thai' },
                 ] : [
-                  { value: 'bjj_gi' as const, label: 'BJJ Gi' },
-                  { value: 'bjj_nogi' as const, label: 'No-Gi' },
-                  { value: 'wrestling' as const, label: 'Wrestling' },
-                  { value: 'mma' as const, label: 'MMA' },
+                  { value: 'bjj_gi' as ActivityType, label: 'BJJ Gi' },
+                  { value: 'bjj_nogi' as ActivityType, label: 'No-Gi' },
+                  { value: 'wrestling' as ActivityType, label: 'Wrestling' },
+                  { value: 'mma' as ActivityType, label: 'MMA' },
                 ]).map(({ value, label }) => (
                   <button
                     key={value}
-                    onClick={() => setGrapplingType(value)}
+                    onClick={() => setActivityType(value)}
                     className={cn(
                       "btn btn-sm",
-                      grapplingType === value ? "btn-primary" : "btn-ghost"
+                      activityType === value ? "btn-primary" : "btn-ghost"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+                {/* Additional activity options */}
+                {[
+                  { value: 'running' as ActivityType, label: 'Running' },
+                  { value: 'yoga' as ActivityType, label: 'Yoga' },
+                  { value: 'hiking' as ActivityType, label: 'Hiking' },
+                  { value: 'other' as ActivityType, label: 'Other' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setActivityType(value)}
+                    className={cn(
+                      "btn btn-sm",
+                      activityType === value ? "btn-primary" : "btn-ghost"
                     )}
                   >
                     {label}
@@ -436,20 +462,42 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               <label className="text-sm text-gray-400">Intensity</label>
               <div className="flex gap-2 justify-center flex-wrap">
                 {([
-                  { value: 'light_flow', label: 'Light' },
-                  { value: 'moderate', label: 'Moderate' },
-                  { value: 'hard_sparring', label: 'Hard' },
-                  { value: 'competition_prep', label: 'Comp Prep' },
-                ] as const).map(int => (
+                  { value: 'light_flow' as TrainingIntensity, label: 'Light' },
+                  { value: 'moderate' as TrainingIntensity, label: 'Moderate' },
+                  { value: 'hard_sparring' as TrainingIntensity, label: 'Hard' },
+                  { value: 'competition_prep' as TrainingIntensity, label: 'Comp Prep' },
+                ]).map(int => (
                   <button
                     key={int.value}
-                    onClick={() => setGrapplingIntensity(int.value)}
+                    onClick={() => setTrainingIntensity(int.value)}
                     className={cn(
                       "btn btn-sm",
-                      grapplingIntensity === int.value ? "btn-primary" : "btn-ghost"
+                      trainingIntensity === int.value ? "btn-primary" : "btn-ghost"
                     )}
                   >
                     {int.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Timing (relative to lifting)</label>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {([
+                  { value: 'standalone' as SessionTiming, label: 'Standalone' },
+                  { value: 'before_lifting' as SessionTiming, label: 'Before Lifting' },
+                  { value: 'after_lifting' as SessionTiming, label: 'After Lifting' },
+                  { value: 'same_day_separate' as SessionTiming, label: 'Same Day' },
+                ]).map(timing => (
+                  <button
+                    key={timing.value}
+                    onClick={() => setSessionTiming(timing.value)}
+                    className={cn(
+                      "btn btn-sm",
+                      sessionTiming === timing.value ? "btn-primary" : "btn-ghost"
+                    )}
+                  >
+                    {timing.label}
                   </button>
                 ))}
               </div>
@@ -650,10 +698,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Grappling</span>
-                <span className={cn(todayGrappling.length > 0 ? "text-lime-400" : "text-gray-500")}>
-                  {todayGrappling.length > 0
-                    ? `${todayGrappling.reduce((s, g) => s + g.duration, 0)}min ✓`
+                <span className="text-gray-400">Training</span>
+                <span className={cn(todayTraining.length > 0 ? "text-lime-400" : "text-gray-500")}>
+                  {todayTraining.length > 0
+                    ? `${todayTraining.reduce((s, t) => s + t.duration, 0)}min ✓`
                     : 'None'}
                 </span>
               </div>

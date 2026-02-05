@@ -1045,9 +1045,13 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
   // Handle mesocycle completion — auto-generate next with migration check
   const handleGenerateNext = () => {
-    const currentLogCount = getCurrentMesocycleLogCount();
-    if (currentMesocycle && currentLogCount > 0) {
-      setPreviousMesocycleId(currentMesocycle.id);
+    // Get fresh state from store to avoid stale closure issues
+    const state = useAppStore.getState();
+    const currentLogCount = state.getCurrentMesocycleLogCount();
+    const activeMesocycle = state.currentMesocycle;
+
+    if (activeMesocycle && currentLogCount > 0) {
+      setPreviousMesocycleId(activeMesocycle.id);
       setShowMigrateDialog(true);
     } else {
       generateNewMesocycle();

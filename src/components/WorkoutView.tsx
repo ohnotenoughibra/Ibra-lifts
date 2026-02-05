@@ -72,10 +72,14 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
 
   // Check for existing workouts and prompt migration
   const handleGenerateWithMigrationCheck = (weeks: number, sessionMinutes?: number, sessionsPerWeek?: SessionsPerWeek) => {
-    const currentLogCount = getCurrentMesocycleLogCount();
-    if (currentMesocycle && currentLogCount > 0) {
+    // Get fresh state from store to avoid stale closure issues
+    const state = useAppStore.getState();
+    const currentLogCount = state.getCurrentMesocycleLogCount();
+    const activeMesocycle = state.currentMesocycle;
+
+    if (activeMesocycle && currentLogCount > 0) {
       // Store the generation params and show migration dialog
-      setPreviousMesocycleId(currentMesocycle.id);
+      setPreviousMesocycleId(activeMesocycle.id);
       setPendingGeneration({ weeks, sessionMinutes, sessionsPerWeek });
       setShowMigrateDialog(true);
     } else {

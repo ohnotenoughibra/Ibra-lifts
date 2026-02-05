@@ -402,6 +402,72 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           />
         ))}
       </div>
+
+      {/* Workout Migration Dialog */}
+      <AnimatePresence>
+        {showMigrateDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowMigrateDialog(false);
+              setPendingGeneration(null);
+              setPreviousMesocycleId(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-primary-500/20">
+                  <RefreshCw className="w-5 h-5 text-primary-400" />
+                </div>
+                <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
+              </div>
+
+              <p className="text-sm text-grappler-400 mb-2">
+                You have <span className="text-primary-400 font-semibold">{getCurrentMesocycleLogCount()} workout{getCurrentMesocycleLogCount() !== 1 ? 's' : ''}</span> logged in your current program.
+              </p>
+              <p className="text-sm text-grappler-400 mb-5">
+                Do you want to carry this progress into your new program, or start fresh?
+              </p>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleMigrateResponse(true)}
+                  className="btn btn-primary w-full gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Keep My Progress
+                </button>
+                <button
+                  onClick={() => handleMigrateResponse(false)}
+                  className="btn btn-secondary w-full gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Start Fresh
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMigrateDialog(false);
+                    setPendingGeneration(null);
+                    setPreviousMesocycleId(null);
+                  }}
+                  className="btn btn-ghost w-full text-grappler-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -797,72 +863,6 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                 </div>
               )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Workout Migration Dialog */}
-      <AnimatePresence>
-        {showMigrateDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => {
-              setShowMigrateDialog(false);
-              setPendingGeneration(null);
-              setPreviousMesocycleId(null);
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-primary-500/20">
-                  <RefreshCw className="w-5 h-5 text-primary-400" />
-                </div>
-                <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
-              </div>
-
-              <p className="text-sm text-grappler-400 mb-2">
-                You have <span className="text-primary-400 font-semibold">{getCurrentMesocycleLogCount()} workout{getCurrentMesocycleLogCount() !== 1 ? 's' : ''}</span> logged in your current program.
-              </p>
-              <p className="text-sm text-grappler-400 mb-5">
-                Do you want to carry this progress into your new program, or start fresh?
-              </p>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleMigrateResponse(true)}
-                  className="btn btn-primary w-full gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  Keep My Progress
-                </button>
-                <button
-                  onClick={() => handleMigrateResponse(false)}
-                  className="btn btn-secondary w-full gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Start Fresh
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMigrateDialog(false);
-                    setPendingGeneration(null);
-                    setPreviousMesocycleId(null);
-                  }}
-                  className="btn btn-ghost w-full text-grappler-500"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

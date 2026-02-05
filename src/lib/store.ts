@@ -43,7 +43,7 @@ import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
-import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout } from './auto-adjust';
+import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -291,6 +291,8 @@ const initialOnboardingData: OnboardingData = {
   weightUnit: 'lbs',
   baselineLifts: {},
   trainingIdentity: 'combat',
+  wearableUsage: undefined,
+  wearableProvider: undefined,
 };
 
 const initialGamificationStats: GamificationStats = {
@@ -416,6 +418,9 @@ export const useAppStore = create<AppState>()(
           combatSport: onboardingData.combatSport,
           trainingDays: onboardingData.trainingDays,
           combatTrainingDays: onboardingData.combatTrainingDays,
+          // Wearable preferences
+          wearableUsage: onboardingData.wearableUsage,
+          wearableProvider: onboardingData.wearableProvider,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -494,10 +499,13 @@ export const useAppStore = create<AppState>()(
       setWhoopWorkouts: (data) => set({ whoopWorkouts: data }),
 
       applyWhoopAdjustment: () => {
-        const { activeWorkout, latestWhoopData } = get();
+        const { activeWorkout, latestWhoopData, wearableHistory } = get();
         if (!activeWorkout || !latestWhoopData) return;
 
-        // Calculate readiness from Whoop data (all available metrics)
+        // Calculate personal baseline from wearable history for accurate HRV/RHR comparison
+        const personalBaseline = calculatePersonalBaseline(wearableHistory);
+
+        // Calculate readiness from Whoop data (uses personal baseline for HRV/RHR)
         const readiness = whoopRecoveryToReadiness({
           recoveryScore: latestWhoopData.recoveryScore ?? undefined,
           hrvMs: latestWhoopData.hrv ?? undefined,
@@ -511,7 +519,7 @@ export const useAppStore = create<AppState>()(
           sleepNeededHours: latestWhoopData.sleepNeededHours ?? undefined,
           sleepConsistency: latestWhoopData.sleepConsistency ?? undefined,
           sleepDisturbances: latestWhoopData.sleepDisturbances ?? undefined,
-        });
+        }, personalBaseline);
 
         if (readiness.recommendation === 'maintain') return;
 
@@ -590,7 +598,30 @@ export const useAppStore = create<AppState>()(
           });
         }
 
-        // Generate new mesocycle with granular equipment
+        // Calculate sport training load from combatTrainingDays for adaptive volume scaling
+        let sportSessionsPerWeek: number | undefined;
+        let avgSportIntensity: 'light' | 'moderate' | 'hard' | undefined;
+
+        if (user.trainingIdentity === 'combat' && user.combatTrainingDays && user.combatTrainingDays.length > 0) {
+          sportSessionsPerWeek = user.combatTrainingDays.length;
+
+          // Calculate average intensity
+          const intensityScores = user.combatTrainingDays.map(d => {
+            switch (d.intensity) {
+              case 'light': return 1;
+              case 'moderate': return 2;
+              case 'hard': return 3;
+              default: return 2;
+            }
+          });
+          const avgScore = intensityScores.reduce((a, b) => a + b, 0) / intensityScores.length;
+
+          if (avgScore <= 1.5) avgSportIntensity = 'light';
+          else if (avgScore <= 2.5) avgSportIntensity = 'moderate';
+          else avgSportIntensity = 'hard';
+        }
+
+        // Generate new mesocycle with granular equipment and sport load scaling
         const newMesocycle = generateMesocycle({
           userId: user.id,
           goalFocus: user.goalFocus,
@@ -604,6 +635,8 @@ export const useAppStore = create<AppState>()(
           trainingIdentity: user.trainingIdentity,
           combatSport: user.combatSport,
           experienceLevel: user.experienceLevel,
+          sportSessionsPerWeek,
+          avgSportIntensity,
         });
 
         set({ currentMesocycle: newMesocycle });

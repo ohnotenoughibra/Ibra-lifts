@@ -80,6 +80,13 @@ export function analyzeInjuryRisks(
   const { volumeRisks, weeklyLoadScore } = analyzeVolume(recentLogs, recentTraining);
   risks.push(...volumeRisks);
 
+  // === 1b. ACWR (Acute:Chronic Workload Ratio) - Key injury predictor ===
+  // Uses 4 weeks of data to compare acute vs chronic load (Gabbett research)
+  const { acwr, acwrRisk } = calculateACWR(workoutLogs, trainingHistory);
+  if (acwrRisk) {
+    risks.push(acwrRisk);
+  }
+
   // === 2. ACTIVE INJURY RISKS ===
   const injuryRisks = analyzeActiveInjuries(activeInjuries, recentLogs);
   risks.push(...injuryRisks);
@@ -115,6 +122,11 @@ export function analyzeInjuryRisks(
 
   if (activeInjuries.length === 0) {
     positiveFactors.push('No active injuries reported');
+  }
+
+  // ACWR in sweet spot is a positive factor
+  if (acwr !== null && acwr >= 0.8 && acwr <= 1.3) {
+    positiveFactors.push(`ACWR ${acwr.toFixed(2)} — in the optimal training zone`);
   }
 
   // Check for reduced volume weeks (simulating deload detection)
@@ -252,6 +264,137 @@ function analyzeVolume(logs: WorkoutLog[], trainingSessions: TrainingSession[]):
   }
 
   return { volumeRisks: risks, weeklyLoadScore: Math.max(0, weeklyLoadScore) };
+}
+
+/**
+ * Calculate Acute:Chronic Workload Ratio (ACWR) - a key injury prediction metric.
+ * Based on Gabbett's research on training load and injury risk.
+ *
+ * ACWR = Acute Load (this week) / Chronic Load (4-week rolling average)
+ *
+ * Risk zones (Gabbett 2016):
+ * - 0.8-1.3: "Sweet spot" - low injury risk, optimal training adaptation
+ * - 1.3-1.5: Moderate risk - caution advised
+ * - >1.5: High risk - significantly elevated injury probability
+ * - <0.8: Undertraining - may lose fitness, also slightly elevated injury risk
+ */
+function calculateACWR(logs: WorkoutLog[], trainingSessions: TrainingSession[]): {
+  acwr: number | null;
+  acwrRisk: InjuryRisk | null;
+  acuteLoad: number;
+  chronicLoad: number;
+} {
+  const now = new Date();
+
+  // Calculate loads for each of the last 4 weeks
+  const weeklyLoads: number[] = [];
+  for (let week = 0; week < 4; week++) {
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - (7 * (week + 1)));
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() - (7 * week));
+
+    // Sum workout volume for this week
+    const weekLiftingLoad = logs
+      .filter(l => {
+        const d = new Date(l.date);
+        return d >= weekStart && d < weekEnd;
+      })
+      .reduce((sum, l) => sum + l.totalVolume, 0);
+
+    // Sum training session load (duration × intensity factor)
+    const weekTrainingLoad = trainingSessions
+      .filter(s => {
+        const d = new Date(s.date);
+        return d >= weekStart && d < weekEnd;
+      })
+      .reduce((sum, s) => {
+        const intensity = s.actualIntensity || s.plannedIntensity;
+        const intensityMultiplier =
+          intensity === 'light_flow' ? 0.5 :
+          intensity === 'moderate' ? 0.75 :
+          intensity === 'hard_sparring' ? 1.0 :
+          intensity === 'competition_prep' ? 1.25 : 0.75;
+        return sum + (s.duration * intensityMultiplier * 100); // Scale to be comparable with lifting volume
+      }, 0);
+
+    weeklyLoads.push(weekLiftingLoad + weekTrainingLoad);
+  }
+
+  // Acute load = this week (most recent)
+  const acuteLoad = weeklyLoads[0];
+
+  // Chronic load = 4-week rolling average
+  const chronicLoad = weeklyLoads.reduce((sum, w) => sum + w, 0) / 4;
+
+  // Need at least some chronic load data to calculate meaningful ACWR
+  if (chronicLoad < 1000) {
+    return { acwr: null, acwrRisk: null, acuteLoad, chronicLoad };
+  }
+
+  const acwr = acuteLoad / chronicLoad;
+
+  // Generate risk based on ACWR
+  let acwrRisk: InjuryRisk | null = null;
+
+  if (acwr > 1.5) {
+    acwrRisk = {
+      id: 'high-acwr',
+      category: 'volume',
+      bodyRegion: 'general',
+      riskLevel: acwr > 2.0 ? 'critical' : 'high',
+      title: 'Dangerous Workload Spike',
+      description: `ACWR of ${acwr.toFixed(2)} (>1.5 = high injury risk). Training load has increased too rapidly.`,
+      recommendations: [
+        'Reduce training volume by 20-30% this week',
+        'Avoid high-intensity sessions for 3-5 days',
+        'Gradual load increases (<10%/week) are safer',
+        'Research shows ACWR >1.5 dramatically increases injury risk',
+      ],
+      dataPoints: [
+        `This week: ${Math.round(acuteLoad).toLocaleString()} load units`,
+        `4-week avg: ${Math.round(chronicLoad).toLocaleString()} load units`,
+      ],
+    };
+  } else if (acwr > 1.3) {
+    acwrRisk = {
+      id: 'elevated-acwr',
+      category: 'volume',
+      bodyRegion: 'general',
+      riskLevel: 'moderate',
+      title: 'Elevated Workload Ratio',
+      description: `ACWR of ${acwr.toFixed(2)} is in the caution zone (1.3-1.5).`,
+      recommendations: [
+        'Monitor for signs of fatigue and soreness',
+        'Consider maintaining (not increasing) volume this week',
+        'Extra focus on recovery: sleep, nutrition, mobility',
+      ],
+      dataPoints: [
+        `This week: ${Math.round(acuteLoad).toLocaleString()} load units`,
+        `4-week avg: ${Math.round(chronicLoad).toLocaleString()} load units`,
+      ],
+    };
+  } else if (acwr < 0.8 && acuteLoad > 0) {
+    acwrRisk = {
+      id: 'low-acwr',
+      category: 'volume',
+      bodyRegion: 'general',
+      riskLevel: 'low',
+      title: 'Undertraining Warning',
+      description: `ACWR of ${acwr.toFixed(2)} (<0.8) - training less than your body is adapted to.`,
+      recommendations: [
+        'You may be losing fitness adaptations',
+        'If intentional deload, this is fine for 1 week',
+        'Otherwise, gradually return to normal training',
+      ],
+      dataPoints: [
+        `This week: ${Math.round(acuteLoad).toLocaleString()} load units`,
+        `4-week avg: ${Math.round(chronicLoad).toLocaleString()} load units`,
+      ],
+    };
+  }
+
+  return { acwr, acwrRisk, acuteLoad, chronicLoad };
 }
 
 function analyzeActiveInjuries(injuries: InjuryEntry[], logs: WorkoutLog[]): InjuryRisk[] {

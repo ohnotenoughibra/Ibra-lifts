@@ -319,6 +319,269 @@ export const workoutTips: KnowledgeTip[] = [
     id: 'tip-grappling-recovery-4',
     content: 'Training fingers too: grip work + grappling = overuse risk. Add finger extensor work (rubber band extensions) 3x/week for balance.',
     category: 'grappling'
+  },
+
+  // STRIKING-SPECIFIC
+  {
+    id: 'tip-striking-1',
+    content: 'Rotational power comes from the hips, not the arms. Medicine ball rotational throws and cable woodchops build knockout power.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-2',
+    content: 'Shoulder endurance determines how long you can keep your hands up. High-rep lateral raises and front holds build boxing stamina.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-3',
+    content: 'Calf strength = footwork speed. Don\'t skip calf raises if you\'re a striker.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-4',
+    content: 'Heavy bag work the day after leg day? Bad idea. Schedule striking and leg training with 48+ hours between.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-5',
+    content: 'Core anti-rotation strength prevents you from being off-balanced by your own punches. Pallof press and suitcase carries are essential.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-6',
+    content: 'Neck strength protects against knockouts. Iron neck or manual resistance neck training 2-3x/week is non-negotiable for strikers.',
+    category: 'striking'
+  },
+  {
+    id: 'tip-striking-7',
+    content: 'Explosive hip extension powers kicks and punches alike. Kettlebell swings and hip thrusts translate directly to striking power.',
+    category: 'striking'
+  },
+
+  // MMA-SPECIFIC
+  {
+    id: 'tip-mma-1',
+    content: 'MMA demands everything: power, endurance, strength. Undulating periodization lets you train all qualities without burning out.',
+    category: 'mma'
+  },
+  {
+    id: 'tip-mma-2',
+    content: 'Neck strength prevents knockouts and protects against chokes. 5 minutes of neck work 3x/week is non-negotiable for MMA.',
+    category: 'mma'
+  },
+  {
+    id: 'tip-mma-3',
+    content: 'MMA fighters need pulling AND pushing strength. Don\'t neglect bench press just because grappling is pull-dominant.',
+    category: 'mma'
+  },
+  {
+    id: 'tip-mma-4',
+    content: 'Cage work taxes the shoulders. Extra rear delt and rotator cuff work prevents the rounded "fighter shoulders" that lead to injury.',
+    category: 'mma'
+  },
+  {
+    id: 'tip-mma-5',
+    content: 'Fight camps should reduce lifting volume by 30-40% while maintaining intensity. You\'re peaking for the fight, not the gym.',
+    category: 'mma'
+  },
+
+  // GENERAL FITNESS / LIFTING HOBBYISTS
+  {
+    id: 'tip-fitness-1',
+    content: 'You don\'t need to train like an athlete to look like one. 3 days/week of consistent lifting beats 6 days of inconsistent training.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-fitness-2',
+    content: 'Aesthetics goal? Prioritize compound movements first, then add isolation work for lagging body parts.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-fitness-3',
+    content: 'The best program is one you\'ll actually do. Enjoyment and consistency trump optimization every time.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-fitness-4',
+    content: 'Not training for a sport? You have more recovery to spend on lifting. Take advantage with higher volume if you enjoy it.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-fitness-5',
+    content: 'Strength training 2-3x/week is enough to build significant muscle and strength for most people. More isn\'t always better.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-fitness-6',
+    content: 'Don\'t compare your progress to social media lifters. Many have years of training, favorable genetics, or pharmaceutical assistance.',
+    category: 'general_fitness'
+  },
+
+  // PR & PROGRESS TRACKING
+  {
+    id: 'tip-pr-1',
+    content: 'Not every workout needs to be a PR attempt. Chasing PRs when fatigued leads to form breakdown and injury. Save PR attempts for high-readiness days.',
+    category: 'lifting_technique'
+  },
+  {
+    id: 'tip-pr-2',
+    content: 'Estimated 1RM is calculated using the Brzycki formula. It\'s most accurate in the 1-10 rep range. Higher reps become less reliable.',
+    category: 'muscle_science'
+  },
+  {
+    id: 'tip-pr-3',
+    content: 'A PR isn\'t just more weight. Same weight for more reps, better form, or lower RPE is also progress worth celebrating.',
+    category: 'motivation'
+  },
+  {
+    id: 'tip-pr-4',
+    content: 'Track every workout. Small weekly improvements compound into massive gains over months. You can\'t manage what you don\'t measure.',
+    category: 'motivation'
+  },
+
+  // EQUIPMENT ADAPTATION
+  {
+    id: 'tip-equipment-1',
+    content: 'No barbell? Dumbbell Romanian deadlifts and Bulgarian split squats can maintain your strength when traveling.',
+    category: 'lifting_technique'
+  },
+  {
+    id: 'tip-equipment-2',
+    content: 'Hotel gym tip: High-rep dumbbell work (15-20 reps) maintains muscle with lighter weights. Focus on slow eccentrics and pauses.',
+    category: 'lifting_technique'
+  },
+  {
+    id: 'tip-equipment-3',
+    content: 'Home gym essentials: Adjustable dumbbells, pull-up bar, resistance bands. You can build serious strength with just these.',
+    category: 'general_fitness'
+  },
+  {
+    id: 'tip-equipment-4',
+    content: 'No squat rack? Goblet squats, lunges, and single-leg work can build impressive leg strength with minimal equipment.',
+    category: 'lifting_technique'
+  },
+
+  // EXERCISE SWAPPING
+  {
+    id: 'tip-swap-1',
+    content: 'Swapping exercises? Choose alternatives that hit the same movement pattern and muscle groups. The app\'s match score helps with this.',
+    category: 'lifting_technique'
+  },
+  {
+    id: 'tip-swap-2',
+    content: 'If an exercise causes joint pain, swap it. Pain is not gain — it\'s a signal to find a better variation for your body.',
+    category: 'lifting_technique'
+  },
+
+  // BODYWEIGHT & WEIGHT FLUCTUATIONS
+  {
+    id: 'tip-weight-1',
+    content: 'Daily weight can fluctuate 2-4 lbs from water, sodium, and food volume. Weekly averages matter more than daily numbers.',
+    category: 'nutrition'
+  },
+  {
+    id: 'tip-weight-2',
+    content: 'Weigh yourself at the same time daily (morning, after bathroom, before eating) for consistent tracking.',
+    category: 'nutrition'
+  },
+  {
+    id: 'tip-weight-3',
+    content: 'Weight stalled but lifts going up? You\'re likely recomping — building muscle while losing fat. Trust the process.',
+    category: 'nutrition'
+  },
+
+  // COMPETITION PREP (ALL COMBAT SPORTS)
+  {
+    id: 'tip-comp-1',
+    content: 'Competition week: reduce lifting volume by 40-50%, maintain intensity. You\'re preserving strength, not building it.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-comp-2',
+    content: 'Last heavy lifting session should be 5-7 days before competition. Light technique work only in the final 3 days.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-comp-3',
+    content: 'Taper for competition: Reduce volume first, then frequency. Maintain intensity until the last 3 days.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-comp-4',
+    content: 'Fight week is not the time to try new exercises or max out. Stick to familiar movements at moderate intensity.',
+    category: 'mma'
+  },
+
+  // MOBILITY
+  {
+    id: 'tip-mobility-1',
+    content: 'Hip mobility directly affects guard game and kicking power. 5 minutes of hip circles and 90/90 stretches daily pays dividends.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-mobility-2',
+    content: 'Dynamic stretching before training, static stretching after. This order optimizes performance and recovery.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-mobility-3',
+    content: 'Tight hip flexors from sitting? Couch stretch and half-kneeling hip flexor stretches for 2 min each side, daily.',
+    category: 'recovery'
+  },
+
+  // INJURY PREVENTION
+  {
+    id: 'tip-injury-1',
+    content: 'Logging minor aches helps identify patterns. That nagging shoulder might be connected to last week\'s volume spike.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-injury-2',
+    content: 'Rule of 7: If discomfort persists beyond 7 days or gets worse, see a professional. Early intervention prevents chronic issues.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-injury-3',
+    content: 'Warming up is not optional. 10 minutes of movement prep prevents months of injury rehab.',
+    category: 'lifting_technique'
+  },
+
+  // MESOCYCLE & PERIODIZATION
+  {
+    id: 'tip-meso-1',
+    content: 'A mesocycle typically lasts 4-6 weeks. Each week should progressively increase volume or intensity, then deload.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-meso-2',
+    content: 'End-of-mesocycle performance dip is normal. It means you accumulated enough fatigue to trigger adaptation during deload.',
+    category: 'periodization'
+  },
+
+  // EXERCISE-SPECIFIC CUES
+  {
+    id: 'tip-pullup-1',
+    content: 'Pull-ups: Start each rep from a dead hang with shoulders packed. Pull elbows to your hips, not behind you.',
+    category: 'lifting_technique',
+    exerciseId: 'pull-up'
+  },
+  {
+    id: 'tip-hipthrust-1',
+    content: 'Hip thrusts: Chin tucked, ribs down. Push through heels and squeeze glutes at the top. Direct carryover to bridge escapes.',
+    category: 'lifting_technique',
+    exerciseId: 'hip-thrust'
+  },
+  {
+    id: 'tip-kbswing-1',
+    content: 'Kettlebell swings: It\'s a hip hinge, not a squat. Snap the hips, don\'t lift with the arms. Power comes from the posterior chain.',
+    category: 'lifting_technique',
+    exerciseId: 'kettlebell-swing'
+  },
+  {
+    id: 'tip-facepull-1',
+    content: 'Face pulls: Pull to your forehead, externally rotate at the end. Essential for shoulder health, especially for fighters.',
+    category: 'lifting_technique',
+    exerciseId: 'face-pull'
   }
 ];
 
@@ -1000,6 +1263,429 @@ After hard grappling (competition-style rounds or tournament):
 
 **After 48 Hours**: Normal training can resume if recovery indicators are good
 `
+  },
+  {
+    id: 'article-striking-strength',
+    title: 'Strength Training for Strikers',
+    category: 'striking',
+    tags: ['striking', 'boxing', 'kickboxing', 'power'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-01'),
+    content: `
+## Why Strikers Need Strength Training
+
+Knockout power isn't just about technique — it's physics. Force = Mass × Acceleration. Strength training increases both your ability to generate force and the speed at which you can apply it.
+
+## The Striker's Priority List
+
+### 1. Rotational Power
+Punches and kicks are rotational movements. The power chain goes: feet → hips → core → shoulders → fist/shin.
+
+**Key Exercises:**
+- Medicine ball rotational throws
+- Cable woodchops
+- Landmine rotations
+- Russian twists (weighted)
+
+### 2. Hip Extension Power
+Your hips are the engine. Explosive hip extension powers everything from jabs to head kicks.
+
+**Key Exercises:**
+- Kettlebell swings
+- Hip thrusts
+- Box jumps
+- Power cleans
+
+### 3. Shoulder Endurance
+Keeping your hands up for 3-5 rounds requires serious shoulder stamina.
+
+**Key Exercises:**
+- High-rep lateral raises (20-30 reps)
+- Front raise holds
+- Battle ropes
+- Shadow boxing with light weights (carefully)
+
+### 4. Core Anti-Rotation
+Your core must resist rotation to transfer power efficiently and absorb body shots.
+
+**Key Exercises:**
+- Pallof press
+- Suitcase carries
+- Dead bugs
+- Ab wheel rollouts
+
+## Sample Weekly Split
+
+### Day 1 - Power (Before Technical Work)
+- Box Jumps 4x5
+- Medicine Ball Rotational Throws 3x8 each side
+- Kettlebell Swings 4x10
+- Pallof Press 3x12 each side
+
+### Day 2 - Strength (Light Sparring Day)
+- Trap Bar Deadlift 4x5
+- Bench Press 4x6
+- Weighted Pull-ups 4x6
+- Farmer's Walks 3x40m
+
+### Day 3 - Endurance/Prehab
+- High-rep shoulder circuit
+- Core stability work
+- Neck strengthening
+- Calf raises for footwork
+
+## Key Principles
+
+1. **Never lift heavy before sparring** - Fatigued muscles = slower reactions = getting hit
+2. **Prioritize power over size** - You want fast-twitch fibers, not bodybuilder bulk
+3. **Train neck religiously** - It's your chin's insurance policy
+4. **Don't neglect legs** - Footwork is everything, and leg strength = kicking power
+`
+  },
+  {
+    id: 'article-mma-programming',
+    title: 'Strength & Conditioning for MMA',
+    category: 'mma',
+    tags: ['MMA', 'fighting', 'conditioning', 'programming'],
+    readTime: 8,
+    publishedAt: new Date('2025-03-05'),
+    content: `
+## The MMA Training Challenge
+
+MMA fighters need everything: knockout power, submission strength, wrestling explosiveness, AND cardio for 3-5 rounds. Traditional bodybuilding or powerlifting programs don't cut it.
+
+## Energy System Demands
+
+### Striking Exchanges
+- ATP-PCr system (0-10 seconds)
+- High power output, short duration
+
+### Grappling Scrambles
+- Glycolytic system (10 seconds - 2 minutes)
+- Sustained high-intensity efforts
+
+### Full Rounds
+- Oxidative system (2+ minutes)
+- Ability to recover between bursts
+
+## The Solution: Concurrent Training
+
+Train all qualities year-round, adjusting emphasis based on fight schedule:
+
+### Off-Season (No Fight Scheduled)
+- **60%** Strength/Hypertrophy
+- **25%** Power
+- **15%** Conditioning
+
+### Fight Camp (8-12 Weeks Out)
+- **30%** Strength (maintenance)
+- **30%** Power
+- **40%** Sport-specific conditioning
+
+### Peak Week
+- **10%** Light movement/activation
+- **90%** Rest and recovery
+
+## Essential Exercises for MMA
+
+### For Takedowns
+- Power cleans
+- Barbell rows
+- Deadlifts
+- Single-leg work
+
+### For Ground Control
+- Weighted pull-ups
+- Hip thrusts
+- Farmer's walks
+- Turkish get-ups
+
+### For Striking Power
+- Medicine ball throws
+- Kettlebell swings
+- Plyometrics
+- Rotational core work
+
+### For Durability
+- Neck training
+- Grip work
+- Shoulder prehab
+- Hip mobility
+
+## Common Mistakes
+
+1. **Too much volume** - You're already training martial arts 4-6x/week. Lifting should supplement, not compete.
+
+2. **Ignoring conditioning** - Strength means nothing if you gas in round 2.
+
+3. **Training through injuries** - One bad injury can end a career. Listen to your body.
+
+4. **Cutting weight while building strength** - These goals conflict. Plan your weight class well in advance.
+
+## Recovery is Part of Training
+
+MMA is brutal on the body. You cannot out-train bad recovery:
+- 8+ hours sleep
+- 1g protein per lb bodyweight
+- Deload every 4-6 weeks
+- Active recovery days, not just rest days
+`
+  },
+  {
+    id: 'article-general-strength',
+    title: 'Building Strength: A Beginner\'s Complete Guide',
+    category: 'general_fitness',
+    tags: ['beginner', 'strength', 'programming', 'basics'],
+    readTime: 7,
+    publishedAt: new Date('2025-02-25'),
+    content: `
+## Strength Training Fundamentals
+
+Whether you want to build muscle, get stronger, improve health, or just feel better — the fundamentals are the same.
+
+## The Big 5 Movement Patterns
+
+Every good program includes these:
+
+### 1. Squat (Quad-Dominant)
+- Back squat, front squat, goblet squat
+- Works: Quads, glutes, core
+
+### 2. Hinge (Hip-Dominant)
+- Deadlift, Romanian deadlift, kettlebell swing
+- Works: Hamstrings, glutes, lower back
+
+### 3. Horizontal Push
+- Bench press, push-ups, dumbbell press
+- Works: Chest, front delts, triceps
+
+### 4. Horizontal Pull
+- Barbell row, cable row, dumbbell row
+- Works: Lats, rhomboids, biceps
+
+### 5. Vertical Pull
+- Pull-ups, lat pulldown, chin-ups
+- Works: Lats, biceps, rear delts
+
+## How Much, How Often?
+
+### For Beginners (0-1 year)
+- 3 days per week, full body
+- 3-4 sets per exercise
+- 6-12 reps per set
+- Focus on learning form
+
+### For Intermediates (1-3 years)
+- 3-4 days per week
+- 4-5 sets per exercise
+- Vary rep ranges (strength, hypertrophy)
+- Start tracking progressive overload
+
+### For Advanced (3+ years)
+- 4-6 days per week
+- Periodized programming
+- Autoregulation (RPE-based)
+- Specialized blocks
+
+## Progressive Overload
+
+The key to getting stronger: gradually increase demands over time.
+
+### Ways to Progress
+1. Add weight (most obvious)
+2. Add reps at same weight
+3. Add sets
+4. Improve technique
+5. Reduce rest times
+6. Slow down tempo
+
+## Common Beginner Mistakes
+
+1. **Program hopping** - Stick with one program for 8-12 weeks minimum
+2. **Ego lifting** - Light weight with good form beats heavy weight with bad form
+3. **Skipping legs** - Don't be that person
+4. **No tracking** - If you're not logging, you're guessing
+5. **Expecting fast results** - Visible changes take 3-6 months of consistent work
+
+## The 80/20 of Getting Results
+
+- **Consistency** > Perfect program
+- **Sleep** > Supplements
+- **Compound lifts** > Isolation exercises
+- **Protein intake** > Meal timing
+- **Progressive overload** > Training to failure every set
+`
+  },
+  {
+    id: 'article-progressive-overload',
+    title: 'Progressive Overload: Beyond Just Adding Weight',
+    category: 'general_fitness',
+    tags: ['progression', 'programming', 'intermediate', 'plateau'],
+    readTime: 5,
+    publishedAt: new Date('2025-03-10'),
+    content: `
+## What is Progressive Overload?
+
+Progressive overload is the gradual increase of stress placed on the body during training. It's the fundamental principle behind all strength and muscle gains.
+
+But here's what most people miss: **adding weight is just ONE way to overload.**
+
+## 7 Ways to Progress
+
+### 1. Add Weight
+The classic. If you benched 135x8 last week, try 140x8 this week.
+
+**Best for:** Compound lifts, strength phases
+
+### 2. Add Reps
+Same weight, more reps. 135x8 becomes 135x10.
+
+**Best for:** Hypertrophy, when weight jumps feel too big
+
+### 3. Add Sets
+More total volume. 3x8 becomes 4x8.
+
+**Best for:** Breaking plateaus, intermediate lifters
+
+### 4. Improve Technique
+Better form = better muscle activation = more growth stimulus.
+
+**Best for:** Everyone, always
+
+### 5. Increase Range of Motion
+Deeper squat, fuller stretch on RDLs, pause at bottom of bench.
+
+**Best for:** Hypertrophy, mobility, joint health
+
+### 6. Slow Down Tempo
+3-second eccentric instead of 1-second. Same weight feels much harder.
+
+**Best for:** Hypertrophy, mind-muscle connection, injury rehab
+
+### 7. Reduce Rest Time
+Same workout in less time = higher training density.
+
+**Best for:** Conditioning, time-crunched sessions
+
+## When to Use Each Method
+
+| Situation | Best Progression Method |
+|-----------|------------------------|
+| New to lifting | Add reps, then weight |
+| Strength plateau | Add sets or improve technique |
+| Hypertrophy focus | Tempo, ROM, or add sets |
+| Time-limited | Reduce rest |
+| Coming back from injury | Tempo and ROM |
+
+## The Progression Hierarchy
+
+When you can't add weight, work down this list:
+1. Can I add 1-2 reps?
+2. Can I add a set?
+3. Can I slow the eccentric?
+4. Can I increase range of motion?
+5. Can I improve my technique?
+
+If you're progressing in ANY of these, you're still making gains.
+
+## Tracking Progress
+
+You must track to know if you're progressing:
+- Log every workout
+- Note weight, reps, sets, RPE
+- Review weekly/monthly trends
+- Celebrate small wins
+
+This app tracks all of this automatically. Use it.
+`
+  },
+  {
+    id: 'article-combat-sport-periodization',
+    title: 'Periodization for Combat Sports Athletes',
+    category: 'periodization',
+    tags: ['periodization', 'combat', 'MMA', 'grappling', 'striking', 'competition'],
+    readTime: 7,
+    publishedAt: new Date('2025-03-15'),
+    content: `
+## The Combat Athlete's Dilemma
+
+You need to be strong, powerful, AND well-conditioned. You also need to spend most of your time practicing your actual sport. How do you fit it all in?
+
+## Annual Planning
+
+### Off-Season (No Competition in Sight)
+**Goal:** Build your physical base
+
+- Higher lifting volume (4x/week possible)
+- Focus on weaknesses (strength, muscle, power)
+- Technical drilling in your sport
+- Light sparring only
+
+### Pre-Competition (8-12 Weeks Out)
+**Goal:** Peak for your event
+
+- Reduce lifting volume 30-40%
+- Maintain intensity
+- Increase sport-specific work
+- Ramp up sparring intensity
+
+### Competition Week
+**Goal:** Rest and prime
+
+- Minimal lifting (activation only)
+- Light technical work
+- Focus on weight management (if applicable)
+- Mental preparation
+
+### Post-Competition (1-2 Weeks)
+**Goal:** Recover
+
+- No hard training
+- Active recovery
+- Address any injuries
+- Mental reset
+
+## Weekly Structure Example
+
+### Pre-Competition Phase
+
+**Monday:** AM - Strength (Lower), PM - Technical drilling
+**Tuesday:** Sport practice (hard sparring)
+**Wednesday:** AM - Power/Plyos, PM - Light drilling
+**Thursday:** Active recovery / Mobility
+**Friday:** AM - Strength (Upper), PM - Technical drilling
+**Saturday:** Competition simulation sparring
+**Sunday:** Complete rest
+
+## Adapting to Your Sport
+
+### Grapplers
+- Prioritize grip endurance and pulling strength
+- Hip power for takedowns and sweeps
+- Core anti-rotation for scrambles
+
+### Strikers
+- Prioritize rotational power and shoulder endurance
+- Explosive hip extension for kicks
+- Footwork (calf strength and agility)
+
+### MMA
+- Balance of everything
+- Extra emphasis on conditioning
+- Neck training is mandatory
+
+## The 10% Rule for Combat Athletes
+
+Never increase total training load (lifting + sport) by more than 10% per week. Combat sports are already demanding. Spikes in load = injury risk.
+
+## Key Takeaways
+
+1. Lifting supports your sport, not the other way around
+2. Reduce volume as competition approaches
+3. Maintain intensity until final week
+4. Recovery is when adaptation happens
+5. Track everything — including sport training load
+`
   }
 ];
 
@@ -1079,12 +1765,27 @@ export const categoryInfo: Record<ContentCategory, { name: string; description: 
   },
   grappling: {
     name: 'Grappling',
-    description: 'Sport-specific training advice',
+    description: 'BJJ, wrestling, and submission grappling',
     icon: '🥋'
   },
   motivation: {
     name: 'Training Mindset',
     description: 'Practical strategies for long-term progress',
     icon: '🧠'
+  },
+  striking: {
+    name: 'Striking',
+    description: 'Boxing, kickboxing, and Muay Thai training',
+    icon: '🥊'
+  },
+  mma: {
+    name: 'MMA',
+    description: 'Mixed martial arts specific training',
+    icon: '👊'
+  },
+  general_fitness: {
+    name: 'General Fitness',
+    description: 'Strength, muscle building, and longevity',
+    icon: '💪'
   }
 };

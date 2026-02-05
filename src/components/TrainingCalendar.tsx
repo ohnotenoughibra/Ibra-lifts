@@ -3,16 +3,18 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, Plus, Calendar, Edit3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, Plus, Calendar, Edit3, Minus, Search, X, Save, ChevronDown } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
-import { WorkoutLog, TrainingSession } from '@/lib/types';
+import { WorkoutLog, TrainingSession, ExerciseLog, SetLog } from '@/lib/types';
+import { exercises as allExercises } from '@/lib/exercises';
 
 export default function TrainingCalendar() {
   const {
     workoutLogs, trainingSessions, user,
     addTrainingSession, addPastWorkout,
     deleteWorkoutLog, deleteTrainingSession,
-    updateWorkoutLog, updateTrainingSession
+    updateWorkoutLog, updateTrainingSession,
+    recalculatePRs
   } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const now = new Date();
@@ -22,6 +24,13 @@ export default function TrainingCalendar() {
   const [editingWorkout, setEditingWorkout] = useState<WorkoutLog | null>(null);
   const [editingSession, setEditingSession] = useState<TrainingSession | null>(null);
   const [newDate, setNewDate] = useState('');
+
+  // Workout editor state
+  const [workoutBeingEdited, setWorkoutBeingEdited] = useState<WorkoutLog | null>(null);
+  const [editedExercises, setEditedExercises] = useState<ExerciseLog[]>([]);
+  const [showExerciseSearch, setShowExerciseSearch] = useState(false);
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -139,6 +148,96 @@ export default function TrainingCalendar() {
     setSelectedDate(null);
   };
 
+  // Workout editor functions
+  const openWorkoutEditor = (workout: WorkoutLog) => {
+    setWorkoutBeingEdited(workout);
+    setEditedExercises(JSON.parse(JSON.stringify(workout.exercises))); // Deep copy
+    setSelectedDate(null);
+    setExpandedExercise(0);
+  };
+
+  const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps' | 'rpe', value: number) => {
+    const updated = [...editedExercises];
+    const set = updated[exerciseIndex].sets[setIndex];
+    if (field === 'weight') set.weight = value;
+    else if (field === 'reps') set.reps = value;
+    else if (field === 'rpe') set.rpe = value;
+    setEditedExercises(updated);
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    const updated = [...editedExercises];
+    const lastSet = updated[exerciseIndex].sets[updated[exerciseIndex].sets.length - 1];
+    updated[exerciseIndex].sets.push({
+      setNumber: updated[exerciseIndex].sets.length + 1,
+      weight: lastSet?.weight || 0,
+      reps: lastSet?.reps || 8,
+      rpe: lastSet?.rpe || 7,
+      completed: true,
+    });
+    setEditedExercises(updated);
+  };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    const updated = [...editedExercises];
+    if (updated[exerciseIndex].sets.length > 1) {
+      updated[exerciseIndex].sets.splice(setIndex, 1);
+      // Renumber sets
+      updated[exerciseIndex].sets.forEach((s, i) => s.setNumber = i + 1);
+      setEditedExercises(updated);
+    }
+  };
+
+  const addExercise = (exerciseId: string, exerciseName: string) => {
+    const newExercise: ExerciseLog = {
+      exerciseId,
+      exerciseName,
+      sets: [{ setNumber: 1, weight: 0, reps: 8, rpe: 7, completed: true }],
+      personalRecord: false,
+    };
+    setEditedExercises([...editedExercises, newExercise]);
+    setShowExerciseSearch(false);
+    setExerciseSearch('');
+    setExpandedExercise(editedExercises.length);
+  };
+
+  const removeExercise = (index: number) => {
+    const updated = editedExercises.filter((_, i) => i !== index);
+    setEditedExercises(updated);
+    setExpandedExercise(null);
+  };
+
+  const saveWorkoutEdits = () => {
+    if (!workoutBeingEdited) return;
+
+    // Calculate new total volume
+    const totalVolume = editedExercises.reduce((total, ex) =>
+      total + ex.sets.reduce((setTotal, set) =>
+        setTotal + (set.completed ? set.weight * set.reps : 0), 0
+      ), 0
+    );
+
+    updateWorkoutLog(workoutBeingEdited.id, {
+      exercises: editedExercises,
+      totalVolume,
+    });
+
+    // Recalculate PRs after saving changes
+    recalculatePRs();
+
+    setWorkoutBeingEdited(null);
+    setEditedExercises([]);
+  };
+
+  const filteredExercises = useMemo(() => {
+    if (!exerciseSearch.trim()) return allExercises.slice(0, 20);
+    const search = exerciseSearch.toLowerCase();
+    return allExercises.filter(ex =>
+      ex.name.toLowerCase().includes(search) ||
+      ex.primaryMuscles.some(m => m.toLowerCase().includes(search))
+    ).slice(0, 20);
+  }, [exerciseSearch]);
+
   return (
     <div className="space-y-4">
       {/* Month navigation */}
@@ -244,8 +343,16 @@ export default function TrainingCalendar() {
                         </div>
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={() => openWorkoutEditor(lift)}
+                            className="p-1.5 text-grappler-400 hover:text-green-400 transition-colors"
+                            title="Edit workout"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleEditDate('workout', lift)}
                             className="p-1.5 text-grappler-400 hover:text-blue-400 transition-colors"
+                            title="Change date"
                           >
                             <Calendar className="w-4 h-4" />
                           </button>
@@ -461,6 +568,192 @@ export default function TrainingCalendar() {
                   className="flex-1 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Workout Editor Modal */}
+      <AnimatePresence>
+        {workoutBeingEdited && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setWorkoutBeingEdited(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-grappler-800 rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-grappler-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Edit Workout</h3>
+                  <p className="text-xs text-grappler-400">
+                    {new Date(workoutBeingEdited.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setWorkoutBeingEdited(null)}
+                  className="p-2 text-grappler-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Exercises List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {editedExercises.map((exercise, exIndex) => (
+                  <div key={exIndex} className="bg-grappler-700/50 rounded-xl overflow-hidden">
+                    {/* Exercise Header */}
+                    <button
+                      onClick={() => setExpandedExercise(expandedExercise === exIndex ? null : exIndex)}
+                      className="w-full p-3 flex items-center justify-between text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Dumbbell className="w-4 h-4 text-green-400" />
+                        <span className="font-medium text-white text-sm">{exercise.exerciseName}</span>
+                        <span className="text-xs text-grappler-400">({exercise.sets.length} sets)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeExercise(exIndex); }}
+                          className="p-1 text-grappler-400 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <ChevronDown className={cn("w-4 h-4 text-grappler-400 transition-transform", expandedExercise === exIndex && "rotate-180")} />
+                      </div>
+                    </button>
+
+                    {/* Sets (expanded) */}
+                    {expandedExercise === exIndex && (
+                      <div className="px-3 pb-3 space-y-2">
+                        {/* Header */}
+                        <div className="grid grid-cols-4 gap-2 text-[10px] text-grappler-500 uppercase px-1">
+                          <span>Set</span>
+                          <span>{weightUnit}</span>
+                          <span>Reps</span>
+                          <span>RPE</span>
+                        </div>
+
+                        {/* Sets */}
+                        {exercise.sets.map((set, setIndex) => (
+                          <div key={setIndex} className="grid grid-cols-4 gap-2 items-center">
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm text-grappler-300 w-4">{set.setNumber}</span>
+                              {exercise.sets.length > 1 && (
+                                <button
+                                  onClick={() => removeSet(exIndex, setIndex)}
+                                  className="p-0.5 text-grappler-500 hover:text-red-400"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              type="number"
+                              value={set.weight || ''}
+                              placeholder="0"
+                              onChange={e => updateSet(exIndex, setIndex, 'weight', Number(e.target.value) || 0)}
+                              className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
+                            />
+                            <input
+                              type="number"
+                              value={set.reps || ''}
+                              placeholder="0"
+                              onChange={e => updateSet(exIndex, setIndex, 'reps', Number(e.target.value) || 0)}
+                              className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
+                            />
+                            <input
+                              type="number"
+                              value={set.rpe || ''}
+                              placeholder="7"
+                              min={1}
+                              max={10}
+                              onChange={e => updateSet(exIndex, setIndex, 'rpe', Number(e.target.value) || 0)}
+                              className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
+                            />
+                          </div>
+                        ))}
+
+                        {/* Add Set Button */}
+                        <button
+                          onClick={() => addSet(exIndex)}
+                          className="w-full py-1.5 text-xs text-primary-400 hover:text-primary-300 flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add Set
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Add Exercise Button */}
+                {!showExerciseSearch ? (
+                  <button
+                    onClick={() => setShowExerciseSearch(true)}
+                    className="w-full py-3 border-2 border-dashed border-grappler-600 rounded-xl text-grappler-400 hover:border-primary-500 hover:text-primary-400 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add Exercise
+                  </button>
+                ) : (
+                  <div className="bg-grappler-700/50 rounded-xl p-3 space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-400" />
+                      <input
+                        type="text"
+                        value={exerciseSearch}
+                        onChange={e => setExerciseSearch(e.target.value)}
+                        placeholder="Search exercises..."
+                        className="w-full pl-9 pr-8 py-2 bg-grappler-600 border border-grappler-500 rounded-lg text-white text-sm"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => { setShowExerciseSearch(false); setExerciseSearch(''); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-grappler-400 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {filteredExercises.map(ex => (
+                        <button
+                          key={ex.id}
+                          onClick={() => addExercise(ex.id, ex.name)}
+                          className="w-full p-2 text-left text-sm text-grappler-200 hover:bg-grappler-600 rounded-lg transition-colors"
+                        >
+                          <span className="font-medium">{ex.name}</span>
+                          <span className="text-xs text-grappler-400 ml-2">
+                            {ex.primaryMuscles.slice(0, 2).join(', ')}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-grappler-700 flex gap-2">
+                <button
+                  onClick={() => setWorkoutBeingEdited(null)}
+                  className="flex-1 py-2.5 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveWorkoutEdits}
+                  className="flex-1 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Save className="w-4 h-4" /> Save Changes
                 </button>
               </div>
             </motion.div>

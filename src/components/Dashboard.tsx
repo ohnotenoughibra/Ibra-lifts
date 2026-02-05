@@ -122,7 +122,6 @@ type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile'
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
-  const gamificationStats = useAppStore(s => s.gamificationStats);
   const trainingSessions = useAppStore(s => s.trainingSessions);
   const user = useAppStore(s => s.user);
   const weeks = 12;
@@ -144,6 +143,39 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       ? trainingSessions.map(s => fmtDate(new Date(s.date)))
       : []
   );
+
+  // Calculate separate streaks for lifting and training
+  const calculateStreak = (dates: Set<string>) => {
+    if (dates.size === 0) return 0;
+    const sortedDates = Array.from(dates).sort().reverse();
+    const todayStr = fmtDate(today);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = fmtDate(yesterday);
+
+    if (sortedDates[0] !== todayStr && sortedDates[0] !== yesterdayStr) {
+      return 0; // No recent activity
+    }
+
+    let streak = 1;
+    let prevDate = new Date(sortedDates[0]);
+
+    for (let i = 1; i < sortedDates.length; i++) {
+      const checkDate = new Date(sortedDates[i]);
+      const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        streak++;
+        prevDate = checkDate;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const liftingStreak = calculateStreak(liftingDates);
+  const trainingStreak = includeOtherSessions ? calculateStreak(sessionDates) : 0;
 
   // Generate grid: 12 weeks x 7 days
   type DayData = {
@@ -175,9 +207,6 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
     grid.push(week);
   }
 
-  // Use the persisted streak from gamificationStats for consistency
-  const streak = gamificationStats.currentStreak;
-
   // Get day color based on activity type
   const getDayColor = (day: DayData) => {
     if (day.isFuture) return 'bg-grappler-800/30';
@@ -200,11 +229,21 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
           <Flame className="w-4 h-4 text-orange-400" />
-          Training Streak
+          Training Streaks
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className="text-2xl font-black text-orange-400">{streak}</span>
-          <span className="text-xs text-grappler-400">day{streak !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-3">
+          {/* Lifting streak */}
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+            <span className="text-lg font-black text-green-400">{liftingStreak}</span>
+          </div>
+          {/* Training streak (only show if user does combat/fitness) */}
+          {includeOtherSessions && (
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+              <span className="text-lg font-black text-blue-400">{trainingStreak}</span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex gap-[3px]">

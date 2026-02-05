@@ -13,26 +13,34 @@
  *   - Byrne et al. 2017 (MATADOR): intermittent dieting benefits
  */
 
-import { MacroTargets, DietGoal, DietPhase, WeeklyCheckIn, BodyWeightEntry } from './types';
+import { MacroTargets, DietGoal, DietPhase, WeeklyCheckIn, BodyWeightEntry, BiologicalSex } from './types';
 
 // ── Macro Calculation ────────────────────────────────────────────────────────
 
 interface MacroInput {
   bodyWeightKg: number;
+  heightCm: number;
+  age: number;
+  sex: BiologicalSex;
   goal: DietGoal;
   activityMultiplier?: number; // 1.2 sedentary → 1.9 very active; default 1.55
 }
 
 /**
- * Calculate evidence-based macros from body weight and goal.
- * Priority: protein → fat floor → carbs fill remaining calories.
+ * Calculate evidence-based macros using Mifflin-St Jeor BMR.
+ * Validated as most accurate by ADA (2005). Priority: protein → fat floor → carbs fill.
+ *
+ * Mifflin-St Jeor (1990):
+ *   Male:   BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age + 5
+ *   Female: BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age − 161
  */
-export function calculateMacros({ bodyWeightKg, goal, activityMultiplier = 1.55 }: MacroInput): MacroTargets {
+export function calculateMacros({ bodyWeightKg, heightCm, age, sex, goal, activityMultiplier = 1.55 }: MacroInput): MacroTargets {
   const bw = bodyWeightKg;
 
-  // Step 1: Estimate maintenance calories (Katch-McArdle approximation)
-  // Using simpler BW-based formula since we rarely have accurate BF%
-  const maintenance = Math.round(bw * 22 * activityMultiplier); // ~22 kcal/kg × activity
+  // Step 1: Mifflin-St Jeor BMR
+  const sexConstant = sex === 'male' ? 5 : -161;
+  const bmr = 10 * bw + 6.25 * heightCm - 5 * age + sexConstant;
+  const maintenance = Math.round(bmr * activityMultiplier);
 
   // Step 2: Apply caloric target based on goal
   let calories: number;

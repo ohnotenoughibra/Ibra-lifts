@@ -70,12 +70,41 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek } | null>(null);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
 
+  // Get workout logs breakdown by type for the current mesocycle
+  const getWorkoutBreakdown = () => {
+    const state = useAppStore.getState();
+    const { currentMesocycle: meso, workoutLogs: logs } = state;
+    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0, workouts: [] };
+
+    const mesoLogs = logs.filter(log => log.mesocycleId === meso.id);
+
+    // Match logs to sessions to get workout types
+    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0, workouts: mesoLogs };
+
+    mesoLogs.forEach(log => {
+      // Find the session this log belongs to
+      for (const week of meso.weeks) {
+        const session = week.sessions.find(s => s.id === log.sessionId);
+        if (session) {
+          if (session.type === 'strength') breakdown.strength++;
+          else if (session.type === 'hypertrophy') breakdown.hypertrophy++;
+          else if (session.type === 'power') breakdown.power++;
+          break;
+        }
+      }
+    });
+
+    return breakdown;
+  };
+
   // Check for existing workouts and prompt migration
   const handleGenerateWithMigrationCheck = (weeks: number, sessionMinutes?: number, sessionsPerWeek?: SessionsPerWeek) => {
     // Get fresh state from store to avoid stale closure issues
     const state = useAppStore.getState();
     const currentLogCount = state.getCurrentMesocycleLogCount();
     const activeMesocycle = state.currentMesocycle;
+
+    console.log('[Migration Check] currentLogCount:', currentLogCount, 'activeMesocycle:', activeMesocycle?.id);
 
     if (activeMesocycle && currentLogCount > 0) {
       // Store the generation params and show migration dialog
@@ -409,68 +438,97 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>
-        {showMigrateDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => {
-              setShowMigrateDialog(false);
-              setPendingGeneration(null);
-              setPreviousMesocycleId(null);
-            }}
-          >
+        {showMigrateDialog && (() => {
+          const breakdown = getWorkoutBreakdown();
+          return (
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => {
+                setShowMigrateDialog(false);
+                setPendingGeneration(null);
+                setPreviousMesocycleId(null);
+              }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-primary-500/20">
-                  <RefreshCw className="w-5 h-5 text-primary-400" />
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary-500/20">
+                    <RefreshCw className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
                 </div>
-                <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
-              </div>
 
-              <p className="text-sm text-grappler-400 mb-2">
-                You have <span className="text-primary-400 font-semibold">{getCurrentMesocycleLogCount()} workout{getCurrentMesocycleLogCount() !== 1 ? 's' : ''}</span> logged in your current program.
-              </p>
-              <p className="text-sm text-grappler-400 mb-5">
-                Do you want to carry this progress into your new program, or start fresh?
-              </p>
+                <p className="text-sm text-grappler-400 mb-3">
+                  You have <span className="text-primary-400 font-semibold">{breakdown.total} workout{breakdown.total !== 1 ? 's' : ''}</span> logged in your current program:
+                </p>
 
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleMigrateResponse(true)}
-                  className="btn btn-primary w-full gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  Keep My Progress
-                </button>
-                <button
-                  onClick={() => handleMigrateResponse(false)}
-                  className="btn btn-secondary w-full gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Start Fresh
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMigrateDialog(false);
-                    setPendingGeneration(null);
-                    setPreviousMesocycleId(null);
-                  }}
-                  className="btn btn-ghost w-full text-grappler-500"
-                >
-                  Cancel
-                </button>
-              </div>
+                {/* Workout breakdown by type */}
+                <div className="flex gap-2 mb-4">
+                  {breakdown.strength > 0 && (
+                    <div className="flex-1 bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                      <Zap className="w-4 h-4 text-red-400 mx-auto mb-1" />
+                      <p className="text-sm font-bold text-red-400">{breakdown.strength}</p>
+                      <p className="text-[10px] text-red-400/70">Strength</p>
+                    </div>
+                  )}
+                  {breakdown.hypertrophy > 0 && (
+                    <div className="flex-1 bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 text-center">
+                      <Heart className="w-4 h-4 text-purple-400 mx-auto mb-1" />
+                      <p className="text-sm font-bold text-purple-400">{breakdown.hypertrophy}</p>
+                      <p className="text-[10px] text-purple-400/70">Hypertrophy</p>
+                    </div>
+                  )}
+                  {breakdown.power > 0 && (
+                    <div className="flex-1 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
+                      <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
+                      <p className="text-sm font-bold text-orange-400">{breakdown.power}</p>
+                      <p className="text-[10px] text-orange-400/70">Power</p>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-sm text-grappler-400 mb-4">
+                  Transfer these workouts to your new program? Your exercise logs, weights, and progress will be preserved.
+                </p>
+
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleMigrateResponse(true)}
+                    className="btn btn-primary w-full gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Keep My {breakdown.total} Workout{breakdown.total !== 1 ? 's' : ''}
+                  </button>
+                  <button
+                    onClick={() => handleMigrateResponse(false)}
+                    className="btn btn-secondary w-full gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Start Fresh
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMigrateDialog(false);
+                      setPendingGeneration(null);
+                      setPreviousMesocycleId(null);
+                    }}
+                    className="btn btn-ghost w-full text-grappler-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

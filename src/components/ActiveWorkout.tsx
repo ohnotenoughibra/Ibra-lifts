@@ -225,14 +225,17 @@ export default function ActiveWorkout() {
     const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
     const workoutLogs = useAppStore.getState().workoutLogs;
     let previousBest1RM = 0;
+    let hasHistoryForExercise = false;
     for (const log of workoutLogs) {
       for (const ex of log.exercises) {
         if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
+          hasHistoryForExercise = true;
           previousBest1RM = Math.max(previousBest1RM, ex.estimated1RM);
         }
       }
     }
-    const isPR = currentSet.weight > 0 && estimated1RM > previousBest1RM && previousBest1RM > 0;
+    // PR if: weight > 0 AND (first ever lift for this exercise OR beat previous best)
+    const isPR = currentSet.weight > 0 && (!hasHistoryForExercise || estimated1RM > previousBest1RM);
 
     updateExerciseLog(currentExerciseIndex, {
       ...currentLog,

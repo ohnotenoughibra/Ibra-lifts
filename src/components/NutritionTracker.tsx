@@ -24,6 +24,7 @@ import {
   Loader2,
   ImageIcon,
   AlertCircle,
+  Sparkles,
   Clock,
   Target,
   TrendingUp,
@@ -35,6 +36,7 @@ import {
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
 import { cn } from '@/lib/utils';
+import DietCoach from './DietCoach';
 
 // ── Preset foods with metric portions ──────────────────────────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
@@ -85,6 +87,154 @@ const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
   { name: 'Latte (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
   { name: 'Orange Juice (250ml)', calories: 112, protein: 2, carbs: 26, fat: 0 },
 ];
+
+// ── Local food database for instant AI-free estimation ──────────────────────
+// Keywords map to macros per typical serving. Used by fuzzy matcher below.
+type FoodEntry = { keywords: string[]; name: string; calories: number; protein: number; carbs: number; fat: number };
+const FOOD_DB: FoodEntry[] = [
+  // Proteins
+  { keywords: ['chicken', 'chicken breast'], name: 'Chicken Breast (170g)', calories: 280, protein: 53, carbs: 0, fat: 6 },
+  { keywords: ['salmon'], name: 'Salmon Fillet (170g)', calories: 350, protein: 38, carbs: 0, fat: 22 },
+  { keywords: ['egg', 'eggs'], name: 'Eggs (3 large)', calories: 234, protein: 18, carbs: 2, fat: 16 },
+  { keywords: ['beef', 'steak'], name: 'Lean Beef (200g)', calories: 320, protein: 44, carbs: 0, fat: 16 },
+  { keywords: ['turkey'], name: 'Turkey Breast (170g)', calories: 250, protein: 50, carbs: 0, fat: 5 },
+  { keywords: ['tuna'], name: 'Tuna (1 can, 140g)', calories: 180, protein: 40, carbs: 0, fat: 2 },
+  { keywords: ['shrimp', 'prawn', 'prawns'], name: 'Shrimp (150g)', calories: 140, protein: 30, carbs: 1, fat: 2 },
+  { keywords: ['protein shake', 'whey', 'whey isolate', 'protein isolate', 'shake'], name: 'Whey Protein Shake (1 scoop)', calories: 120, protein: 27, carbs: 2, fat: 1 },
+  { keywords: ['protein bar'], name: 'Protein Bar', calories: 220, protein: 20, carbs: 24, fat: 8 },
+  { keywords: ['lamb'], name: 'Lamb (200g)', calories: 360, protein: 40, carbs: 0, fat: 22 },
+  { keywords: ['pork', 'pork chop'], name: 'Pork (200g)', calories: 330, protein: 42, carbs: 0, fat: 18 },
+  { keywords: ['chicken thigh', 'thigh'], name: 'Chicken Thigh (170g)', calories: 320, protein: 40, carbs: 0, fat: 18 },
+  { keywords: ['ground beef', 'mince', 'ground meat'], name: 'Ground Beef (200g)', calories: 400, protein: 40, carbs: 0, fat: 26 },
+  { keywords: ['cod', 'white fish', 'tilapia'], name: 'White Fish (170g)', calories: 180, protein: 38, carbs: 0, fat: 2 },
+  // Dairy
+  { keywords: ['greek yogurt', 'yogurt', 'yoghurt'], name: 'Greek Yogurt (200g)', calories: 130, protein: 20, carbs: 8, fat: 0 },
+  { keywords: ['cottage cheese'], name: 'Cottage Cheese (200g)', calories: 180, protein: 24, carbs: 6, fat: 5 },
+  { keywords: ['milk', 'whole milk'], name: 'Whole Milk (250ml)', calories: 150, protein: 8, carbs: 12, fat: 8 },
+  { keywords: ['cheese', 'mozzarella', 'cheddar'], name: 'Cheese (60g)', calories: 170, protein: 12, carbs: 1, fat: 13 },
+  // Carbs
+  { keywords: ['rice', 'white rice'], name: 'White Rice (150g cooked)', calories: 195, protein: 4, carbs: 42, fat: 1 },
+  { keywords: ['brown rice'], name: 'Brown Rice (150g cooked)', calories: 180, protein: 4, carbs: 38, fat: 2 },
+  { keywords: ['oats', 'oatmeal', 'porridge'], name: 'Oats (80g dry)', calories: 307, protein: 11, carbs: 55, fat: 5 },
+  { keywords: ['bread', 'toast'], name: 'Bread (2 slices)', calories: 200, protein: 8, carbs: 36, fat: 3 },
+  { keywords: ['pasta', 'noodles', 'spaghetti', 'penne'], name: 'Pasta (150g cooked)', calories: 220, protein: 8, carbs: 42, fat: 1 },
+  { keywords: ['potato', 'potatoes'], name: 'Potatoes (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
+  { keywords: ['sweet potato'], name: 'Sweet Potato (200g)', calories: 172, protein: 3, carbs: 40, fat: 0 },
+  { keywords: ['tortilla', 'wrap'], name: 'Tortilla Wrap', calories: 180, protein: 5, carbs: 30, fat: 4 },
+  { keywords: ['bagel'], name: 'Bagel', calories: 270, protein: 10, carbs: 52, fat: 2 },
+  { keywords: ['cereal', 'granola'], name: 'Cereal/Granola (60g)', calories: 250, protein: 6, carbs: 44, fat: 6 },
+  // Fruits
+  { keywords: ['banana'], name: 'Banana (1 medium)', calories: 105, protein: 1, carbs: 27, fat: 0 },
+  { keywords: ['apple'], name: 'Apple (1 medium)', calories: 95, protein: 0, carbs: 25, fat: 0 },
+  { keywords: ['berries', 'blueberries', 'strawberries'], name: 'Berries (150g)', calories: 75, protein: 1, carbs: 18, fat: 0 },
+  { keywords: ['orange'], name: 'Orange (1 medium)', calories: 62, protein: 1, carbs: 15, fat: 0 },
+  { keywords: ['mango'], name: 'Mango (1 cup)', calories: 99, protein: 1, carbs: 25, fat: 1 },
+  // Vegetables
+  { keywords: ['broccoli'], name: 'Broccoli (150g)', calories: 51, protein: 4, carbs: 10, fat: 0 },
+  { keywords: ['spinach'], name: 'Spinach (100g)', calories: 23, protein: 3, carbs: 4, fat: 0 },
+  { keywords: ['salad'], name: 'Mixed Salad (200g)', calories: 30, protein: 2, carbs: 5, fat: 0 },
+  // Fats
+  { keywords: ['peanut butter', 'pb'], name: 'Peanut Butter (30g)', calories: 190, protein: 7, carbs: 7, fat: 16 },
+  { keywords: ['avocado', 'avo'], name: 'Avocado (half)', calories: 160, protein: 2, carbs: 9, fat: 15 },
+  { keywords: ['almonds', 'nuts'], name: 'Almonds/Nuts (30g)', calories: 175, protein: 6, carbs: 6, fat: 15 },
+  { keywords: ['olive oil', 'oil'], name: 'Olive Oil (1 tbsp)', calories: 120, protein: 0, carbs: 0, fat: 14 },
+  { keywords: ['butter'], name: 'Butter (1 tbsp)', calories: 102, protein: 0, carbs: 0, fat: 12 },
+  // Drinks
+  { keywords: ['latte', 'coffee'], name: 'Latte (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
+  { keywords: ['orange juice', 'oj', 'juice'], name: 'Orange Juice (250ml)', calories: 112, protein: 2, carbs: 26, fat: 0 },
+  { keywords: ['smoothie'], name: 'Fruit Smoothie (350ml)', calories: 220, protein: 5, carbs: 45, fat: 3 },
+  { keywords: ['soda', 'coke', 'pepsi', 'sprite'], name: 'Soda (330ml)', calories: 140, protein: 0, carbs: 36, fat: 0 },
+  // Quick meals
+  { keywords: ['burger', 'hamburger'], name: 'Burger with Bun', calories: 540, protein: 34, carbs: 40, fat: 26 },
+  { keywords: ['pizza'], name: 'Pizza (2 slices)', calories: 560, protein: 22, carbs: 64, fat: 24 },
+  { keywords: ['burrito'], name: 'Burrito', calories: 550, protein: 28, carbs: 60, fat: 22 },
+  { keywords: ['sandwich', 'sub'], name: 'Sandwich', calories: 400, protein: 24, carbs: 40, fat: 16 },
+  { keywords: ['kebab', 'shawarma', 'gyro'], name: 'Kebab/Shawarma', calories: 500, protein: 35, carbs: 40, fat: 22 },
+  { keywords: ['sushi', 'sushi roll'], name: 'Sushi (8 pieces)', calories: 350, protein: 18, carbs: 50, fat: 8 },
+  { keywords: ['ramen'], name: 'Ramen Bowl', calories: 500, protein: 25, carbs: 60, fat: 18 },
+  { keywords: ['fried rice'], name: 'Fried Rice (300g)', calories: 400, protein: 12, carbs: 55, fat: 14 },
+  { keywords: ['stir fry', 'stir-fry'], name: 'Stir Fry with Protein', calories: 380, protein: 30, carbs: 30, fat: 14 },
+  { keywords: ['acai', 'acai bowl'], name: 'Acai Bowl', calories: 380, protein: 6, carbs: 60, fat: 14 },
+  { keywords: ['pancake', 'pancakes'], name: 'Pancakes (3)', calories: 350, protein: 10, carbs: 50, fat: 12 },
+  { keywords: ['waffle', 'waffles'], name: 'Waffles (2)', calories: 380, protein: 8, carbs: 52, fat: 16 },
+  // European / street food
+  { keywords: ['currywurst', 'curry wurst'], name: 'Currywurst', calories: 450, protein: 20, carbs: 30, fat: 28 },
+  { keywords: ['schnitzel', 'wiener schnitzel'], name: 'Schnitzel', calories: 520, protein: 35, carbs: 30, fat: 28 },
+  { keywords: ['cordon bleu', 'cordon blue'], name: 'Cordon Bleu', calories: 620, protein: 38, carbs: 28, fat: 36 },
+  { keywords: ['chicken curry', 'curry chicken'], name: 'Chicken Curry with Rice', calories: 550, protein: 35, carbs: 55, fat: 18 },
+  { keywords: ['curry'], name: 'Curry (1 serving)', calories: 400, protein: 20, carbs: 40, fat: 18 },
+  { keywords: ['d\u00f6ner', 'doner'], name: 'D\u00f6ner Kebab', calories: 550, protein: 35, carbs: 45, fat: 24 },
+  { keywords: ['pommes', 'fries', 'french fries'], name: 'Fries (200g)', calories: 380, protein: 5, carbs: 48, fat: 20 },
+  // Snacks / sweets
+  { keywords: ['haribo', 'goldb\u00e4ren', 'gummy bear', 'gummy bears', 'gummi'], name: 'Haribo Goldb\u00e4ren (100g)', calories: 343, protein: 7, carbs: 77, fat: 0 },
+  { keywords: ['chocolate', 'chocolate bar'], name: 'Chocolate Bar (50g)', calories: 270, protein: 4, carbs: 30, fat: 15 },
+];
+
+/**
+ * Instant local macro estimation — fuzzy-matches user text against FOOD_DB.
+ * Handles combos like "chicken and rice" by matching multiple items and summing.
+ * Returns null if no reasonable match found (caller should fall back to AI).
+ */
+function estimateLocally(input: string): { name: string; calories: number; protein: number; carbs: number; fat: number } | null {
+  const text = input.toLowerCase().trim();
+  if (!text) return null;
+
+  // Split on connectors: "and", "&", "+", ",", "with", "w/"
+  const parts = text.split(/\s+(?:and|&|\+|with|w\/)\s+|,\s*/);
+
+  const matched: FoodEntry[] = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    // Try exact keyword match first (longest keyword wins for specificity)
+    let best: FoodEntry | null = null;
+    let bestLen = 0;
+    for (const food of FOOD_DB) {
+      for (const kw of food.keywords) {
+        if (trimmed.includes(kw) && kw.length > bestLen) {
+          best = food;
+          bestLen = kw.length;
+        }
+      }
+    }
+    if (best) {
+      matched.push(best);
+    }
+  }
+
+  // If we split into parts but matched nothing, try the whole string
+  if (matched.length === 0) {
+    let best: FoodEntry | null = null;
+    let bestLen = 0;
+    for (const food of FOOD_DB) {
+      for (const kw of food.keywords) {
+        if (text.includes(kw) && kw.length > bestLen) {
+          best = food;
+          bestLen = kw.length;
+        }
+      }
+    }
+    if (best) matched.push(best);
+  }
+
+  if (matched.length === 0) return null;
+
+  // Sum macros from all matched items
+  const totals = matched.reduce(
+    (acc, f) => ({
+      calories: acc.calories + f.calories,
+      protein: acc.protein + f.protein,
+      carbs: acc.carbs + f.carbs,
+      fat: acc.fat + f.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+
+  const name = matched.map(f => f.name).join(' + ');
+  return { name, ...totals };
+}
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -301,6 +451,64 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     notes: string;
   } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  // ── AI text-based estimation ──
+  const handleAIEstimate = async () => {
+    const trimmed = formName.trim();
+    if (!trimmed) return;
+
+    setAnalysisError(null);
+    setAnalysisResult(null);
+
+    // Try instant local match first (no API call, no rate limits)
+    const local = estimateLocally(trimmed);
+    if (local) {
+      setAnalysisResult({ ...local, confidence: 'medium', notes: 'Estimated from local database' });
+      setFormName(local.name);
+      setFormCalories(String(local.calories));
+      setFormProtein(String(local.protein));
+      setFormCarbs(String(local.carbs));
+      setFormFat(String(local.fat));
+      return;
+    }
+
+    // No local match — fall back to AI API
+    setIsEstimating(true);
+
+    try {
+      const res = await fetch('/api/nutrition/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAnalysisError(data.error || 'Estimation failed');
+        setIsEstimating(false);
+        return;
+      }
+
+      if (data.calories === 0) {
+        setAnalysisError(data.notes || 'Could not estimate macros for this food');
+        setIsEstimating(false);
+        return;
+      }
+
+      setAnalysisResult(data);
+      setFormName(data.name);
+      setFormCalories(String(data.calories));
+      setFormProtein(String(data.protein));
+      setFormCarbs(String(data.carbs));
+      setFormFat(String(data.fat));
+      setIsEstimating(false);
+    } catch {
+      setAnalysisError('Network error. Check your connection.');
+      setIsEstimating(false);
+    }
+  };
 
   // ── Preset search ──
   const [presetSearch, setPresetSearch] = useState('');
@@ -350,6 +558,64 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const proteinPct = totalMacroGrams > 0 ? (totals.protein / totalMacroGrams) * 100 : 0;
   const carbsPct = totalMacroGrams > 0 ? (totals.carbs / totalMacroGrams) * 100 : 0;
   const fatPct = totalMacroGrams > 0 ? (totals.fat / totalMacroGrams) * 100 : 0;
+
+  // ── Smart meal suggestions based on remaining macros ──
+  const mealSuggestions = useMemo(() => {
+    const targets = contextualNutrition.adjustedTargets;
+    const remaining = {
+      calories: targets.calories - totals.calories,
+      protein: targets.protein - totals.protein,
+      carbs: targets.carbs - totals.carbs,
+      fat: targets.fat - totals.fat,
+    };
+
+    // Don't suggest if already over targets
+    if (remaining.calories <= 50) return [];
+
+    // Determine what's most needed
+    const proteinRatio = totals.protein / Math.max(targets.protein, 1);
+    const carbsRatio = totals.carbs / Math.max(targets.carbs, 1);
+    const fatRatio = totals.fat / Math.max(targets.fat, 1);
+
+    // Score each food: how well it fills the biggest gap without exceeding remaining
+    const scored = FOOD_DB
+      .filter(f => f.calories <= remaining.calories + 50) // fits calorie budget
+      .map(food => {
+        let score = 0;
+        // Reward filling the most deficient macro
+        if (proteinRatio < carbsRatio && proteinRatio < fatRatio) {
+          score += food.protein * 3; // protein is most needed
+        } else if (carbsRatio < fatRatio) {
+          score += food.carbs * 2; // carbs most needed
+        } else {
+          score += food.fat * 2; // fat most needed
+        }
+        // Reward calorie fit (closer to remaining = better)
+        score += Math.max(0, 100 - Math.abs(remaining.calories * 0.4 - food.calories));
+        // Penalize exceeding any remaining macro significantly
+        if (food.protein > remaining.protein + 10) score -= 30;
+        if (food.carbs > remaining.carbs + 15) score -= 20;
+        if (food.fat > remaining.fat + 10) score -= 20;
+        return { food, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map(s => s.food);
+
+    return scored;
+  }, [totals, contextualNutrition.adjustedTargets]);
+
+  const handleSuggestionTap = (food: FoodEntry) => {
+    addMeal({
+      date: new Date(),
+      mealType: formMealType,
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+    });
+  };
 
   // ── Handlers ──
   const resetForm = () => {
@@ -611,6 +877,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </AnimatePresence>
         </motion.div>
 
+        {/* ── Diet Coach ── */}
+        <DietCoach />
+
         {/* ── Macro Rings ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -703,6 +972,45 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           )}
         </motion.div>
+
+        {/* ── Smart Suggestions ── */}
+        {mealSuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="card p-4"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
+                Suggested Next
+              </h2>
+              <span className="text-xs text-grappler-500 ml-auto">
+                {contextualNutrition.adjustedTargets.calories - totals.calories > 0
+                  ? `${contextualNutrition.adjustedTargets.calories - totals.calories} kcal left`
+                  : 'Target reached'}
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              {mealSuggestions.map((food) => (
+                <button
+                  key={food.name}
+                  onClick={() => handleSuggestionTap(food)}
+                  className="flex-shrink-0 p-2.5 bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50 rounded-xl transition-colors text-left min-w-[140px]"
+                >
+                  <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
+                  <p className="text-[10px] text-grappler-400 mt-1">
+                    {food.calories} kcal &middot; {food.protein}g P
+                  </p>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-grappler-600 mt-2">
+              Based on your remaining macros &middot; Tap to log
+            </p>
+          </motion.div>
+        )}
 
         {/* ── Water Tracker ── */}
         <motion.div
@@ -958,14 +1266,39 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <label className="text-xs text-grappler-400 mb-1 block">
                       Name
                     </label>
-                    <input
-                      type="text"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder="e.g. Chicken breast, Rice bowl"
-                      className="input"
-                      autoFocus={!previewImage}
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && formName.trim() && !isEstimating) {
+                            e.preventDefault();
+                            handleAIEstimate();
+                          }
+                        }}
+                        placeholder="e.g. Chicken breast and rice"
+                        className="input flex-1"
+                        autoFocus={!previewImage}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAIEstimate}
+                        disabled={!formName.trim() || isEstimating}
+                        className="btn btn-sm px-3 bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+                        title="AI fills in the macros for you"
+                      >
+                        {isEstimating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        <span className="text-xs">AI</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-grappler-600 mt-1">
+                      Type what you ate and tap AI to auto-fill macros
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1039,7 +1372,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || isEstimating}
                       className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
                       Add

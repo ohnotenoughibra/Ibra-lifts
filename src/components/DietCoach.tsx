@@ -1,0 +1,537 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAppStore } from '@/lib/store';
+import {
+  calculateMacros,
+  getTargetRate,
+  calculateWeeklyAdjustment,
+  analyzeWeightTrend,
+  getPhaseRecommendation,
+  calculateAdherence,
+} from '@/lib/diet-coach';
+import { DietGoal } from '@/lib/types';
+import {
+  Scale,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  Target,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  CheckCircle2,
+  ArrowRight,
+  Flame,
+  Dumbbell,
+  Shield,
+} from 'lucide-react';
+
+const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
+  cut: {
+    label: 'Fat Loss',
+    description: 'Lose fat, preserve muscle',
+    color: 'text-red-400',
+    icon: <Flame className="w-5 h-5 text-red-400" />,
+  },
+  maintain: {
+    label: 'Maintain',
+    description: 'Stabilize weight, normalize metabolism',
+    color: 'text-blue-400',
+    icon: <Shield className="w-5 h-5 text-blue-400" />,
+  },
+  bulk: {
+    label: 'Muscle Gain',
+    description: 'Build muscle with minimal fat',
+    color: 'text-green-400',
+    icon: <Dumbbell className="w-5 h-5 text-green-400" />,
+  },
+};
+
+export default function DietCoach() {
+  const {
+    user,
+    activeDietPhase,
+    weeklyCheckIns,
+    bodyWeightLog,
+    meals,
+    macroTargets,
+    startDietPhase,
+    endDietPhase,
+    addWeeklyCheckIn,
+    incrementPhaseWeek,
+    setMacroTargets,
+  } = useAppStore();
+
+  const [expanded, setExpanded] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<DietGoal>('cut');
+  const [showCheckIn, setShowCheckIn] = useState(false);
+
+  // Get body weight in kg
+  const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+  const bodyWeightKg = latestWeight
+    ? (latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight)
+    : 80; // default
+
+  // Analyze weight trend
+  const weightTrend = useMemo(
+    () => analyzeWeightTrend(bodyWeightLog, user?.weightUnit === 'lbs' ? 'lbs' : 'kg'),
+    [bodyWeightLog, user?.weightUnit]
+  );
+
+  // Adherence
+  const adherence = useMemo(() => calculateAdherence(meals), [meals]);
+
+  // Phase recommendation
+  const phaseStatus = useMemo(
+    () => getPhaseRecommendation(activeDietPhase),
+    [activeDietPhase]
+  );
+
+  // Activity multiplier from sessions per week
+  const activityMultiplier = useMemo(() => {
+    const sessions = user?.sessionsPerWeek || 3;
+    if (sessions <= 2) return 1.4;
+    if (sessions <= 4) return 1.55;
+    return 1.7;
+  }, [user?.sessionsPerWeek]);
+
+  // Handle starting a new diet phase
+  const handleStartPhase = () => {
+    const newMacros = calculateMacros({
+      bodyWeightKg,
+      goal: selectedGoal,
+      activityMultiplier,
+    });
+    const rate = getTargetRate(selectedGoal, bodyWeightKg);
+
+    startDietPhase({
+      goal: selectedGoal,
+      startDate: new Date().toISOString().split('T')[0],
+      startWeightKg: bodyWeightKg,
+      targetRatePerWeek: rate,
+      currentMacros: newMacros,
+      weeksCompleted: 0,
+      isActive: true,
+    });
+
+    setShowSetup(false);
+  };
+
+  // Handle weekly check-in
+  const handleCheckIn = () => {
+    if (!activeDietPhase) return;
+
+    const adjustmentResult = calculateWeeklyAdjustment({
+      currentMacros: macroTargets,
+      goal: activeDietPhase.goal,
+      targetRatePerWeek: activeDietPhase.targetRatePerWeek,
+      actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
+      weeksAtPlateau: weightTrend.weeksAtPlateau,
+      adherencePercent: adherence,
+    });
+
+    addWeeklyCheckIn({
+      phaseId: activeDietPhase.id,
+      weekNumber: activeDietPhase.weeksCompleted + 1,
+      date: new Date().toISOString().split('T')[0],
+      averageWeightKg: weightTrend.current * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
+      weightChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
+      adherenceScore: adherence,
+      adjustmentMade: adjustmentResult.adjustment,
+      newMacros: adjustmentResult.newMacros,
+      notes: adjustmentResult.reason,
+    });
+
+    incrementPhaseWeek();
+    setShowCheckIn(false);
+  };
+
+  // Determine if check-in is due (7+ days since last)
+  const checkInDue = useMemo(() => {
+    if (!activeDietPhase) return false;
+    const phaseCheckIns = weeklyCheckIns.filter(c => c.phaseId === activeDietPhase.id);
+    if (phaseCheckIns.length === 0) {
+      // Due if phase started 7+ days ago
+      const daysSinceStart = Math.floor(
+        (Date.now() - new Date(activeDietPhase.startDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return daysSinceStart >= 7;
+    }
+    const lastCheckIn = phaseCheckIns[phaseCheckIns.length - 1];
+    const daysSinceLast = Math.floor(
+      (Date.now() - new Date(lastCheckIn.date).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysSinceLast >= 7;
+  }, [activeDietPhase, weeklyCheckIns]);
+
+  const unitLabel = user?.weightUnit === 'lbs' ? 'lbs' : 'kg';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="card overflow-hidden"
+    >
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-3 flex items-center justify-between bg-gradient-to-r from-violet-500/20 to-transparent"
+      >
+        <div className="flex items-center gap-3">
+          <Scale className="w-5 h-5 text-violet-400" />
+          <div className="text-left">
+            <p className="text-sm font-medium text-white">Diet Coach</p>
+            <p className="text-xs text-gray-400">
+              {activeDietPhase
+                ? `${GOAL_CONFIG[activeDietPhase.goal].label} — Week ${activeDietPhase.weeksCompleted + 1}`
+                : 'Evidence-based nutrition coaching'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {checkInDue && activeDietPhase && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 rounded-full">
+              Check-in due
+            </span>
+          )}
+          {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-3 pt-2 space-y-3">
+              {/* No active phase — show setup */}
+              {!activeDietPhase && !showSetup && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400">
+                    Set a nutrition goal and get adaptive macro coaching. Your macros adjust weekly based on your actual weight trend.
+                  </p>
+                  <button
+                    onClick={() => setShowSetup(true)}
+                    className="w-full py-2.5 px-4 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded-xl text-sm font-medium text-violet-300 transition-colors"
+                  >
+                    Start a Diet Phase
+                  </button>
+                </div>
+              )}
+
+              {/* Setup flow */}
+              {showSetup && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Choose Your Goal</p>
+                  <div className="space-y-2">
+                    {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
+                      const config = GOAL_CONFIG[goal];
+                      const isSelected = selectedGoal === goal;
+                      const previewMacros = calculateMacros({ bodyWeightKg, goal, activityMultiplier });
+                      return (
+                        <button
+                          key={goal}
+                          onClick={() => setSelectedGoal(goal)}
+                          className={`w-full p-3 rounded-xl text-left transition-all ${
+                            isSelected
+                              ? 'bg-violet-500/20 border-violet-500/50 border'
+                              : 'bg-grappler-800/40 border border-grappler-700/30 hover:border-grappler-600/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              {config.icon}
+                              <div>
+                                <p className={`text-sm font-medium ${isSelected ? config.color : 'text-grappler-200'}`}>
+                                  {config.label}
+                                </p>
+                                <p className="text-[10px] text-grappler-500">{config.description}</p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="text-right">
+                                <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
+                                <p className="text-[10px] text-grappler-500">
+                                  {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-2.5 bg-grappler-800/30 rounded-lg">
+                    <p className="text-[10px] text-grappler-500">
+                      Based on {Math.round(bodyWeightKg)}kg body weight &middot; Protein set first, fat floor protected, carbs fill remaining
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowSetup(false)}
+                      className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleStartPhase}
+                      className="flex-1 py-2 bg-violet-500 hover:bg-violet-600 rounded-xl text-xs font-medium text-white transition-colors"
+                    >
+                      Start {GOAL_CONFIG[selectedGoal].label}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Active phase */}
+              {activeDietPhase && !showSetup && (
+                <div className="space-y-3">
+                  {/* Phase info + macros */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 bg-grappler-800/40 rounded-lg">
+                      <p className="text-[10px] text-grappler-500 mb-1">Current Phase</p>
+                      <div className="flex items-center gap-1.5">
+                        {GOAL_CONFIG[activeDietPhase.goal].icon}
+                        <span className={`text-sm font-medium ${GOAL_CONFIG[activeDietPhase.goal].color}`}>
+                          {GOAL_CONFIG[activeDietPhase.goal].label}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-grappler-500 mt-1">Week {activeDietPhase.weeksCompleted + 1}</p>
+                    </div>
+                    <div className="p-2.5 bg-grappler-800/40 rounded-lg">
+                      <p className="text-[10px] text-grappler-500 mb-1">Daily Targets</p>
+                      <p className="text-sm font-medium text-white">{macroTargets.calories} kcal</p>
+                      <p className="text-[10px] text-grappler-400">
+                        {macroTargets.protein}P / {macroTargets.carbs}C / {macroTargets.fat}F
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Weight trend */}
+                  {bodyWeightLog.length >= 3 && (
+                    <div className="p-2.5 bg-grappler-800/40 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-grappler-500">Weight Trend</p>
+                        <div className="flex items-center gap-1">
+                          {weightTrend.weeklyChange < -0.1 ? (
+                            <TrendingDown className="w-3 h-3 text-red-400" />
+                          ) : weightTrend.weeklyChange > 0.1 ? (
+                            <TrendingUp className="w-3 h-3 text-green-400" />
+                          ) : (
+                            <Minus className="w-3 h-3 text-blue-400" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            weightTrend.weeklyChange < -0.1 ? 'text-red-400' :
+                            weightTrend.weeklyChange > 0.1 ? 'text-green-400' :
+                            'text-blue-400'
+                          }`}>
+                            {weightTrend.weeklyChange > 0 ? '+' : ''}{weightTrend.weeklyChange} {unitLabel}/wk
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-white mt-1">
+                        {weightTrend.current} {unitLabel}
+                      </p>
+                      {weightTrend.weeksAtPlateau >= 2 && (
+                        <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Plateau detected ({weightTrend.weeksAtPlateau} weeks)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Adherence */}
+                  <div className="p-2.5 bg-grappler-800/40 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-grappler-500">7-Day Logging</p>
+                      <span className={`text-xs font-medium ${
+                        adherence >= 80 ? 'text-green-400' :
+                        adherence >= 60 ? 'text-amber-400' :
+                        'text-red-400'
+                      }`}>
+                        {adherence}% adherence
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 bg-grappler-700/50 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${adherence}%` }}
+                        className={`h-full rounded-full ${
+                          adherence >= 80 ? 'bg-green-500' :
+                          adherence >= 60 ? 'bg-amber-500' :
+                          'bg-red-500'
+                        }`}
+                      />
+                    </div>
+                    {adherence < 70 && (
+                      <p className="text-[10px] text-grappler-500 mt-1">
+                        Log at least 2 meals/day for accurate macro adjustments
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Phase recommendation */}
+                  {(phaseStatus.shouldTakeBreak || phaseStatus.shouldTransition) && (
+                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-amber-300">{phaseStatus.suggestion}</p>
+                          {phaseStatus.shouldTransition && phaseStatus.nextGoal && (
+                            <button
+                              onClick={() => {
+                                const newMacros = calculateMacros({
+                                  bodyWeightKg,
+                                  goal: phaseStatus.nextGoal!,
+                                  activityMultiplier,
+                                });
+                                endDietPhase();
+                                startDietPhase({
+                                  goal: phaseStatus.nextGoal!,
+                                  startDate: new Date().toISOString().split('T')[0],
+                                  startWeightKg: bodyWeightKg,
+                                  targetRatePerWeek: getTargetRate(phaseStatus.nextGoal!, bodyWeightKg),
+                                  currentMacros: newMacros,
+                                  weeksCompleted: 0,
+                                  isActive: true,
+                                });
+                              }}
+                              className="mt-2 flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                            >
+                              Switch to {GOAL_CONFIG[phaseStatus.nextGoal].label} <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Weekly check-in */}
+                  {checkInDue && !showCheckIn && (
+                    <button
+                      onClick={() => setShowCheckIn(true)}
+                      className="w-full py-2.5 px-4 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded-xl text-sm font-medium text-violet-300 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Target className="w-4 h-4" />
+                      Weekly Check-in
+                    </button>
+                  )}
+
+                  {/* Check-in flow */}
+                  {showCheckIn && (
+                    <div className="p-3 bg-grappler-800/60 rounded-xl space-y-3 border border-violet-500/20">
+                      <p className="text-xs font-medium text-violet-300">Weekly Check-in</p>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-grappler-400">Trend weight</span>
+                          <span className="text-white font-medium">{weightTrend.current} {unitLabel}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-grappler-400">Weekly change</span>
+                          <span className={`font-medium ${
+                            weightTrend.weeklyChange < -0.1 ? 'text-red-400' :
+                            weightTrend.weeklyChange > 0.1 ? 'text-green-400' :
+                            'text-blue-400'
+                          }`}>
+                            {weightTrend.weeklyChange > 0 ? '+' : ''}{weightTrend.weeklyChange} {unitLabel}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-grappler-400">Logging adherence</span>
+                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-amber-400'}`}>
+                            {adherence}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Preview adjustment */}
+                      {(() => {
+                        const preview = calculateWeeklyAdjustment({
+                          currentMacros: macroTargets,
+                          goal: activeDietPhase.goal,
+                          targetRatePerWeek: activeDietPhase.targetRatePerWeek,
+                          actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
+                          weeksAtPlateau: weightTrend.weeksAtPlateau,
+                          adherencePercent: adherence,
+                        });
+                        return (
+                          <div className={`p-2.5 rounded-lg ${
+                            preview.adjustment === 'maintain' ? 'bg-blue-500/10 border border-blue-500/20' :
+                            preview.adjustment === 'decrease' ? 'bg-red-500/10 border border-red-500/20' :
+                            'bg-green-500/10 border border-green-500/20'
+                          }`}>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <CheckCircle2 className={`w-3.5 h-3.5 ${
+                                preview.adjustment === 'maintain' ? 'text-blue-400' :
+                                preview.adjustment === 'decrease' ? 'text-red-400' :
+                                'text-green-400'
+                              }`} />
+                              <p className={`text-xs font-medium ${
+                                preview.adjustment === 'maintain' ? 'text-blue-300' :
+                                preview.adjustment === 'decrease' ? 'text-red-300' :
+                                'text-green-300'
+                              }`}>
+                                {preview.adjustment === 'maintain' ? 'Macros stay the same' :
+                                 preview.adjustment === 'decrease' ? 'Reducing macros' :
+                                 'Increasing macros'}
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-grappler-400">{preview.reason}</p>
+                            {preview.adjustment !== 'maintain' && (
+                              <p className="text-[10px] text-grappler-300 mt-1">
+                                New: {preview.newMacros.calories} kcal &middot; {preview.newMacros.protein}P / {preview.newMacros.carbs}C / {preview.newMacros.fat}F
+                              </p>
+                            )}
+                            {preview.alert && (
+                              <p className="text-[10px] text-amber-400 mt-1">{preview.alert}</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowCheckIn(false)}
+                          className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
+                        >
+                          Skip
+                        </button>
+                        <button
+                          onClick={handleCheckIn}
+                          className="flex-1 py-2 bg-violet-500 hover:bg-violet-600 rounded-xl text-xs font-medium text-white transition-colors"
+                        >
+                          Apply Adjustment
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* End phase */}
+                  <button
+                    onClick={() => {
+                      endDietPhase();
+                      setShowSetup(false);
+                    }}
+                    className="w-full text-[10px] text-grappler-600 hover:text-grappler-400 transition-colors py-1"
+                  >
+                    End current phase
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}

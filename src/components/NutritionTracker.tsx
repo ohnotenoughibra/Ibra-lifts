@@ -204,6 +204,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     currentMesocycle,
     grapplingSessions,
     latestWhoopData,
+    workoutLogs,
   } = useAppStore();
 
   // ── Derived state from store ──
@@ -215,7 +216,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
   const bodyWeightLbs = latestWeight
     ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
-    : (user?.bodyWeight || 175);
+    : 175; // Default weight if none logged
 
   const computedTargets = useMemo(() => {
     if (!latestWeight || !user) return macroTargets;
@@ -230,21 +231,23 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   }, [latestWeight, user, macroTargets]);
 
   // ── Contextual nutrition based on today's training ──
+  // Check today's workout logs instead of scheduled sessions
   const todaySession = useMemo(() => {
-    if (!currentMesocycle) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayLog = workoutLogs.find(log => {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+      return logDate.getTime() === today.getTime();
+    });
+    if (!todayLog || !currentMesocycle) return null;
+    // Find matching session by sessionId
     for (const week of currentMesocycle.weeks) {
-      for (const session of week.sessions) {
-        const sessionDate = new Date(session.scheduledDate);
-        sessionDate.setHours(0, 0, 0, 0);
-        if (sessionDate.getTime() === today.getTime()) {
-          return session;
-        }
-      }
+      const session = week.sessions.find(s => s.id === todayLog.sessionId);
+      if (session) return session;
     }
     return null;
-  }, [currentMesocycle]);
+  }, [workoutLogs, currentMesocycle]);
 
   const todayGrappling = useMemo(() => {
     const today = new Date();
@@ -518,7 +521,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <div className="flex items-center gap-3">
               {contextualNutrition.dayType.includes('grappling') ? (
                 <Shield className="w-5 h-5 text-lime-400" />
-              ) : contextualNutrition.dayType === 'rest' || contextualNutrition.dayType === 'deload' ? (
+              ) : contextualNutrition.dayType === 'rest' ? (
                 <Clock className="w-5 h-5 text-blue-400" />
               ) : (
                 <Dumbbell className="w-5 h-5 text-primary-400" />
@@ -530,7 +533,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                    contextualNutrition.dayType === 'strength' ? 'Strength Training Day' :
                    contextualNutrition.dayType === 'hypertrophy' ? 'Hypertrophy Training Day' :
                    contextualNutrition.dayType === 'power' ? 'Power Training Day' :
-                   contextualNutrition.dayType === 'deload' ? 'Deload Day' :
                    'Rest Day'}
                 </p>
                 <p className="text-xs text-gray-400">{contextualNutrition.carbCycleNote}</p>

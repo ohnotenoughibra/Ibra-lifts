@@ -1,6 +1,6 @@
 import type { MacroTargets, WorkoutSession, GrapplingSession, WearableData, UserProfile } from './types';
 
-export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'cardio' | 'rest' | 'deload';
+export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'rest';
 
 export interface ContextualMacros {
   baseTargets: MacroTargets;
@@ -52,12 +52,15 @@ export function getContextualNutrition(
   // Recovery-based adjustments from Whoop
   let recoveryBonus = 0;
   if (whoopData) {
-    if (whoopData.recoveryScore < 33) {
+    const recovery = whoopData.recoveryScore ?? 50;
+    const sleep = whoopData.sleepHours ?? 7;
+
+    if (recovery < 33) {
       // Low recovery - reduce training intensity, focus on recovery nutrition
       recommendations.push('Low recovery detected - prioritize anti-inflammatory foods and extra protein');
       proteinMultiplier += 0.1;
       recoveryBonus = -200; // Reduce calories slightly for rest
-    } else if (whoopData.recoveryScore >= 67) {
+    } else if (recovery >= 67) {
       // High recovery - can push harder, fuel appropriately
       recommendations.push('High recovery - good day to push intensity, fuel with extra carbs');
       carbMultiplier += 0.1;
@@ -65,7 +68,7 @@ export function getContextualNutrition(
     }
 
     // Sleep quality affects recovery
-    if (whoopData.sleepHours < 6) {
+    if (sleep < 6) {
       recommendations.push('Poor sleep - consider extra protein and avoid processed carbs');
       proteinMultiplier += 0.05;
     }
@@ -125,25 +128,6 @@ export function getContextualNutrition(
       postworkoutTiming = 'Normal meal within 2 hours';
       carbCycleNote = 'Moderate carb day';
       recommendations.push('Focus on whole foods for sustained energy');
-      break;
-
-    case 'cardio':
-      calorieMultiplier = 1.05;
-      proteinMultiplier = 1.0;
-      carbMultiplier = 1.1;
-      fatMultiplier = 0.95;
-      preworkoutTiming = 'Can train fasted or with light carbs';
-      postworkoutTiming = 'Replenish carbs and fluids';
-      carbCycleNote = 'Moderate-high carb day';
-      break;
-
-    case 'deload':
-      calorieMultiplier = 0.95;
-      proteinMultiplier = 1.0;
-      carbMultiplier = 0.9;
-      carbCycleNote = 'Low carb day - let body recover';
-      recommendations.push('Focus on anti-inflammatory foods');
-      recommendations.push('Extra vegetables and omega-3s');
       break;
 
     case 'rest':
@@ -260,9 +244,7 @@ export function getSupplementRecommendations(dayType: TrainingDayType): string[]
     power: ['Caffeine if needed', 'Light on stimulants to maintain feel'],
     grappling_hard: ['Electrolytes during training', 'Tart cherry for recovery', 'Magnesium before bed'],
     grappling_light: ['Electrolytes if sweating', 'Optional: adaptogens for stress'],
-    cardio: ['Electrolytes', 'Optional: caffeine'],
     rest: ['Focus on food over supplements', 'Magnesium and zinc for recovery'],
-    deload: ['Collagen for joint health', 'Focus on anti-inflammatory support'],
   };
 
   return [...baseSupplements, ...daySpecific[dayType]];

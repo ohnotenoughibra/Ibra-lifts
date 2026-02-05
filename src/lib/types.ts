@@ -478,7 +478,7 @@ export interface WearableSettings {
 }
 
 // Competition / Event Prep
-export type CompetitionType = 'bjj_tournament' | 'wrestling_meet' | 'mma_fight' | 'aesthetic_event' | 'strength_meet' | 'custom';
+export type CompetitionType = 'bjj_tournament' | 'wrestling_meet' | 'mma_fight' | 'kickboxing_fight' | 'muay_thai_fight' | 'boxing_match' | 'aesthetic_event' | 'strength_meet' | 'custom';
 
 export interface CompetitionEvent {
   id: string;

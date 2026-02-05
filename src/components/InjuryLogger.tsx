@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
@@ -11,6 +11,11 @@ import {
   Activity,
   Heart,
   Trash2,
+  Shield,
+  TrendingUp,
+  Target,
+  Dumbbell,
+  Info,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
@@ -19,6 +24,8 @@ import {
   PainType,
   InjuryEntry,
 } from '@/lib/types';
+import { analyzeInjuryRisks, getPrehabRecommendations, type InjuryAnalysis, type RiskLevel } from '@/lib/injury-prevention';
+import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -149,11 +156,45 @@ function daysSince(date: Date): number {
 // ---------------------------------------------------------------------------
 
 export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
-  const { injuryLog, addInjury, resolveInjury, deleteInjury } = useAppStore();
+  const { injuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
+  const [activeTab, setActiveTab] = useState<'log' | 'prevention'>('prevention');
+
+  // Injury prevention analysis
+  const analysis = useMemo<InjuryAnalysis>(() => {
+    return analyzeInjuryRisks(
+      workoutLogs,
+      trainingSessions,
+      injuryLog,
+      latestWhoopData,
+      user
+    );
+  }, [workoutLogs, trainingSessions, injuryLog, latestWhoopData, user]);
+
+  const prehabExercises = useMemo(() => {
+    return getPrehabRecommendations(analysis);
+  }, [analysis]);
+
+  const getRiskColor = (level: RiskLevel) => {
+    switch (level) {
+      case 'critical': return 'text-red-400 bg-red-500/20 border-red-500/50';
+      case 'high': return 'text-orange-400 bg-orange-500/20 border-orange-500/50';
+      case 'moderate': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
+      case 'low': return 'text-green-400 bg-green-500/20 border-green-500/50';
+    }
+  };
+
+  const getRiskLabel = (level: RiskLevel) => {
+    switch (level) {
+      case 'critical': return 'Critical Risk';
+      case 'high': return 'High Risk';
+      case 'moderate': return 'Moderate Risk';
+      case 'low': return 'Low Risk';
+    }
+  };
 
   // Form state
   const [formRegion, setFormRegion] = useState<BodyRegion>('neck');
@@ -256,9 +297,175 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
             Add
           </button>
         </div>
+
+        {/* Tab Navigation */}
+        <div className="px-4 pt-2 flex gap-2">
+          <button
+            onClick={() => setActiveTab('prevention')}
+            className={cn(
+              'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2',
+              activeTab === 'prevention'
+                ? 'bg-primary-500/20 text-primary-400 border border-primary-500/50'
+                : 'bg-grappler-800 text-grappler-400 border border-grappler-700 hover:border-grappler-600'
+            )}
+          >
+            <Shield className="w-4 h-4" />
+            Prevention
+          </button>
+          <button
+            onClick={() => setActiveTab('log')}
+            className={cn(
+              'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2',
+              activeTab === 'log'
+                ? 'bg-primary-500/20 text-primary-400 border border-primary-500/50'
+                : 'bg-grappler-800 text-grappler-400 border border-grappler-700 hover:border-grappler-600'
+            )}
+          >
+            <Heart className="w-4 h-4" />
+            Injury Log
+            {activeInjuries.length > 0 && (
+              <span className="bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
+                {activeInjuries.length}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
       <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* PREVENTION TAB */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'prevention' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            {/* Overall Risk Status */}
+            <div className={cn(
+              'rounded-xl p-4 border',
+              getRiskColor(analysis.overallRisk)
+            )}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  <span className="font-semibold">{getRiskLabel(analysis.overallRisk)}</span>
+                </div>
+                <span className="text-2xl font-bold">{Math.round((analysis.weeklyLoadScore + analysis.recoveryScore + analysis.muscleBalanceScore) / 3)}/100</span>
+              </div>
+              <p className="text-sm opacity-80">
+                {analysis.overallRisk === 'low' && 'Your training load and recovery are well balanced. Keep it up!'}
+                {analysis.overallRisk === 'moderate' && 'Some risk factors detected. Review recommendations below.'}
+                {analysis.overallRisk === 'high' && 'Multiple risk factors present. Consider adjusting your training.'}
+                {analysis.overallRisk === 'critical' && 'High injury risk detected. Immediate attention recommended.'}
+              </p>
+            </div>
+
+            {/* Risk Factors */}
+            {analysis.risks.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  Risk Factors Detected
+                </h3>
+                {analysis.risks.map((risk, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      'rounded-xl p-4 border',
+                      getRiskColor(risk.riskLevel)
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-medium text-sm">{risk.title}</h4>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-black/20">
+                        {risk.category}
+                      </span>
+                    </div>
+                    <p className="text-xs opacity-80 mb-3">{risk.description}</p>
+                    <div className="bg-black/20 rounded-lg p-2 space-y-1">
+                      {risk.recommendations.map((rec, recIdx) => (
+                        <p key={recIdx} className="text-xs font-medium flex items-start gap-1.5">
+                          <Target className="w-3 h-3 mt-0.5 shrink-0" />
+                          {rec}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Positive Factors */}
+            {analysis.positiveFactors.length > 0 && (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-green-400 flex items-center gap-2 mb-3">
+                  <TrendingUp className="w-4 h-4" />
+                  Positive Factors
+                </h3>
+                <ul className="space-y-2">
+                  {analysis.positiveFactors.map((factor, idx) => (
+                    <li key={idx} className="flex items-center gap-2 text-sm text-green-300">
+                      <Check className="w-4 h-4 shrink-0" />
+                      {factor}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Prehab Recommendations */}
+            {prehabExercises.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+                  <Dumbbell className="w-4 h-4 text-primary-400" />
+                  Recommended Prehab Exercises
+                </h3>
+                <div className="grid gap-2">
+                  {prehabExercises.map((exercise, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-grappler-800 rounded-xl p-3 border border-grappler-700"
+                    >
+                      <h4 className="font-medium text-sm text-grappler-100 mb-2">{exercise.exercise}</h4>
+                      <div className="flex items-center gap-3 text-xs text-grappler-400 mb-2">
+                        <span className="bg-grappler-700 px-2 py-0.5 rounded">{exercise.sets}</span>
+                        <span>&middot;</span>
+                        <span>{exercise.frequency}</span>
+                      </div>
+                      <p className="text-xs text-primary-400/80 flex items-start gap-1">
+                        <Info className="w-3 h-3 mt-0.5 shrink-0" />
+                        {exercise.reason}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Risks State */}
+            {analysis.risks.length === 0 && analysis.positiveFactors.length === 0 && (
+              <div className="bg-grappler-800/50 rounded-xl p-6 text-center">
+                <Shield className="w-10 h-10 text-green-400 mx-auto mb-3" />
+                <h3 className="font-semibold text-grappler-100 mb-1">All Clear!</h3>
+                <p className="text-sm text-grappler-400">
+                  No significant injury risks detected. Keep training smart!
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* INJURY LOG TAB */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {activeTab === 'log' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
         {/* ── Load Management Alerts ───────────────────────────────────── */}
         <AnimatePresence>
           {activeInjuries.length > 0 && (
@@ -697,6 +904,8 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
               )}
             </AnimatePresence>
           </div>
+        )}
+          </motion.div>
         )}
       </div>
     </motion.div>

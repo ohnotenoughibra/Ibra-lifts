@@ -27,13 +27,17 @@ import {
   SessionTemplate,
   ThemeMode,
   HRSession,
-  GrapplingSession,
+  TrainingSession,
   MealEntry,
   MacroTargets,
   MuscleGroupConfig,
   WearableData,
   CompetitionEvent,
-  WhoopWorkout
+  WhoopWorkout,
+  QuickLog,
+  GripTest,
+  GripExerciseLog,
+  ACTIVITY_CATEGORY_MAP
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -75,6 +79,13 @@ interface AppState {
   // Body weight tracking
   bodyWeightLog: BodyWeightEntry[];
 
+  // Quick logging (water, sleep, energy, readiness, mobility)
+  quickLogs: QuickLog[];
+
+  // Grip strength tracking
+  gripTests: GripTest[];
+  gripExerciseLogs: GripExerciseLog[];
+
   // Injury tracking
   injuryLog: InjuryEntry[];
 
@@ -87,8 +98,8 @@ interface AppState {
   // Heart rate sessions
   hrSessions: HRSession[];
 
-  // Grappling sessions
-  grapplingSessions: GrapplingSession[];
+  // Training sessions (unified: grappling, striking, cardio, outdoor, etc.)
+  trainingSessions: TrainingSession[];
 
   // Theme
   themeMode: ThemeMode;
@@ -154,6 +165,16 @@ interface AppState {
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
+  migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
+  getCurrentMesocycleLogCount: () => number;
+  getImportableWorkoutLogs: () => {
+    currentMesocycle: WorkoutLog[];
+    otherMesocycles: WorkoutLog[];
+    orphaned: WorkoutLog[];
+    total: number;
+    importable: WorkoutLog[];
+  };
+  importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => void;
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -180,6 +201,16 @@ interface AppState {
   addBodyWeight: (weight: number, notes?: string) => void;
   deleteBodyWeight: (id: string) => void;
 
+  // Quick log actions
+  addQuickLog: (log: Omit<QuickLog, 'id'>) => void;
+  deleteQuickLog: (id: string) => void;
+
+  // Grip strength actions
+  addGripTest: (test: Omit<GripTest, 'id'>) => void;
+  addGripExerciseLog: (log: Omit<GripExerciseLog, 'id'>) => void;
+  deleteGripTest: (id: string) => void;
+  deleteGripExerciseLog: (id: string) => void;
+
   // Injury actions
   addInjury: (injury: Omit<InjuryEntry, 'id'>) => void;
   resolveInjury: (id: string) => void;
@@ -197,9 +228,10 @@ interface AppState {
   // HR session actions
   addHRSession: (session: Omit<HRSession, 'id'>) => void;
 
-  // Grappling session actions
-  addGrapplingSession: (session: Omit<GrapplingSession, 'id'>) => void;
-  deleteGrapplingSession: (id: string) => void;
+  // Training session actions (unified system)
+  addTrainingSession: (session: Omit<TrainingSession, 'id'>) => void;
+  updateTrainingSession: (id: string, updates: Partial<TrainingSession>) => void;
+  deleteTrainingSession: (id: string) => void;
 
   // Theme actions
   setThemeMode: (mode: ThemeMode) => void;
@@ -289,11 +321,14 @@ export const useAppStore = create<AppState>()(
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
       bodyWeightLog: [],
+      quickLogs: [],
+      gripTests: [],
+      gripExerciseLogs: [],
       injuryLog: [],
       customExercises: [],
       sessionTemplates: [],
       hrSessions: [],
-      grapplingSessions: [],
+      trainingSessions: [],
       themeMode: 'dark' as ThemeMode,
       meals: [],
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
@@ -601,6 +636,198 @@ export const useAppStore = create<AppState>()(
           mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
           workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
         });
+      },
+
+      migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
+        const { workoutLogs, currentMesocycle, mesocycleHistory } = get();
+
+        // Get target mesocycle (could be current or in history)
+        const targetMeso = currentMesocycle?.id === toMesocycleId
+          ? currentMesocycle
+          : mesocycleHistory.find(m => m.id === toMesocycleId);
+
+        if (!targetMeso) {
+          // Simple migration without session matching
+          set({
+            workoutLogs: workoutLogs.map(log =>
+              log.mesocycleId === fromMesocycleId
+                ? { ...log, mesocycleId: toMesocycleId }
+                : log
+            ),
+          });
+          return;
+        }
+
+        // Get source mesocycle for type matching
+        const sourceMeso = mesocycleHistory.find(m => m.id === fromMesocycleId);
+
+        // Get all sessions from target mesocycle
+        const allSessions = targetMeso.weeks.flatMap(week => week.sessions);
+
+        // Track which sessions are already used
+        const usedSessionIds = new Set(
+          workoutLogs
+            .filter(log => log.mesocycleId === toMesocycleId)
+            .map(log => log.sessionId)
+        );
+
+        // Get workout type from source mesocycle
+        const getWorkoutType = (sessionId: string): 'strength' | 'hypertrophy' | 'power' | null => {
+          if (sourceMeso) {
+            for (const week of sourceMeso.weeks) {
+              const session = week.sessions.find(s => s.id === sessionId);
+              if (session) return session.type;
+            }
+          }
+          return null;
+        };
+
+        const updatedLogs = workoutLogs.map(log => {
+          if (log.mesocycleId !== fromMesocycleId) return log;
+
+          const workoutType = getWorkoutType(log.sessionId);
+
+          // Find matching session in target (prefer same type)
+          let matchingSession = allSessions.find(
+            s => s.type === workoutType && !usedSessionIds.has(s.id)
+          );
+
+          if (!matchingSession) {
+            matchingSession = allSessions.find(s => !usedSessionIds.has(s.id));
+          }
+
+          if (matchingSession) {
+            usedSessionIds.add(matchingSession.id);
+            return {
+              ...log,
+              mesocycleId: toMesocycleId,
+              sessionId: matchingSession.id,
+            };
+          }
+
+          return { ...log, mesocycleId: toMesocycleId };
+        });
+
+        set({ workoutLogs: updatedLogs });
+      },
+
+      getCurrentMesocycleLogCount: () => {
+        const { currentMesocycle, workoutLogs } = get();
+        if (!currentMesocycle) return 0;
+        return workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id).length;
+      },
+
+      // Get recent workout logs that could be imported (from last 30 days, not in current mesocycle)
+      getImportableWorkoutLogs: () => {
+        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Get all mesocycle IDs (current + history)
+        const knownMesocycleIds = new Set<string>();
+        if (currentMesocycle) knownMesocycleIds.add(currentMesocycle.id);
+        mesocycleHistory.forEach(m => knownMesocycleIds.add(m.id));
+
+        // Find logs from last 30 days
+        const recentLogs = workoutLogs.filter(log => {
+          const logDate = new Date(log.date);
+          return logDate >= thirtyDaysAgo;
+        });
+
+        // Separate into current mesocycle, other known mesocycles, and orphaned
+        const currentMesoLogs = currentMesocycle
+          ? recentLogs.filter(log => log.mesocycleId === currentMesocycle.id)
+          : [];
+        const otherMesoLogs = recentLogs.filter(log =>
+          log.mesocycleId !== currentMesocycle?.id &&
+          knownMesocycleIds.has(log.mesocycleId)
+        );
+        const orphanedLogs = recentLogs.filter(log =>
+          !knownMesocycleIds.has(log.mesocycleId) || log.mesocycleId === 'standalone'
+        );
+
+        return {
+          currentMesocycle: currentMesoLogs,
+          otherMesocycles: otherMesoLogs,
+          orphaned: orphanedLogs,
+          total: recentLogs.length,
+          importable: [...otherMesoLogs, ...orphanedLogs],
+        };
+      },
+
+      // Import workout logs into current mesocycle with intelligent session matching
+      importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => {
+        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
+        if (!currentMesocycle) return;
+
+        // Get all sessions from current mesocycle (flattened)
+        const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
+
+        // Track which sessions are already completed in current mesocycle
+        const completedSessionIds = new Set(
+          workoutLogs
+            .filter(log => log.mesocycleId === currentMesocycle.id)
+            .map(log => log.sessionId)
+        );
+
+        // Get logs to import
+        const logsToImport = workoutLogs.filter(log => logIds.includes(log.id));
+
+        // Try to determine workout type from the old mesocycle or exercises
+        const getWorkoutType = (log: WorkoutLog): 'strength' | 'hypertrophy' | 'power' | null => {
+          // First, try to find the original session in mesocycle history
+          for (const meso of mesocycleHistory) {
+            for (const week of meso.weeks) {
+              const session = week.sessions.find(s => s.id === log.sessionId);
+              if (session) return session.type;
+            }
+          }
+          // If we have exercises, infer from rep ranges (rough heuristic)
+          if (log.exercises.length > 0) {
+            const avgReps = log.exercises.reduce((sum, ex) => {
+              const completedSets = ex.sets.filter(s => s.completed);
+              if (completedSets.length === 0) return sum;
+              return sum + completedSets.reduce((s, set) => s + set.reps, 0) / completedSets.length;
+            }, 0) / log.exercises.length;
+
+            if (avgReps <= 5) return 'strength';
+            if (avgReps <= 12) return 'hypertrophy';
+            return 'power';
+          }
+          return null;
+        };
+
+        // Assign sessions to imported logs
+        const usedSessionIds = new Set<string>(completedSessionIds);
+        const updatedLogs = workoutLogs.map(log => {
+          if (!logIds.includes(log.id)) return log;
+
+          const workoutType = getWorkoutType(log);
+
+          // Find a matching session (prefer same type, then any available)
+          let matchingSession = allSessions.find(
+            s => s.type === workoutType && !usedSessionIds.has(s.id)
+          );
+
+          // If no type match, use any available session
+          if (!matchingSession) {
+            matchingSession = allSessions.find(s => !usedSessionIds.has(s.id));
+          }
+
+          if (matchingSession) {
+            usedSessionIds.add(matchingSession.id);
+            return {
+              ...log,
+              mesocycleId: currentMesocycle.id,
+              sessionId: matchingSession.id,
+            };
+          }
+
+          // No available session - just update mesocycleId
+          return { ...log, mesocycleId: currentMesocycle.id };
+        });
+
+        set({ workoutLogs: updatedLogs });
       },
 
       // Workout actions
@@ -1092,6 +1319,50 @@ export const useAppStore = create<AppState>()(
         set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
       },
 
+      // Quick log actions
+      addQuickLog: (log) => {
+        const { quickLogs } = get();
+        const entry: QuickLog = {
+          ...log,
+          id: uuidv4(),
+        };
+        set({ quickLogs: [...quickLogs, entry] });
+      },
+
+      deleteQuickLog: (id) => {
+        const { quickLogs } = get();
+        set({ quickLogs: quickLogs.filter(l => l.id !== id) });
+      },
+
+      // Grip strength actions
+      addGripTest: (test) => {
+        const { gripTests } = get();
+        const entry: GripTest = {
+          ...test,
+          id: uuidv4(),
+        };
+        set({ gripTests: [...gripTests, entry] });
+      },
+
+      addGripExerciseLog: (log) => {
+        const { gripExerciseLogs } = get();
+        const entry: GripExerciseLog = {
+          ...log,
+          id: uuidv4(),
+        };
+        set({ gripExerciseLogs: [...gripExerciseLogs, entry] });
+      },
+
+      deleteGripTest: (id) => {
+        const { gripTests } = get();
+        set({ gripTests: gripTests.filter(t => t.id !== id) });
+      },
+
+      deleteGripExerciseLog: (id) => {
+        const { gripExerciseLogs } = get();
+        set({ gripExerciseLogs: gripExerciseLogs.filter(l => l.id !== id) });
+      },
+
       // Injury actions
       addInjury: (injury) => {
         const { injuryLog } = get();
@@ -1168,15 +1439,32 @@ export const useAppStore = create<AppState>()(
         set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }] });
       },
 
-      // Grappling session actions
-      addGrapplingSession: (session) => {
-        const { grapplingSessions } = get();
-        set({ grapplingSessions: [...grapplingSessions, { ...session, id: uuidv4() }] });
+      // Training session actions (unified system for grappling, striking, cardio, etc.)
+      addTrainingSession: (session) => {
+        const { trainingSessions } = get();
+        // Auto-determine category from type if not provided
+        const category = session.category || ACTIVITY_CATEGORY_MAP[session.type] || 'other';
+        set({
+          trainingSessions: [...trainingSessions, {
+            ...session,
+            id: uuidv4(),
+            category,
+          }]
+        });
       },
 
-      deleteGrapplingSession: (id) => {
-        const { grapplingSessions } = get();
-        set({ grapplingSessions: grapplingSessions.filter(s => s.id !== id) });
+      updateTrainingSession: (id, updates) => {
+        const { trainingSessions } = get();
+        set({
+          trainingSessions: trainingSessions.map(s =>
+            s.id === id ? { ...s, ...updates } : s
+          )
+        });
+      },
+
+      deleteTrainingSession: (id) => {
+        const { trainingSessions } = get();
+        set({ trainingSessions: trainingSessions.filter(s => s.id !== id) });
       },
 
       // Theme actions
@@ -1238,7 +1526,7 @@ export const useAppStore = create<AppState>()(
           if (pendingRemoteData.customExercises) fieldsToMerge.customExercises = pendingRemoteData.customExercises;
           if (pendingRemoteData.sessionTemplates) fieldsToMerge.sessionTemplates = pendingRemoteData.sessionTemplates;
           if (pendingRemoteData.hrSessions) fieldsToMerge.hrSessions = pendingRemoteData.hrSessions;
-          if (pendingRemoteData.grapplingSessions) fieldsToMerge.grapplingSessions = pendingRemoteData.grapplingSessions;
+          if (pendingRemoteData.trainingSessions) fieldsToMerge.trainingSessions = pendingRemoteData.trainingSessions;
           if (pendingRemoteData.currentMesocycle) fieldsToMerge.currentMesocycle = pendingRemoteData.currentMesocycle;
           if (pendingRemoteData.mesocycleHistory) fieldsToMerge.mesocycleHistory = pendingRemoteData.mesocycleHistory;
           if (pendingRemoteData.baselineLifts) fieldsToMerge.baselineLifts = pendingRemoteData.baselineLifts;
@@ -1255,7 +1543,7 @@ export const useAppStore = create<AppState>()(
             customExercises: localState.customExercises,
             sessionTemplates: localState.sessionTemplates,
             hrSessions: localState.hrSessions,
-            grapplingSessions: localState.grapplingSessions,
+            trainingSessions: localState.trainingSessions,
             currentMesocycle: localState.currentMesocycle,
             mesocycleHistory: localState.mesocycleHistory,
             lastSyncAt: localState.lastSyncAt || 0,
@@ -1270,7 +1558,7 @@ export const useAppStore = create<AppState>()(
           if (merged.customExercises) updates.customExercises = merged.customExercises;
           if (merged.sessionTemplates) updates.sessionTemplates = merged.sessionTemplates;
           if (merged.hrSessions) updates.hrSessions = merged.hrSessions;
-          if (merged.grapplingSessions) updates.grapplingSessions = merged.grapplingSessions;
+          if (merged.trainingSessions) updates.trainingSessions = merged.trainingSessions;
           set({ ...updates, syncConflict: null, pendingRemoteData: null });
         }
       },
@@ -1294,11 +1582,14 @@ export const useAppStore = create<AppState>()(
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
           bodyWeightLog: [],
+          quickLogs: [],
+          gripTests: [],
+          gripExerciseLogs: [],
           injuryLog: [],
           customExercises: [],
           sessionTemplates: [],
           hrSessions: [],
-          grapplingSessions: [],
+          trainingSessions: [],
           themeMode: 'dark' as ThemeMode,
           meals: [],
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
@@ -1387,7 +1678,7 @@ export const useAppStore = create<AppState>()(
         customExercises: state.customExercises,
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,
-        grapplingSessions: state.grapplingSessions,
+        trainingSessions: state.trainingSessions,
         themeMode: state.themeMode,
         meals: state.meals,
         macroTargets: state.macroTargets,

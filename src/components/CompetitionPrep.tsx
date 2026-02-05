@@ -29,6 +29,9 @@ const COMPETITION_TYPE_LABELS: Record<CompetitionType, string> = {
   bjj_tournament: 'BJJ Tournament',
   wrestling_meet: 'Wrestling Meet',
   mma_fight: 'MMA Fight',
+  kickboxing_fight: 'Kickboxing Fight',
+  muay_thai_fight: 'Muay Thai Fight',
+  boxing_match: 'Boxing Match',
   aesthetic_event: 'Aesthetic Event',
   strength_meet: 'Strength Meet',
   custom: 'Custom Event',
@@ -145,6 +148,39 @@ const AESTHETIC_RECOMMENDATIONS: Record<Phase, string[]> = {
     'Water manipulation -- peak day hydration plan',
     'Final posing rehearsals',
     'Look your best -- trust the process',
+  ],
+};
+
+const STRIKING_RECOMMENDATIONS: Record<Phase, string[]> = {
+  base: [
+    'Build conditioning base with road work and bag work',
+    'Technical drilling -- focus on combinations and footwork',
+    'Strength training 2-3x/week -- explosive power focus',
+    'Spar light to work on timing without accumulating damage',
+  ],
+  intensification: [
+    'Increase sparring intensity -- work specific fight scenarios',
+    'Dial in your weight -- begin gradual cut if needed',
+    'Practice your game plan against different styles',
+    'Prioritize recovery between hard sessions',
+  ],
+  peaking: [
+    'Reduce sparring volume -- protect yourself from injury',
+    'Maintain conditioning with pad work and bag rounds',
+    'Sharpen your best weapons and setups',
+    'Mental preparation and visualization work',
+  ],
+  taper: [
+    'Light technical work only -- no hard sparring',
+    'Begin weight cut protocol if applicable',
+    'Focus on speed and timing, not power',
+    'Stay loose -- shadow boxing and stretching',
+  ],
+  event_week: [
+    'Light movement and shadow boxing only',
+    'Complete weight cut and rehydration protocol',
+    'Mental preparation and visualization',
+    'Trust your camp -- you are ready to fight',
   ],
 };
 
@@ -636,9 +672,12 @@ function EventDetail({
   const timeline = getPhaseTimeline(event);
   const isPast = daysRemaining < 0;
   const isAesthetic = event.type === 'aesthetic_event';
+  const isStriking = event.type === 'kickboxing_fight' || event.type === 'muay_thai_fight' || event.type === 'boxing_match' || event.type === 'mma_fight';
   const recommendations = isAesthetic
     ? AESTHETIC_RECOMMENDATIONS[phase]
-    : PHASE_RECOMMENDATIONS[phase];
+    : isStriking
+      ? STRIKING_RECOMMENDATIONS[phase]
+      : PHASE_RECOMMENDATIONS[phase];
   const weightProgress = getWeightProgress(event.currentWeight, event.weightClass);
 
   return (

@@ -24,6 +24,7 @@ import {
   Loader2,
   ImageIcon,
   AlertCircle,
+  Sparkles,
   Clock,
   Target,
   TrendingUp,
@@ -301,6 +302,50 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     notes: string;
   } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  // ── AI text-based estimation ──
+  const handleAIEstimate = async () => {
+    const trimmed = formName.trim();
+    if (!trimmed) return;
+
+    setIsEstimating(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+
+    try {
+      const res = await fetch('/api/nutrition/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAnalysisError(data.error || 'Estimation failed');
+        setIsEstimating(false);
+        return;
+      }
+
+      if (data.calories === 0) {
+        setAnalysisError(data.notes || 'Could not estimate macros for this food');
+        setIsEstimating(false);
+        return;
+      }
+
+      setAnalysisResult(data);
+      setFormName(data.name);
+      setFormCalories(String(data.calories));
+      setFormProtein(String(data.protein));
+      setFormCarbs(String(data.carbs));
+      setFormFat(String(data.fat));
+      setIsEstimating(false);
+    } catch {
+      setAnalysisError('Network error. Check your connection.');
+      setIsEstimating(false);
+    }
+  };
 
   // ── Preset search ──
   const [presetSearch, setPresetSearch] = useState('');
@@ -958,14 +1003,39 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <label className="text-xs text-grappler-400 mb-1 block">
                       Name
                     </label>
-                    <input
-                      type="text"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder="e.g. Chicken breast, Rice bowl"
-                      className="input"
-                      autoFocus={!previewImage}
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && formName.trim() && !isEstimating) {
+                            e.preventDefault();
+                            handleAIEstimate();
+                          }
+                        }}
+                        placeholder="e.g. Chicken breast and rice"
+                        className="input flex-1"
+                        autoFocus={!previewImage}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAIEstimate}
+                        disabled={!formName.trim() || isEstimating}
+                        className="btn btn-sm px-3 bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+                        title="AI fills in the macros for you"
+                      >
+                        {isEstimating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        <span className="text-xs">AI</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-grappler-600 mt-1">
+                      Type what you ate and tap AI to auto-fill macros
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1039,7 +1109,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || isEstimating}
                       className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
                       Add

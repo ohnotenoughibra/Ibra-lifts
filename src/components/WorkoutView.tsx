@@ -30,8 +30,7 @@ import {
   History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
-import { Building2, Home, Backpack } from 'lucide-react';
+import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { exportProgramPdf } from '@/lib/pdf-export';
 
@@ -39,14 +38,8 @@ interface WorkoutViewProps {
   onOpenBuilder?: () => void;
 }
 
-const PROFILE_ICONS: Record<string, any> = {
-  gym: Building2,
-  home: Home,
-  travel: Backpack,
-};
-
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user, saveAsTemplate, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, saveAsTemplate, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount } = useAppStore();
 
   // Track which sessions have been completed in this mesocycle
   const completedSessionIds = new Set(
@@ -243,29 +236,6 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Equipment Profile Switcher */}
-      <div className="flex items-center gap-2 bg-grappler-800/50 rounded-xl p-1.5">
-        {DEFAULT_EQUIPMENT_PROFILES.map((profile) => {
-          const Icon = PROFILE_ICONS[profile.name] || Dumbbell;
-          const isActive = activeEquipmentProfile === profile.name;
-          return (
-            <button
-              key={profile.name}
-              onClick={() => setActiveEquipmentProfile(profile.name)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
-                isActive
-                  ? 'bg-primary-500 text-white shadow-md'
-                  : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/50'
-              )}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {profile.label}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

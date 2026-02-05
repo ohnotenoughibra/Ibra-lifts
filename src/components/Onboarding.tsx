@@ -23,7 +23,7 @@ import {
   Activity,
   X,
 } from 'lucide-react';
-import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider } from '@/lib/types';
+import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarDays, AlertTriangle } from 'lucide-react';
 
@@ -470,27 +470,84 @@ function Step3_Setup({
               </button>
             ))}
           </div>
-          <label className="block text-sm font-medium text-grappler-300 mt-3 mb-1.5">Equipment</label>
-          <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-grappler-300 mt-3 mb-1.5">Where do you train?</label>
+          <div className="grid grid-cols-3 gap-1.5">
             {([
-              { value: 'full_gym' as const, label: 'Full Gym' },
-              { value: 'home_gym' as const, label: 'Home Gym' },
-              { value: 'minimal' as const, label: 'Minimal' },
+              { value: 'full_gym' as const, label: 'Full Gym', desc: 'Commercial gym' },
+              { value: 'home_gym' as const, label: 'Home', desc: 'Home setup' },
+              { value: 'minimal' as const, label: 'Travel', desc: 'Minimal gear' },
             ]).map((eq) => (
               <button
                 key={eq.value}
-                onClick={() => update({ equipment: eq.value })}
+                onClick={() => {
+                  // Set default equipment for the selected profile
+                  const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
+                    p.name === (eq.value === 'full_gym' ? 'gym' : eq.value === 'home_gym' ? 'home' : 'travel')
+                  );
+                  update({
+                    equipment: eq.value,
+                    availableEquipment: profile?.equipment || [],
+                  });
+                }}
                 className={cn(
-                  'w-full py-2 rounded-lg text-sm font-medium transition-all',
+                  'py-2 rounded-lg text-center transition-all',
                   data.equipment === eq.value
                     ? 'bg-primary-500 text-white'
                     : 'bg-grappler-700 text-grappler-400'
                 )}
               >
-                {eq.label}
+                <p className="text-xs font-medium">{eq.label}</p>
               </button>
             ))}
           </div>
+          {/* Equipment customization */}
+          {data.equipment && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="mt-2 overflow-hidden"
+            >
+              <p className="text-[10px] text-grappler-500 mb-1.5">
+                What equipment do you have? (tap to toggle)
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {([
+                  { id: 'barbell' as EquipmentType, label: 'Barbell' },
+                  { id: 'dumbbell' as EquipmentType, label: 'Dumbbells' },
+                  { id: 'kettlebell' as EquipmentType, label: 'Kettlebell' },
+                  { id: 'bench' as EquipmentType, label: 'Bench' },
+                  { id: 'pull_up_bar' as EquipmentType, label: 'Pull-up Bar' },
+                  { id: 'cable' as EquipmentType, label: 'Cables' },
+                  { id: 'machine' as EquipmentType, label: 'Machines' },
+                  { id: 'resistance_band' as EquipmentType, label: 'Bands' },
+                  { id: 'dip_station' as EquipmentType, label: 'Dip Station' },
+                  { id: 'ez_bar' as EquipmentType, label: 'EZ Bar' },
+                ]).map((item) => {
+                  const isSelected = data.availableEquipment?.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        const current = data.availableEquipment || [];
+                        const updated = isSelected
+                          ? current.filter(e => e !== item.id)
+                          : [...current, item.id];
+                        update({ availableEquipment: updated });
+                      }}
+                      className={cn(
+                        'px-2 py-1 rounded text-[10px] font-medium transition-all border',
+                        isSelected
+                          ? 'bg-primary-500/20 text-primary-300 border-primary-500/50'
+                          : 'bg-grappler-800 text-grappler-500 border-grappler-700'
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 

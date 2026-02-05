@@ -37,7 +37,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession } = useAppStore();
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
-  const [waterOz, setWaterOz] = useState(8);
+  const [waterMl, setWaterMl] = useState(250); // Default 250ml (1 glass)
   const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || 175;
   const [weightLbs, setWeightLbs] = useState(latestWeight);
   const [sleepHours, setSleepHours] = useState(7);
@@ -87,8 +87,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
     switch (type) {
       case 'water':
-        addQuickLog({ type: 'water', value: waterOz, unit: 'oz', timestamp: new Date() });
-        message = `+${waterOz}oz water logged`;
+        addQuickLog({ type: 'water', value: waterMl, unit: 'ml', timestamp: new Date() });
+        message = `+${waterMl}ml water logged`;
         break;
       case 'weight':
         addBodyWeight(weightLbs);
@@ -137,8 +137,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       icon: Droplets,
       label: 'Water',
       color: 'text-blue-400 bg-blue-500/20',
-      stat: `${todayWater}oz today`,
-      highlight: todayWater >= 64,
+      stat: todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L today` : `${todayWater}ml today`,
+      highlight: todayWater >= 2000, // 2L goal
     },
     {
       id: 'weight' as QuickLogType,
@@ -202,34 +202,34 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             <div className="text-center">
               <Droplets className="w-12 h-12 mx-auto text-blue-400 mb-2" />
               <h3 className="text-lg font-semibold text-white">Log Water</h3>
-              <p className="text-sm text-gray-400">Today: {todayWater}oz</p>
+              <p className="text-sm text-gray-400">Today: {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}</p>
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => setWaterOz(Math.max(1, waterOz - 4))}
+                onClick={() => setWaterMl(Math.max(100, waterMl - 100))}
                 className="btn btn-circle btn-ghost"
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <div className="text-4xl font-bold text-white w-24 text-center">{waterOz}oz</div>
+              <div className="text-4xl font-bold text-white w-28 text-center">{waterMl}ml</div>
               <button
-                onClick={() => setWaterOz(waterOz + 4)}
+                onClick={() => setWaterMl(waterMl + 100)}
                 className="btn btn-circle btn-ghost"
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex gap-2 justify-center">
-              {[8, 12, 16, 24, 32].map(oz => (
+            <div className="flex gap-2 justify-center flex-wrap">
+              {[250, 330, 500, 750, 1000].map(ml => (
                 <button
-                  key={oz}
-                  onClick={() => setWaterOz(oz)}
+                  key={ml}
+                  onClick={() => setWaterMl(ml)}
                   className={cn(
                     "btn btn-sm",
-                    waterOz === oz ? "btn-primary" : "btn-ghost"
+                    waterMl === ml ? "btn-primary" : "btn-ghost"
                   )}
                 >
-                  {oz}oz
+                  {ml >= 1000 ? `${ml / 1000}L` : `${ml}ml`}
                 </button>
               ))}
             </div>
@@ -681,8 +681,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-400">Water intake</span>
-                <span className={cn(todayWater >= 64 ? "text-green-400" : "text-gray-300")}>
-                  {todayWater}oz {todayWater >= 64 && '✓'}
+                <span className={cn(todayWater >= 2000 ? "text-green-400" : "text-gray-300")}>
+                  {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`} {todayWater >= 2000 && '✓'}
                 </span>
               </div>
               <div className="flex justify-between">

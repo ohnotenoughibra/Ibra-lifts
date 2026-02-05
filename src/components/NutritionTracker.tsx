@@ -99,7 +99,7 @@ const FOOD_DB: FoodEntry[] = [
   { keywords: ['turkey'], name: 'Turkey Breast (170g)', calories: 250, protein: 50, carbs: 0, fat: 5 },
   { keywords: ['tuna'], name: 'Tuna (1 can, 140g)', calories: 180, protein: 40, carbs: 0, fat: 2 },
   { keywords: ['shrimp', 'prawn', 'prawns'], name: 'Shrimp (150g)', calories: 140, protein: 30, carbs: 1, fat: 2 },
-  { keywords: ['protein shake', 'whey', 'shake'], name: 'Protein Shake (300ml)', calories: 160, protein: 30, carbs: 5, fat: 2 },
+  { keywords: ['protein shake', 'whey', 'whey isolate', 'protein isolate', 'shake'], name: 'Whey Protein Shake (1 scoop)', calories: 120, protein: 27, carbs: 2, fat: 1 },
   { keywords: ['protein bar'], name: 'Protein Bar', calories: 220, protein: 20, carbs: 24, fat: 8 },
   { keywords: ['lamb'], name: 'Lamb (200g)', calories: 360, protein: 40, carbs: 0, fat: 22 },
   { keywords: ['pork', 'pork chop'], name: 'Pork (200g)', calories: 330, protein: 42, carbs: 0, fat: 18 },
@@ -117,7 +117,7 @@ const FOOD_DB: FoodEntry[] = [
   { keywords: ['oats', 'oatmeal', 'porridge'], name: 'Oats (80g dry)', calories: 307, protein: 11, carbs: 55, fat: 5 },
   { keywords: ['bread', 'toast'], name: 'Bread (2 slices)', calories: 200, protein: 8, carbs: 36, fat: 3 },
   { keywords: ['pasta', 'noodles', 'spaghetti', 'penne'], name: 'Pasta (150g cooked)', calories: 220, protein: 8, carbs: 42, fat: 1 },
-  { keywords: ['potato', 'potatoes', 'fries', 'chips'], name: 'Potatoes (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
+  { keywords: ['potato', 'potatoes'], name: 'Potatoes (250g)', calories: 178, protein: 5, carbs: 38, fat: 0 },
   { keywords: ['sweet potato'], name: 'Sweet Potato (200g)', calories: 172, protein: 3, carbs: 40, fat: 0 },
   { keywords: ['tortilla', 'wrap'], name: 'Tortilla Wrap', calories: 180, protein: 5, carbs: 30, fat: 4 },
   { keywords: ['bagel'], name: 'Bagel', calories: 270, protein: 10, carbs: 52, fat: 2 },
@@ -156,6 +156,17 @@ const FOOD_DB: FoodEntry[] = [
   { keywords: ['acai', 'acai bowl'], name: 'Acai Bowl', calories: 380, protein: 6, carbs: 60, fat: 14 },
   { keywords: ['pancake', 'pancakes'], name: 'Pancakes (3)', calories: 350, protein: 10, carbs: 50, fat: 12 },
   { keywords: ['waffle', 'waffles'], name: 'Waffles (2)', calories: 380, protein: 8, carbs: 52, fat: 16 },
+  // European / street food
+  { keywords: ['currywurst', 'curry wurst'], name: 'Currywurst', calories: 450, protein: 20, carbs: 30, fat: 28 },
+  { keywords: ['schnitzel', 'wiener schnitzel'], name: 'Schnitzel', calories: 520, protein: 35, carbs: 30, fat: 28 },
+  { keywords: ['cordon bleu', 'cordon blue'], name: 'Cordon Bleu', calories: 620, protein: 38, carbs: 28, fat: 36 },
+  { keywords: ['chicken curry', 'curry chicken'], name: 'Chicken Curry with Rice', calories: 550, protein: 35, carbs: 55, fat: 18 },
+  { keywords: ['curry'], name: 'Curry (1 serving)', calories: 400, protein: 20, carbs: 40, fat: 18 },
+  { keywords: ['d\u00f6ner', 'doner'], name: 'D\u00f6ner Kebab', calories: 550, protein: 35, carbs: 45, fat: 24 },
+  { keywords: ['pommes', 'fries', 'french fries'], name: 'Fries (200g)', calories: 380, protein: 5, carbs: 48, fat: 20 },
+  // Snacks / sweets
+  { keywords: ['haribo', 'goldb\u00e4ren', 'gummy bear', 'gummy bears', 'gummi'], name: 'Haribo Goldb\u00e4ren (100g)', calories: 343, protein: 7, carbs: 77, fat: 0 },
+  { keywords: ['chocolate', 'chocolate bar'], name: 'Chocolate Bar (50g)', calories: 270, protein: 4, carbs: 30, fat: 15 },
 ];
 
 /**
@@ -547,6 +558,64 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const carbsPct = totalMacroGrams > 0 ? (totals.carbs / totalMacroGrams) * 100 : 0;
   const fatPct = totalMacroGrams > 0 ? (totals.fat / totalMacroGrams) * 100 : 0;
 
+  // ── Smart meal suggestions based on remaining macros ──
+  const mealSuggestions = useMemo(() => {
+    const targets = contextualNutrition.adjustedTargets;
+    const remaining = {
+      calories: targets.calories - totals.calories,
+      protein: targets.protein - totals.protein,
+      carbs: targets.carbs - totals.carbs,
+      fat: targets.fat - totals.fat,
+    };
+
+    // Don't suggest if already over targets
+    if (remaining.calories <= 50) return [];
+
+    // Determine what's most needed
+    const proteinRatio = totals.protein / Math.max(targets.protein, 1);
+    const carbsRatio = totals.carbs / Math.max(targets.carbs, 1);
+    const fatRatio = totals.fat / Math.max(targets.fat, 1);
+
+    // Score each food: how well it fills the biggest gap without exceeding remaining
+    const scored = FOOD_DB
+      .filter(f => f.calories <= remaining.calories + 50) // fits calorie budget
+      .map(food => {
+        let score = 0;
+        // Reward filling the most deficient macro
+        if (proteinRatio < carbsRatio && proteinRatio < fatRatio) {
+          score += food.protein * 3; // protein is most needed
+        } else if (carbsRatio < fatRatio) {
+          score += food.carbs * 2; // carbs most needed
+        } else {
+          score += food.fat * 2; // fat most needed
+        }
+        // Reward calorie fit (closer to remaining = better)
+        score += Math.max(0, 100 - Math.abs(remaining.calories * 0.4 - food.calories));
+        // Penalize exceeding any remaining macro significantly
+        if (food.protein > remaining.protein + 10) score -= 30;
+        if (food.carbs > remaining.carbs + 15) score -= 20;
+        if (food.fat > remaining.fat + 10) score -= 20;
+        return { food, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map(s => s.food);
+
+    return scored;
+  }, [totals, contextualNutrition.adjustedTargets]);
+
+  const handleSuggestionTap = (food: FoodEntry) => {
+    addMeal({
+      date: new Date(),
+      mealType: formMealType,
+      name: food.name,
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+    });
+  };
+
   // ── Handlers ──
   const resetForm = () => {
     setFormName('');
@@ -899,6 +968,45 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           )}
         </motion.div>
+
+        {/* ── Smart Suggestions ── */}
+        {mealSuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="card p-4"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
+                Suggested Next
+              </h2>
+              <span className="text-xs text-grappler-500 ml-auto">
+                {contextualNutrition.adjustedTargets.calories - totals.calories > 0
+                  ? `${contextualNutrition.adjustedTargets.calories - totals.calories} kcal left`
+                  : 'Target reached'}
+              </span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              {mealSuggestions.map((food) => (
+                <button
+                  key={food.name}
+                  onClick={() => handleSuggestionTap(food)}
+                  className="flex-shrink-0 p-2.5 bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50 rounded-xl transition-colors text-left min-w-[140px]"
+                >
+                  <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
+                  <p className="text-[10px] text-grappler-400 mt-1">
+                    {food.calories} kcal &middot; {food.protein}g P
+                  </p>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-grappler-600 mt-2">
+              Based on your remaining macros &middot; Tap to log
+            </p>
+          </motion.div>
+        )}
 
         {/* ── Water Tracker ── */}
         <motion.div

@@ -614,14 +614,76 @@ export const useAppStore = create<AppState>()(
       },
 
       migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
-        const { workoutLogs } = get();
-        set({
-          workoutLogs: workoutLogs.map(log =>
-            log.mesocycleId === fromMesocycleId
-              ? { ...log, mesocycleId: toMesocycleId }
-              : log
-          ),
+        const { workoutLogs, currentMesocycle, mesocycleHistory } = get();
+
+        // Get target mesocycle (could be current or in history)
+        const targetMeso = currentMesocycle?.id === toMesocycleId
+          ? currentMesocycle
+          : mesocycleHistory.find(m => m.id === toMesocycleId);
+
+        if (!targetMeso) {
+          // Simple migration without session matching
+          set({
+            workoutLogs: workoutLogs.map(log =>
+              log.mesocycleId === fromMesocycleId
+                ? { ...log, mesocycleId: toMesocycleId }
+                : log
+            ),
+          });
+          return;
+        }
+
+        // Get source mesocycle for type matching
+        const sourceMeso = mesocycleHistory.find(m => m.id === fromMesocycleId);
+
+        // Get all sessions from target mesocycle
+        const allSessions = targetMeso.weeks.flatMap(week => week.sessions);
+
+        // Track which sessions are already used
+        const usedSessionIds = new Set(
+          workoutLogs
+            .filter(log => log.mesocycleId === toMesocycleId)
+            .map(log => log.sessionId)
+        );
+
+        // Get workout type from source mesocycle
+        const getWorkoutType = (sessionId: string): 'strength' | 'hypertrophy' | 'power' | null => {
+          if (sourceMeso) {
+            for (const week of sourceMeso.weeks) {
+              const session = week.sessions.find(s => s.id === sessionId);
+              if (session) return session.type;
+            }
+          }
+          return null;
+        };
+
+        const updatedLogs = workoutLogs.map(log => {
+          if (log.mesocycleId !== fromMesocycleId) return log;
+
+          const workoutType = getWorkoutType(log.sessionId);
+
+          // Find matching session in target (prefer same type)
+          let matchingSession = allSessions.find(
+            s => s.type === workoutType && !usedSessionIds.has(s.id)
+          );
+
+          if (!matchingSession) {
+            matchingSession = allSessions.find(s => !usedSessionIds.has(s.id));
+          }
+
+          if (matchingSession) {
+            usedSessionIds.add(matchingSession.id);
+            return {
+              ...log,
+              mesocycleId: toMesocycleId,
+              sessionId: matchingSession.id,
+            };
+          }
+
+          return { ...log, mesocycleId: toMesocycleId };
         });
+
+        set({ workoutLogs: updatedLogs });
       },
 
       getCurrentMesocycleLogCount: () => {
@@ -668,18 +730,79 @@ export const useAppStore = create<AppState>()(
         };
       },
 
-      // Import workout logs into current mesocycle
+      // Import workout logs into current mesocycle with intelligent session matching
       importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => {
-        const { currentMesocycle, workoutLogs } = get();
+        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
         if (!currentMesocycle) return;
 
-        set({
-          workoutLogs: workoutLogs.map(log =>
-            logIds.includes(log.id)
-              ? { ...log, mesocycleId: currentMesocycle.id }
-              : log
-          ),
+        // Get all sessions from current mesocycle (flattened)
+        const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
+
+        // Track which sessions are already completed in current mesocycle
+        const completedSessionIds = new Set(
+          workoutLogs
+            .filter(log => log.mesocycleId === currentMesocycle.id)
+            .map(log => log.sessionId)
+        );
+
+        // Get logs to import
+        const logsToImport = workoutLogs.filter(log => logIds.includes(log.id));
+
+        // Try to determine workout type from the old mesocycle or exercises
+        const getWorkoutType = (log: WorkoutLog): 'strength' | 'hypertrophy' | 'power' | null => {
+          // First, try to find the original session in mesocycle history
+          for (const meso of mesocycleHistory) {
+            for (const week of meso.weeks) {
+              const session = week.sessions.find(s => s.id === log.sessionId);
+              if (session) return session.type;
+            }
+          }
+          // If we have exercises, infer from rep ranges (rough heuristic)
+          if (log.exercises.length > 0) {
+            const avgReps = log.exercises.reduce((sum, ex) => {
+              const completedSets = ex.sets.filter(s => s.completed);
+              if (completedSets.length === 0) return sum;
+              return sum + completedSets.reduce((s, set) => s + set.reps, 0) / completedSets.length;
+            }, 0) / log.exercises.length;
+
+            if (avgReps <= 5) return 'strength';
+            if (avgReps <= 12) return 'hypertrophy';
+            return 'power';
+          }
+          return null;
+        };
+
+        // Assign sessions to imported logs
+        const usedSessionIds = new Set<string>(completedSessionIds);
+        const updatedLogs = workoutLogs.map(log => {
+          if (!logIds.includes(log.id)) return log;
+
+          const workoutType = getWorkoutType(log);
+
+          // Find a matching session (prefer same type, then any available)
+          let matchingSession = allSessions.find(
+            s => s.type === workoutType && !usedSessionIds.has(s.id)
+          );
+
+          // If no type match, use any available session
+          if (!matchingSession) {
+            matchingSession = allSessions.find(s => !usedSessionIds.has(s.id));
+          }
+
+          if (matchingSession) {
+            usedSessionIds.add(matchingSession.id);
+            return {
+              ...log,
+              mesocycleId: currentMesocycle.id,
+              sessionId: matchingSession.id,
+            };
+          }
+
+          // No available session - just update mesocycleId
+          return { ...log, mesocycleId: currentMesocycle.id };
         });
+
+        set({ workoutLogs: updatedLogs });
       },
 
       // Workout actions

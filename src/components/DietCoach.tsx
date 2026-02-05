@@ -96,10 +96,10 @@ export default function DietCoach() {
   // Adherence
   const adherence = useMemo(() => calculateAdherence(meals), [meals]);
 
-  // Phase recommendation
+  // Phase recommendation (sex-aware — women get earlier diet break prompts)
   const phaseStatus = useMemo(
-    () => getPhaseRecommendation(activeDietPhase),
-    [activeDietPhase]
+    () => getPhaseRecommendation(activeDietPhase, formSex),
+    [activeDietPhase, formSex]
   );
 
   // Activity multiplier from sessions per week
@@ -125,7 +125,7 @@ export default function DietCoach() {
       goal: selectedGoal,
       activityMultiplier,
     });
-    const rate = getTargetRate(selectedGoal, bodyWeightKg);
+    const rate = getTargetRate(selectedGoal, bodyWeightKg, formSex);
 
     startDietPhase({
       goal: selectedGoal,
@@ -152,6 +152,7 @@ export default function DietCoach() {
       actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
       weeksAtPlateau: weightTrend.weeksAtPlateau,
       adherencePercent: adherence,
+      sex: formSex,
     });
 
     addWeeklyCheckIn({
@@ -513,7 +514,7 @@ export default function DietCoach() {
                                   goal: phaseStatus.nextGoal!,
                                   startDate: new Date().toISOString().split('T')[0],
                                   startWeightKg: bodyWeightKg,
-                                  targetRatePerWeek: getTargetRate(phaseStatus.nextGoal!, bodyWeightKg),
+                                  targetRatePerWeek: getTargetRate(phaseStatus.nextGoal!, bodyWeightKg, formSex),
                                   currentMacros: newMacros,
                                   weeksCompleted: 0,
                                   isActive: true,
@@ -577,6 +578,7 @@ export default function DietCoach() {
                           actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
                           weeksAtPlateau: weightTrend.weeksAtPlateau,
                           adherencePercent: adherence,
+                          sex: formSex,
                         });
                         return (
                           <div className={`p-2.5 rounded-lg ${

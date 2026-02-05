@@ -253,6 +253,72 @@ export const workoutTips: KnowledgeTip[] = [
     id: 'tip-mindset-6',
     content: 'Your competition prep starts months before the event. The last week is just maintenance — the work was already done.',
     category: 'motivation'
+  },
+
+  // HRV/RECOVERY-BASED TRAINING
+  {
+    id: 'tip-hrv-1',
+    content: 'Your HRV baseline is personal. A 45ms reading might be great for you but concerning for someone else. Focus on YOUR trends, not absolute numbers.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-hrv-2',
+    content: 'HRV 10%+ below YOUR baseline? Consider reducing intensity by 1-2 RPE today. Your body is telling you something.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-rhr-1',
+    content: 'Resting heart rate elevated 5+ BPM above your baseline often signals incomplete recovery, illness onset, or accumulated stress.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-readiness-1',
+    content: 'Green recovery (67%+) = push hard, chase PRs. Yellow (34-66%) = maintain intensity, watch volume. Red (<33%) = technique focus only.',
+    category: 'recovery'
+  },
+  {
+    id: 'tip-readiness-2',
+    content: 'Low readiness days aren\'t wasted days. Light technique work maintains neural pathways without digging into recovery debt.',
+    category: 'recovery'
+  },
+
+  // ACWR / INJURY PREVENTION
+  {
+    id: 'tip-acwr-1',
+    content: 'ACWR (Acute:Chronic Workload Ratio) between 0.8-1.3 is the "sweet spot". Below 0.8 = undertraining. Above 1.5 = injury danger zone.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-acwr-2',
+    content: 'Never increase weekly volume more than 10%. Spikes above this dramatically increase injury risk, especially combined with grappling.',
+    category: 'periodization'
+  },
+  {
+    id: 'tip-acwr-3',
+    content: 'Your total training load = lifting + grappling + life stress. A hard rolling week should mean lighter lifting, not more.',
+    category: 'periodization'
+  },
+
+  // GRAPPLING-SPECIFIC RECOVERY
+  {
+    id: 'tip-grappling-recovery-1',
+    content: 'After hard rolling, grip muscles need 48-72 hours to fully recover. Don\'t schedule heavy pulling the day after intense gi training.',
+    category: 'grappling'
+  },
+  {
+    id: 'tip-grappling-recovery-2',
+    content: 'Neck soreness after grappling? Light neck circles and isometric holds speed recovery better than complete rest.',
+    category: 'grappling'
+  },
+  {
+    id: 'tip-grappling-recovery-3',
+    content: 'Did hard grappling today? Your app auto-reduced volume by up to 30%. This isn\'t weakness — it\'s smart periodization.',
+    category: 'grappling'
+  },
+  {
+    id: 'tip-grappling-recovery-4',
+    content: 'Training fingers too: grip work + grappling = overuse risk. Add finger extensor work (rubber band extensions) 3x/week for balance.',
+    category: 'grappling'
   }
 ];
 
@@ -803,6 +869,136 @@ This means: find the weight where you could do 5 reps but have 2 left in the tan
 ## The Roots Gains Auto-Adjustment Engine
 
 This app uses your pre-workout check-in, wearable recovery data, and per-exercise feedback to automatically suggest weight and volume adjustments. Trust the system. It is based on your actual data, not a one-size-fits-all spreadsheet.
+`
+  },
+  {
+    id: 'article-hrv-baselines',
+    title: 'Understanding Your HRV & RHR Baselines',
+    category: 'recovery',
+    tags: ['HRV', 'recovery', 'wearables', 'readiness', 'science'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-15'),
+    source: 'Plews et al. 2024, Buchheit 2014',
+    content: `
+## Why Personal Baselines Matter
+
+A common mistake: comparing your HRV to internet averages. Someone with a baseline HRV of 45ms seeing 50ms is doing great. Someone with a baseline of 80ms seeing 50ms is in serious recovery debt.
+
+**Your numbers are only meaningful relative to YOU.**
+
+## What is HRV?
+
+Heart Rate Variability measures the variation in time between heartbeats. Higher HRV generally indicates better parasympathetic tone, greater recovery capacity, and more adaptable stress response.
+
+Lower HRV often signals incomplete recovery, accumulated fatigue, illness onset, or high life stress.
+
+## How We Calculate Your Baseline
+
+This app tracks your last 14 days of data to establish rolling baselines:
+
+- **HRV Baseline**: Your personal 14-day average
+- **HRV Standard Deviation**: How much your HRV normally varies
+- **RHR Baseline**: Your personal 14-day average resting HR
+
+### Interpreting Your Daily Readings
+
+- **HRV > baseline + 1 SD**: Excellent recovery - green light for hard training
+- **HRV within 1 SD**: Normal - train as planned
+- **HRV < baseline - 1 SD**: Below normal - consider reducing intensity
+- **HRV < baseline - 2 SD**: Significantly low - rest or light technique only
+
+## Building Reliable Baselines
+
+For accurate baselines:
+1. Measure at the same time daily (morning, before getting up)
+2. 14+ days of data needed for reliable baseline
+3. Do not panic over single-day dips
+4. Week-over-week trends matter more than daily fluctuations
+`
+  },
+  {
+    id: 'article-acwr-injury',
+    title: 'ACWR: The Injury Prevention Framework',
+    category: 'periodization',
+    tags: ['injury', 'ACWR', 'periodization', 'science', 'grappling'],
+    readTime: 7,
+    publishedAt: new Date('2025-03-20'),
+    source: 'Gabbett 2016, 2020 updates',
+    content: `
+## What is ACWR?
+
+The Acute:Chronic Workload Ratio compares your recent training load (this week) to your average load over the past month. It is one of the most validated injury prediction tools in sports science.
+
+**ACWR = Acute Load (this week) / Chronic Load (4-week average)**
+
+## The Risk Zones
+
+- **< 0.8**: Undertraining - losing fitness, but low injury risk
+- **0.8 - 1.3**: Sweet Spot - optimal training, lowest injury risk
+- **1.3 - 1.5**: Caution - elevated injury risk, monitor closely
+- **> 1.5**: High Risk - significantly elevated injury risk
+
+### The Key Insight
+
+It is not high training load that causes injuries - it is **spikes** in training load. An athlete who gradually builds to 15 hours/week is safer than one who jumps from 8 to 12 hours in a single week.
+
+## Why This Matters for Grapplers
+
+Grapplers face unique challenges:
+- Dual Training Load: Lifting + grappling both count toward total load
+- Unpredictable Mat Time: Hard rolling days are not always planned
+- Competition Spikes: Tournament weeks can spike load dramatically
+
+## The 10% Rule
+
+Never increase total weekly load by more than 10%. This single rule prevents most training-related injuries.
+`
+  },
+  {
+    id: 'article-grappling-recovery',
+    title: 'Recovery Protocol for Combat Athletes',
+    category: 'grappling',
+    tags: ['grappling', 'recovery', 'BJJ', 'wrestling', 'MMA'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-25'),
+    source: 'Sports science research on combat sports 2023-2025',
+    content: `
+## The Grappler's Recovery Challenge
+
+Combat sports impose unique recovery demands:
+- Grip fatigue accumulates faster than other muscle groups
+- Neck and spine face constant loading
+- Joint stress from submissions and positions
+- CNS fatigue from problem-solving under physical stress
+
+## Grip Recovery Protocol
+
+### Post-Training (Same Day)
+- Light finger extensions with rubber band (3x20)
+- Forearm stretches (wrist flexors and extensors)
+
+### Between Sessions
+- No heavy pulling 24-48 hours after hard gi training
+- Finger extensor work 3x/week minimum
+
+## Neck Health Protocol
+
+### Daily (5 minutes)
+- Neck circles: 10 each direction
+- Chin tucks: 3x10 holds
+- Isometric holds: front/back/sides, 10s each
+
+## The 48-Hour Rule
+
+After hard grappling (competition-style rounds or tournament):
+
+**Hours 0-12**: Light movement, hydration focus, protein intake (40-50g), sleep priority
+
+**Hours 12-24**: Active recovery only, continue elevated protein
+
+**Hours 24-48**: Light drilling okay, lifting with 20-30% volume reduction
+
+**After 48 Hours**: Normal training can resume if recovery indicators are good
 `
   }
 ];

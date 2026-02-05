@@ -344,6 +344,18 @@ export interface BodyWeightEntry {
   notes?: string;
 }
 
+// Quick logging entries (water, sleep, energy, readiness, mobility)
+export type QuickLogType = 'water' | 'sleep' | 'energy' | 'readiness' | 'mobility' | 'custom';
+
+export interface QuickLog {
+  id: string;
+  type: QuickLogType | string;
+  value: number | string;
+  unit?: string;
+  timestamp: Date;
+  notes?: string;
+}
+
 // Superset / Circuit support
 export interface SupersetGroup {
   id: string;

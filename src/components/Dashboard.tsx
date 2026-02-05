@@ -128,21 +128,40 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const fmtDate = (d: Date) => {
-    const dt = new Date(d);
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  // Format date to local YYYY-MM-DD string (handles timezone properly)
+  const fmtDate = (d: Date | string) => {
+    const dt = typeof d === 'string' ? new Date(d) : d;
+    // Use local date parts to avoid timezone issues
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Build sets for lifting and training session dates
-  const liftingDates = new Set(workoutLogs.map(log => fmtDate(new Date(log.date))));
+  const liftingDates = useMemo(() => {
+    const dates = new Set<string>();
+    workoutLogs.forEach(log => {
+      if (log.date) {
+        dates.add(fmtDate(log.date));
+      }
+    });
+    return dates;
+  }, [workoutLogs]);
 
   // Include training sessions if user does combat/general fitness
   const includeOtherSessions = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
-  const sessionDates = new Set(
-    includeOtherSessions
-      ? trainingSessions.map(s => fmtDate(new Date(s.date)))
-      : []
-  );
+  const sessionDates = useMemo(() => {
+    const dates = new Set<string>();
+    if (includeOtherSessions) {
+      trainingSessions.forEach(s => {
+        if (s.date) {
+          dates.add(fmtDate(s.date));
+        }
+      });
+    }
+    return dates;
+  }, [trainingSessions, includeOtherSessions]);
 
   // Calculate separate streaks for lifting and training
   const calculateStreak = (dates: Set<string>) => {

@@ -191,12 +191,20 @@ interface AppState {
   convertWeight: (weight: number, to: WeightUnit) => number;
 
   // Gamification actions
+  recalculateGamificationStats: () => void;
   awardPoints: (points: number, reason: string) => void;
   checkAndAwardBadges: () => void;
 
   // Workout log editing
   updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
   deleteWorkoutLog: (logId: string) => void;
+  addPastWorkout: (workout: {
+    date: Date;
+    exercises: ExerciseLog[];
+    duration: number;
+    overallRPE?: number;
+    notes?: string;
+  }) => void;
 
   // Body weight actions
   addBodyWeight: (weight: number, notes?: string) => void;
@@ -743,6 +751,9 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ workoutLogs: updatedLogs });
+
+        // Recalculate gamification stats after migration
+        get().recalculateGamificationStats();
       },
 
       getCurrentMesocycleLogCount: () => {
@@ -862,6 +873,9 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ workoutLogs: updatedLogs });
+
+        // Recalculate gamification stats after import
+        get().recalculateGamificationStats();
       },
 
       // Workout actions
@@ -1280,6 +1294,79 @@ export const useAppStore = create<AppState>()(
       },
 
       // Gamification actions
+      recalculateGamificationStats: () => {
+        const { workoutLogs, trainingSessions, gamificationStats, user } = get();
+
+        // Recalculate total workouts
+        const totalWorkouts = workoutLogs.length;
+
+        // Recalculate total volume
+        const totalVolume = workoutLogs.reduce((sum, log) => sum + log.totalVolume, 0);
+
+        // Recalculate PRs
+        const personalRecords = workoutLogs.reduce((sum, log) =>
+          sum + log.exercises.filter(ex => ex.personalRecord).length, 0
+        );
+
+        // Recalculate streak based on all training dates
+        const fmtDate = (d: Date) => {
+          const dt = new Date(d);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
+
+        const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
+        const allTrainingDates = new Set<string>();
+        workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+        if (includeOtherSessions) {
+          trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
+        }
+
+        // Calculate streak from sorted dates
+        const sortedDates = Array.from(allTrainingDates).sort().reverse();
+        let currentStreak = 0;
+
+        if (sortedDates.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayStr = fmtDate(today);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = fmtDate(yesterday);
+
+          // Start streak if trained today or yesterday
+          if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+            currentStreak = 1;
+            let prevDate = new Date(sortedDates[0]);
+
+            for (let i = 1; i < sortedDates.length; i++) {
+              const checkDate = new Date(sortedDates[i]);
+              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 1) {
+                currentStreak++;
+                prevDate = checkDate;
+              } else {
+                break; // Gap in streak
+              }
+            }
+          }
+        }
+
+        set({
+          gamificationStats: {
+            ...gamificationStats,
+            totalWorkouts,
+            totalVolume,
+            personalRecords,
+            currentStreak,
+            longestStreak: Math.max(gamificationStats.longestStreak, currentStreak),
+          }
+        });
+
+        // Also check for badges
+        get().checkAndAwardBadges();
+      },
+
       awardPoints: (points, reason) => {
         const { gamificationStats } = get();
         const newTotal = gamificationStats.totalPoints + points;
@@ -1362,6 +1449,40 @@ export const useAppStore = create<AppState>()(
       deleteWorkoutLog: (logId) => {
         const { workoutLogs } = get();
         set({ workoutLogs: workoutLogs.filter(log => log.id !== logId) });
+      },
+
+      addPastWorkout: (workout) => {
+        const { workoutLogs, user, gamificationStats } = get();
+        if (!user) return;
+
+        // Calculate total volume
+        const totalVolume = workout.exercises.reduce((total, ex) =>
+          total + ex.sets.reduce((setTotal, set) =>
+            setTotal + (set.completed ? set.weight * set.reps : 0), 0
+          ), 0
+        );
+
+        // Create workout log
+        const workoutLog: WorkoutLog = {
+          id: uuidv4(),
+          userId: user.id,
+          mesocycleId: 'standalone', // Not part of a mesocycle
+          sessionId: `past-${Date.now()}`,
+          date: workout.date,
+          exercises: workout.exercises,
+          totalVolume,
+          duration: workout.duration,
+          overallRPE: workout.overallRPE ?? 7,
+          soreness: 5,
+          energy: 5,
+          notes: workout.notes,
+          completed: true,
+        };
+
+        set({ workoutLogs: [...workoutLogs, workoutLog] });
+
+        // Recalculate all gamification stats to properly account for this past workout
+        get().recalculateGamificationStats();
       },
 
       // Body weight actions

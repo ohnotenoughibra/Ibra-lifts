@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -101,7 +102,16 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-grappler-600 bg-grappler-800 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+              />
+              <span className="text-xs text-grappler-400">Keep me signed in</span>
+            </label>
             <Link href="/reset-password" className="text-xs text-primary-400 hover:text-primary-300 transition-colors">
               Forgot password?
             </Link>

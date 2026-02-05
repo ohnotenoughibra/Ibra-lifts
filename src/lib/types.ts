@@ -1,4 +1,5 @@
 // Core User Types
+export type BiologicalSex = 'male' | 'female';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type Equipment = 'full_gym' | 'home_gym' | 'minimal';
 export type EquipmentType =
@@ -45,6 +46,7 @@ export interface UserProfile {
   email: string;
   name: string;
   age: number;
+  biologicalSex?: BiologicalSex;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];
@@ -848,6 +850,7 @@ export interface OnboardingData {
   step: number;
   name: string;
   age: number;
+  biologicalSex?: BiologicalSex;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];

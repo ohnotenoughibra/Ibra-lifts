@@ -33,36 +33,46 @@ interface MacroInput {
  * Mifflin-St Jeor (1990):
  *   Male:   BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age + 5
  *   Female: BMR = 10 × weight(kg) + 6.25 × height(cm) − 5 × age − 161
+ *
+ * Sex-based macro adjustments (Melin et al. 2019; Trexler et al. 2014):
+ *   - Women: higher fat floor (1.0 g/kg minimum) — hormonal health / RED-S prevention
+ *   - Women: slightly lower protein ceiling during cuts (2.0 vs 2.4 g/kg)
+ *   - Women: more conservative surplus during bulk (10% vs 12%)
  */
 export function calculateMacros({ bodyWeightKg, heightCm, age, sex, goal, activityMultiplier = 1.55 }: MacroInput): MacroTargets {
   const bw = bodyWeightKg;
+  const isFemale = sex === 'female';
 
   // Step 1: Mifflin-St Jeor BMR
   const sexConstant = sex === 'male' ? 5 : -161;
   const bmr = 10 * bw + 6.25 * heightCm - 5 * age + sexConstant;
   const maintenance = Math.round(bmr * activityMultiplier);
 
-  // Step 2: Apply caloric target based on goal
+  // Step 2: Apply caloric target based on goal + sex
   let calories: number;
   let proteinPerKg: number;
   let fatPerKg: number;
 
   switch (goal) {
     case 'cut':
-      calories = Math.round(maintenance * 0.8);    // ~20% deficit
-      proteinPerKg = 2.4;                            // higher protein preserves LBM
-      fatPerKg = 0.8;                                // minimum healthy fat
+      calories = Math.round(maintenance * 0.8);    // ~20% deficit (same for both sexes)
+      // Women: slightly lower protein ceiling (adequate with lower absolute loads)
+      // Men: higher protein preserves more LBM in aggressive deficit
+      proteinPerKg = isFemale ? 2.0 : 2.4;
+      // Women: higher fat floor for hormonal health (estrogen, menstrual function)
+      fatPerKg = isFemale ? 1.0 : 0.8;
       break;
     case 'bulk':
-      calories = Math.round(maintenance * 1.12);   // ~12% surplus (lean bulk)
-      proteinPerKg = 2.0;                            // adequate in surplus
-      fatPerKg = 1.0;                                // comfortable fat level
+      // Women: more conservative surplus (gain muscle slower, lower risk of excess fat)
+      calories = Math.round(maintenance * (isFemale ? 1.10 : 1.12));
+      proteinPerKg = isFemale ? 1.8 : 2.0;
+      fatPerKg = isFemale ? 1.0 : 1.0;
       break;
     case 'maintain':
     default:
       calories = maintenance;
-      proteinPerKg = 2.0;
-      fatPerKg = 0.9;
+      proteinPerKg = isFemale ? 1.8 : 2.0;
+      fatPerKg = isFemale ? 1.0 : 0.9;
       break;
   }
 
@@ -80,17 +90,29 @@ export function calculateMacros({ bodyWeightKg, heightCm, age, sex, goal, activi
 // ── Target Rate of Change ────────────────────────────────────────────────────
 
 /**
- * Get recommended weekly weight change (kg) based on goal and body weight.
+ * Get recommended weekly weight change (kg) based on goal, body weight, and sex.
  * Positive = gaining, negative = losing.
+ *
+ * Sex-based adjustments:
+ *   - Women cut slower: ~0.5% BW/week vs ~0.7% for men (Garthe et al. 2011)
+ *     Reason: aggressive deficits more likely to disrupt menstrual function,
+ *     thyroid, and cortisol in women (Melin et al. 2019 — RED-S / LEA)
+ *   - Women bulk slower: ~0.15-0.2% BW/week vs ~0.25-0.35% for men
+ *     Reason: lower testosterone = slower rate of muscle protein synthesis,
+ *     so a smaller surplus minimizes fat gain (Phillips et al. 2012)
  */
-export function getTargetRate(goal: DietGoal, bodyWeightKg: number): number {
+export function getTargetRate(goal: DietGoal, bodyWeightKg: number, sex?: BiologicalSex): number {
+  const isFemale = sex === 'female';
+
   switch (goal) {
     case 'cut':
-      // ~0.7% BW/week (Garthe et al. 2011 optimal rate)
-      return -(bodyWeightKg * 0.007);
+      // Women: ~0.5% BW/week (lower risk of hormonal disruption)
+      // Men: ~0.7% BW/week (Garthe et al. 2011 optimal rate)
+      return -(bodyWeightKg * (isFemale ? 0.005 : 0.007));
     case 'bulk':
-      // ~0.25-0.35% BW/week for lean gains
-      return bodyWeightKg * 0.003;
+      // Women: ~0.18% BW/week (muscle gain rate is ~50-60% of men's)
+      // Men: ~0.3% BW/week for lean gains
+      return bodyWeightKg * (isFemale ? 0.0018 : 0.003);
     case 'maintain':
     default:
       return 0;
@@ -106,6 +128,7 @@ interface AdjustmentInput {
   actualWeeklyChange: number;  // kg/week observed (smoothed)
   weeksAtPlateau: number;      // consecutive weeks with <0.1kg change
   adherencePercent: number;    // 0–100
+  sex?: BiologicalSex;
 }
 
 interface AdjustmentResult {
@@ -132,7 +155,9 @@ export function calculateWeeklyAdjustment({
   actualWeeklyChange,
   weeksAtPlateau,
   adherencePercent,
+  sex,
 }: AdjustmentInput): AdjustmentResult {
+  const isFemale = sex === 'female';
   // Don't adjust with poor adherence — data is unreliable
   if (adherencePercent < 70) {
     return {
@@ -171,14 +196,22 @@ export function calculateWeeklyAdjustment({
       reason = 'On track. Keep current macros.';
     }
 
-    // Fat floor: never go below 0.5 g/kg (estimate ~70kg average)
-    if (newMacros.fat < 35) {
-      newMacros.fat = 35;
+    // Fat floor: women need higher minimum fat for hormonal health (RED-S prevention)
+    // Women: ~0.8 g/kg minimum (~50g for ~65kg), Men: ~0.5 g/kg (~35g for ~70kg)
+    // (Melin et al. 2019; Mountjoy et al. 2018 — IOC consensus on RED-S)
+    const fatFloor = isFemale ? 50 : 35;
+    if (newMacros.fat < fatFloor) {
+      newMacros.fat = fatFloor;
     }
-    // Calorie floor: never go below BMR estimate (~22 * bw * 0.7)
-    if (newMacros.calories < 1200) {
-      newMacros.calories = 1200;
-      alert = 'Calories are very low. Consider a 1-2 week diet break at maintenance.';
+    // Calorie floor: women more susceptible to LOW ENERGY AVAILABILITY (LEA)
+    // Women: 1200 kcal minimum, Men: 1400 kcal minimum
+    // Below ~30 kcal/kg FFM = clinical LEA risk (Loucks & Thuma, 2003)
+    const calorieFloor = isFemale ? 1200 : 1400;
+    if (newMacros.calories < calorieFloor) {
+      newMacros.calories = calorieFloor;
+      alert = isFemale
+        ? 'Calories are very low — risk of hormonal disruption (RED-S). Take a 1-2 week diet break at maintenance.'
+        : 'Calories are very low. Consider a 1-2 week diet break at maintenance.';
     }
   } else if (goal === 'bulk') {
     if (actualWeeklyChange < targetRatePerWeek * 0.5 && weeksAtPlateau >= 2) {
@@ -325,10 +358,16 @@ interface PhaseStatus {
 
 /**
  * Analyze current diet phase and recommend actions.
- * Prompts for diet breaks during extended cuts (every 4-8 weeks),
- * and phase transitions when appropriate.
+ *
+ * Sex-based diet break timing (evidence-based):
+ *   - Women: diet breaks every 4 weeks, max cut duration 8 weeks
+ *     Reason: extended energy deficit more disruptive to female hormones
+ *     (estrogen, progesterone, thyroid, cortisol) — Melin et al. 2019
+ *     Byrne et al. 2017 (MATADOR) showed benefits of intermittent dieting
+ *   - Men: diet breaks every 6 weeks, max cut duration 12 weeks
+ *   - Women bulk max: 12 weeks (vs 16 for men) — monitor body comp more closely
  */
-export function getPhaseRecommendation(phase: DietPhase | null): PhaseStatus {
+export function getPhaseRecommendation(phase: DietPhase | null, sex?: BiologicalSex): PhaseStatus {
   if (!phase || !phase.isActive) {
     return {
       suggestion: 'No active diet phase. Set a goal to get personalized macro coaching.',
@@ -338,19 +377,31 @@ export function getPhaseRecommendation(phase: DietPhase | null): PhaseStatus {
   }
 
   const { goal, weeksCompleted } = phase;
+  const isFemale = sex === 'female';
 
   if (goal === 'cut') {
-    if (weeksCompleted >= 12) {
+    // Women: shorter max cut duration before mandatory transition
+    const maxCutWeeks = isFemale ? 8 : 12;
+    // Women: more frequent diet breaks (hormonal stress management)
+    const breakInterval = isFemale ? 4 : 6;
+
+    if (weeksCompleted >= maxCutWeeks) {
+      const reason = isFemale
+        ? `You've been cutting for ${weeksCompleted} weeks. Extended deficits increase RED-S risk for women. Transition to maintenance for 2-3 weeks to normalize hormones.`
+        : `You've been cutting for ${weeksCompleted} weeks. Transition to maintenance for 2-3 weeks to normalize metabolism before resuming.`;
       return {
-        suggestion: `You've been cutting for ${weeksCompleted} weeks. Transition to maintenance for 2-3 weeks to normalize metabolism before resuming.`,
+        suggestion: reason,
         shouldTakeBreak: false,
         shouldTransition: true,
         nextGoal: 'maintain',
       };
     }
-    if (weeksCompleted >= 6 && weeksCompleted % 6 === 0) {
+    if (weeksCompleted >= breakInterval && weeksCompleted % breakInterval === 0) {
+      const reason = isFemale
+        ? `${weeksCompleted} weeks in. Women benefit from a 1-week diet break every ${breakInterval} weeks to protect hormonal function, thyroid output, and training performance.`
+        : `${weeksCompleted} weeks in. Consider a 1-week diet break at maintenance calories to support hormones, recovery, and adherence.`;
       return {
-        suggestion: `${weeksCompleted} weeks in. Consider a 1-week diet break at maintenance calories to support hormones, recovery, and adherence.`,
+        suggestion: reason,
         shouldTakeBreak: true,
         shouldTransition: false,
       };
@@ -363,7 +414,10 @@ export function getPhaseRecommendation(phase: DietPhase | null): PhaseStatus {
   }
 
   if (goal === 'bulk') {
-    if (weeksCompleted >= 16) {
+    // Women: shorter bulk phases (monitor body comp more closely)
+    const maxBulkWeeks = isFemale ? 12 : 16;
+
+    if (weeksCompleted >= maxBulkWeeks) {
       return {
         suggestion: `${weeksCompleted} weeks of bulking. Consider transitioning to maintenance, then a mini-cut if body fat has crept up.`,
         shouldTakeBreak: false,

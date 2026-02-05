@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -52,6 +52,7 @@ import {
   Grip,
   Watch,
   ClipboardCheck,
+  Award,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -120,89 +121,217 @@ const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
 
-function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
-  const gamificationStats = useAppStore(s => s.gamificationStats);
+function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[]; onDayClick?: (date: Date) => void }) {
+  const trainingSessions = useAppStore(s => s.trainingSessions);
+  const user = useAppStore(s => s.user);
   const weeks = 12;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
-  // Build a Set of workout date strings
-  const workoutDates = new Set(
-    workoutLogs.map(log => {
-      const d = new Date(log.date);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })
-  );
+  // Use toDateString() for comparison - avoids all timezone issues
+  // "Mon Jan 15 2024" format is unambiguous and based on local time
+  const toDateKey = (d: Date | string): string => {
+    if (typeof d === 'string') {
+      return new Date(d).toDateString();
+    }
+    return d.toDateString();
+  };
+
+  // Memoize today to avoid recreating on each render
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0); // Noon to avoid any edge cases
+    return d;
+  }, []);
+  const todayKey = today.toDateString();
+
+  // Build sets for lifting dates using toDateString keys
+  const liftingDateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!workoutLogs || workoutLogs.length === 0) return keys;
+
+    workoutLogs.forEach(log => {
+      if (log.date) {
+        keys.add(toDateKey(log.date));
+      }
+    });
+    return keys;
+  }, [workoutLogs]);
+
+  // Include training sessions if user does combat/general fitness
+  const includeOtherSessions = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
+
+  const sessionDateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!includeOtherSessions || !trainingSessions) return keys;
+
+    trainingSessions.forEach(s => {
+      if (s.date) {
+        keys.add(toDateKey(s.date));
+      }
+    });
+    return keys;
+  }, [trainingSessions, includeOtherSessions]);
+
+  // Calculate streak by walking backwards from today
+  const calculateStreak = useCallback((dateKeys: Set<string>) => {
+    if (dateKeys.size === 0) return 0;
+
+    // Check if today or yesterday has activity
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.toDateString();
+
+    const hasToday = dateKeys.has(todayKey);
+    const hasYesterday = dateKeys.has(yesterdayKey);
+
+    if (!hasToday && !hasYesterday) return 0;
+
+    // Start counting from today or yesterday
+    let streak = 0;
+    const checkDate = new Date(today);
+
+    // If no activity today, start from yesterday
+    if (!hasToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    // Walk backwards counting consecutive days
+    while (dateKeys.has(checkDate.toDateString())) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streak;
+  }, [today, todayKey]);
+
+  const liftingStreak = calculateStreak(liftingDateKeys);
+  const trainingStreak = includeOtherSessions ? calculateStreak(sessionDateKeys) : 0;
 
   // Generate grid: 12 weeks x 7 days
-  const grid: { date: Date; hasWorkout: boolean; isToday: boolean; isFuture: boolean }[][] = [];
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
+  type DayData = {
+    date: Date;
+    dateKey: string;
+    hasLifting: boolean;
+    hasSession: boolean;
+    isToday: boolean;
+    isFuture: boolean;
+  };
 
-  for (let w = 0; w < weeks; w++) {
-    const week: typeof grid[0] = [];
-    for (let d = 0; d < 7; d++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + w * 7 + d);
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const isFuture = date > today;
-      week.push({
-        date,
-        hasWorkout: workoutDates.has(dateStr),
-        isToday: date.getTime() === today.getTime(),
-        isFuture,
-      });
+  const grid = useMemo(() => {
+    const result: DayData[][] = [];
+
+    // Start from the Sunday of (weeks) weeks ago
+    const startDate = new Date(today);
+    startDate.setHours(0, 0, 0, 0);
+    // Go back to start of current week (Sunday), then back (weeks-1) more weeks
+    const daysFromSunday = startDate.getDay(); // 0=Sun, 1=Mon, etc.
+    startDate.setDate(startDate.getDate() - daysFromSunday - (weeks - 1) * 7);
+
+    for (let w = 0; w < weeks; w++) {
+      const week: DayData[] = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + w * 7 + d);
+        const dateKey = date.toDateString();
+        const isFuture = date.getTime() > today.getTime();
+
+        week.push({
+          date,
+          dateKey,
+          hasLifting: liftingDateKeys.has(dateKey),
+          hasSession: sessionDateKeys.has(dateKey),
+          isToday: dateKey === todayKey,
+          isFuture,
+        });
+      }
+      result.push(week);
     }
-    grid.push(week);
-  }
+    return result;
+  }, [today, liftingDateKeys, sessionDateKeys, todayKey]);
 
-  // Use the persisted streak from gamificationStats for consistency
-  // This accounts for "yesterday's workout counts" logic in the store
-  const streak = gamificationStats.currentStreak;
+  // Get day color based on activity type
+  const getDayColor = (day: DayData) => {
+    if (day.isFuture) return 'bg-grappler-800/30';
+    if (day.hasLifting && day.hasSession) return 'bg-gradient-to-br from-green-500 to-blue-500'; // Both
+    if (day.hasLifting) return 'bg-green-500'; // Lifting only
+    if (day.hasSession) return 'bg-blue-500'; // Session only (grappling/cardio)
+    return 'bg-grappler-700/40'; // No activity
+  };
+
+  const getDayTitle = (day: DayData) => {
+    const dateStr = day.date.toLocaleDateString();
+    if (day.hasLifting && day.hasSession) return `${dateStr} — lifting + training`;
+    if (day.hasLifting) return `${dateStr} — lifting`;
+    if (day.hasSession) return `${dateStr} — training`;
+    return dateStr;
+  };
 
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
           <Flame className="w-4 h-4 text-orange-400" />
-          Training Streak
+          Training Streaks
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className="text-2xl font-black text-orange-400">{streak}</span>
-          <span className="text-xs text-grappler-400">day{streak !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-3">
+          {/* Lifting streak */}
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+            <span className="text-lg font-black text-green-400">{liftingStreak}</span>
+          </div>
+          {/* Training streak (only show if user does combat/fitness) */}
+          {includeOtherSessions && (
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+              <span className="text-lg font-black text-blue-400">{trainingStreak}</span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex gap-[3px]">
         {grid.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-[3px]">
-            {week.map((day, di) => (
-              <div
-                key={di}
-                className={cn(
-                  'w-3 h-3 rounded-sm transition-colors',
-                  day.isFuture
-                    ? 'bg-grappler-800/30'
-                    : day.hasWorkout
-                      ? 'bg-green-500'
-                      : 'bg-grappler-700/40',
-                  day.isToday && 'ring-1 ring-primary-400'
-                )}
-                title={`${day.date.toLocaleDateString()}${day.hasWorkout ? ' \u2014 trained' : ''}`}
-              />
-            ))}
+            {week.map((day, di) => {
+              const canClick = onDayClick && !day.isFuture;
+              return (
+                <div
+                  key={di}
+                  onClick={() => canClick && onDayClick(day.date)}
+                  className={cn(
+                    'w-3 h-3 rounded-sm transition-colors',
+                    getDayColor(day),
+                    day.isToday && 'ring-1 ring-primary-400',
+                    canClick && 'cursor-pointer hover:ring-1 hover:ring-white/40'
+                  )}
+                  title={getDayTitle(day)}
+                />
+              );
+            })}
           </div>
         ))}
       </div>
       <div className="flex items-center justify-between mt-2">
         <span className="text-[10px] text-grappler-500">{weeks * 7} days</span>
-        <div className="flex items-center gap-1 text-[10px] text-grappler-500">
-          <span>Less</span>
-          <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-          <span>More</span>
-        </div>
+        {includeOtherSessions ? (
+          <div className="flex items-center gap-2 text-[10px] text-grappler-500">
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+              <span>Lifting</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
+              <span>Training</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-[10px] text-grappler-500">
+            <span>Less</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+            <span>More</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -783,12 +912,14 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions, bodyWeightLog,
     trainingSessions, latestWhoopData, meals,
-    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
+    addTrainingSession
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
+  const [heatmapSelectedDate, setHeatmapSelectedDate] = useState<Date | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Today's Summary Data ───
@@ -1044,6 +1175,66 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
   })();
 
+  // Training period summaries (weekly, monthly, yearly)
+  const periodSummaries = useMemo(() => {
+    const now = new Date();
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const startOfThisYear = new Date(now.getFullYear(), 0, 1);
+    const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+    const endOfLastYear = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+
+    // Include training sessions if user does combat/general fitness
+    const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
+
+    const getStats = (fromDate: Date, toDate: Date) => {
+      const filteredLogs = (workoutLogs || []).filter(l => {
+        try {
+          const d = new Date(l.date);
+          return d >= fromDate && d <= toDate;
+        } catch { return false; }
+      });
+      const filteredSessions = includeOtherSessions
+        ? (trainingSessions || []).filter(s => {
+            try {
+              const d = new Date(s.date);
+              return d >= fromDate && d <= toDate;
+            } catch { return false; }
+          })
+        : [];
+      const totalVolume = filteredLogs.reduce((sum, l) => sum + (l.totalVolume || 0), 0);
+      const prs = filteredLogs.reduce((sum, l) => sum + (l.exercises?.filter(e => e.personalRecord).length || 0), 0);
+      const uniqueDays = new Set([
+        ...filteredLogs.map(l => new Date(l.date).toDateString()),
+        ...filteredSessions.map(s => new Date(s.date).toDateString())
+      ]);
+      return {
+        workouts: filteredLogs.length,
+        sessions: filteredSessions.length,
+        trainingDays: uniqueDays.size,
+        volume: totalVolume,
+        prs,
+      };
+    };
+
+    return {
+      thisWeek: getStats(startOfThisWeek, now),
+      lastWeek: getStats(startOfLastWeek, new Date(startOfThisWeek.getTime() - 1)),
+      thisMonth: getStats(startOfThisMonth, now),
+      lastMonth: getStats(startOfLastMonth, new Date(startOfThisMonth.getTime() - 1)),
+      thisYear: getStats(startOfThisYear, now),
+      lastYear: getStats(startOfLastYear, endOfLastYear),
+    };
+  }, [workoutLogs, trainingSessions, user?.trainingIdentity]);
+
   // Quick workout handler
   const handleQuickWorkout = () => {
     if (!user) return;
@@ -1211,6 +1402,25 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
               <div className="mt-3 flex items-center gap-2 bg-yellow-500/10 rounded-lg px-3 py-2">
                 <Star className="w-4 h-4 text-yellow-400" />
                 <span className="text-xs font-medium text-yellow-300">New Personal Record!</span>
+              </div>
+            )}
+            {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {lastCompletedWorkout.newBadges.map((badge) => (
+                  <motion.div
+                    key={badge.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2"
+                  >
+                    <span className="text-lg">{badge.icon}</span>
+                    <div className="flex-1">
+                      <span className="text-xs font-medium text-purple-300">{badge.name}</span>
+                      <span className="text-[10px] text-purple-400/70 ml-2">+{badge.points} XP</span>
+                    </div>
+                    <Award className="w-4 h-4 text-purple-400" />
+                  </motion.div>
+                ))}
               </div>
             )}
             <div className="mt-3 flex items-center gap-2">
@@ -1497,36 +1707,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         </div>
       )}
 
-      {/* Weekly Consistency + Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stat-card items-center text-center"
-        >
-          <BarChart3 className="w-5 h-5 mb-1 text-primary-400" />
-          <p className="stat-value">{weeklyConsistency.done}/{weeklyConsistency.target}</p>
-          <p className="stat-label">This Week</p>
-        </motion.div>
-        {[
-          { icon: Flame, value: gamificationStats.currentStreak, label: 'Streak', color: 'text-orange-500' },
-          { icon: Trophy, value: gamificationStats.personalRecords, label: 'PRs', color: 'text-yellow-500' },
-          { icon: Target, value: gamificationStats.totalWorkouts, label: 'Workouts', color: 'text-green-500' },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * (i + 1) }}
-            className="stat-card items-center text-center"
-          >
-            <stat.icon className={cn('w-5 h-5 mb-1', stat.color)} />
-            <p className="stat-value">{stat.value}</p>
-            <p className="stat-label">{stat.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
       {/* Estimated 1RM Trends */}
       {e1rmTrends.length > 0 && (
         <div className="card p-4">
@@ -1615,7 +1795,212 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       )}
 
       {/* Training Streak Heatmap */}
-      <StreakHeatmap workoutLogs={workoutLogs} />
+      <StreakHeatmap workoutLogs={workoutLogs} onDayClick={(date) => setHeatmapSelectedDate(date)} />
+
+      {/* Add Session Modal from Heatmap */}
+      <AnimatePresence>
+        {heatmapSelectedDate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setHeatmapSelectedDate(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-grappler-800 rounded-2xl p-5 w-full max-w-xs shadow-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-white mb-1">Add Activity</h3>
+              <p className="text-sm text-grappler-400 mb-4">{heatmapSelectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+
+              <div className="space-y-2">
+                {/* Grappling option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'grappling',
+                      type: 'bjj_nogi',
+                      plannedIntensity: 'moderate',
+                      duration: 60,
+                      timing: 'standalone',
+                      perceivedExertion: 6,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <Dumbbell className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Grappling</p>
+                    <p className="text-xs text-grappler-400">BJJ / Wrestling</p>
+                  </div>
+                </button>
+
+                {/* Striking option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'striking',
+                      type: 'boxing',
+                      plannedIntensity: 'moderate',
+                      duration: 60,
+                      timing: 'standalone',
+                      perceivedExertion: 6,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Striking</p>
+                    <p className="text-xs text-grappler-400">Boxing / Kickboxing</p>
+                  </div>
+                </button>
+
+                {/* Cardio option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'cardio',
+                      type: 'running',
+                      plannedIntensity: 'moderate',
+                      duration: 30,
+                      timing: 'standalone',
+                      perceivedExertion: 5,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Cardio</p>
+                    <p className="text-xs text-grappler-400">Running / Cycling</p>
+                  </div>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setHeatmapSelectedDate(null)}
+                className="w-full mt-4 py-2 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Training Roundup ─── */}
+      <div className="card p-4">
+        <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2 mb-3">
+          <BarChart3 className="w-4 h-4 text-primary-400" />
+          Training Roundup
+        </h3>
+        <div className="space-y-3">
+          {/* This Week */}
+          <div className="bg-grappler-800/50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-300">This Week</span>
+              {periodSummaries.lastWeek.trainingDays > 0 && (
+                <span className={cn(
+                  'text-[10px] font-medium',
+                  periodSummaries.thisWeek.trainingDays > periodSummaries.lastWeek.trainingDays ? 'text-green-400' :
+                  periodSummaries.thisWeek.trainingDays < periodSummaries.lastWeek.trainingDays ? 'text-amber-400' : 'text-grappler-500'
+                )}>
+                  vs last week
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div>
+                <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
+                <p className="text-[10px] text-grappler-500">Days</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
+                <p className="text-[10px] text-grappler-500">Lifts</p>
+              </div>
+              {periodSummaries.thisWeek.sessions > 0 && (
+                <div>
+                  <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
+                  <p className="text-[10px] text-grappler-500">Training</p>
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
+                <p className="text-[10px] text-grappler-500">PRs</p>
+              </div>
+            </div>
+          </div>
+
+          {/* This Month */}
+          <div className="bg-grappler-800/30 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-400">This Month</span>
+              <span className="text-[10px] text-grappler-500">{formatNumber(periodSummaries.thisMonth.volume)} {weightUnit} vol</span>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-grappler-300">
+                <span className="font-bold text-grappler-100">{periodSummaries.thisMonth.trainingDays}</span> training days
+              </span>
+              <span className="text-grappler-400">•</span>
+              <span className="text-grappler-300">
+                <span className="font-bold text-yellow-400">{periodSummaries.thisMonth.prs}</span> PRs
+              </span>
+              {periodSummaries.lastMonth.trainingDays > 0 && (
+                <>
+                  <span className="text-grappler-400">•</span>
+                  <span className={cn(
+                    'text-[10px]',
+                    periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? 'text-green-400' : 'text-grappler-500'
+                  )}>
+                    {periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? '+' : ''}
+                    {periodSummaries.thisMonth.trainingDays - periodSummaries.lastMonth.trainingDays} vs last
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Year to Date */}
+          <div className="bg-grappler-800/20 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-grappler-400">{today.getFullYear()} Year to Date</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="text-grappler-300">
+                <span className="font-bold text-grappler-100">{periodSummaries.thisYear.workouts}</span> workouts
+              </span>
+              {periodSummaries.thisYear.sessions > 0 && (
+                <span className="text-grappler-300">
+                  <span className="font-bold text-blue-400">{periodSummaries.thisYear.sessions}</span> sessions
+                </span>
+              )}
+              <span className="text-grappler-300">
+                <span className="font-bold text-yellow-400">{periodSummaries.thisYear.prs}</span> PRs
+              </span>
+              <span className="text-grappler-300">
+                <span className="font-bold text-primary-400">{formatNumber(periodSummaries.thisYear.volume)}</span> {weightUnit}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Today at a Glance ─── */}
       <motion.div
@@ -1754,41 +2139,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           )}
         </AnimatePresence>
       </motion.div>
-
-      {/* Recent Activity (compact) */}
-      {workoutLogs.length > 0 && (
-        <div className="card p-4">
-          <h3 className="font-semibold text-grappler-100 text-sm mb-3">Recent</h3>
-          <div className="space-y-2">
-            {workoutLogs.slice(-3).reverse().map((log) => (
-              <div
-                key={log.id}
-                className="flex items-center justify-between py-1.5"
-              >
-                <div className="flex items-center gap-2">
-                  <Dumbbell className="w-4 h-4 text-grappler-500" />
-                  <span className="text-sm text-grappler-300">{log.exercises.length} exercises</span>
-                  <span className="text-xs text-grappler-500">{formatDate(log.date)}</span>
-                </div>
-                <span className="text-xs text-grappler-400">{log.duration}m</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Current Block Info (compact) */}
-      {currentMesocycle && (
-        <div className="card p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-grappler-500">Current Block</p>
-            <p className="font-medium text-grappler-100 text-sm">{currentMesocycle.name}</p>
-          </div>
-          <span className="text-xs text-grappler-400">
-            {currentMesocycle.weeks.length}w • {currentMesocycle.goalFocus}
-          </span>
-        </div>
-      )}
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>

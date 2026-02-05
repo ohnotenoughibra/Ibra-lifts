@@ -38,7 +38,7 @@ export default function Home() {
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
   // Sync Zustand store with Vercel Postgres — keyed to authenticated user
-  useDbSync(authUserId);
+  const { isInitialLoadComplete } = useDbSync(authUserId);
 
   // When auth session is available, ensure the store user ID matches
   useEffect(() => {
@@ -63,12 +63,12 @@ export default function Home() {
     return unsub;
   }, []);
 
-  // Only stop loading once BOTH hydration is complete AND session is resolved
+  // Only stop loading once hydration, session, AND initial DB load are all complete
   useEffect(() => {
-    if (hasHydrated && sessionStatus !== 'loading') {
+    if (hasHydrated && sessionStatus !== 'loading' && isInitialLoadComplete) {
       setIsLoading(false);
     }
-  }, [hasHydrated, sessionStatus]);
+  }, [hasHydrated, sessionStatus, isInitialLoadComplete]);
 
   // Offline / online detection
   useEffect(() => {

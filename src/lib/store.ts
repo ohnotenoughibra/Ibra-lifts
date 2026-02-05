@@ -138,6 +138,7 @@ interface AppState {
     points: number;
     hadPR: boolean;
     newStreak: number;
+    newBadges: { id: string; name: string; icon: string; points: number }[];
   } | null;
 
   // Sync conflict resolution
@@ -190,12 +191,21 @@ interface AppState {
   convertWeight: (weight: number, to: WeightUnit) => number;
 
   // Gamification actions
+  recalculateGamificationStats: () => void;
+  recalculatePRs: () => void;
   awardPoints: (points: number, reason: string) => void;
   checkAndAwardBadges: () => void;
 
   // Workout log editing
   updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
   deleteWorkoutLog: (logId: string) => void;
+  addPastWorkout: (workout: {
+    date: Date;
+    exercises: ExerciseLog[];
+    duration: number;
+    overallRPE?: number;
+    notes?: string;
+  }) => void;
 
   // Body weight actions
   addBodyWeight: (weight: number, notes?: string) => void;
@@ -742,6 +752,9 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ workoutLogs: updatedLogs });
+
+        // Recalculate PRs and gamification stats after migration
+        get().recalculatePRs();
       },
 
       getCurrentMesocycleLogCount: () => {
@@ -861,6 +874,9 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ workoutLogs: updatedLogs });
+
+        // Recalculate PRs and gamification stats after import
+        get().recalculatePRs();
       },
 
       // Workout actions
@@ -1137,7 +1153,7 @@ export const useAppStore = create<AppState>()(
       },
 
       completeWorkout: (feedback) => {
-        const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user } = get();
+        const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user, trainingSessions } = get();
         if (!activeWorkout || !user) return;
         // Mesocycle can be null for template/quick workouts — still log the workout
 
@@ -1180,7 +1196,7 @@ export const useAppStore = create<AppState>()(
           whoopHR,
         };
 
-        // Calculate date-aware streak
+        // Calculate date-aware streak (respects trainingIdentity)
         const fmtDate = (d: Date) => {
           const dt = new Date(d);
           return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
@@ -1192,21 +1208,33 @@ export const useAppStore = create<AppState>()(
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = fmtDate(yesterday);
 
-        const alreadyWorkedOutToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === todayStr);
+        // Collect all training dates - include training sessions if user does combat/general fitness
+        const includeOtherSessions = user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness';
+        const allTrainingDates = new Set<string>();
+
+        // Add all workout log dates
+        workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+
+        // Add training session dates if applicable
+        if (includeOtherSessions && trainingSessions.length > 0) {
+          trainingSessions.forEach(session => allTrainingDates.add(fmtDate(new Date(session.date))));
+        }
+
+        const alreadyTrainedToday = allTrainingDates.has(todayStr);
 
         let newStreak: number;
-        if (alreadyWorkedOutToday) {
+        if (alreadyTrainedToday) {
           // Already trained today — don't double-count
           newStreak = gamificationStats.currentStreak;
         } else {
-          const lastLog = workoutLogs.length > 0
-            ? workoutLogs.reduce((latest, log) => new Date(log.date) > new Date(latest.date) ? log : latest)
-            : null;
-          if (!lastLog) {
-            newStreak = 1; // first workout ever
+          // Get all dates sorted descending to find the last training date
+          const sortedDates = Array.from(allTrainingDates).sort().reverse();
+          const lastTrainingDate = sortedDates[0] || null;
+
+          if (!lastTrainingDate) {
+            newStreak = 1; // first training ever
           } else {
-            const lastDateStr = fmtDate(new Date(lastLog.date));
-            newStreak = lastDateStr === yesterdayStr
+            newStreak = lastTrainingDate === yesterdayStr
               ? gamificationStats.currentStreak + 1
               : 1; // gap — reset streak
           }
@@ -1233,6 +1261,7 @@ export const useAppStore = create<AppState>()(
             points,
             hadPR,
             newStreak: newStreak,
+            newBadges: [], // Will be populated by checkAndAwardBadges
           },
           gamificationStats: {
             ...gamificationStats,
@@ -1266,6 +1295,143 @@ export const useAppStore = create<AppState>()(
       },
 
       // Gamification actions
+      recalculateGamificationStats: () => {
+        const { workoutLogs, trainingSessions, gamificationStats, user } = get();
+
+        // Recalculate total workouts
+        const totalWorkouts = workoutLogs.length;
+
+        // Recalculate total volume
+        const totalVolume = workoutLogs.reduce((sum, log) => sum + log.totalVolume, 0);
+
+        // Recalculate PRs
+        const personalRecords = workoutLogs.reduce((sum, log) =>
+          sum + log.exercises.filter(ex => ex.personalRecord).length, 0
+        );
+
+        // Recalculate streak based on all training dates
+        const fmtDate = (d: Date) => {
+          const dt = new Date(d);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
+
+        const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
+        const allTrainingDates = new Set<string>();
+        workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+        if (includeOtherSessions) {
+          trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
+        }
+
+        // Calculate streak from sorted dates
+        const sortedDates = Array.from(allTrainingDates).sort().reverse();
+        let currentStreak = 0;
+
+        if (sortedDates.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayStr = fmtDate(today);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = fmtDate(yesterday);
+
+          // Start streak if trained today or yesterday
+          if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+            currentStreak = 1;
+            let prevDate = new Date(sortedDates[0]);
+
+            for (let i = 1; i < sortedDates.length; i++) {
+              const checkDate = new Date(sortedDates[i]);
+              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+
+              if (diffDays === 1) {
+                currentStreak++;
+                prevDate = checkDate;
+              } else {
+                break; // Gap in streak
+              }
+            }
+          }
+        }
+
+        set({
+          gamificationStats: {
+            ...gamificationStats,
+            totalWorkouts,
+            totalVolume,
+            personalRecords,
+            currentStreak,
+            longestStreak: Math.max(gamificationStats.longestStreak, currentStreak),
+          }
+        });
+
+        // Also check for badges
+        get().checkAndAwardBadges();
+      },
+
+      recalculatePRs: () => {
+        const { workoutLogs } = get();
+        if (workoutLogs.length === 0) return;
+
+        // Sort logs by date (oldest first) to process in chronological order
+        const sortedLogs = [...workoutLogs].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // Track best estimated 1RM for each exercise
+        const bestE1RMs: Record<string, number> = {};
+
+        // Calculate estimated 1RM using Brzycki formula
+        const calcE1RM = (weight: number, reps: number) => {
+          if (reps === 0 || weight === 0) return 0;
+          if (reps === 1) return weight;
+          return Math.round(weight / (1.0278 - 0.0278 * reps));
+        };
+
+        // Process each log and update PR flags
+        const updatedLogs = sortedLogs.map(log => {
+          const updatedExercises = log.exercises.map(ex => {
+            // Find best set in this exercise
+            let bestSetE1RM = 0;
+            for (const set of ex.sets) {
+              if (set.completed && set.weight > 0 && set.reps > 0) {
+                const e1rm = calcE1RM(set.weight, set.reps);
+                if (e1rm > bestSetE1RM) {
+                  bestSetE1RM = e1rm;
+                }
+              }
+            }
+
+            // Check if this is a PR
+            const previousBest = bestE1RMs[ex.exerciseId] || 0;
+            const isPR = bestSetE1RM > 0 && bestSetE1RM > previousBest;
+
+            // Update best for this exercise
+            if (bestSetE1RM > previousBest) {
+              bestE1RMs[ex.exerciseId] = bestSetE1RM;
+            }
+
+            // Update estimated1RM on the exercise
+            return {
+              ...ex,
+              personalRecord: isPR,
+              estimated1RM: bestSetE1RM > 0 ? bestSetE1RM : ex.estimated1RM,
+            };
+          });
+
+          return { ...log, exercises: updatedExercises };
+        });
+
+        // Re-sort back to original order (newest first for display)
+        const finalLogs = updatedLogs.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        set({ workoutLogs: finalLogs });
+
+        // Recalculate gamification stats to update PR count
+        get().recalculateGamificationStats();
+      },
+
       awardPoints: (points, reason) => {
         const { gamificationStats } = get();
         const newTotal = gamificationStats.totalPoints + points;
@@ -1280,7 +1446,7 @@ export const useAppStore = create<AppState>()(
       },
 
       checkAndAwardBadges: () => {
-        const { gamificationStats, workoutLogs, mesocycleHistory } = get();
+        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout } = get();
 
         const metrics = {
           personalRecords: gamificationStats.personalRecords,
@@ -1309,14 +1475,30 @@ export const useAppStore = create<AppState>()(
 
           const additionalPoints = newBadges.reduce((sum, b) => sum + b.points, 0);
 
-          set({
+          // Update gamification stats and also add badges to lastCompletedWorkout for display
+          const updates: Partial<AppState> = {
             gamificationStats: {
               ...gamificationStats,
               badges: [...gamificationStats.badges, ...newUserBadges],
               totalPoints: gamificationStats.totalPoints + additionalPoints,
               level: calculateLevel(gamificationStats.totalPoints + additionalPoints)
             }
-          });
+          };
+
+          // If there's a pending workout summary, add the badges to it for display
+          if (lastCompletedWorkout) {
+            updates.lastCompletedWorkout = {
+              ...lastCompletedWorkout,
+              newBadges: newBadges.map(b => ({
+                id: b.id,
+                name: b.name,
+                icon: b.icon,
+                points: b.points
+              }))
+            };
+          }
+
+          set(updates);
         }
       },
 
@@ -1332,6 +1514,40 @@ export const useAppStore = create<AppState>()(
       deleteWorkoutLog: (logId) => {
         const { workoutLogs } = get();
         set({ workoutLogs: workoutLogs.filter(log => log.id !== logId) });
+      },
+
+      addPastWorkout: (workout) => {
+        const { workoutLogs, user, gamificationStats } = get();
+        if (!user) return;
+
+        // Calculate total volume
+        const totalVolume = workout.exercises.reduce((total, ex) =>
+          total + ex.sets.reduce((setTotal, set) =>
+            setTotal + (set.completed ? set.weight * set.reps : 0), 0
+          ), 0
+        );
+
+        // Create workout log
+        const workoutLog: WorkoutLog = {
+          id: uuidv4(),
+          userId: user.id,
+          mesocycleId: 'standalone', // Not part of a mesocycle
+          sessionId: `past-${Date.now()}`,
+          date: workout.date,
+          exercises: workout.exercises,
+          totalVolume,
+          duration: workout.duration,
+          overallRPE: workout.overallRPE ?? 7,
+          soreness: 5,
+          energy: 5,
+          notes: workout.notes,
+          completed: true,
+        };
+
+        set({ workoutLogs: [...workoutLogs, workoutLog] });
+
+        // Recalculate PRs and gamification stats to properly account for this past workout
+        get().recalculatePRs();
       },
 
       // Body weight actions
@@ -1474,16 +1690,69 @@ export const useAppStore = create<AppState>()(
 
       // Training session actions (unified system for grappling, striking, cardio, etc.)
       addTrainingSession: (session) => {
-        const { trainingSessions } = get();
+        const { trainingSessions, workoutLogs, gamificationStats, user } = get();
         // Auto-determine category from type if not provided
         const category = session.category || ACTIVITY_CATEGORY_MAP[session.type] || 'other';
-        set({
-          trainingSessions: [...trainingSessions, {
-            ...session,
-            id: uuidv4(),
-            category,
-          }]
-        });
+
+        const newSession = {
+          ...session,
+          id: uuidv4(),
+          category,
+        };
+
+        // Update streak if user does combat/general fitness training
+        const includeInStreak = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
+
+        if (includeInStreak) {
+          // Calculate streak including this new session
+          const fmtDate = (d: Date) => {
+            const dt = new Date(d);
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+          };
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayStr = fmtDate(today);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = fmtDate(yesterday);
+
+          // Collect all existing training dates
+          const allTrainingDates = new Set<string>();
+          workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
+          trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
+
+          const sessionDateStr = fmtDate(new Date(session.date));
+          const alreadyTrainedOnSessionDate = allTrainingDates.has(sessionDateStr);
+
+          let newStreak = gamificationStats.currentStreak;
+          if (!alreadyTrainedOnSessionDate) {
+            // This session is on a new day - check streak continuity
+            const sortedDates = Array.from(allTrainingDates).sort().reverse();
+            const lastTrainingDate = sortedDates[0] || null;
+
+            if (!lastTrainingDate) {
+              newStreak = 1; // first training ever
+            } else if (sessionDateStr === todayStr && lastTrainingDate === yesterdayStr) {
+              newStreak = gamificationStats.currentStreak + 1;
+            } else if (sessionDateStr === todayStr && lastTrainingDate !== todayStr) {
+              // Training today but gap from last session
+              newStreak = 1;
+            }
+          }
+
+          set({
+            trainingSessions: [...trainingSessions, newSession],
+            gamificationStats: {
+              ...gamificationStats,
+              currentStreak: newStreak,
+              longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
+            }
+          });
+        } else {
+          set({
+            trainingSessions: [...trainingSessions, newSession]
+          });
+        }
       },
 
       updateTrainingSession: (id, updates) => {

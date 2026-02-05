@@ -458,14 +458,100 @@ function transformWhoopBody(apiData: WhoopApiResponse): WhoopBodyMeasurement | n
 // Whoop combat sport → GrapplingType mapping
 // ---------------------------------------------------------------------------
 
+/**
+ * Explicit WHOOP sport ID → GrapplingType mapping.
+ * These are known combat/martial arts activities that directly map.
+ */
 const WHOOP_COMBAT_SPORT_MAP: Record<number, GrapplingType> = {
   38: 'wrestling',
   39: 'boxing',
-  57: 'other',        // Generic "Martial Arts"
-  70: 'bjj_nogi',     // Brazilian Jiu Jitsu (can't detect gi vs nogi)
+  57: 'other',        // Generic "Martial Arts" — could be judo, sambo, etc.
+  70: 'bjj_nogi',     // Brazilian Jiu Jitsu (can't detect gi vs nogi from sport ID)
   71: 'kickboxing',
   84: 'mma',
 };
+
+/**
+ * Sport IDs that represent generic/unspecified workout types.
+ * These workouts may be grappling sessions that WHOOP didn't auto-detect correctly.
+ */
+const GENERIC_WORKOUT_SPORT_IDS = new Set([
+  -1,  // Activity (auto-detected unknown)
+  74,  // Other (user-selected generic)
+  48,  // Functional Fitness (sometimes used for combat training)
+  52,  // HIIT (could be combat-style HIIT)
+]);
+
+/**
+ * Heuristically detect if a generic workout is likely a grappling/combat session.
+ * Uses strain, heart rate patterns, and duration to identify combat-like workouts.
+ *
+ * Combat sports typically have:
+ * - High strain (10+ for moderate sessions, 14+ for hard sessions)
+ * - High average HR (130+ bpm for active grappling)
+ * - Duration in typical training ranges (30-120 minutes)
+ * - Significant time in high HR zones (zone 4-5)
+ */
+function isLikelyGrapplingWorkout(workout: WhoopWorkout): boolean {
+  const durationMin = Math.round(
+    (new Date(workout.end).getTime() - new Date(workout.start).getTime()) / 60000
+  );
+
+  // Must be a generic workout type
+  if (!GENERIC_WORKOUT_SPORT_IDS.has(workout.sportId)) {
+    return false;
+  }
+
+  // Minimum criteria: must have some data to analyze
+  if (workout.strain == null && workout.avgHR == null) {
+    return false;
+  }
+
+  // Calculate time in high HR zones (zone 4 & 5)
+  const highZoneMinutes = workout.zones
+    .filter(z => z.zone >= 4)
+    .reduce((sum, z) => sum + z.minutes, 0);
+  const totalZoneMinutes = workout.zones.reduce((sum, z) => sum + z.minutes, 0);
+  const highZoneRatio = totalZoneMinutes > 0 ? highZoneMinutes / totalZoneMinutes : 0;
+
+  // Scoring system: workout gets points for combat-like characteristics
+  let score = 0;
+
+  // High strain indicates intense activity (grappling typically 10-18+)
+  if (workout.strain != null) {
+    if (workout.strain >= 16) score += 3;      // Very high strain — competition/hard sparring
+    else if (workout.strain >= 12) score += 2; // High strain — typical hard training
+    else if (workout.strain >= 8) score += 1;  // Moderate strain — drilling or flow
+  }
+
+  // High average HR indicates sustained exertion
+  if (workout.avgHR != null) {
+    if (workout.avgHR >= 150) score += 2;      // Very high avg HR
+    else if (workout.avgHR >= 130) score += 1; // Elevated avg HR
+  }
+
+  // Significant time in zone 4-5 is typical for combat sports
+  if (highZoneRatio >= 0.3) score += 2;        // 30%+ in high zones
+  else if (highZoneRatio >= 0.15) score += 1;  // 15%+ in high zones
+
+  // Duration in typical grappling range (30-120 min)
+  if (durationMin >= 45 && durationMin <= 120) score += 1;
+  else if (durationMin >= 30 && durationMin <= 150) score += 0.5;
+
+  // Threshold: need at least 3 points to consider it grappling
+  // This means workout needs multiple indicators, not just one high metric
+  return score >= 3;
+}
+
+/**
+ * Determine the most likely grappling type for a heuristically-detected workout.
+ * Since we don't know the exact sport, we use intensity indicators.
+ */
+function inferGrapplingTypeFromWorkout(workout: WhoopWorkout): GrapplingType {
+  // For heuristically-detected workouts, default to bjj_nogi as it's most common
+  // User can manually adjust if needed
+  return 'bjj_nogi';
+}
 
 /**
  * Estimate grappling intensity from Whoop strain.
@@ -480,6 +566,10 @@ function strainToIntensity(strain: number | null): GrapplingIntensity {
 
 /**
  * Auto-import Whoop combat sport workouts as grappling sessions.
+ * Uses two detection methods:
+ * 1. Explicit sport ID mapping (wrestling, BJJ, boxing, MMA, kickboxing)
+ * 2. Heuristic detection for generic "Workout" entries that match grappling patterns
+ *
  * Only imports workouts that haven't already been imported (dedup by whoopWorkoutId).
  */
 function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
@@ -487,18 +577,42 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
   const existingSessions = store.grapplingSessions;
 
   // Find combat sport workouts not yet imported
+  // Check both explicit mapping AND heuristic detection
   const combatWorkouts = whoopWorkouts.filter(w => {
-    const grapplingType = WHOOP_COMBAT_SPORT_MAP[w.sportId];
-    if (!grapplingType) return false;
-    // Check dedup — skip if already imported
-    return !existingSessions.some(s => s.whoopWorkoutId === w.id);
+    // Skip if already imported
+    if (existingSessions.some(s => s.whoopWorkoutId === w.id)) {
+      return false;
+    }
+
+    // Method 1: Explicit sport ID mapping
+    if (WHOOP_COMBAT_SPORT_MAP[w.sportId]) {
+      return true;
+    }
+
+    // Method 2: Heuristic detection for generic workouts
+    // This catches workouts labeled as "Workout", "Other", "Activity", etc.
+    // that have characteristics matching grappling/combat sports
+    if (isLikelyGrapplingWorkout(w)) {
+      return true;
+    }
+
+    return false;
   });
 
   for (const ww of combatWorkouts) {
-    const grapplingType = WHOOP_COMBAT_SPORT_MAP[ww.sportId]!;
+    // Determine grappling type: use explicit mapping if available, otherwise infer
+    const explicitType = WHOOP_COMBAT_SPORT_MAP[ww.sportId];
+    const grapplingType = explicitType ?? inferGrapplingTypeFromWorkout(ww);
+    const wasHeuristic = !explicitType;
+
     const durationMin = Math.round(
       (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
     );
+
+    // Build descriptive note based on detection method
+    const notePrefix = wasHeuristic
+      ? `Auto-detected as grappling from "${ww.sportName}" (based on strain/HR patterns)`
+      : `Auto-imported from Whoop (${ww.sportName})`;
 
     store.addGrapplingSession({
       date: new Date(ww.start),
@@ -506,7 +620,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
       intensity: strainToIntensity(ww.strain),
       duration: durationMin,
       perceivedExertion: ww.strain != null ? Math.min(10, Math.round(ww.strain / 2.1)) : 5,
-      notes: `Auto-imported from Whoop (${ww.sportName})`,
+      notes: notePrefix,
       whoopHR: {
         avgHR: ww.avgHR ?? 0,
         maxHR: ww.maxHR ?? 0,
@@ -532,7 +646,9 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
       maxHR: ww.maxHR ?? 0,
       timeInZones: hrZones as any,
       caloriesBurned: ww.calories ?? 0,
-      notes: `Whoop: ${ww.sportName}`,
+      notes: wasHeuristic
+        ? `Whoop: ${ww.sportName} (auto-detected as grappling)`
+        : `Whoop: ${ww.sportName}`,
     });
   }
 }

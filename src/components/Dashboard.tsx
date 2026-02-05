@@ -913,7 +913,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     mesocycleHistory, competitions, bodyWeightLog,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    addTrainingSession
+    addTrainingSession, addPastWorkout
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -1818,6 +1818,34 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
               <p className="text-sm text-grappler-400 mb-4">{heatmapSelectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
 
               <div className="space-y-2">
+                {/* Lifting option */}
+                <button
+                  onClick={() => {
+                    addPastWorkout({
+                      date: heatmapSelectedDate,
+                      exercises: [{
+                        exerciseId: 'general-lifting',
+                        exerciseName: 'Lifting Session',
+                        sets: [{ setNumber: 1, weight: 0, reps: 1, rpe: 7, completed: true }],
+                        personalRecord: false,
+                      }],
+                      duration: 60,
+                      overallRPE: 7,
+                      notes: 'Quick logged from calendar',
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <Dumbbell className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Lifting</p>
+                    <p className="text-xs text-grappler-400">Strength training</p>
+                  </div>
+                </button>
+
                 {/* Grappling option */}
                 <button
                   onClick={() => {
@@ -1835,7 +1863,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                   className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
                 >
                   <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <Dumbbell className="w-5 h-5 text-blue-400" />
+                    <Target className="w-5 h-5 text-blue-400" />
                   </div>
                   <div className="text-left">
                     <p className="font-medium text-white">Grappling</p>

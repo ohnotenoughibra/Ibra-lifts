@@ -65,7 +65,7 @@ export function resolveConflicts(
   // For array fields, merge by ID (union), preferring entries with newer dates
   const arrayFields = [
     'workoutLogs', 'meals', 'bodyWeightLog', 'bodyComposition',
-    'injuryLog', 'hrSessions', 'grapplingSessions', 'customExercises', 'sessionTemplates',
+    'injuryLog', 'hrSessions', 'trainingSessions', 'customExercises', 'sessionTemplates',
   ];
   for (const field of arrayFields) {
     const localArr = local[field];

@@ -44,6 +44,12 @@ import {
   Check,
   Users,
   CalendarDays,
+  Plus,
+  X,
+  Scale,
+  RefreshCw,
+  Sparkles,
+  Grip,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -105,9 +111,12 @@ const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => 
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
+const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
+const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
+const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const weeks = 12;
@@ -209,6 +218,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayView] = useState<OverlayView>(null);
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
   const { user, gamificationStats, currentMesocycle, activeWorkout, workoutLogs, mesocycleHistory, deleteMesocycle, syncConflict, resolveSyncConflict, dismissSyncConflict } = useAppStore();
 
   if (activeWorkout) {
@@ -272,6 +282,15 @@ export default function Dashboard() {
   }
   if (overlayView === 'community_share') {
     return <CommunityShare onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'quick_actions') {
+    return <QuickActions onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'grip_strength') {
+    return <GripStrengthModule onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'recovery_coach') {
+    return <RecoveryCoach onClose={() => setOverlayView(null)} />;
   }
 
   // Mesocycle report overlay
@@ -393,6 +412,72 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Quick-Log FAB */}
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-end gap-2">
+        <AnimatePresence>
+          {fabOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setFabOpen(false)}
+                className="fixed inset-0 bg-black/40 -z-10"
+              />
+              {/* FAB Options */}
+              <motion.button
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.05 }}
+                onClick={() => { setFabOpen(false); setOverlayView('grappling'); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-lime-500 text-grappler-900 rounded-full shadow-lg font-medium text-sm"
+              >
+                <Shield className="w-4 h-4" />
+                Log Grappling
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.1 }}
+                onClick={() => { setFabOpen(false); setActiveTab('history'); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-sky-500 text-white rounded-full shadow-lg font-medium text-sm"
+              >
+                <Scale className="w-4 h-4" />
+                Log Weight
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.15 }}
+                onClick={() => { setFabOpen(false); setOverlayView('injury'); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-full shadow-lg font-medium text-sm"
+              >
+                <Siren className="w-4 h-4" />
+                Log Injury
+              </motion.button>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* FAB Button */}
+        <motion.button
+          onClick={() => setFabOpen(!fabOpen)}
+          animate={{ rotate: fabOpen ? 45 : 0 }}
+          className={cn(
+            'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
+            fabOpen
+              ? 'bg-grappler-700 text-grappler-300'
+              : 'bg-gradient-to-br from-primary-500 to-accent-500 text-white'
+          )}
+        >
+          {fabOpen ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+        </motion.button>
+      </div>
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom">
@@ -702,11 +787,41 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   const {
     user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
-    mesocycleHistory, competitions, bodyWeightLog
+    mesocycleHistory, competitions, bodyWeightLog,
+    trainingSessions, latestWhoopData, meals,
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showMigrateDialog, setShowMigrateDialog] = useState(false);
+  const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  // ─── Today's Summary Data ───
+  const today = new Date();
+  const todayStr = today.toDateString();
+
+  // Today's training sessions (combat, cardio, etc.)
+  const todayTraining = trainingSessions.filter(s =>
+    new Date(s.date).toDateString() === todayStr
+  );
+
+  // Today's strength workouts
+  const todayWorkouts = workoutLogs.filter(log =>
+    new Date(log.date).toDateString() === todayStr
+  );
+
+  // Today's meals/nutrition
+  const todayMeals = meals.filter(m =>
+    new Date(m.date).toDateString() === todayStr
+  );
+  const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+  const todayCalories = todayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
+
+  // Whoop recovery data (most recent)
+  const recoveryScore = latestWhoopData?.recoveryScore;
+  const strain = latestWhoopData?.strain;
+  const sleepHours = latestWhoopData?.sleepHours;
 
   // Share workout summary handler
   const handleShareWorkout = async () => {
@@ -818,7 +933,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   })();
 
   // Check if today is a rest day (no workout logged today)
-  const todayStr = new Date().toDateString();
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 
@@ -943,34 +1057,78 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     startWorkout(quickSession);
   };
 
-  // Handle mesocycle completion — auto-generate next
+  // Handle mesocycle completion — auto-generate next with migration check
   const handleGenerateNext = () => {
-    generateNewMesocycle();
+    // Get fresh state from store to avoid stale closure issues
+    const state = useAppStore.getState();
+    const currentLogCount = state.getCurrentMesocycleLogCount();
+    const activeMesocycle = state.currentMesocycle;
+
+    if (activeMesocycle && currentLogCount > 0) {
+      setPreviousMesocycleId(activeMesocycle.id);
+      setShowMigrateDialog(true);
+    } else {
+      generateNewMesocycle();
+    }
   };
 
-  // Tools split into featured (top 4) and more
+  // Handle migration dialog response
+  const handleMigrateResponse = (shouldMigrate: boolean) => {
+    const oldMesocycleId = previousMesocycleId;
+    generateNewMesocycle();
+
+    if (shouldMigrate && oldMesocycleId) {
+      setTimeout(() => {
+        const newMesocycle = useAppStore.getState().currentMesocycle;
+        if (newMesocycle && oldMesocycleId) {
+          migrateWorkoutLogsToMesocycle(oldMesocycleId, newMesocycle.id);
+        }
+      }, 0);
+    }
+
+    setShowMigrateDialog(false);
+    setPreviousMesocycleId(null);
+  };
+
+  // Tools split into featured (top 5) and more
+  // Featured: Core tools for combat athletes - quick actions, combat training, wearable, nutrition, recovery
+  // Dynamic label based on combat sport
+  const getCombatLabel = () => {
+    if (!user?.combatSport) return 'Combat';
+    switch (user.combatSport) {
+      case 'mma': return 'MMA';
+      case 'grappling_gi': return 'Grappling';
+      case 'grappling_nogi': return 'Grappling';
+      case 'striking': return 'Striking';
+      default: return 'Combat';
+    }
+  };
+
   const featuredTools = [
-    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
-    { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
-    { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
+    { icon: Sparkles, label: 'Quick Log', view: 'quick_actions' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
+    { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
+    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+    { icon: Zap, label: 'Recovery AI', view: 'recovery_coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
     { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
   ];
   const moreTools = [
-    { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
+    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-blue-400 bg-blue-500/20' },
+    { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
+    { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
+    { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
+    { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
+    { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
     { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
     { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+    { icon: Grip, label: 'Grip', view: 'grip_strength' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
     { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
-    { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
-    { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
     { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
     { icon: ListPlus, label: 'Custom Ex', view: 'custom_exercise' as OverlayView, color: 'text-indigo-400 bg-indigo-500/20' },
     { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
-    { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
     { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
     { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
-    { icon: Shield, label: 'Grappling', view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
   ];
 
   const ToolButton = ({ tool }: { tool: typeof featuredTools[0] }) => (
@@ -1446,6 +1604,105 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       {/* Training Streak Heatmap */}
       <StreakHeatmap workoutLogs={workoutLogs} />
 
+      {/* ─── Today at a Glance ─── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="card p-4"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-grappler-100 text-sm flex items-center gap-2">
+            <Sun className="w-4 h-4 text-yellow-400" />
+            Today
+          </h3>
+          <span className="text-xs text-grappler-500">
+            {today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+
+        {/* Recovery + Readiness (if Whoop connected) */}
+        {recoveryScore != null && (
+          <div className={cn(
+            'rounded-xl p-3 mb-3 border',
+            recoveryScore >= 67 ? 'bg-green-500/10 border-green-500/30' :
+            recoveryScore >= 34 ? 'bg-yellow-500/10 border-yellow-500/30' :
+            'bg-red-500/10 border-red-500/30'
+          )}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-green-400" />
+                <span className="text-xs text-grappler-400">Recovery</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={cn(
+                  'text-lg font-bold',
+                  recoveryScore >= 67 ? 'text-green-400' :
+                  recoveryScore >= 34 ? 'text-yellow-400' : 'text-red-400'
+                )}>
+                  {recoveryScore}%
+                </span>
+                {sleepHours != null && (
+                  <span className="text-xs text-grappler-500">
+                    {sleepHours.toFixed(1)}h sleep
+                  </span>
+                )}
+                {strain != null && (
+                  <span className="text-xs text-grappler-500">
+                    {strain.toFixed(1)} strain
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1.5">
+              {recoveryScore >= 67 ? 'Ready to train hard today' :
+               recoveryScore >= 34 ? 'Moderate intensity recommended' :
+               'Consider recovery work or light flow'}
+            </p>
+          </div>
+        )}
+
+        {/* Activity Summary Row */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* Grappling */}
+          <button
+            onClick={() => onNavigate('grappling')}
+            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+          >
+            <Shield className="w-4 h-4 text-lime-400" />
+            <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
+            <span className="text-[10px] text-grappler-500">Grappling</span>
+          </button>
+
+          {/* Strength */}
+          <button
+            onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
+            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+          >
+            <Dumbbell className="w-4 h-4 text-primary-400" />
+            <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
+            <span className="text-[10px] text-grappler-500">Lifting</span>
+          </button>
+
+          {/* Nutrition */}
+          <button
+            onClick={() => onNavigate('nutrition')}
+            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+          >
+            <Apple className="w-4 h-4 text-red-400" />
+            <span className="text-lg font-bold text-grappler-100">{todayProtein}g</span>
+            <span className="text-[10px] text-grappler-500">Protein</span>
+          </button>
+        </div>
+
+        {/* Quick insight if no activity yet */}
+        {todayTraining.length === 0 && todayWorkouts.length === 0 && todayMeals.length === 0 && (
+          <p className="text-xs text-grappler-500 text-center mt-3 py-2 border-t border-grappler-800">
+            No activity logged yet today. Tap above to get started!
+          </p>
+        )}
+      </motion.div>
+
       {/* Featured Tools (4) + expandable More */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -1519,6 +1776,70 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           </span>
         </div>
       )}
+
+      {/* Workout Migration Dialog */}
+      <AnimatePresence>
+        {showMigrateDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => {
+              setShowMigrateDialog(false);
+              setPreviousMesocycleId(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-primary-500/20">
+                  <RefreshCw className="w-5 h-5 text-primary-400" />
+                </div>
+                <h3 className="text-lg font-bold text-grappler-100">Keep Workout Progress?</h3>
+              </div>
+
+              <p className="text-sm text-grappler-400 mb-2">
+                You have <span className="text-primary-400 font-semibold">{getCurrentMesocycleLogCount()} workout{getCurrentMesocycleLogCount() !== 1 ? 's' : ''}</span> logged in your current program.
+              </p>
+              <p className="text-sm text-grappler-400 mb-5">
+                Do you want to carry this progress into your new program, or start fresh?
+              </p>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleMigrateResponse(true)}
+                  className="btn btn-primary w-full gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Keep My Progress
+                </button>
+                <button
+                  onClick={() => handleMigrateResponse(false)}
+                  className="btn btn-secondary w-full gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Start Fresh
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMigrateDialog(false);
+                    setPreviousMesocycleId(null);
+                  }}
+                  className="btn btn-ghost w-full text-grappler-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

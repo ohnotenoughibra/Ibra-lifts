@@ -27,6 +27,7 @@ import {
   TrendingUp,
   Save,
   Settings,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
@@ -45,7 +46,7 @@ const PROFILE_ICONS: Record<string, any> = {
 };
 
 export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user, saveAsTemplate } = useAppStore();
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, activeEquipmentProfile, setActiveEquipmentProfile, workoutLogs, swapProgramExercise, user, saveAsTemplate, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount } = useAppStore();
 
   // Track which sessions have been completed in this mesocycle
   const completedSessionIds = new Set(
@@ -65,9 +66,115 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const [showSaveTemplateBanner, setShowSaveTemplateBanner] = useState(false);
   const [templateName, setTemplateName] = useState('');
 
+  // Migration dialog state
+  const [showMigrateDialog, setShowMigrateDialog] = useState(false);
+  const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek } | null>(null);
+  const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
+
+  // Get workout logs breakdown by type for the current mesocycle
+  const getWorkoutBreakdown = () => {
+    const state = useAppStore.getState();
+    const { currentMesocycle: meso, workoutLogs: logs } = state;
+    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0, workouts: [] };
+
+    const mesoLogs = logs.filter(log => log.mesocycleId === meso.id);
+
+    // Match logs to sessions to get workout types
+    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0, workouts: mesoLogs };
+
+    mesoLogs.forEach(log => {
+      // Find the session this log belongs to
+      for (const week of meso.weeks) {
+        const session = week.sessions.find(s => s.id === log.sessionId);
+        if (session) {
+          if (session.type === 'strength') breakdown.strength++;
+          else if (session.type === 'hypertrophy') breakdown.hypertrophy++;
+          else if (session.type === 'power') breakdown.power++;
+          break;
+        }
+      }
+    });
+
+    return breakdown;
+  };
+
+  // Check for existing workouts and prompt migration
+  const handleGenerateWithMigrationCheck = (weeks: number, sessionMinutes?: number, sessionsPerWeek?: SessionsPerWeek) => {
+    // Get fresh state from store to avoid stale closure issues
+    const state = useAppStore.getState();
+    const currentLogCount = state.getCurrentMesocycleLogCount();
+    const importable = state.getImportableWorkoutLogs();
+    const activeMesocycle = state.currentMesocycle;
+
+    console.log('[Migration Check] currentLogCount:', currentLogCount, 'importable:', importable.importable.length, 'activeMesocycle:', activeMesocycle?.id);
+
+    // Check if there are workouts to migrate (current mesocycle OR importable from history)
+    const hasWorkoutsToMigrate = currentLogCount > 0 || importable.importable.length > 0;
+
+    if (hasWorkoutsToMigrate) {
+      // Store the generation params and show migration dialog
+      setPreviousMesocycleId(activeMesocycle?.id || null);
+      setPendingGeneration({ weeks, sessionMinutes, sessionsPerWeek });
+      setShowMigrateDialog(true);
+    } else {
+      // No workouts to migrate, proceed directly
+      if (sessionsPerWeek && user) {
+        useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+      }
+      generateNewMesocycle(weeks, sessionMinutes);
+    }
+  };
+
+  // Handle migration dialog response
+  const handleMigrateResponse = (shouldMigrate: boolean, importFromHistory: boolean = false) => {
+    if (!pendingGeneration) return;
+
+    const { weeks, sessionMinutes: mins, sessionsPerWeek } = pendingGeneration;
+    const oldMesocycleId = previousMesocycleId;
+
+    // Get importable logs before generating new mesocycle
+    const importableLogs = importFromHistory
+      ? useAppStore.getState().getImportableWorkoutLogs().importable
+      : [];
+
+    // Update sessions per week if needed
+    if (sessionsPerWeek && user) {
+      useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+    }
+
+    // Generate the new mesocycle
+    generateNewMesocycle(weeks, mins);
+
+    // After generation, migrate/import workouts
+    setTimeout(() => {
+      const state = useAppStore.getState();
+      const newMesocycle = state.currentMesocycle;
+
+      if (newMesocycle) {
+        // Migrate from old mesocycle if selected
+        if (shouldMigrate && oldMesocycleId) {
+          state.migrateWorkoutLogsToMesocycle(oldMesocycleId, newMesocycle.id);
+        }
+
+        // Import from history if selected
+        if (importFromHistory && importableLogs.length > 0) {
+          state.importWorkoutLogsToCurrentMesocycle(importableLogs.map(l => l.id));
+        }
+      }
+    }, 0);
+
+    // Reset dialog state
+    setShowMigrateDialog(false);
+    setPendingGeneration(null);
+    setPreviousMesocycleId(null);
+    setShowProgramSettings(false);
+    setProgramModified(false);
+    setShowSaveTemplateBanner(false);
+  };
+
   const handleGenerateWithEmphasis = () => {
     setShowEmphasisPicker(false);
-    generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
+    handleGenerateWithMigrationCheck(blockWeeks, sessionMinutes || undefined);
   };
 
   // Track program modifications (exercise swaps)
@@ -82,14 +189,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
 
   // Regenerate program with new settings
   const handleRegenerateProgram = (weeks: number, sessionsPerWeek: SessionsPerWeek) => {
-    // Update user sessions per week preference in the store
-    if (user) {
-      useAppStore.getState().setUser({ ...user, sessionsPerWeek });
-    }
-    generateNewMesocycle(weeks, sessionMinutes || undefined);
-    setShowProgramSettings(false);
-    setProgramModified(false);
-    setShowSaveTemplateBanner(false);
+    handleGenerateWithMigrationCheck(weeks, sessionMinutes || undefined, sessionsPerWeek);
   };
 
   if (!currentMesocycle) {
@@ -352,6 +452,148 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           />
         ))}
       </div>
+
+      {/* Workout Migration Dialog */}
+      <AnimatePresence>
+        {showMigrateDialog && (() => {
+          const breakdown = getWorkoutBreakdown();
+          const importable = useAppStore.getState().getImportableWorkoutLogs();
+          const hasCurrentWorkouts = breakdown.total > 0;
+          const hasImportableHistory = importable.importable.length > 0;
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => {
+                setShowMigrateDialog(false);
+                setPendingGeneration(null);
+                setPreviousMesocycleId(null);
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl max-h-[85vh] overflow-y-auto"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-primary-500/20">
+                    <RefreshCw className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-grappler-100">Import Workout Progress?</h3>
+                </div>
+
+                {/* Current mesocycle workouts */}
+                {hasCurrentWorkouts && (
+                  <>
+                    <p className="text-sm text-grappler-400 mb-3">
+                      <span className="text-primary-400 font-semibold">{breakdown.total} workout{breakdown.total !== 1 ? 's' : ''}</span> in current program:
+                    </p>
+                    <div className="flex gap-2 mb-4">
+                      {breakdown.strength > 0 && (
+                        <div className="flex-1 bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                          <Zap className="w-4 h-4 text-red-400 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-red-400">{breakdown.strength}</p>
+                          <p className="text-[10px] text-red-400/70">Strength</p>
+                        </div>
+                      )}
+                      {breakdown.hypertrophy > 0 && (
+                        <div className="flex-1 bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 text-center">
+                          <Heart className="w-4 h-4 text-purple-400 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-purple-400">{breakdown.hypertrophy}</p>
+                          <p className="text-[10px] text-purple-400/70">Hypertrophy</p>
+                        </div>
+                      )}
+                      {breakdown.power > 0 && (
+                        <div className="flex-1 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
+                          <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-orange-400">{breakdown.power}</p>
+                          <p className="text-[10px] text-orange-400/70">Power</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Importable history from other/deleted mesocycles */}
+                {hasImportableHistory && (
+                  <div className={cn(hasCurrentWorkouts && 'border-t border-grappler-700 pt-4 mt-4')}>
+                    <p className="text-sm text-grappler-400 mb-3">
+                      <span className="text-accent-400 font-semibold">{importable.importable.length} workout{importable.importable.length !== 1 ? 's' : ''}</span> from recent history (last 30 days):
+                    </p>
+                    <div className="bg-accent-500/10 border border-accent-500/30 rounded-lg p-3 mb-4">
+                      <div className="flex items-center gap-2 text-accent-400">
+                        <History className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {importable.orphaned.length > 0 && `${importable.orphaned.length} orphaned`}
+                          {importable.orphaned.length > 0 && importable.otherMesocycles.length > 0 && ' + '}
+                          {importable.otherMesocycles.length > 0 && `${importable.otherMesocycles.length} from previous programs`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-400 mt-1">
+                        These workouts can be imported into your new program
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!hasCurrentWorkouts && !hasImportableHistory && (
+                  <p className="text-sm text-grappler-400 mb-4">
+                    No workout history found to import.
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  {hasCurrentWorkouts && (
+                    <button
+                      onClick={() => handleMigrateResponse(true, false)}
+                      className="btn btn-primary w-full gap-2"
+                    >
+                      <Check className="w-4 h-4" />
+                      Keep Current {breakdown.total} Workout{breakdown.total !== 1 ? 's' : ''}
+                    </button>
+                  )}
+                  {hasImportableHistory && (
+                    <button
+                      onClick={() => handleMigrateResponse(hasCurrentWorkouts, true)}
+                      className={cn(
+                        'btn w-full gap-2',
+                        hasCurrentWorkouts ? 'btn-secondary' : 'btn-primary'
+                      )}
+                    >
+                      <History className="w-4 h-4" />
+                      {hasCurrentWorkouts
+                        ? `Also Import ${importable.importable.length} from History`
+                        : `Import ${importable.importable.length} from History`}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleMigrateResponse(false, false)}
+                    className="btn btn-secondary w-full gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Start Fresh
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMigrateDialog(false);
+                      setPendingGeneration(null);
+                      setPreviousMesocycleId(null);
+                    }}
+                    className="btn btn-ghost w-full text-grappler-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }
@@ -831,32 +1073,32 @@ function ProgramSettingsPanel({
           </div>
         </div>
 
-        {hasChanges && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onRegenerate(weeks, sessions)}
-              className="btn btn-primary btn-sm flex-1 gap-1"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Regenerate Program
-            </button>
+        {/* Always show regenerate option */}
+        <div className="space-y-2">
+          <button
+            onClick={() => onRegenerate(weeks, sessions)}
+            className="btn btn-primary btn-sm w-full gap-1"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {hasChanges ? 'Apply Changes & Regenerate' : 'Regenerate with New Exercises'}
+          </button>
+          {hasChanges && (
             <button
               onClick={() => {
                 setWeeks(currentWeeks);
                 setSessions(currentSessionsPerWeek);
               }}
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm w-full"
             >
-              Reset
+              Reset Changes
             </button>
-          </div>
-        )}
-
-        {!hasChanges && (
+          )}
           <p className="text-[11px] text-grappler-500 text-center">
-            Change settings above then regenerate to apply
+            {hasChanges
+              ? 'This will create a new program with your updated settings'
+              : 'Keep the same settings but get fresh exercise selections'}
           </p>
-        )}
+        </div>
       </div>
     </motion.div>
   );

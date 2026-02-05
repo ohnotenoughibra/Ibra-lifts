@@ -24,8 +24,17 @@ import {
   Loader2,
   ImageIcon,
   AlertCircle,
+  Clock,
+  Target,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Dumbbell,
+  Shield,
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
+import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
+import { cn } from '@/lib/utils';
 
 // ── Preset foods with metric portions ──────────────────────────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
@@ -183,7 +192,20 @@ interface NutritionTrackerProps {
 }
 
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
-  const { user, meals, macroTargets, waterLog, addMeal, deleteMeal, setWaterGlasses: storeSetWater, bodyWeightLog } = useAppStore();
+  const {
+    user,
+    meals,
+    macroTargets,
+    waterLog,
+    addMeal,
+    deleteMeal,
+    setWaterGlasses: storeSetWater,
+    bodyWeightLog,
+    currentMesocycle,
+    trainingSessions,
+    latestWhoopData,
+    workoutLogs,
+  } = useAppStore();
 
   // ── Derived state from store ──
   const todayStr = new Date().toISOString().split('T')[0];
@@ -192,6 +214,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   // ── Dynamic macro targets based on body weight + goal ──
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+  const bodyWeightLbs = latestWeight
+    ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
+    : 175; // Default weight if none logged
+
   const computedTargets = useMemo(() => {
     if (!latestWeight || !user) return macroTargets;
     const bw = latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight;
@@ -203,6 +229,53 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     }
     return { calories: Math.round(bw * 32), protein: Math.round(bw * 2), carbs: Math.round(bw * 3.5), fat: Math.round(bw * 1) };
   }, [latestWeight, user, macroTargets]);
+
+  // ── Contextual nutrition based on today's training ──
+  // Check today's workout logs instead of scheduled sessions
+  const todaySession = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayLog = workoutLogs.find(log => {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+      return logDate.getTime() === today.getTime();
+    });
+    if (!todayLog || !currentMesocycle) return null;
+    // Find matching session by sessionId
+    for (const week of currentMesocycle.weeks) {
+      const session = week.sessions.find(s => s.id === todayLog.sessionId);
+      if (session) return session;
+    }
+    return null;
+  }, [workoutLogs, currentMesocycle]);
+
+  const todayTraining = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return trainingSessions.filter(s => {
+      const sDate = new Date(s.date);
+      sDate.setHours(0, 0, 0, 0);
+      return sDate.getTime() === today.getTime();
+    });
+  }, [trainingSessions]);
+
+  const contextualNutrition = useMemo<ContextualMacros>(() => {
+    return getContextualNutrition(
+      computedTargets,
+      bodyWeightLbs,
+      todaySession,
+      todayTraining,
+      latestWhoopData,
+      user
+    );
+  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user]);
+
+  const supplements = useMemo(() => {
+    return getSupplementRecommendations(contextualNutrition.dayType);
+  }, [contextualNutrition.dayType]);
+
+  // ── UI State ──
+  const [showContextual, setShowContextual] = useState(true);
 
   // ── Form state ──
   const [showAddForm, setShowAddForm] = useState(false);
@@ -435,6 +508,109 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       </div>
 
       <div className="px-4 pt-4 space-y-5">
+        {/* ── Contextual Nutrition Banner ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card overflow-hidden"
+        >
+          <button
+            onClick={() => setShowContextual(!showContextual)}
+            className="w-full p-3 flex items-center justify-between bg-gradient-to-r from-primary-500/20 to-transparent"
+          >
+            <div className="flex items-center gap-3">
+              {contextualNutrition.dayType.includes('grappling') ? (
+                <Shield className="w-5 h-5 text-lime-400" />
+              ) : contextualNutrition.dayType === 'rest' ? (
+                <Clock className="w-5 h-5 text-blue-400" />
+              ) : (
+                <Dumbbell className="w-5 h-5 text-primary-400" />
+              )}
+              <div className="text-left">
+                <p className="text-sm font-medium text-white">
+                  {contextualNutrition.dayType === 'grappling_hard' ? 'Hard Grappling Day' :
+                   contextualNutrition.dayType === 'grappling_light' ? 'Light Grappling Day' :
+                   contextualNutrition.dayType === 'strength' ? 'Strength Training Day' :
+                   contextualNutrition.dayType === 'hypertrophy' ? 'Hypertrophy Training Day' :
+                   contextualNutrition.dayType === 'power' ? 'Power Training Day' :
+                   'Rest Day'}
+                </p>
+                <p className="text-xs text-gray-400">{contextualNutrition.carbCycleNote}</p>
+              </div>
+            </div>
+            {showContextual ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          </button>
+
+          <AnimatePresence>
+            {showContextual && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-3 pt-0 space-y-3">
+                  {/* Adjusted vs Base Macros */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 bg-grappler-800/50 rounded-lg">
+                      <p className="text-gray-500 mb-1">Base Targets</p>
+                      <p className="text-gray-300">
+                        {contextualNutrition.baseTargets.calories} kcal • {contextualNutrition.baseTargets.protein}g P
+                      </p>
+                    </div>
+                    <div className="p-2 bg-primary-500/10 border border-primary-500/30 rounded-lg">
+                      <p className="text-primary-400 mb-1">Today&apos;s Adjusted</p>
+                      <p className="text-white font-medium">
+                        {contextualNutrition.adjustedTargets.calories} kcal • {contextualNutrition.adjustedTargets.protein}g P
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Timing Recommendations */}
+                  {(contextualNutrition.preworkoutTiming || contextualNutrition.postworkoutTiming) && (
+                    <div className="space-y-2">
+                      {contextualNutrition.preworkoutTiming && (
+                        <div className="flex items-start gap-2 text-xs">
+                          <span className="text-yellow-400 font-medium min-w-[60px]">Pre:</span>
+                          <span className="text-gray-400">{contextualNutrition.preworkoutTiming}</span>
+                        </div>
+                      )}
+                      {contextualNutrition.postworkoutTiming && (
+                        <div className="flex items-start gap-2 text-xs">
+                          <span className="text-green-400 font-medium min-w-[60px]">Post:</span>
+                          <span className="text-gray-400">{contextualNutrition.postworkoutTiming}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hydration Goal */}
+                  <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Droplets className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-gray-300">Hydration Goal</span>
+                    </div>
+                    <span className="text-sm font-medium text-blue-300">{contextualNutrition.hydrationGoal} oz</span>
+                  </div>
+
+                  {/* Recommendations */}
+                  {contextualNutrition.recommendations.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 font-medium">Tips for today:</p>
+                      {contextualNutrition.recommendations.slice(0, 3).map((rec, i) => (
+                        <p key={i} className="text-xs text-gray-400 flex items-start gap-2">
+                          <span className="text-primary-400">•</span>
+                          {rec}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
         {/* ── Macro Rings ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -453,7 +629,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="kcal"
               current={totals.calories}
-              target={computedTargets.calories}
+              target={contextualNutrition.adjustedTargets.calories}
               unit=""
               color="#f97316"
               size={76}
@@ -461,7 +637,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Protein"
               current={totals.protein}
-              target={computedTargets.protein}
+              target={contextualNutrition.adjustedTargets.protein}
               unit="g"
               color="#ef4444"
               size={76}
@@ -469,7 +645,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Carbs"
               current={totals.carbs}
-              target={computedTargets.carbs}
+              target={contextualNutrition.adjustedTargets.carbs}
               unit="g"
               color="#3b82f6"
               size={76}
@@ -477,7 +653,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <MacroRing
               label="Fat"
               current={totals.fat}
-              target={computedTargets.fat}
+              target={contextualNutrition.adjustedTargets.fat}
               unit="g"
               color="#eab308"
               size={76}
@@ -982,10 +1158,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.calories}
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.calories} kcal
+                  / {contextualNutrition.adjustedTargets.calories} kcal
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.calories - totals.calories, 0)} left
+                  {Math.max(contextualNutrition.adjustedTargets.calories - totals.calories, 0)} left
                 </p>
               </div>
               <div>
@@ -993,10 +1169,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.protein}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.protein}g Pro
+                  / {contextualNutrition.adjustedTargets.protein}g Pro
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.protein - totals.protein, 0)}g left
+                  {Math.max(contextualNutrition.adjustedTargets.protein - totals.protein, 0)}g left
                 </p>
               </div>
               <div>
@@ -1004,10 +1180,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.carbs}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.carbs}g Carbs
+                  / {contextualNutrition.adjustedTargets.carbs}g Carbs
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.carbs - totals.carbs, 0)}g left
+                  {Math.max(contextualNutrition.adjustedTargets.carbs - totals.carbs, 0)}g left
                 </p>
               </div>
               <div>
@@ -1015,10 +1191,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {totals.fat}g
                 </p>
                 <p className="text-[10px] text-grappler-500">
-                  / {computedTargets.fat}g Fat
+                  / {contextualNutrition.adjustedTargets.fat}g Fat
                 </p>
                 <p className="text-[10px] text-grappler-400 mt-0.5">
-                  {Math.max(computedTargets.fat - totals.fat, 0)}g left
+                  {Math.max(contextualNutrition.adjustedTargets.fat - totals.fat, 0)}g left
                 </p>
               </div>
             </div>

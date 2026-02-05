@@ -97,7 +97,7 @@ export function exportFullBackup(): string {
     customExercises: state.customExercises,
     sessionTemplates: state.sessionTemplates,
     hrSessions: state.hrSessions,
-    grapplingSessions: state.grapplingSessions,
+    trainingSessions: state.trainingSessions,
     meals: state.meals,
     macroTargets: state.macroTargets,
     waterLog: state.waterLog,
@@ -147,7 +147,9 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     if (Array.isArray(data.customExercises)) update.customExercises = data.customExercises;
     if (Array.isArray(data.sessionTemplates)) update.sessionTemplates = data.sessionTemplates;
     if (Array.isArray(data.hrSessions)) update.hrSessions = data.hrSessions;
-    if (Array.isArray(data.grapplingSessions)) update.grapplingSessions = data.grapplingSessions;
+    // Support both old (grapplingSessions) and new (trainingSessions) format for backward compatibility
+    if (Array.isArray(data.trainingSessions)) update.trainingSessions = data.trainingSessions;
+    else if (Array.isArray(data.grapplingSessions)) update.trainingSessions = data.grapplingSessions;
     if (Array.isArray(data.meals)) update.meals = data.meals;
     if (data.macroTargets) update.macroTargets = data.macroTargets;
     if (data.waterLog && typeof data.waterLog === 'object') update.waterLog = data.waterLog;

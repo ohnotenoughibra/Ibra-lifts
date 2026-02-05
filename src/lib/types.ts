@@ -344,6 +344,39 @@ export interface BodyWeightEntry {
   notes?: string;
 }
 
+// Quick logging entries (water, sleep, energy, readiness, mobility)
+export type QuickLogType = 'water' | 'sleep' | 'energy' | 'readiness' | 'mobility' | 'custom';
+
+export interface QuickLog {
+  id: string;
+  type: QuickLogType | string;
+  value: number | string;
+  unit?: string;
+  timestamp: Date;
+  notes?: string;
+}
+
+// Grip strength tracking
+export interface GripTest {
+  id: string;
+  type: 'hang_time' | 'dynamometer';
+  value: number; // seconds for hang_time, lbs for dynamometer
+  hand?: 'left' | 'right' | 'both';
+  date: Date;
+  notes?: string;
+}
+
+export interface GripExerciseLog {
+  id: string;
+  exerciseId: string;
+  date: Date;
+  value: number; // primary metric (time, reps, or distance depending on exercise)
+  weight?: number;
+  reps?: number;
+  distance?: number;
+  notes?: string;
+}
+
 // Superset / Circuit support
 export interface SupersetGroup {
   id: string;
@@ -445,7 +478,7 @@ export interface WearableSettings {
 }
 
 // Competition / Event Prep
-export type CompetitionType = 'bjj_tournament' | 'wrestling_meet' | 'mma_fight' | 'aesthetic_event' | 'strength_meet' | 'custom';
+export type CompetitionType = 'bjj_tournament' | 'wrestling_meet' | 'mma_fight' | 'kickboxing_fight' | 'muay_thai_fight' | 'boxing_match' | 'aesthetic_event' | 'strength_meet' | 'custom';
 
 export interface CompetitionEvent {
   id: string;
@@ -595,25 +628,150 @@ export interface HRSession {
 // Theme
 export type ThemeMode = 'dark' | 'light';
 
-// Grappling Session Tracking
-export type GrapplingType = 'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'mma' | 'judo' | 'boxing' | 'kickboxing' | 'muay_thai' | 'striking' | 'other';
-export type GrapplingIntensity = 'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep';
+// Training Session Tracking (unified system for all activity types)
+// Activity Categories - broad groupings of training types
+export type ActivityCategory = 'grappling' | 'striking' | 'mma' | 'cardio' | 'outdoor' | 'recovery' | 'other';
 
-export interface GrapplingSession {
+// Activity Types - specific training modalities
+export type ActivityType =
+  // Grappling
+  | 'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'judo' | 'sambo'
+  // Striking
+  | 'boxing' | 'kickboxing' | 'muay_thai' | 'karate' | 'taekwondo'
+  // MMA
+  | 'mma'
+  // Cardio
+  | 'running' | 'cycling' | 'swimming' | 'rowing' | 'jump_rope' | 'elliptical'
+  // Outdoor
+  | 'hiking' | 'skiing' | 'snowboarding' | 'rock_climbing' | 'surfing'
+  // Recovery
+  | 'yoga' | 'stretching' | 'mobility' | 'sauna' | 'cold_plunge'
+  // Other
+  | 'other';
+
+// Session timing relative to lifting
+export type SessionTiming = 'standalone' | 'before_lifting' | 'after_lifting' | 'same_day_separate';
+
+// Intensity levels (applicable to all activity types)
+export type TrainingIntensity = 'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep';
+
+// Map activity types to their categories
+export const ACTIVITY_CATEGORY_MAP: Record<ActivityType, ActivityCategory> = {
+  // Grappling
+  bjj_gi: 'grappling',
+  bjj_nogi: 'grappling',
+  wrestling: 'grappling',
+  judo: 'grappling',
+  sambo: 'grappling',
+  // Striking
+  boxing: 'striking',
+  kickboxing: 'striking',
+  muay_thai: 'striking',
+  karate: 'striking',
+  taekwondo: 'striking',
+  // MMA
+  mma: 'mma',
+  // Cardio
+  running: 'cardio',
+  cycling: 'cardio',
+  swimming: 'cardio',
+  rowing: 'cardio',
+  jump_rope: 'cardio',
+  elliptical: 'cardio',
+  // Outdoor
+  hiking: 'outdoor',
+  skiing: 'outdoor',
+  snowboarding: 'outdoor',
+  rock_climbing: 'outdoor',
+  surfing: 'outdoor',
+  // Recovery
+  yoga: 'recovery',
+  stretching: 'recovery',
+  mobility: 'recovery',
+  sauna: 'recovery',
+  cold_plunge: 'recovery',
+  // Other
+  other: 'other',
+};
+
+// Activity display labels
+export const ACTIVITY_LABELS: Record<ActivityType, string> = {
+  bjj_gi: 'BJJ (Gi)',
+  bjj_nogi: 'BJJ (No-Gi)',
+  wrestling: 'Wrestling',
+  judo: 'Judo',
+  sambo: 'Sambo',
+  boxing: 'Boxing',
+  kickboxing: 'Kickboxing',
+  muay_thai: 'Muay Thai',
+  karate: 'Karate',
+  taekwondo: 'Taekwondo',
+  mma: 'MMA',
+  running: 'Running',
+  cycling: 'Cycling',
+  swimming: 'Swimming',
+  rowing: 'Rowing',
+  jump_rope: 'Jump Rope',
+  elliptical: 'Elliptical',
+  hiking: 'Hiking',
+  skiing: 'Skiing',
+  snowboarding: 'Snowboarding',
+  rock_climbing: 'Rock Climbing',
+  surfing: 'Surfing',
+  yoga: 'Yoga',
+  stretching: 'Stretching',
+  mobility: 'Mobility',
+  sauna: 'Sauna',
+  cold_plunge: 'Cold Plunge',
+  other: 'Other',
+};
+
+// Intensity display labels
+export const INTENSITY_LABELS: Record<TrainingIntensity, string> = {
+  light_flow: 'Light / Flow',
+  moderate: 'Moderate',
+  hard_sparring: 'Hard / Sparring',
+  competition_prep: 'Competition Prep',
+};
+
+// Timing display labels
+export const TIMING_LABELS: Record<SessionTiming, string> = {
+  standalone: 'Standalone Session',
+  before_lifting: 'Before Lifting',
+  after_lifting: 'After Lifting',
+  same_day_separate: 'Same Day (Separate)',
+};
+
+// Unified Training Session interface
+export interface TrainingSession {
   id: string;
   date: Date;
-  type: GrapplingType;
-  intensity: GrapplingIntensity;
+  category: ActivityCategory;
+  type: ActivityType;
+  // Intensity tracking - planned vs actual allows editing after session
+  plannedIntensity: TrainingIntensity;
+  actualIntensity?: TrainingIntensity; // Set after session if different from planned
+  // Timing relative to lifting
+  timing?: SessionTiming;
   duration: number; // minutes
   rounds?: number;
   roundDuration?: number; // minutes per round
   techniques?: string; // what was drilled
-  submissions?: number; // landed
-  taps?: number; // got tapped
+  // Combat sport specific
+  submissions?: number; // landed (grappling)
+  taps?: number; // got tapped (grappling)
+  knockdowns?: number; // striking
+  // Cardio specific
+  distance?: number; // km or miles
+  pace?: number; // min/km or min/mile
+  elevation?: number; // meters
+  // General
   notes?: string;
   bodyweightBefore?: number;
   bodyweightAfter?: number;
   perceivedExertion: number; // 1-10
+  // Pre-session check-in (matches strength workout check-in)
+  preCheckIn?: PreWorkoutCheckIn;
   // Whoop-synced HR data (auto-populated when imported from Whoop)
   whoopHR?: {
     avgHR: number;
@@ -624,6 +782,14 @@ export interface GrapplingSession {
   };
   whoopWorkoutId?: string; // links back to the Whoop workout for dedup
 }
+
+// Legacy type aliases for backward compatibility
+/** @deprecated Use ActivityType instead */
+export type GrapplingType = ActivityType;
+/** @deprecated Use TrainingIntensity instead */
+export type GrapplingIntensity = TrainingIntensity;
+/** @deprecated Use TrainingSession instead */
+export interface GrapplingSession extends TrainingSession {}
 
 // Body Composition
 export interface BodyCompositionEntry {

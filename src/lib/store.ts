@@ -292,6 +292,7 @@ const initialOnboardingData: OnboardingData = {
   step: 1,
   name: '',
   age: 34,
+  biologicalSex: undefined,
   experienceLevel: 'intermediate',
   equipment: 'full_gym',
   availableEquipment: DEFAULT_EQUIPMENT_PROFILES[0].equipment,
@@ -393,6 +394,7 @@ export const useAppStore = create<AppState>()(
               ...onboardingData,
               name: user.name,
               age: user.age,
+              biologicalSex: user.biologicalSex,
               experienceLevel: user.experienceLevel,
               goalFocus: user.goalFocus,
               sessionsPerWeek: user.sessionsPerWeek,
@@ -417,6 +419,7 @@ export const useAppStore = create<AppState>()(
           email: '', // Will be populated from session
           name: onboardingData.name,
           age: onboardingData.age,
+          biologicalSex: onboardingData.biologicalSex,
           experienceLevel: onboardingData.experienceLevel,
           equipment: onboardingData.equipment,
           availableEquipment: onboardingData.availableEquipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment,
@@ -645,6 +648,7 @@ export const useAppStore = create<AppState>()(
           trainingIdentity: user.trainingIdentity,
           combatSport: user.combatSport,
           experienceLevel: user.experienceLevel,
+          biologicalSex: user.biologicalSex,
           sportSessionsPerWeek,
           avgSportIntensity,
         });

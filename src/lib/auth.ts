@@ -26,14 +26,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           `;
 
           if (rows.length === 0) {
-            console.log('[auth] No user found for email:', email);
+            console.log('[auth] Authentication failed: user not found');
             return null;
           }
 
           const user = rows[0];
           const passwordMatch = await bcrypt.compare(password, user.password_hash);
           if (!passwordMatch) {
-            console.log('[auth] Password mismatch for:', email);
+            console.log('[auth] Authentication failed: invalid credentials');
             return null;
           }
 

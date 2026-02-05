@@ -26,8 +26,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -131,15 +131,16 @@ export default function RegisterPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full pl-10 pr-12 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500 hover:text-grappler-300"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -156,7 +157,7 @@ export default function RegisterPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat your password"
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
               />
             </div>

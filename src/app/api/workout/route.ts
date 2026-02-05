@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMesocycle, generateQuickWorkout } from '@/lib/workout-generator';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 
 const workoutRequestSchema = z.object({
   userId: z.string().min(1, 'userId is required'),
@@ -15,6 +16,12 @@ const workoutRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication and validate userId matches session
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const parsed = workoutRequestSchema.safeParse(body);
 
@@ -26,6 +33,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, goalFocus, equipment, sessionsPerWeek, weeks, quickWorkout, duration, periodizationType } = parsed.data;
+
+    // Prevent generating workouts for other users
+    if (userId !== session.user.id) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
 
     // Generate workout
     if (quickWorkout) {

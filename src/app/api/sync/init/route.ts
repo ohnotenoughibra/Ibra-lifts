@@ -1,8 +1,15 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 
 export async function POST() {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await sql`
       CREATE TABLE IF NOT EXISTS user_store (
         user_id TEXT PRIMARY KEY,

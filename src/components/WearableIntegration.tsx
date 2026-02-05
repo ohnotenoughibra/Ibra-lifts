@@ -792,7 +792,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ access_token: at, refresh_token: rt, expires_at: exp }),
-    }).catch(() => {});
+    }).catch((err) => { console.error('Failed to save Whoop tokens to DB:', err); });
   }, []);
 
   const clearTokensFromDb = useCallback(() => {
@@ -937,7 +937,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     // --- Handle OAuth error ---
     if (params.get('whoop_error')) {
       const rawError = params.get('whoop_error')!;
-      setError(`Whoop connection failed: ${decodeURIComponent(rawError)}`);
+      const safeError = decodeURIComponent(rawError).replace(/<[^>]*>/g, '');
+      setError(`Whoop connection failed: ${safeError}`);
       // Clean up URL completely (search params + hash)
       window.history.replaceState({}, '', window.location.pathname);
       setIsLoading(false);

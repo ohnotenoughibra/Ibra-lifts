@@ -310,9 +310,9 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
         ))}
       </div>
       <div className="flex items-center justify-between mt-2">
-        <span className="text-[10px] text-grappler-500">{weeks * 7} days</span>
+        <span className="text-xs text-grappler-500">{weeks * 7} days</span>
         {includeOtherSessions ? (
-          <div className="flex items-center gap-2 text-[10px] text-grappler-500">
+          <div className="flex items-center gap-2 text-xs text-grappler-500">
             <div className="flex items-center gap-1">
               <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
               <span>Lifting</span>
@@ -323,7 +323,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-1 text-[10px] text-grappler-500">
+          <div className="flex items-center gap-1 text-xs text-grappler-500">
             <span>Less</span>
             <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
             <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
@@ -591,6 +591,7 @@ export default function Dashboard() {
         <motion.button
           onClick={() => setFabOpen(!fabOpen)}
           animate={{ rotate: fabOpen ? 45 : 0 }}
+          aria-label={fabOpen ? 'Close quick log menu' : 'Open quick log menu'}
           className={cn(
             'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
             fabOpen
@@ -627,7 +628,7 @@ export default function Dashboard() {
               )}
             >
               <tab.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-xs font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
@@ -751,6 +752,7 @@ function HistoryTab() {
           onClick={() => setShowExport(!showExport)}
           className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200"
           title="Export / Import Data"
+          aria-label="Export or import data"
         >
           <Download className="w-4 h-4" />
         </button>
@@ -1343,7 +1345,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tool.color)}>
         <tool.icon className="w-4.5 h-4.5" />
       </div>
-      <span className="text-[10px] font-medium text-grappler-300">{tool.label}</span>
+      <span className="text-xs font-medium text-grappler-300">{tool.label}</span>
     </button>
   );
 
@@ -1387,15 +1389,15 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             <div className="grid grid-cols-3 gap-3 mt-3">
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.exercises.length}</p>
-                <p className="text-[10px] text-grappler-400">Exercises</p>
+                <p className="text-xs text-grappler-400">Exercises</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{formatNumber(lastCompletedWorkout.log.totalVolume)}</p>
-                <p className="text-[10px] text-grappler-400">Volume ({weightUnit})</p>
+                <p className="text-xs text-grappler-400">Volume ({weightUnit})</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.duration}m</p>
-                <p className="text-[10px] text-grappler-400">Duration</p>
+                <p className="text-xs text-grappler-400">Duration</p>
               </div>
             </div>
             {lastCompletedWorkout.hadPR && (
@@ -1416,7 +1418,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                     <span className="text-lg">{badge.icon}</span>
                     <div className="flex-1">
                       <span className="text-xs font-medium text-purple-300">{badge.name}</span>
-                      <span className="text-[10px] text-purple-400/70 ml-2">+{badge.points} XP</span>
+                      <span className="text-xs text-purple-400/70 ml-2">+{badge.points} XP</span>
                     </div>
                     <Award className="w-4 h-4 text-purple-400" />
                   </motion.div>
@@ -1471,7 +1473,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             </div>
             <div className="text-right">
               <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
-              <p className="text-[10px] text-yellow-400/70">days out</p>
+              <p className="text-xs text-yellow-400/70">days out</p>
             </div>
           </div>
         </motion.div>
@@ -1552,7 +1554,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <p className="text-xs font-medium text-grappler-200">
                   {new Date().toLocaleDateString(undefined, { weekday: 'long' })}
                 </p>
-                <p className="text-[11px] text-grappler-400 mt-0.5 leading-relaxed">{rec.message}</p>
+                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{rec.message}</p>
               </div>
             </div>
           </div>
@@ -1610,24 +1612,24 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           {/* Mesocycle comparison */}
           {mesocycleComparison && (
             <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 space-y-2">
-              <p className="text-[10px] text-grappler-500 uppercase tracking-wide">vs {mesocycleComparison.prevName}</p>
+              <p className="text-xs text-grappler-500 uppercase tracking-wide">vs {mesocycleComparison.prevName}</p>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-xs text-grappler-400">Sessions</p>
                   <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.sessions.current}</p>
-                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.sessions.prev}</p>
+                  <p className="text-xs text-grappler-500">prev: {mesocycleComparison.sessions.prev}</p>
                 </div>
                 <div>
                   <p className="text-xs text-grappler-400">Avg Volume</p>
                   <p className="text-sm font-bold text-grappler-100">{formatNumber(mesocycleComparison.avgVolume.current)}</p>
-                  <p className={cn('text-[10px] font-medium', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                  <p className={cn('text-xs font-medium', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-500')}>
                     {mesocycleComparison.avgVolume.delta > 0 ? '+' : ''}{formatNumber(mesocycleComparison.avgVolume.delta)}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-grappler-400">Avg RPE</p>
                   <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.avgRPE.current}</p>
-                  <p className="text-[10px] text-grappler-500">prev: {mesocycleComparison.avgRPE.prev}</p>
+                  <p className="text-xs text-grappler-500">prev: {mesocycleComparison.avgRPE.prev}</p>
                 </div>
               </div>
             </div>
@@ -1703,7 +1705,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
               className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
             />
           </div>
-          <p className="text-[10px] text-grappler-500 mt-1.5">{mesocycleProgress.percent}% complete</p>
+          <p className="text-xs text-grappler-500 mt-1.5">{mesocycleProgress.percent}% complete</p>
         </div>
       )}
 
@@ -1749,7 +1751,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <p className="text-xs text-grappler-400">Weight</p>
                 <p className="text-sm font-bold text-grappler-100">{recompData.latestWeight} {weightUnit}</p>
                 {recompData.weightDelta !== null && (
-                  <p className={cn('text-[10px] font-medium', recompData.weightDelta > 0 ? 'text-amber-400' : recompData.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+                  <p className={cn('text-xs font-medium', recompData.weightDelta > 0 ? 'text-amber-400' : recompData.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
                     {recompData.weightDelta > 0 ? '+' : ''}{recompData.weightDelta} {weightUnit}
                   </p>
                 )}
@@ -1761,12 +1763,12 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <p className={cn('text-sm font-bold', recompData.volumeDelta > 0 ? 'text-green-400' : recompData.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
                   {recompData.volumeDelta > 0 ? '+' : ''}{formatNumber(recompData.volumeDelta)}
                 </p>
-                <p className="text-[10px] text-grappler-500">vs first 2 weeks</p>
+                <p className="text-xs text-grappler-500">vs first 2 weeks</p>
               </div>
             )}
           </div>
           {recompData.weightDelta !== null && recompData.volumeDelta !== null && (
-            <p className="text-[10px] text-grappler-500 mt-2">
+            <p className="text-xs text-grappler-500 mt-2">
               {recompData.weightDelta <= 0 && recompData.volumeDelta > 0
                 ? 'Losing weight while lifting more — solid recomp!'
                 : recompData.weightDelta > 0 && recompData.volumeDelta > 0
@@ -1805,6 +1807,8 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            role="dialog"
+            aria-modal="true"
             onClick={() => setHeatmapSelectedDate(null)}
           >
             <motion.div
@@ -1946,7 +1950,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
               <span className="text-xs font-medium text-grappler-300">This Week</span>
               {periodSummaries.lastWeek.trainingDays > 0 && (
                 <span className={cn(
-                  'text-[10px] font-medium',
+                  'text-xs font-medium',
                   periodSummaries.thisWeek.trainingDays > periodSummaries.lastWeek.trainingDays ? 'text-green-400' :
                   periodSummaries.thisWeek.trainingDays < periodSummaries.lastWeek.trainingDays ? 'text-amber-400' : 'text-grappler-500'
                 )}>
@@ -1957,21 +1961,21 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             <div className="grid grid-cols-4 gap-2 text-center">
               <div>
                 <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
-                <p className="text-[10px] text-grappler-500">Days</p>
+                <p className="text-xs text-grappler-500">Days</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
-                <p className="text-[10px] text-grappler-500">Lifts</p>
+                <p className="text-xs text-grappler-500">Lifts</p>
               </div>
               {periodSummaries.thisWeek.sessions > 0 && (
                 <div>
                   <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
-                  <p className="text-[10px] text-grappler-500">Training</p>
+                  <p className="text-xs text-grappler-500">Training</p>
                 </div>
               )}
               <div>
                 <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
-                <p className="text-[10px] text-grappler-500">PRs</p>
+                <p className="text-xs text-grappler-500">PRs</p>
               </div>
             </div>
           </div>
@@ -1980,7 +1984,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           <div className="bg-grappler-800/30 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-grappler-400">This Month</span>
-              <span className="text-[10px] text-grappler-500">{formatNumber(periodSummaries.thisMonth.volume)} {weightUnit} vol</span>
+              <span className="text-xs text-grappler-500">{formatNumber(periodSummaries.thisMonth.volume)} {weightUnit} vol</span>
             </div>
             <div className="flex items-center gap-4 text-sm">
               <span className="text-grappler-300">
@@ -1994,7 +1998,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <>
                   <span className="text-grappler-400">•</span>
                   <span className={cn(
-                    'text-[10px]',
+                    'text-xs',
                     periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? 'text-green-400' : 'text-grappler-500'
                   )}>
                     {periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? '+' : ''}
@@ -2097,7 +2101,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           >
             <Shield className="w-4 h-4 text-lime-400" />
             <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
-            <span className="text-[10px] text-grappler-500">Grappling</span>
+            <span className="text-xs text-grappler-500">Grappling</span>
           </button>
 
           {/* Strength */}
@@ -2107,7 +2111,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           >
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
-            <span className="text-[10px] text-grappler-500">Lifting</span>
+            <span className="text-xs text-grappler-500">Lifting</span>
           </button>
 
           {/* Nutrition */}
@@ -2117,7 +2121,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           >
             <Apple className="w-4 h-4 text-red-400" />
             <span className="text-lg font-bold text-grappler-100">{todayProtein}g</span>
-            <span className="text-[10px] text-grappler-500">Protein</span>
+            <span className="text-xs text-grappler-500">Protein</span>
           </button>
         </div>
 
@@ -2176,6 +2180,8 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            role="dialog"
+            aria-modal="true"
             onClick={() => {
               setShowMigrateDialog(false);
               setPreviousMesocycleId(null);

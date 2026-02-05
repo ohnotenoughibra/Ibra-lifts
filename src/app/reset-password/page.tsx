@@ -72,8 +72,8 @@ function ResetPasswordContent() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -184,9 +184,9 @@ function ResetPasswordContent() {
                   type={showPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   required
-                  minLength={6}
+                  minLength={8}
                   className="w-full pl-10 pr-12 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
                 />
                 <button

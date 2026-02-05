@@ -119,10 +119,12 @@ export async function POST(request: NextRequest) {
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
         console.error('OpenAI API error:', response.status, errText);
-        return NextResponse.json(
-          { error: `AI analysis failed (HTTP ${response.status}). Check your API key.` },
-          { status: 502 }
-        );
+        const userMessage = response.status === 429
+          ? 'OpenAI rate limit reached. Wait a moment and try again.'
+          : response.status === 401
+          ? 'OpenAI API key is invalid. Check your OPENAI_API_KEY.'
+          : 'AI analysis failed. Try again in a moment.';
+        return NextResponse.json({ error: userMessage }, { status: 502 });
       }
 
       const data = await response.json();
@@ -189,10 +191,12 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
       console.error('OpenAI API error:', response.status, errText);
-      return NextResponse.json(
-        { error: `AI analysis failed (HTTP ${response.status}). Check your API key.` },
-        { status: 502 }
-      );
+      const userMessage = response.status === 429
+        ? 'OpenAI rate limit reached. Wait a moment and try again.'
+        : response.status === 401
+        ? 'OpenAI API key is invalid. Check your OPENAI_API_KEY.'
+        : 'AI analysis failed. Try again in a moment.';
+      return NextResponse.json({ error: userMessage }, { status: 502 });
     }
 
     const data = await response.json();

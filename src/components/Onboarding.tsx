@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -23,7 +23,7 @@ import {
   Activity,
   X,
 } from 'lucide-react';
-import { ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarDays, AlertTriangle } from 'lucide-react';
 
@@ -376,6 +376,31 @@ function Step3_Setup({
         />
       </div>
 
+      {/* Biological Sex — programming differs for men vs women */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Biological sex</label>
+        <p className="text-xs text-grappler-500 mb-2">Training science differs — we adjust volume, rest, and rep ranges</p>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { value: 'male' as BiologicalSex, label: 'Male' },
+            { value: 'female' as BiologicalSex, label: 'Female' },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update({ biologicalSex: opt.value })}
+              className={cn(
+                'py-2.5 rounded-lg text-center transition-all',
+                data.biologicalSex === opt.value
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              <p className="text-xs font-medium">{opt.label}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Experience */}
       <div>
         <label className="block text-sm font-medium text-grappler-300 mb-1.5">Lifting experience</label>
@@ -663,6 +688,84 @@ function Step3_Setup({
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+/**
+ * Generate best-practice schedule prefills based on sessions per week and identity.
+ *
+ * Principles:
+ * - Spread lifting days for 48h recovery between same muscle groups
+ * - For combat athletes: avoid stacking lifting on hard sparring days
+ * - Prefer Mon-Sat training with Sunday rest (most common preference)
+ * - For upper/lower or PPL splits, consecutive days are fine (different muscles)
+ */
+function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingIdentity): number[] {
+  // Returns day indices (0=Sun, 1=Mon, ... 6=Sat)
+  switch (sessionsPerWeek) {
+    case 1: return [3]; // Wed — mid-week
+    case 2: return [1, 4]; // Mon, Thu — well-spaced
+    case 3: return [1, 3, 5]; // Mon, Wed, Fri — classic, 48h between sessions
+    case 4:
+      // Upper/lower split: consecutive days are fine (different muscles)
+      return identity === 'combat'
+        ? [1, 2, 4, 5]  // Mon, Tue, Thu, Fri — leaves Wed/Sat/Sun for sport
+        : [1, 2, 4, 5]; // Mon, Tue, Thu, Fri
+    case 5:
+      return identity === 'combat'
+        ? [1, 2, 3, 5, 6]  // Mon-Wed, Fri, Sat — Thu + Sun rest
+        : [1, 2, 3, 5, 6]; // Mon-Wed, Fri, Sat
+    case 6:
+      return [1, 2, 3, 4, 5, 6]; // Mon-Sat, Sun rest
+    default: return [1, 3, 5];
+  }
+}
+
+/**
+ * Generate recommended combat training days based on sport and lifting schedule.
+ *
+ * Principles (evidence-based):
+ * - Sparring/hard sessions mid-week (Wed) when freshest after weekend rest
+ * - Light drilling can go on lift days (low interference)
+ * - Moderate sessions on non-lifting days for balanced weekly load
+ * - Hard sessions should have lifting BEFORE, not after (concurrent training research)
+ */
+function getRecommendedCombatDays(
+  combatSport: CombatSport | undefined,
+  liftingDays: number[]
+): CombatTrainingDay[] {
+  const liftSet = new Set(liftingDays);
+
+  // Default combat schedule: 3-4 sessions/week
+  // Tue moderate, Wed hard (sparring), Thu moderate, Sat light
+  const defaultSchedule: CombatTrainingDay[] = [
+    { day: 2, intensity: 'moderate' }, // Tue
+    { day: 3, intensity: 'hard' },     // Wed (sparring day)
+    { day: 4, intensity: 'moderate' }, // Thu
+    { day: 6, intensity: 'light' },    // Sat (light drilling/flow)
+  ];
+
+  // Adjust if combat sport is striking — slightly different pattern
+  if (combatSport === 'striking') {
+    return [
+      { day: 2, intensity: 'moderate' }, // Tue — pad work
+      { day: 3, intensity: 'hard' },     // Wed — sparring
+      { day: 5, intensity: 'moderate' }, // Fri — technique
+      { day: 6, intensity: 'light' },    // Sat — bag work / flow
+    ];
+  }
+
+  // MMA — high volume, 4-5 sessions
+  if (combatSport === 'mma') {
+    return [
+      { day: 1, intensity: 'moderate' }, // Mon — wrestling/grappling
+      { day: 2, intensity: 'moderate' }, // Tue — striking
+      { day: 3, intensity: 'hard' },     // Wed — sparring
+      { day: 5, intensity: 'moderate' }, // Fri — mixed
+      { day: 6, intensity: 'light' },    // Sat — drilling/flow
+    ];
+  }
+
+  return defaultSchedule;
+}
+
 function Step4_Schedule({
   data,
   update,
@@ -673,6 +776,32 @@ function Step4_Schedule({
   const isCombat = data.trainingIdentity === 'combat';
   const selectedDays = data.trainingDays || [];
   const combatDays = data.combatTrainingDays || [];
+
+  // Auto-prefill schedule on first mount (when no days selected yet)
+  const [hasPrefilled, setHasPrefilled] = useState(false);
+  const didPrefill = useRef(false);
+
+  useEffect(() => {
+    if (didPrefill.current) return;
+    if (selectedDays.length > 0) {
+      // User already has days selected (e.g., went back and forward)
+      setHasPrefilled(true);
+      didPrefill.current = true;
+      return;
+    }
+
+    const recommendedLifting = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
+    const updates: Partial<OnboardingData> = { trainingDays: recommendedLifting };
+
+    if (isCombat && combatDays.length === 0) {
+      updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport, recommendedLifting);
+    }
+
+    update(updates);
+    setHasPrefilled(true);
+    didPrefill.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDay = (day: number) => {
     const current = [...selectedDays];
@@ -771,6 +900,23 @@ function Step4_Schedule({
           {isCombat ? ' and mark your sport training' : ''}
         </p>
       </div>
+
+      {/* Prefill info */}
+      {hasPrefilled && selectedDays.length > 0 && (
+        <div className="flex items-center justify-between bg-primary-500/10 border border-primary-500/20 rounded-lg p-2.5">
+          <p className="text-xs text-primary-300">
+            <strong className="text-primary-200">Auto-suggested</strong> based on best practices for recovery spacing{isCombat ? ' and sport schedule' : ''}
+          </p>
+          <button
+            onClick={() => {
+              update({ trainingDays: [], combatTrainingDays: isCombat ? [] : undefined });
+            }}
+            className="text-xs text-grappler-400 hover:text-grappler-200 underline ml-2 flex-shrink-0"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Lifting days */}
       <div>
@@ -1022,6 +1168,22 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
       features.push(`Hard sport training on ${hardDays.map(d => DAY_NAMES[d.day]).join(', ')} — lifting intensity auto-adjusted`);
     }
   }
+  // Sex-specific programming features
+  if (data.biologicalSex === 'female') {
+    features.push('Higher volume tolerance — optimized for female physiology');
+    features.push('Shorter rest periods — faster recovery between sets');
+    features.push('Upper body volume boost — proportional development');
+    if (data.goalFocus === 'hypertrophy' || data.goalFocus === 'balanced') {
+      features.push('Higher rep ranges for hypertrophy (8-15 reps)');
+    }
+    features.push('Less aggressive deloads — female-adapted recovery');
+  } else if (data.biologicalSex === 'male') {
+    features.push('Standard volume landmarks — male physiology');
+    if (data.goalFocus === 'hypertrophy') {
+      features.push('Hypertrophy rep ranges (6-12 reps)');
+    }
+  }
+
   features.push(`${data.sessionDurationMinutes} min sessions`);
   features.push('Progressive overload built in');
   features.push('Deload week for recovery');

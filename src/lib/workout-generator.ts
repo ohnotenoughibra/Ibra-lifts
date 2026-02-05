@@ -198,6 +198,9 @@ interface GeneratorOptions {
   trainingIdentity?: TrainingIdentity;
   combatSport?: CombatSport;
   experienceLevel?: ExperienceLevel;
+  // Sport training load for adaptive volume scaling
+  sportSessionsPerWeek?: number;           // Number of sport training sessions per week
+  avgSportIntensity?: 'light' | 'moderate' | 'hard';  // Average intensity of sport sessions
 }
 
 // Experience-level modifiers for volume and intensity
@@ -695,7 +698,9 @@ function generateMesocycleWeek(
   sessionDurationMinutes?: number,
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
-  experienceLevel?: ExperienceLevel
+  experienceLevel?: ExperienceLevel,
+  sportSessionsPerWeek?: number,
+  avgSportIntensity?: 'light' | 'moderate' | 'hard'
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -729,8 +734,33 @@ function generateMesocycleWeek(
   }
 
   // Combat athletes: reduce gym volume to account for sport training load
+  // Volume reduction now scales based on actual sport training load (scientifically accurate)
   if (trainingIdentity === 'combat' && !isDeload) {
-    volumeMultiplier *= 0.85; // 15% reduction
+    // Calculate volume reduction based on sport sessions and intensity
+    // Base reduction: 5% for being a combat athlete (always some recovery needed)
+    // Additional reduction scales with sport load:
+    // - Light sessions: +2% per session
+    // - Moderate sessions: +3.5% per session
+    // - Hard sessions: +5% per session
+    const sportSessions = sportSessionsPerWeek ?? 3; // Default to 3 if unknown
+    const intensity = avgSportIntensity ?? 'moderate';
+
+    const intensityMultipliers = {
+      light: 0.02,     // 2% per session
+      moderate: 0.035, // 3.5% per session
+      hard: 0.05,      // 5% per session
+    };
+
+    const baseReduction = 0.05; // 5% base reduction
+    const loadReduction = sportSessions * intensityMultipliers[intensity];
+    const totalReduction = Math.min(0.30, baseReduction + loadReduction); // Cap at 30%
+
+    volumeMultiplier *= (1 - totalReduction);
+    // Examples:
+    // 3 light sessions: 5% + 6% = 11% reduction
+    // 3 moderate sessions: 5% + 10.5% = 15.5% reduction (similar to old fixed 15%)
+    // 5 hard sessions: 5% + 25% = 30% reduction (max)
+    // 2 moderate sessions: 5% + 7% = 12% reduction
   }
 
   const sessions: WorkoutSession[] = workoutTypes.map((type, index) => {
@@ -795,7 +825,8 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   const {
     userId, goalFocus, equipment, availableEquipment, sessionsPerWeek,
     weeks, muscleEmphasis, sessionDurationMinutes,
-    trainingIdentity, combatSport, experienceLevel
+    trainingIdentity, combatSport, experienceLevel,
+    sportSessionsPerWeek, avgSportIntensity
   } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
@@ -818,7 +849,8 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
       generateMesocycleWeek(
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
-        sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel
+        sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
+        sportSessionsPerWeek, avgSportIntensity
       )
     );
   }

@@ -7,7 +7,8 @@ import {
   WorkoutAdjustment,
   WorkoutSession,
   ExercisePrescription,
-  WhoopWorkout
+  WhoopWorkout,
+  WearableData
 } from './types';
 
 // RP-style auto-adjustment engine
@@ -17,6 +18,60 @@ export interface ReadinessScore {
   score: number; // 0-100
   factors: string[];
   recommendation: 'reduce' | 'maintain' | 'increase';
+}
+
+// Personal baseline for HRV and RHR (calculated from rolling average)
+export interface PersonalBaseline {
+  hrvBaseline: number | null;  // 7-14 day rolling average HRV
+  rhrBaseline: number | null;  // 7-14 day rolling average RHR
+  hrvStdDev: number | null;    // Standard deviation for HRV
+  rhrStdDev: number | null;    // Standard deviation for RHR
+}
+
+/**
+ * Calculate personal baseline from wearable history (7-14 day rolling average).
+ * This is more scientifically accurate than using absolute thresholds since
+ * HRV and RHR vary significantly between individuals.
+ */
+export function calculatePersonalBaseline(wearableHistory: WearableData[]): PersonalBaseline {
+  // Use last 14 days of data
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+  const recentData = wearableHistory.filter(w => {
+    const date = new Date(w.date);
+    return date >= fourteenDaysAgo;
+  });
+
+  // Extract valid HRV values
+  const hrvValues = recentData
+    .filter(w => w.hrv !== null && w.hrv > 0)
+    .map(w => w.hrv!);
+
+  // Extract valid RHR values
+  const rhrValues = recentData
+    .filter(w => w.restingHR !== null && w.restingHR > 0)
+    .map(w => w.restingHR!);
+
+  // Calculate HRV baseline and standard deviation
+  let hrvBaseline: number | null = null;
+  let hrvStdDev: number | null = null;
+  if (hrvValues.length >= 3) {
+    hrvBaseline = hrvValues.reduce((sum, v) => sum + v, 0) / hrvValues.length;
+    const hrvVariance = hrvValues.reduce((sum, v) => sum + Math.pow(v - hrvBaseline!, 2), 0) / hrvValues.length;
+    hrvStdDev = Math.sqrt(hrvVariance);
+  }
+
+  // Calculate RHR baseline and standard deviation
+  let rhrBaseline: number | null = null;
+  let rhrStdDev: number | null = null;
+  if (rhrValues.length >= 3) {
+    rhrBaseline = rhrValues.reduce((sum, v) => sum + v, 0) / rhrValues.length;
+    const rhrVariance = rhrValues.reduce((sum, v) => sum + Math.pow(v - rhrBaseline!, 2), 0) / rhrValues.length;
+    rhrStdDev = Math.sqrt(rhrVariance);
+  }
+
+  return { hrvBaseline, rhrBaseline, hrvStdDev, rhrStdDev };
 }
 
 // Calculate athlete readiness from pre-workout check-in
@@ -478,22 +533,26 @@ export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reaso
 }
 
 // Convert Whoop recovery score to readiness adjustments
-export function whoopRecoveryToReadiness(whoopData: {
-  recoveryScore?: number; // 0-100
-  hrvMs?: number;
-  restingHR?: number;
-  sleepScore?: number; // 0-100
-  skinTempC?: number;
-  respiratoryRate?: number;
-  strainScore?: number; // 0-21
-  spo2?: number; // 90-100%
-  sleepEfficiency?: number; // 0-100%
-  deepSleepMinutes?: number;
-  sleepHours?: number;
-  sleepNeededHours?: number;
-  sleepConsistency?: number; // 0-100%
-  sleepDisturbances?: number;
-}): ReadinessScore {
+// Now uses personal baseline for HRV/RHR instead of absolute thresholds
+export function whoopRecoveryToReadiness(
+  whoopData: {
+    recoveryScore?: number; // 0-100
+    hrvMs?: number;
+    restingHR?: number;
+    sleepScore?: number; // 0-100
+    skinTempC?: number;
+    respiratoryRate?: number;
+    strainScore?: number; // 0-21
+    spo2?: number; // 90-100%
+    sleepEfficiency?: number; // 0-100%
+    deepSleepMinutes?: number;
+    sleepHours?: number;
+    sleepNeededHours?: number;
+    sleepConsistency?: number; // 0-100%
+    sleepDisturbances?: number;
+  },
+  baseline?: PersonalBaseline | null
+): ReadinessScore {
   const factors: string[] = [];
   let score = 50;
 
@@ -505,9 +564,41 @@ export function whoopRecoveryToReadiness(whoopData: {
     else factors.push(`Whoop recovery: ${whoopData.recoveryScore}% (red — consider rest day)`);
   }
 
+  // HRV Analysis - compare to personal baseline (scientifically accurate)
   if (whoopData.hrvMs !== undefined) {
-    if (whoopData.hrvMs > 80) { score += 5; factors.push(`HRV: ${whoopData.hrvMs}ms (above baseline)`); }
-    else if (whoopData.hrvMs < 40) { score -= 10; factors.push(`HRV: ${whoopData.hrvMs}ms (below baseline)`); }
+    if (baseline?.hrvBaseline && baseline.hrvStdDev) {
+      // Compare to personal baseline using standard deviations
+      const deviation = whoopData.hrvMs - baseline.hrvBaseline;
+      const deviationPercent = (deviation / baseline.hrvBaseline) * 100;
+
+      if (deviation > baseline.hrvStdDev) {
+        // HRV is 1+ std dev above personal baseline = well recovered
+        score += 5;
+        factors.push(`HRV: ${whoopData.hrvMs}ms (+${deviationPercent.toFixed(0)}% above your baseline — excellent recovery)`);
+      } else if (deviation < -baseline.hrvStdDev * 1.5) {
+        // HRV is 1.5+ std dev below baseline = poor recovery
+        score -= 10;
+        factors.push(`HRV: ${whoopData.hrvMs}ms (${deviationPercent.toFixed(0)}% below your baseline — recovery impaired)`);
+      } else if (deviation < -baseline.hrvStdDev * 0.5) {
+        // HRV is moderately below baseline
+        score -= 5;
+        factors.push(`HRV: ${whoopData.hrvMs}ms (slightly below your ${baseline.hrvBaseline.toFixed(0)}ms baseline)`);
+      } else {
+        factors.push(`HRV: ${whoopData.hrvMs}ms (within your normal range)`);
+      }
+    } else {
+      // No baseline available - use population averages as fallback with note
+      // Research shows athletic population HRV typically 55-105ms
+      if (whoopData.hrvMs > 90) {
+        score += 3;
+        factors.push(`HRV: ${whoopData.hrvMs}ms (good — baseline data building)`);
+      } else if (whoopData.hrvMs < 35) {
+        score -= 5;
+        factors.push(`HRV: ${whoopData.hrvMs}ms (low — baseline data building)`);
+      } else {
+        factors.push(`HRV: ${whoopData.hrvMs}ms (building your baseline)`);
+      }
+    }
   }
 
   if (whoopData.sleepScore !== undefined) {
@@ -567,14 +658,40 @@ export function whoopRecoveryToReadiness(whoopData: {
     factors.push(`Low SpO2: ${whoopData.spo2.toFixed(0)}% — possible illness or overtraining`);
   }
 
-  // Resting HR: elevated RHR signals incomplete recovery
+  // Resting HR Analysis - compare to personal baseline (scientifically accurate)
   if (whoopData.restingHR !== undefined) {
-    if (whoopData.restingHR > 70) {
-      score -= 5;
-      factors.push(`Elevated resting HR: ${whoopData.restingHR} bpm`);
-    } else if (whoopData.restingHR < 50) {
-      score += 3;
-      factors.push(`Low resting HR: ${whoopData.restingHR} bpm (well recovered)`);
+    if (baseline?.rhrBaseline && baseline.rhrStdDev) {
+      // Compare to personal baseline - elevated RHR signals incomplete recovery
+      const deviation = whoopData.restingHR - baseline.rhrBaseline;
+      const deviationPercent = (deviation / baseline.rhrBaseline) * 100;
+
+      if (deviation > baseline.rhrStdDev * 1.5) {
+        // RHR is 1.5+ std dev above baseline = poor recovery / stress
+        score -= 8;
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (+${deviationPercent.toFixed(0)}% above your baseline — incomplete recovery)`);
+      } else if (deviation > baseline.rhrStdDev) {
+        // RHR is moderately elevated
+        score -= 4;
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (slightly elevated from your ${baseline.rhrBaseline.toFixed(0)}bpm baseline)`);
+      } else if (deviation < -baseline.rhrStdDev) {
+        // RHR is below baseline = well recovered
+        score += 3;
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (below your baseline — well recovered)`);
+      } else {
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (within your normal range)`);
+      }
+    } else {
+      // No baseline available - use minimal population-based adjustments with note
+      // Note: These are very conservative since individual variation is huge
+      if (whoopData.restingHR > 80) {
+        score -= 3;
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (baseline data building)`);
+      } else if (whoopData.restingHR < 45) {
+        score += 2;
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (building your baseline)`);
+      } else {
+        factors.push(`Resting HR: ${whoopData.restingHR}bpm (building your baseline)`);
+      }
     }
   }
 

@@ -94,10 +94,10 @@ export function getContextualNutrition(
       proteinMultiplier = 1.2;
       carbMultiplier = 1.2;
       preworkoutTiming = 'Eat 1.5-2 hours before for pump';
-      postworkoutTiming = 'High protein + carbs within 30 min';
+      postworkoutTiming = 'High protein + carbs within 2-3 hours';
       carbCycleNote = 'High carb day - maximize muscle glycogen';
       recommendations.push('Target 4-5 meals with 30-40g protein each');
-      recommendations.push('Post-workout: 40-50g protein + 60-80g carbs');
+      recommendations.push('Post-workout: 40-50g protein + 60-80g carbs (timing is flexible)');
       break;
 
     case 'power':
@@ -134,12 +134,34 @@ export function getContextualNutrition(
 
     case 'rest':
     default:
-      calorieMultiplier = 0.9;
-      proteinMultiplier = 1.0;
-      carbMultiplier = 0.8;
-      carbCycleNote = 'Low carb day - minimize carbs, maintain protein';
-      recommendations.push('Keep protein high for recovery');
-      recommendations.push('Good day for meal prep');
+      // REST DAY NUTRITION - Science-based approach:
+      // Muscle protein synthesis (MPS) remains elevated for 24-48 hours post-training.
+      // Aggressive calorie cuts on rest days can impair recovery and adaptation.
+      // Adjust based on user's goal:
+      if (user?.goalFocus === 'hypertrophy' || user?.goalFocus === 'balanced') {
+        // Muscle building: maintain calories, slight carb reduction only
+        calorieMultiplier = 0.97; // Only 3% reduction (vs old 10%)
+        carbMultiplier = 0.9;     // 10% carb reduction (vs old 20%)
+        carbCycleNote = 'Lower carb day - prioritize protein and fats';
+        recommendations.push('MPS is still elevated from training - keep calories near maintenance');
+        recommendations.push('Focus on protein distribution: 4-5 meals with 25-40g each');
+      } else if (user?.goalFocus === 'strength') {
+        // Strength: rest days are critical for adaptation, maintain full calories
+        calorieMultiplier = 1.0;  // Maintain calories
+        carbMultiplier = 0.85;    // Slight carb reduction
+        carbCycleNote = 'Rest day - recovery is when strength gains happen';
+        recommendations.push('Rest days are when strength adaptations occur');
+        recommendations.push('Keep calories at maintenance for optimal recovery');
+      } else {
+        // Power/cutting or unknown: moderate reduction
+        calorieMultiplier = 0.93; // 7% reduction (compromise)
+        carbMultiplier = 0.85;
+        carbCycleNote = 'Lower carb day - maintain protein';
+        recommendations.push('Moderate calorie reduction while preserving protein');
+      }
+      proteinMultiplier = 1.0; // Always maintain protein on rest days
+      recommendations.push('Keep protein high for ongoing recovery');
+      recommendations.push('Good day for meal prep and mobility work');
       break;
   }
 

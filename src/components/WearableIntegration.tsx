@@ -36,6 +36,7 @@ import {
   Scale,
   Ruler,
   ChevronDown,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -605,6 +606,17 @@ function strainToIntensity(strain: number | null): GrapplingIntensity {
   return 'competition_prep';
 }
 
+interface AutoImportResult {
+  imported: number;
+  sessions: Array<{
+    type: GrapplingType;
+    duration: number;
+    intensity: GrapplingIntensity;
+    detectionMethod: 'id' | 'name' | 'heuristic';
+    sportName: string;
+  }>;
+}
+
 /**
  * Auto-import Whoop combat sport workouts as grappling sessions.
  * Uses three detection methods (in priority order):
@@ -613,10 +625,12 @@ function strainToIntensity(strain: number | null): GrapplingIntensity {
  * 3. Heuristic detection for generic "Workout" entries that match grappling patterns
  *
  * Only imports workouts that haven't already been imported (dedup by whoopWorkoutId).
+ * Returns information about imported sessions for notification display.
  */
-function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
+function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResult {
   const store = useAppStore.getState();
   const existingSessions = store.grapplingSessions;
+  const importedSessions: AutoImportResult['sessions'] = [];
 
   // Find combat sport workouts not yet imported
   // Check sport ID, name patterns, AND heuristic detection
@@ -653,11 +667,13 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
     const grapplingType = typeFromId ?? typeFromName ?? inferGrapplingTypeFromWorkout(ww);
 
     // Track detection method for notes
-    const detectionMethod = typeFromId ? 'id' : typeFromName ? 'name' : 'heuristic';
+    const detectionMethod: 'id' | 'name' | 'heuristic' = typeFromId ? 'id' : typeFromName ? 'name' : 'heuristic';
 
     const durationMin = Math.round(
       (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
     );
+
+    const intensity = strainToIntensity(ww.strain);
 
     // Build descriptive note based on detection method
     const notePrefix = detectionMethod === 'heuristic'
@@ -667,7 +683,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
     store.addGrapplingSession({
       date: new Date(ww.start),
       type: grapplingType,
-      intensity: strainToIntensity(ww.strain),
+      intensity,
       duration: durationMin,
       perceivedExertion: ww.strain != null ? Math.min(10, Math.round(ww.strain / 2.1)) : 5,
       notes: notePrefix,
@@ -679,6 +695,15 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
         zones: ww.zones.length > 0 ? ww.zones : undefined,
       },
       whoopWorkoutId: ww.id,
+    });
+
+    // Track imported session for notification
+    importedSessions.push({
+      type: grapplingType,
+      duration: durationMin,
+      intensity,
+      detectionMethod,
+      sportName: ww.sportName,
     });
 
     // Also create an HRSession for the cardio tracking view
@@ -701,6 +726,11 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): void {
         : `Whoop: ${ww.sportName}`,
     });
   }
+
+  return {
+    imported: importedSessions.length,
+    sessions: importedSessions,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -726,6 +756,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const [whoopBody, setWhoopBody] = useState<WhoopBodyMeasurement | null>(null);
   const [showSleepDetails, setShowSleepDetails] = useState(false);
   const [showVitals, setShowVitals] = useState(false);
+  const [autoImportResult, setAutoImportResult] = useState<AutoImportResult | null>(null);
   const fetchInFlight = useRef(false);
 
   // ------------------------------------------------------------------
@@ -855,7 +886,10 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
         // Auto-import combat sport workouts as grappling sessions + HR sessions
         if (whoopWkts.length > 0) {
-          autoImportCombatWorkouts(whoopWkts);
+          const importResult = autoImportCombatWorkouts(whoopWkts);
+          if (importResult.imported > 0) {
+            setAutoImportResult(importResult);
+          }
         }
 
         // Show warnings if some endpoints had issues (partial data)
@@ -1140,6 +1174,56 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     Reconnect
                   </button>
                 )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Auto-Import Success Banner */}
+        {autoImportResult && autoImportResult.imported > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-lime-500/10 border border-lime-500/30 rounded-xl p-3"
+          >
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-lime-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-lime-300">
+                  {autoImportResult.imported} Grappling Session{autoImportResult.imported > 1 ? 's' : ''} Auto-Imported
+                </p>
+                <div className="mt-2 space-y-1.5">
+                  {autoImportResult.sessions.map((session, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-400">
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded text-xs font-medium",
+                        session.type.includes('bjj') ? 'bg-blue-500/20 text-blue-300' :
+                        session.type === 'wrestling' ? 'bg-orange-500/20 text-orange-300' :
+                        session.type === 'mma' ? 'bg-red-500/20 text-red-300' :
+                        'bg-purple-500/20 text-purple-300'
+                      )}>
+                        {session.type.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <span>{session.duration}min</span>
+                      <span className="text-gray-500">•</span>
+                      <span className="capitalize">{session.intensity.replace('_', ' ')}</span>
+                      {session.detectionMethod === 'heuristic' && (
+                        <span className="text-yellow-400/70 text-[10px]">(auto-detected)</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 mt-2">
+                  <button
+                    onClick={() => setAutoImportResult(null)}
+                    className="text-xs text-lime-400 hover:text-lime-300"
+                  >
+                    Dismiss
+                  </button>
+                  <span className="text-[10px] text-gray-500">
+                    View in Grappling Tracker to edit
+                  </span>
+                </div>
               </div>
             </div>
           </motion.div>

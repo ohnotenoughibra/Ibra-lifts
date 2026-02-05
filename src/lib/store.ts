@@ -154,6 +154,8 @@ interface AppState {
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
+  migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
+  getCurrentMesocycleLogCount: () => number;
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -601,6 +603,23 @@ export const useAppStore = create<AppState>()(
           mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
           workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
         });
+      },
+
+      migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
+        const { workoutLogs } = get();
+        set({
+          workoutLogs: workoutLogs.map(log =>
+            log.mesocycleId === fromMesocycleId
+              ? { ...log, mesocycleId: toMesocycleId }
+              : log
+          ),
+        });
+      },
+
+      getCurrentMesocycleLogCount: () => {
+        const { currentMesocycle, workoutLogs } = get();
+        if (!currentMesocycle) return 0;
+        return workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id).length;
       },
 
       // Workout actions

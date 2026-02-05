@@ -656,22 +656,25 @@ export default function TrainingCalendar() {
                             </div>
                             <input
                               type="number"
-                              value={set.weight}
-                              onChange={e => updateSet(exIndex, setIndex, 'weight', Number(e.target.value))}
+                              value={set.weight || ''}
+                              placeholder="0"
+                              onChange={e => updateSet(exIndex, setIndex, 'weight', Number(e.target.value) || 0)}
                               className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
                             />
                             <input
                               type="number"
-                              value={set.reps}
-                              onChange={e => updateSet(exIndex, setIndex, 'reps', Number(e.target.value))}
+                              value={set.reps || ''}
+                              placeholder="0"
+                              onChange={e => updateSet(exIndex, setIndex, 'reps', Number(e.target.value) || 0)}
                               className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
                             />
                             <input
                               type="number"
-                              value={set.rpe}
+                              value={set.rpe || ''}
+                              placeholder="7"
                               min={1}
                               max={10}
-                              onChange={e => updateSet(exIndex, setIndex, 'rpe', Number(e.target.value))}
+                              onChange={e => updateSet(exIndex, setIndex, 'rpe', Number(e.target.value) || 0)}
                               className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
                             />
                           </div>

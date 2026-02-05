@@ -121,6 +121,7 @@ type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile'
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const gamificationStats = useAppStore(s => s.gamificationStats);
   const weeks = 12;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -155,18 +156,9 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
     grid.push(week);
   }
 
-  // Calculate current streak
-  let streak = 0;
-  const checkDate = new Date(today);
-  while (true) {
-    const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-    if (workoutDates.has(dateStr)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
+  // Use the persisted streak from gamificationStats for consistency
+  // This accounts for "yesterday's workout counts" logic in the store
+  const streak = gamificationStats.currentStreak;
 
   return (
     <div className="card p-4">

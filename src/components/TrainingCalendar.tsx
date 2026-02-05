@@ -217,16 +217,19 @@ export default function TrainingCalendar() {
       ), 0
     );
 
+    // Update the workout log first
     updateWorkoutLog(workoutBeingEdited.id, {
       exercises: editedExercises,
       totalVolume,
     });
 
-    // Recalculate PRs after saving changes
-    recalculatePRs();
-
+    // Close editor immediately for responsive UX — defer PR recalc to avoid
+    // rapid cascading re-renders that cause blank screen when switching tabs
     setWorkoutBeingEdited(null);
     setEditedExercises([]);
+
+    // Recalculate PRs on next tick so the modal exit completes first
+    setTimeout(() => recalculatePRs(), 0);
   };
 
   const filteredExercises = useMemo(() => {

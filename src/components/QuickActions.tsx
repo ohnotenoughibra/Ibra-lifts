@@ -20,7 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { QuickLog, BodyWeightEntry, GrapplingSession } from '@/lib/types';
+import type { QuickLog, BodyWeightEntry, GrapplingSession, GrapplingType } from '@/lib/types';
 
 interface QuickActionsProps {
   onClose: () => void;
@@ -33,14 +33,19 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
   const [waterOz, setWaterOz] = useState(8);
-  const [weightLbs, setWeightLbs] = useState(user?.bodyWeight || 175);
+  const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || 175;
+  const [weightLbs, setWeightLbs] = useState(latestWeight);
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [readinessScore, setReadinessScore] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [grapplingMinutes, setGrapplingMinutes] = useState(60);
-  const [grapplingType, setGrapplingType] = useState<'bjj_gi' | 'bjj_nogi' | 'wrestling' | 'mma'>('bjj_gi');
-  const [grapplingIntensity, setGrapplingIntensity] = useState<'light' | 'moderate' | 'hard'>('moderate');
+  // Default type based on user's combat sport
+  const defaultType: GrapplingType = user?.combatSport === 'striking' ? 'muay_thai' :
+    user?.combatSport === 'mma' ? 'mma' :
+    user?.combatSport === 'grappling_gi' ? 'bjj_gi' : 'bjj_nogi';
+  const [grapplingType, setGrapplingType] = useState<GrapplingType>(defaultType);
+  const [grapplingIntensity, setGrapplingIntensity] = useState<'light_flow' | 'moderate' | 'hard_sparring' | 'competition_prep'>('moderate');
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [mobilityMinutes, setMobilityMinutes] = useState(15);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -162,7 +167,9 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     {
       id: 'grappling' as QuickLogType,
       icon: Shield,
-      label: 'Grappling',
+      label: user?.combatSport === 'striking' ? 'Striking' :
+             user?.combatSport === 'mma' ? 'MMA' :
+             user?.combatSport === 'grappling_gi' || user?.combatSport === 'grappling_nogi' ? 'Grappling' : 'Combat',
       color: 'text-lime-400 bg-lime-500/20',
       stat: todayGrappling.length > 0 ? `${todayGrappling.reduce((s, g) => s + g.duration, 0)}min` : 'None',
       highlight: todayGrappling.length > 0,
@@ -395,12 +402,23 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             <div className="space-y-2">
               <label className="text-sm text-gray-400">Type</label>
               <div className="flex gap-2 justify-center flex-wrap">
-                {([
-                  { value: 'bjj_gi', label: 'BJJ Gi' },
-                  { value: 'bjj_nogi', label: 'No-Gi' },
-                  { value: 'wrestling', label: 'Wrestling' },
-                  { value: 'mma', label: 'MMA' }
-                ] as const).map(({ value, label }) => (
+                {/* Show types based on user's combat sport preference */}
+                {(user?.combatSport === 'striking' ? [
+                  { value: 'muay_thai' as const, label: 'Muay Thai' },
+                  { value: 'kickboxing' as const, label: 'Kickboxing' },
+                  { value: 'boxing' as const, label: 'Boxing' },
+                  { value: 'mma' as const, label: 'MMA' },
+                ] : user?.combatSport === 'mma' ? [
+                  { value: 'mma' as const, label: 'MMA' },
+                  { value: 'bjj_nogi' as const, label: 'No-Gi' },
+                  { value: 'wrestling' as const, label: 'Wrestling' },
+                  { value: 'muay_thai' as const, label: 'Muay Thai' },
+                ] : [
+                  { value: 'bjj_gi' as const, label: 'BJJ Gi' },
+                  { value: 'bjj_nogi' as const, label: 'No-Gi' },
+                  { value: 'wrestling' as const, label: 'Wrestling' },
+                  { value: 'mma' as const, label: 'MMA' },
+                ]).map(({ value, label }) => (
                   <button
                     key={value}
                     onClick={() => setGrapplingType(value)}
@@ -416,17 +434,22 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="space-y-2">
               <label className="text-sm text-gray-400">Intensity</label>
-              <div className="flex gap-2 justify-center">
-                {(['light', 'moderate', 'hard'] as const).map(int => (
+              <div className="flex gap-2 justify-center flex-wrap">
+                {([
+                  { value: 'light_flow', label: 'Light' },
+                  { value: 'moderate', label: 'Moderate' },
+                  { value: 'hard_sparring', label: 'Hard' },
+                  { value: 'competition_prep', label: 'Comp Prep' },
+                ] as const).map(int => (
                   <button
-                    key={int}
-                    onClick={() => setGrapplingIntensity(int)}
+                    key={int.value}
+                    onClick={() => setGrapplingIntensity(int.value)}
                     className={cn(
-                      "btn btn-sm capitalize",
-                      grapplingIntensity === int ? "btn-primary" : "btn-ghost"
+                      "btn btn-sm",
+                      grapplingIntensity === int.value ? "btn-primary" : "btn-ghost"
                     )}
                   >
-                    {int}
+                    {int.label}
                   </button>
                 ))}
               </div>

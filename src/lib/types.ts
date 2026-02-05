@@ -843,6 +843,33 @@ export interface CombatTrainingDay {
   label?: string;        // e.g., "Sparring", "Drilling", "Competition prep"
 }
 
+// ── Diet Phase / Nutrition Coaching ─────────────────────────────────────────
+export type DietGoal = 'cut' | 'maintain' | 'bulk';
+
+export interface DietPhase {
+  id: string;
+  goal: DietGoal;
+  startDate: string;          // ISO date string
+  startWeightKg: number;
+  targetRatePerWeek: number;  // kg/week: negative for cut, 0 for maintain, positive for bulk
+  currentMacros: MacroTargets;
+  weeksCompleted: number;
+  isActive: boolean;
+}
+
+export interface WeeklyCheckIn {
+  id: string;
+  phaseId: string;
+  weekNumber: number;
+  date: string;               // ISO date string
+  averageWeightKg: number;
+  weightChange: number;       // vs previous week
+  adherenceScore: number;     // 0-100 (% of days logged)
+  adjustmentMade: 'increase' | 'decrease' | 'maintain';
+  newMacros: MacroTargets;
+  notes?: string;
+}
+
 // Form Types for Onboarding
 export interface OnboardingData {
   step: number;

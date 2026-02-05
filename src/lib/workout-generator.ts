@@ -68,9 +68,9 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
   },
   power: {
     sets: [3, 5],
-    reps: [3, 6],
+    reps: [2, 5],
     rpe: [6, 8],
-    percentageOf1RM: [40, 60],
+    percentageOf1RM: [60, 80],
     restSeconds: [120, 180],
     tempo: '1-0-X-0' // Fast eccentric, explosive concentric
   }
@@ -99,7 +99,7 @@ const GOAL_TO_LINEAR_TYPE: Record<GoalFocus, WorkoutType> = {
 function getWaveMultipliers(weekNumber: number): { volume: number; intensity: number } {
   const wavePos = (weekNumber - 1) % 3; // position within 3-week wave
   const waveNum = Math.floor((weekNumber - 1) / 3); // which wave cycle
-  const base = waveNum * 0.03; // slight overall progression between wave cycles
+  const base = waveNum * 0.05; // evidence-based progression between wave cycles (3-5% per cycle)
   switch (wavePos) {
     case 0: return { volume: 1.0 + base, intensity: 1.0 + base };       // moderate
     case 1: return { volume: 1.08 + base, intensity: 1.0 + base };      // high volume

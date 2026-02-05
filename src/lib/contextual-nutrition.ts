@@ -83,10 +83,10 @@ export function getContextualNutrition(
       proteinMultiplier = 1.15;
       carbMultiplier = 1.1;
       preworkoutTiming = 'Eat 2-3 hours before for stable energy';
-      postworkoutTiming = 'Protein + carbs within 1 hour';
+      postworkoutTiming = 'Protein + carbs within 2-3 hours (flexible window)';
       carbCycleNote = 'Moderate carb day - focus on complex carbs around training';
       recommendations.push('Pre-workout: 30-50g carbs + 20g protein');
-      recommendations.push('Post-workout: 40g protein + 50g fast carbs');
+      recommendations.push('Post-workout: 40g protein + 50g carbs (within 2-3 hours)');
       break;
 
     case 'hypertrophy':
@@ -105,7 +105,7 @@ export function getContextualNutrition(
       proteinMultiplier = 1.1;
       carbMultiplier = 1.05;
       preworkoutTiming = 'Light meal 2-3 hours before';
-      postworkoutTiming = 'Protein within 1 hour';
+      postworkoutTiming = 'Protein within 2-3 hours';
       carbCycleNote = 'Moderate carb day';
       recommendations.push('Keep pre-workout light for explosiveness');
       break;

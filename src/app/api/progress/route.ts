@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculate1RM, suggestAdjustments } from '@/lib/workout-generator';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { action, data } = body;
 

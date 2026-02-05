@@ -1426,10 +1426,16 @@ export const useAppStore = create<AppState>()(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
 
+        // Batch the workoutLogs update — gamification recalc runs on next tick
+        // to avoid cascading set() calls that cause blank-screen re-render storms
         set({ workoutLogs: finalLogs });
 
-        // Recalculate gamification stats to update PR count
-        get().recalculateGamificationStats();
+        // Defer gamification recalc to avoid synchronous cascading set() calls
+        // (recalculateGamificationStats -> checkAndAwardBadges -> set())
+        // which cause rapid re-renders that break AnimatePresence transitions
+        queueMicrotask(() => {
+          get().recalculateGamificationStats();
+        });
       },
 
       awardPoints: (points, reason) => {
@@ -1923,6 +1929,7 @@ export const useAppStore = create<AppState>()(
             const currentSize = new Blob([json]).size;
             if (currentSize > 4.5 * 1024 * 1024) {
               // Approaching limit — clone via JSON to avoid mutating live store
+              console.warn('[storage] Data approaching localStorage limit — pruning old entries. Consider exporting a backup.');
               const data = JSON.parse(json);
               if (data?.state?.workoutLogs?.length > 50) {
                 data.state.workoutLogs = data.state.workoutLogs.slice(-50);
@@ -1932,6 +1939,10 @@ export const useAppStore = create<AppState>()(
               }
               if (data?.state?.mesocycleHistory?.length > 10) {
                 data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-10);
+              }
+              // Surface warning to the user via store state
+              if (data?.state) {
+                data.state._storageWarning = 'Storage is nearly full. Old workout logs and meals have been trimmed. Export a backup to avoid data loss.';
               }
               localStorage.setItem(name, JSON.stringify(data));
             } else {

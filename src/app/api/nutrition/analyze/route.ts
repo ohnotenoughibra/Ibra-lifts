@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 /**
  * POST /api/nutrition/analyze
@@ -10,6 +12,19 @@ import { NextRequest, NextResponse } from 'next/server';
  * Returns: { name, calories, protein, carbs, fat, confidence, notes }
  */
 export async function POST(request: NextRequest) {
+  // Require authentication
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit: 10 analyses per minute per IP
+  const ip = getClientIP(request);
+  const { limited } = rateLimit(`nutrition:${ip}`, 10, 60 * 1000);
+  if (limited) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -135,7 +150,7 @@ If the image is unclear or not food, respond with:
   } catch (err: any) {
     console.error('Nutrition analysis error:', err);
     return NextResponse.json(
-      { error: `Analysis failed: ${err.message?.substring(0, 100) || 'unknown error'}` },
+      { error: 'Analysis failed. Please try again with a clearer image.' },
       { status: 500 }
     );
   }

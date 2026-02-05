@@ -29,6 +29,8 @@ export function useDbSync(authUserId?: string | null) {
         if (ok && process.env.NODE_ENV === 'development') {
           console.log('[db-sync] Database initialized');
         }
+      }).catch((err) => {
+        console.error('[db-sync] Database initialization failed:', err);
       });
     }
   }, []);
@@ -37,7 +39,10 @@ export function useDbSync(authUserId?: string | null) {
   useEffect(() => {
     if (!effectiveUserId || initialLoadDone.current) return;
 
-    loadFromDatabase(effectiveUserId).then((dbData) => {
+    loadFromDatabase(effectiveUserId).catch((err) => {
+      console.error('[db-sync] Failed to load from database:', err);
+      return null;
+    }).then((dbData) => {
       if (dbData) {
         const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
         const localUpdated = new Date(store.user?.updatedAt || 0).getTime();

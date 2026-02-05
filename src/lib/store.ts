@@ -138,6 +138,7 @@ interface AppState {
     points: number;
     hadPR: boolean;
     newStreak: number;
+    newBadges: { id: string; name: string; icon: string; points: number }[];
   } | null;
 
   // Sync conflict resolution
@@ -1245,6 +1246,7 @@ export const useAppStore = create<AppState>()(
             points,
             hadPR,
             newStreak: newStreak,
+            newBadges: [], // Will be populated by checkAndAwardBadges
           },
           gamificationStats: {
             ...gamificationStats,
@@ -1292,7 +1294,7 @@ export const useAppStore = create<AppState>()(
       },
 
       checkAndAwardBadges: () => {
-        const { gamificationStats, workoutLogs, mesocycleHistory } = get();
+        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout } = get();
 
         const metrics = {
           personalRecords: gamificationStats.personalRecords,
@@ -1321,14 +1323,30 @@ export const useAppStore = create<AppState>()(
 
           const additionalPoints = newBadges.reduce((sum, b) => sum + b.points, 0);
 
-          set({
+          // Update gamification stats and also add badges to lastCompletedWorkout for display
+          const updates: Partial<AppState> = {
             gamificationStats: {
               ...gamificationStats,
               badges: [...gamificationStats.badges, ...newUserBadges],
               totalPoints: gamificationStats.totalPoints + additionalPoints,
               level: calculateLevel(gamificationStats.totalPoints + additionalPoints)
             }
-          });
+          };
+
+          // If there's a pending workout summary, add the badges to it for display
+          if (lastCompletedWorkout) {
+            updates.lastCompletedWorkout = {
+              ...lastCompletedWorkout,
+              newBadges: newBadges.map(b => ({
+                id: b.id,
+                name: b.name,
+                icon: b.icon,
+                points: b.points
+              }))
+            };
+          }
+
+          set(updates);
         }
       },
 

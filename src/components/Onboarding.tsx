@@ -387,10 +387,10 @@ function Step3_Setup({
           ]).map((opt) => (
             <button
               key={opt.value}
-              onClick={() => update({ biologicalSex: opt.value })}
+              onClick={() => update({ sex: opt.value })}
               className={cn(
                 'py-2.5 rounded-lg text-center transition-all',
-                data.biologicalSex === opt.value
+                data.sex === opt.value
                   ? 'bg-primary-500 text-white'
                   : 'bg-grappler-700 text-grappler-400'
               )}
@@ -1169,7 +1169,7 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
     }
   }
   // Sex-specific programming features
-  if (data.biologicalSex === 'female') {
+  if (data.sex === 'female') {
     features.push('Higher volume tolerance — optimized for female physiology');
     features.push('Shorter rest periods — faster recovery between sets');
     features.push('Upper body volume boost — proportional development');
@@ -1177,7 +1177,7 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
       features.push('Higher rep ranges for hypertrophy (8-15 reps)');
     }
     features.push('Less aggressive deloads — female-adapted recovery');
-  } else if (data.biologicalSex === 'male') {
+  } else if (data.sex === 'male') {
     features.push('Standard volume landmarks — male physiology');
     if (data.goalFocus === 'hypertrophy') {
       features.push('Hypertrophy rep ranges (6-12 reps)');

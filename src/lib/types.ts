@@ -313,7 +313,8 @@ export interface ProgressInsight {
 // Knowledge/Educational Content Types
 export type ContentCategory =
   | 'muscle_science' | 'lifting_technique' | 'periodization'
-  | 'recovery' | 'nutrition' | 'grappling' | 'motivation';
+  | 'recovery' | 'nutrition' | 'grappling' | 'motivation'
+  | 'striking' | 'mma' | 'general_fitness';
 
 export interface KnowledgeArticle {
   id: string;

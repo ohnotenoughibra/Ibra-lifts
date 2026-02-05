@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
 import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
@@ -9,12 +9,14 @@ import { SyncConflict, buildConflictFields } from '@/components/SyncConflictReso
  * Sync Zustand store with Vercel Postgres.
  * @param authUserId — The authenticated user's ID from NextAuth session.
  *                      When provided, this overrides store.user?.id for all DB operations.
+ * @returns { isInitialLoadComplete } - Whether the initial database load has finished
  */
 export function useDbSync(authUserId?: string | null) {
   const store = useAppStore();
   const lastSyncRef = useRef<string>('');
   const initialLoadDone = useRef(false);
   const dbInitDone = useRef(false);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
 
   // The effective user ID: prefer auth session ID over store ID
   const effectiveUserId = authUserId || store.user?.id;
@@ -116,7 +118,16 @@ export function useDbSync(authUserId?: string | null) {
         }
       }
       initialLoadDone.current = true;
+      setIsInitialLoadComplete(true);
     });
+  }, [effectiveUserId]);
+
+  // If no user, mark initial load as complete immediately (guest mode)
+  useEffect(() => {
+    if (!effectiveUserId && !initialLoadDone.current) {
+      initialLoadDone.current = true;
+      setIsInitialLoadComplete(true);
+    }
   }, [effectiveUserId]);
 
   // Save to database on meaningful state changes (debounced)
@@ -166,4 +177,6 @@ export function useDbSync(authUserId?: string | null) {
     store.trainingSessions,
     store.themeMode,
   ]);
+
+  return { isInitialLoadComplete };
 }

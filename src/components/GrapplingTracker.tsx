@@ -16,12 +16,17 @@ import {
   TrendingUp,
   Award,
   ChevronDown,
+  Moon,
+  Brain,
+  Zap,
+  Utensils,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
   GrapplingType,
   GrapplingIntensity,
   GrapplingSession,
+  PreWorkoutCheckIn,
 } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -150,6 +155,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
   const [formSubmissions, setFormSubmissions] = useState<number | undefined>(undefined);
   const [formTaps, setFormTaps] = useState<number | undefined>(undefined);
   const [formNotes, setFormNotes] = useState('');
+  // Pre-session check-in state
+  const [formSleepQuality, setFormSleepQuality] = useState(3);
+  const [formSleepHours, setFormSleepHours] = useState(7);
+  const [formNutrition, setFormNutrition] = useState<PreWorkoutCheckIn['nutrition']>('light_meal');
+  const [formStress, setFormStress] = useState(2);
+  const [formSoreness, setFormSoreness] = useState(2);
+  const [formMotivation, setFormMotivation] = useState(3);
+  const [showCheckIn, setShowCheckIn] = useState(true);
 
   // Derived data
   const sortedSessions = useMemo(() => {
@@ -209,6 +222,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
     setFormSubmissions(undefined);
     setFormTaps(undefined);
     setFormNotes('');
+    // Reset check-in
+    setFormSleepQuality(3);
+    setFormSleepHours(7);
+    setFormNutrition('light_meal');
+    setFormStress(2);
+    setFormSoreness(2);
+    setFormMotivation(3);
+    setShowCheckIn(true);
   };
 
   const handleSave = () => {
@@ -224,6 +245,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
       taps: formTaps,
       notes: formNotes || undefined,
       perceivedExertion: formRPE,
+      preCheckIn: {
+        sleepQuality: formSleepQuality,
+        sleepHours: formSleepHours,
+        nutrition: formNutrition,
+        stress: formStress,
+        soreness: formSoreness,
+        motivation: formMotivation,
+      },
     });
     setShowAddForm(false);
     resetForm();
@@ -376,6 +405,179 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                   >
                     <X className="w-4 h-4" />
                   </button>
+                </div>
+
+                {/* Pre-Session Check-in */}
+                <div className="bg-grappler-900/50 rounded-xl p-3 border border-grappler-700">
+                  <button
+                    onClick={() => setShowCheckIn(!showCheckIn)}
+                    className="w-full flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-medium text-grappler-200">Pre-Session Check-in</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-grappler-500 transition-transform ${showCheckIn ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showCheckIn && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-3 space-y-3">
+                          {/* Sleep Quality */}
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Moon className="w-3 h-3 text-purple-400" />
+                              <span className="text-xs text-grappler-400">Sleep Quality</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {[1, 2, 3, 4, 5].map((val) => (
+                                <button
+                                  key={val}
+                                  onClick={() => setFormSleepQuality(val)}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    formSleepQuality === val
+                                      ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50'
+                                      : 'bg-grappler-700 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
+                                  }`}
+                                >
+                                  {val === 1 ? '😫' : val === 2 ? '😴' : val === 3 ? '😐' : val === 4 ? '😊' : '🤩'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Sleep Hours */}
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Clock className="w-3 h-3 text-blue-400" />
+                              <span className="text-xs text-grappler-400">Hours Slept</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {[5, 6, 7, 8, 9].map((hrs) => (
+                                <button
+                                  key={hrs}
+                                  onClick={() => setFormSleepHours(hrs)}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    formSleepHours === hrs
+                                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50'
+                                      : 'bg-grappler-700 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
+                                  }`}
+                                >
+                                  {hrs}h
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Nutrition */}
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Utensils className="w-3 h-3 text-orange-400" />
+                              <span className="text-xs text-grappler-400">Nutrition</span>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1.5">
+                              {[
+                                { id: 'fasted', label: 'Fasted' },
+                                { id: 'light_meal', label: 'Light' },
+                                { id: 'full_meal', label: 'Full' },
+                                { id: 'heavy_meal', label: 'Heavy' },
+                              ].map((opt) => (
+                                <button
+                                  key={opt.id}
+                                  onClick={() => setFormNutrition(opt.id as PreWorkoutCheckIn['nutrition'])}
+                                  className={`py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                    formNutrition === opt.id
+                                      ? 'bg-orange-500/30 text-orange-300 border border-orange-500/50'
+                                      : 'bg-grappler-700 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Stress + Soreness + Motivation in one row */}
+                          <div className="grid grid-cols-3 gap-2">
+                            {/* Stress */}
+                            <div>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Brain className="w-3 h-3 text-red-400" />
+                                <span className="text-[10px] text-grappler-400">Stress</span>
+                              </div>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((val) => (
+                                  <button
+                                    key={val}
+                                    onClick={() => setFormStress(val)}
+                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                      formStress === val
+                                        ? 'bg-red-500/30 text-red-300 border border-red-500/50'
+                                        : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
+                                    }`}
+                                  >
+                                    {val}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Soreness */}
+                            <div>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Flame className="w-3 h-3 text-yellow-400" />
+                                <span className="text-[10px] text-grappler-400">Soreness</span>
+                              </div>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((val) => (
+                                  <button
+                                    key={val}
+                                    onClick={() => setFormSoreness(val)}
+                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                      formSoreness === val
+                                        ? 'bg-yellow-500/30 text-yellow-300 border border-yellow-500/50'
+                                        : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
+                                    }`}
+                                  >
+                                    {val}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Motivation */}
+                            <div>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Zap className="w-3 h-3 text-green-400" />
+                                <span className="text-[10px] text-grappler-400">Energy</span>
+                              </div>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((val) => (
+                                  <button
+                                    key={val}
+                                    onClick={() => setFormMotivation(val)}
+                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                      formMotivation === val
+                                        ? 'bg-green-500/30 text-green-300 border border-green-500/50'
+                                        : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
+                                    }`}
+                                  >
+                                    {val}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Type selector */}

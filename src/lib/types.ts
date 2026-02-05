@@ -614,6 +614,8 @@ export interface GrapplingSession {
   bodyweightBefore?: number;
   bodyweightAfter?: number;
   perceivedExertion: number; // 1-10
+  // Pre-session check-in (matches strength workout check-in)
+  preCheckIn?: PreWorkoutCheckIn;
   // Whoop-synced HR data (auto-populated when imported from Whoop)
   whoopHR?: {
     avgHR: number;

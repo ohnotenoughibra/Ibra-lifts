@@ -27,7 +27,7 @@ import {
   SessionTemplate,
   ThemeMode,
   HRSession,
-  GrapplingSession,
+  TrainingSession,
   MealEntry,
   MacroTargets,
   MuscleGroupConfig,
@@ -36,7 +36,8 @@ import {
   WhoopWorkout,
   QuickLog,
   GripTest,
-  GripExerciseLog
+  GripExerciseLog,
+  ACTIVITY_CATEGORY_MAP
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -97,8 +98,8 @@ interface AppState {
   // Heart rate sessions
   hrSessions: HRSession[];
 
-  // Grappling sessions
-  grapplingSessions: GrapplingSession[];
+  // Training sessions (unified: grappling, striking, cardio, outdoor, etc.)
+  trainingSessions: TrainingSession[];
 
   // Theme
   themeMode: ThemeMode;
@@ -227,9 +228,10 @@ interface AppState {
   // HR session actions
   addHRSession: (session: Omit<HRSession, 'id'>) => void;
 
-  // Grappling session actions
-  addGrapplingSession: (session: Omit<GrapplingSession, 'id'>) => void;
-  deleteGrapplingSession: (id: string) => void;
+  // Training session actions (unified system)
+  addTrainingSession: (session: Omit<TrainingSession, 'id'>) => void;
+  updateTrainingSession: (id: string, updates: Partial<TrainingSession>) => void;
+  deleteTrainingSession: (id: string) => void;
 
   // Theme actions
   setThemeMode: (mode: ThemeMode) => void;
@@ -326,7 +328,7 @@ export const useAppStore = create<AppState>()(
       customExercises: [],
       sessionTemplates: [],
       hrSessions: [],
-      grapplingSessions: [],
+      trainingSessions: [],
       themeMode: 'dark' as ThemeMode,
       meals: [],
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
@@ -1437,15 +1439,32 @@ export const useAppStore = create<AppState>()(
         set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }] });
       },
 
-      // Grappling session actions
-      addGrapplingSession: (session) => {
-        const { grapplingSessions } = get();
-        set({ grapplingSessions: [...grapplingSessions, { ...session, id: uuidv4() }] });
+      // Training session actions (unified system for grappling, striking, cardio, etc.)
+      addTrainingSession: (session) => {
+        const { trainingSessions } = get();
+        // Auto-determine category from type if not provided
+        const category = session.category || ACTIVITY_CATEGORY_MAP[session.type] || 'other';
+        set({
+          trainingSessions: [...trainingSessions, {
+            ...session,
+            id: uuidv4(),
+            category,
+          }]
+        });
       },
 
-      deleteGrapplingSession: (id) => {
-        const { grapplingSessions } = get();
-        set({ grapplingSessions: grapplingSessions.filter(s => s.id !== id) });
+      updateTrainingSession: (id, updates) => {
+        const { trainingSessions } = get();
+        set({
+          trainingSessions: trainingSessions.map(s =>
+            s.id === id ? { ...s, ...updates } : s
+          )
+        });
+      },
+
+      deleteTrainingSession: (id) => {
+        const { trainingSessions } = get();
+        set({ trainingSessions: trainingSessions.filter(s => s.id !== id) });
       },
 
       // Theme actions
@@ -1507,7 +1526,7 @@ export const useAppStore = create<AppState>()(
           if (pendingRemoteData.customExercises) fieldsToMerge.customExercises = pendingRemoteData.customExercises;
           if (pendingRemoteData.sessionTemplates) fieldsToMerge.sessionTemplates = pendingRemoteData.sessionTemplates;
           if (pendingRemoteData.hrSessions) fieldsToMerge.hrSessions = pendingRemoteData.hrSessions;
-          if (pendingRemoteData.grapplingSessions) fieldsToMerge.grapplingSessions = pendingRemoteData.grapplingSessions;
+          if (pendingRemoteData.trainingSessions) fieldsToMerge.trainingSessions = pendingRemoteData.trainingSessions;
           if (pendingRemoteData.currentMesocycle) fieldsToMerge.currentMesocycle = pendingRemoteData.currentMesocycle;
           if (pendingRemoteData.mesocycleHistory) fieldsToMerge.mesocycleHistory = pendingRemoteData.mesocycleHistory;
           if (pendingRemoteData.baselineLifts) fieldsToMerge.baselineLifts = pendingRemoteData.baselineLifts;
@@ -1524,7 +1543,7 @@ export const useAppStore = create<AppState>()(
             customExercises: localState.customExercises,
             sessionTemplates: localState.sessionTemplates,
             hrSessions: localState.hrSessions,
-            grapplingSessions: localState.grapplingSessions,
+            trainingSessions: localState.trainingSessions,
             currentMesocycle: localState.currentMesocycle,
             mesocycleHistory: localState.mesocycleHistory,
             lastSyncAt: localState.lastSyncAt || 0,
@@ -1539,7 +1558,7 @@ export const useAppStore = create<AppState>()(
           if (merged.customExercises) updates.customExercises = merged.customExercises;
           if (merged.sessionTemplates) updates.sessionTemplates = merged.sessionTemplates;
           if (merged.hrSessions) updates.hrSessions = merged.hrSessions;
-          if (merged.grapplingSessions) updates.grapplingSessions = merged.grapplingSessions;
+          if (merged.trainingSessions) updates.trainingSessions = merged.trainingSessions;
           set({ ...updates, syncConflict: null, pendingRemoteData: null });
         }
       },
@@ -1570,7 +1589,7 @@ export const useAppStore = create<AppState>()(
           customExercises: [],
           sessionTemplates: [],
           hrSessions: [],
-          grapplingSessions: [],
+          trainingSessions: [],
           themeMode: 'dark' as ThemeMode,
           meals: [],
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
@@ -1659,7 +1678,7 @@ export const useAppStore = create<AppState>()(
         customExercises: state.customExercises,
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,
-        grapplingSessions: state.grapplingSessions,
+        trainingSessions: state.trainingSessions,
         themeMode: state.themeMode,
         meals: state.meals,
         macroTargets: state.macroTargets,

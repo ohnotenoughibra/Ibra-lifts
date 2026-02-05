@@ -156,7 +156,7 @@ function daysSince(date: Date): number {
 // ---------------------------------------------------------------------------
 
 export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
-  const { injuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, grapplingSessions, latestWhoopData, user } = useAppStore();
+  const { injuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -167,12 +167,12 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
   const analysis = useMemo<InjuryAnalysis>(() => {
     return analyzeInjuryRisks(
       workoutLogs,
-      grapplingSessions,
+      trainingSessions,
       injuryLog,
       latestWhoopData,
       user
     );
-  }, [workoutLogs, grapplingSessions, injuryLog, latestWhoopData, user]);
+  }, [workoutLogs, trainingSessions, injuryLog, latestWhoopData, user]);
 
   const prehabExercises = useMemo(() => {
     return getPrehabRecommendations(analysis);

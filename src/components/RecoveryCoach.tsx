@@ -32,7 +32,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
   const {
     latestWhoopData,
     workoutLogs,
-    grapplingSessions,
+    trainingSessions,
     injuryLog,
     user,
   } = useAppStore();
@@ -45,11 +45,11 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
       latestWhoopData,
       whoopHistory,
       workoutLogs,
-      grapplingSessions,
+      trainingSessions,
       injuryLog,
       user
     );
-  }, [latestWhoopData, whoopHistory, workoutLogs, grapplingSessions, injuryLog, user]);
+  }, [latestWhoopData, whoopHistory, workoutLogs, trainingSessions, injuryLog, user]);
 
   const tips = useMemo(() => getRecoveryTips(analysis), [analysis]);
 

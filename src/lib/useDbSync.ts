@@ -95,7 +95,7 @@ export function useDbSync(authUserId?: string | null) {
           if (dbData.customExercises) fieldsToMerge.customExercises = dbData.customExercises;
           if (dbData.sessionTemplates) fieldsToMerge.sessionTemplates = dbData.sessionTemplates;
           if (dbData.hrSessions) fieldsToMerge.hrSessions = dbData.hrSessions;
-          if (dbData.grapplingSessions) fieldsToMerge.grapplingSessions = dbData.grapplingSessions;
+          if (dbData.trainingSessions) fieldsToMerge.trainingSessions = dbData.trainingSessions;
           if (dbData.currentMesocycle) fieldsToMerge.currentMesocycle = dbData.currentMesocycle;
           if (dbData.mesocycleHistory) fieldsToMerge.mesocycleHistory = dbData.mesocycleHistory;
           if (dbData.baselineLifts) fieldsToMerge.baselineLifts = dbData.baselineLifts;
@@ -139,7 +139,7 @@ export function useDbSync(authUserId?: string | null) {
       customExercises: store.customExercises,
       sessionTemplates: store.sessionTemplates,
       hrSessions: store.hrSessions,
-      grapplingSessions: store.grapplingSessions,
+      trainingSessions: store.trainingSessions,
       themeMode: store.themeMode,
     };
 
@@ -163,7 +163,7 @@ export function useDbSync(authUserId?: string | null) {
     store.customExercises,
     store.sessionTemplates,
     store.hrSessions,
-    store.grapplingSessions,
+    store.trainingSessions,
     store.themeMode,
   ]);
 }

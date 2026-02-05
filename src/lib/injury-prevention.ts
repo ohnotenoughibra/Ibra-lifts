@@ -2,7 +2,7 @@ import type {
   WorkoutLog,
   InjuryEntry,
   BodyRegion,
-  GrapplingSession,
+  TrainingSession,
   WearableData,
   UserProfile,
   Exercise,
@@ -54,7 +54,7 @@ const BALANCE_PAIRS: [string[], string[], string][] = [
  */
 export function analyzeInjuryRisks(
   workoutLogs: WorkoutLog[],
-  grapplingHistory: GrapplingSession[],
+  trainingHistory: TrainingSession[],
   injuries: InjuryEntry[],
   whoopData: WearableData | null,
   user: UserProfile | null
@@ -70,14 +70,14 @@ export function analyzeInjuryRisks(
     log => new Date(log.date) >= twoWeeksAgo
   );
 
-  const recentGrappling = grapplingHistory.filter(
-    g => new Date(g.date) >= twoWeeksAgo
+  const recentTraining = trainingHistory.filter(
+    s => new Date(s.date) >= twoWeeksAgo
   );
 
   const activeInjuries = injuries.filter(i => !i.resolved);
 
   // === 1. VOLUME ANALYSIS ===
-  const { volumeRisks, weeklyLoadScore } = analyzeVolume(recentLogs, recentGrappling);
+  const { volumeRisks, weeklyLoadScore } = analyzeVolume(recentLogs, recentTraining);
   risks.push(...volumeRisks);
 
   // === 2. ACTIVE INJURY RISKS ===
@@ -89,16 +89,16 @@ export function analyzeInjuryRisks(
   risks.push(...balanceRisks);
 
   // === 4. RECOVERY ANALYSIS ===
-  const { recoveryRisks, recoveryScore } = analyzeRecovery(whoopData, recentLogs, recentGrappling);
+  const { recoveryRisks, recoveryScore } = analyzeRecovery(whoopData, recentLogs, recentTraining);
   risks.push(...recoveryRisks);
 
   // === 5. OVERUSE PATTERN DETECTION ===
-  const overuseRisks = detectOverusePatterns(recentLogs, recentGrappling);
+  const overuseRisks = detectOverusePatterns(recentLogs, recentTraining);
   risks.push(...overuseRisks);
 
-  // === 6. GRAPPLING-SPECIFIC RISKS ===
-  const grapplingRisks = analyzeGrapplingRisks(recentGrappling, activeInjuries);
-  risks.push(...grapplingRisks);
+  // === 6. COMBAT/TRAINING-SPECIFIC RISKS ===
+  const combatRisks = analyzeCombatTrainingRisks(recentTraining, activeInjuries);
+  risks.push(...combatRisks);
 
   // === POSITIVE FACTORS ===
   if (recentLogs.length >= 3 && recentLogs.length <= 5) {
@@ -159,7 +159,7 @@ function calculateOverallRisk(risks: InjuryRisk[]): RiskLevel {
   return 'low';
 }
 
-function analyzeVolume(logs: WorkoutLog[], grappling: GrapplingSession[]): {
+function analyzeVolume(logs: WorkoutLog[], trainingSessions: TrainingSession[]): {
   volumeRisks: InjuryRisk[];
   weeklyLoadScore: number;
 } {
@@ -170,10 +170,10 @@ function analyzeVolume(logs: WorkoutLog[], grappling: GrapplingSession[]): {
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const weekLogs = logs.filter(l => new Date(l.date) >= oneWeekAgo);
-  const weekGrappling = grappling.filter(g => new Date(g.date) >= oneWeekAgo);
+  const weekTraining = trainingSessions.filter(s => new Date(s.date) >= oneWeekAgo);
 
-  const totalSessions = weekLogs.length + weekGrappling.length;
-  const grapplingMinutes = weekGrappling.reduce((sum, g) => sum + g.duration, 0);
+  const totalSessions = weekLogs.length + weekTraining.length;
+  const trainingMinutes = weekTraining.reduce((sum, s) => sum + s.duration, 0);
 
   // Weekly load score (optimal is 4-6 sessions, 2-4 hours grappling)
   let weeklyLoadScore = 100;
@@ -209,14 +209,14 @@ function analyzeVolume(logs: WorkoutLog[], grappling: GrapplingSession[]): {
     weeklyLoadScore -= 15;
   }
 
-  if (grapplingMinutes > 300) {
+  if (trainingMinutes > 300) {
     risks.push({
-      id: 'high-grappling-volume',
+      id: 'high-training-volume',
       category: 'volume',
       bodyRegion: 'general',
       riskLevel: 'moderate',
-      title: 'High Grappling Volume',
-      description: `${Math.round(grapplingMinutes / 60)} hours of grappling this week.`,
+      title: 'High Combat Training Volume',
+      description: `${Math.round(trainingMinutes / 60)} hours of combat training this week.`,
       recommendations: [
         'Focus on technique over intensity',
         'Include more drilling, less live sparring',
@@ -388,7 +388,7 @@ function analyzeMuscleBalance(logs: WorkoutLog[]): {
 function analyzeRecovery(
   whoopData: WearableData | null,
   logs: WorkoutLog[],
-  grappling: GrapplingSession[]
+  trainingSessions: TrainingSession[]
 ): {
   recoveryRisks: InjuryRisk[];
   recoveryScore: number;
@@ -452,7 +452,7 @@ function analyzeRecovery(
   }
 
   // Check for consecutive training days
-  const sortedLogs = [...logs, ...grappling.map(g => ({ date: g.date }))]
+  const sortedLogs = [...logs, ...trainingSessions.map(s => ({ date: s.date }))]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   let consecutiveDays = 0;
@@ -507,7 +507,7 @@ function analyzeRecovery(
   return { recoveryRisks: risks, recoveryScore: Math.max(0, recoveryScore) };
 }
 
-function detectOverusePatterns(logs: WorkoutLog[], grappling: GrapplingSession[]): InjuryRisk[] {
+function detectOverusePatterns(logs: WorkoutLog[], trainingSessions: TrainingSession[]): InjuryRisk[] {
   const risks: InjuryRisk[] = [];
 
   // Track exercise frequency
@@ -542,37 +542,48 @@ function detectOverusePatterns(logs: WorkoutLog[], grappling: GrapplingSession[]
   return risks;
 }
 
-function analyzeGrapplingRisks(grappling: GrapplingSession[], injuries: InjuryEntry[]): InjuryRisk[] {
+function analyzeCombatTrainingRisks(trainingSessions: TrainingSession[], injuries: InjuryEntry[]): InjuryRisk[] {
   const risks: InjuryRisk[] = [];
 
-  // Check for high-intensity grappling frequency
-  const hardSessions = grappling.filter(
-    g => g.intensity === 'hard_sparring' || g.intensity === 'competition_prep'
-  );
+  // Check for high-intensity training frequency
+  const hardSessions = trainingSessions.filter(s => {
+    const intensity = s.actualIntensity || s.plannedIntensity;
+    return intensity === 'hard_sparring' || intensity === 'competition_prep';
+  });
 
   if (hardSessions.length >= 4) {
     risks.push({
-      id: 'high-intensity-grappling',
+      id: 'high-intensity-training',
       category: 'volume',
       bodyRegion: 'general',
       riskLevel: hardSessions.length >= 6 ? 'high' : 'moderate',
       title: 'Frequent Hard Sparring',
-      description: `${hardSessions.length} hard grappling sessions in 2 weeks.`,
+      description: `${hardSessions.length} hard training sessions in 2 weeks.`,
       recommendations: [
-        'Include more flow rolling and positional drilling',
+        'Include more flow/light work and drilling',
         'Hard sparring 2-3x/week is typically sufficient',
         'Protect your training partners and yourself',
       ],
     });
   }
 
-  // Specific grappling injury risks
+  // Check for grappling-specific risks
+  const grapplingCategories = ['grappling', 'mma'];
+  const hasGrappling = trainingSessions.some(s => grapplingCategories.includes(s.category));
+
+  // Check for striking-specific risks
+  const strikingCategories = ['striking', 'mma'];
+  const hasStriking = trainingSessions.some(s => strikingCategories.includes(s.category));
+
   const hasNeckInjury = injuries.some(i => i.bodyRegion === 'neck' && !i.resolved);
   const hasShoulderInjury = injuries.some(i =>
     (i.bodyRegion === 'left_shoulder' || i.bodyRegion === 'right_shoulder') && !i.resolved
   );
+  const hasWristInjury = injuries.some(i =>
+    (i.bodyRegion === 'left_wrist' || i.bodyRegion === 'right_wrist') && !i.resolved
+  );
 
-  if (grappling.length > 0) {
+  if (hasGrappling) {
     if (!hasNeckInjury) {
       risks.push({
         id: 'grappling-neck-prevention',
@@ -601,6 +612,40 @@ function analyzeGrapplingRisks(grappling: GrapplingSession[], injuries: InjuryEn
           'Strengthen rotator cuff regularly',
           'Dont fight kimuras with strength - tap and reset',
           'Include face pulls and external rotation work',
+        ],
+      });
+    }
+  }
+
+  if (hasStriking) {
+    if (!hasWristInjury) {
+      risks.push({
+        id: 'striking-wrist-prevention',
+        category: 'technique',
+        bodyRegion: 'left_wrist',
+        riskLevel: 'low',
+        title: 'Wrist Health Reminder',
+        description: 'Strikers need strong, stable wrists.',
+        recommendations: [
+          'Always wrap hands properly for heavy bag work',
+          'Include wrist strengthening and mobility',
+          'Focus on proper punch form to protect wrists',
+        ],
+      });
+    }
+
+    if (!hasShoulderInjury) {
+      risks.push({
+        id: 'striking-shoulder-prevention',
+        category: 'technique',
+        bodyRegion: 'left_shoulder',
+        riskLevel: 'low',
+        title: 'Shoulder Endurance Reminder',
+        description: 'Striking requires shoulder endurance.',
+        recommendations: [
+          'Build shoulder endurance with high-rep work',
+          'Strengthen rotator cuff to prevent overuse',
+          'Include mobility work for overhead positions',
         ],
       });
     }

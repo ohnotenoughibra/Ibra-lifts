@@ -1,4 +1,4 @@
-import type { MacroTargets, WorkoutSession, GrapplingSession, WearableData, UserProfile } from './types';
+import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile } from './types';
 
 export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'rest';
 
@@ -20,7 +20,7 @@ export function getContextualNutrition(
   baseMacros: MacroTargets,
   bodyWeightLbs: number,
   todaySession: WorkoutSession | null,
-  todayGrappling: GrapplingSession[],
+  todayTraining: TrainingSession[],
   whoopData: WearableData | null,
   user: UserProfile | null
 ): ContextualMacros {
@@ -35,15 +35,17 @@ export function getContextualNutrition(
   let carbCycleNote: string | undefined;
 
   // Determine training day type
-  const hasGrappling = todayGrappling.length > 0;
-  const grapplingMinutes = todayGrappling.reduce((sum, g) => sum + g.duration, 0);
-  const hasHardGrappling = todayGrappling.some(g =>
-    g.intensity === 'hard_sparring' || g.intensity === 'competition_prep'
-  );
+  const hasTraining = todayTraining.length > 0;
+  const trainingMinutes = todayTraining.reduce((sum, s) => sum + s.duration, 0);
+  // Check actual or planned intensity for hard sessions
+  const hasHardTraining = todayTraining.some(s => {
+    const intensity = s.actualIntensity || s.plannedIntensity;
+    return intensity === 'hard_sparring' || intensity === 'competition_prep';
+  });
 
-  if (hasHardGrappling || grapplingMinutes >= 60) {
-    dayType = 'grappling_hard';
-  } else if (hasGrappling) {
+  if (hasHardTraining || trainingMinutes >= 60) {
+    dayType = 'grappling_hard'; // Keep day type name for existing logic
+  } else if (hasTraining) {
     dayType = 'grappling_light';
   } else if (todaySession) {
     dayType = todaySession.type;

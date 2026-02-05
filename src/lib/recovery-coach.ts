@@ -1,6 +1,6 @@
 import type {
   WorkoutLog,
-  GrapplingSession,
+  TrainingSession,
   WearableData,
   UserProfile,
   InjuryEntry,
@@ -59,7 +59,7 @@ export function analyzeRecovery(
   whoopData: WearableData | null,
   whoopHistory: WearableData[],
   workoutLogs: WorkoutLog[],
-  grapplingSessions: GrapplingSession[],
+  trainingSessions: TrainingSession[],
   injuries: InjuryEntry[],
   user: UserProfile | null
 ): RecoveryCoachAnalysis {
@@ -72,14 +72,14 @@ export function analyzeRecovery(
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
   const recentWorkouts = workoutLogs.filter(w => new Date(w.date) >= oneWeekAgo);
-  const recentGrappling = grapplingSessions.filter(g => new Date(g.date) >= oneWeekAgo);
+  const recentTraining = trainingSessions.filter(s => new Date(s.date) >= oneWeekAgo);
   const recentWhoop = whoopHistory.filter(w => new Date(w.date) >= oneWeekAgo);
 
   // Calculate weekly stats
-  const weeklyTrend = calculateWeeklyTrend(recentWhoop, recentWorkouts, recentGrappling);
+  const weeklyTrend = calculateWeeklyTrend(recentWhoop, recentWorkouts, recentTraining);
 
   // Generate readiness score
-  const readiness = calculateReadiness(whoopData, recentWorkouts, recentGrappling, injuries);
+  const readiness = calculateReadiness(whoopData, recentWorkouts, recentTraining, injuries);
 
   // Current day alerts
   if (whoopData) {
@@ -218,7 +218,7 @@ export function analyzeRecovery(
   }
 
   // Training load alerts
-  const totalSessions = recentWorkouts.length + recentGrappling.length;
+  const totalSessions = recentWorkouts.length + recentTraining.length;
   if (totalSessions >= 7) {
     alerts.push({
       id: 'high-frequency',
@@ -237,7 +237,7 @@ export function analyzeRecovery(
 
   // Check for consecutive hard days
   const sortedSessions = [...recentWorkouts.map(w => ({ date: w.date, hard: w.overallRPE >= 7 })),
-  ...recentGrappling.map(g => ({ date: g.date, hard: g.intensity === 'hard_sparring' || g.intensity === 'competition_prep' }))]
+  ...recentTraining.map(s => ({ date: s.date, hard: (s.actualIntensity || s.plannedIntensity) === 'hard_sparring' || (s.actualIntensity || s.plannedIntensity) === 'competition_prep' }))]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   let consecutiveHard = 0;
@@ -325,7 +325,7 @@ function priorityValue(priority: AlertPriority): number {
 function calculateWeeklyTrend(
   whoopHistory: WearableData[],
   workouts: WorkoutLog[],
-  grappling: GrapplingSession[]
+  trainingSessions: TrainingSession[]
 ): RecoveryCoachAnalysis['weeklyTrend'] {
   const avgRecovery = whoopHistory.length > 0
     ? whoopHistory.reduce((sum, w) => sum + (w.recoveryScore ?? 50), 0) / whoopHistory.length
@@ -339,7 +339,7 @@ function calculateWeeklyTrend(
     ? whoopHistory.reduce((sum, w) => sum + (w.strain ?? 10), 0) / whoopHistory.length
     : 10;
 
-  const trainingLoad = workouts.length + grappling.length;
+  const trainingLoad = workouts.length + trainingSessions.length;
 
   return { avgRecovery, avgSleep, avgStrain, trainingLoad };
 }
@@ -347,7 +347,7 @@ function calculateWeeklyTrend(
 function calculateReadiness(
   whoopData: WearableData | null,
   workouts: WorkoutLog[],
-  grappling: GrapplingSession[],
+  trainingSessions: TrainingSession[],
   injuries: InjuryEntry[]
 ): TrainingReadiness {
   let score = 70; // Default baseline
@@ -396,7 +396,7 @@ function calculateReadiness(
   }
 
   // Check recent training volume
-  const recentTraining = workouts.length + grappling.length;
+  const recentTraining = workouts.length + trainingSessions.length;
   if (recentTraining >= 6) {
     score -= 10;
     factors.push({ name: 'Weekly Volume', impact: 'negative', value: `${recentTraining} sessions` });

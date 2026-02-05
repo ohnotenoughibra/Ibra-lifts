@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -121,110 +121,124 @@ const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
 
-function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[]; onDayClick?: (date: Date) => void }) {
   const trainingSessions = useAppStore(s => s.trainingSessions);
   const user = useAppStore(s => s.user);
   const weeks = 12;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
-  // Format date to local YYYY-MM-DD string (handles timezone properly)
-  const fmtDate = (d: Date | string) => {
-    const dt = typeof d === 'string' ? new Date(d) : d;
-    // Use local date parts to avoid timezone issues
-    const year = dt.getFullYear();
-    const month = String(dt.getMonth() + 1).padStart(2, '0');
-    const day = String(dt.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  // Use toDateString() for comparison - avoids all timezone issues
+  // "Mon Jan 15 2024" format is unambiguous and based on local time
+  const toDateKey = (d: Date | string): string => {
+    if (typeof d === 'string') {
+      // For ISO strings, parse them properly
+      return new Date(d).toDateString();
+    }
+    return d.toDateString();
   };
 
-  // Build sets for lifting and training session dates
-  const liftingDates = useMemo(() => {
-    const dates = new Set<string>();
+  const today = new Date();
+  const todayKey = today.toDateString();
+
+  // Build sets for lifting dates using toDateString keys
+  const liftingDateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!workoutLogs || workoutLogs.length === 0) return keys;
+
     workoutLogs.forEach(log => {
       if (log.date) {
-        dates.add(fmtDate(log.date));
+        keys.add(toDateKey(log.date));
       }
     });
-    return dates;
+    return keys;
   }, [workoutLogs]);
 
   // Include training sessions if user does combat/general fitness
   const includeOtherSessions = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
-  const sessionDates = useMemo(() => {
-    const dates = new Set<string>();
-    if (includeOtherSessions) {
-      trainingSessions.forEach(s => {
-        if (s.date) {
-          dates.add(fmtDate(s.date));
-        }
-      });
-    }
-    return dates;
+
+  const sessionDateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!includeOtherSessions || !trainingSessions) return keys;
+
+    trainingSessions.forEach(s => {
+      if (s.date) {
+        keys.add(toDateKey(s.date));
+      }
+    });
+    return keys;
   }, [trainingSessions, includeOtherSessions]);
 
-  // Calculate separate streaks for lifting and training
-  const calculateStreak = (dates: Set<string>) => {
-    if (dates.size === 0) return 0;
-    const sortedDates = Array.from(dates).sort().reverse();
-    const todayStr = fmtDate(today);
+  // Calculate streak by walking backwards from today
+  const calculateStreak = useCallback((dateKeys: Set<string>) => {
+    if (dateKeys.size === 0) return 0;
+
+    // Check if today or yesterday has activity
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = fmtDate(yesterday);
+    const yesterdayKey = yesterday.toDateString();
 
-    if (sortedDates[0] !== todayStr && sortedDates[0] !== yesterdayStr) {
-      return 0; // No recent activity
+    const hasToday = dateKeys.has(todayKey);
+    const hasYesterday = dateKeys.has(yesterdayKey);
+
+    if (!hasToday && !hasYesterday) return 0;
+
+    // Start counting from today or yesterday
+    let streak = 0;
+    const checkDate = new Date(today);
+
+    // If no activity today, start from yesterday
+    if (!hasToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
     }
 
-    let streak = 1;
-    let prevDate = new Date(sortedDates[0]);
-
-    for (let i = 1; i < sortedDates.length; i++) {
-      const checkDate = new Date(sortedDates[i]);
-      const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        streak++;
-        prevDate = checkDate;
-      } else {
-        break;
-      }
+    // Walk backwards counting consecutive days
+    while (dateKeys.has(checkDate.toDateString())) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
     }
+
     return streak;
-  };
+  }, [todayKey]);
 
-  const liftingStreak = calculateStreak(liftingDates);
-  const trainingStreak = includeOtherSessions ? calculateStreak(sessionDates) : 0;
+  const liftingStreak = calculateStreak(liftingDateKeys);
+  const trainingStreak = includeOtherSessions ? calculateStreak(sessionDateKeys) : 0;
 
   // Generate grid: 12 weeks x 7 days
   type DayData = {
     date: Date;
+    dateKey: string;
     hasLifting: boolean;
     hasSession: boolean;
     isToday: boolean;
     isFuture: boolean;
   };
-  const grid: DayData[][] = [];
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
 
-  for (let w = 0; w < weeks; w++) {
-    const week: DayData[] = [];
-    for (let d = 0; d < 7; d++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + w * 7 + d);
-      const dateStr = fmtDate(date);
-      const isFuture = date > today;
-      week.push({
-        date,
-        hasLifting: liftingDates.has(dateStr),
-        hasSession: sessionDates.has(dateStr),
-        isToday: date.getTime() === today.getTime(),
-        isFuture,
-      });
+  const grid = useMemo(() => {
+    const result: DayData[][] = [];
+    const startDate = new Date(today);
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - (weeks * 7 - 1) - startDate.getDay());
+
+    for (let w = 0; w < weeks; w++) {
+      const week: DayData[] = [];
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + w * 7 + d);
+        const dateKey = date.toDateString();
+        const isFuture = date.getTime() > today.getTime();
+
+        week.push({
+          date,
+          dateKey,
+          hasLifting: liftingDateKeys.has(dateKey),
+          hasSession: sessionDateKeys.has(dateKey),
+          isToday: dateKey === todayKey,
+          isFuture,
+        });
+      }
+      result.push(week);
     }
-    grid.push(week);
-  }
+    return result;
+  }, [liftingDateKeys, sessionDateKeys, todayKey]);
 
   // Get day color based on activity type
   const getDayColor = (day: DayData) => {
@@ -268,17 +282,22 @@ function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       <div className="flex gap-[3px]">
         {grid.map((week, wi) => (
           <div key={wi} className="flex flex-col gap-[3px]">
-            {week.map((day, di) => (
-              <div
-                key={di}
-                className={cn(
-                  'w-3 h-3 rounded-sm transition-colors',
-                  getDayColor(day),
-                  day.isToday && 'ring-1 ring-primary-400'
-                )}
-                title={getDayTitle(day)}
-              />
-            ))}
+            {week.map((day, di) => {
+              const canClick = onDayClick && !day.isFuture;
+              return (
+                <div
+                  key={di}
+                  onClick={() => canClick && onDayClick(day.date)}
+                  className={cn(
+                    'w-3 h-3 rounded-sm transition-colors',
+                    getDayColor(day),
+                    day.isToday && 'ring-1 ring-primary-400',
+                    canClick && 'cursor-pointer hover:ring-1 hover:ring-white/40'
+                  )}
+                  title={getDayTitle(day)}
+                />
+              );
+            })}
           </div>
         ))}
       </div>
@@ -885,12 +904,14 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions, bodyWeightLog,
     trainingSessions, latestWhoopData, meals,
-    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
+    addTrainingSession
   } = useAppStore();
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
+  const [heatmapSelectedDate, setHeatmapSelectedDate] = useState<Date | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Today's Summary Data ───
@@ -1766,7 +1787,115 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       )}
 
       {/* Training Streak Heatmap */}
-      <StreakHeatmap workoutLogs={workoutLogs} />
+      <StreakHeatmap workoutLogs={workoutLogs} onDayClick={(date) => setHeatmapSelectedDate(date)} />
+
+      {/* Add Session Modal from Heatmap */}
+      <AnimatePresence>
+        {heatmapSelectedDate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setHeatmapSelectedDate(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-grappler-800 rounded-2xl p-5 w-full max-w-xs shadow-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold text-white mb-1">Add Activity</h3>
+              <p className="text-sm text-grappler-400 mb-4">{heatmapSelectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+
+              <div className="space-y-2">
+                {/* Grappling option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'grappling',
+                      type: 'bjj_nogi',
+                      plannedIntensity: 'moderate',
+                      duration: 60,
+                      timing: 'standalone',
+                      perceivedExertion: 6,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <Dumbbell className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Grappling</p>
+                    <p className="text-xs text-grappler-400">BJJ / Wrestling</p>
+                  </div>
+                </button>
+
+                {/* Striking option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'striking',
+                      type: 'boxing',
+                      plannedIntensity: 'moderate',
+                      duration: 60,
+                      timing: 'standalone',
+                      perceivedExertion: 6,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Striking</p>
+                    <p className="text-xs text-grappler-400">Boxing / Kickboxing</p>
+                  </div>
+                </button>
+
+                {/* Cardio option */}
+                <button
+                  onClick={() => {
+                    addTrainingSession({
+                      date: heatmapSelectedDate,
+                      category: 'cardio',
+                      type: 'running',
+                      plannedIntensity: 'moderate',
+                      duration: 30,
+                      timing: 'standalone',
+                      perceivedExertion: 5,
+                    });
+                    setHeatmapSelectedDate(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-white">Cardio</p>
+                    <p className="text-xs text-grappler-400">Running / Cycling</p>
+                  </div>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setHeatmapSelectedDate(null)}
+                className="w-full mt-4 py-2 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Training Roundup ─── */}
       <div className="card p-4">

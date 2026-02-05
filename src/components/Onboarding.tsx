@@ -236,7 +236,7 @@ function Step1_Identity({
                   )}
                 >
                   <p className="text-sm font-medium text-grappler-100">{sport.title}</p>
-                  <p className="text-[10px] text-grappler-400">{sport.desc}</p>
+                  <p className="text-xs text-grappler-400">{sport.desc}</p>
                 </button>
               ))}
             </div>
@@ -396,7 +396,7 @@ function Step3_Setup({
               )}
             >
               <p className="text-xs font-medium">{level.label}</p>
-              <p className="text-[10px] opacity-70">{level.desc}</p>
+              <p className="text-xs opacity-70">{level.desc}</p>
             </button>
           ))}
         </div>
@@ -507,7 +507,7 @@ function Step3_Setup({
               animate={{ height: 'auto', opacity: 1 }}
               className="mt-2 overflow-hidden"
             >
-              <p className="text-[10px] text-grappler-500 mb-1.5">
+              <p className="text-xs text-grappler-500 mb-1.5">
                 What equipment do you have? (tap to toggle)
               </p>
               <div className="flex flex-wrap gap-1">
@@ -535,7 +535,7 @@ function Step3_Setup({
                         update({ availableEquipment: updated });
                       }}
                       className={cn(
-                        'px-2 py-1 rounded text-[10px] font-medium transition-all border',
+                        'px-2 py-1 rounded text-xs font-medium transition-all border',
                         isSelected
                           ? 'bg-primary-500/20 text-primary-300 border-primary-500/50'
                           : 'bg-grappler-800 text-grappler-500 border-grappler-700'
@@ -594,10 +594,10 @@ function Step3_Setup({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-grappler-100">{opt.title}</p>
-                  <p className="text-[10px] text-grappler-400">{opt.desc}</p>
+                  <p className="text-xs text-grappler-400">{opt.desc}</p>
                 </div>
                 {selected && opt.value === 'whoop' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     Recommended
                   </span>
                 )}
@@ -858,7 +858,7 @@ function Step4_Schedule({
                         key={intensity}
                         onClick={() => setCombatIntensity(cd.day, intensity)}
                         className={cn(
-                          'flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all capitalize',
+                          'flex-1 py-1.5 rounded-md text-xs font-medium transition-all capitalize',
                           cd.intensity === intensity
                             ? intensity === 'light' ? 'bg-green-500/20 text-green-400 border border-green-500/40'
                               : intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
@@ -1073,15 +1073,15 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{data.sessionsPerWeek}</p>
-          <p className="text-[10px] text-grappler-400">Days/Week</p>
+          <p className="text-xs text-grappler-400">Days/Week</p>
         </div>
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{getSplitLabel()}</p>
-          <p className="text-[10px] text-grappler-400">Split</p>
+          <p className="text-xs text-grappler-400">Split</p>
         </div>
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{data.sessionDurationMinutes}m</p>
-          <p className="text-[10px] text-grappler-400">Per Session</p>
+          <p className="text-xs text-grappler-400">Per Session</p>
         </div>
       </div>
 

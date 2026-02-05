@@ -215,7 +215,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   // ── Dynamic macro targets based on body weight + goal ──
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
   const bodyWeightLbs = latestWeight
-    ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
+    ? (latestWeight?.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
     : 175; // Default weight if none logged
 
   const computedTargets = useMemo(() => {

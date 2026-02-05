@@ -33,7 +33,8 @@ import {
   MuscleGroupConfig,
   WearableData,
   CompetitionEvent,
-  WhoopWorkout
+  WhoopWorkout,
+  QuickLog
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -74,6 +75,9 @@ interface AppState {
 
   // Body weight tracking
   bodyWeightLog: BodyWeightEntry[];
+
+  // Quick logging (water, sleep, energy, readiness, mobility)
+  quickLogs: QuickLog[];
 
   // Injury tracking
   injuryLog: InjuryEntry[];
@@ -190,6 +194,10 @@ interface AppState {
   addBodyWeight: (weight: number, notes?: string) => void;
   deleteBodyWeight: (id: string) => void;
 
+  // Quick log actions
+  addQuickLog: (log: Omit<QuickLog, 'id'>) => void;
+  deleteQuickLog: (id: string) => void;
+
   // Injury actions
   addInjury: (injury: Omit<InjuryEntry, 'id'>) => void;
   resolveInjury: (id: string) => void;
@@ -299,6 +307,7 @@ export const useAppStore = create<AppState>()(
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
       bodyWeightLog: [],
+      quickLogs: [],
       injuryLog: [],
       customExercises: [],
       sessionTemplates: [],
@@ -1294,6 +1303,21 @@ export const useAppStore = create<AppState>()(
         set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
       },
 
+      // Quick log actions
+      addQuickLog: (log) => {
+        const { quickLogs } = get();
+        const entry: QuickLog = {
+          ...log,
+          id: uuidv4(),
+        };
+        set({ quickLogs: [...quickLogs, entry] });
+      },
+
+      deleteQuickLog: (id) => {
+        const { quickLogs } = get();
+        set({ quickLogs: quickLogs.filter(l => l.id !== id) });
+      },
+
       // Injury actions
       addInjury: (injury) => {
         const { injuryLog } = get();
@@ -1496,6 +1520,7 @@ export const useAppStore = create<AppState>()(
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
           bodyWeightLog: [],
+          quickLogs: [],
           injuryLog: [],
           customExercises: [],
           sessionTemplates: [],

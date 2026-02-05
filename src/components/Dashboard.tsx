@@ -48,6 +48,7 @@ import {
   X,
   Scale,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog } from '@/lib/types';
@@ -109,9 +110,10 @@ const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => 
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
+const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | null;
 
 function StreakHeatmap({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const weeks = 12;
@@ -277,6 +279,9 @@ export default function Dashboard() {
   }
   if (overlayView === 'community_share') {
     return <CommunityShare onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'quick_actions') {
+    return <QuickActions onClose={() => setOverlayView(null)} />;
   }
 
   // Mesocycle report overlay
@@ -1076,15 +1081,16 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     setPreviousMesocycleId(null);
   };
 
-  // Tools split into featured (top 4) and more
-  // Featured: Core tools for combat athletes - grappling, recovery tracking, coaching, nutrition
+  // Tools split into featured (top 5) and more
+  // Featured: Core tools for combat athletes - quick actions, grappling, wearable, nutrition, coaching
   const featuredTools = [
+    { icon: Sparkles, label: 'Quick Log', view: 'quick_actions' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
     { icon: Shield, label: 'Grappling', view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
     { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' },
-    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
     { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
   ];
   const moreTools = [
+    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
     { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
     { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },

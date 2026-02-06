@@ -582,6 +582,107 @@ export const workoutTips: KnowledgeTip[] = [
     content: 'Face pulls: Pull to your forehead, externally rotate at the end. Essential for shoulder health, especially for fighters.',
     category: 'lifting_technique',
     exerciseId: 'face-pull'
+  },
+  // ── Diet & Training Integration Tips ──────────────────────────────────────
+  {
+    id: 'tip-diet-cut-volume',
+    content: 'During a cut, maintain heavy compound loads but reduce volume ~20%. Your body can\'t recover from the same training stress in a deficit. Strength is neurally mediated and survives deficits better than hypertrophy (Murphy & Koehler, 2022).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-cut-rest',
+    content: 'In a caloric deficit, take 25-30% longer rest between sets. Glycogen stores are lower and CNS recovery is compromised. Longer rest lets you maintain the loads that actually preserve muscle.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-cut-rpe',
+    content: 'During a cut, aim for RPE 7-8.5 instead of always grinding to RPE 9-10. You need a fatigue buffer — recovery capacity is reduced and injury risk rises with accumulated fatigue in a deficit.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-protein-timing',
+    content: 'Distribute protein evenly across 4-5 meals (30-50g each). A meta-analysis by Schoenfeld et al. (2018) found protein distribution matters more than total daily timing for muscle retention.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-protein-cut',
+    content: 'During a cut, protein needs go UP, not down. Aim for 2.0-2.4 g/kg to minimize muscle loss. The leaner you are, the higher you need to go (Helms et al., 2014).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-fat-floor',
+    content: 'Never drop dietary fat below 0.8 g/kg (men) or 1.0 g/kg (women). Fat is essential for testosterone, estrogen, and overall hormonal function. Going too low causes hormonal disruption — RED-S in women (Melin et al., 2019).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-surplus-training',
+    content: 'In a surplus, you can handle ~10% more training volume and push RPE higher. Your body recovers faster with more energy available. This is prime time for progressive overload.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-deload-cut',
+    content: 'Deload more frequently during a cut — every 3-4 weeks instead of 5-6. Your recovery capacity is reduced, and accumulated fatigue can mimic overtraining when combined with energy restriction.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-break',
+    content: 'After 6-8 weeks of cutting, take a 1-2 week diet break at maintenance. Byrne et al. (2017) showed intermittent dieting preserves metabolic rate and improves long-term fat loss vs continuous restriction.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-carbs-training',
+    content: 'On training days, eat more carbs around your workout (before and after). Carbs fuel high-intensity training and replenish glycogen. On rest days, slightly lower carbs and higher fat is fine.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-weight-fluctuation',
+    content: 'Daily weight can fluctuate 1-3 lbs from water, sodium, and food volume. Use a 7-day moving average to track real trends. Don\'t panic over a single weigh-in — look at the weekly direction.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-recomp',
+    content: 'Body recomposition (gaining muscle while losing fat) is possible for beginners and detrained lifters, but becomes much harder for intermediates. For most trained lifters, dedicated cut/bulk phases are more effective (Barakat et al., 2020).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-rate-loss',
+    content: 'Aim to lose 0.5-0.7% of body weight per week during a cut. Faster rates (>1% BW/week) significantly increase muscle loss, especially in leaner individuals (Garthe et al., 2011).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-women-cut',
+    content: 'Women should cut more conservatively (~0.5% BW/week vs 0.7% for men). Aggressive deficits are more likely to disrupt menstrual function, thyroid, and cortisol in women (Melin et al., 2019).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-women-fat',
+    content: 'Women need a higher minimum fat intake (1.0 g/kg) than men (0.8 g/kg) during a cut. Low fat disrupts estrogen production and menstrual health — a key risk factor for RED-S (Relative Energy Deficiency in Sport).',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-surplus-size',
+    content: 'A smaller surplus (5-10% above maintenance) is nearly as effective as a large one for muscle gain, with far less fat gain. Helms et al. (2023) showed a 15% surplus mostly added extra fat, not extra muscle.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-creatine',
+    content: 'Creatine monohydrate (3-5g daily) is the most evidence-backed supplement for strength and muscle. It works in both surplus and deficit. Don\'t cycle it — just take it every day.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-adherence',
+    content: 'The best diet is the one you can stick to. Adherence trumps optimization. A moderate deficit you can maintain for 8 weeks beats an aggressive one you abandon after 2.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-combat-weight',
+    content: 'Combat athletes: don\'t cut weight AND train hard simultaneously. Reduce training volume by 20-30% during weight cuts. Your sport performance depends on both strength and energy availability.',
+    category: 'dieting'
+  },
+  {
+    id: 'tip-diet-sleep-deficit',
+    content: 'Sleep becomes even more critical during a caloric deficit. Poor sleep (< 6 hrs) during a cut shifts weight loss toward muscle rather than fat. Prioritize 7-9 hours (Nedeltcheva et al., 2010).',
+    category: 'dieting'
   }
 ];
 
@@ -1600,6 +1701,249 @@ This app tracks all of this automatically. Use it.
 `
   },
   {
+    id: 'article-dieting-training-integration',
+    title: 'How Your Diet Phase Should Change Your Training',
+    category: 'dieting',
+    tags: ['dieting', 'training', 'cut', 'bulk', 'programming'],
+    readTime: 7,
+    publishedAt: new Date('2025-03-20'),
+    source: 'Helms et al. 2015, Murphy & Koehler 2022, Roth et al. 2023',
+    content: `
+## Your Diet Phase Directly Affects Training
+
+Most people keep training the same whether they're cutting, maintaining, or bulking. This is a mistake backed by strong evidence.
+
+### During a Cut (Caloric Deficit)
+
+Your recovery capacity drops significantly in a deficit. The research is clear:
+
+**Volume:** Reduce by 15-20%. You cannot recover from the same volume with less fuel. Murphy & Koehler (2022) showed that maintaining volume in a deficit leads to accumulated fatigue without additional muscle retention.
+
+**Intensity:** Keep loads heavy but reduce RPE by 0.5-1 point. Heavy loads preserve strength neurally. Dropping to light weights is the #1 mistake — it removes the stimulus that tells your body to keep muscle.
+
+**Rest Periods:** Extend by 25-30%. Glycogen is depleted faster in a deficit. Longer rest lets you maintain the loads that actually matter.
+
+**Deload Frequency:** Every 3-4 weeks instead of 5-6. Recovery debt accumulates faster.
+
+### During a Bulk (Caloric Surplus)
+
+More fuel = more recovery capacity. Take advantage:
+
+**Volume:** Increase by 10%. This is prime time for progressive overload. Your body can handle more training stress.
+
+**Intensity:** Push RPE slightly higher (+0.3). You can handle closer-to-failure training with more calories available.
+
+**Rest Periods:** Can be shortened by ~10%. Better glycogen status means faster recovery between sets.
+
+**Deload Frequency:** Every 5-6 weeks. You recover better, so you can accumulate more productive training before needing to deload.
+
+### During Maintenance
+
+Train normally. This is your baseline programming.
+
+## Practical Takeaways
+
+1. **Never drop intensity during a cut** — drop volume instead
+2. **A surplus is wasted if you don't train harder** — add volume
+3. **Adjust deload timing to your diet phase** — cut = more frequent deloads
+4. **This app auto-adjusts** — your diet phase is factored into workout generation
+`
+  },
+  {
+    id: 'article-cutting-guide',
+    title: 'The Evidence-Based Guide to Cutting Weight',
+    category: 'dieting',
+    tags: ['dieting', 'cut', 'fat-loss', 'muscle-retention'],
+    readTime: 8,
+    publishedAt: new Date('2025-03-25'),
+    source: 'Garthe et al. 2011, Helms et al. 2014, Byrne et al. 2017',
+    content: `
+## How to Cut Without Losing Muscle
+
+Losing fat while keeping muscle is a science, not a guessing game. Here's what the research says.
+
+### Rate of Loss
+
+**Men:** 0.5-0.7% of bodyweight per week. Garthe et al. (2011) showed that athletes losing weight at ~0.7% BW/week retained significantly more muscle than those losing at 1%+.
+
+**Women:** 0.3-0.5% of bodyweight per week. Women are more susceptible to hormonal disruption from aggressive deficits (Melin et al., 2019). Slower is safer.
+
+### Protein Requirements During a Cut
+
+Protein needs go UP during a deficit, not down:
+- **Men:** 2.2-2.4 g/kg bodyweight
+- **Women:** 2.0-2.2 g/kg bodyweight
+
+The leaner you get, the higher protein needs to go to prevent muscle loss (Helms et al., 2014).
+
+### Fat Floors (Minimum Fat Intake)
+
+Never drop dietary fat below:
+- **Men:** 0.8 g/kg bodyweight
+- **Women:** 1.0 g/kg bodyweight
+
+Low fat disrupts hormone production. For women, this is a risk factor for RED-S (Relative Energy Deficiency in Sport) — a condition that impairs bone health, immune function, and menstrual health (Melin et al., 2019).
+
+### Diet Breaks
+
+Byrne et al. (2017) — the MATADOR study — showed that intermittent dieting (2 weeks deficit, 1-2 weeks maintenance) preserved metabolic rate better than continuous restriction.
+
+**Recommended timing:**
+- Men: Diet break every 6-8 weeks
+- Women: Diet break every 4-6 weeks
+
+### Maximum Cut Duration
+
+- Men: 12-16 weeks before a mandatory extended break
+- Women: 8-12 weeks before a mandatory extended break
+
+### Training During a Cut
+
+See "How Your Diet Phase Should Change Your Training" for the full breakdown. Key point: maintain intensity, reduce volume.
+
+## Red Flags to Watch For
+
+Stop your cut if you experience:
+- Persistent fatigue lasting 2+ weeks
+- Loss of menstrual period (women)
+- Significant strength loss (>10% on compound lifts)
+- Mood disturbances, irritability, or depression
+- Chronic sleep disruption
+- Frequent illness
+
+These are signs of Relative Energy Deficiency. Return to maintenance immediately.
+`
+  },
+  {
+    id: 'article-bulking-guide',
+    title: 'Smart Bulking: Maximize Muscle, Minimize Fat',
+    category: 'dieting',
+    tags: ['dieting', 'bulk', 'muscle-gain', 'surplus'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-28'),
+    source: 'Helms et al. 2023, Iraki et al. 2019',
+    content: `
+## The Science of Gaining Muscle
+
+Building muscle requires a caloric surplus — but bigger is NOT better when it comes to that surplus.
+
+### Optimal Surplus Size
+
+Helms et al. (2023) showed that a 15% surplus produced roughly the same muscle gain as a 5-10% surplus, but with significantly more fat gain.
+
+**Recommended surplus:**
+- Men: 10-12% above maintenance
+- Women: 8-10% above maintenance
+
+### Rate of Weight Gain
+
+- **Beginners:** 0.5-1% BW/month (higher muscle:fat ratio)
+- **Intermediates:** 0.25-0.5% BW/month
+- **Advanced:** 0.1-0.25% BW/month
+
+Gaining faster than these rates primarily adds fat, not muscle.
+
+### Macro Distribution During a Bulk
+
+**Protein:** 1.6-2.0 g/kg. Slightly lower than during a cut because your body has enough energy to be more protein-efficient.
+
+**Fat:** 0.8-1.0 g/kg. Important for hormonal health and overall energy.
+
+**Carbs:** Fill remaining calories. Carbs fuel high-intensity training and support recovery — they're your best friend during a bulk.
+
+### Training During a Bulk
+
+This is when you push hardest:
+- Add 10% more training volume
+- Push RPE slightly higher
+- Progressive overload aggressively
+- Deload every 5-6 weeks
+
+### Maximum Bulk Duration
+
+- Men: 16-20 weeks
+- Women: 12-16 weeks
+
+After this, a maintenance phase (4-6 weeks) helps stabilize new weight before deciding next steps.
+
+### Common Bulking Mistakes
+
+1. **"Dirty bulking"** — eating everything in sight just adds fat
+2. **Not training hard enough** — a surplus without training stimulus becomes fat storage
+3. **Too long without assessment** — check progress every 4 weeks
+4. **Neglecting sleep** — muscle is built during recovery, and sleep is king
+`
+  },
+  {
+    id: 'article-women-nutrition',
+    title: 'Nutrition for Female Athletes: What the Science Says',
+    category: 'dieting',
+    tags: ['dieting', 'women', 'hormones', 'RED-S', 'nutrition'],
+    readTime: 8,
+    publishedAt: new Date('2025-04-01'),
+    source: 'Melin et al. 2019, Loucks & Thuma 2003, Mountjoy et al. 2018',
+    content: `
+## Why Women Need Different Nutrition Strategies
+
+Women's physiology differs from men's in ways that directly impact nutrition for athletic performance. Ignoring these differences leads to poor outcomes — and potentially serious health consequences.
+
+### Energy Availability: The Critical Number
+
+Energy availability (EA) = (Energy Intake - Exercise Energy Expenditure) / Fat-Free Mass
+
+Loucks & Thuma (2003) identified the threshold: when EA drops below 30 kcal/kg FFM/day, hormonal disruption begins. For women, this threshold is less forgiving than for men.
+
+### RED-S (Relative Energy Deficiency in Sport)
+
+RED-S is not just about eating disorders. It affects any athlete in a sustained energy deficit — even unintentionally.
+
+**Symptoms include:**
+- Menstrual irregularity or loss (amenorrhea)
+- Decreased bone density
+- Impaired immune function
+- Increased injury risk
+- Mood disturbances
+- Decreased training adaptation
+
+**Prevention:**
+- Never go below 1200 kcal/day
+- Maintain fat intake above 1.0 g/kg
+- Take diet breaks every 4-6 weeks during cuts
+- Monitor menstrual regularity as a health marker
+
+### Macronutrient Differences
+
+**Protein:** Women can retain muscle with slightly less protein during a cut (2.0-2.2 g/kg vs 2.2-2.4 for men), but should not go lower.
+
+**Fat:** Higher minimum (1.0 g/kg vs 0.8 for men). Fat is essential for estrogen production. Low estrogen = poor bone health, impaired recovery, and mood disturbances.
+
+**Carbs:** Similar needs to men relative to training intensity. Don't fear carbs — they fuel performance.
+
+### Menstrual Cycle Considerations
+
+While individual responses vary, general patterns:
+- **Follicular phase (days 1-14):** Higher carb tolerance, potentially better strength performance
+- **Luteal phase (days 15-28):** Slightly higher metabolic rate, may benefit from slightly more calories
+
+However, the research is still evolving. The most important factor is overall energy availability, not cycle-phase micro-adjustments.
+
+### Cutting Rates for Women
+
+- Maximum: 0.5% BW/week (vs 0.7% for men)
+- Recommended: 0.3-0.5% BW/week
+- Diet breaks: Every 4-6 weeks (vs 6-8 for men)
+- Maximum cut duration: 8-12 weeks (vs 12-16 for men)
+
+### Key Takeaways
+
+1. Energy availability matters more than calories alone
+2. Fat intake directly affects hormonal health
+3. Slower cuts protect against RED-S
+4. Menstrual regularity is a health indicator — not a nuisance
+5. More frequent diet breaks are physiologically important, not a luxury
+`
+  },
+  {
     id: 'article-combat-sport-periodization',
     title: 'Periodization for Combat Sports Athletes',
     category: 'periodization',
@@ -1762,6 +2106,11 @@ export const categoryInfo: Record<ContentCategory, { name: string; description: 
     name: 'Nutrition',
     description: 'Fuel your performance',
     icon: '🍎'
+  },
+  dieting: {
+    name: 'Dieting',
+    description: 'Cut, bulk, and body composition strategies',
+    icon: '⚖️'
   },
   grappling: {
     name: 'Grappling',

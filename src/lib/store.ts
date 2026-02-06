@@ -40,6 +40,7 @@ import {
   ACTIVITY_CATEGORY_MAP,
   DietPhase,
   WeeklyCheckIn,
+  MealReminderSettings,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -114,6 +115,9 @@ interface AppState {
   // Diet coaching
   activeDietPhase: DietPhase | null;
   weeklyCheckIns: WeeklyCheckIn[];
+
+  // Meal reminders
+  mealReminders: MealReminderSettings;
 
   // Body composition
   bodyComposition: BodyCompositionEntry[];
@@ -264,6 +268,9 @@ interface AppState {
   addWeeklyCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id'>) => void;
   incrementPhaseWeek: () => void;
 
+  // Meal reminder actions
+  setMealReminders: (settings: Partial<MealReminderSettings>) => void;
+
   // Body composition actions
   addBodyComposition: (entry: Omit<BodyCompositionEntry, 'id'>) => void;
   deleteBodyComposition: (id: string) => void;
@@ -360,6 +367,11 @@ export const useAppStore = create<AppState>()(
       waterLog: {},
       activeDietPhase: null,
       weeklyCheckIns: [],
+      mealReminders: {
+        enabled: false,
+        reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },
+        enabledMeals: { breakfast: true, lunch: true, dinner: true },
+      },
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
@@ -648,7 +660,10 @@ export const useAppStore = create<AppState>()(
           else avgSportIntensity = 'hard';
         }
 
-        // Generate new mesocycle with granular equipment and sport load scaling
+        // Get active diet phase to influence training programming
+        const { activeDietPhase } = get();
+
+        // Generate new mesocycle with granular equipment, sport load, and diet phase scaling
         const newMesocycle = generateMesocycle({
           userId: user.id,
           goalFocus: user.goalFocus,
@@ -663,6 +678,7 @@ export const useAppStore = create<AppState>()(
           combatSport: user.combatSport,
           experienceLevel: user.experienceLevel,
           biologicalSex: user.sex,
+          dietGoal: activeDietPhase?.isActive ? activeDietPhase.goal : undefined,
           sportSessionsPerWeek,
           avgSportIntensity,
         });
@@ -1816,9 +1832,12 @@ export const useAppStore = create<AppState>()(
 
       // Diet coaching actions
       startDietPhase: (phase) => {
+        const { mealReminders } = get();
         set({
           activeDietPhase: { ...phase, id: uuidv4() },
           macroTargets: phase.currentMacros,
+          // Auto-enable meal reminders when starting a diet phase
+          mealReminders: { ...mealReminders, enabled: true },
         });
       },
 
@@ -1844,6 +1863,12 @@ export const useAppStore = create<AppState>()(
             },
           });
         }
+      },
+
+      // Meal reminder actions
+      setMealReminders: (settings) => {
+        const { mealReminders } = get();
+        set({ mealReminders: { ...mealReminders, ...settings } });
       },
 
       // Body composition actions
@@ -1954,6 +1979,11 @@ export const useAppStore = create<AppState>()(
           waterLog: {},
           activeDietPhase: null,
           weeklyCheckIns: [],
+          mealReminders: {
+            enabled: false,
+            reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },
+            enabledMeals: { breakfast: true, lunch: true, dinner: true },
+          },
           bodyComposition: [],
           muscleEmphasis: null,
           competitions: [],
@@ -2051,6 +2081,7 @@ export const useAppStore = create<AppState>()(
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,
+        mealReminders: state.mealReminders,
         lastSyncAt: state.lastSyncAt,
       })
     }

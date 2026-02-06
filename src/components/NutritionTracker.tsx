@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -29,6 +29,7 @@ import {
   ChevronUp,
   Dumbbell,
   Shield,
+  Star,
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
@@ -435,6 +436,86 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [formCarbs, setFormCarbs] = useState('');
   const [formFat, setFormFat] = useState('');
 
+  // ── Autocomplete state ──
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Meal history index ──
+  // Build a frequency+recency-weighted index from all past meals
+  type HistoryFood = { name: string; portion?: string; calories: number; protein: number; carbs: number; fat: number; count: number; lastUsed: number };
+  const mealHistoryIndex = useMemo(() => {
+    const index = new Map<string, HistoryFood>();
+    meals.forEach(m => {
+      const key = m.name.toLowerCase().trim();
+      const existing = index.get(key);
+      const ts = new Date(m.date).getTime();
+      if (!existing || ts > existing.lastUsed) {
+        // Keep the most recent version's macros + portion
+        index.set(key, {
+          name: m.name,
+          portion: m.portion || existing?.portion,
+          calories: m.calories,
+          protein: m.protein,
+          carbs: m.carbs,
+          fat: m.fat,
+          count: (existing?.count || 0) + 1,
+          lastUsed: ts,
+        });
+      } else {
+        existing.count++;
+      }
+    });
+    return index;
+  }, [meals]);
+
+  // Top 8 most-frequent foods (recency-boosted)
+  const favoriteFoods = useMemo(() => {
+    const now = Date.now();
+    return Array.from(mealHistoryIndex.values())
+      .filter(f => f.count >= 1)
+      .sort((a, b) => {
+        // Score: frequency + recency boost (within last 14 days = +3)
+        const recencyA = (now - a.lastUsed) < 14 * 86400000 ? 3 : 0;
+        const recencyB = (now - b.lastUsed) < 14 * 86400000 ? 3 : 0;
+        return (b.count + recencyB) - (a.count + recencyA);
+      })
+      .slice(0, 8);
+  }, [mealHistoryIndex]);
+
+  // Autocomplete suggestions based on current input
+  const autocompleteSuggestions = useMemo(() => {
+    const q = formName.toLowerCase().trim();
+    if (q.length < 2) return [];
+
+    // 1. Search meal history first (frequency-weighted)
+    const historyMatches = Array.from(mealHistoryIndex.values())
+      .filter(f => f.name.toLowerCase().includes(q))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4)
+      .map(f => ({ ...f, source: 'history' as const }));
+
+    // 2. Search FOOD_DB (only add items not already in history)
+    const historyNames = new Set(historyMatches.map(h => h.name.toLowerCase()));
+    const dbMatches = FOOD_DB
+      .filter(f => f.keywords.some(kw => kw.includes(q) || q.includes(kw)))
+      .filter(f => !historyNames.has(f.name.toLowerCase()))
+      .slice(0, 3)
+      .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const }));
+
+    return [...historyMatches, ...dbMatches].slice(0, 6);
+  }, [formName, mealHistoryIndex]);
+
+  const selectAutocomplete = useCallback((item: { name: string; portion?: string; calories: number; protein: number; carbs: number; fat: number }) => {
+    setFormName(item.name);
+    setFormPortion(item.portion || '');
+    setFormCalories(String(item.calories));
+    setFormProtein(String(item.protein));
+    setFormCarbs(String(item.carbs));
+    setFormFat(String(item.fat));
+    setShowAutocomplete(false);
+    setAnalysisResult({ ...item, confidence: 'high', notes: 'From your meal history' });
+  }, []);
+
   // ── Estimation state ──
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
@@ -454,7 +535,37 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
     setAnalysisError(null);
     setAnalysisResult(null);
+    setShowAutocomplete(false);
 
+    // 1. Check meal history first (exact match)
+    const historyMatch = mealHistoryIndex.get(trimmed.toLowerCase());
+    if (historyMatch) {
+      setAnalysisResult({ ...historyMatch, confidence: 'high', notes: 'From your meal history' });
+      setFormName(historyMatch.name);
+      if (historyMatch.portion) setFormPortion(historyMatch.portion);
+      setFormCalories(String(historyMatch.calories));
+      setFormProtein(String(historyMatch.protein));
+      setFormCarbs(String(historyMatch.carbs));
+      setFormFat(String(historyMatch.fat));
+      return;
+    }
+
+    // 2. Check history for partial matches
+    const partialMatch = Array.from(mealHistoryIndex.values())
+      .filter(f => f.name.toLowerCase().includes(trimmed.toLowerCase()))
+      .sort((a, b) => b.count - a.count)[0];
+    if (partialMatch) {
+      setAnalysisResult({ ...partialMatch, confidence: 'high', notes: 'From your meal history' });
+      setFormName(partialMatch.name);
+      if (partialMatch.portion) setFormPortion(partialMatch.portion);
+      setFormCalories(String(partialMatch.calories));
+      setFormProtein(String(partialMatch.protein));
+      setFormCarbs(String(partialMatch.carbs));
+      setFormFat(String(partialMatch.fat));
+      return;
+    }
+
+    // 3. Fall back to local food database
     const local = estimateLocally(trimmed);
     if (local) {
       setAnalysisResult({ ...local, confidence: 'medium', notes: 'Estimated from local database' });
@@ -586,13 +697,14 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setFormFat('');
     setAnalysisResult(null);
     setAnalysisError(null);
+    setShowAutocomplete(false);
   };
 
   const handleAddMeal = () => {
-    const cal = parseInt(formCalories) || 0;
-    const pro = parseInt(formProtein) || 0;
-    const carb = parseInt(formCarbs) || 0;
-    const f = parseInt(formFat) || 0;
+    const cal = parseFloat(formCalories) || 0;
+    const pro = parseFloat(formProtein) || 0;
+    const carb = parseFloat(formCarbs) || 0;
+    const f = parseFloat(formFat) || 0;
     if (!formName.trim() || cal === 0) return;
 
     addMeal({
@@ -1086,7 +1198,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {analysisResult && (
                     <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/30">
                       <Sparkles className="w-4 h-4 flex-shrink-0" />
-                      <span>Auto-filled from local database</span>
+                      <span>{analysisResult.notes || 'Auto-filled from local database'}</span>
                     </div>
                   )}
 
@@ -1098,20 +1210,51 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </div>
                   )}
 
-                  <div>
+                  {/* Recent & Favorites chips */}
+                  {favoriteFoods.length > 0 && (
+                    <div>
+                      <label className="text-xs text-grappler-400 mb-1.5 block flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-400" />
+                        Your Favorites
+                      </label>
+                      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                        {favoriteFoods.map(food => (
+                          <button
+                            key={food.name}
+                            onClick={() => selectAutocomplete(food)}
+                            className="flex-shrink-0 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors text-left"
+                          >
+                            <p className="text-[11px] font-medium text-grappler-100 truncate max-w-[120px]">{food.name}</p>
+                            <p className="text-[9px] text-grappler-500">{food.calories} kcal · {food.protein}g P</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="relative">
                     <label className="text-xs text-grappler-400 mb-1 block">
                       Name
                     </label>
                     <div className="flex gap-2">
                       <input
+                        ref={nameInputRef}
                         type="text"
                         value={formName}
-                        onChange={(e) => setFormName(e.target.value)}
+                        onChange={(e) => {
+                          setFormName(e.target.value);
+                          setShowAutocomplete(e.target.value.trim().length >= 2);
+                        }}
+                        onFocus={() => {
+                          if (formName.trim().length >= 2) setShowAutocomplete(true);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && formName.trim()) {
                             e.preventDefault();
+                            setShowAutocomplete(false);
                             handleAIEstimate();
                           }
+                          if (e.key === 'Escape') setShowAutocomplete(false);
                         }}
                         placeholder="e.g. Chicken breast and rice"
                         className="input flex-1"
@@ -1128,8 +1271,47 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         <span className="text-xs">Estimate</span>
                       </button>
                     </div>
+
+                    {/* Autocomplete dropdown */}
+                    <AnimatePresence>
+                      {showAutocomplete && autocompleteSuggestions.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-30 left-0 right-0 mt-1 bg-grappler-800 border border-grappler-600 rounded-xl shadow-xl overflow-hidden"
+                        >
+                          {autocompleteSuggestions.map((item, idx) => (
+                            <button
+                              key={`${item.source}-${item.name}-${idx}`}
+                              onClick={() => selectAutocomplete(item)}
+                              className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-grappler-700/60 transition-colors text-left border-b border-grappler-700/40 last:border-b-0"
+                            >
+                              <span className="text-sm flex-shrink-0">
+                                {item.source === 'history' ? (
+                                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                                ) : (
+                                  <Apple className="w-3.5 h-3.5 text-grappler-500" />
+                                )}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-grappler-100 truncate">{item.name}</p>
+                                <p className="text-[10px] text-grappler-500">
+                                  {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
+                                  {item.source === 'history' && item.count > 1 && (
+                                    <span className="text-amber-400/70 ml-1">· logged {item.count}x</span>
+                                  )}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <p className="text-xs text-grappler-600 mt-1">
-                      Type what you ate and tap Estimate to auto-fill macros
+                      Type what you ate — suggestions from your history appear first
                     </p>
                   </div>
 
@@ -1154,8 +1336,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         kcal
                       </label>
                       <input
-                        type="number"
-                        inputMode="numeric"
+                        type="text"
+                        inputMode="decimal"
                         value={formCalories}
                         onChange={(e) => setFormCalories(e.target.value)}
                         placeholder="0"
@@ -1168,8 +1350,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         Protein (g)
                       </label>
                       <input
-                        type="number"
-                        inputMode="numeric"
+                        type="text"
+                        inputMode="decimal"
                         value={formProtein}
                         onChange={(e) => setFormProtein(e.target.value)}
                         placeholder="0"
@@ -1182,8 +1364,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         Carbs (g)
                       </label>
                       <input
-                        type="number"
-                        inputMode="numeric"
+                        type="text"
+                        inputMode="decimal"
                         value={formCarbs}
                         onChange={(e) => setFormCarbs(e.target.value)}
                         placeholder="0"
@@ -1196,8 +1378,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         Fat (g)
                       </label>
                       <input
-                        type="number"
-                        inputMode="numeric"
+                        type="text"
+                        inputMode="decimal"
                         value={formFat}
                         onChange={(e) => setFormFat(e.target.value)}
                         placeholder="0"

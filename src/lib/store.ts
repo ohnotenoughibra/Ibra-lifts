@@ -1365,9 +1365,10 @@ export const useAppStore = create<AppState>()(
           trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
         }
 
-        // Calculate streak from sorted dates
-        const sortedDates = Array.from(allTrainingDates).sort().reverse();
+        // Calculate current streak and longest historical streak from sorted dates
+        const sortedDates = Array.from(allTrainingDates).sort().reverse(); // newest first
         let currentStreak = 0;
+        let longestStreak = 0;
 
         if (sortedDates.length > 0) {
           const today = new Date();
@@ -1377,7 +1378,7 @@ export const useAppStore = create<AppState>()(
           yesterday.setDate(yesterday.getDate() - 1);
           const yesterdayStr = fmtDate(yesterday);
 
-          // Start streak if trained today or yesterday
+          // Current streak: only counts if trained today or yesterday
           if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
             currentStreak = 1;
             let prevDate = new Date(sortedDates[0]);
@@ -1390,8 +1391,28 @@ export const useAppStore = create<AppState>()(
                 currentStreak++;
                 prevDate = checkDate;
               } else {
-                break; // Gap in streak
+                break;
               }
+            }
+          }
+
+          // Longest historical streak: scan all dates (oldest first) to find best run
+          const chronological = [...sortedDates].reverse(); // oldest first
+          let runLength = 1;
+          longestStreak = 1;
+
+          for (let i = 1; i < chronological.length; i++) {
+            const prev = new Date(chronological[i - 1]);
+            const curr = new Date(chronological[i]);
+            const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+              runLength++;
+            } else {
+              runLength = 1;
+            }
+            if (runLength > longestStreak) {
+              longestStreak = runLength;
             }
           }
         }
@@ -1403,7 +1424,7 @@ export const useAppStore = create<AppState>()(
             totalVolume,
             personalRecords,
             currentStreak,
-            longestStreak: Math.max(gamificationStats.longestStreak, currentStreak),
+            longestStreak,
           }
         });
 

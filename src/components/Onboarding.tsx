@@ -17,17 +17,15 @@ import {
   Target,
   Sparkles,
   Eye,
-  Smile,
   Trophy,
-  Watch,
-  Activity,
-  X,
+  User,
+  Ruler,
 } from 'lucide-react';
-import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, WearableUsage, WearableProvider, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarDays, AlertTriangle } from 'lucide-react';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
@@ -56,12 +54,13 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
       case 2:
         return !!onboardingData.goalFocus;
       case 3:
-        return onboardingData.name.length >= 2 && !!onboardingData.sessionsPerWeek;
+        return onboardingData.name.length >= 2 && !!onboardingData.sex && onboardingData.age > 0;
       case 4:
-        // Schedule step — need at least the right number of training days selected
-        return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
+        return !!onboardingData.sessionsPerWeek && !!onboardingData.equipment;
       case 5:
-        return true; // Preview — always can proceed
+        return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
+      case 6:
+        return true;
       default:
         return true;
     }
@@ -69,18 +68,20 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh px-4 py-8">
-      {/* Progress dots */}
-      <div className="max-w-lg mx-auto mb-8 flex items-center justify-center gap-3">
-        {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
-          <div key={step} className="flex items-center gap-3">
-            <div
-              className={cn(
-                'w-2.5 h-2.5 rounded-full transition-all',
-                currentStep >= step ? 'bg-primary-500 scale-125' : 'bg-grappler-700'
-              )}
-            />
-          </div>
-        ))}
+      {/* Progress bar */}
+      <div className="max-w-lg mx-auto mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-grappler-500">Step {currentStep} of {TOTAL_STEPS}</p>
+          <p className="text-xs text-grappler-500">{Math.round((currentStep / TOTAL_STEPS) * 100)}%</p>
+        </div>
+        <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
       </div>
 
       {/* Step content */}
@@ -101,13 +102,16 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
               <Step2_Goal data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 3 && (
-              <Step3_Setup data={onboardingData} update={updateOnboardingData} />
+              <Step3_AboutYou data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 4 && (
-              <Step4_Schedule data={onboardingData} update={updateOnboardingData} />
+              <Step4_TrainingSetup data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 5 && (
-              <Step5_Preview data={onboardingData} />
+              <Step5_Schedule data={onboardingData} update={updateOnboardingData} />
+            )}
+            {currentStep === 6 && (
+              <Step6_Preview data={onboardingData} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -220,9 +224,9 @@ function Step1_Identity({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            className="overflow-hidden space-y-2"
           >
-            <label className="block text-sm font-medium text-grappler-300 mb-2">Your sport</label>
+            <p className="text-sm text-grappler-300 font-medium">What do you train?</p>
             <div className="grid grid-cols-2 gap-2">
               {combatSports.map((sport) => (
                 <button
@@ -342,25 +346,22 @@ function Step2_Goal({
   );
 }
 
-// ─── Step 3: Setup ────────────────────────────────────────────────────
-function Step3_Setup({
+// ─── Step 3: About You ───────────────────────────────────────────────
+function Step3_AboutYou({
   data,
   update,
 }: {
   data: OnboardingData;
   update: (data: Partial<OnboardingData>) => void;
 }) {
-  const wearableOptions: { value: WearableUsage; icon: any; title: string; desc: string; color: string }[] = [
-    { value: 'whoop', icon: Activity, title: 'Whoop', desc: 'Auto-sync recovery & strain data', color: 'emerald' },
-    { value: 'other_wearable', icon: Watch, title: 'Other Wearable', desc: 'Apple Watch, Oura, Garmin, etc.', color: 'blue' },
-    { value: 'no_wearable', icon: X, title: 'No Wearable', desc: 'I\'ll log manually', color: 'gray' },
-  ];
-
   return (
     <div className="space-y-5">
       <div className="text-center mb-4">
-        <h2 className="text-xl font-bold text-grappler-50">Your setup</h2>
-        <p className="text-grappler-400 text-sm">So we can build the right program</p>
+        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <User className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-grappler-50">About you</h2>
+        <p className="text-grappler-400 text-sm">Used for programming and nutrition calculations</p>
       </div>
 
       {/* Name */}
@@ -376,10 +377,44 @@ function Step3_Setup({
         />
       </div>
 
-      {/* Biological Sex — programming differs for men vs women */}
+      {/* Age + Height row */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-grappler-300 mb-1.5 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-grappler-400" />
+            Age
+          </label>
+          <input
+            type="number"
+            value={data.age || ''}
+            onChange={(e) => update({ age: parseInt(e.target.value) || 0 })}
+            placeholder="25"
+            min={13}
+            max={80}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-grappler-300 mb-1.5 flex items-center gap-1.5">
+            <Ruler className="w-3.5 h-3.5 text-grappler-400" />
+            Height (cm)
+          </label>
+          <input
+            type="number"
+            value={data.heightCm || ''}
+            onChange={(e) => update({ heightCm: parseInt(e.target.value) || 0 })}
+            placeholder="175"
+            min={100}
+            max={230}
+            className="input"
+          />
+        </div>
+      </div>
+
+      {/* Biological Sex */}
       <div>
         <label className="block text-sm font-medium text-grappler-300 mb-1.5">Biological sex</label>
-        <p className="text-xs text-grappler-500 mb-2">Training science differs — we adjust volume, rest, and rep ranges</p>
+        <p className="text-xs text-grappler-500 mb-2">We adjust volume, rest, rep ranges, and nutrition targets</p>
         <div className="grid grid-cols-2 gap-2">
           {([
             { value: 'male' as BiologicalSex, label: 'Male' },
@@ -389,13 +424,13 @@ function Step3_Setup({
               key={opt.value}
               onClick={() => update({ sex: opt.value })}
               className={cn(
-                'py-2.5 rounded-lg text-center transition-all',
+                'py-3 rounded-xl text-center transition-all border-2',
                 data.sex === opt.value
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-grappler-700 text-grappler-400'
+                  ? 'bg-primary-500/10 border-primary-500 text-white'
+                  : 'bg-grappler-700 border-grappler-700 text-grappler-400'
               )}
             >
-              <p className="text-xs font-medium">{opt.label}</p>
+              <p className="text-sm font-medium">{opt.label}</p>
             </button>
           ))}
         </div>
@@ -426,11 +461,32 @@ function Step3_Setup({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Step 4: Training Setup ──────────────────────────────────────────
+function Step4_TrainingSetup({
+  data,
+  update,
+}: {
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-4">
+        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Dumbbell className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-grappler-50">Training setup</h2>
+        <p className="text-grappler-400 text-sm">How and where you train</p>
+      </div>
 
       {/* Days per week */}
       <div>
-        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Days per week</label>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Lifting days per week</label>
+        <div className="grid grid-cols-6 gap-2">
           {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
             <button
               key={n}
@@ -453,240 +509,139 @@ function Step3_Setup({
         </p>
       </div>
 
-      {/* Session duration + Units in a row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-grappler-300 mb-1.5 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-grappler-400" />
-            Session
-          </label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[45, 60, 75, 90].map((mins) => (
-              <button
-                key={mins}
-                onClick={() => update({ sessionDurationMinutes: mins })}
-                className={cn(
-                  'py-2 rounded-lg text-sm font-bold transition-all',
-                  data.sessionDurationMinutes === mins
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-grappler-700 text-grappler-400'
-                )}
-              >
-                {mins}m
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-grappler-300 mb-1.5">Units</label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {(['kg', 'lbs'] as WeightUnit[]).map((unit) => (
-              <button
-                key={unit}
-                onClick={() => update({ weightUnit: unit })}
-                className={cn(
-                  'py-2 rounded-lg text-sm font-medium transition-all',
-                  data.weightUnit === unit
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-grappler-700 text-grappler-400'
-                )}
-              >
-                {unit.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <label className="block text-sm font-medium text-grappler-300 mt-3 mb-1.5">Where do you train?</label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {([
-              { value: 'full_gym' as const, label: 'Full Gym', desc: 'Commercial gym' },
-              { value: 'home_gym' as const, label: 'Home', desc: 'Home setup' },
-              { value: 'minimal' as const, label: 'Travel', desc: 'Minimal gear' },
-            ]).map((eq) => (
-              <button
-                key={eq.value}
-                onClick={() => {
-                  // Set default equipment for the selected profile
-                  const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
-                    p.name === (eq.value === 'full_gym' ? 'gym' : eq.value === 'home_gym' ? 'home' : 'travel')
-                  );
-                  update({
-                    equipment: eq.value,
-                    availableEquipment: profile?.equipment || [],
-                  });
-                }}
-                className={cn(
-                  'py-2 rounded-lg text-center transition-all',
-                  data.equipment === eq.value
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-grappler-700 text-grappler-400'
-                )}
-              >
-                <p className="text-xs font-medium">{eq.label}</p>
-              </button>
-            ))}
-          </div>
-          {/* Equipment customization */}
-          {data.equipment && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="mt-2 overflow-hidden"
+      {/* Session duration */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5 flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-grappler-400" />
+          Session length
+        </label>
+        <div className="grid grid-cols-4 gap-2">
+          {[45, 60, 75, 90].map((mins) => (
+            <button
+              key={mins}
+              onClick={() => update({ sessionDurationMinutes: mins })}
+              className={cn(
+                'py-2.5 rounded-lg text-sm font-bold transition-all',
+                data.sessionDurationMinutes === mins
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
             >
-              <p className="text-xs text-grappler-500 mb-1.5">
-                What equipment do you have? (tap to toggle)
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {([
-                  { id: 'barbell' as EquipmentType, label: 'Barbell' },
-                  { id: 'dumbbell' as EquipmentType, label: 'Dumbbells' },
-                  { id: 'kettlebell' as EquipmentType, label: 'Kettlebell' },
-                  { id: 'bench' as EquipmentType, label: 'Bench' },
-                  { id: 'pull_up_bar' as EquipmentType, label: 'Pull-up Bar' },
-                  { id: 'cable' as EquipmentType, label: 'Cables' },
-                  { id: 'machine' as EquipmentType, label: 'Machines' },
-                  { id: 'resistance_band' as EquipmentType, label: 'Bands' },
-                  { id: 'dip_station' as EquipmentType, label: 'Dip Station' },
-                  { id: 'ez_bar' as EquipmentType, label: 'EZ Bar' },
-                ]).map((item) => {
-                  const isSelected = data.availableEquipment?.includes(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        const current = data.availableEquipment || [];
-                        const updated = isSelected
-                          ? current.filter(e => e !== item.id)
-                          : [...current, item.id];
-                        update({ availableEquipment: updated });
-                      }}
-                      className={cn(
-                        'px-2 py-1 rounded text-xs font-medium transition-all border',
-                        isSelected
-                          ? 'bg-primary-500/20 text-primary-300 border-primary-500/50'
-                          : 'bg-grappler-800 text-grappler-500 border-grappler-700'
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
+              {mins}m
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Wearable Section */}
-      <div className="pt-2 border-t border-grappler-700">
-        <label className="block text-sm font-medium text-grappler-300 mb-2 flex items-center gap-1.5">
-          <Watch className="w-3.5 h-3.5 text-grappler-400" />
-          Do you use a fitness wearable?
-        </label>
-        <p className="text-xs text-grappler-500 mb-3">
-          We can use your recovery data to optimize training recommendations
-        </p>
-        <div className="space-y-2">
-          {wearableOptions.map((opt) => {
-            const selected = data.wearableUsage === opt.value;
-            const colorClasses = {
-              emerald: { border: 'border-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-400', iconBg: 'bg-emerald-500/20' },
-              blue: { border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400', iconBg: 'bg-blue-500/20' },
-              gray: { border: 'border-grappler-600', bg: 'bg-grappler-700/50', text: 'text-grappler-400', iconBg: 'bg-grappler-700' },
-            };
-            const colors = colorClasses[opt.color as keyof typeof colorClasses];
-            return (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  update({ wearableUsage: opt.value });
-                  // Set default provider for whoop
-                  if (opt.value === 'whoop') {
-                    update({ wearableProvider: 'whoop' });
-                  } else if (opt.value === 'no_wearable') {
-                    update({ wearableProvider: undefined });
-                  }
-                }}
-                className={cn(
-                  'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',
-                  selected ? `${colors.border} ${colors.bg}` : 'border-grappler-700 hover:border-grappler-600'
-                )}
-              >
-                <div className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
-                  selected ? colors.iconBg : 'bg-grappler-700/50'
-                )}>
-                  <opt.icon className={cn('w-4 h-4', selected ? colors.text : 'text-grappler-500')} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-grappler-100">{opt.title}</p>
-                  <p className="text-xs text-grappler-400">{opt.desc}</p>
-                </div>
-                {selected && opt.value === 'whoop' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Recommended
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* Other wearable provider selector */}
-        <AnimatePresence>
-          {data.wearableUsage === 'other_wearable' && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden mt-3"
+      {/* Units */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Weight units</label>
+        <div className="grid grid-cols-2 gap-2">
+          {(['kg', 'lbs'] as WeightUnit[]).map((unit) => (
+            <button
+              key={unit}
+              onClick={() => update({ weightUnit: unit })}
+              className={cn(
+                'py-2.5 rounded-lg text-sm font-medium transition-all',
+                data.weightUnit === unit
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
             >
-              <label className="block text-xs text-grappler-400 mb-1.5">Which wearable?</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: 'apple_health' as WearableProvider, label: 'Apple Watch' },
-                  { value: 'oura' as WearableProvider, label: 'Oura' },
-                  { value: 'garmin' as WearableProvider, label: 'Garmin' },
-                ]).map((w) => (
-                  <button
-                    key={w.value}
-                    onClick={() => update({ wearableProvider: w.value })}
-                    className={cn(
-                      'py-2 rounded-lg text-xs font-medium transition-all',
-                      data.wearableProvider === w.value
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {/* Benefit note for wearable users */}
-        {(data.wearableUsage === 'whoop' || data.wearableUsage === 'other_wearable') && (
-          <div className="mt-3 bg-primary-500/10 border border-primary-500/20 rounded-lg p-2.5">
-            <p className="text-xs text-primary-300">
-              <strong className="text-primary-200">Benefits:</strong> Auto-adjusted workout intensity,
-              recovery-based suggestions, sleep tracking, and personalized readiness scores.
-            </p>
-          </div>
-        )}
-        {data.wearableUsage === 'no_wearable' && (
-          <div className="mt-3 bg-grappler-800/50 border border-grappler-700 rounded-lg p-2.5">
-            <p className="text-xs text-grappler-400">
-              No problem! We'll use your manual check-ins (sleep, soreness, energy) to guide your training.
-            </p>
-          </div>
-        )}
+              {unit.toUpperCase()}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Where do you train */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Where do you train?</label>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { value: 'full_gym' as const, label: 'Full Gym', desc: 'Commercial gym' },
+            { value: 'home_gym' as const, label: 'Home', desc: 'Home setup' },
+            { value: 'minimal' as const, label: 'Travel', desc: 'Minimal gear' },
+          ]).map((eq) => (
+            <button
+              key={eq.value}
+              onClick={() => {
+                const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
+                  p.name === (eq.value === 'full_gym' ? 'gym' : eq.value === 'home_gym' ? 'home' : 'travel')
+                );
+                update({
+                  equipment: eq.value,
+                  availableEquipment: profile?.equipment || [],
+                });
+              }}
+              className={cn(
+                'py-3 rounded-lg text-center transition-all',
+                data.equipment === eq.value
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              <p className="text-xs font-medium">{eq.label}</p>
+              <p className="text-[10px] opacity-70">{eq.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Equipment customization — compact chip toggles */}
+      {data.equipment && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          className="overflow-hidden"
+        >
+          <p className="text-xs text-grappler-500 mb-2">
+            Available equipment (tap to toggle)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              { id: 'barbell' as EquipmentType, label: 'Barbell' },
+              { id: 'dumbbell' as EquipmentType, label: 'Dumbbells' },
+              { id: 'kettlebell' as EquipmentType, label: 'Kettlebell' },
+              { id: 'bench' as EquipmentType, label: 'Bench' },
+              { id: 'pull_up_bar' as EquipmentType, label: 'Pull-up Bar' },
+              { id: 'cable' as EquipmentType, label: 'Cables' },
+              { id: 'machine' as EquipmentType, label: 'Machines' },
+              { id: 'resistance_band' as EquipmentType, label: 'Bands' },
+              { id: 'dip_station' as EquipmentType, label: 'Dip Station' },
+              { id: 'ez_bar' as EquipmentType, label: 'EZ Bar' },
+            ]).map((item) => {
+              const isSelected = data.availableEquipment?.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    const current = data.availableEquipment || [];
+                    const updated = isSelected
+                      ? current.filter(e => e !== item.id)
+                      : [...current, item.id];
+                    update({ availableEquipment: updated });
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-full text-xs font-medium transition-all border',
+                    isSelected
+                      ? 'bg-primary-500/20 text-primary-300 border-primary-500/50'
+                      : 'bg-grappler-800 text-grappler-500 border-grappler-700'
+                  )}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
 
-// ─── Step 4: Training Schedule ─────────────────────────────────────────
+// ─── Step 5: Training Schedule ─────────────────────────────────────────
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 /**
  * Generate best-practice schedule prefills based on sessions per week and identity.
@@ -698,13 +653,11 @@ const DAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
  * - For upper/lower or PPL splits, consecutive days are fine (different muscles)
  */
 function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingIdentity): number[] {
-  // Returns day indices (0=Sun, 1=Mon, ... 6=Sat)
   switch (sessionsPerWeek) {
     case 1: return [3]; // Wed — mid-week
     case 2: return [1, 4]; // Mon, Thu — well-spaced
     case 3: return [1, 3, 5]; // Mon, Wed, Fri — classic, 48h between sessions
     case 4:
-      // Upper/lower split: consecutive days are fine (different muscles)
       return identity === 'combat'
         ? [1, 2, 4, 5]  // Mon, Tue, Thu, Fri — leaves Wed/Sat/Sun for sport
         : [1, 2, 4, 5]; // Mon, Tue, Thu, Fri
@@ -720,53 +673,42 @@ function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingI
 
 /**
  * Generate recommended combat training days based on sport and lifting schedule.
- *
- * Principles (evidence-based):
- * - Sparring/hard sessions mid-week (Wed) when freshest after weekend rest
- * - Light drilling can go on lift days (low interference)
- * - Moderate sessions on non-lifting days for balanced weekly load
- * - Hard sessions should have lifting BEFORE, not after (concurrent training research)
  */
 function getRecommendedCombatDays(
   combatSport: CombatSport | undefined,
   liftingDays: number[]
 ): CombatTrainingDay[] {
-  const liftSet = new Set(liftingDays);
-
   // Default combat schedule: 3-4 sessions/week
-  // Tue moderate, Wed hard (sparring), Thu moderate, Sat light
   const defaultSchedule: CombatTrainingDay[] = [
-    { day: 2, intensity: 'moderate' }, // Tue
-    { day: 3, intensity: 'hard' },     // Wed (sparring day)
-    { day: 4, intensity: 'moderate' }, // Thu
-    { day: 6, intensity: 'light' },    // Sat (light drilling/flow)
+    { day: 2, intensity: 'moderate' },
+    { day: 3, intensity: 'hard' },
+    { day: 4, intensity: 'moderate' },
+    { day: 6, intensity: 'light' },
   ];
 
-  // Adjust if combat sport is striking — slightly different pattern
   if (combatSport === 'striking') {
     return [
-      { day: 2, intensity: 'moderate' }, // Tue — pad work
-      { day: 3, intensity: 'hard' },     // Wed — sparring
-      { day: 5, intensity: 'moderate' }, // Fri — technique
-      { day: 6, intensity: 'light' },    // Sat — bag work / flow
+      { day: 2, intensity: 'moderate' },
+      { day: 3, intensity: 'hard' },
+      { day: 5, intensity: 'moderate' },
+      { day: 6, intensity: 'light' },
     ];
   }
 
-  // MMA — high volume, 4-5 sessions
   if (combatSport === 'mma') {
     return [
-      { day: 1, intensity: 'moderate' }, // Mon — wrestling/grappling
-      { day: 2, intensity: 'moderate' }, // Tue — striking
-      { day: 3, intensity: 'hard' },     // Wed — sparring
-      { day: 5, intensity: 'moderate' }, // Fri — mixed
-      { day: 6, intensity: 'light' },    // Sat — drilling/flow
+      { day: 1, intensity: 'moderate' },
+      { day: 2, intensity: 'moderate' },
+      { day: 3, intensity: 'hard' },
+      { day: 5, intensity: 'moderate' },
+      { day: 6, intensity: 'light' },
     ];
   }
 
   return defaultSchedule;
 }
 
-function Step4_Schedule({
+function Step5_Schedule({
   data,
   update,
 }: {
@@ -777,31 +719,28 @@ function Step4_Schedule({
   const selectedDays = data.trainingDays || [];
   const combatDays = data.combatTrainingDays || [];
 
-  // Auto-prefill schedule on first mount (when no days selected yet)
-  const [hasPrefilled, setHasPrefilled] = useState(false);
-  const didPrefill = useRef(false);
+  // Auto-prefill — re-trigger when sessionsPerWeek changes
+  const prevSessionsRef = useRef(data.sessionsPerWeek);
+  const didInitialPrefill = useRef(false);
 
   useEffect(() => {
-    if (didPrefill.current) return;
-    if (selectedDays.length > 0) {
-      // User already has days selected (e.g., went back and forward)
-      setHasPrefilled(true);
-      didPrefill.current = true;
-      return;
+    const sessionsChanged = prevSessionsRef.current !== data.sessionsPerWeek;
+    prevSessionsRef.current = data.sessionsPerWeek;
+
+    // Re-prefill if sessions changed or this is first mount with no days selected
+    if (sessionsChanged || (!didInitialPrefill.current && selectedDays.length === 0)) {
+      const recommendedLifting = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
+      const updates: Partial<OnboardingData> = { trainingDays: recommendedLifting };
+
+      if (isCombat) {
+        updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport, recommendedLifting);
+      }
+
+      update(updates);
+      didInitialPrefill.current = true;
     }
-
-    const recommendedLifting = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
-    const updates: Partial<OnboardingData> = { trainingDays: recommendedLifting };
-
-    if (isCombat && combatDays.length === 0) {
-      updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport, recommendedLifting);
-    }
-
-    update(updates);
-    setHasPrefilled(true);
-    didPrefill.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [data.sessionsPerWeek]);
 
   const toggleDay = (day: number) => {
     const current = [...selectedDays];
@@ -836,7 +775,7 @@ function Step4_Schedule({
     }
   };
 
-  // Build a recovery analysis based on selected days
+  // Recovery analysis
   const getScheduleAnalysis = () => {
     if (selectedDays.length < data.sessionsPerWeek) return null;
 
@@ -846,7 +785,6 @@ function Step4_Schedule({
     const warnings: string[] = [];
     const tips: string[] = [];
 
-    // Check for consecutive lifting days
     for (let i = 0; i < selectedDays.length - 1; i++) {
       const gap = selectedDays[i + 1] - selectedDays[i];
       if (gap === 1) {
@@ -855,7 +793,6 @@ function Step4_Schedule({
       }
     }
 
-    // Check for lifting day after hard combat
     for (const liftDay of selectedDays) {
       const prevDay = liftDay === 0 ? 6 : liftDay - 1;
       if (hardCombatDays.has(prevDay)) {
@@ -864,7 +801,6 @@ function Step4_Schedule({
       }
     }
 
-    // Check for rest days
     const restDays = [0, 1, 2, 3, 4, 5, 6].filter(d => !allTrainingDays.has(d));
     if (restDays.length === 0) {
       warnings.push('No rest days — consider keeping at least 1 full recovery day');
@@ -872,7 +808,6 @@ function Step4_Schedule({
       tips.push(`${restDays.length} rest days for recovery — solid schedule`);
     }
 
-    // Science tip
     if (data.sessionsPerWeek <= 3 && selectedDays.length >= 2) {
       const hasGoodSpacing = selectedDays.every((day, i) => {
         if (i === 0) return true;
@@ -902,10 +837,10 @@ function Step4_Schedule({
       </div>
 
       {/* Prefill info */}
-      {hasPrefilled && selectedDays.length > 0 && (
+      {selectedDays.length > 0 && (
         <div className="flex items-center justify-between bg-primary-500/10 border border-primary-500/20 rounded-lg p-2.5">
           <p className="text-xs text-primary-300">
-            <strong className="text-primary-200">Auto-suggested</strong> based on best practices for recovery spacing{isCombat ? ' and sport schedule' : ''}
+            <strong className="text-primary-200">Auto-suggested</strong> for optimal recovery spacing
           </p>
           <button
             onClick={() => {
@@ -918,13 +853,13 @@ function Step4_Schedule({
         </div>
       )}
 
-      {/* Lifting days */}
+      {/* Lifting days — responsive grid */}
       <div>
         <label className="block text-sm font-medium text-grappler-300 mb-2">
           Lifting days
           <span className="text-grappler-500 ml-1">({selectedDays.length}/{data.sessionsPerWeek})</span>
         </label>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className="grid grid-cols-7 gap-1">
           {DAY_NAMES.map((name, i) => {
             const isSelected = selectedDays.includes(i);
             const isCombatDay = combatDays.some(d => d.day === i);
@@ -935,7 +870,7 @@ function Step4_Schedule({
                 onClick={() => !atLimit && toggleDay(i)}
                 disabled={atLimit}
                 className={cn(
-                  'py-3 rounded-lg text-center transition-all relative',
+                  'py-2.5 sm:py-3 rounded-lg text-center transition-all relative min-w-0',
                   isSelected
                     ? 'bg-primary-500 text-white font-bold'
                     : atLimit
@@ -943,9 +878,9 @@ function Step4_Schedule({
                     : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
                 )}
               >
-                <span className="text-xs">{name}</span>
+                <span className="text-[10px] sm:text-xs">{name}</span>
                 {isCombatDay && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />
                 )}
               </button>
             );
@@ -963,7 +898,7 @@ function Step4_Schedule({
              'Striking'} training days
             <span className="text-grappler-500 ml-1">(tap to toggle)</span>
           </label>
-          <div className="grid grid-cols-7 gap-1.5 mb-2">
+          <div className="grid grid-cols-7 gap-1 mb-2">
             {DAY_NAMES.map((name, i) => {
               const isLiftDay = selectedDays.includes(i);
               const isCombatDay = combatDays.some(d => d.day === i);
@@ -972,22 +907,22 @@ function Step4_Schedule({
                   key={i}
                   onClick={() => toggleCombatDay(i)}
                   className={cn(
-                    'py-3 rounded-lg text-center transition-all relative',
+                    'py-2.5 sm:py-3 rounded-lg text-center transition-all relative min-w-0',
                     isCombatDay
                       ? 'bg-red-500/20 border-2 border-red-500 text-red-300 font-bold'
                       : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
                   )}
                 >
-                  <span className="text-xs">{name}</span>
+                  <span className="text-[10px] sm:text-xs">{name}</span>
                   {isLiftDay && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary-500" />
+                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary-500" />
                   )}
                 </button>
               );
             })}
           </div>
 
-          {/* Intensity selectors for active combat days */}
+          {/* Intensity selectors */}
           <AnimatePresence>
             {combatDays.length > 0 && (
               <motion.div
@@ -1075,8 +1010,8 @@ function Step4_Schedule({
   );
 }
 
-// ─── Step 5: Preview ──────────────────────────────────────────────────
-function Step5_Preview({ data }: { data: OnboardingData }) {
+// ─── Step 6: Preview ──────────────────────────────────────────────────
+function Step6_Preview({ data }: { data: OnboardingData }) {
   const getIdentityLabel = () => {
     if (data.trainingIdentity === 'combat') {
       const sportLabels: Record<string, string> = {
@@ -1114,20 +1049,20 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
 
     if (isCombat && data.goalFocus === 'balanced') {
       if (sport === 'grappling_gi' || sport === 'grappling_nogi') {
-        return 'Grip strength, hip explosiveness, and pulling power to dominate on the mat. Programmed to complement your rolling schedule.';
+        return 'Grip strength, hip explosiveness, and pulling power to dominate on the mat.';
       }
       if (sport === 'striking') {
-        return 'Rotational power, core stability, and explosive hips for devastating strikes. Built around your training camps.';
+        return 'Rotational power, core stability, and explosive hips for devastating strikes.';
       }
       if (sport === 'mma') {
-        return 'Complete combat strength: takedown power, ground control, striking force, and gas tank. The total package.';
+        return 'Complete combat strength: takedown power, ground control, striking force, and gas tank.';
       }
     }
     if (isCombat && data.goalFocus === 'strength') {
-      return 'Heavy compound lifts to build raw strength that transfers directly to your sport. Low volume, high intensity.';
+      return 'Heavy compound lifts to build raw strength that transfers directly to your sport.';
     }
     if (isCombat && data.goalFocus === 'hypertrophy') {
-      return 'Functional muscle mass with emphasis on the muscles that matter for combat sports. Size that serves a purpose.';
+      return 'Functional muscle mass with emphasis on the muscles that matter for combat sports.';
     }
     if (data.goalFocus === 'strength') {
       return 'Progressive overload on the big lifts. Structured to build serious strength week over week.';
@@ -1151,10 +1086,8 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
   }
   if (data.experienceLevel === 'beginner') {
     features.push('Beginner-friendly progression');
-    features.push('Lower intensity to build base');
   } else if (data.experienceLevel === 'advanced') {
     features.push('Advanced auto-regulation');
-    features.push('Higher volume for growth');
   }
   if (data.trainingDays && data.trainingDays.length > 0) {
     const dayLabels = data.trainingDays.map(d => DAY_NAMES[d]).join(', ');
@@ -1165,42 +1098,16 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
   if (data.combatTrainingDays && data.combatTrainingDays.length > 0) {
     const hardDays = data.combatTrainingDays.filter(d => d.intensity === 'hard');
     if (hardDays.length > 0) {
-      features.push(`Hard sport training on ${hardDays.map(d => DAY_NAMES[d.day]).join(', ')} — lifting intensity auto-adjusted`);
+      features.push(`Hard sport training on ${hardDays.map(d => DAY_NAMES[d.day]).join(', ')} — auto-adjusted`);
     }
   }
-  // Sex-specific programming features
   if (data.sex === 'female') {
-    features.push('Higher volume tolerance — optimized for female physiology');
-    features.push('Shorter rest periods — faster recovery between sets');
-    features.push('Upper body volume boost — proportional development');
-    if (data.goalFocus === 'hypertrophy' || data.goalFocus === 'balanced') {
-      features.push('Higher rep ranges for hypertrophy (8-15 reps)');
-    }
-    features.push('Less aggressive deloads — female-adapted recovery');
-  } else if (data.sex === 'male') {
-    features.push('Standard volume landmarks — male physiology');
-    if (data.goalFocus === 'hypertrophy') {
-      features.push('Hypertrophy rep ranges (6-12 reps)');
-    }
+    features.push('Female-adapted: higher volume, shorter rest, upper body boost');
   }
 
   features.push(`${data.sessionDurationMinutes} min sessions`);
   features.push('Progressive overload built in');
   features.push('Deload week for recovery');
-  // Wearable-specific features
-  if (data.wearableUsage === 'whoop') {
-    features.push('Whoop integration — auto-sync recovery & strain');
-    features.push('Workout intensity auto-adjusted to recovery score');
-  } else if (data.wearableUsage === 'other_wearable') {
-    const providerName = data.wearableProvider === 'apple_health' ? 'Apple Watch' :
-      data.wearableProvider === 'oura' ? 'Oura' :
-      data.wearableProvider === 'garmin' ? 'Garmin' : 'Wearable';
-    features.push(`${providerName} data support`);
-    features.push('Recovery-aware scheduling');
-  } else {
-    features.push('Manual check-in for recovery tracking');
-    features.push('Recovery-aware scheduling');
-  }
 
   return (
     <div className="space-y-5">
@@ -1225,7 +1132,9 @@ function Step5_Preview({ data }: { data: OnboardingData }) {
       <div className="space-y-2">
         {features.map((feature, i) => (
           <div key={i} className="flex items-center gap-3 text-sm">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
+            <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            </div>
             <span className="text-grappler-300">{feature}</span>
           </div>
         ))}

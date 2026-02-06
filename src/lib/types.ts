@@ -893,6 +893,7 @@ export interface OnboardingData {
   step: number;
   name: string;
   age: number;
+  heightCm?: number;
   sex?: BiologicalSex;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -89,9 +89,25 @@ export default function DietCoach() {
   const [formHeight, setFormHeight] = useState(String(user?.heightCm || 175));
   const [formSex, setFormSex] = useState<BiologicalSex>(user?.sex || 'male');
 
+  // Re-sync form state when user profile is updated (e.g. from ProfileSettings)
+  useEffect(() => {
+    if (user?.heightCm) setFormHeight(String(user.heightCm));
+    if (user?.sex) setFormSex(user.sex);
+  }, [user?.heightCm, user?.sex]);
+
+  useEffect(() => {
+    if (latestWeight) {
+      const wKg = latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight;
+      setFormWeight(String(Math.round(wKg)));
+    }
+  }, [latestWeight?.weight, latestWeight?.unit]);
+
   const bodyWeightKg = parseFloat(formWeight) || defaultWeightKg;
   const heightCm = parseFloat(formHeight) || 175;
   const age = user?.age || 25;
+
+  // Can we skip Step 1? All profile data is available from onboarding
+  const hasProfileData = !!(user?.heightCm && user?.sex && (latestWeight || user?.age));
 
   // Analyze weight trend
   const weightTrend = useMemo(
@@ -245,7 +261,11 @@ export default function DietCoach() {
                     Set a nutrition goal and get adaptive macro coaching. Your macros adjust weekly based on your actual weight trend.
                   </p>
                   <button
-                    onClick={() => setShowSetup(true)}
+                    onClick={() => {
+                      setShowSetup(true);
+                      // Skip info step if profile data is complete from onboarding
+                      setSetupStep(hasProfileData ? 'goal' : 'info');
+                    }}
                     className="w-full py-2.5 px-4 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded-xl text-sm font-medium text-violet-300 transition-colors"
                   >
                     Start a Diet Phase
@@ -386,18 +406,24 @@ export default function DietCoach() {
                     })}
                   </div>
 
-                  <div className="p-2.5 bg-grappler-800/30 rounded-lg">
+                  <div className="p-2.5 bg-grappler-800/30 rounded-lg flex items-center justify-between">
                     <p className="text-[10px] text-grappler-500">
-                      {Math.round(bodyWeightKg)}kg &middot; {Math.round(heightCm)}cm &middot; {formSex} &middot; Protein set first, fat floor protected, carbs fill remaining
+                      {Math.round(bodyWeightKg)}kg &middot; {Math.round(heightCm)}cm &middot; {formSex} &middot; age {age}
                     </p>
+                    <button
+                      onClick={() => setSetupStep('info')}
+                      className="text-[10px] text-violet-400 hover:text-violet-300 underline ml-2 flex-shrink-0"
+                    >
+                      Edit
+                    </button>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setSetupStep('info')}
+                      onClick={() => { setShowSetup(false); setSetupStep('info'); }}
                       className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
                     >
-                      Back
+                      Cancel
                     </button>
                     <button
                       onClick={handleStartPhase}

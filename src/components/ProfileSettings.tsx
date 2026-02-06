@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
   User,
-  Settings,
   Trophy,
   Star,
   Medal,
@@ -15,25 +14,95 @@ import {
   Target,
   Dumbbell,
   Calendar,
-  Edit2,
   Save,
-  X,
   DoorOpen,
-  RefreshCw
+  RefreshCw,
+  Ruler,
+  Scale,
+  Watch,
+  Activity,
+  X,
+  Pencil,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
+import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding } = useAppStore();
+  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Edit form state
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editAge, setEditAge] = useState(user?.age || 0);
+  const [editHeight, setEditHeight] = useState(user?.heightCm || 0);
+  const [editSex, setEditSex] = useState<BiologicalSex | undefined>(user?.sex);
+  const [editUnit, setEditUnit] = useState<WeightUnit>(user?.weightUnit || 'lbs');
+  const [editExperience, setEditExperience] = useState<ExperienceLevel>(user?.experienceLevel || 'intermediate');
+  const [editEquipment, setEditEquipment] = useState<Equipment>(user?.equipment || 'full_gym');
+  const [editAvailableEquipment, setEditAvailableEquipment] = useState<EquipmentType[]>(user?.availableEquipment || []);
+  const [editWearable, setEditWearable] = useState<WearableUsage | undefined>(user?.wearableUsage);
+  const [editWearableProvider, setEditWearableProvider] = useState<WearableProvider | undefined>(user?.wearableProvider);
+
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
-
   const earnedBadgeIds = new Set(gamificationStats.badges.map(b => b.badgeId));
+
+  const startEditing = () => {
+    setEditName(user?.name || '');
+    setEditAge(user?.age || 0);
+    setEditHeight(user?.heightCm || 0);
+    setEditSex(user?.sex);
+    setEditUnit(user?.weightUnit || 'lbs');
+    setEditExperience(user?.experienceLevel || 'intermediate');
+    setEditEquipment(user?.equipment || 'full_gym');
+    setEditAvailableEquipment(user?.availableEquipment || []);
+    setEditWearable(user?.wearableUsage);
+    setEditWearableProvider(user?.wearableProvider);
+    setIsEditing(true);
+  };
+
+  const saveEdits = () => {
+    if (!user) return;
+
+    // Detect if training-critical fields changed (these affect mesocycle programming)
+    const trainingFieldsChanged =
+      editSex !== user.sex ||
+      editExperience !== user.experienceLevel ||
+      editEquipment !== user.equipment ||
+      JSON.stringify(editAvailableEquipment) !== JSON.stringify(user.availableEquipment);
+
+    setUser({
+      ...user,
+      name: editName,
+      age: editAge,
+      heightCm: editHeight || undefined,
+      sex: editSex,
+      weightUnit: editUnit,
+      experienceLevel: editExperience,
+      equipment: editEquipment,
+      availableEquipment: editAvailableEquipment,
+      wearableUsage: editWearable,
+      wearableProvider: editWearableProvider,
+      updatedAt: new Date(),
+    });
+    setIsEditing(false);
+
+    // If critical training fields changed, offer to regenerate the mesocycle
+    if (trainingFieldsChanged) {
+      setTimeout(() => {
+        if (confirm(
+          'You changed training settings (sex, experience, or equipment) that affect your program. ' +
+          'Regenerate your mesocycle with the new settings?\n\n' +
+          'Your workout history will be preserved.'
+        )) {
+          generateNewMesocycle();
+        }
+      }, 100);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -83,41 +152,275 @@ export default function ProfileSettings() {
         </div>
       </motion.div>
 
-      {/* Settings Section */}
+      {/* Profile Settings — Editable */}
       <div className="card overflow-hidden">
-        <div className="p-4 border-b border-grappler-700">
+        <div className="p-4 border-b border-grappler-700 flex items-center justify-between">
           <h3 className="font-medium text-grappler-200">Profile Settings</h3>
+          {!isEditing ? (
+            <button
+              onClick={startEditing}
+              className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-1 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Cancel
+              </button>
+              <button
+                onClick={saveEdits}
+                className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 bg-primary-500/10 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* User Info */}
         <div className="divide-y divide-grappler-700">
-          <SettingRow
-            icon={User}
-            label="Name"
-            value={user?.name || 'Not set'}
-          />
-          <SettingRow
-            icon={Calendar}
-            label="Age"
-            value={`${user?.age || 0} years`}
-          />
-          <SettingRow
-            icon={Target}
-            label="Goal Focus"
-            value={user?.goalFocus || 'Balanced'}
-            className="capitalize"
-          />
-          <SettingRow
-            icon={Dumbbell}
-            label="Equipment"
-            value={user?.equipment?.replace('_', ' ') || 'Full Gym'}
-            className="capitalize"
-          />
-          <SettingRow
-            icon={Calendar}
-            label="Sessions/Week"
-            value={`${user?.sessionsPerWeek || 3} sessions`}
-          />
+          {!isEditing ? (
+            <>
+              <SettingRow icon={User} label="Name" value={user?.name || 'Not set'} />
+              <SettingRow icon={Calendar} label="Age" value={user?.age ? `${user.age} years` : 'Not set'} />
+              <SettingRow icon={Ruler} label="Height" value={user?.heightCm ? `${user.heightCm} cm` : 'Not set'} />
+              <SettingRow icon={User} label="Sex" value={user?.sex ? (user.sex === 'male' ? 'Male' : 'Female') : 'Not set'} />
+              <SettingRow icon={Scale} label="Units" value={(user?.weightUnit || 'lbs').toUpperCase()} />
+              <SettingRow icon={Target} label="Experience" value={user?.experienceLevel || 'Intermediate'} className="capitalize" />
+              <SettingRow icon={Dumbbell} label="Equipment" value={user?.equipment?.replace('_', ' ') || 'Full Gym'} className="capitalize" />
+              <SettingRow icon={Calendar} label="Sessions/Week" value={`${user?.sessionsPerWeek || 3} sessions`} />
+            </>
+          ) : (
+            <div className="p-4 space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="input w-full"
+                />
+              </div>
+
+              {/* Age + Height */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-grappler-400 mb-1">Age</label>
+                  <input
+                    type="number"
+                    value={editAge || ''}
+                    onChange={(e) => setEditAge(parseInt(e.target.value) || 0)}
+                    className="input w-full"
+                    min={13} max={80}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-grappler-400 mb-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    value={editHeight || ''}
+                    onChange={(e) => setEditHeight(parseInt(e.target.value) || 0)}
+                    className="input w-full"
+                    min={100} max={230}
+                  />
+                </div>
+              </div>
+
+              {/* Sex */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Biological sex</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['male', 'female'] as BiologicalSex[]).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setEditSex(s)}
+                      className={cn(
+                        'py-2 rounded-lg text-sm font-medium transition-all',
+                        editSex === s ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {s === 'male' ? 'Male' : 'Female'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Units */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Weight units</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['kg', 'lbs'] as WeightUnit[]).map((u) => (
+                    <button
+                      key={u}
+                      onClick={() => setEditUnit(u)}
+                      className={cn(
+                        'py-2 rounded-lg text-sm font-medium transition-all',
+                        editUnit === u ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {u.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Experience level</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((lvl) => (
+                    <button
+                      key={lvl}
+                      onClick={() => setEditExperience(lvl)}
+                      className={cn(
+                        'py-2 rounded-lg text-xs font-medium transition-all capitalize',
+                        editExperience === lvl ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Equipment profile */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Training location</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'full_gym' as Equipment, label: 'Full Gym' },
+                    { value: 'home_gym' as Equipment, label: 'Home' },
+                    { value: 'minimal' as Equipment, label: 'Travel' },
+                  ]).map((eq) => (
+                    <button
+                      key={eq.value}
+                      onClick={() => {
+                        setEditEquipment(eq.value);
+                        const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
+                          p.name === (eq.value === 'full_gym' ? 'gym' : eq.value === 'home_gym' ? 'home' : 'travel')
+                        );
+                        setEditAvailableEquipment(profile?.equipment || []);
+                      }}
+                      className={cn(
+                        'py-2 rounded-lg text-xs font-medium transition-all',
+                        editEquipment === eq.value ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {eq.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Wearable Setup */}
+      <div className="card overflow-hidden">
+        <div className="p-4 border-b border-grappler-700">
+          <h3 className="font-medium text-grappler-200">Wearable Integration</h3>
+          <p className="text-xs text-grappler-500 mt-1">Auto-adjust training based on recovery data</p>
+        </div>
+        <div className="p-4 space-y-3">
+          {([
+            { value: 'whoop' as WearableUsage, icon: Activity, label: 'Whoop', desc: 'Auto-sync recovery & strain', color: 'emerald' },
+            { value: 'other_wearable' as WearableUsage, icon: Watch, label: 'Other Wearable', desc: 'Apple Watch, Oura, Garmin', color: 'blue' },
+            { value: 'no_wearable' as WearableUsage, icon: X, label: 'No Wearable', desc: 'Manual check-ins', color: 'gray' },
+          ]).map((opt) => {
+            const current = user?.wearableUsage;
+            const selected = current === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  if (!user) return;
+                  const provider: WearableProvider | undefined =
+                    opt.value === 'whoop' ? 'whoop' :
+                    opt.value === 'no_wearable' ? undefined : user.wearableProvider;
+                  setUser({
+                    ...user,
+                    wearableUsage: opt.value,
+                    wearableProvider: provider,
+                    updatedAt: new Date(),
+                  });
+                }}
+                className={cn(
+                  'w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 border-2',
+                  selected
+                    ? opt.color === 'emerald' ? 'border-emerald-500 bg-emerald-500/10'
+                      : opt.color === 'blue' ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-grappler-600 bg-grappler-700/50'
+                    : 'border-grappler-700 hover:border-grappler-600'
+                )}
+              >
+                <div className={cn(
+                  'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+                  selected
+                    ? opt.color === 'emerald' ? 'bg-emerald-500/20'
+                      : opt.color === 'blue' ? 'bg-blue-500/20'
+                      : 'bg-grappler-700'
+                    : 'bg-grappler-700/50'
+                )}>
+                  <opt.icon className={cn(
+                    'w-4 h-4',
+                    selected
+                      ? opt.color === 'emerald' ? 'text-emerald-400'
+                        : opt.color === 'blue' ? 'text-blue-400'
+                        : 'text-grappler-400'
+                      : 'text-grappler-500'
+                  )} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-grappler-100">{opt.label}</p>
+                  <p className="text-xs text-grappler-400">{opt.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+
+          {/* Provider picker for other_wearable */}
+          <AnimatePresence>
+            {user?.wearableUsage === 'other_wearable' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {([
+                    { value: 'apple_health' as WearableProvider, label: 'Apple Watch' },
+                    { value: 'oura' as WearableProvider, label: 'Oura' },
+                    { value: 'garmin' as WearableProvider, label: 'Garmin' },
+                  ]).map((w) => (
+                    <button
+                      key={w.value}
+                      onClick={() => {
+                        if (!user) return;
+                        setUser({ ...user, wearableProvider: w.value, updatedAt: new Date() });
+                      }}
+                      className={cn(
+                        'py-2 rounded-lg text-xs font-medium transition-all',
+                        user?.wearableProvider === w.value
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -202,32 +505,23 @@ export default function ProfileSettings() {
         )} />
       </button>
 
-      {/* Badges List */}
       {showBadges && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           className="card p-4 space-y-4"
         >
-          {/* Earned Badges */}
           <div>
             <h4 className="text-sm font-medium text-grappler-300 mb-3">Earned Badges</h4>
             {gamificationStats.badges.length > 0 ? (
               <div className="grid grid-cols-4 gap-3">
                 {gamificationStats.badges.map((userBadge) => (
-                  <div
-                    key={userBadge.id}
-                    className="text-center"
-                  >
+                  <div key={userBadge.id} className="text-center">
                     <div className="w-14 h-14 bg-grappler-700 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl">
                       {userBadge.badge.icon}
                     </div>
-                    <p className="text-xs text-grappler-300 truncate">
-                      {userBadge.badge.name}
-                    </p>
-                    <p className="text-xs text-primary-400">
-                      +{userBadge.badge.points}
-                    </p>
+                    <p className="text-xs text-grappler-300 truncate">{userBadge.badge.name}</p>
+                    <p className="text-xs text-primary-400">+{userBadge.badge.points}</p>
                   </div>
                 ))}
               </div>
@@ -235,22 +529,15 @@ export default function ProfileSettings() {
               <p className="text-sm text-grappler-500">Complete workouts to earn badges!</p>
             )}
           </div>
-
-          {/* Locked Badges */}
           <div>
             <h4 className="text-sm font-medium text-grappler-300 mb-3">Available Badges</h4>
             <div className="grid grid-cols-4 gap-3">
               {badges.filter(b => !earnedBadgeIds.has(b.id)).slice(0, 8).map((badge) => (
-                <div
-                  key={badge.id}
-                  className="text-center opacity-50"
-                >
+                <div key={badge.id} className="text-center opacity-50">
                   <div className="w-14 h-14 bg-grappler-800 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">
                     {badge.icon}
                   </div>
-                  <p className="text-xs text-grappler-500 truncate">
-                    {badge.name}
-                  </p>
+                  <p className="text-xs text-grappler-500 truncate">{badge.name}</p>
                 </div>
               ))}
             </div>
@@ -262,21 +549,9 @@ export default function ProfileSettings() {
       <div className="card p-4">
         <h3 className="font-medium text-grappler-200 mb-4">Lifetime Stats</h3>
         <div className="space-y-3">
-          <StatRow
-            icon={Dumbbell}
-            label="Total Volume"
-            value={`${formatNumber(gamificationStats.totalVolume)} ${weightUnit}`}
-          />
-          <StatRow
-            icon={Star}
-            label="Total Points"
-            value={formatNumber(gamificationStats.totalPoints)}
-          />
-          <StatRow
-            icon={Medal}
-            label="Longest Streak"
-            value={`${gamificationStats.longestStreak} days`}
-          />
+          <StatRow icon={Dumbbell} label="Total Volume" value={`${formatNumber(gamificationStats.totalVolume)} ${weightUnit}`} />
+          <StatRow icon={Star} label="Total Points" value={formatNumber(gamificationStats.totalPoints)} />
+          <StatRow icon={Medal} label="Longest Streak" value={`${gamificationStats.longestStreak} days`} />
         </div>
       </div>
 
@@ -284,7 +559,7 @@ export default function ProfileSettings() {
       <div className="card p-4">
         <h3 className="font-medium text-grappler-200 mb-1 text-sm">Training Setup</h3>
         <p className="text-xs text-grappler-500 mb-3">
-          Re-run the setup to change your goals, equipment, schedule, or training style. Your history and progress are kept.
+          Re-run setup to change goals, equipment, schedule, or training style. Your history is kept.
         </p>
         <button
           onClick={() => {
@@ -302,9 +577,7 @@ export default function ProfileSettings() {
       {/* Sign Out */}
       <div className="card p-4">
         <button
-          onClick={() => {
-            signOut({ callbackUrl: '/login' });
-          }}
+          onClick={() => { signOut({ callbackUrl: '/login' }); }}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
         >
           <DoorOpen className="w-4 h-4" />
@@ -316,7 +589,7 @@ export default function ProfileSettings() {
       <div className="card p-4 border border-red-500/30">
         <h3 className="font-medium text-red-400 mb-2">Reset Data</h3>
         <p className="text-sm text-grappler-400 mb-4">
-          This will erase all your progress, workouts, and achievements. Your account will remain — only training data is deleted.
+          This will erase all your progress, workouts, and achievements. Your account will remain.
         </p>
         <button
           onClick={() => {
@@ -334,16 +607,8 @@ export default function ProfileSettings() {
   );
 }
 
-function SettingRow({
-  icon: Icon,
-  label,
-  value,
-  className
-}: {
-  icon: any;
-  label: string;
-  value: string;
-  className?: string;
+function SettingRow({ icon: Icon, label, value, className }: {
+  icon: any; label: string; value: string; className?: string;
 }) {
   return (
     <div className="flex items-center justify-between p-4">
@@ -356,15 +621,7 @@ function SettingRow({
   );
 }
 
-function StatRow({
-  icon: Icon,
-  label,
-  value
-}: {
-  icon: any;
-  label: string;
-  value: string;
-}) {
+function StatRow({ icon: Icon, label, value }: { icon: any; label: string; value: string; }) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">

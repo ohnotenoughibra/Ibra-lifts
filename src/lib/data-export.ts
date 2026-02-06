@@ -3,7 +3,7 @@ import { useAppStore } from './store';
 
 // Export workout data as CSV
 export function exportToCSV(logs: WorkoutLog[], weightUnit: WeightUnit): string {
-  const headers = ['Date', 'Session', 'Exercise', 'Set', `Weight (${weightUnit})`, 'Reps', 'RPE', 'Completed', '1RM Est', 'Volume'];
+  const headers = ['Date', 'Session', 'Exercise', 'Set', `Weight (${weightUnit})`, 'Reps', 'RPE', 'Completed', 'PR', '1RM Est', 'Volume'];
   const rows: string[][] = [];
 
   for (const log of logs) {
@@ -19,6 +19,7 @@ export function exportToCSV(logs: WorkoutLog[], weightUnit: WeightUnit): string 
           String(set.reps),
           String(set.rpe),
           set.completed ? 'Yes' : 'No',
+          exercise.personalRecord ? 'PR' : '',
           exercise.estimated1RM ? String(Math.round(exercise.estimated1RM)) : '',
           String(set.completed ? set.weight * set.reps : 0)
         ]);
@@ -82,7 +83,7 @@ export function downloadFile(content: string, filename: string, mimeType: string
 export function exportFullBackup(): string {
   const state = useAppStore.getState();
   const backup = {
-    _version: 1,
+    _version: 2,
     _exportedAt: new Date().toISOString(),
     _app: 'roots-gains',
     user: state.user,
@@ -105,6 +106,14 @@ export function exportFullBackup(): string {
     muscleEmphasis: state.muscleEmphasis,
     activeEquipmentProfile: state.activeEquipmentProfile,
     themeMode: state.themeMode,
+    // v2: fields that were previously missing from backup
+    quickLogs: state.quickLogs,
+    gripTests: state.gripTests,
+    gripExerciseLogs: state.gripExerciseLogs,
+    activeDietPhase: state.activeDietPhase,
+    weeklyCheckIns: state.weeklyCheckIns,
+    mealReminders: state.mealReminders,
+    competitions: state.competitions,
   };
   return JSON.stringify(backup, null, 2);
 }
@@ -157,6 +166,14 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
     if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
     if (data.themeMode) update.themeMode = data.themeMode;
+    // v2 fields
+    if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;
+    if (Array.isArray(data.gripTests)) update.gripTests = data.gripTests;
+    if (Array.isArray(data.gripExerciseLogs)) update.gripExerciseLogs = data.gripExerciseLogs;
+    if (data.activeDietPhase) update.activeDietPhase = data.activeDietPhase;
+    if (Array.isArray(data.weeklyCheckIns)) update.weeklyCheckIns = data.weeklyCheckIns;
+    if (data.mealReminders) update.mealReminders = data.mealReminders;
+    if (Array.isArray(data.competitions)) update.competitions = data.competitions;
 
     // Apply the update
     useAppStore.setState(update);

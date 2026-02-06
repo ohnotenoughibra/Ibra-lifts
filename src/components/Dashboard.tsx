@@ -569,13 +569,27 @@ export default function Dashboard() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-lime-500 text-grappler-900 rounded-full shadow-lg font-medium text-sm"
               >
                 <Shield className="w-4 h-4" />
-                Log Grappling
+                {user?.combatSport === 'striking' ? 'Log Striking' :
+                 user?.combatSport === 'mma' ? 'Log MMA' :
+                 user?.combatSport === 'grappling_nogi' ? 'Log No-Gi' :
+                 'Log Training'}
               </motion.button>
               <motion.button
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.8 }}
                 transition={{ delay: 0.1 }}
+                onClick={() => { setFabOpen(false); setOverlayView('nutrition'); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-full shadow-lg font-medium text-sm"
+              >
+                <Apple className="w-4 h-4" />
+                Log Meal
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.15 }}
                 onClick={() => { setFabOpen(false); setActiveTab('history'); }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-sky-500 text-white rounded-full shadow-lg font-medium text-sm"
               >
@@ -586,7 +600,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.15 }}
+                transition={{ delay: 0.2 }}
                 onClick={() => { setFabOpen(false); setOverlayView('injury'); }}
                 className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-full shadow-lg font-medium text-sm"
               >

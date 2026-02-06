@@ -1338,8 +1338,14 @@ export const useAppStore = create<AppState>()(
         // Recalculate total workouts
         const totalWorkouts = workoutLogs.length;
 
-        // Recalculate total volume
-        const totalVolume = workoutLogs.reduce((sum, log) => sum + log.totalVolume, 0);
+        // Recalculate total volume (fall back to computing from sets for old backups missing totalVolume)
+        const totalVolume = workoutLogs.reduce((sum, log) => {
+          if (log.totalVolume > 0) return sum + log.totalVolume;
+          // Compute from sets for old imports
+          return sum + log.exercises.reduce((exSum, ex) =>
+            exSum + ex.sets.reduce((setSum, set) =>
+              setSum + ((set.completed !== false && set.weight > 0 && set.reps > 0) ? set.weight * set.reps : 0), 0), 0);
+        }, 0);
 
         // Recalculate PRs
         const personalRecords = workoutLogs.reduce((sum, log) =>
@@ -1430,7 +1436,9 @@ export const useAppStore = create<AppState>()(
             // Find best set in this exercise
             let bestSetE1RM = 0;
             for (const set of ex.sets) {
-              if (set.completed && set.weight > 0 && set.reps > 0) {
+              // For old backups, sets may not have 'completed' flag — treat as completed if weight+reps exist
+              const isCompleted = set.completed !== false && set.weight > 0 && set.reps > 0;
+              if (isCompleted) {
                 const e1rm = calcE1RM(set.weight, set.reps);
                 if (e1rm > bestSetE1RM) {
                   bestSetE1RM = e1rm;

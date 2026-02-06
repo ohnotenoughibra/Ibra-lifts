@@ -173,31 +173,26 @@ const DIET_PHASE_MODIFIERS: Record<DietGoal | 'none', {
   volumeScale: number;           // Multiplier for weekly volume
   rpeOffset: number;             // Shift RPE target (negative = easier)
   restScale: number;             // Multiplier for rest periods (>1 = longer)
-  deloadFrequencyWeeks: number;  // Deload every N weeks
 }> = {
   cut: {
     volumeScale: 0.80,           // Reduce volume ~20% (retain 10-15 sets/muscle/wk minimum)
     rpeOffset: -0.5,             // RPE 7-8.5 instead of 7-9 (fatigue buffer)
     restScale: 1.25,             // +25% rest — glycogen-depleted, need more recovery between sets
-    deloadFrequencyWeeks: 4,     // Deload every 4 weeks (vs 5 normally)
   },
   maintain: {
     volumeScale: 1.0,
     rpeOffset: 0,
     restScale: 1.0,
-    deloadFrequencyWeeks: 5,
   },
   bulk: {
     volumeScale: 1.10,           // +10% volume — surplus supports higher training stress
     rpeOffset: 0.3,              // Can push closer to failure with better recovery
     restScale: 0.90,             // Slightly shorter rest tolerated (better energy availability)
-    deloadFrequencyWeeks: 6,     // Less frequent deloads — surplus aids recovery
   },
   none: {
     volumeScale: 1.0,
     rpeOffset: 0,
     restScale: 1.0,
-    deloadFrequencyWeeks: 5,
   },
 };
 
@@ -323,7 +318,7 @@ interface GeneratorOptions {
   trainingIdentity?: TrainingIdentity;
   combatSport?: CombatSport;
   experienceLevel?: ExperienceLevel;
-  biologicalSex?: BiologicalSex;
+  sex?: BiologicalSex;
   dietGoal?: DietGoal;                               // Active diet phase influences volume/rest/RPE
   // Sport training load for adaptive volume scaling
   sportSessionsPerWeek?: number;           // Number of sport training sessions per week
@@ -435,8 +430,8 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function createSetPrescription(type: WorkoutType, biologicalSex?: BiologicalSex): SetPrescription {
-  const config = getSexAdjustedPrescription(type, biologicalSex);
+function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPrescription {
+  const config = getSexAdjustedPrescription(type, sex);
   return {
     targetReps: randomBetween(config.reps[0], config.reps[1]),
     minReps: config.reps[0],
@@ -620,13 +615,13 @@ function generateWorkoutSession(
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
   experienceLevel?: ExperienceLevel,
-  biologicalSex?: BiologicalSex,
+  sex?: BiologicalSex,
   dietGoal?: DietGoal
 ): WorkoutSession {
   const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport);
-  const config = getSexAdjustedPrescription(type, biologicalSex);
+  const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
-  const sexMod = SEX_MODIFIERS[biologicalSex || 'male'];
+  const sexMod = SEX_MODIFIERS[sex || 'male'];
   const dietMod = DIET_PHASE_MODIFIERS[dietGoal || 'none'];
 
   let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
@@ -652,7 +647,7 @@ function generateWorkoutSession(
       sets = Math.max(sets, experienceLevel === 'beginner' ? 3 : 4);
     }
 
-    const prescription = createSetPrescription(type, biologicalSex);
+    const prescription = createSetPrescription(type, sex);
     // Adjust RPE based on experience level and diet phase
     prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset).toFixed(1)));
     // Adjust rest periods for diet phase (longer rest during cuts — glycogen depletion)
@@ -844,7 +839,7 @@ function generateMesocycleWeek(
   experienceLevel?: ExperienceLevel,
   sportSessionsPerWeek?: number,
   avgSportIntensity?: 'light' | 'moderate' | 'hard',
-  biologicalSex?: BiologicalSex,
+  sex?: BiologicalSex,
   dietGoal?: DietGoal
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
@@ -864,12 +859,12 @@ function generateMesocycleWeek(
   let volumeMultiplier: number;
   let intensityMultiplier: number;
 
-  const sexMod = SEX_MODIFIERS[biologicalSex || 'male'];
+  const sexMod = SEX_MODIFIERS[sex || 'male'];
 
   if (isDeload) {
     // Women need less aggressive deloads — faster recovery between mesocycles
     volumeMultiplier = sexMod.deloadVolumeMultiplier;
-    intensityMultiplier = biologicalSex === 'female' ? 0.88 : 0.85;
+    intensityMultiplier = sex === 'female' ? 0.88 : 0.85;
   } else if (periodizationType === 'linear') {
     // Linear: steady 5% per week (simple, predictable for beginners)
     volumeMultiplier = 1 + (weekNumber - 1) * 0.05;
@@ -924,7 +919,7 @@ function generateMesocycleWeek(
       trainingIdentity,
       combatSport,
       experienceLevel,
-      biologicalSex,
+      sex,
       dietGoal
     );
 
@@ -976,7 +971,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     userId, goalFocus, equipment, availableEquipment, sessionsPerWeek,
     weeks, muscleEmphasis, sessionDurationMinutes,
     trainingIdentity, combatSport, experienceLevel,
-    sportSessionsPerWeek, avgSportIntensity, biologicalSex, dietGoal
+    sportSessionsPerWeek, avgSportIntensity, sex, dietGoal
   } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
@@ -1000,7 +995,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
         sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
-        sportSessionsPerWeek, avgSportIntensity, biologicalSex, dietGoal
+        sportSessionsPerWeek, avgSportIntensity, sex, dietGoal
       )
     );
   }

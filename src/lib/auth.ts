@@ -1,11 +1,17 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 import { ensureAuthTables } from './db-init';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
     Credentials({
       name: 'credentials',
       credentials: {
@@ -31,6 +37,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           const user = rows[0];
+
+          // Google-only users can't sign in with credentials
+          if (!user.password_hash) {
+            console.log('[auth] Authentication failed: account uses Google sign-in');
+            return null;
+          }
+
           const passwordMatch = await bcrypt.compare(password, user.password_hash);
           if (!passwordMatch) {
             console.log('[auth] Authentication failed: invalid credentials');
@@ -75,6 +88,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!isLoggedIn) return false;
 
       // Redirect away from auth pages if already logged in
+      return true;
+    },
+    async signIn({ user, account }) {
+      // For Google sign-in, auto-create or link user in our auth_users table
+      if (account?.provider === 'google' && user.email) {
+        try {
+          await ensureAuthTables();
+
+          const email = user.email.toLowerCase().trim();
+          const { rows } = await sql`
+            SELECT id FROM auth_users WHERE email = ${email}
+          `;
+
+          if (rows.length === 0) {
+            // New Google user — create account
+            const userId = uuidv4();
+            await sql`
+              INSERT INTO auth_users (id, name, email, password_hash, auth_provider)
+              VALUES (${userId}, ${user.name || 'Athlete'}, ${email}, ${null}, 'google')
+            `;
+            // Attach our DB id to the user object so it's available in jwt callback
+            user.id = userId;
+          } else {
+            // Existing user — use their DB id
+            user.id = rows[0].id;
+          }
+        } catch (error) {
+          console.error('[auth] Google sign-in DB error:', error);
+          return false;
+        }
+      }
       return true;
     },
     async jwt({ token, user }) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -58,7 +58,7 @@ import { cn, formatNumber, formatDate } from '@/lib/utils';
 import type { WorkoutLog, MealEntry } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
-import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
+import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel, isCurrentWeek } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { getTodayRecommendation } from '@/lib/smart-schedule';
@@ -376,6 +376,14 @@ export default function Dashboard() {
   const syncConflict = useAppStore(s => s.syncConflict);
   const resolveSyncConflict = useAppStore(s => s.resolveSyncConflict);
   const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
+  const ensureWeeklyChallenge = useAppStore(s => s.ensureWeeklyChallenge);
+
+  // Ensure weekly challenge is generated on Dashboard mount
+  useEffect(() => {
+    if (user && gamificationStats.totalWorkouts > 0) {
+      ensureWeeklyChallenge();
+    }
+  }, []);
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -1921,6 +1929,84 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
       {/* Training Streak Heatmap */}
       <StreakHeatmap workoutLogs={workoutLogs} onDayClick={(date) => setHeatmapSelectedDate(date)} />
+
+      {/* Streak Shield Indicator */}
+      {gamificationStats.streakShield && gamificationStats.streakShield.available > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <Shield className="w-4 h-4 text-amber-400" />
+          <span className="text-xs text-amber-300">
+            Streak Shield active — miss a day without losing your streak
+          </span>
+        </div>
+      )}
+
+      {/* Weekly Challenges */}
+      {gamificationStats.weeklyChallenge && isCurrentWeek(gamificationStats.weeklyChallenge) && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
+              <Target className="w-4 h-4 text-purple-400" />
+              Weekly Challenge
+            </h3>
+            {gamificationStats.weeklyChallenge.goals.every(g => g.completed) ? (
+              <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">ALL DONE!</span>
+            ) : (
+              <span className="text-xs text-grappler-400">
+                {gamificationStats.weeklyChallenge.goals.filter(g => g.completed).length}/3
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {gamificationStats.weeklyChallenge.goals.map((goal) => (
+              <div key={goal.id} className={cn(
+                'flex items-center gap-3 p-2.5 rounded-lg transition-colors',
+                goal.completed ? 'bg-emerald-500/10' : 'bg-grappler-800/50'
+              )}>
+                <div className={cn(
+                  'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs',
+                  goal.completed
+                    ? 'bg-emerald-500 text-white'
+                    : 'border border-grappler-600 text-grappler-500'
+                )}>
+                  {goal.completed ? '✓' : ''}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    'text-sm',
+                    goal.completed ? 'text-emerald-300 line-through' : 'text-grappler-200'
+                  )}>
+                    {goal.description}
+                  </p>
+                  {!goal.completed && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 rounded-full transition-all"
+                          style={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-grappler-400 flex-shrink-0">
+                        {goal.type === 'volume' ? formatNumber(goal.current) : goal.current}/{goal.type === 'volume' ? formatNumber(goal.target) : goal.target}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <span className={cn(
+                  'text-xs font-medium flex-shrink-0',
+                  goal.completed ? 'text-emerald-400' : 'text-purple-400'
+                )}>
+                  +{goal.xpReward} XP
+                </span>
+              </div>
+            ))}
+          </div>
+          {gamificationStats.weeklyChallenge.goals.every(g => g.completed) && !gamificationStats.weeklyChallenge.allCompleteBonusClaimed && (
+            <div className="mt-2 text-center py-2 bg-purple-500/10 rounded-lg">
+              <span className="text-sm font-bold text-purple-300">+{gamificationStats.weeklyChallenge.allCompleteBonus} XP Bonus!</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add Session Modal from Heatmap */}
       <AnimatePresence>

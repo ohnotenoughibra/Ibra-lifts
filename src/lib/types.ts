@@ -286,9 +286,41 @@ export interface GamificationStats {
   totalVolume: number;
   personalRecords: number;
   badges: UserBadge[];
+  // Extended engagement tracking
+  weeklyChallenge: WeeklyChallenge | null;
+  streakShield: StreakShield;
+  comebackCount: number;         // Total times user came back after 7+ day absence
+  totalTrainingSessions: number;  // Combat/cardio training sessions count
+  dualTrainingDays: number;       // Days with both lifting + training
+  challengesCompleted: number;    // Total weekly challenges completed
+  lastActiveDate: string | null;  // ISO date string of last activity
 }
 
-// Analytics Types
+// Weekly Challenge system
+export interface WeeklyChallengeGoal {
+  id: string;
+  type: 'workouts' | 'volume' | 'prs' | 'sessions' | 'dual_days';
+  target: number;
+  current: number;
+  description: string;
+  xpReward: number;
+  completed: boolean;
+}
+
+export interface WeeklyChallenge {
+  id: string;
+  weekStart: string;   // ISO date (Monday)
+  goals: WeeklyChallengeGoal[];
+  allCompleteBonus: number;    // Bonus XP for completing all 3
+  allCompleteBonusClaimed: boolean;
+}
+
+// Streak Shield (freeze) system
+export interface StreakShield {
+  available: number;        // Shields available (max 2)
+  lastRefillDate: string;   // ISO date of last weekly refill
+  usedDates: string[];      // ISO dates when shields were auto-used
+}
 export interface StrengthProgress {
   date: Date;
   exerciseId: string;

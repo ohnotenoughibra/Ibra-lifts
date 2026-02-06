@@ -206,6 +206,29 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   const liftingStreak = calculateStreak(liftingDateKeys);
   const trainingStreak = includeOtherSessions ? calculateStreak(sessionDateKeys) : 0;
 
+  // Count sessions this week (last 7 days) for the header display
+  const thisWeekLiftingCount = useMemo(() => {
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    let count = 0;
+    liftingDateKeys.forEach(key => {
+      const d = new Date(key);
+      if (d >= weekAgo && d <= today) count++;
+    });
+    return count;
+  }, [liftingDateKeys, today]);
+
+  const thisWeekSessionCount = useMemo(() => {
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    let count = 0;
+    sessionDateKeys.forEach(key => {
+      const d = new Date(key);
+      if (d >= weekAgo && d <= today) count++;
+    });
+    return count;
+  }, [sessionDateKeys, today]);
+
   // Generate grid: 12 weeks x 7 days
   type DayData = {
     date: Date;
@@ -273,16 +296,16 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
           Training Streaks
         </h3>
         <div className="flex items-center gap-3">
-          {/* Lifting streak */}
-          <div className="flex items-center gap-1">
+          {/* Lifting this week */}
+          <div className="flex items-center gap-1" title={`${liftingStreak} day streak`}>
             <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-            <span className="text-lg font-black text-green-400">{liftingStreak}</span>
+            <span className="text-lg font-black text-green-400">{thisWeekLiftingCount}</span>
           </div>
-          {/* Training streak (only show if user does combat/fitness) */}
+          {/* Training this week (only show if user does combat/fitness) */}
           {includeOtherSessions && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" title={`${trainingStreak} day streak`}>
               <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
-              <span className="text-lg font-black text-blue-400">{trainingStreak}</span>
+              <span className="text-lg font-black text-blue-400">{thisWeekSessionCount}</span>
             </div>
           )}
         </div>

@@ -49,9 +49,12 @@ export function buildWeekPlan(
   combatTrainingDays: CombatTrainingDay[],
   sessions: WorkoutSession[],
 ): WeekPlan {
-  const combatMap = new Map<number, CombatTrainingDay>();
+  // Group combat sessions by day (supports multiple sessions per day)
+  const combatMap = new Map<number, CombatTrainingDay[]>();
   for (const cd of combatTrainingDays) {
-    combatMap.set(cd.day, cd);
+    const existing = combatMap.get(cd.day) || [];
+    existing.push(cd);
+    combatMap.set(cd.day, existing);
   }
 
   const warnings: string[] = [];
@@ -62,6 +65,19 @@ export function buildWeekPlan(
     (a, b) => WORKOUT_COST[b.type] - WORKOUT_COST[a.type]
   );
 
+  // Helper: get total combat cost for all sessions on a day
+  const getDayCombatCost = (daySessions: CombatTrainingDay[] | undefined): number => {
+    if (!daySessions || daySessions.length === 0) return 0;
+    return daySessions.reduce((sum, s) => sum + COMBAT_COST[s.intensity], 0);
+  };
+
+  const getDayHardest = (daySessions: CombatTrainingDay[] | undefined): CombatIntensity | null => {
+    if (!daySessions || daySessions.length === 0) return null;
+    if (daySessions.some(s => s.intensity === 'hard')) return 'hard';
+    if (daySessions.some(s => s.intensity === 'moderate')) return 'moderate';
+    return 'light';
+  };
+
   // Score each training day by how "fresh" you'll be
   const dayFreshness: { day: number; freshness: number }[] = trainingDays.map(day => {
     let freshness = 10; // Start fully fresh
@@ -69,8 +85,8 @@ export function buildWeekPlan(
     // Check previous day
     const prevDay = day === 0 ? 6 : day - 1;
     const prevCombat = combatMap.get(prevDay);
-    if (prevCombat) {
-      freshness -= COMBAT_COST[prevCombat.intensity] * 0.7; // Reduced by 30% with sleep
+    if (prevCombat && prevCombat.length > 0) {
+      freshness -= getDayCombatCost(prevCombat) * 0.7; // Reduced by 30% with sleep
     }
     if (trainingDays.includes(prevDay)) {
       freshness -= 3; // Back-to-back lifting
@@ -79,14 +95,14 @@ export function buildWeekPlan(
     // Check two days ago (still some residual fatigue)
     const prevPrevDay = prevDay === 0 ? 6 : prevDay - 1;
     const prevPrevCombat = combatMap.get(prevPrevDay);
-    if (prevPrevCombat && prevPrevCombat.intensity === 'hard') {
+    if (prevPrevCombat && getDayHardest(prevPrevCombat) === 'hard') {
       freshness -= 1.5;
     }
 
-    // Same-day combat training
+    // Same-day combat training (sum of all sessions)
     const sameDayCombat = combatMap.get(day);
-    if (sameDayCombat) {
-      freshness -= COMBAT_COST[sameDayCombat.intensity] * 0.4; // Lifting first, then sport
+    if (sameDayCombat && sameDayCombat.length > 0) {
+      freshness -= getDayCombatCost(sameDayCombat) * 0.4; // Lifting first, then sport
     }
 
     return { day, freshness: Math.max(1, freshness) };
@@ -107,7 +123,13 @@ export function buildWeekPlan(
   // Build the full 7-day plan
   const days: DayPlan[] = Array.from({ length: 7 }, (_, i) => {
     const isLiftDay = trainingDays.includes(i);
-    const combatTraining = combatMap.get(i);
+    const combatSessions = combatMap.get(i);
+    // For backwards compat, combatTraining is the hardest session of the day
+    const combatTraining = combatSessions && combatSessions.length > 0
+      ? combatSessions.reduce((hardest, s) =>
+          COMBAT_COST[s.intensity] > COMBAT_COST[hardest.intensity] ? s : hardest,
+          combatSessions[0])
+      : undefined;
     const assignment = dayAssignments.get(i);
     const isRestDay = !isLiftDay && !combatTraining;
 
@@ -127,7 +149,7 @@ export function buildWeekPlan(
       // Specific warnings
       const prevDay = i === 0 ? 6 : i - 1;
       const prevCombat = combatMap.get(prevDay);
-      if (prevCombat?.intensity === 'hard') {
+      if (prevCombat && getDayHardest(prevCombat) === 'hard') {
         warnings.push(
           `${DAY_SHORT[i]} lift after hard ${DAY_SHORT[prevDay]} training — volume reduced to ${Math.round(intensityModifier * 100)}%`
         );
@@ -205,18 +227,31 @@ export function getTodayRecommendation(
 ): { shouldTrain: boolean; message: string; intensity: 'full' | 'reduced' | 'skip' } {
   const today = new Date().getDay(); // 0=Sun
   const isLiftDay = trainingDays.includes(today);
-  const combatToday = combatTrainingDays.find(d => d.day === today);
+  const combatTodaySessions = combatTrainingDays.filter(d => d.day === today);
+  const combatToday = combatTodaySessions.length > 0
+    ? combatTodaySessions.reduce((hardest, s) =>
+        s.intensity === 'hard' ? s : hardest.intensity === 'hard' ? hardest : s.intensity === 'moderate' ? s : hardest,
+        combatTodaySessions[0])
+    : undefined;
 
   // Yesterday's activity
   const yesterday = today === 0 ? 6 : today - 1;
-  const combatYesterday = combatTrainingDays.find(d => d.day === yesterday);
+  const combatYesterdaySessions = combatTrainingDays.filter(d => d.day === yesterday);
+  const combatYesterday = combatYesterdaySessions.length > 0
+    ? combatYesterdaySessions.reduce((hardest, s) =>
+        s.intensity === 'hard' ? s : hardest.intensity === 'hard' ? hardest : s.intensity === 'moderate' ? s : hardest,
+        combatYesterdaySessions[0])
+    : undefined;
   const liftedYesterday = trainingDays.includes(yesterday);
 
   if (!isLiftDay) {
-    if (combatToday) {
+    if (combatTodaySessions.length > 0) {
+      const sessionDesc = combatTodaySessions.length > 1
+        ? `${combatTodaySessions.length} combat sessions`
+        : `${combatToday!.intensity} ${combatToday!.intensity === 'hard' ? 'sparring' : 'training'}`;
       return {
         shouldTrain: false,
-        message: `${combatToday.intensity} ${combatToday.intensity === 'hard' ? 'sparring' : 'training'} day — focus on your sport`,
+        message: `${sessionDesc} day — focus on your sport`,
         intensity: 'skip',
       };
     }
@@ -292,6 +327,10 @@ export function getTodayRecommendation(
     intensityAdvice = 'reduced';
     factors.push('Hard training yesterday');
   }
+  if (combatYesterdaySessions.length >= 2) {
+    intensityAdvice = 'reduced';
+    factors.push(`${combatYesterdaySessions.length} combat sessions yesterday`);
+  }
 
   // Back-to-back lifting
   if (liftedYesterday) {
@@ -302,6 +341,10 @@ export function getTodayRecommendation(
   if (combatToday?.intensity === 'hard') {
     intensityAdvice = 'reduced';
     factors.push('Hard sport training also today');
+  }
+  if (combatTodaySessions.length >= 2) {
+    intensityAdvice = 'reduced';
+    factors.push(`${combatTodaySessions.length} combat sessions also today`);
   }
 
   if (intensityAdvice === 'reduced') {

@@ -72,6 +72,7 @@ const PAIN_TYPES: { id: PainType; label: string }[] = [
   { id: 'burning', label: 'Burning' },
   { id: 'stiffness', label: 'Stiffness' },
   { id: 'clicking', label: 'Clicking' },
+  { id: 'numbness', label: 'Numbness' },
 ];
 
 /** Map body regions to muscle groups that should be avoided or modified. */

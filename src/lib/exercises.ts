@@ -365,6 +365,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 6,
     strengthValue: 9,
+    measurementType: 'time',
     description: 'Builds crushing grip and full-body stability for grappling.',
     videoUrl: 'https://www.youtube.com/results?search_query=farmers+walk+proper+form+technique+short',
     cues: [
@@ -496,6 +497,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 3,
     strengthValue: 7,
+    measurementType: 'time',
     description: 'Grip endurance fundamental for maintaining holds.',
     videoUrl: 'https://www.youtube.com/results?search_query=dead+hang+bar+proper+form+technique+short',
     cues: [
@@ -899,6 +901,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 5,
     strengthValue: 6,
+    measurementType: 'time',
     description: 'Fundamental core stability for all lifting and grappling.',
     videoUrl: 'https://www.youtube.com/results?search_query=plank+exercise+proper+form+technique+short',
     cues: [
@@ -920,6 +923,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 5,
     strengthValue: 6,
+    measurementType: 'time',
     description: 'Lateral core stability for grappling positions.',
     videoUrl: 'https://www.youtube.com/results?search_query=side+plank+proper+form+technique+short',
     cues: [
@@ -1542,6 +1546,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 5,
     strengthValue: 7,
+    measurementType: 'time',
     description: 'Adductor and lateral core strength for guard play.',
     videoUrl: 'https://www.youtube.com/results?search_query=copenhagen+plank+proper+form+technique+short',
     cues: ['Side plank with top leg on bench', 'Bottom leg hangs free', 'Lift bottom leg to bench', 'Hold or do reps']
@@ -1560,6 +1565,7 @@ export const exercises: Exercise[] = [
     grapplerFriendly: true,
     aestheticValue: 3,
     strengthValue: 8,
+    measurementType: 'time',
     description: 'Thick bar hold for crushing grip - mimics gi grips.',
     videoUrl: 'https://www.youtube.com/results?search_query=fat+grip+hold+training+technique+short',
     cues: ['Attach fat grips to barbell or dumbbell', 'Hold at lockout', 'Squeeze as hard as possible', 'Build up hold time']
@@ -3477,6 +3483,93 @@ export const exercises: Exercise[] = [
       'Press straight up from rack',
       'Lower to rack, then swing back down',
       'Keep wrist straight, don\'t let bell bang forearm'
+    ]
+  },
+
+  // ─── ADDITIONAL PLYOMETRIC / SPEED-STRENGTH ───
+  {
+    id: 'dumbbell-jump-squat',
+    name: 'Dumbbell Jump Squat',
+    category: 'power',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['calves', 'core'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['dumbbell'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 8,
+    description: 'Loaded jump squat for explosive takedown power.',
+    videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+jump+squat+form+short',
+    cues: [
+      'Hold dumbbells at sides',
+      'Quarter squat then explode up',
+      'Land soft with bent knees',
+      'Reset between reps'
+    ]
+  },
+  {
+    id: 'weighted-jumping-lunge',
+    name: 'Weighted Jumping Lunge',
+    category: 'power',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'calves', 'core'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['dumbbell', 'bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Explosive split stance power for single-leg drive and level changes.',
+    videoUrl: 'https://www.youtube.com/results?search_query=weighted+jumping+lunge+form+short',
+    cues: [
+      'Start in lunge position',
+      'Explode up and switch legs mid-air',
+      'Land softly in opposite lunge',
+      'Keep torso upright throughout'
+    ]
+  },
+  {
+    id: 'med-ball-chest-pass',
+    name: 'Med Ball Chest Pass',
+    category: 'power',
+    primaryMuscles: ['chest', 'triceps'],
+    secondaryMuscles: ['shoulders', 'core'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['medicine_ball'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 6,
+    description: 'Explosive upper body push power for hand fighting and framing.',
+    videoUrl: 'https://www.youtube.com/results?search_query=medicine+ball+chest+pass+wall+form+short',
+    cues: [
+      'Hold ball at chest height',
+      'Step forward and push explosively',
+      'Follow through with arms',
+      'Catch and repeat or throw against wall'
+    ]
+  },
+  {
+    id: 'depth-jump',
+    name: 'Depth Jump',
+    category: 'power',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['calves', 'hamstrings'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym'],
+    equipmentTypes: ['box'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 9,
+    description: 'Advanced reactive strength — step off box, absorb, explode up. Trains stretch-shortening cycle for explosive takedowns.',
+    videoUrl: 'https://www.youtube.com/results?search_query=depth+jump+technique+form+short',
+    cues: [
+      'Step off box (don\'t jump off)',
+      'Land on both feet simultaneously',
+      'Minimize ground contact time',
+      'Explode up as high as possible',
+      'Only for advanced — start with low boxes'
     ]
   },
 

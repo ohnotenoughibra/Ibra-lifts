@@ -440,6 +440,36 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Portion scaling ──
+  // Stores the "1x" base macros when a food is selected so user can scale
+  const [baseServing, setBaseServing] = useState<{
+    calories: number; protein: number; carbs: number; fat: number;
+    portion?: string; baseGrams?: number;
+  } | null>(null);
+
+  const applyPortionScale = useCallback((multiplier: number) => {
+    if (!baseServing) return;
+    setFormCalories(String(Math.round(baseServing.calories * multiplier)));
+    setFormProtein(String(Math.round(baseServing.protein * multiplier * 10) / 10));
+    setFormCarbs(String(Math.round(baseServing.carbs * multiplier * 10) / 10));
+    setFormFat(String(Math.round(baseServing.fat * multiplier * 10) / 10));
+    // Update portion label
+    if (baseServing.baseGrams) {
+      setFormPortion(`${Math.round(baseServing.baseGrams * multiplier)}g`);
+    } else if (multiplier === 1) {
+      setFormPortion(baseServing.portion || '');
+    } else {
+      const label = multiplier === 0.5 ? '½' : multiplier === 0.75 ? '¾' : `${multiplier}x`;
+      setFormPortion(baseServing.portion ? `${label} of ${baseServing.portion}` : `${label} serving`);
+    }
+  }, [baseServing]);
+
+  // Extract grams from a portion string like "200g", "150g cooked", "(170g)"
+  const extractGrams = (text: string): number | undefined => {
+    const match = text.match(/(\d+)\s*g(?:\b|$)/i);
+    return match ? parseInt(match[1]) : undefined;
+  };
+
   // ── Meal history index ──
   // Build a frequency+recency-weighted index from all past meals
   type HistoryFood = { name: string; portion?: string; calories: number; protein: number; carbs: number; fat: number; count: number; lastUsed: number };
@@ -514,6 +544,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setFormFat(String(item.fat));
     setShowAutocomplete(false);
     setAnalysisResult({ ...item, confidence: 'high', notes: 'From your meal history' });
+    // Store base serving for portion scaling — extract grams from name or portion
+    const portionText = item.portion || item.name;
+    const grams = extractGrams(portionText);
+    setBaseServing({ calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, portion: item.portion, baseGrams: grams });
   }, []);
 
   // ── Estimation state ──
@@ -547,6 +581,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       setFormProtein(String(historyMatch.protein));
       setFormCarbs(String(historyMatch.carbs));
       setFormFat(String(historyMatch.fat));
+      const portionText = historyMatch.portion || historyMatch.name;
+      setBaseServing({ calories: historyMatch.calories, protein: historyMatch.protein, carbs: historyMatch.carbs, fat: historyMatch.fat, portion: historyMatch.portion, baseGrams: extractGrams(portionText) });
       return;
     }
 
@@ -562,6 +598,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       setFormProtein(String(partialMatch.protein));
       setFormCarbs(String(partialMatch.carbs));
       setFormFat(String(partialMatch.fat));
+      const portionText = partialMatch.portion || partialMatch.name;
+      setBaseServing({ calories: partialMatch.calories, protein: partialMatch.protein, carbs: partialMatch.carbs, fat: partialMatch.fat, portion: partialMatch.portion, baseGrams: extractGrams(portionText) });
       return;
     }
 
@@ -574,6 +612,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       setFormProtein(String(local.protein));
       setFormCarbs(String(local.carbs));
       setFormFat(String(local.fat));
+      const grams = extractGrams(local.name);
+      setBaseServing({ calories: local.calories, protein: local.protein, carbs: local.carbs, fat: local.fat, baseGrams: grams });
       return;
     }
 
@@ -630,7 +670,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const fatPct = totalMacroGrams > 0 ? (totals.fat / totalMacroGrams) * 100 : 0;
 
   // ── Smart meal suggestions based on remaining macros ──
-  const mealSuggestions = useMemo(() => {
+  // Combines user's meal history + FOOD_DB, scored by how well they fill macro gaps
+  type SuggestionItem = { name: string; calories: number; protein: number; carbs: number; fat: number; fromHistory: boolean };
+  const mealSuggestions = useMemo((): SuggestionItem[] => {
     const targets = contextualNutrition.adjustedTargets;
     const remaining = {
       calories: targets.calories - totals.calories,
@@ -647,35 +689,46 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     const carbsRatio = totals.carbs / Math.max(targets.carbs, 1);
     const fatRatio = totals.fat / Math.max(targets.fat, 1);
 
-    // Score each food: how well it fills the biggest gap without exceeding remaining
-    const scored = FOOD_DB
-      .filter(f => f.calories <= remaining.calories + 50) // fits calorie budget
-      .map(food => {
-        let score = 0;
-        // Reward filling the most deficient macro
-        if (proteinRatio < carbsRatio && proteinRatio < fatRatio) {
-          score += food.protein * 3; // protein is most needed
-        } else if (carbsRatio < fatRatio) {
-          score += food.carbs * 2; // carbs most needed
-        } else {
-          score += food.fat * 2; // fat most needed
-        }
-        // Reward calorie fit (closer to remaining = better)
-        score += Math.max(0, 100 - Math.abs(remaining.calories * 0.4 - food.calories));
-        // Penalize exceeding any remaining macro significantly
-        if (food.protein > remaining.protein + 10) score -= 30;
-        if (food.carbs > remaining.carbs + 15) score -= 20;
-        if (food.fat > remaining.fat + 10) score -= 20;
-        return { food, score };
-      })
+    const scoreFood = (f: { calories: number; protein: number; carbs: number; fat: number }, historyBonus: number) => {
+      let score = historyBonus;
+      if (proteinRatio < carbsRatio && proteinRatio < fatRatio) {
+        score += f.protein * 3;
+      } else if (carbsRatio < fatRatio) {
+        score += f.carbs * 2;
+      } else {
+        score += f.fat * 2;
+      }
+      score += Math.max(0, 100 - Math.abs(remaining.calories * 0.4 - f.calories));
+      if (f.protein > remaining.protein + 10) score -= 30;
+      if (f.carbs > remaining.carbs + 15) score -= 20;
+      if (f.fat > remaining.fat + 10) score -= 20;
+      return score;
+    };
+
+    // Score history items (boosted by frequency)
+    const historyScored = Array.from(mealHistoryIndex.values())
+      .filter(f => f.calories <= remaining.calories + 50 && f.calories > 0)
+      .map(f => ({
+        item: { name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, fromHistory: true } as SuggestionItem,
+        score: scoreFood(f, 20 + Math.min(f.count * 5, 30)), // history bonus: 20 base + 5 per use (max 30)
+      }));
+
+    // Score DB items
+    const historyNames = new Set(historyScored.map(h => h.item.name.toLowerCase()));
+    const dbScored = FOOD_DB
+      .filter(f => f.calories <= remaining.calories + 50 && !historyNames.has(f.name.toLowerCase()))
+      .map(f => ({
+        item: { name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, fromHistory: false } as SuggestionItem,
+        score: scoreFood(f, 0),
+      }));
+
+    return [...historyScored, ...dbScored]
       .sort((a, b) => b.score - a.score)
-      .slice(0, 4)
-      .map(s => s.food);
+      .slice(0, 5)
+      .map(s => s.item);
+  }, [totals, contextualNutrition.adjustedTargets, mealHistoryIndex]);
 
-    return scored;
-  }, [totals, contextualNutrition.adjustedTargets]);
-
-  const handleSuggestionTap = (food: FoodEntry) => {
+  const handleSuggestionTap = (food: SuggestionItem) => {
     addMeal({
       date: new Date(),
       mealType: formMealType,
@@ -684,6 +737,92 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
+    });
+  };
+
+  // ── Daily meal plan generator ──
+  // Generates a full day's meals from history + FOOD_DB to hit remaining macro targets
+  const [showDayPlan, setShowDayPlan] = useState(false);
+
+  type PlannedMeal = { mealType: MealType; name: string; calories: number; protein: number; carbs: number; fat: number };
+  const dailyMealPlan = useMemo((): PlannedMeal[] => {
+    if (!showDayPlan) return [];
+
+    const targets = contextualNutrition.adjustedTargets;
+    const remaining = {
+      calories: Math.max(targets.calories - totals.calories, 0),
+      protein: Math.max(targets.protein - totals.protein, 0),
+      carbs: Math.max(targets.carbs - totals.carbs, 0),
+      fat: Math.max(targets.fat - totals.fat, 0),
+    };
+
+    if (remaining.calories < 100) return [];
+
+    // Build a pool: history (priority) + FOOD_DB
+    type PoolItem = { name: string; calories: number; protein: number; carbs: number; fat: number; priority: number };
+    const pool: PoolItem[] = [
+      ...Array.from(mealHistoryIndex.values())
+        .filter(f => f.calories > 50 && f.calories < remaining.calories)
+        .map(f => ({ name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, priority: 10 + Math.min(f.count * 2, 20) })),
+      ...FOOD_DB
+        .filter(f => f.calories > 50 && f.calories < remaining.calories)
+        .map(f => ({ name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, priority: 0 })),
+    ];
+
+    // Determine which meal slots still need filling
+    const filledTypes = new Set(todayMeals.map(m => m.mealType));
+    const remainingSlots: MealType[] = (['breakfast', 'lunch', 'snack', 'dinner'] as MealType[])
+      .filter(t => !filledTypes.has(t));
+    if (remainingSlots.length === 0) return [];
+
+    // Distribute remaining cals across slots
+    const calPerSlot = remaining.calories / remainingSlots.length;
+    const proPerSlot = remaining.protein / remainingSlots.length;
+
+    const plan: PlannedMeal[] = [];
+    const usedNames = new Set<string>();
+    let budgetLeft = { ...remaining };
+
+    for (const slot of remainingSlots) {
+      // Find best fit for this slot's calorie budget
+      const slotBudget = Math.min(calPerSlot * 1.3, budgetLeft.calories);
+      const candidates = pool
+        .filter(f => f.calories <= slotBudget + 50 && !usedNames.has(f.name))
+        .map(f => {
+          let score = f.priority;
+          // Reward protein density for athletes
+          score += (f.protein / Math.max(f.calories, 1)) * 200;
+          // Reward calorie fit
+          score += Math.max(0, 50 - Math.abs(calPerSlot - f.calories) * 0.2);
+          // Reward protein fit
+          score += Math.max(0, 30 - Math.abs(proPerSlot - f.protein) * 0.5);
+          return { food: f, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      if (candidates.length > 0) {
+        const pick = candidates[0].food;
+        plan.push({ mealType: slot, name: pick.name, calories: pick.calories, protein: pick.protein, carbs: pick.carbs, fat: pick.fat });
+        usedNames.add(pick.name);
+        budgetLeft.calories -= pick.calories;
+        budgetLeft.protein -= pick.protein;
+        budgetLeft.carbs -= pick.carbs;
+        budgetLeft.fat -= pick.fat;
+      }
+    }
+
+    return plan;
+  }, [showDayPlan, contextualNutrition.adjustedTargets, totals, mealHistoryIndex, todayMeals]);
+
+  const handlePlanMealTap = (meal: PlannedMeal) => {
+    addMeal({
+      date: new Date(),
+      mealType: meal.mealType,
+      name: meal.name,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
     });
   };
 
@@ -698,6 +837,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setAnalysisResult(null);
     setAnalysisError(null);
     setShowAutocomplete(false);
+    setBaseServing(null);
   };
 
   const handleAddMeal = () => {
@@ -997,9 +1137,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 <button
                   key={food.name}
                   onClick={() => handleSuggestionTap(food)}
-                  className="flex-shrink-0 p-2.5 bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50 rounded-xl transition-colors text-left min-w-[140px]"
+                  className={cn(
+                    "flex-shrink-0 p-2.5 rounded-xl transition-colors text-left min-w-[140px]",
+                    food.fromHistory
+                      ? "bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+                      : "bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50"
+                  )}
                 >
-                  <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
+                  <div className="flex items-center gap-1">
+                    {food.fromHistory && <Clock className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                    <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
+                  </div>
                   <p className="text-[10px] text-grappler-400 mt-1">
                     {food.calories} kcal &middot; {food.protein}g P
                   </p>
@@ -1007,8 +1155,93 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               ))}
             </div>
             <p className="text-[10px] text-grappler-600 mt-2">
-              Based on your remaining macros &middot; Tap to log
+              Based on your remaining macros {mealSuggestions.some(s => s.fromHistory) ? '& your history' : ''} &middot; Tap to log
             </p>
+          </motion.div>
+        )}
+
+        {/* ── Daily Meal Plan ── */}
+        {(contextualNutrition.adjustedTargets.calories - totals.calories) > 200 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14 }}
+            className="card p-4"
+          >
+            <button
+              onClick={() => setShowDayPlan(!showDayPlan)}
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary-400" />
+                <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
+                  Day Plan
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-grappler-500">
+                  {contextualNutrition.adjustedTargets.calories - totals.calories} kcal to go
+                </span>
+                {showDayPlan ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {showDayPlan && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  {dailyMealPlan.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs text-grappler-500">
+                        Suggested meals to hit your remaining {contextualNutrition.adjustedTargets.protein - totals.protein}g protein &amp; {contextualNutrition.adjustedTargets.calories - totals.calories} kcal:
+                      </p>
+                      {dailyMealPlan.map((meal) => (
+                        <div
+                          key={`${meal.mealType}-${meal.name}`}
+                          className="flex items-center gap-3 p-2.5 bg-grappler-800/40 rounded-lg"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-[80px]">
+                            {MEAL_TYPE_ICONS[meal.mealType]}
+                            <span className="text-[10px] text-grappler-400 uppercase font-medium">
+                              {MEAL_TYPE_LABELS[meal.mealType]}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-grappler-100 truncate">{meal.name}</p>
+                            <p className="text-[10px] text-grappler-500">
+                              {meal.calories} kcal &middot; {meal.protein}g P &middot; {meal.carbs}g C &middot; {meal.fat}g F
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handlePlanMealTap(meal)}
+                            className="px-2.5 py-1 text-[10px] font-medium bg-primary-500/20 text-primary-400 border border-primary-500/40 rounded-lg hover:bg-primary-500/30 transition-colors flex-shrink-0"
+                          >
+                            Log
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-[10px] text-grappler-500 pt-1 border-t border-grappler-800">
+                        <span>Plan total:</span>
+                        <span>
+                          {dailyMealPlan.reduce((s, m) => s + m.calories, 0)} kcal &middot;{' '}
+                          {dailyMealPlan.reduce((s, m) => s + m.protein, 0)}g P &middot;{' '}
+                          {dailyMealPlan.reduce((s, m) => s + m.carbs, 0)}g C &middot;{' '}
+                          {dailyMealPlan.reduce((s, m) => s + m.fat, 0)}g F
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-grappler-500 mt-3">
+                      Not enough remaining macros to suggest a plan.
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
 
@@ -1315,7 +1548,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </p>
                   </div>
 
-                  {/* Portion size */}
+                  {/* Portion size + scaling */}
                   <div>
                     <label className="text-xs text-grappler-400 mb-1 block">
                       Portion <span className="text-grappler-600">(optional)</span>
@@ -1323,10 +1556,44 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <input
                       type="text"
                       value={formPortion}
-                      onChange={(e) => setFormPortion(e.target.value)}
-                      placeholder="e.g. 1 cup, 200g, 2 scoops"
+                      onChange={(e) => {
+                        setFormPortion(e.target.value);
+                        // Auto-scale macros if base serving has grams and user types a weight
+                        if (baseServing?.baseGrams) {
+                          const typedGrams = extractGrams(e.target.value);
+                          if (typedGrams && typedGrams > 0) {
+                            const ratio = typedGrams / baseServing.baseGrams;
+                            setFormCalories(String(Math.round(baseServing.calories * ratio)));
+                            setFormProtein(String(Math.round(baseServing.protein * ratio * 10) / 10));
+                            setFormCarbs(String(Math.round(baseServing.carbs * ratio * 10) / 10));
+                            setFormFat(String(Math.round(baseServing.fat * ratio * 10) / 10));
+                          }
+                        }
+                      }}
+                      placeholder={baseServing?.baseGrams ? `e.g. ${baseServing.baseGrams}g (type weight to auto-scale)` : 'e.g. 1 cup, 200g, 2 scoops'}
                       className="input"
                     />
+                    {/* Quick portion scale buttons */}
+                    {baseServing && (
+                      <div className="flex gap-1.5 mt-1.5">
+                        {[
+                          { label: '½', value: 0.5 },
+                          { label: '¾', value: 0.75 },
+                          { label: '1x', value: 1 },
+                          { label: '1.5x', value: 1.5 },
+                          { label: '2x', value: 2 },
+                        ].map(opt => (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={() => applyPortionScale(opt.value)}
+                            className="flex-1 py-1.5 text-xs font-medium rounded-lg bg-grappler-700/40 hover:bg-primary-500/20 text-grappler-300 hover:text-primary-400 border border-grappler-700/60 hover:border-primary-500/40 transition-colors"
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

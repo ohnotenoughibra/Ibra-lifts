@@ -898,7 +898,7 @@ function Step5_Schedule({
     }
 
     // Warn about days with multiple hard sessions
-    for (const [day, sessions] of combatDayMap.entries()) {
+    for (const [day, sessions] of Array.from(combatDayMap.entries())) {
       const hardCount = sessions.filter(s => s.intensity === 'hard').length;
       if (hardCount >= 2) {
         warnings.push(`${DAY_NAMES[day]} has ${hardCount} hard sessions — consider making one lighter`);

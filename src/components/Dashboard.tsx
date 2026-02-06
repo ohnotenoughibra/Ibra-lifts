@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -362,7 +362,21 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [overlayView, setOverlayView] = useState<OverlayView>(null);
+  const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
+  const scrollPositionRef = useRef(0);
+  const setOverlayView = (view: OverlayView) => {
+    if (view !== null) {
+      // Save scroll position before opening overlay
+      scrollPositionRef.current = window.scrollY;
+    }
+    setOverlayViewRaw(view);
+    if (view === null) {
+      // Restore scroll position after closing overlay
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollPositionRef.current);
+      });
+    }
+  };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const [fabOpen, setFabOpen] = useState(false);
   // Use individual selectors to avoid full re-renders when unrelated state changes

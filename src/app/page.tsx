@@ -369,37 +369,49 @@ function scheduleStreakReminder() {
   }
 
   // ── Meal logging reminders ──
-  // Remind at ~12:30 and ~19:00 if no meals logged recently
-  const mealReminderKey = `roots-meal-notif-${now.toDateString()}-${now.getHours() < 15 ? 'lunch' : 'dinner'}`;
-  const mealReminderShown = localStorage.getItem(mealReminderKey);
-  if (!mealReminderShown) {
+  // Uses configurable reminder times from store settings
+  const store2 = useAppStore.getState();
+  const { mealReminders } = store2;
+
+  if (mealReminders.enabled) {
     const hour = now.getHours();
-    const isLunchWindow = hour >= 12 && hour <= 14;
-    const isDinnerWindow = hour >= 19 && hour <= 21;
+    const minutes = now.getMinutes();
+    const currentTime = hour * 60 + minutes; // minutes since midnight
 
-    if (isLunchWindow || isDinnerWindow) {
-      const store = useAppStore.getState();
-      const todayMeals = store.meals.filter(
-        m => new Date(m.date).toDateString() === now.toDateString()
-      );
+    const mealSlots = ['breakfast', 'lunch', 'dinner'] as const;
+    for (const slot of mealSlots) {
+      if (!mealReminders.enabledMeals[slot]) continue;
 
-      const mealName = isLunchWindow ? 'lunch' : 'dinner';
-      const hasMealType = todayMeals.some(m =>
-        isLunchWindow ? (m.mealType === 'lunch' || m.mealType === 'pre_workout') : m.mealType === 'dinner'
-      );
+      const [rH, rM] = mealReminders.reminderTimes[slot].split(':').map(Number);
+      const reminderMinute = rH * 60 + rM;
 
-      if (!hasMealType) {
-        const totalCal = todayMeals.reduce((s, m) => s + m.calories, 0);
-        const body = totalCal > 0
-          ? `You've logged ${totalCal} kcal so far. Don't forget to log ${mealName}!`
-          : `No meals logged yet today. Tap to log your ${mealName}.`;
+      // Show within a 90-minute window after reminder time
+      if (currentTime >= reminderMinute && currentTime <= reminderMinute + 90) {
+        const mealKey = `roots-meal-notif-${now.toDateString()}-${slot}`;
+        if (!localStorage.getItem(mealKey)) {
+          const todayMeals = store2.meals.filter(
+            m => new Date(m.date).toDateString() === now.toDateString()
+          );
+          const hasMealType = todayMeals.some(m =>
+            slot === 'lunch'
+              ? (m.mealType === 'lunch' || m.mealType === 'pre_workout')
+              : m.mealType === slot
+          );
 
-        new Notification('Log Your Meal', {
-          body,
-          icon: '/icon-192.png',
-          tag: `meal-${mealName}`,
-        });
-        localStorage.setItem(mealReminderKey, '1');
+          if (!hasMealType) {
+            const totalCal = todayMeals.reduce((s, m) => s + m.calories, 0);
+            const body = totalCal > 0
+              ? `You've logged ${totalCal} kcal so far. Don't forget to log ${slot}!`
+              : `No meals logged yet today. Tap to log your ${slot}.`;
+
+            new Notification('Log Your Meal', {
+              body,
+              icon: '/icon-192.png',
+              tag: `meal-${slot}`,
+            });
+            localStorage.setItem(mealKey, '1');
+          }
+        }
       }
     }
   }

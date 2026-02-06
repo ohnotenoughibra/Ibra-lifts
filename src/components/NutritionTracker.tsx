@@ -1201,7 +1201,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      disabled={isAnalyzing || isEstimating}
+                      disabled={false}
                       className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
                       Add

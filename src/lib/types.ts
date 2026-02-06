@@ -316,7 +316,7 @@ export interface ProgressInsight {
 // Knowledge/Educational Content Types
 export type ContentCategory =
   | 'muscle_science' | 'lifting_technique' | 'periodization'
-  | 'recovery' | 'nutrition' | 'grappling' | 'motivation'
+  | 'recovery' | 'nutrition' | 'dieting' | 'grappling' | 'motivation'
   | 'striking' | 'mma' | 'general_fitness';
 
 export interface KnowledgeArticle {
@@ -426,6 +426,21 @@ export interface DailyNutrition {
   totalCarbs: number;
   totalFat: number;
   waterLiters: number;
+}
+
+// Meal Reminder Settings
+export interface MealReminderSettings {
+  enabled: boolean;
+  reminderTimes: {
+    breakfast: string; // HH:MM format
+    lunch: string;
+    dinner: string;
+  };
+  enabledMeals: {
+    breakfast: boolean;
+    lunch: boolean;
+    dinner: boolean;
+  };
 }
 
 // Wearable / Health Integration (Whoop-first)

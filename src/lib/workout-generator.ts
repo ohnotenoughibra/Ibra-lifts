@@ -18,6 +18,7 @@ import {
   TrainingIdentity,
   CombatSport,
   BiologicalSex,
+  DietGoal,
   WorkoutLog
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
@@ -155,6 +156,51 @@ function getSexAdjustedPrescription(type: WorkoutType, sex?: BiologicalSex): typ
   };
 }
 
+/**
+ * Diet phase training modifiers — evidence-based.
+ *
+ * During a caloric deficit, recovery capacity is reduced. The goal shifts from
+ * BUILDING muscle to RETAINING it. Key evidence:
+ *
+ *   Murphy & Koehler 2022: deficit impairs lean mass gains but NOT strength gains
+ *   Roth et al. 2023: moderate volume (3 sets) = high volume (5 sets) for LM retention in a cut
+ *   Helms et al. 2015: maintain intensity, reduce volume ~33%, heavy compounds 4-8 reps
+ *   2024 Delphi consensus: deload every 4-5 weeks during restriction (vs 6-8 normally)
+ *
+ * During a surplus, recovery is enhanced. More volume and metabolic work is tolerated.
+ */
+const DIET_PHASE_MODIFIERS: Record<DietGoal | 'none', {
+  volumeScale: number;           // Multiplier for weekly volume
+  rpeOffset: number;             // Shift RPE target (negative = easier)
+  restScale: number;             // Multiplier for rest periods (>1 = longer)
+  deloadFrequencyWeeks: number;  // Deload every N weeks
+}> = {
+  cut: {
+    volumeScale: 0.80,           // Reduce volume ~20% (retain 10-15 sets/muscle/wk minimum)
+    rpeOffset: -0.5,             // RPE 7-8.5 instead of 7-9 (fatigue buffer)
+    restScale: 1.25,             // +25% rest — glycogen-depleted, need more recovery between sets
+    deloadFrequencyWeeks: 4,     // Deload every 4 weeks (vs 5 normally)
+  },
+  maintain: {
+    volumeScale: 1.0,
+    rpeOffset: 0,
+    restScale: 1.0,
+    deloadFrequencyWeeks: 5,
+  },
+  bulk: {
+    volumeScale: 1.10,           // +10% volume — surplus supports higher training stress
+    rpeOffset: 0.3,              // Can push closer to failure with better recovery
+    restScale: 0.90,             // Slightly shorter rest tolerated (better energy availability)
+    deloadFrequencyWeeks: 6,     // Less frequent deloads — surplus aids recovery
+  },
+  none: {
+    volumeScale: 1.0,
+    rpeOffset: 0,
+    restScale: 1.0,
+    deloadFrequencyWeeks: 5,
+  },
+};
+
 // Undulating periodization schemes for 1-6 sessions/week
 const UNDULATING_SCHEMES: Record<number, WorkoutType[]> = {
   1: ['strength'],
@@ -278,6 +324,7 @@ interface GeneratorOptions {
   combatSport?: CombatSport;
   experienceLevel?: ExperienceLevel;
   biologicalSex?: BiologicalSex;
+  dietGoal?: DietGoal;                               // Active diet phase influences volume/rest/RPE
   // Sport training load for adaptive volume scaling
   sportSessionsPerWeek?: number;           // Number of sport training sessions per week
   avgSportIntensity?: 'light' | 'moderate' | 'hard';  // Average intensity of sport sessions
@@ -573,17 +620,19 @@ function generateWorkoutSession(
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
   experienceLevel?: ExperienceLevel,
-  biologicalSex?: BiologicalSex
+  biologicalSex?: BiologicalSex,
+  dietGoal?: DietGoal
 ): WorkoutSession {
   const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport);
   const config = getSexAdjustedPrescription(type, biologicalSex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[biologicalSex || 'male'];
+  const dietMod = DIET_PHASE_MODIFIERS[dietGoal || 'none'];
 
   let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
-    // Adjust sets based on exercise category and experience level
+    // Adjust sets based on exercise category, experience level, and diet phase
     let sets = randomBetween(config.sets[0], config.sets[1]);
-    sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale);
+    sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale * dietMod.volumeScale);
     sets = Math.max(2, Math.min(expMod.maxSets, sets));
 
     // Women: boost upper body volume (evidence-based — proportionally weaker upper body)
@@ -604,8 +653,10 @@ function generateWorkoutSession(
     }
 
     const prescription = createSetPrescription(type, biologicalSex);
-    // Adjust RPE based on experience level
-    prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset).toFixed(1)));
+    // Adjust RPE based on experience level and diet phase
+    prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset).toFixed(1)));
+    // Adjust rest periods for diet phase (longer rest during cuts — glycogen depletion)
+    prescription.restSeconds = Math.round(prescription.restSeconds * dietMod.restScale);
 
     return {
       exerciseId: exercise.id,
@@ -793,7 +844,8 @@ function generateMesocycleWeek(
   experienceLevel?: ExperienceLevel,
   sportSessionsPerWeek?: number,
   avgSportIntensity?: 'light' | 'moderate' | 'hard',
-  biologicalSex?: BiologicalSex
+  biologicalSex?: BiologicalSex,
+  dietGoal?: DietGoal
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -872,7 +924,8 @@ function generateMesocycleWeek(
       trainingIdentity,
       combatSport,
       experienceLevel,
-      biologicalSex
+      biologicalSex,
+      dietGoal
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -923,7 +976,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     userId, goalFocus, equipment, availableEquipment, sessionsPerWeek,
     weeks, muscleEmphasis, sessionDurationMinutes,
     trainingIdentity, combatSport, experienceLevel,
-    sportSessionsPerWeek, avgSportIntensity, biologicalSex
+    sportSessionsPerWeek, avgSportIntensity, biologicalSex, dietGoal
   } = options;
 
   const mesocycleWeeks: MesocycleWeek[] = [];
@@ -947,7 +1000,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
         sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
-        sportSessionsPerWeek, avgSportIntensity, biologicalSex
+        sportSessionsPerWeek, avgSportIntensity, biologicalSex, dietGoal
       )
     );
   }

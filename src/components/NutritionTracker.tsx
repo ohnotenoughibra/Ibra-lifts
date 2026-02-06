@@ -429,6 +429,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [showPresets, setShowPresets] = useState(false);
   const [formMealType, setFormMealType] = useState<MealType>('lunch');
   const [formName, setFormName] = useState('');
+  const [formPortion, setFormPortion] = useState('');
   const [formCalories, setFormCalories] = useState('');
   const [formProtein, setFormProtein] = useState('');
   const [formCarbs, setFormCarbs] = useState('');
@@ -578,6 +579,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   // ── Handlers ──
   const resetForm = () => {
     setFormName('');
+    setFormPortion('');
     setFormCalories('');
     setFormProtein('');
     setFormCarbs('');
@@ -601,6 +603,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       protein: pro,
       carbs: carb,
       fat: f,
+      portion: formPortion.trim() || undefined,
     });
     resetForm();
     setShowAddForm(false);
@@ -1126,8 +1129,22 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       </button>
                     </div>
                     <p className="text-xs text-grappler-600 mt-1">
-                      Type what you ate and tap AI to auto-fill macros
+                      Type what you ate and tap Estimate to auto-fill macros
                     </p>
+                  </div>
+
+                  {/* Portion size */}
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1 block">
+                      Portion <span className="text-grappler-600">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formPortion}
+                      onChange={(e) => setFormPortion(e.target.value)}
+                      placeholder="e.g. 1 cup, 200g, 2 scoops"
+                      className="input"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1271,6 +1288,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-grappler-200 font-medium truncate">
                               {meal.name}
+                              {meal.portion && (
+                                <span className="text-grappler-500 font-normal ml-1">({meal.portion})</span>
+                              )}
                             </p>
                             <div className="flex gap-3 mt-0.5 text-[10px]">
                               <span className="text-orange-400">

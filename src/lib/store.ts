@@ -41,11 +41,13 @@ import {
   DietPhase,
   WeeklyCheckIn,
   MealReminderSettings,
+  WeeklyChallenge,
+  StreakShield,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
-import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges } from './gamification';
+import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
@@ -204,6 +206,7 @@ interface AppState {
   recalculateGamificationStats: () => void;
   recalculatePRs: () => void;
   awardPoints: (points: number, reason: string) => void;
+  ensureWeeklyChallenge: () => void;
   checkAndAwardBadges: () => void;
 
   // Workout log editing
@@ -326,6 +329,12 @@ const initialOnboardingData: OnboardingData = {
   wearableProvider: undefined,
 };
 
+const initialStreakShield: StreakShield = {
+  available: 1,
+  lastRefillDate: new Date().toISOString().split('T')[0],
+  usedDates: [],
+};
+
 const initialGamificationStats: GamificationStats = {
   id: '',
   userId: '',
@@ -336,7 +345,14 @@ const initialGamificationStats: GamificationStats = {
   totalWorkouts: 0,
   totalVolume: 0,
   personalRecords: 0,
-  badges: []
+  badges: [],
+  weeklyChallenge: null,
+  streakShield: initialStreakShield,
+  comebackCount: 0,
+  totalTrainingSessions: 0,
+  dualTrainingDays: 0,
+  challengesCompleted: 0,
+  lastActiveDate: null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -1277,11 +1293,45 @@ export const useAppStore = create<AppState>()(
           }
         }
 
-        // Calculate points
+        // Detect comeback (7+ days since last activity)
+        const isComeback = detectComeback(gamificationStats.lastActiveDate || null);
+        const newComebackCount = isComeback
+          ? (gamificationStats.comebackCount || 0) + 1
+          : (gamificationStats.comebackCount || 0);
+
+        // Streak shield: if streak would reset (gap > 1 day) and shield available, preserve streak
+        let shieldUsed = false;
+        if (newStreak === 1 && gamificationStats.currentStreak > 1 && (gamificationStats.streakShield?.available || 0) > 0) {
+          // Would have reset — use shield to save the streak
+          newStreak = gamificationStats.currentStreak + 1;
+          shieldUsed = true;
+        }
+
+        // Refill streak shield weekly
+        let updatedShield = gamificationStats.streakShield || initialStreakShield;
+        if (shouldRefillShield(updatedShield.lastRefillDate)) {
+          updatedShield = { ...updatedShield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] };
+        }
+        if (shieldUsed) {
+          updatedShield = {
+            ...updatedShield,
+            available: updatedShield.available - 1,
+            usedDates: [...updatedShield.usedDates, todayStr],
+          };
+        }
+
+        // Check if today is also a training session day (dual training)
+        const hasTrainingToday = trainingSessions.some(s => fmtDate(new Date(s.date)) === todayStr);
+        const newDualDays = hasTrainingToday
+          ? (gamificationStats.dualTrainingDays || 0) + 1
+          : (gamificationStats.dualTrainingDays || 0);
+
+        // Calculate points (with comeback bonus)
         const { points, breakdown } = calculateWorkoutPoints(
           workoutLog,
           hadPR,
-          newStreak
+          newStreak,
+          isComeback
         );
 
         // Update stats
@@ -1290,25 +1340,82 @@ export const useAppStore = create<AppState>()(
         const newTotalPoints = gamificationStats.totalPoints + points;
         const newPRs = gamificationStats.personalRecords + (hadPR ? 1 : 0);
 
+        // Update weekly challenge progress
+        let weeklyChallenge = gamificationStats.weeklyChallenge;
+        if (!weeklyChallenge || !isCurrentWeek(weeklyChallenge)) {
+          // Generate new weekly challenge if none or expired
+          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats);
+        }
+        // Update progress
+        weeklyChallenge = {
+          ...weeklyChallenge,
+          goals: weeklyChallenge.goals.map(g => {
+            if (g.completed) return g;
+            if (g.type === 'workouts') {
+              const newCurrent = g.current + 1;
+              return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+            }
+            if (g.type === 'volume') {
+              const newCurrent = g.current + totalVolume;
+              return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+            }
+            if (g.type === 'prs' && hadPR) {
+              const newCurrent = g.current + 1;
+              return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+            }
+            if (g.type === 'dual_days' && hasTrainingToday) {
+              const newCurrent = g.current + 1;
+              return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+            }
+            return g;
+          }),
+        };
+
+        // Award XP for completed challenge goals
+        let challengeXP = 0;
+        let newChallengesCompleted = gamificationStats.challengesCompleted || 0;
+        weeklyChallenge.goals.forEach(g => {
+          // Check if this goal was JUST completed this workout
+          const prevGoal = gamificationStats.weeklyChallenge?.goals.find(pg => pg.id === g.id);
+          if (g.completed && prevGoal && !prevGoal.completed) {
+            challengeXP += g.xpReward;
+            newChallengesCompleted++;
+          }
+        });
+        // All 3 completed bonus
+        const allGoalsDone = weeklyChallenge.goals.every(g => g.completed);
+        if (allGoalsDone && !weeklyChallenge.allCompleteBonusClaimed) {
+          challengeXP += weeklyChallenge.allCompleteBonus;
+          weeklyChallenge = { ...weeklyChallenge, allCompleteBonusClaimed: true };
+        }
+
+        const finalTotalPoints = newTotalPoints + challengeXP;
+
         set({
           activeWorkout: null,
           workoutLogs: [...workoutLogs, workoutLog],
           lastCompletedWorkout: {
             log: workoutLog,
-            points,
+            points: points + challengeXP,
             hadPR,
             newStreak: newStreak,
             newBadges: [], // Will be populated by checkAndAwardBadges
           },
           gamificationStats: {
             ...gamificationStats,
-            totalPoints: newTotalPoints,
-            level: calculateLevel(newTotalPoints),
+            totalPoints: finalTotalPoints,
+            level: calculateLevel(finalTotalPoints),
             currentStreak: newStreak,
             longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
             totalWorkouts: newTotalWorkouts,
             totalVolume: newTotalVolume,
-            personalRecords: newPRs
+            personalRecords: newPRs,
+            weeklyChallenge,
+            streakShield: updatedShield,
+            comebackCount: newComebackCount,
+            dualTrainingDays: newDualDays,
+            challengesCompleted: newChallengesCompleted,
+            lastActiveDate: todayStr,
           }
         });
 
@@ -1417,6 +1524,13 @@ export const useAppStore = create<AppState>()(
           }
         }
 
+        // Recalculate training sessions count and dual training days
+        const totalTrainingSessions = trainingSessions.length;
+        const workoutDateSet = new Set(workoutLogs.map(log => fmtDate(new Date(log.date))));
+        const dualTrainingDays = trainingSessions.filter(s =>
+          workoutDateSet.has(fmtDate(new Date(s.date)))
+        ).length;
+
         set({
           gamificationStats: {
             ...gamificationStats,
@@ -1425,6 +1539,8 @@ export const useAppStore = create<AppState>()(
             personalRecords,
             currentStreak,
             longestStreak,
+            totalTrainingSessions,
+            dualTrainingDays,
           }
         });
 
@@ -1518,7 +1634,7 @@ export const useAppStore = create<AppState>()(
       },
 
       checkAndAwardBadges: () => {
-        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout } = get();
+        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout, trainingSessions } = get();
 
         const metrics = {
           personalRecords: gamificationStats.personalRecords,
@@ -1526,12 +1642,16 @@ export const useAppStore = create<AppState>()(
           currentStreak: gamificationStats.currentStreak,
           totalVolume: gamificationStats.totalVolume,
           mesocyclesCompleted: mesocycleHistory.length,
-          gripExercises: 0, // Would need to track this
-          turkishGetups: 0, // Would need to track this
+          gripExercises: 0,
+          turkishGetups: 0,
           earlyWorkouts: 0,
           lateWorkouts: 0,
           perfectWeeks: 0,
-          oneRMIncreases: {}
+          oneRMIncreases: {},
+          totalTrainingSessions: gamificationStats.totalTrainingSessions || trainingSessions.length,
+          dualTrainingDays: gamificationStats.dualTrainingDays || 0,
+          comebackCount: gamificationStats.comebackCount || 0,
+          challengesCompleted: gamificationStats.challengesCompleted || 0,
         };
 
         const newBadges = checkNewBadges(gamificationStats, metrics);
@@ -1571,6 +1691,29 @@ export const useAppStore = create<AppState>()(
           }
 
           set(updates);
+        }
+      },
+
+      ensureWeeklyChallenge: () => {
+        const { gamificationStats, user } = get();
+        if (!gamificationStats.weeklyChallenge || !isCurrentWeek(gamificationStats.weeklyChallenge)) {
+          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats);
+          set({
+            gamificationStats: {
+              ...gamificationStats,
+              weeklyChallenge: challenge,
+            }
+          });
+        }
+        // Also refill streak shield if needed
+        const shield = gamificationStats.streakShield || initialStreakShield;
+        if (shouldRefillShield(shield.lastRefillDate)) {
+          set({
+            gamificationStats: {
+              ...get().gamificationStats,
+              streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] },
+            }
+          });
         }
       },
 
@@ -1812,17 +1955,56 @@ export const useAppStore = create<AppState>()(
             }
           }
 
+          // Check if this is also a lifting day (dual training)
+          const sessionDay = fmtDate(new Date(session.date));
+          const hasLiftingToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === sessionDay);
+          const newDualDays = hasLiftingToday
+            ? (gamificationStats.dualTrainingDays || 0) + 1
+            : (gamificationStats.dualTrainingDays || 0);
+
+          const updatedStats: GamificationStats = {
+            ...gamificationStats,
+            currentStreak: newStreak,
+            longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
+            totalTrainingSessions: (gamificationStats.totalTrainingSessions || 0) + 1,
+            dualTrainingDays: newDualDays,
+            lastActiveDate: new Date().toISOString().split('T')[0],
+          };
+
+          // Update weekly challenge progress for sessions/dual_days
+          if (updatedStats.weeklyChallenge && isCurrentWeek(updatedStats.weeklyChallenge)) {
+            updatedStats.weeklyChallenge = {
+              ...updatedStats.weeklyChallenge,
+              goals: updatedStats.weeklyChallenge.goals.map(g => {
+                if (g.completed) return g;
+                if (g.type === 'sessions') {
+                  const newCurrent = g.current + 1;
+                  return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+                }
+                if (g.type === 'dual_days' && hasLiftingToday) {
+                  const newCurrent = g.current + 1;
+                  return { ...g, current: newCurrent, completed: newCurrent >= g.target };
+                }
+                return g;
+              }),
+            };
+          }
+
+          set({
+            trainingSessions: [...trainingSessions, newSession],
+            gamificationStats: updatedStats,
+          });
+
+          // Check badges after updating
+          queueMicrotask(() => get().checkAndAwardBadges());
+        } else {
           set({
             trainingSessions: [...trainingSessions, newSession],
             gamificationStats: {
               ...gamificationStats,
-              currentStreak: newStreak,
-              longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
+              totalTrainingSessions: (gamificationStats.totalTrainingSessions || 0) + 1,
+              lastActiveDate: new Date().toISOString().split('T')[0],
             }
-          });
-        } else {
-          set({
-            trainingSessions: [...trainingSessions, newSession]
           });
         }
       },

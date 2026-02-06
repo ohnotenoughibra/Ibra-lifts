@@ -436,7 +436,7 @@ function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPresc
     targetReps: randomBetween(config.reps[0], config.reps[1]),
     minReps: config.reps[0],
     maxReps: config.reps[1],
-    rpe: randomBetween(config.rpe[0] * 10, config.rpe[1] * 10) / 10,
+    rpe: +(randomBetween(config.rpe[0] * 10, config.rpe[1] * 10) / 10).toFixed(1),
     restSeconds: randomBetween(config.restSeconds[0], config.restSeconds[1]),
     tempo: config.tempo,
     percentageOf1RM: randomBetween(config.percentageOf1RM[0], config.percentageOf1RM[1])

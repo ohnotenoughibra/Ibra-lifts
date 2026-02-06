@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -33,6 +33,7 @@ import {
   Shield,
   ArrowDown,
   ArrowUp,
+  Info,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
@@ -75,6 +76,7 @@ export default function ActiveWorkout() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showLocationConfirm, setShowLocationConfirm] = useState<EquipmentProfileName | null>(null);
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
+  const [showRPEInfo, setShowRPEInfo] = useState(false);
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
@@ -158,16 +160,43 @@ export default function ActiveWorkout() {
   // Rest timer — timestamp-based so it keeps counting while app is backgrounded
   const [restEndTime, setRestEndTime] = useState<number | null>(null);
   const restTimer = restEndTime ? Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000)) : 0;
+  const warned10sRef = useRef(false);
 
   useEffect(() => {
     if (!isResting || !restEndTime) return;
+    warned10sRef.current = false; // Reset warning flag for new rest period
     const interval = setInterval(() => {
       const remaining = Math.ceil((restEndTime - Date.now()) / 1000);
+
+      // 10-second warning — vibrate + notification when app may be backgrounded
+      if (remaining <= 10 && remaining > 0 && !warned10sRef.current) {
+        warned10sRef.current = true;
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
+        }
+        // Send push notification if app is backgrounded
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
+          new Notification('Rest almost done!', {
+            body: '10 seconds left — get ready for your next set',
+            tag: 'rest-warning',
+            silent: false,
+          });
+        }
+      }
+
       if (remaining <= 0) {
         setIsResting(false);
         setRestEndTime(null);
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([200, 100, 200, 100, 300]);
+        }
+        // Send push notification if app is backgrounded
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
+          new Notification('Rest complete!', {
+            body: 'Time to lift — next set is ready',
+            tag: 'rest-complete',
+            silent: false,
+          });
         }
       }
     }, 500);
@@ -190,6 +219,7 @@ export default function ActiveWorkout() {
   const currentExercise = activeWorkout.session.exercises[currentExerciseIndex];
   const currentLog = activeWorkout.exerciseLogs[currentExerciseIndex];
   const currentSet = currentLog.sets[currentSetIndex];
+  const isTimeBased = currentExercise.exercise.measurementType === 'time';
 
   // Real-time PR detection - check if current input would beat historical best
   const prDetection = useMemo(() => {
@@ -391,7 +421,14 @@ export default function ActiveWorkout() {
 
   const isLastSet = currentSetIndex === currentLog.sets.length - 1;
   const isLastExercise = currentExerciseIndex === activeWorkout.session.exercises.length - 1;
-  const isWorkoutComplete = isLastSet && isLastExercise && currentSet.completed;
+  // Check if ALL exercises are fully completed (not just current index position)
+  const allExercisesDone = activeWorkout.exerciseLogs.every(
+    log => log.sets.every(s => s.completed)
+  );
+  const hasIncompleteExercises = activeWorkout.exerciseLogs.some(
+    (log, i) => i !== currentExerciseIndex && log.sets.some(s => !s.completed)
+  );
+  const isWorkoutComplete = allExercisesDone;
 
   // Get readiness for display
   const readiness = activeWorkout.preCheckIn ? calculateReadiness(activeWorkout.preCheckIn) : null;
@@ -1559,7 +1596,18 @@ export default function ActiveWorkout() {
             </button>
 
             {/* What's next during rest */}
-            {isLastSet && !isLastExercise && (
+            {!isLastSet && (
+              <div className="mt-6 text-center">
+                <p className="text-xs text-grappler-500 mb-1">Up Next</p>
+                <p className="text-sm font-medium text-grappler-200">
+                  Set {currentSetIndex + 2} of {currentLog.sets.length}
+                </p>
+                <p className="text-xs text-grappler-500">
+                  {currentExercise.exercise.name} &middot; {currentExercise.prescription.targetReps} reps
+                </p>
+              </div>
+            )}
+            {isLastSet && !allExercisesDone && (
               <div className="mt-6 text-center">
                 <p className="text-xs text-grappler-500 mb-1">Up Next</p>
                 <p className="text-sm font-medium text-grappler-200">
@@ -1571,10 +1619,17 @@ export default function ActiveWorkout() {
                 </p>
               </div>
             )}
-            {isLastSet && isLastExercise && (
+            {allExercisesDone && (
               <div className="mt-6 text-center">
                 <p className="text-sm font-medium text-green-400">
-                  Last exercise done — ready to finish!
+                  All exercises done — ready to finish!
+                </p>
+              </div>
+            )}
+            {isLastExercise && !allExercisesDone && hasIncompleteExercises && (
+              <div className="mt-4 text-center">
+                <p className="text-xs text-yellow-400">
+                  Some exercises still have incomplete sets
                 </p>
               </div>
             )}
@@ -1894,7 +1949,7 @@ export default function ActiveWorkout() {
               <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
                 <p className="text-xs text-grappler-400">
                   No history yet. Start with a weight you can handle for {currentExercise.prescription.targetReps} reps
-                  with {10 - currentExercise.prescription.rpe} reps left in reserve.
+                  with {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps left in reserve.
                   {currentExercise.prescription.rpe <= 7 && ' This should feel moderate.'}
                   {currentExercise.prescription.rpe === 8 && ' This should be challenging but doable.'}
                   {currentExercise.prescription.rpe >= 9 && ' This should be near your limit.'}
@@ -2020,9 +2075,12 @@ export default function ActiveWorkout() {
                   prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
                     ? 'text-yellow-400'
                     : 'text-grappler-400'
-                )}>Reps</label>
+                )}>{isTimeBased ? 'Seconds' : 'Reps'}</label>
                 <span className="text-xs text-grappler-500">
-                  Target: {currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}
+                  Target: {isTimeBased
+                    ? `${currentExercise.prescription.targetReps}s`
+                    : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}`
+                  }
                 </span>
               </div>
               <div className="flex items-center justify-between mt-2">
@@ -2057,7 +2115,35 @@ export default function ActiveWorkout() {
 
             {/* RPE */}
             <div className="bg-grappler-800/50 rounded-xl p-4">
-              <label className="text-xs text-grappler-400 uppercase tracking-wide">RPE (1-10)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-grappler-400 uppercase tracking-wide">RPE (1-10)</label>
+                <button
+                  onClick={() => setShowRPEInfo(prev => !prev)}
+                  className="text-grappler-500 hover:text-grappler-300 transition-colors"
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <AnimatePresence>
+                {showRPEInfo && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-2 mb-2 p-2.5 bg-grappler-700/50 rounded-lg text-[11px] text-grappler-300 space-y-1">
+                      <p className="font-medium text-grappler-200">Rate of Perceived Exertion (RPE)</p>
+                      <p><span className="text-green-400 font-medium">6</span> — Could do 4+ more reps</p>
+                      <p><span className="text-green-400 font-medium">7</span> — Could do 3 more reps</p>
+                      <p><span className="text-yellow-400 font-medium">8</span> — Could do 2 more reps</p>
+                      <p><span className="text-red-400 font-medium">9</span> — Could do 1 more rep</p>
+                      <p><span className="text-red-400 font-medium">10</span> — Maximum effort, no reps left</p>
+                      <p className="text-grappler-400 pt-1">Reps in Reserve (RIR) = 10 - RPE</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div className="flex items-center justify-center gap-2 mt-2">
                 {[6, 7, 8, 9, 10].map((rpe) => (
                   <button
@@ -2161,6 +2247,9 @@ export default function ActiveWorkout() {
                       {doneSets}/{log.sets.length} sets
                       {isCurrent && !isDone && (
                         <span className="text-primary-400 ml-1">— in progress</span>
+                      )}
+                      {isDone && (
+                        <span className="text-green-400 ml-1">— complete</span>
                       )}
                     </p>
                   </div>

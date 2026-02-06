@@ -57,6 +57,7 @@ export interface UserProfile {
   weightUnit: WeightUnit;
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
+  combatSports?: CombatSport[]; // Multiple sports (e.g., BJJ + Muay Thai)
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
   // Wearable preferences
@@ -92,6 +93,8 @@ export type ExerciseCategory =
 export type MovementPattern =
   | 'push' | 'pull' | 'squat' | 'hinge' | 'carry' | 'rotation' | 'explosive';
 
+export type ExerciseMeasurement = 'reps' | 'time' | 'distance';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -107,6 +110,7 @@ export interface Exercise {
   description: string;
   cues: string[];
   videoUrl?: string;
+  measurementType?: ExerciseMeasurement; // 'reps' (default), 'time' (seconds), 'distance'
 }
 
 // Workout Programming Types
@@ -626,7 +630,7 @@ export type BodyRegion =
   | 'left_ankle' | 'right_ankle' | 'chest' | 'core';
 
 export type PainSeverity = 1 | 2 | 3 | 4 | 5;
-export type PainType = 'sharp' | 'dull' | 'burning' | 'stiffness' | 'clicking';
+export type PainType = 'sharp' | 'dull' | 'burning' | 'stiffness' | 'clicking' | 'numbness';
 
 export interface InjuryEntry {
   id: string;
@@ -888,10 +892,13 @@ export type CombatSport = 'mma' | 'grappling_gi' | 'grappling_nogi' | 'striking'
 // Combat training schedule — which days and how hard
 export type CombatIntensity = 'light' | 'moderate' | 'hard';
 
+export type CombatTimeOfDay = 'morning' | 'afternoon' | 'evening';
+
 export interface CombatTrainingDay {
   day: number;           // 0=Sun, 1=Mon, ... 6=Sat
   intensity: CombatIntensity;
   label?: string;        // e.g., "Sparring", "Drilling", "Competition prep"
+  timeOfDay?: CombatTimeOfDay; // For multiple sessions per day
 }
 
 // ── Diet Phase / Nutrition Coaching ─────────────────────────────────────────
@@ -938,6 +945,8 @@ export interface OnboardingData {
   baselineLifts: Partial<BaselineLifts>;
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
+  combatSports?: CombatSport[]; // Multiple sports (e.g., BJJ + Muay Thai)
+  mesoCycleWeeks?: number; // 4-12 weeks, defaults to 5
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
   // Wearable preferences

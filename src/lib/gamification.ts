@@ -1,8 +1,11 @@
-import { Badge, BadgeCategory, GamificationStats, WorkoutLog } from './types';
+import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity } from './types';
+import { v4 as uuidv4 } from 'uuid';
 
-// Badge definitions
+// Badge definitions — 52 total badges across 5 categories
 export const badges: Badge[] = [
-  // STRENGTH BADGES
+  // ═══════════════════════════════════════════
+  // STRENGTH BADGES (10)
+  // ═══════════════════════════════════════════
   {
     id: 'first-pr',
     name: 'PR Crusher',
@@ -22,6 +25,15 @@ export const badges: Badge[] = [
     points: 250
   },
   {
+    id: 'pr-streak-10',
+    name: 'PR Hunter',
+    description: 'Hit 10 personal records',
+    icon: '🎯',
+    category: 'strength',
+    requirement: 'personal_records >= 10',
+    points: 350
+  },
+  {
     id: 'pr-streak-20',
     name: 'Strength Beast',
     description: 'Hit 20 personal records',
@@ -31,10 +43,28 @@ export const badges: Badge[] = [
     points: 500
   },
   {
+    id: 'pr-streak-50',
+    name: 'PR Machine',
+    description: 'Hit 50 personal records',
+    icon: '⚙️',
+    category: 'strength',
+    requirement: 'personal_records >= 50',
+    points: 1000
+  },
+  {
+    id: 'pr-streak-100',
+    name: 'PR Legend',
+    description: 'Hit 100 personal records',
+    icon: '👑',
+    category: 'strength',
+    requirement: 'personal_records >= 100',
+    points: 2500
+  },
+  {
     id: 'double-bodyweight-deadlift',
     name: 'Deadlift King',
     description: 'Deadlift double your bodyweight',
-    icon: '👑',
+    icon: '🫅',
     category: 'strength',
     requirement: 'deadlift_ratio >= 2.0',
     points: 1000
@@ -57,8 +87,19 @@ export const badges: Badge[] = [
     requirement: '1rm_increase >= 20',
     points: 750
   },
+  {
+    id: '1rm-increase-50',
+    name: 'New Athlete',
+    description: 'Increase any 1RM by 50%',
+    icon: '🔥',
+    category: 'strength',
+    requirement: '1rm_increase >= 50',
+    points: 2000
+  },
 
-  // CONSISTENCY BADGES
+  // ═══════════════════════════════════════════
+  // CONSISTENCY BADGES (12)
+  // ═══════════════════════════════════════════
   {
     id: 'first-workout',
     name: 'First Step',
@@ -80,29 +121,65 @@ export const badges: Badge[] = [
   {
     id: 'streak-7',
     name: 'Weekly Streak',
-    description: 'Maintain a 7-day workout streak',
+    description: 'Maintain a 7-day training streak',
     icon: '🔥',
     category: 'consistency',
     requirement: 'streak >= 7',
     points: 200
   },
   {
+    id: 'streak-14',
+    name: 'Two Week Terror',
+    description: 'Maintain a 14-day training streak',
+    icon: '🔥',
+    category: 'consistency',
+    requirement: 'streak >= 14',
+    points: 350
+  },
+  {
     id: 'streak-30',
     name: 'Monthly Dedication',
-    description: 'Maintain a 30-day workout streak',
+    description: 'Maintain a 30-day training streak',
     icon: '🌟',
     category: 'consistency',
     requirement: 'streak >= 30',
     points: 500
   },
   {
+    id: 'streak-60',
+    name: 'Two Month Beast',
+    description: 'Maintain a 60-day training streak',
+    icon: '💪',
+    category: 'consistency',
+    requirement: 'streak >= 60',
+    points: 1000
+  },
+  {
     id: 'streak-90',
     name: 'Unbreakable',
-    description: 'Maintain a 90-day workout streak',
+    description: 'Maintain a 90-day training streak',
     icon: '💎',
     category: 'consistency',
     requirement: 'streak >= 90',
     points: 1500
+  },
+  {
+    id: 'streak-180',
+    name: 'Half Year Hero',
+    description: 'Maintain a 180-day training streak',
+    icon: '🛡️',
+    category: 'consistency',
+    requirement: 'streak >= 180',
+    points: 3000
+  },
+  {
+    id: 'streak-365',
+    name: 'Year of Discipline',
+    description: 'Maintain a 365-day training streak',
+    icon: '🏰',
+    category: 'consistency',
+    requirement: 'streak >= 365',
+    points: 5000
   },
   {
     id: 'mesocycle-complete',
@@ -122,8 +199,19 @@ export const badges: Badge[] = [
     requirement: 'mesocycles_completed >= 5',
     points: 2000
   },
+  {
+    id: 'mesocycle-legend',
+    name: 'Program Architect',
+    description: 'Complete 10 mesocycles',
+    icon: '🏗️',
+    category: 'consistency',
+    requirement: 'mesocycles_completed >= 10',
+    points: 4000
+  },
 
-  // VOLUME BADGES
+  // ═══════════════════════════════════════════
+  // VOLUME BADGES (6)
+  // ═══════════════════════════════════════════
   {
     id: 'volume-10k',
     name: 'Volume Seeker',
@@ -134,6 +222,15 @@ export const badges: Badge[] = [
     points: 100
   },
   {
+    id: 'volume-50k',
+    name: 'Volume Grinder',
+    description: 'Lift 50,000 total volume',
+    icon: '⚒️',
+    category: 'volume',
+    requirement: 'total_volume >= 50000',
+    points: 200
+  },
+  {
     id: 'volume-100k',
     name: 'Volume Crusher',
     description: 'Lift 100,000 total volume',
@@ -141,6 +238,15 @@ export const badges: Badge[] = [
     category: 'volume',
     requirement: 'total_volume >= 100000',
     points: 300
+  },
+  {
+    id: 'volume-250k',
+    name: 'Volume Machine',
+    description: 'Lift 250,000 total volume',
+    icon: '🏭',
+    category: 'volume',
+    requirement: 'total_volume >= 250000',
+    points: 500
   },
   {
     id: 'volume-500k',
@@ -161,7 +267,9 @@ export const badges: Badge[] = [
     points: 2000
   },
 
-  // MILESTONE BADGES
+  // ═══════════════════════════════════════════
+  // MILESTONE BADGES (12)
+  // ═══════════════════════════════════════════
   {
     id: 'workouts-10',
     name: 'Getting Started',
@@ -170,6 +278,15 @@ export const badges: Badge[] = [
     category: 'milestone',
     requirement: 'total_workouts >= 10',
     points: 100
+  },
+  {
+    id: 'workouts-25',
+    name: 'Quarter Century',
+    description: 'Complete 25 workouts',
+    icon: '🌿',
+    category: 'milestone',
+    requirement: 'total_workouts >= 25',
+    points: 200
   },
   {
     id: 'workouts-50',
@@ -181,6 +298,15 @@ export const badges: Badge[] = [
     points: 300
   },
   {
+    id: 'workouts-75',
+    name: 'Three Quarters',
+    description: 'Complete 75 workouts',
+    icon: '🌲',
+    category: 'milestone',
+    requirement: 'total_workouts >= 75',
+    points: 400
+  },
+  {
     id: 'workouts-100',
     name: 'Century Club',
     description: 'Complete 100 workouts',
@@ -190,6 +316,15 @@ export const badges: Badge[] = [
     points: 500
   },
   {
+    id: 'workouts-200',
+    name: 'Double Century',
+    description: 'Complete 200 workouts',
+    icon: '🏋️',
+    category: 'milestone',
+    requirement: 'total_workouts >= 200',
+    points: 1000
+  },
+  {
     id: 'workouts-365',
     name: 'Year of Iron',
     description: 'Complete 365 workouts',
@@ -197,6 +332,15 @@ export const badges: Badge[] = [
     category: 'milestone',
     requirement: 'total_workouts >= 365',
     points: 2500
+  },
+  {
+    id: 'workouts-500',
+    name: 'Iron Veteran',
+    description: 'Complete 500 workouts',
+    icon: '🎖️',
+    category: 'milestone',
+    requirement: 'total_workouts >= 500',
+    points: 3500
   },
   {
     id: 'level-5',
@@ -225,8 +369,19 @@ export const badges: Badge[] = [
     requirement: 'level >= 25',
     points: 2000
   },
+  {
+    id: 'level-40',
+    name: 'Transcendent',
+    description: 'Reach level 40',
+    icon: '🌠',
+    category: 'milestone',
+    requirement: 'level >= 40',
+    points: 5000
+  },
 
-  // SPECIAL BADGES
+  // ═══════════════════════════════════════════
+  // SPECIAL BADGES (12)
+  // ═══════════════════════════════════════════
   {
     id: 'grappler-grip',
     name: 'Iron Grip',
@@ -280,41 +435,154 @@ export const badges: Badge[] = [
     category: 'special',
     requirement: 'perfect_weeks >= 1',
     points: 300
-  }
+  },
+  // Combat / Training session badges
+  {
+    id: 'mat-rat-10',
+    name: 'Mat Rat',
+    description: 'Log 10 training sessions',
+    icon: '🥋',
+    category: 'special',
+    requirement: 'training_sessions >= 10',
+    points: 100
+  },
+  {
+    id: 'mat-rat-50',
+    name: 'Seasoned Fighter',
+    description: 'Log 50 training sessions',
+    icon: '🥊',
+    category: 'special',
+    requirement: 'training_sessions >= 50',
+    points: 400
+  },
+  {
+    id: 'mat-rat-100',
+    name: 'Warrior',
+    description: 'Log 100 training sessions',
+    icon: '⚔️',
+    category: 'special',
+    requirement: 'training_sessions >= 100',
+    points: 800
+  },
+  {
+    id: 'dual-threat-30',
+    name: 'Dual Threat',
+    description: 'Train both lifting + combat/cardio on the same day 30 times',
+    icon: '🔱',
+    category: 'special',
+    requirement: 'dual_training_days >= 30',
+    points: 500
+  },
+  // Comeback badges
+  {
+    id: 'comeback-1',
+    name: 'Comeback Kid',
+    description: 'Return to training after a 7+ day break',
+    icon: '💫',
+    category: 'special',
+    requirement: 'comebacks >= 1',
+    points: 150
+  },
+  {
+    id: 'comeback-3',
+    name: 'Resilient',
+    description: 'Come back 3 times — you never quit',
+    icon: '🔄',
+    category: 'special',
+    requirement: 'comebacks >= 3',
+    points: 400
+  },
+  // Weekly challenge badges
+  {
+    id: 'challenge-1',
+    name: 'Challenge Accepted',
+    description: 'Complete your first weekly challenge',
+    icon: '🎪',
+    category: 'special',
+    requirement: 'challenges_completed >= 1',
+    points: 100
+  },
+  {
+    id: 'challenge-4',
+    name: 'Monthly Challenger',
+    description: 'Complete 4 weekly challenges',
+    icon: '🏆',
+    category: 'special',
+    requirement: 'challenges_completed >= 4',
+    points: 300
+  },
+  {
+    id: 'challenge-12',
+    name: 'Quarterly Champion',
+    description: 'Complete 12 weekly challenges',
+    icon: '👑',
+    category: 'special',
+    requirement: 'challenges_completed >= 12',
+    points: 750
+  },
+  {
+    id: 'challenge-52',
+    name: 'Year of Challenges',
+    description: 'Complete 52 weekly challenges',
+    icon: '🌍',
+    category: 'special',
+    requirement: 'challenges_completed >= 52',
+    points: 3000
+  },
 ];
 
-// Level thresholds (XP required to reach each level)
+// Level thresholds — 50 levels (extended from 30)
 export const levelThresholds: number[] = [
-  0,      // Level 1
-  100,    // Level 2
-  250,    // Level 3
-  450,    // Level 4
-  700,    // Level 5
-  1000,   // Level 6
-  1400,   // Level 7
-  1900,   // Level 8
-  2500,   // Level 9
-  3200,   // Level 10
-  4000,   // Level 11
-  5000,   // Level 12
-  6200,   // Level 13
-  7600,   // Level 14
-  9200,   // Level 15
-  11000,  // Level 16
-  13000,  // Level 17
-  15500,  // Level 18
-  18500,  // Level 19
-  22000,  // Level 20
-  26000,  // Level 21
-  30500,  // Level 22
-  35500,  // Level 23
-  41000,  // Level 24
-  47000,  // Level 25
-  54000,  // Level 26
-  62000,  // Level 27
-  71000,  // Level 28
-  81000,  // Level 29
-  92000,  // Level 30
+  0,        // Level 1
+  100,      // Level 2
+  250,      // Level 3
+  450,      // Level 4
+  700,      // Level 5
+  1000,     // Level 6
+  1400,     // Level 7
+  1900,     // Level 8
+  2500,     // Level 9
+  3200,     // Level 10
+  4000,     // Level 11
+  5000,     // Level 12
+  6200,     // Level 13
+  7600,     // Level 14
+  9200,     // Level 15
+  11000,    // Level 16
+  13000,    // Level 17
+  15500,    // Level 18
+  18500,    // Level 19
+  22000,    // Level 20
+  26000,    // Level 21
+  30500,    // Level 22
+  35500,    // Level 23
+  41000,    // Level 24
+  47000,    // Level 25
+  54000,    // Level 26
+  62000,    // Level 27
+  71000,    // Level 28
+  81000,    // Level 29
+  92000,    // Level 30
+  104000,   // Level 31
+  117000,   // Level 32
+  131000,   // Level 33
+  146000,   // Level 34
+  162000,   // Level 35
+  180000,   // Level 36
+  200000,   // Level 37
+  222000,   // Level 38
+  246000,   // Level 39
+  272000,   // Level 40
+  300000,   // Level 41
+  332000,   // Level 42
+  368000,   // Level 43
+  408000,   // Level 44
+  452000,   // Level 45
+  500000,   // Level 46
+  555000,   // Level 47
+  618000,   // Level 48
+  690000,   // Level 49
+  770000,   // Level 50
 ];
 
 // Point rewards for various actions
@@ -326,10 +594,14 @@ export const pointRewards = {
   hitPR: 100,
   completeAllSets: 25,
   logWithNotes: 10,
-  perfectRPE: 15, // Hit target RPE exactly
-  streakBonus: 10, // Per day of streak
+  perfectRPE: 15,
+  streakBonus: 10,          // Per day of streak (capped at 100)
   mesocycleComplete: 200,
-  deloadCompliance: 50, // For actually taking the deload
+  deloadCompliance: 50,
+  weeklyChallenge: 75,      // Per challenge goal completed
+  weeklyBonusAll: 150,      // Bonus for completing all 3 goals
+  comebackBonus: 100,       // First workout back after 7+ day absence
+  trainingSession: 30,      // Logging a training session
 };
 
 // Calculate level from total points
@@ -367,7 +639,8 @@ export function levelProgress(totalPoints: number): number {
 export function calculateWorkoutPoints(
   workoutLog: WorkoutLog,
   hadPR: boolean,
-  currentStreak: number
+  currentStreak: number,
+  comebackActive: boolean = false
 ): { points: number; breakdown: { reason: string; points: number }[] } {
   const breakdown: { reason: string; points: number }[] = [];
   let totalPoints = 0;
@@ -406,6 +679,13 @@ export function calculateWorkoutPoints(
     breakdown.push({ reason: `${currentStreak} day streak!`, points: streakPoints });
   }
 
+  // Comeback bonus (2x multiplier on base points)
+  if (comebackActive) {
+    const bonus = pointRewards.comebackBonus;
+    totalPoints += bonus;
+    breakdown.push({ reason: 'Comeback bonus!', points: bonus });
+  }
+
   return { points: totalPoints, breakdown };
 }
 
@@ -425,6 +705,10 @@ export function checkNewBadges(
     perfectWeeks: number;
     oneRMIncreases: Record<string, number>;
     deadliftRatio?: number;
+    totalTrainingSessions: number;
+    dualTrainingDays: number;
+    comebackCount: number;
+    challengesCompleted: number;
   }
 ): Badge[] {
   const earnedBadgeIds = new Set(stats.badges.map(b => b.badgeId));
@@ -434,8 +718,6 @@ export function checkNewBadges(
     if (earnedBadgeIds.has(badge.id)) continue;
 
     let earned = false;
-
-    // Check requirement
     const req = badge.requirement;
 
     if (req.includes('personal_records')) {
@@ -446,7 +728,7 @@ export function checkNewBadges(
       const threshold = parseInt(req.split('>=')[1].trim());
       earned = userMetrics.totalWorkouts >= threshold;
     }
-    else if (req.includes('streak')) {
+    else if (req.startsWith('streak')) {
       const threshold = parseInt(req.split('>=')[1].trim());
       earned = userMetrics.currentStreak >= threshold;
     }
@@ -490,6 +772,29 @@ export function checkNewBadges(
       const threshold = parseFloat(req.split('>=')[1].trim());
       earned = (userMetrics.deadliftRatio || 0) >= threshold;
     }
+    else if (req.includes('training_sessions')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = userMetrics.totalTrainingSessions >= threshold;
+    }
+    else if (req.includes('dual_training_days')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = userMetrics.dualTrainingDays >= threshold;
+    }
+    else if (req.includes('comebacks')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = userMetrics.comebackCount >= threshold;
+    }
+    else if (req.includes('challenges_completed')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = userMetrics.challengesCompleted >= threshold;
+    }
+    else if (req.includes('weekly_completion')) {
+      // Still handled externally
+      earned = false;
+    }
+    else if (req.includes('balanced_training')) {
+      earned = false; // Future implementation
+    }
 
     if (earned) {
       newBadges.push(badge);
@@ -513,7 +818,6 @@ export function getBadgesByCategory(category: BadgeCategory): Badge[] {
 export function calculateStreak(workoutLogs: WorkoutLog[]): number {
   if (workoutLogs.length === 0) return 0;
 
-  // Sort by date descending
   const sorted = [...workoutLogs].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -530,7 +834,6 @@ export function calculateStreak(workoutLogs: WorkoutLog[]): number {
       (currentDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // Allow for rest days (max 2 days gap)
     if (daysDiff <= 2) {
       streak++;
       currentDate = logDate;
@@ -540,6 +843,122 @@ export function calculateStreak(workoutLogs: WorkoutLog[]): number {
   }
 
   return streak;
+}
+
+// ═══════════════════════════════════════════
+// WEEKLY CHALLENGE SYSTEM
+// ═══════════════════════════════════════════
+
+function getMonday(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  d.setDate(diff);
+  return d.toISOString().split('T')[0];
+}
+
+export function generateWeeklyChallenge(
+  trainingIdentity: TrainingIdentity | undefined,
+  stats: GamificationStats
+): WeeklyChallenge {
+  const weekStart = getMonday(new Date());
+  const isCombat = trainingIdentity === 'combat' || trainingIdentity === 'general_fitness';
+
+  // Scale targets based on user's level / experience
+  const scaleFactor = Math.min(1 + (stats.level - 1) * 0.1, 3); // 1.0 at L1, 3.0 at L21+
+
+  // Pool of possible goals per training identity
+  type GoalTemplate = { type: WeeklyChallengeGoal['type']; base: number; desc: string; xp: number };
+
+  const commonGoals: GoalTemplate[] = [
+    { type: 'workouts', base: 3, desc: 'Complete {n} lifting sessions', xp: 75 },
+    { type: 'workouts', base: 4, desc: 'Complete {n} lifting sessions', xp: 100 },
+    { type: 'volume', base: 10000, desc: 'Lift {n} kg total volume', xp: 75 },
+    { type: 'volume', base: 15000, desc: 'Lift {n} kg total volume', xp: 100 },
+    { type: 'prs', base: 1, desc: 'Hit {n} personal record', xp: 100 },
+    { type: 'prs', base: 2, desc: 'Hit {n} personal records', xp: 150 },
+  ];
+
+  const combatGoals: GoalTemplate[] = [
+    { type: 'sessions', base: 2, desc: 'Log {n} training sessions', xp: 75 },
+    { type: 'sessions', base: 3, desc: 'Log {n} training sessions', xp: 100 },
+    { type: 'sessions', base: 4, desc: 'Log {n} training sessions', xp: 125 },
+    { type: 'dual_days', base: 2, desc: 'Train lifting + combat on the same day {n} times', xp: 125 },
+  ];
+
+  const pool = isCombat ? [...commonGoals, ...combatGoals] : commonGoals;
+
+  // Pick 3 unique goal types
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const usedTypes = new Set<string>();
+  const selected: GoalTemplate[] = [];
+
+  for (const goal of shuffled) {
+    if (selected.length >= 3) break;
+    // Avoid duplicate types (allow 2 of same type only if pool is small)
+    const typeKey = `${goal.type}-${goal.base}`;
+    if (usedTypes.has(goal.type) && selected.length < 2) continue;
+    if (!usedTypes.has(typeKey)) {
+      usedTypes.add(goal.type);
+      usedTypes.add(typeKey);
+      selected.push(goal);
+    }
+  }
+
+  // Ensure we have 3
+  while (selected.length < 3) {
+    selected.push(commonGoals[selected.length % commonGoals.length]);
+  }
+
+  const goals: WeeklyChallengeGoal[] = selected.map(tmpl => {
+    const scaledTarget = tmpl.type === 'volume'
+      ? Math.round(tmpl.base * scaleFactor / 500) * 500 // Round volume to nearest 500
+      : Math.max(1, Math.round(tmpl.base * Math.min(scaleFactor, 2))); // Cap non-volume at 2x
+
+    return {
+      id: uuidv4(),
+      type: tmpl.type,
+      target: scaledTarget,
+      current: 0,
+      description: tmpl.desc.replace('{n}', String(scaledTarget)),
+      xpReward: tmpl.xp,
+      completed: false,
+    };
+  });
+
+  return {
+    id: uuidv4(),
+    weekStart,
+    goals,
+    allCompleteBonus: pointRewards.weeklyBonusAll,
+    allCompleteBonusClaimed: false,
+  };
+}
+
+export function isCurrentWeek(challenge: WeeklyChallenge): boolean {
+  return challenge.weekStart === getMonday(new Date());
+}
+
+// ═══════════════════════════════════════════
+// COMEBACK DETECTION
+// ═══════════════════════════════════════════
+
+export function detectComeback(lastActiveDate: string | null): boolean {
+  if (!lastActiveDate) return false;
+  const last = new Date(lastActiveDate);
+  const now = new Date();
+  const daysSince = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  return daysSince >= 7;
+}
+
+// ═══════════════════════════════════════════
+// STREAK SHIELD
+// ═══════════════════════════════════════════
+
+export function shouldRefillShield(lastRefillDate: string): boolean {
+  const lastMonday = getMonday(new Date());
+  return lastRefillDate < lastMonday;
 }
 
 // Generate motivational message based on stats
@@ -578,6 +997,13 @@ export function getMotivationalMessage(stats: GamificationStats): string {
     );
   }
 
+  if (stats.comebackCount && stats.comebackCount > 0) {
+    messages.push(
+      'Champions fall and rise — you always come back!',
+      'The comeback is always stronger than the setback.'
+    );
+  }
+
   // Default messages
   const defaults = [
     'Every rep counts. Let\'s get after it!',
@@ -591,8 +1017,12 @@ export function getMotivationalMessage(stats: GamificationStats): string {
   return allMessages[Math.floor(Math.random() * allMessages.length)];
 }
 
-// Level titles based on level
+// Level titles based on level (extended to 50)
 export function getLevelTitle(level: number): string {
+  if (level >= 50) return 'Living Legend';
+  if (level >= 45) return 'Grandmaster';
+  if (level >= 40) return 'Transcendent';
+  if (level >= 35) return 'Legendary Athlete';
   if (level >= 30) return 'Legendary Grappler';
   if (level >= 25) return 'Master';
   if (level >= 20) return 'Elite Athlete';

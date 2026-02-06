@@ -29,7 +29,7 @@ import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/g
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding } = useAppStore();
+  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -66,6 +66,14 @@ export default function ProfileSettings() {
 
   const saveEdits = () => {
     if (!user) return;
+
+    // Detect if training-critical fields changed (these affect mesocycle programming)
+    const trainingFieldsChanged =
+      editSex !== user.sex ||
+      editExperience !== user.experienceLevel ||
+      editEquipment !== user.equipment ||
+      JSON.stringify(editAvailableEquipment) !== JSON.stringify(user.availableEquipment);
+
     setUser({
       ...user,
       name: editName,
@@ -81,6 +89,19 @@ export default function ProfileSettings() {
       updatedAt: new Date(),
     });
     setIsEditing(false);
+
+    // If critical training fields changed, offer to regenerate the mesocycle
+    if (trainingFieldsChanged) {
+      setTimeout(() => {
+        if (confirm(
+          'You changed training settings (sex, experience, or equipment) that affect your program. ' +
+          'Regenerate your mesocycle with the new settings?\n\n' +
+          'Your workout history will be preserved.'
+        )) {
+          generateNewMesocycle();
+        }
+      }, 100);
+    }
   };
 
   return (

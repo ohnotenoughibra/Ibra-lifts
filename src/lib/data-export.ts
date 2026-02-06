@@ -178,6 +178,18 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     // Apply the update
     useAppStore.setState(update);
 
+    // Recalculate derived stats from imported workout data
+    // This ensures streaks, PR flags, heat map, and gamification stats are accurate
+    // even if the backup had stale or missing gamification data
+    if (Array.isArray(data.workoutLogs) && data.workoutLogs.length > 0) {
+      // First recalculate PR flags (which exercise logs are actual PRs)
+      // then recalculate gamification stats (streak, totals, PR count)
+      // recalculatePRs triggers recalculateGamificationStats internally
+      queueMicrotask(() => {
+        useAppStore.getState().recalculatePRs();
+      });
+    }
+
     return {
       success: true,
       stats: {

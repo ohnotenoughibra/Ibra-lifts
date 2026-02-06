@@ -415,6 +415,7 @@ export interface MealEntry {
   protein: number;
   carbs: number;
   fat: number;
+  portion?: string;  // e.g. "1 cup", "200g", "2 scoops"
   notes?: string;
 }
 

@@ -17,7 +17,8 @@ export async function ensureAuthTables(): Promise<void> {
       id TEXT PRIMARY KEY,
       name TEXT,
       email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
+      auth_provider TEXT DEFAULT 'credentials',
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;

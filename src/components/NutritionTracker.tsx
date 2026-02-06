@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -20,9 +20,6 @@ import {
   Milk,
   Salad,
   Trash2,
-  Camera,
-  Loader2,
-  ImageIcon,
   AlertCircle,
   Sparkles,
   Clock,
@@ -437,9 +434,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [formCarbs, setFormCarbs] = useState('');
   const [formFat, setFormFat] = useState('');
 
-  // ── Camera/photo state ──
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  // ── Estimation state ──
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<{
     name: string;
@@ -450,18 +445,15 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     confidence: string;
     notes: string;
   } | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [isEstimating, setIsEstimating] = useState(false);
 
-  // ── AI text-based estimation ──
-  const handleAIEstimate = async () => {
+  // ── Local text-based estimation ──
+  const handleAIEstimate = () => {
     const trimmed = formName.trim();
     if (!trimmed) return;
 
     setAnalysisError(null);
     setAnalysisResult(null);
 
-    // Try instant local match first (no API call, no rate limits)
     const local = estimateLocally(trimmed);
     if (local) {
       setAnalysisResult({ ...local, confidence: 'medium', notes: 'Estimated from local database' });
@@ -473,41 +465,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       return;
     }
 
-    // No local match — fall back to AI API
-    setIsEstimating(true);
-
-    try {
-      const res = await fetch('/api/nutrition/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: trimmed }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setAnalysisError(data.error || 'Estimation failed');
-        setIsEstimating(false);
-        return;
-      }
-
-      if (data.calories === 0) {
-        setAnalysisError(data.notes || 'Could not estimate macros for this food');
-        setIsEstimating(false);
-        return;
-      }
-
-      setAnalysisResult(data);
-      setFormName(data.name);
-      setFormCalories(String(data.calories));
-      setFormProtein(String(data.protein));
-      setFormCarbs(String(data.carbs));
-      setFormFat(String(data.fat));
-      setIsEstimating(false);
-    } catch {
-      setAnalysisError('Network error. Check your connection.');
-      setIsEstimating(false);
-    }
+    setAnalysisError('No match found. Try Quick presets or enter macros manually.');
   };
 
   // ── Preset search ──
@@ -626,7 +584,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setFormFat('');
     setAnalysisResult(null);
     setAnalysisError(null);
-    setPreviewImage(null);
   };
 
   const handleAddMeal = () => {
@@ -667,68 +624,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     deleteMeal(id);
   };
 
-  // ── Camera / Photo analysis ──
-  const handleCameraClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Show form with loading state
-    setShowAddForm(true);
-    setShowPresets(false);
-    setIsAnalyzing(true);
-    setAnalysisError(null);
-    setAnalysisResult(null);
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setPreviewImage(dataUrl);
-
-      try {
-        const res = await fetch('/api/nutrition/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: dataUrl }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setAnalysisError(data.error || 'Analysis failed');
-          setIsAnalyzing(false);
-          return;
-        }
-
-        if (!data.name || data.calories === 0) {
-          setAnalysisError(data.notes || 'Could not identify food in this image');
-          setIsAnalyzing(false);
-          return;
-        }
-
-        // Pre-fill form with results
-        setAnalysisResult(data);
-        setFormName(data.name);
-        setFormCalories(String(data.calories));
-        setFormProtein(String(data.protein));
-        setFormCarbs(String(data.carbs));
-        setFormFat(String(data.fat));
-        setIsAnalyzing(false);
-      } catch (err: any) {
-        setAnalysisError(err.message || 'Network error during analysis');
-        setIsAnalyzing(false);
-      }
-    };
-    reader.readAsDataURL(file);
-
-    // Reset file input so same file can be selected again
-    e.target.value = '';
-  };
-
   // ── Date formatting ──
   const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -745,16 +640,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       transition={{ duration: 0.3 }}
       className="min-h-screen bg-grappler-900 pb-24"
     >
-      {/* Hidden file input for camera/gallery */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleImageCapture}
-        className="hidden"
-      />
-
       {/* ── Header ── */}
       <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -1074,14 +959,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </h2>
             <div className="flex gap-2">
               <button
-                onClick={handleCameraClick}
-                className="btn btn-secondary btn-sm gap-1"
-                title="Take photo"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                Photo
-              </button>
-              <button
                 onClick={() => {
                   setShowPresets(!showPresets);
                   setShowAddForm(false);
@@ -1097,8 +974,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   setShowPresets(false);
                   setAnalysisResult(null);
                   setAnalysisError(null);
-                  setPreviewImage(null);
-                }}
+                              }}
                 className="btn btn-primary btn-sm gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1184,7 +1060,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   ))}
                   {filteredPresets.length === 0 && (
                     <p className="col-span-2 text-xs text-grappler-500 text-center py-4">
-                      No results. Try &quot;Manual&quot; or &quot;Photo&quot;.
+                      No results. Try &quot;Manual&quot; to enter macros directly.
                     </p>
                   )}
                 </div>
@@ -1203,54 +1079,11 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="overflow-hidden"
               >
                 <div className="space-y-3 pb-1">
-                  {/* Photo preview + analysis status */}
-                  {(previewImage || isAnalyzing) && (
-                    <div className="relative">
-                      {previewImage && (
-                        <div className="relative rounded-lg overflow-hidden border border-grappler-700/50">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={previewImage}
-                            alt="Food photo"
-                            className="w-full h-40 object-cover"
-                          />
-                          {isAnalyzing && (
-                            <div className="absolute inset-0 bg-grappler-900/70 flex items-center justify-center">
-                              <div className="text-center">
-                                <Loader2 className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-2" />
-                                <p className="text-xs text-grappler-300">Analyzing food...</p>
-                              </div>
-                            </div>
-                          )}
-                          <button
-                            onClick={() => {
-                              setPreviewImage(null);
-                              setAnalysisResult(null);
-                              setAnalysisError(null);
-                            }}
-                            className="absolute top-2 right-2 p-1 rounded-full bg-grappler-900/80 text-grappler-400 hover:text-grappler-200"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Analysis result badge */}
                   {analysisResult && (
-                    <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
-                      analysisResult.confidence === 'high'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                        : analysisResult.confidence === 'medium'
-                        ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/30'
-                    }`}>
-                      <ImageIcon className="w-4 h-4 flex-shrink-0" />
-                      <span>
-                        AI Detection ({analysisResult.confidence === 'high' ? 'confident' : analysisResult.confidence === 'medium' ? 'likely' : 'uncertain'})
-                        {analysisResult.notes && ` — ${analysisResult.notes}`}
-                      </span>
+                    <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/30">
+                      <Sparkles className="w-4 h-4 flex-shrink-0" />
+                      <span>Auto-filled from local database</span>
                     </div>
                   )}
 
@@ -1272,28 +1105,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && formName.trim() && !isEstimating) {
+                          if (e.key === 'Enter' && formName.trim()) {
                             e.preventDefault();
                             handleAIEstimate();
                           }
                         }}
                         placeholder="e.g. Chicken breast and rice"
                         className="input flex-1"
-                        autoFocus={!previewImage}
+                        autoFocus
                       />
                       <button
                         type="button"
                         onClick={handleAIEstimate}
-                        disabled={!formName.trim() || isEstimating}
+                        disabled={!formName.trim()}
                         className="btn btn-sm px-3 bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
-                        title="AI fills in the macros for you"
+                        title="Auto-fill macros from database"
                       >
-                        {isEstimating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        <span className="text-xs">AI</span>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span className="text-xs">Estimate</span>
                       </button>
                     </div>
                     <p className="text-xs text-grappler-600 mt-1">
@@ -1372,7 +1201,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      disabled={isAnalyzing || isEstimating}
+                      disabled={false}
                       className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
                     >
                       Add
@@ -1402,7 +1231,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 No meals logged yet.
               </p>
               <p className="text-xs text-grappler-600 mt-1">
-                Use Photo, Quick or Manual to get started.
+                Use Quick presets or Manual to get started.
               </p>
             </div>
           ) : (

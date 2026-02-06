@@ -28,6 +28,9 @@ import {
   Shield,
   Ruler,
   User,
+  Bell,
+  BellOff,
+  Clock,
 } from 'lucide-react';
 
 const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
@@ -65,6 +68,8 @@ export default function DietCoach() {
     incrementPhaseWeek,
     setMacroTargets,
     setUser,
+    mealReminders,
+    setMealReminders,
   } = useAppStore();
 
   const [expanded, setExpanded] = useState(false);
@@ -72,6 +77,7 @@ export default function DietCoach() {
   const [setupStep, setSetupStep] = useState<'info' | 'goal'>('info');
   const [selectedGoal, setSelectedGoal] = useState<DietGoal>('cut');
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
 
   // Setup form state — pre-fill from user profile / weight log
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -631,6 +637,102 @@ export default function DietCoach() {
                       </div>
                     </div>
                   )}
+
+                  {/* Meal Reminders */}
+                  <button
+                    onClick={() => setShowReminders(!showReminders)}
+                    className="w-full py-2 px-3 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl text-xs text-grappler-300 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      {mealReminders.enabled ? (
+                        <Bell className="w-3.5 h-3.5 text-violet-400" />
+                      ) : (
+                        <BellOff className="w-3.5 h-3.5 text-grappler-500" />
+                      )}
+                      <span>Meal Reminders</span>
+                    </div>
+                    <span className={`text-[10px] ${mealReminders.enabled ? 'text-violet-400' : 'text-grappler-500'}`}>
+                      {mealReminders.enabled ? 'On' : 'Off'}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showReminders && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 bg-grappler-800/30 rounded-xl space-y-3 border border-grappler-700/30">
+                          {/* Master toggle */}
+                          <button
+                            onClick={() => setMealReminders({ enabled: !mealReminders.enabled })}
+                            className={`w-full py-2 rounded-lg text-xs font-medium transition-all ${
+                              mealReminders.enabled
+                                ? 'bg-violet-500/20 border border-violet-500/40 text-violet-300'
+                                : 'bg-grappler-800/40 border border-grappler-700/30 text-grappler-400'
+                            }`}
+                          >
+                            {mealReminders.enabled ? 'Reminders Enabled' : 'Enable Reminders'}
+                          </button>
+
+                          {mealReminders.enabled && (
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-grappler-500">
+                                Get notified when it&apos;s time to log meals. Requires notification permission.
+                              </p>
+
+                              {/* Per-meal toggles with time */}
+                              {(['breakfast', 'lunch', 'dinner'] as const).map((meal) => (
+                                <div key={meal} className="flex items-center justify-between gap-2">
+                                  <button
+                                    onClick={() =>
+                                      setMealReminders({
+                                        enabledMeals: {
+                                          ...mealReminders.enabledMeals,
+                                          [meal]: !mealReminders.enabledMeals[meal],
+                                        },
+                                      })
+                                    }
+                                    className={`flex items-center gap-2 text-xs transition-colors ${
+                                      mealReminders.enabledMeals[meal] ? 'text-grappler-200' : 'text-grappler-500 line-through'
+                                    }`}
+                                  >
+                                    <div className={`w-3 h-3 rounded border ${
+                                      mealReminders.enabledMeals[meal]
+                                        ? 'bg-violet-500 border-violet-500'
+                                        : 'border-grappler-600'
+                                    }`} />
+                                    {meal.charAt(0).toUpperCase() + meal.slice(1)}
+                                  </button>
+
+                                  {mealReminders.enabledMeals[meal] && (
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3 text-grappler-500" />
+                                      <input
+                                        type="time"
+                                        value={mealReminders.reminderTimes[meal]}
+                                        onChange={(e) =>
+                                          setMealReminders({
+                                            reminderTimes: {
+                                              ...mealReminders.reminderTimes,
+                                              [meal]: e.target.value,
+                                            },
+                                          })
+                                        }
+                                        className="bg-grappler-800/60 border border-grappler-700/30 rounded px-2 py-0.5 text-[10px] text-grappler-200 focus:outline-none focus:border-violet-500/50"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* End phase */}
                   <button

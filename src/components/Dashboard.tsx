@@ -55,7 +55,7 @@ import {
   Award,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
-import type { WorkoutLog } from '@/lib/types';
+import type { WorkoutLog, MealEntry } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -917,6 +917,76 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
   return generalTips[Math.floor(Math.random() * generalTips.length)];
 }
 
+// Meal Reminder Banner — shows an in-app nudge when it's meal time and user hasn't logged
+function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavigate: (view: OverlayView) => void }) {
+  const { mealReminders, activeDietPhase, macroTargets } = useAppStore();
+
+  if (!mealReminders.enabled || !activeDietPhase) return null;
+
+  const now = new Date();
+  const hour = now.getHours();
+  const currentMin = hour * 60 + now.getMinutes();
+
+  // Find which meal slot we're in
+  const slots = ['breakfast', 'lunch', 'dinner'] as const;
+  let activeMeal: typeof slots[number] | null = null;
+
+  for (const slot of slots) {
+    if (!mealReminders.enabledMeals[slot]) continue;
+    const [rH, rM] = mealReminders.reminderTimes[slot].split(':').map(Number);
+    const reminderMin = rH * 60 + rM;
+    // Show for 2 hours after reminder time
+    if (currentMin >= reminderMin && currentMin <= reminderMin + 120) {
+      const hasLogged = meals.some(m =>
+        slot === 'lunch'
+          ? (m.mealType === 'lunch' || m.mealType === 'pre_workout')
+          : m.mealType === slot
+      );
+      if (!hasLogged) {
+        activeMeal = slot;
+        break;
+      }
+    }
+  }
+
+  if (!activeMeal) return null;
+
+  const totalCal = meals.reduce((s, m) => s + m.calories, 0);
+  const remaining = macroTargets.calories - totalCal;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gradient-to-r from-violet-500/15 to-purple-500/10 border border-violet-500/30 rounded-xl p-3"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-violet-500/20 rounded-lg flex items-center justify-center">
+            <Apple className="w-4 h-4 text-violet-400" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-violet-300">
+              Time to log {activeMeal}
+            </p>
+            <p className="text-[10px] text-grappler-400">
+              {totalCal > 0
+                ? `${totalCal} kcal logged | ~${Math.max(0, remaining)} remaining`
+                : 'No meals logged yet today'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigate('nutrition')}
+          className="px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-[10px] font-medium rounded-lg transition-colors"
+        >
+          Log meal
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // Home Tab Content
 function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void }) {
   const {
@@ -1505,6 +1575,12 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           </div>
         </motion.div>
       )}
+
+      {/* Meal Reminder Banner */}
+      <MealReminderBanner
+        meals={todayMeals}
+        onNavigate={onNavigate}
+      />
 
       {/* Smart Daily Recommendation */}
       {user?.trainingDays && user.trainingDays.length > 0 && (() => {

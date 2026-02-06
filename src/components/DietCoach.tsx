@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -88,6 +88,19 @@ export default function DietCoach() {
   const [formWeight, setFormWeight] = useState(String(Math.round(defaultWeightKg)));
   const [formHeight, setFormHeight] = useState(String(user?.heightCm || 175));
   const [formSex, setFormSex] = useState<BiologicalSex>(user?.sex || 'male');
+
+  // Re-sync form state when user profile is updated (e.g. from ProfileSettings)
+  useEffect(() => {
+    if (user?.heightCm) setFormHeight(String(user.heightCm));
+    if (user?.sex) setFormSex(user.sex);
+  }, [user?.heightCm, user?.sex]);
+
+  useEffect(() => {
+    if (latestWeight) {
+      const wKg = latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight;
+      setFormWeight(String(Math.round(wKg)));
+    }
+  }, [latestWeight?.weight, latestWeight?.unit]);
 
   const bodyWeightKg = parseFloat(formWeight) || defaultWeightKg;
   const heightCm = parseFloat(formHeight) || 175;

@@ -21,9 +21,9 @@ import {
   User,
   Ruler,
 } from 'lucide-react';
-import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, CombatTimeOfDay, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays, AlertTriangle } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Plus, X } from 'lucide-react';
 
 const TOTAL_STEPS = 6;
 
@@ -49,7 +49,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
     switch (currentStep) {
       case 1:
         if (!onboardingData.trainingIdentity) return false;
-        if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport) return false;
+        if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
         return true;
       case 2:
         return !!onboardingData.goalFocus;
@@ -227,22 +227,40 @@ function Step1_Identity({
             className="overflow-hidden space-y-2"
           >
             <p className="text-sm text-grappler-300 font-medium">What do you train?</p>
+            <p className="text-xs text-grappler-500 mb-1">Select all that apply</p>
             <div className="grid grid-cols-2 gap-2">
-              {combatSports.map((sport) => (
-                <button
-                  key={sport.value}
-                  onClick={() => update({ combatSport: sport.value })}
-                  className={cn(
-                    'p-3 rounded-xl border-2 text-left transition-all',
-                    data.combatSport === sport.value
-                      ? 'border-red-500 bg-red-500/10'
-                      : 'border-grappler-700 hover:border-grappler-600'
-                  )}
-                >
-                  <p className="text-sm font-medium text-grappler-100">{sport.title}</p>
-                  <p className="text-xs text-grappler-400">{sport.desc}</p>
-                </button>
-              ))}
+              {combatSports.map((sport) => {
+                const selected = (data.combatSports || []).includes(sport.value) || data.combatSport === sport.value;
+                return (
+                  <button
+                    key={sport.value}
+                    onClick={() => {
+                      const current = data.combatSports || (data.combatSport ? [data.combatSport] : []);
+                      let updated: CombatSport[];
+                      if (current.includes(sport.value)) {
+                        updated = current.filter(s => s !== sport.value);
+                      } else {
+                        updated = [...current, sport.value];
+                      }
+                      // Keep combatSport as primary (first selected or the one just toggled on)
+                      const primary = updated.length > 0 ? updated[0] : undefined;
+                      update({ combatSports: updated, combatSport: primary });
+                    }}
+                    className={cn(
+                      'p-3 rounded-xl border-2 text-left transition-all',
+                      selected
+                        ? 'border-red-500 bg-red-500/10'
+                        : 'border-grappler-700 hover:border-grappler-600'
+                    )}
+                  >
+                    <p className="text-sm font-medium text-grappler-100">{sport.title}</p>
+                    <p className="text-xs text-grappler-400">{sport.desc}</p>
+                    {selected && (
+                      <div className="mt-1 w-2 h-2 rounded-full bg-red-500 inline-block" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -533,6 +551,33 @@ function Step4_TrainingSetup({
         </div>
       </div>
 
+      {/* Meso cycle length */}
+      <div>
+        <label className="block text-sm font-medium text-grappler-300 mb-1.5">Program length (weeks)</label>
+        <div className="grid grid-cols-5 gap-2">
+          {[4, 5, 6, 8, 12].map((weeks) => (
+            <button
+              key={weeks}
+              onClick={() => update({ mesoCycleWeeks: weeks })}
+              className={cn(
+                'py-2.5 rounded-lg text-sm font-bold transition-all',
+                (data.mesoCycleWeeks || 5) === weeks
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              {weeks}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-grappler-500 mt-1.5 text-center">
+          {(data.mesoCycleWeeks || 5) <= 4 ? 'Short block — good for peaking or testing' :
+           (data.mesoCycleWeeks || 5) <= 6 ? 'Standard mesocycle — ideal for most lifters' :
+           (data.mesoCycleWeeks || 5) <= 8 ? 'Extended block — more time to build volume' :
+           'Long block — for patient, steady progression'}
+        </p>
+      </div>
+
       {/* Units */}
       <div>
         <label className="block text-sm font-medium text-grappler-300 mb-1.5">Weight units</label>
@@ -680,32 +725,39 @@ function getRecommendedCombatDays(
 ): CombatTrainingDay[] {
   // Default combat schedule: 3-4 sessions/week
   const defaultSchedule: CombatTrainingDay[] = [
-    { day: 2, intensity: 'moderate' },
-    { day: 3, intensity: 'hard' },
-    { day: 4, intensity: 'moderate' },
-    { day: 6, intensity: 'light' },
+    { day: 2, intensity: 'moderate', timeOfDay: 'afternoon' },
+    { day: 3, intensity: 'hard', timeOfDay: 'afternoon' },
+    { day: 4, intensity: 'moderate', timeOfDay: 'afternoon' },
+    { day: 6, intensity: 'light', timeOfDay: 'morning' },
   ];
 
   if (combatSport === 'striking') {
     return [
-      { day: 2, intensity: 'moderate' },
-      { day: 3, intensity: 'hard' },
-      { day: 5, intensity: 'moderate' },
-      { day: 6, intensity: 'light' },
+      { day: 2, intensity: 'moderate', timeOfDay: 'afternoon' },
+      { day: 3, intensity: 'hard', timeOfDay: 'afternoon' },
+      { day: 5, intensity: 'moderate', timeOfDay: 'afternoon' },
+      { day: 6, intensity: 'light', timeOfDay: 'morning' },
     ];
   }
 
   if (combatSport === 'mma') {
     return [
-      { day: 1, intensity: 'moderate' },
-      { day: 2, intensity: 'moderate' },
-      { day: 3, intensity: 'hard' },
-      { day: 5, intensity: 'moderate' },
-      { day: 6, intensity: 'light' },
+      { day: 1, intensity: 'moderate', timeOfDay: 'afternoon' },
+      { day: 2, intensity: 'moderate', timeOfDay: 'afternoon' },
+      { day: 3, intensity: 'hard', timeOfDay: 'afternoon' },
+      { day: 5, intensity: 'moderate', timeOfDay: 'afternoon' },
+      { day: 6, intensity: 'light', timeOfDay: 'morning' },
     ];
   }
 
   return defaultSchedule;
+}
+
+function getTimeOrder(timeOfDay?: CombatTimeOfDay): number {
+  if (timeOfDay === 'morning') return 0;
+  if (timeOfDay === 'afternoon') return 1;
+  if (timeOfDay === 'evening') return 2;
+  return 1; // default to afternoon
 }
 
 function Step5_Schedule({
@@ -754,23 +806,67 @@ function Step5_Schedule({
     update({ trainingDays: current });
   };
 
+  // Group combat sessions by day for multi-session support
+  const combatDayMap = new Map<number, CombatTrainingDay[]>();
+  for (const cd of combatDays) {
+    const existing = combatDayMap.get(cd.day) || [];
+    existing.push(cd);
+    combatDayMap.set(cd.day, existing);
+  }
+
   const toggleCombatDay = (day: number) => {
     const current = [...combatDays];
-    const idx = current.findIndex(d => d.day === day);
-    if (idx >= 0) {
-      current.splice(idx, 1);
+    const sessionsForDay = current.filter(d => d.day === day);
+    if (sessionsForDay.length > 0) {
+      // Remove all sessions for this day
+      const filtered = current.filter(d => d.day !== day);
+      filtered.sort((a, b) => a.day - b.day || getTimeOrder(a.timeOfDay) - getTimeOrder(b.timeOfDay));
+      update({ combatTrainingDays: filtered });
     } else {
-      current.push({ day, intensity: 'moderate' });
+      current.push({ day, intensity: 'moderate', timeOfDay: 'afternoon' });
+      current.sort((a, b) => a.day - b.day || getTimeOrder(a.timeOfDay) - getTimeOrder(b.timeOfDay));
+      update({ combatTrainingDays: current });
     }
-    current.sort((a, b) => a.day - b.day);
+  };
+
+  const addCombatSession = (day: number) => {
+    const current = [...combatDays];
+    const sessionsForDay = current.filter(d => d.day === day);
+    // Pick the next available time slot
+    const usedTimes = new Set(sessionsForDay.map(s => s.timeOfDay || 'afternoon'));
+    const nextTime: CombatTimeOfDay = !usedTimes.has('morning') ? 'morning'
+      : !usedTimes.has('afternoon') ? 'afternoon'
+      : 'evening';
+    current.push({ day, intensity: 'moderate', timeOfDay: nextTime });
+    current.sort((a, b) => a.day - b.day || getTimeOrder(a.timeOfDay) - getTimeOrder(b.timeOfDay));
     update({ combatTrainingDays: current });
   };
 
-  const setCombatIntensity = (day: number, intensity: CombatIntensity) => {
+  const removeCombatSession = (day: number, timeOfDay: CombatTimeOfDay | undefined) => {
     const current = [...combatDays];
-    const idx = current.findIndex(d => d.day === day);
+    const idx = current.findIndex(d => d.day === day && (d.timeOfDay || 'afternoon') === (timeOfDay || 'afternoon'));
+    if (idx >= 0) {
+      current.splice(idx, 1);
+      current.sort((a, b) => a.day - b.day || getTimeOrder(a.timeOfDay) - getTimeOrder(b.timeOfDay));
+      update({ combatTrainingDays: current });
+    }
+  };
+
+  const setCombatIntensity = (day: number, timeOfDay: CombatTimeOfDay | undefined, intensity: CombatIntensity) => {
+    const current = [...combatDays];
+    const idx = current.findIndex(d => d.day === day && (d.timeOfDay || 'afternoon') === (timeOfDay || 'afternoon'));
     if (idx >= 0) {
       current[idx] = { ...current[idx], intensity };
+      update({ combatTrainingDays: current });
+    }
+  };
+
+  const setCombatTimeOfDay = (day: number, oldTime: CombatTimeOfDay | undefined, newTime: CombatTimeOfDay) => {
+    const current = [...combatDays];
+    const idx = current.findIndex(d => d.day === day && (d.timeOfDay || 'afternoon') === (oldTime || 'afternoon'));
+    if (idx >= 0) {
+      current[idx] = { ...current[idx], timeOfDay: newTime };
+      current.sort((a, b) => a.day - b.day || getTimeOrder(a.timeOfDay) - getTimeOrder(b.timeOfDay));
       update({ combatTrainingDays: current });
     }
   };
@@ -799,6 +895,21 @@ function Step5_Schedule({
         warnings.push(`Lifting on ${DAY_NAMES[liftDay]} after hard ${DAY_NAMES[prevDay]} training — we'll auto-reduce intensity`);
         break;
       }
+    }
+
+    // Warn about days with multiple hard sessions
+    for (const [day, sessions] of Array.from(combatDayMap.entries())) {
+      const hardCount = sessions.filter(s => s.intensity === 'hard').length;
+      if (hardCount >= 2) {
+        warnings.push(`${DAY_NAMES[day]} has ${hardCount} hard sessions — consider making one lighter`);
+      }
+    }
+
+    // Show total weekly combat session count
+    const totalCombatSessions = combatDays.length;
+    const uniqueCombatDays = new Set(combatDays.map(d => d.day)).size;
+    if (totalCombatSessions > uniqueCombatDays) {
+      tips.push(`${totalCombatSessions} combat sessions across ${uniqueCombatDays} days — doubles accounted for`);
     }
 
     const restDays = [0, 1, 2, 3, 4, 5, 6].filter(d => !allTrainingDays.has(d));
@@ -891,17 +1002,20 @@ function Step5_Schedule({
       {/* Combat training days */}
       {isCombat && (
         <div>
-          <label className="block text-sm font-medium text-grappler-300 mb-2">
-            {data.combatSport === 'mma' ? 'MMA' :
-             data.combatSport === 'grappling_gi' ? 'Gi' :
-             data.combatSport === 'grappling_nogi' ? 'No-Gi' :
-             'Striking'} training days
+          <label className="block text-sm font-medium text-grappler-300 mb-1">
+            {(() => {
+              const sports = data.combatSports && data.combatSports.length > 0 ? data.combatSports : data.combatSport ? [data.combatSport] : [];
+              const labels = sports.map(s => s === 'mma' ? 'MMA' : s === 'grappling_gi' ? 'Gi' : s === 'grappling_nogi' ? 'No-Gi' : 'Striking');
+              return labels.length > 0 ? labels.join(' / ') : 'Combat';
+            })()} training days
             <span className="text-grappler-500 ml-1">(tap to toggle)</span>
           </label>
+          <p className="text-xs text-grappler-500 mb-2">Multiple sessions per day supported</p>
           <div className="grid grid-cols-7 gap-1 mb-2">
             {DAY_NAMES.map((name, i) => {
               const isLiftDay = selectedDays.includes(i);
-              const isCombatDay = combatDays.some(d => d.day === i);
+              const sessionsForDay = combatDayMap.get(i) || [];
+              const isCombatDay = sessionsForDay.length > 0;
               return (
                 <button
                   key={i}
@@ -914,6 +1028,11 @@ function Step5_Schedule({
                   )}
                 >
                   <span className="text-[10px] sm:text-xs">{name}</span>
+                  {sessionsForDay.length > 1 && (
+                    <span className="absolute -top-1.5 -left-1 text-[9px] bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
+                      {sessionsForDay.length}
+                    </span>
+                  )}
                   {isLiftDay && (
                     <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary-500" />
                   )}
@@ -922,7 +1041,7 @@ function Step5_Schedule({
             })}
           </div>
 
-          {/* Intensity selectors */}
+          {/* Session intensity & time-of-day selectors */}
           <AnimatePresence>
             {combatDays.length > 0 && (
               <motion.div
@@ -931,24 +1050,59 @@ function Step5_Schedule({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden space-y-2"
               >
-                {combatDays.map((cd) => (
-                  <div key={cd.day} className="flex items-center gap-2 bg-grappler-800/50 rounded-lg p-2">
-                    <span className="text-xs text-grappler-300 w-10 font-medium">{DAY_NAMES[cd.day]}</span>
-                    {(['light', 'moderate', 'hard'] as CombatIntensity[]).map((intensity) => (
-                      <button
-                        key={intensity}
-                        onClick={() => setCombatIntensity(cd.day, intensity)}
-                        className={cn(
-                          'flex-1 py-1.5 rounded-md text-xs font-medium transition-all capitalize',
-                          cd.intensity === intensity
-                            ? intensity === 'light' ? 'bg-green-500/20 text-green-400 border border-green-500/40'
-                              : intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                            : 'bg-grappler-700 text-grappler-500'
+                {Array.from(combatDayMap.entries()).sort(([a], [b]) => a - b).map(([day, sessions]) => (
+                  <div key={day} className="bg-grappler-800/50 rounded-lg p-2 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-grappler-300 font-medium">{DAY_NAMES[day]}</span>
+                      {sessions.length < 3 && (
+                        <button
+                          onClick={() => addCombatSession(day)}
+                          className="flex items-center gap-1 text-[10px] text-primary-400 hover:text-primary-300 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add session
+                        </button>
+                      )}
+                    </div>
+                    {sessions.map((cd, sessionIdx) => (
+                      <div key={`${cd.day}-${cd.timeOfDay || sessionIdx}`} className="flex items-center gap-1.5">
+                        {/* Time of day selector */}
+                        <select
+                          value={cd.timeOfDay || 'afternoon'}
+                          onChange={(e) => setCombatTimeOfDay(cd.day, cd.timeOfDay, e.target.value as CombatTimeOfDay)}
+                          className="bg-grappler-700 text-grappler-300 text-[10px] rounded-md px-1.5 py-1.5 border-0 outline-none w-16 flex-shrink-0"
+                        >
+                          <option value="morning">AM</option>
+                          <option value="afternoon">PM</option>
+                          <option value="evening">Eve</option>
+                        </select>
+                        {/* Intensity buttons */}
+                        {(['light', 'moderate', 'hard'] as CombatIntensity[]).map((intensity) => (
+                          <button
+                            key={intensity}
+                            onClick={() => setCombatIntensity(cd.day, cd.timeOfDay, intensity)}
+                            className={cn(
+                              'flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all capitalize',
+                              cd.intensity === intensity
+                                ? intensity === 'light' ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                                  : intensity === 'moderate' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
+                                  : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                                : 'bg-grappler-700 text-grappler-500'
+                            )}
+                          >
+                            {intensity}
+                          </button>
+                        ))}
+                        {/* Remove session button (only if multiple) */}
+                        {sessions.length > 1 && (
+                          <button
+                            onClick={() => removeCombatSession(cd.day, cd.timeOfDay)}
+                            className="text-grappler-600 hover:text-red-400 transition-colors flex-shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
                         )}
-                      >
-                        {intensity}
-                      </button>
+                      </div>
                     ))}
                   </div>
                 ))}
@@ -983,21 +1137,26 @@ function Step5_Schedule({
           <div className="grid grid-cols-7 gap-1">
             {DAY_NAMES.map((name, i) => {
               const isLift = selectedDays.includes(i);
-              const combat = combatDays.find(d => d.day === i);
+              const daySessions = combatDayMap.get(i) || [];
+              const hasCombat = daySessions.length > 0;
+              const highestIntensity = daySessions.reduce<CombatIntensity | null>((max, s) =>
+                !max ? s.intensity : s.intensity === 'hard' ? 'hard' : max === 'hard' ? 'hard' : s.intensity === 'moderate' ? 'moderate' : max,
+                null
+              );
               return (
                 <div key={i} className="text-center">
                   <p className="text-[9px] text-grappler-500 mb-1">{name}</p>
                   <div className={cn(
-                    'h-6 rounded flex items-center justify-center',
-                    isLift && combat ? 'bg-gradient-to-b from-primary-500/30 to-red-500/30 border border-primary-500/30'
+                    'h-6 rounded flex items-center justify-center relative',
+                    isLift && hasCombat ? 'bg-gradient-to-b from-primary-500/30 to-red-500/30 border border-primary-500/30'
                       : isLift ? 'bg-primary-500/20 border border-primary-500/30'
-                      : combat ? combat.intensity === 'hard' ? 'bg-red-500/20 border border-red-500/30'
-                        : combat.intensity === 'moderate' ? 'bg-yellow-500/15 border border-yellow-500/20'
+                      : hasCombat ? highestIntensity === 'hard' ? 'bg-red-500/20 border border-red-500/30'
+                        : highestIntensity === 'moderate' ? 'bg-yellow-500/15 border border-yellow-500/20'
                         : 'bg-green-500/15 border border-green-500/20'
                       : 'bg-grappler-800'
                   )}>
                     <span className="text-[8px]">
-                      {isLift && combat ? 'Both' : isLift ? 'Lift' : combat ? combat.intensity[0].toUpperCase() : 'Rest'}
+                      {isLift && hasCombat ? 'Both' : isLift ? 'Lift' : hasCombat ? (daySessions.length > 1 ? `${daySessions.length}x` : (highestIntensity || 'M')[0].toUpperCase()) : 'Rest'}
                     </span>
                   </div>
                 </div>
@@ -1123,7 +1282,7 @@ function Step6_Preview({ data }: { data: OnboardingData }) {
       <div className="bg-gradient-to-br from-primary-500/10 to-accent-500/10 border border-primary-500/20 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <Dumbbell className="w-4 h-4 text-primary-400" />
-          <p className="font-bold text-grappler-100">5-Week Program</p>
+          <p className="font-bold text-grappler-100">{data.mesoCycleWeeks || 5}-Week Program</p>
         </div>
         <p className="text-sm text-grappler-300 leading-relaxed">{getProgramDescription()}</p>
       </div>

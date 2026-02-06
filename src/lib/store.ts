@@ -446,6 +446,7 @@ export const useAppStore = create<AppState>()(
               equipment: user.equipment,
               trainingIdentity: user.trainingIdentity,
               combatSport: user.combatSport,
+              combatSports: user.combatSports,
               weightUnit: user.weightUnit,
             },
           });
@@ -474,6 +475,7 @@ export const useAppStore = create<AppState>()(
           weightUnit: onboardingData.weightUnit || 'lbs',
           trainingIdentity: onboardingData.trainingIdentity || 'combat',
           combatSport: onboardingData.combatSport,
+          combatSports: onboardingData.combatSports,
           trainingDays: onboardingData.trainingDays,
           combatTrainingDays: onboardingData.combatTrainingDays,
           // Wearable preferences
@@ -512,8 +514,8 @@ export const useAppStore = create<AppState>()(
           isAuthenticated: true
         });
 
-        // Generate first mesocycle with user's preferred duration
-        get().generateNewMesocycle(5, onboardingData.sessionDurationMinutes || 60);
+        // Generate first mesocycle with user's preferred duration and cycle length
+        get().generateNewMesocycle(onboardingData.mesoCycleWeeks || 5, onboardingData.sessionDurationMinutes || 60);
       },
 
       setBaselineLifts: (lifts) => set({ baselineLifts: lifts }),

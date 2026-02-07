@@ -953,3 +953,72 @@ export interface OnboardingData {
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
 }
+
+// ── Performance Engine Types ────────────────────────────────────────────────
+export type ReadinessLevel = 'peak' | 'good' | 'moderate' | 'low' | 'critical';
+
+export interface ReadinessFactor {
+  source: 'sleep' | 'nutrition' | 'stress' | 'recovery' | 'injury' | 'training_load' | 'hydration' | 'age' | 'hrv';
+  label: string;
+  score: number;        // 0-100
+  weight: number;       // importance 0-1 (redistributed if not tracked)
+  available: boolean;   // false if user doesn't track this metric
+  detail?: string;
+}
+
+export interface ReadinessScore {
+  overall: number;                // 0-100
+  level: ReadinessLevel;
+  factors: ReadinessFactor[];
+  volumeModifier: number;         // 0.5-1.15
+  intensityModifier: number;      // 0.7-1.05
+  recommendations: string[];
+}
+
+// ── Injury Science Types ────────────────────────────────────────────────────
+export type TissueType = 'muscle' | 'tendon' | 'ligament' | 'joint' | 'bone' | 'nerve';
+
+export interface ReturnToTrainingPhase {
+  phase: number;
+  name: string;
+  durationDays: { min: number; max: number };
+  criteria: string[];
+  allowedActivities: string[];
+  intensityLimit: number;   // 0-100 %
+  volumeLimit: number;      // 0-100 %
+}
+
+export interface InjuryClassification {
+  tissueType: TissueType;
+  estimatedHealDays: { min: number; max: number };
+  currentPhase: 'acute' | 'subacute' | 'remodeling' | 'return_to_sport';
+  phaseDescription: string;
+  loadingGuidelines: string[];
+  avoidExerciseIds: string[];
+  modifiedExercises: { exerciseId: string; modification: string }[];
+  returnProtocol: ReturnToTrainingPhase[];
+}
+
+// ── Block Suggestion Types ──────────────────────────────────────────────────
+export type BlockFocus = 'strength' | 'hypertrophy' | 'power' | 'deload' | 'peaking' | 'base_building';
+
+export interface BlockSuggestion {
+  recommendedFocus: BlockFocus;
+  confidence: number;           // 0-100
+  reasoning: string[];
+  alternativeFocus?: BlockFocus;
+  alternativeReason?: string;
+  suggestedWeeks: number;
+  keyMetrics: { label: string; value: string; trend: 'up' | 'down' | 'stable' }[];
+  weakPoints: string[];         // muscle groups needing attention
+  strongPoints: string[];       // muscle groups performing well
+}
+
+// ── New User Guide ──────────────────────────────────────────────────────────
+export interface GuideStep {
+  id: string;
+  title: string;
+  description: string;
+  highlightArea: string;        // selector or overlay id
+  tip?: string;
+}

@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { getReadinessSummary } from '@/lib/performance-engine';
 import {
   Dumbbell,
   Calendar,
@@ -117,9 +118,87 @@ const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
 const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
 const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
+const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading: () => <OverlaySkeleton /> });
+const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | 'block_suggestion' | 'user_guide' | null;
+
+function ReadinessCard() {
+  const user = useAppStore(s => s.user);
+  const workoutLogs = useAppStore(s => s.workoutLogs);
+  const trainingSessions = useAppStore(s => s.trainingSessions);
+  const wearableData = useAppStore(s => s.latestWhoopData);
+  const wearableHistory = useAppStore(s => s.wearableHistory);
+  const meals = useAppStore(s => s.meals);
+  const macroTargets = useAppStore(s => s.macroTargets);
+  const waterLog = useAppStore(s => s.waterLog);
+  const injuryLog = useAppStore(s => s.injuryLog);
+  const quickLogs = useAppStore(s => s.quickLogs);
+
+  const summary = useMemo(() => {
+    return getReadinessSummary({
+      user,
+      workoutLogs,
+      trainingSessions,
+      wearableData,
+      wearableHistory,
+      meals,
+      macroTargets,
+      waterLog,
+      injuryLog,
+      quickLogs,
+    });
+  }, [user, workoutLogs, trainingSessions, wearableData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs]);
+
+  if (!summary) return null;
+
+  const levelColors: Record<string, string> = {
+    peak: 'text-green-400 bg-green-500/10 border-green-500/30',
+    good: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    moderate: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+    low: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+    critical: 'text-red-400 bg-red-500/10 border-red-500/30',
+  };
+
+  const levelLabels: Record<string, string> = {
+    peak: 'Peak Readiness',
+    good: 'Good to Train',
+    moderate: 'Moderate — Adjust Load',
+    low: 'Low — Reduce Intensity',
+    critical: 'Rest Recommended',
+  };
+
+  return (
+    <div className={cn('rounded-xl p-3 mb-3 border', levelColors[summary.level] || levelColors.moderate)}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4" />
+          <span className="text-xs font-medium">Readiness</span>
+        </div>
+        <span className="text-lg font-bold">{summary.score}/100</span>
+      </div>
+      <p className="text-xs opacity-80 mb-2">{levelLabels[summary.level]}</p>
+      {summary.topFactors.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {summary.topFactors.map(f => (
+            <span key={f.label} className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded">
+              {f.label}: {f.score}/100
+            </span>
+          ))}
+        </div>
+      )}
+      {summary.topRecommendation && (
+        <p className="text-[11px] opacity-70 mt-1.5">{summary.topRecommendation}</p>
+      )}
+      {summary.volumeModifier !== 1.0 && (
+        <p className="text-[10px] mt-1 opacity-60">
+          Auto-adjusting: volume {Math.round(summary.volumeModifier * 100)}%, intensity {Math.round(summary.intensityModifier * 100)}%
+        </p>
+      )}
+    </div>
+  );
+}
 
 function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[]; onDayClick?: (date: Date) => void }) {
   const trainingSessions = useAppStore(s => s.trainingSessions);
@@ -392,12 +471,33 @@ export default function Dashboard() {
   const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
   const ensureWeeklyChallenge = useAppStore(s => s.ensureWeeklyChallenge);
 
+  // Show new user guide on first visit (0 workouts)
+  const [showNewUserGuide, setShowNewUserGuide] = useState(false);
+  useEffect(() => {
+    if (user && gamificationStats.totalWorkouts === 0 && workoutLogs.length === 0) {
+      const guideShown = localStorage.getItem('roots-guide-shown');
+      if (!guideShown) {
+        setShowNewUserGuide(true);
+      }
+    }
+  }, [user, gamificationStats.totalWorkouts, workoutLogs.length]);
+
+  const handleGuideComplete = () => {
+    setShowNewUserGuide(false);
+    localStorage.setItem('roots-guide-shown', 'true');
+  };
+
   // Ensure weekly challenge is generated on Dashboard mount
   useEffect(() => {
     if (user && gamificationStats.totalWorkouts > 0) {
       ensureWeeklyChallenge();
     }
   }, []);
+
+  // New user walkthrough guide
+  if (showNewUserGuide) {
+    return <NewUserGuide onComplete={handleGuideComplete} />;
+  }
 
   if (activeWorkout) {
     return <ActiveWorkout />;
@@ -469,6 +569,12 @@ export default function Dashboard() {
   }
   if (overlayView === 'recovery_coach') {
     return <RecoveryCoach onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'block_suggestion') {
+    return <BlockSuggestionView onClose={() => setOverlayView(null)} />;
+  }
+  if (overlayView === 'user_guide') {
+    return <NewUserGuide onComplete={() => setOverlayView(null)} />;
   }
 
   // Mesocycle report overlay
@@ -1450,6 +1556,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
     getWearableTool(),
     { icon: Zap, label: 'Recovery AI', view: 'recovery_coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
+    { icon: Brain, label: 'Next Block', view: 'block_suggestion' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
     { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
   ];
   const moreTools = [
@@ -1474,6 +1581,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
     { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
+    { icon: BookOpen, label: 'App Guide', view: 'user_guide' as OverlayView, color: 'text-green-400 bg-green-500/20' },
   ];
 
   const ToolButton = ({ tool }: { tool: typeof featuredTools[0] }) => (
@@ -2314,6 +2422,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             </p>
           </div>
         )}
+
+        {/* Holistic Readiness Score (performance engine) */}
+        <ReadinessCard />
 
         {/* Activity Summary Row */}
         <div className="grid grid-cols-3 gap-2">

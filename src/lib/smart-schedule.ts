@@ -1,4 +1,4 @@
-import { CombatTrainingDay, CombatIntensity, WorkoutSession, WorkoutType } from './types';
+import { CombatTrainingDay, CombatIntensity, WorkoutSession, WorkoutType, ReadinessScore } from './types';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -362,4 +362,43 @@ export function getTodayRecommendation(
       : 'Full training day — you\'re fresh and ready!',
     intensity: 'full',
   };
+}
+
+/**
+ * Enhance the today recommendation with the holistic readiness score.
+ * If readiness data is available, it can override or refine the schedule-based advice.
+ */
+export function getEnhancedRecommendation(
+  baseRecommendation: ReturnType<typeof getTodayRecommendation>,
+  readiness: ReadinessScore | null,
+): ReturnType<typeof getTodayRecommendation> {
+  if (!readiness) return baseRecommendation;
+
+  // If readiness says critical but schedule says full → override to reduced
+  if (readiness.level === 'critical' && baseRecommendation.intensity === 'full') {
+    return {
+      shouldTrain: true,
+      message: `Readiness is critically low (${readiness.overall}/100). ${readiness.recommendations[0] || 'Consider a rest day.'}`,
+      intensity: 'reduced',
+    };
+  }
+
+  // If readiness is low → always reduce
+  if (readiness.level === 'low' && baseRecommendation.intensity === 'full') {
+    return {
+      shouldTrain: true,
+      message: `Low readiness (${readiness.overall}/100) — training at reduced intensity. ${baseRecommendation.message}`,
+      intensity: 'reduced',
+    };
+  }
+
+  // If readiness is peak and schedule says reduced → note the conflict
+  if (readiness.level === 'peak' && baseRecommendation.intensity === 'reduced') {
+    return {
+      ...baseRecommendation,
+      message: `${baseRecommendation.message} However, readiness is high (${readiness.overall}/100) — you may feel better than expected.`,
+    };
+  }
+
+  return baseRecommendation;
 }

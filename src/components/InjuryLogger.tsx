@@ -16,6 +16,8 @@ import {
   Target,
   Dumbbell,
   Info,
+  Clock,
+  ChevronDown,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
@@ -25,6 +27,7 @@ import {
   InjuryEntry,
 } from '@/lib/types';
 import { analyzeInjuryRisks, getPrehabRecommendations, type InjuryAnalysis, type RiskLevel } from '@/lib/injury-prevention';
+import { classifyInjury, getInjuryTimeline } from '@/lib/injury-science';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -163,6 +166,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
   const [activeTab, setActiveTab] = useState<'log' | 'prevention'>('prevention');
+  const [expandedInjuryId, setExpandedInjuryId] = useState<string | null>(null);
 
   // Injury prevention analysis
   const analysis = useMemo<InjuryAnalysis>(() => {
@@ -748,7 +752,12 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
           )}
 
           <AnimatePresence mode="popLayout">
-            {activeInjuries.map((injury) => (
+            {activeInjuries.map((injury) => {
+              const timeline = getInjuryTimeline(injury);
+              const classification = classifyInjury(injury);
+              const isExpanded = expandedInjuryId === injury.id;
+
+              return (
               <motion.div
                 key={injury.id}
                 layout
@@ -771,6 +780,8 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-grappler-400">
                       <span className="capitalize">{injury.painType} pain</span>
+                      <span>&middot;</span>
+                      <span>{timeline.tissueLabel}</span>
                       <span>&middot;</span>
                       <span>
                         {daysSince(injury.date) === 0
@@ -799,6 +810,145 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                   </div>
                 </div>
 
+                {/* Heal Timeline Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-primary-400 font-medium flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {timeline.phaseLabel}
+                    </span>
+                    <span className="text-grappler-400">
+                      {timeline.estimatedDaysRemaining.max > 0
+                        ? `~${timeline.estimatedDaysRemaining.min}-${timeline.estimatedDaysRemaining.max} days remaining`
+                        : 'May be healed — test carefully'}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-grappler-700 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all duration-500',
+                        timeline.percentHealed >= 85 ? 'bg-green-500' :
+                        timeline.percentHealed >= 50 ? 'bg-yellow-500' :
+                        'bg-orange-500'
+                      )}
+                      style={{ width: `${Math.min(100, timeline.percentHealed)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-grappler-500">
+                    {timeline.percentHealed}% through estimated recovery ({classification.estimatedHealDays.min}-{classification.estimatedHealDays.max} days)
+                  </p>
+                </div>
+
+                {/* Expand/Collapse Science Details */}
+                <button
+                  onClick={() => setExpandedInjuryId(isExpanded ? null : injury.id)}
+                  className="w-full flex items-center justify-between text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                >
+                  <span>Recovery protocol &amp; guidelines</span>
+                  <motion.span animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </motion.span>
+                </button>
+
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-3"
+                    >
+                      {/* Current Phase Description */}
+                      <div className="bg-grappler-700/50 rounded-lg p-3">
+                        <p className="text-xs text-grappler-200 leading-relaxed">
+                          {classification.phaseDescription}
+                        </p>
+                      </div>
+
+                      {/* Loading Guidelines */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-grappler-200 mb-1.5">Loading Guidelines</h4>
+                        <ul className="space-y-1">
+                          {classification.loadingGuidelines.map((g, idx) => (
+                            <li key={idx} className="text-[11px] text-grappler-400 flex items-start gap-1.5">
+                              <Target className="w-3 h-3 mt-0.5 shrink-0 text-primary-400" />
+                              {g}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Return Protocol Phases */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-grappler-200 mb-2">Return-to-Training Protocol</h4>
+                        <div className="space-y-2">
+                          {classification.returnProtocol.map((p) => {
+                            const isCurrent = classification.currentPhase === ['acute', 'subacute', 'remodeling', 'return_to_sport'][p.phase - 1];
+                            return (
+                              <div
+                                key={p.phase}
+                                className={cn(
+                                  'rounded-lg p-2.5 border text-xs',
+                                  isCurrent
+                                    ? 'bg-primary-500/10 border-primary-500/40'
+                                    : 'bg-grappler-700/30 border-grappler-700'
+                                )}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={cn('font-medium', isCurrent ? 'text-primary-400' : 'text-grappler-300')}>
+                                    Phase {p.phase}: {p.name}
+                                  </span>
+                                  <span className="text-grappler-500">
+                                    {p.durationDays.min}-{p.durationDays.max}d
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-grappler-400 mb-1">
+                                  <span>Volume: {p.volumeLimit}%</span>
+                                  <span>Intensity: {p.intensityLimit}%</span>
+                                </div>
+                                {isCurrent && (
+                                  <div className="mt-1.5 space-y-0.5">
+                                    {p.criteria.map((c, ci) => (
+                                      <p key={ci} className="text-[10px] text-primary-300/80">
+                                        Criteria: {c}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Exercise Restrictions */}
+                      {classification.avoidExerciseIds.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-red-400 mb-1">Avoid These Exercises</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {classification.avoidExerciseIds.slice(0, 6).map(id => (
+                              <span key={id} className="px-2 py-0.5 bg-red-500/15 text-red-400 rounded text-[10px]">
+                                {id.replace(/-/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {classification.modifiedExercises.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-semibold text-yellow-400 mb-1">Modify These Exercises</h4>
+                          {classification.modifiedExercises.map((m, idx) => (
+                            <p key={idx} className="text-[11px] text-grappler-400">
+                              <span className="text-yellow-300 capitalize">{m.exerciseId.replace(/-/g, ' ')}</span>: {m.modification}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {injury.duringExercise && (
                   <p className="text-xs text-grappler-400">
                     <span className="text-grappler-500">Triggered by:</span>{' '}
@@ -812,7 +962,8 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                   </p>
                 )}
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </div>
 

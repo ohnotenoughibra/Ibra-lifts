@@ -79,47 +79,60 @@ export function downloadFile(content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
-// Full app backup — exports all persistent state for restore/transfer
+// Full app backup — exports ALL persistent state for restore/transfer.
+// Mirrors the store's partialize() exactly so nothing is ever missed.
 export function exportFullBackup(): string {
   const state = useAppStore.getState();
   const backup = {
-    _version: 2,
+    _version: 3,
     _exportedAt: new Date().toISOString(),
     _app: 'roots-gains',
+    // ── Auth & profile ──
     user: state.user,
     isOnboarded: state.isOnboarded,
+    onboardingData: state.onboardingData,
     baselineLifts: state.baselineLifts,
+    // ── Training program ──
     currentMesocycle: state.currentMesocycle,
     mesocycleHistory: state.mesocycleHistory,
+    activeWorkout: state.activeWorkout,
+    // ── Workout logs ──
     workoutLogs: state.workoutLogs,
-    gamificationStats: state.gamificationStats,
-    bodyWeightLog: state.bodyWeightLog,
-    injuryLog: state.injuryLog,
-    customExercises: state.customExercises,
-    sessionTemplates: state.sessionTemplates,
-    hrSessions: state.hrSessions,
     trainingSessions: state.trainingSessions,
+    hrSessions: state.hrSessions,
+    // ── Gamification ──
+    gamificationStats: state.gamificationStats,
+    // ── Body tracking ──
+    bodyWeightLog: state.bodyWeightLog,
+    bodyComposition: state.bodyComposition,
+    // ── Nutrition ──
     meals: state.meals,
     macroTargets: state.macroTargets,
     waterLog: state.waterLog,
-    bodyComposition: state.bodyComposition,
-    muscleEmphasis: state.muscleEmphasis,
-    activeEquipmentProfile: state.activeEquipmentProfile,
-    themeMode: state.themeMode,
-    // v2: fields that were previously missing from backup
-    quickLogs: state.quickLogs,
-    gripTests: state.gripTests,
-    gripExerciseLogs: state.gripExerciseLogs,
     activeDietPhase: state.activeDietPhase,
     weeklyCheckIns: state.weeklyCheckIns,
     mealReminders: state.mealReminders,
+    // ── Health & recovery ──
+    injuryLog: state.injuryLog,
+    illnessLogs: state.illnessLogs,
+    workoutSkips: state.workoutSkips,
+    // ── Quick logs & grip ──
+    quickLogs: state.quickLogs,
+    gripTests: state.gripTests,
+    gripExerciseLogs: state.gripExerciseLogs,
+    // ── Customisation ──
+    customExercises: state.customExercises,
+    sessionTemplates: state.sessionTemplates,
+    muscleEmphasis: state.muscleEmphasis,
+    activeEquipmentProfile: state.activeEquipmentProfile,
     competitions: state.competitions,
+    themeMode: state.themeMode,
   };
   return JSON.stringify(backup, null, 2);
 }
 
 // Validate and import a full backup
-export function importFullBackup(jsonString: string): { success: boolean; error?: string; stats?: { workouts: number; exercises: number; templates: number } } {
+export function importFullBackup(jsonString: string): { success: boolean; error?: string; stats?: { workouts: number; exercises: number; templates: number; meals: number; trainingSessions: number } } {
   try {
     const data = JSON.parse(jsonString);
 
@@ -143,37 +156,49 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     // Build update object — only include fields that exist in the backup
     const update: Record<string, unknown> = {};
 
+    // ── Auth & profile ──
     if (data.user) update.user = data.user;
     if (data.isOnboarded !== undefined) update.isOnboarded = data.isOnboarded;
     if (data.isOnboarded) update.isAuthenticated = true;
+    if (data.onboardingData) update.onboardingData = data.onboardingData;
     if (data.baselineLifts) update.baselineLifts = data.baselineLifts;
+    // ── Training program ──
     if (data.currentMesocycle) update.currentMesocycle = data.currentMesocycle;
     if (Array.isArray(data.mesocycleHistory)) update.mesocycleHistory = data.mesocycleHistory;
+    if (data.activeWorkout) update.activeWorkout = data.activeWorkout;
+    // ── Workout logs ──
     if (Array.isArray(data.workoutLogs)) update.workoutLogs = data.workoutLogs;
-    if (data.gamificationStats) update.gamificationStats = data.gamificationStats;
-    if (Array.isArray(data.bodyWeightLog)) update.bodyWeightLog = data.bodyWeightLog;
-    if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
-    if (Array.isArray(data.customExercises)) update.customExercises = data.customExercises;
-    if (Array.isArray(data.sessionTemplates)) update.sessionTemplates = data.sessionTemplates;
-    if (Array.isArray(data.hrSessions)) update.hrSessions = data.hrSessions;
-    // Support both old (grapplingSessions) and new (trainingSessions) format for backward compatibility
+    // Support both old (grapplingSessions) and new (trainingSessions) format
     if (Array.isArray(data.trainingSessions)) update.trainingSessions = data.trainingSessions;
     else if (Array.isArray(data.grapplingSessions)) update.trainingSessions = data.grapplingSessions;
+    if (Array.isArray(data.hrSessions)) update.hrSessions = data.hrSessions;
+    // ── Gamification ──
+    if (data.gamificationStats) update.gamificationStats = data.gamificationStats;
+    // ── Body tracking ──
+    if (Array.isArray(data.bodyWeightLog)) update.bodyWeightLog = data.bodyWeightLog;
+    if (Array.isArray(data.bodyComposition)) update.bodyComposition = data.bodyComposition;
+    // ── Nutrition (meals, macros, water, diet, reminders) ──
     if (Array.isArray(data.meals)) update.meals = data.meals;
     if (data.macroTargets) update.macroTargets = data.macroTargets;
     if (data.waterLog && typeof data.waterLog === 'object') update.waterLog = data.waterLog;
-    if (Array.isArray(data.bodyComposition)) update.bodyComposition = data.bodyComposition;
-    if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
-    if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
-    if (data.themeMode) update.themeMode = data.themeMode;
-    // v2 fields
-    if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;
-    if (Array.isArray(data.gripTests)) update.gripTests = data.gripTests;
-    if (Array.isArray(data.gripExerciseLogs)) update.gripExerciseLogs = data.gripExerciseLogs;
     if (data.activeDietPhase) update.activeDietPhase = data.activeDietPhase;
     if (Array.isArray(data.weeklyCheckIns)) update.weeklyCheckIns = data.weeklyCheckIns;
     if (data.mealReminders) update.mealReminders = data.mealReminders;
+    // ── Health & recovery ──
+    if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
+    if (Array.isArray(data.illnessLogs)) update.illnessLogs = data.illnessLogs;
+    if (Array.isArray(data.workoutSkips)) update.workoutSkips = data.workoutSkips;
+    // ── Quick logs & grip ──
+    if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;
+    if (Array.isArray(data.gripTests)) update.gripTests = data.gripTests;
+    if (Array.isArray(data.gripExerciseLogs)) update.gripExerciseLogs = data.gripExerciseLogs;
+    // ── Customisation ──
+    if (Array.isArray(data.customExercises)) update.customExercises = data.customExercises;
+    if (Array.isArray(data.sessionTemplates)) update.sessionTemplates = data.sessionTemplates;
+    if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
+    if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
     if (Array.isArray(data.competitions)) update.competitions = data.competitions;
+    if (data.themeMode) update.themeMode = data.themeMode;
 
     // Apply the update
     useAppStore.setState(update);
@@ -196,6 +221,8 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
         workouts: data.workoutLogs?.length ?? 0,
         exercises: data.customExercises?.length ?? 0,
         templates: data.sessionTemplates?.length ?? 0,
+        meals: data.meals?.length ?? 0,
+        trainingSessions: data.trainingSessions?.length ?? 0,
       }
     };
   } catch (e: any) {

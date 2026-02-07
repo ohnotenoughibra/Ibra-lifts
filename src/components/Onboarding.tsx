@@ -23,13 +23,56 @@ import {
 } from 'lucide-react';
 import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, WeightUnit, TrainingIdentity, CombatSport, CombatTrainingDay, CombatIntensity, CombatTimeOfDay, EquipmentType, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays, AlertTriangle, Plus, X } from 'lucide-react';
+import { CalendarDays, AlertTriangle, Plus, X, Smartphone, Share, MoreVertical, ArrowDown } from 'lucide-react';
 
 const TOTAL_STEPS = 6;
+
+/** Detect if user is on a mobile browser (not already installed as PWA) */
+function useIsMobileBrowser() {
+  const [state, setState] = useState<{ isMobile: boolean; isIOS: boolean; isPWA: boolean }>({
+    isMobile: false,
+    isIOS: false,
+    isPWA: false,
+  });
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    setState({ isMobile, isIOS, isPWA });
+  }, []);
+
+  return state;
+}
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
   const [currentStep, setCurrentStep] = useState(1);
+  const { isMobile, isIOS, isPWA } = useIsMobileBrowser();
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(false);
+
+  // Show install guide on mobile browsers (not PWA) on step 1
+  useEffect(() => {
+    if (isMobile && !isPWA && currentStep === 1 && !installDismissed) {
+      const dismissed = localStorage.getItem('roots-onboard-install-dismissed');
+      if (!dismissed) {
+        const timer = setTimeout(() => setShowInstallGuide(true), 800);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      setShowInstallGuide(false);
+    }
+  }, [isMobile, isPWA, currentStep, installDismissed]);
+
+  const dismissInstallGuide = () => {
+    setShowInstallGuide(false);
+    setInstallDismissed(true);
+    localStorage.setItem('roots-onboard-install-dismissed', '1');
+  };
 
   const nextStep = () => {
     if (currentStep < TOTAL_STEPS) {
@@ -68,6 +111,145 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh px-4 py-8">
+      {/* Add to Home Screen prompt for mobile browsers */}
+      <AnimatePresence>
+        {showInstallGuide && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="max-w-lg mx-auto mb-6"
+          >
+            <div className="relative overflow-hidden rounded-2xl border border-primary-500/30 bg-gradient-to-br from-grappler-800 via-grappler-800 to-primary-900/40">
+              {/* Decorative gradient orb */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary-500/15 rounded-full blur-2xl" />
+              <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-accent-500/10 rounded-full blur-xl" />
+
+              <div className="relative p-5">
+                {/* Dismiss button */}
+                <button
+                  onClick={dismissInstallGuide}
+                  className="absolute top-3 right-3 p-1 text-grappler-500 hover:text-grappler-300 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                {/* Phone mockup icon */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+                    <Smartphone className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-grappler-50 text-base">
+                      Get the full experience
+                    </h3>
+                    <p className="text-xs text-grappler-400">
+                      Add to your home screen for instant access
+                    </p>
+                  </div>
+                </div>
+
+                {/* Instructions based on platform */}
+                <div className="bg-grappler-900/60 rounded-xl p-4 space-y-3">
+                  {isIOS ? (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-primary-400">1</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-grappler-200">Tap</span>
+                          <div className="w-7 h-7 bg-grappler-700 rounded-md flex items-center justify-center">
+                            <Share className="w-4 h-4 text-primary-400" />
+                          </div>
+                          <span className="text-sm text-grappler-200">Share in Safari</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-primary-400">2</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-grappler-200">Scroll down, tap</span>
+                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
+                            Add to Home Screen
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-green-400">3</span>
+                        </div>
+                        <span className="text-sm text-grappler-200">Open from home screen — works offline!</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-primary-400">1</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-grappler-200">Tap</span>
+                          <div className="w-7 h-7 bg-grappler-700 rounded-md flex items-center justify-center">
+                            <MoreVertical className="w-4 h-4 text-primary-400" />
+                          </div>
+                          <span className="text-sm text-grappler-200">menu in Chrome</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-primary-400">2</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-grappler-200">Tap</span>
+                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
+                            Install app
+                          </span>
+                          <span className="text-sm text-grappler-200">or</span>
+                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
+                            Add to Home Screen
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center shrink-0">
+                          <span className="text-sm font-bold text-green-400">3</span>
+                        </div>
+                        <span className="text-sm text-grappler-200">Launch like a native app — works offline!</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Benefits row */}
+                <div className="flex items-center justify-center gap-4 mt-4">
+                  {[
+                    { label: 'Offline', icon: '📶' },
+                    { label: 'Fast', icon: '⚡' },
+                    { label: 'Full screen', icon: '📱' },
+                  ].map((b) => (
+                    <div key={b.label} className="flex items-center gap-1.5">
+                      <span className="text-sm">{b.icon}</span>
+                      <span className="text-[11px] text-grappler-400">{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dismiss link */}
+                <button
+                  onClick={dismissInstallGuide}
+                  className="w-full text-center text-xs text-grappler-500 hover:text-grappler-300 mt-3 transition-colors"
+                >
+                  I'll do this later
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Progress bar */}
       <div className="max-w-lg mx-auto mb-8">
         <div className="flex items-center justify-between mb-2">

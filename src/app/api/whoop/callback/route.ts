@@ -146,15 +146,40 @@ export async function GET(request: NextRequest) {
     }).catch(function() { /* best effort — localStorage is primary fallback */ });
   } catch(e) { /* ignore */ }
 
-  // --- Redirect ---
-  if (stored) {
-    window.location.replace(appUrl + '?whoop_connected=true');
+  // --- Redirect or show return-to-app page ---
+  // Detect if we're running inside the PWA (standalone mode).
+  // On iOS, OAuth opens Safari, so we're almost certainly NOT in standalone mode.
+  // When in an external browser, auto-redirect just stays in the browser instead
+  // of returning to the PWA. Instead, show a "Return to App" page and let the
+  // PWA pick up the tokens from the database when the user switches back.
+  var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || (window.navigator && window.navigator.standalone === true);
+
+  if (isStandalone) {
+    // We're inside the PWA — regular redirect works fine
+    if (stored) {
+      window.location.replace(appUrl + '?whoop_connected=true');
+    } else {
+      var hash = 'whoop_at=' + encodeURIComponent(accessToken)
+        + '&whoop_rt=' + encodeURIComponent(refreshToken)
+        + '&whoop_exp=' + encodeURIComponent(expiresAt);
+      window.location.replace(appUrl + '?whoop_connected=true#' + hash);
+    }
   } else {
-    // Fallback: pass tokens via URL hash (never sent to server)
-    var hash = 'whoop_at=' + encodeURIComponent(accessToken)
-      + '&whoop_rt=' + encodeURIComponent(refreshToken)
-      + '&whoop_exp=' + encodeURIComponent(expiresAt);
-    window.location.replace(appUrl + '?whoop_connected=true#' + hash);
+    // External browser (opened by OAuth from PWA on iOS/Android).
+    // Tokens are already saved to DB — the PWA will load them when the user switches back.
+    // Show a success page with instructions to return to the app.
+    var container = document.querySelector('.loader');
+    container.innerHTML = ''
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:320px;text-align:center;">'
+      +   '<div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;">'
+      +     '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+      +   '</div>'
+      +   '<h2 style="font-size:20px;font-weight:700;color:#f1f5f9;margin:0;">WHOOP Connected!</h2>'
+      +   '<p style="font-size:14px;color:#94a3b8;line-height:1.5;margin:0;">Your WHOOP account is now linked. Switch back to <strong style="color:#e2e8f0;">Roots Gains</strong> on your home screen to see your data.</p>'
+      +   '<a href="' + appUrl + '?whoop_connected=true" style="display:inline-flex;align-items:center;gap:8px;background:#22c55e;color:#0f172a;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;text-decoration:none;margin-top:8px;">Open Roots Gains</a>'
+      +   '<p style="font-size:12px;color:#64748b;margin:0;">If the button doesn\\u0027t return you to the app, just tap the Roots Gains icon on your home screen.</p>'
+      + '</div>';
   }
 })();
 </script>

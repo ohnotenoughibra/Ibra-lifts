@@ -129,6 +129,7 @@ interface AdjustmentInput {
   weeksAtPlateau: number;      // consecutive weeks with <0.1kg change
   adherencePercent: number;    // 0–100
   sex?: BiologicalSex;
+  isIll?: boolean;             // active or recovering illness — pause adjustments
 }
 
 interface AdjustmentResult {
@@ -156,8 +157,23 @@ export function calculateWeeklyAdjustment({
   weeksAtPlateau,
   adherencePercent,
   sex,
+  isIll,
 }: AdjustmentInput): AdjustmentResult {
   const isFemale = sex === 'female';
+
+  // Pause adjustments during illness — weight fluctuations are water/inflammation,
+  // not real trend data. Cutting while sick = immunosuppression (Nieman 1994).
+  if (isIll) {
+    return {
+      newMacros: { ...currentMacros },
+      adjustment: 'maintain',
+      reason: 'Adjustments paused during illness. Weight changes while sick are water and inflammation, not real progress. Focus on recovery nutrition.',
+      alert: goal === 'cut'
+        ? 'Your cut is on hold while you recover. Eating at maintenance supports your immune system — you won\'t lose progress.'
+        : undefined,
+    };
+  }
+
   // Don't adjust with poor adherence — data is unreliable
   if (adherencePercent < 70) {
     return {

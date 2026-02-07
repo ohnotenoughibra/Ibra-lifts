@@ -1,4 +1,5 @@
-import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile, CombatTrainingDay } from './types';
+import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile, CombatTrainingDay, IllnessLog } from './types';
+import { getIllnessTrainingRecommendation } from './illness-engine';
 
 export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'rest';
 
@@ -11,6 +12,7 @@ export interface ContextualMacros {
   postworkoutTiming?: string;
   hydrationGoal: number; // ml
   carbCycleNote?: string;
+  illnessActive?: boolean;
 }
 
 /**
@@ -22,7 +24,8 @@ export function getContextualNutrition(
   todaySession: WorkoutSession | null,
   todayTraining: TrainingSession[],
   whoopData: WearableData | null,
-  user: UserProfile | null
+  user: UserProfile | null,
+  activeIllness?: IllnessLog | null,
 ): ContextualMacros {
   const recommendations: string[] = [];
   let dayType: TrainingDayType = 'rest';
@@ -33,6 +36,7 @@ export function getContextualNutrition(
   let preworkoutTiming: string | undefined;
   let postworkoutTiming: string | undefined;
   let carbCycleNote: string | undefined;
+  let illnessActive = false;
 
   // Determine training day type from actual logged sessions first,
   // then fall back to the user's scheduled training days so that
@@ -199,6 +203,50 @@ export function getContextualNutrition(
     recommendations.push('Monitor body weight if competing');
   }
 
+  // ── Illness override ──────────────────────────────────────────────────────
+  // When sick: move calories toward maintenance, keep protein high, prioritize
+  // recovery nutrition. A caloric deficit + illness = immunosuppression
+  // (Nieman 1994, J-curve). The body needs fuel to fight infection.
+  if (activeIllness && (activeIllness.status === 'active' || activeIllness.status === 'recovering')) {
+    illnessActive = true;
+    const rec = getIllnessTrainingRecommendation(activeIllness);
+
+    // Override day-specific multipliers — illness trumps training type
+    // Move calories to at least maintenance (never cut while sick)
+    calorieMultiplier = Math.max(calorieMultiplier, 1.0);
+    // Boost protein for immune function + muscle preservation (Calder 2013)
+    proteinMultiplier = Math.max(proteinMultiplier, 1.15);
+    // Keep carbs moderate — glucose fuels immune cells (Gleeson 2016)
+    carbMultiplier = Math.max(carbMultiplier, 1.0);
+
+    // Clear training-specific timing since they shouldn't be training hard
+    if (!rec.canTrain) {
+      preworkoutTiming = undefined;
+      postworkoutTiming = undefined;
+      carbCycleNote = 'Illness recovery — maintain calories, prioritize protein and micronutrients';
+    } else {
+      carbCycleNote = 'Light activity only — eat at maintenance to support immune function';
+    }
+
+    // Illness-specific nutrition recommendations
+    recommendations.length = 0; // Clear training-specific tips
+    recommendations.push('Eat at maintenance or above — your immune system needs fuel to recover');
+    recommendations.push('Prioritize protein (immune cell production + muscle preservation)');
+    recommendations.push('Include vitamin C rich foods: citrus, bell peppers, berries');
+    recommendations.push('Anti-inflammatory foods: bone broth, ginger, turmeric, garlic');
+    if (activeIllness.symptoms.includes('nausea') || activeIllness.symptoms.includes('vomiting') || activeIllness.symptoms.includes('diarrhea')) {
+      recommendations.push('GI symptoms: stick to bland foods (BRAT: bananas, rice, applesauce, toast)');
+      recommendations.push('Sip electrolyte drinks to prevent dehydration');
+    }
+    if (activeIllness.symptoms.includes('loss_of_appetite')) {
+      recommendations.push('Low appetite? Try calorie-dense liquids: smoothies, protein shakes, bone broth');
+    }
+    if (activeIllness.hasFever) {
+      recommendations.push('Fever increases metabolic rate ~10% per 1°C — eat more, not less');
+    }
+    recommendations.push('Sleep and hydration are your top priorities right now');
+  }
+
   // Calculate adjusted macros
   const adjustedTargets: MacroTargets = {
     calories: Math.round((baseMacros.calories * calorieMultiplier) + recoveryBonus),
@@ -211,7 +259,10 @@ export function getContextualNutrition(
   // ~35ml per kg is a good baseline (equivalent to 0.5oz per lb)
   const bodyWeightKg = bodyWeightLbs / 2.205;
   let hydrationGoal = Math.round(bodyWeightKg * 35); // 35ml per kg baseline
-  if (dayType === 'grappling_hard') {
+  if (illnessActive) {
+    // Illness increases fluid needs — fever, sweating, GI losses
+    hydrationGoal += 1000;
+  } else if (dayType === 'grappling_hard') {
     hydrationGoal += 1000; // Extra 1L for hard training
   } else if (dayType !== 'rest') {
     hydrationGoal += 500; // Extra 500ml for any training
@@ -226,6 +277,7 @@ export function getContextualNutrition(
     postworkoutTiming,
     hydrationGoal,
     carbCycleNote,
+    illnessActive,
   };
 }
 

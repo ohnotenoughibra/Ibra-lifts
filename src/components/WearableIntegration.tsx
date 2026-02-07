@@ -997,6 +997,26 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   }, [fetchWhoopData]);
 
   // ------------------------------------------------------------------
+  // PWA resume: auto-detect WHOOP connection when user switches back
+  // from the external browser (iOS opens Safari for OAuth). The callback
+  // page stores tokens to the DB, so when the PWA regains focus we
+  // re-check and connect automatically.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        !isConnected &&
+        !fetchInFlight.current
+      ) {
+        fetchWhoopData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isConnected, fetchWhoopData]);
+
+  // ------------------------------------------------------------------
   // Background token keep-alive — refresh tokens before they expire
   // even if the user isn't actively syncing. Runs every 30 minutes.
   // ------------------------------------------------------------------

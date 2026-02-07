@@ -353,7 +353,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     trainingSessions,
     latestWhoopData,
     workoutLogs,
+    getActiveIllness,
   } = useAppStore();
+
+  const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
 
   // ── Derived state from store ──
   const todayStr = new Date().toISOString().split('T')[0];
@@ -414,9 +417,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       todaySession,
       todayTraining,
       latestWhoopData,
-      user
+      user,
+      activeIllness
     );
-  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user]);
+  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user, activeIllness]);
 
   const supplements = useMemo(() => {
     return getSupplementRecommendations(contextualNutrition.dayType);

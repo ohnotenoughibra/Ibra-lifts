@@ -70,7 +70,11 @@ export default function DietCoach() {
     setUser,
     mealReminders,
     setMealReminders,
+    getActiveIllness,
   } = useAppStore();
+
+  const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
+  const isIll = !!activeIllness && (activeIllness.status === 'active' || activeIllness.status === 'recovering');
 
   const [expanded, setExpanded] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
@@ -175,6 +179,7 @@ export default function DietCoach() {
       weeksAtPlateau: weightTrend.weeksAtPlateau,
       adherencePercent: adherence,
       sex: formSex,
+      isIll,
     });
 
     addWeeklyCheckIn({
@@ -611,6 +616,7 @@ export default function DietCoach() {
                           weeksAtPlateau: weightTrend.weeksAtPlateau,
                           adherencePercent: adherence,
                           sex: formSex,
+                          isIll,
                         });
                         return (
                           <div className={`p-2.5 rounded-lg ${

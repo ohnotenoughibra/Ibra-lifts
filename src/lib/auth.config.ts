@@ -32,17 +32,23 @@ export default {
   callbacks: {
     async authorized({ auth: session, request }) {
       const isLoggedIn = !!session?.user;
-      const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-                         request.nextUrl.pathname.startsWith('/register') ||
-                         request.nextUrl.pathname.startsWith('/reset-password');
-      const isApiAuth = request.nextUrl.pathname.startsWith('/api/auth');
-      const isPublicAsset = request.nextUrl.pathname.startsWith('/_next') ||
-                            request.nextUrl.pathname.includes('.');
+      const { pathname } = request.nextUrl;
+      const isAuthPage = pathname.startsWith('/login') ||
+                         pathname.startsWith('/register') ||
+                         pathname.startsWith('/reset-password');
+      const isApi = pathname.startsWith('/api');
+      const isPublicAsset = pathname.startsWith('/_next') ||
+                            pathname.includes('.');
 
-      // Allow public routes
-      if (isAuthPage || isApiAuth || isPublicAsset) return true;
+      // Allow public routes, API routes, and assets
+      if (isAuthPage || isApi || isPublicAsset) return true;
 
-      // Redirect to login if not authenticated
+      // Allow the main app page without auth — the app works in guest
+      // mode using localStorage (Zustand persist). Auth is optional and
+      // enables cloud sync via Vercel Postgres when signed in.
+      if (pathname === '/') return true;
+
+      // Other routes still require auth
       if (!isLoggedIn) return false;
 
       return true;

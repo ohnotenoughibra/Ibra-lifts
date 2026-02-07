@@ -65,7 +65,7 @@ export async function GET(request: Request) {
   try { crypto.getRandomValues(arr); } catch(e) {
     for (var i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
   }
-  var fromPwa = ${safeInlineJSON(fromPwa)};
+  var fromPwa = ${fromPwa ? 'true' : 'false'};
   var stateRandom = 'whoop_' + Array.from(arr, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
   var state = (fromPwa ? 'pwa:' : '') + stateRandom;
 

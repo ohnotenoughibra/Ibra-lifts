@@ -302,31 +302,13 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     }
   }
 
-  // --- Carry forward strain/calories to the latest entry ---
-  // The current physiological cycle is typically PENDING_SCORE (no strain data).
-  // The most recent SCORED cycle ends up on the previous date key. Recovery and
-  // sleep for today land on today's key. This leaves today's entry missing
-  // strain/calories even though the last scored values are from the adjacent cycle.
-  const sortedKeys = Array.from(dataMap.keys()).sort();
-  if (sortedKeys.length >= 2) {
-    const latestEntry = dataMap.get(sortedKeys[sortedKeys.length - 1]);
-    const prevEntry = dataMap.get(sortedKeys[sortedKeys.length - 2]);
-    if (latestEntry && prevEntry) {
-      // Carry forward cycle-derived metrics (strain, calories, HR)
-      if (latestEntry.strain == null && prevEntry.strain != null) {
-        latestEntry.strain = prevEntry.strain;
-      }
-      if (latestEntry.caloriesBurned == null && prevEntry.caloriesBurned != null) {
-        latestEntry.caloriesBurned = prevEntry.caloriesBurned;
-      }
-      if (latestEntry.avgHeartRate == null && prevEntry.avgHeartRate != null) {
-        latestEntry.avgHeartRate = prevEntry.avgHeartRate;
-      }
-      if (latestEntry.maxHeartRate == null && prevEntry.maxHeartRate != null) {
-        latestEntry.maxHeartRate = prevEntry.maxHeartRate;
-      }
-    }
-  }
+  // --- DO NOT carry forward strain/calories from previous day ---
+  // The current physiological cycle (today) is PENDING_STRAIN — Whoop's API
+  // doesn't expose running strain for in-progress cycles. Previously we copied
+  // yesterday's completed strain to today, but that's misleading (15.8 yesterday
+  // vs 0.4 today). Instead, leave today's strain as null and let the UI show
+  // "accumulating" or no data. Recovery, HRV, and sleep are already correct
+  // because they come from today's scored recovery/sleep records.
 
   return Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
@@ -826,6 +808,50 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       return;
     }
 
+    // --- Proactive token refresh ---
+    // If the access token is expired or about to expire (5-min buffer),
+    // refresh it BEFORE making the data call. This prevents 401 failures
+    // and keeps the session alive between syncs.
+    if (isTokenExpired() && refreshToken) {
+      try {
+        const refreshRes = await fetch('/api/whoop/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: 'expired_proactive_refresh',
+            refresh_token: refreshToken,
+          }),
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.new_access_token) {
+          accessToken = refreshData.new_access_token;
+          setToken(LS_KEYS.accessToken, refreshData.new_access_token);
+          if (refreshData.new_refresh_token) {
+            refreshToken = refreshData.new_refresh_token;
+            setToken(LS_KEYS.refreshToken, refreshData.new_refresh_token);
+          }
+          const newExp = refreshData.new_expires_in
+            ? String(Date.now() + refreshData.new_expires_in * 1000)
+            : '';
+          if (newExp) setToken(LS_KEYS.tokenExpires, newExp);
+          saveTokensToDb(
+            refreshData.new_access_token,
+            refreshData.new_refresh_token || refreshToken || '',
+            newExp
+          );
+        } else if (refreshData.requiresReconnect) {
+          setIsConnected(false);
+          setError('Session expired — please reconnect Whoop.');
+          setIsLoading(false);
+          fetchInFlight.current = false;
+          return;
+        }
+      } catch {
+        // Proactive refresh failed — try the normal fetch anyway,
+        // the server will attempt a reactive refresh on 401
+      }
+    }
+
     try {
       setIsSyncing(true);
       setError(null);
@@ -969,6 +995,42 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
     fetchWhoopData();
   }, [fetchWhoopData]);
+
+  // ------------------------------------------------------------------
+  // Background token keep-alive — refresh tokens before they expire
+  // even if the user isn't actively syncing. Runs every 30 minutes.
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const KEEP_ALIVE_MS = 30 * 60 * 1000; // 30 minutes
+    const interval = setInterval(() => {
+      if (isTokenExpired()) {
+        const rt = getToken(LS_KEYS.refreshToken);
+        if (rt) {
+          // Fire-and-forget background refresh
+          fetch('/api/whoop/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: 'expired_proactive_refresh',
+              refresh_token: rt,
+            }),
+          })
+            .then(r => r.json())
+            .then(data => {
+              if (data.new_access_token) {
+                setToken(LS_KEYS.accessToken, data.new_access_token);
+                if (data.new_refresh_token) setToken(LS_KEYS.refreshToken, data.new_refresh_token);
+                const exp = data.new_expires_in ? String(Date.now() + data.new_expires_in * 1000) : '';
+                if (exp) setToken(LS_KEYS.tokenExpires, exp);
+                saveTokensToDb(data.new_access_token, data.new_refresh_token || rt, exp);
+              }
+            })
+            .catch(() => { /* best effort */ });
+        }
+      }
+    }, KEEP_ALIVE_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   // ------------------------------------------------------------------
   // Derived data
@@ -1350,8 +1412,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   <Zap className="w-3.5 h-3.5 text-blue-400" />
                   <span className="text-[11px] text-grappler-500">Strain</span>
                 </div>
-                <p className={cn('text-xl font-bold', strainColor(today.strain ?? 0))}>
-                  {today.strain?.toFixed(1) ?? '--'}
+                <p className={cn('text-xl font-bold', today.strain != null ? strainColor(today.strain) : 'text-grappler-500')}>
+                  {today.strain != null ? today.strain.toFixed(1) : 'Live'}
                 </p>
                 <div className="mt-1.5 h-1 bg-grappler-700 rounded-full overflow-hidden">
                   <motion.div

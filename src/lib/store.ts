@@ -49,6 +49,7 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
+import { getActiveInjuryAdaptations } from './injury-science';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -936,7 +937,7 @@ export const useAppStore = create<AppState>()(
 
       // Workout actions
       startWorkout: (session) => {
-        const { workoutLogs, user } = get();
+        const { workoutLogs, user, injuryLog } = get();
 
         // Autoregulate: adjust session based on recent feedback (intermediate+ only)
         let activeSession = session;
@@ -944,6 +945,35 @@ export const useAppStore = create<AppState>()(
           const recent = workoutLogs.slice(-3); // last 3 workouts
           const { session: adjusted } = autoregulateSession(session, recent);
           activeSession = adjusted;
+        }
+
+        // Injury-aware adaptation: reduce volume/intensity for injured areas
+        const injuryAdaptations = getActiveInjuryAdaptations(injuryLog);
+        if (injuryAdaptations.classifications.length > 0) {
+          const volLimit = injuryAdaptations.overallVolumeLimit / 100;
+          const intLimit = injuryAdaptations.overallIntensityLimit / 100;
+          activeSession = {
+            ...activeSession,
+            exercises: activeSession.exercises.map(ex => {
+              // Check if this exercise should be avoided entirely
+              const shouldAvoid = injuryAdaptations.allAvoidExercises.some(
+                avoidId => ex.exerciseId.includes(avoidId)
+              );
+              if (shouldAvoid) {
+                // Don't remove — just reduce to minimum so user sees it with a note
+                return {
+                  ...ex,
+                  sets: Math.max(1, Math.round(ex.sets * volLimit)),
+                  prescription: {
+                    ...ex.prescription,
+                    rpe: Math.min(ex.prescription.rpe, +(ex.prescription.rpe * intLimit).toFixed(1)),
+                  },
+                  notes: (ex.notes ? ex.notes + ' | ' : '') + 'Caution: active injury — consider swapping or skipping',
+                };
+              }
+              return ex;
+            }),
+          };
         }
 
         // Pre-fill weights from previous session using auto-adjust

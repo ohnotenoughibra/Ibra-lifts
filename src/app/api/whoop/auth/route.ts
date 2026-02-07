@@ -22,6 +22,10 @@ export async function GET(request: Request) {
   const clientId = process.env.WHOOP_CLIENT_ID;
   const appUrl = getAppUrl(request);
   const redirectUri = `${appUrl}/api/whoop/callback`;
+  // When the connect button detects PWA standalone mode, it passes ?from=pwa.
+  // We thread this through the OAuth state parameter so the callback knows
+  // to show a "return to app" page instead of auto-redirecting.
+  const fromPwa = new URL(request.url).searchParams.get('from') === 'pwa';
 
   if (!clientId) {
     return NextResponse.json(
@@ -61,10 +65,12 @@ export async function GET(request: Request) {
   try { crypto.getRandomValues(arr); } catch(e) {
     for (var i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
   }
-  var state = 'whoop_' + Array.from(arr, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  var fromPwa = ${safeInlineJSON(fromPwa)};
+  var stateRandom = 'whoop_' + Array.from(arr, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  var state = (fromPwa ? 'pwa:' : '') + stateRandom;
 
-  // Store state for validation when we return from Whoop
-  try { localStorage.setItem('whoop_oauth_state', state); } catch(e) {
+  // Store the random part only — the callback strips the 'pwa:' prefix before comparing
+  try { localStorage.setItem('whoop_oauth_state', stateRandom); } catch(e) {
     // If localStorage is unavailable we still proceed — state validation
     // will be skipped on return (better UX than blocking the flow).
   }

@@ -310,6 +310,21 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
   // "accumulating" or no data. Recovery, HRV, and sleep are already correct
   // because they come from today's scored recovery/sleep records.
 
+  // --- Ensure today always has an entry ---
+  // If WHOOP hasn't scored today's cycle/recovery/sleep yet (e.g., early morning,
+  // or PENDING_STRAIN cycle with no score object), the dataMap won't contain today.
+  // Without this, the UI falls back to the last available day (yesterday) and
+  // silently shows stale data. Create a placeholder so the UI shows "Live"/null
+  // instead of yesterday's values.
+  const todayKey = new Date().toISOString().substring(0, 10);
+  if (!dataMap.has(todayKey)) {
+    dataMap.set(todayKey, {
+      id: `today-${todayKey}`,
+      date: new Date(),
+      provider: 'whoop' as WearableProvider,
+    });
+  }
+
   return Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -1385,7 +1400,12 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <span className="text-xs font-semibold text-grappler-400 uppercase tracking-wider">Recovery</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-grappler-400 uppercase tracking-wider">Recovery</span>
+                    <span className="text-[10px] text-grappler-600">
+                      {new Date(today.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
                   <div className="flex items-end gap-2 mt-1">
                     <span className={cn('text-5xl font-black tabular-nums', recoveryColor(today.recoveryScore ?? 0))}>
                       {today.recoveryScore ?? '--'}

@@ -887,7 +887,7 @@ function HistoryTab() {
       if (result.success) {
         setImportStatus({
           type: 'success',
-          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.templates ?? 0} templates`
+          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.meals ?? 0} meals, ${result.stats?.trainingSessions ?? 0} sessions`
         });
       } else {
         setImportStatus({ type: 'error', message: result.error || 'Import failed' });
@@ -1107,7 +1107,7 @@ function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string
       if (result.success) {
         setImportStatus({
           type: 'success',
-          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.templates ?? 0} templates`
+          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.meals ?? 0} meals, ${result.stats?.trainingSessions ?? 0} sessions`
         });
       } else {
         setImportStatus({ type: 'error', message: result.error || 'Import failed' });

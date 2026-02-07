@@ -66,6 +66,19 @@ export default function Home() {
   // Only stop loading once hydration, session, AND initial DB load are all complete
   useEffect(() => {
     if (hasHydrated && sessionStatus !== 'loading' && isInitialLoadComplete) {
+      // Handle WHOOP OAuth redirect: if the user is returning from WHOOP auth,
+      // they were already onboarded. PWA context switches (e.g., iOS opening Safari
+      // for OAuth) can lose localStorage, so force isOnboarded = true.
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('whoop_connected') === 'true' || params.get('whoop_error')) {
+          const store = useAppStore.getState();
+          if (!store.isOnboarded && store.user) {
+            // User has a profile but isOnboarded was lost — restore it
+            useAppStore.setState({ isOnboarded: true });
+          }
+        }
+      }
       setIsLoading(false);
     }
   }, [hasHydrated, sessionStatus, isInitialLoadComplete]);

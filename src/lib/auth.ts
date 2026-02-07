@@ -1,17 +1,23 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import Google from 'next-auth/providers/google';
 import { sql } from '@vercel/postgres';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureAuthTables } from './db-init';
+import authConfig from './auth.config';
 
+/**
+ * Full auth configuration — extends the edge-safe config with the
+ * Credentials provider (requires Node.js runtime for @vercel/postgres
+ * and bcryptjs).
+ *
+ * Used by API routes and server components. Middleware uses auth.config.ts
+ * directly so it stays Edge-compatible.
+ */
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    ...authConfig.providers,
     Credentials({
       name: 'credentials',
       credentials: {
@@ -62,34 +68,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
   callbacks: {
-    // Redirect unauthenticated users to login
-    async authorized({ auth: session, request }) {
-      const isLoggedIn = !!session?.user;
-      const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
-                         request.nextUrl.pathname.startsWith('/register') ||
-                         request.nextUrl.pathname.startsWith('/reset-password');
-      const isApiAuth = request.nextUrl.pathname.startsWith('/api/auth');
-      const isPublicAsset = request.nextUrl.pathname.startsWith('/_next') ||
-                            request.nextUrl.pathname.includes('.');
-
-      // Allow public routes
-      if (isAuthPage || isApiAuth || isPublicAsset) return true;
-
-      // Redirect to login if not authenticated
-      if (!isLoggedIn) return false;
-
-      // Redirect away from auth pages if already logged in
-      return true;
-    },
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
       // For Google sign-in, auto-create or link user in our auth_users table
       if (account?.provider === 'google' && user.email) {
@@ -108,10 +88,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               INSERT INTO auth_users (id, name, email, password_hash, auth_provider)
               VALUES (${userId}, ${user.name || 'Athlete'}, ${email}, ${null}, 'google')
             `;
-            // Attach our DB id to the user object so it's available in jwt callback
             user.id = userId;
           } else {
-            // Existing user — use their DB id
             user.id = rows[0].id;
           }
         } catch (error) {
@@ -121,19 +99,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    },
   },
-  // NEXTAUTH_SECRET env var is used automatically for JWT signing
-  trustHost: true,
 });

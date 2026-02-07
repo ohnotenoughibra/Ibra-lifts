@@ -1,4 +1,4 @@
-import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile } from './types';
+import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile, CombatTrainingDay } from './types';
 
 export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'rest';
 
@@ -34,7 +34,9 @@ export function getContextualNutrition(
   let postworkoutTiming: string | undefined;
   let carbCycleNote: string | undefined;
 
-  // Determine training day type
+  // Determine training day type from actual logged sessions first,
+  // then fall back to the user's scheduled training days so that
+  // nutrition advice matches the dashboard's smart schedule.
   const hasTraining = todayTraining.length > 0;
   const trainingMinutes = todayTraining.reduce((sum, s) => sum + s.duration, 0);
   // Check actual or planned intensity for hard sessions
@@ -44,11 +46,32 @@ export function getContextualNutrition(
   });
 
   if (hasHardTraining || trainingMinutes >= 60) {
-    dayType = 'grappling_hard'; // Keep day type name for existing logic
+    dayType = 'grappling_hard';
   } else if (hasTraining) {
     dayType = 'grappling_light';
   } else if (todaySession) {
     dayType = todaySession.type;
+  } else {
+    // Nothing logged yet — check the user's schedule so nutrition
+    // matches the dashboard's daily recommendation.
+    const today = new Date().getDay(); // 0=Sun … 6=Sat
+    const isScheduledLift = user?.trainingDays?.includes(today);
+    const scheduledCombat: CombatTrainingDay[] =
+      (user?.combatTrainingDays || []).filter((d) => d.day === today);
+
+    if (scheduledCombat.length > 0) {
+      const hardest = scheduledCombat.reduce((a, b) => {
+        const rank = { light: 0, moderate: 1, hard: 2 };
+        return rank[b.intensity] > rank[a.intensity] ? b : a;
+      });
+      dayType = hardest.intensity === 'hard' ? 'grappling_hard' : 'grappling_light';
+    } else if (isScheduledLift) {
+      // Default to hypertrophy-style fueling for a scheduled lift day
+      dayType = user?.goalFocus === 'strength' ? 'strength'
+        : user?.goalFocus === 'power' ? 'power'
+        : 'hypertrophy';
+    }
+    // else remains 'rest'
   }
 
   // Recovery-based adjustments from Whoop

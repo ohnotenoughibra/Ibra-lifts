@@ -1082,7 +1082,14 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   // Handlers
   // ------------------------------------------------------------------
   const handleConnect = () => {
-    window.location.href = '/api/whoop/auth';
+    // Detect PWA standalone mode — 100% reliable when checked inside the PWA.
+    // We pass this flag to the auth route so the callback page knows to show
+    // a "return to app" page instead of redirecting (which would stay in the
+    // iOS in-app browser and load the app with fresh state / onboarding).
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    window.location.href = `/api/whoop/auth${isStandalone ? '?from=pwa' : ''}`;
   };
 
   const handleDisconnect = () => {

@@ -1056,6 +1056,69 @@ function HistoryTab() {
 // Progress + History combined tab — merges two former tabs into one cleaner view
 function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
+  const { workoutLogs, user } = useAppStore();
+  const [showExport, setShowExport] = useState(false);
+  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
+  const weightUnit = user?.weightUnit || 'lbs';
+
+  const handleExportCSV = () => {
+    const csv = exportToCSV(workoutLogs, weightUnit);
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
+  };
+
+  const handleExportJSON = () => {
+    const json = exportToJSON(workoutLogs);
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(json, `roots-gains-${date}.json`, 'application/json');
+  };
+
+  const handleExportBackup = () => {
+    const backup = exportFullBackup();
+    const date = new Date().toISOString().split('T')[0];
+    downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.json')) {
+      setImportStatus({ type: 'error', message: 'Only .json backup files are supported' });
+      e.target.value = '';
+      setTimeout(() => setImportStatus(null), 5000);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setImportStatus({ type: 'error', message: 'File too large (max 10MB)' });
+      e.target.value = '';
+      setTimeout(() => setImportStatus(null), 5000);
+      return;
+    }
+    try {
+      const text = await readFileAsText(file);
+      try { JSON.parse(text); } catch {
+        setImportStatus({ type: 'error', message: 'File is not valid JSON' });
+        e.target.value = '';
+        setTimeout(() => setImportStatus(null), 5000);
+        return;
+      }
+      const result = importFullBackup(text);
+      if (result.success) {
+        setImportStatus({
+          type: 'success',
+          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.templates ?? 0} templates`
+        });
+      } else {
+        setImportStatus({ type: 'error', message: result.error || 'Import failed' });
+      }
+    } catch {
+      setImportStatus({ type: 'error', message: 'Could not read file' });
+    }
+    e.target.value = '';
+    setConfirmImport(false);
+    setTimeout(() => setImportStatus(null), 5000);
+  };
 
   return (
     <div className="space-y-4">
@@ -1080,7 +1143,87 @@ function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string
             {tab.label}
           </button>
         ))}
+        {/* Export/Import button */}
+        <button
+          onClick={() => setShowExport(!showExport)}
+          className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200 flex-shrink-0"
+          title="Export / Import Data"
+          aria-label="Export or import data"
+        >
+          <Download className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* Import status toast */}
+      <AnimatePresence>
+        {importStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={cn(
+              'rounded-xl px-4 py-3 text-sm font-medium',
+              importStatus.type === 'success'
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            )}
+          >
+            {importStatus.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Export / Import panel */}
+      <AnimatePresence>
+        {showExport && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="card p-4 space-y-4">
+              <div>
+                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
+                <div className="flex gap-3">
+                  <button onClick={handleExportCSV} className="btn btn-secondary gap-2 text-xs py-2 px-3">
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> CSV
+                  </button>
+                  <button onClick={handleExportJSON} className="btn btn-secondary gap-2 text-xs py-2 px-3">
+                    <FileJson className="w-3.5 h-3.5" /> JSON
+                  </button>
+                </div>
+              </div>
+              <div className="border-t border-grappler-800 pt-3">
+                <p className="text-sm text-grappler-300 mb-2 font-medium">Full backup</p>
+                <div className="flex gap-3">
+                  <button onClick={handleExportBackup} className="btn btn-secondary gap-2 text-xs py-2 px-3">
+                    <Download className="w-3.5 h-3.5" /> Export Backup
+                  </button>
+                  {!confirmImport ? (
+                    <button
+                      onClick={() => setConfirmImport(true)}
+                      className="btn btn-secondary gap-2 text-xs py-2 px-3"
+                    >
+                      <History className="w-3.5 h-3.5" /> Import Backup
+                    </button>
+                  ) : (
+                    <label className="btn btn-primary gap-2 text-xs py-2 px-3 cursor-pointer">
+                      <History className="w-3.5 h-3.5" /> Choose File
+                      <input type="file" accept=".json" className="hidden" onChange={handleImportFile} />
+                    </label>
+                  )}
+                </div>
+                {confirmImport && (
+                  <p className="text-[10px] text-amber-400 mt-2">
+                    This will replace all current data. Make sure you have a backup first.
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       {view === 'charts' && <ProgressCharts onViewReport={onViewReport} />}

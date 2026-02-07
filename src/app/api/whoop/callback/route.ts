@@ -94,36 +94,42 @@ export async function GET(request: NextRequest) {
   <p id="msg">Connecting your Whoop&hellip;</p>
 </div>
 <script>
-(function() {
+(async function() {
   var returnedState = ${safeInlineJSON(returnedState || '')};
   var accessToken   = ${safeInlineJSON(accessToken)};
   var refreshToken  = ${safeInlineJSON(refreshToken)};
   var expiresAt     = ${safeInlineJSON(expiresAt)};
   var appUrl        = ${safeInlineJSON(appUrl)};
 
+  // --- Detect PWA origin ---
+  // The connect button in the PWA detects standalone mode (100% reliable there)
+  // and threads a 'pwa:' prefix into the OAuth state parameter. We use that to
+  // decide whether to redirect (browser) or show a return-to-app page (PWA).
+  var fromPwa = returnedState && returnedState.indexOf('pwa:') === 0;
+
   // --- Validate CSRF state ---
+  // Strip the 'pwa:' prefix before comparing with localStorage.
+  // Note: PWA and the iOS in-app browser have separate localStorage, so
+  // savedState will be null when coming from a PWA — we allow that.
+  var stateForValidation = fromPwa ? returnedState.substring(4) : returnedState;
   try {
     var savedState = localStorage.getItem(${safeInlineJSON(LS_KEYS.oauthState)});
-    // Only reject if we had a saved state AND it doesn't match.
-    // If localStorage was unavailable during auth, savedState will be null — we allow that.
-    if (savedState && returnedState && savedState !== returnedState) {
+    if (savedState && stateForValidation && savedState !== stateForValidation) {
       document.getElementById('msg').className = 'error';
       document.getElementById('msg').textContent =
         'Security check failed: OAuth state mismatch. Please try connecting again.';
-      // Clean up and redirect after a moment so the user sees the message
       localStorage.removeItem(${safeInlineJSON(LS_KEYS.oauthState)});
       setTimeout(function() {
         window.location.replace(appUrl + '?whoop_error=' + encodeURIComponent('state_mismatch'));
       }, 2500);
       return;
     }
-    // Clean up the state — it's single-use
     localStorage.removeItem(${safeInlineJSON(LS_KEYS.oauthState)});
   } catch(e) {
-    // localStorage unavailable — skip validation, proceed with token storage via hash
+    // localStorage unavailable — skip validation
   }
 
-  // --- Store tokens ---
+  // --- Store tokens in localStorage ---
   var stored = false;
   try {
     localStorage.setItem(${safeInlineJSON(LS_KEYS.accessToken)}, accessToken);
@@ -132,9 +138,11 @@ export async function GET(request: NextRequest) {
     stored = true;
   } catch(e) { /* localStorage unavailable */ }
 
-  // --- Persist tokens to DB (so they survive across devices/sessions) ---
+  // --- Persist tokens to DB (AWAIT completion for PWA flow) ---
+  // For PWA users, the DB is the ONLY way tokens get back to the PWA
+  // (separate localStorage). We must wait for it to complete.
   try {
-    fetch(appUrl + '/api/whoop/tokens', {
+    await fetch(appUrl + '/api/whoop/tokens', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -143,43 +151,36 @@ export async function GET(request: NextRequest) {
         refresh_token: refreshToken,
         expires_at: expiresAt
       })
-    }).catch(function() { /* best effort — localStorage is primary fallback */ });
-  } catch(e) { /* ignore */ }
+    });
+  } catch(e) { /* best effort */ }
 
-  // --- Redirect or show return-to-app page ---
-  // Detect if we're running inside the PWA (standalone mode).
-  // On iOS, OAuth opens Safari, so we're almost certainly NOT in standalone mode.
-  // When in an external browser, auto-redirect just stays in the browser instead
-  // of returning to the PWA. Instead, show a "Return to App" page and let the
-  // PWA pick up the tokens from the database when the user switches back.
-  var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-    || (window.navigator && window.navigator.standalone === true);
-
-  if (isStandalone) {
-    // We're inside the PWA — regular redirect works fine
-    if (stored) {
-      window.location.replace(appUrl + '?whoop_connected=true');
-    } else {
-      var hash = 'whoop_at=' + encodeURIComponent(accessToken)
-        + '&whoop_rt=' + encodeURIComponent(refreshToken)
-        + '&whoop_exp=' + encodeURIComponent(expiresAt);
-      window.location.replace(appUrl + '?whoop_connected=true#' + hash);
-    }
-  } else {
-    // External browser (opened by OAuth from PWA on iOS/Android).
-    // Tokens are already saved to DB — the PWA will load them when the user switches back.
-    // Show a success page with instructions to return to the app.
+  // --- Route: PWA shows return-to-app page, browser redirects normally ---
+  if (fromPwa) {
+    // We're in the iOS in-app browser (or Android Custom Tab) opened by the PWA.
+    // Redirecting would load the app here with fresh state and show onboarding.
+    // Instead, show a success page. The PWA will auto-load tokens from DB
+    // via visibilitychange when the user switches back.
     var container = document.querySelector('.loader');
     container.innerHTML = ''
-      + '<div style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:320px;text-align:center;">'
-      +   '<div style="width:64px;height:64px;border-radius:50%;background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;">'
-      +     '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+      + '<div style="display:flex;flex-direction:column;align-items:center;gap:20px;max-width:320px;text-align:center;">'
+      +   '<div style="width:72px;height:72px;border-radius:50%;background:rgba(34,197,94,0.15);display:flex;align-items:center;justify-content:center;">'
+      +     '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
       +   '</div>'
-      +   '<h2 style="font-size:20px;font-weight:700;color:#f1f5f9;margin:0;">WHOOP Connected!</h2>'
-      +   '<p style="font-size:14px;color:#94a3b8;line-height:1.5;margin:0;">Your WHOOP account is now linked. Switch back to <strong style="color:#e2e8f0;">Roots Gains</strong> on your home screen to see your data.</p>'
-      +   '<a href="' + appUrl + '?whoop_connected=true" style="display:inline-flex;align-items:center;gap:8px;background:#22c55e;color:#0f172a;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;text-decoration:none;margin-top:8px;">Open Roots Gains</a>'
-      +   '<p style="font-size:12px;color:#64748b;margin:0;">If the button doesn\\u0027t return you to the app, just tap the Roots Gains icon on your home screen.</p>'
+      +   '<h2 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">WHOOP Connected!</h2>'
+      +   '<p style="font-size:14px;color:#94a3b8;line-height:1.6;margin:0;">Your account is linked. Close this browser to return to <strong style="color:#e2e8f0;">Roots Gains</strong> \\u2014 your data will load automatically.</p>'
+      +   '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 18px;width:100%;">'
+      +     '<p style="font-size:13px;color:#cbd5e1;margin:0;line-height:1.5;">Tap <strong style="color:#f1f5f9;">Done</strong> (top-left) or swipe down to close this browser and return to the app.</p>'
+      +   '</div>'
       + '</div>';
+  } else if (stored) {
+    // Normal browser flow — redirect to app
+    window.location.replace(appUrl + '?whoop_connected=true');
+  } else {
+    // Fallback: pass tokens via URL hash (never sent to server)
+    var hash = 'whoop_at=' + encodeURIComponent(accessToken)
+      + '&whoop_rt=' + encodeURIComponent(refreshToken)
+      + '&whoop_exp=' + encodeURIComponent(expiresAt);
+    window.location.replace(appUrl + '?whoop_connected=true#' + hash);
   }
 })();
 </script>

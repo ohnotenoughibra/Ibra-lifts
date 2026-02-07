@@ -43,6 +43,12 @@ import {
   MealReminderSettings,
   WeeklyChallenge,
   StreakShield,
+  IllnessLog,
+  IllnessDailyCheckin,
+  IllnessSymptom,
+  IllnessSeverity,
+  WorkoutSkip,
+  SkipReason,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -94,6 +100,12 @@ interface AppState {
 
   // Injury tracking
   injuryLog: InjuryEntry[];
+
+  // Illness tracking
+  illnessLogs: IllnessLog[];
+
+  // Workout skips
+  workoutSkips: WorkoutSkip[];
 
   // Custom exercises
   customExercises: CustomExercise[];
@@ -240,6 +252,18 @@ interface AppState {
   resolveInjury: (id: string) => void;
   deleteInjury: (id: string) => void;
 
+  // Illness actions
+  logIllness: (illness: Omit<IllnessLog, 'id' | 'dailyCheckins' | 'status'>) => void;
+  updateIllnessCheckin: (illnessId: string, checkin: IllnessDailyCheckin) => void;
+  updateIllnessStatus: (illnessId: string, status: IllnessLog['status'], endDate?: string) => void;
+  resolveIllness: (illnessId: string) => void;
+  deleteIllness: (illnessId: string) => void;
+  getActiveIllness: () => IllnessLog | null;
+
+  // Workout skip actions
+  skipWorkout: (skip: Omit<WorkoutSkip, 'id'>) => void;
+  deleteSkip: (skipId: string) => void;
+
   // Custom exercise actions
   addCustomExercise: (exercise: Omit<CustomExercise, 'isCustom' | 'createdAt'>) => void;
   deleteCustomExercise: (id: string) => void;
@@ -375,6 +399,8 @@ export const useAppStore = create<AppState>()(
       gripTests: [],
       gripExerciseLogs: [],
       injuryLog: [],
+      illnessLogs: [],
+      workoutSkips: [],
       customExercises: [],
       sessionTemplates: [],
       hrSessions: [],
@@ -1879,6 +1905,87 @@ export const useAppStore = create<AppState>()(
         set({ injuryLog: injuryLog.filter(i => i.id !== id) });
       },
 
+      // Illness actions
+      logIllness: (illness) => {
+        const { illnessLogs } = get();
+        const newIllness: IllnessLog = {
+          ...illness,
+          id: uuidv4(),
+          dailyCheckins: [{
+            date: illness.startDate,
+            symptoms: illness.symptoms,
+            severity: illness.severity,
+            hasFever: illness.hasFever,
+            temperature: illness.temperature,
+            energyLevel: 2,
+            appetiteLevel: 3,
+            sleepQuality: 3,
+          }],
+          status: 'active',
+        };
+        set({ illnessLogs: [...illnessLogs, newIllness] });
+      },
+
+      updateIllnessCheckin: (illnessId, checkin) => {
+        const { illnessLogs } = get();
+        set({
+          illnessLogs: illnessLogs.map(il =>
+            il.id === illnessId
+              ? {
+                  ...il,
+                  symptoms: checkin.symptoms,
+                  severity: checkin.severity,
+                  hasFever: checkin.hasFever,
+                  dailyCheckins: [...il.dailyCheckins.filter(c => c.date !== checkin.date), checkin],
+                }
+              : il
+          ),
+        });
+      },
+
+      updateIllnessStatus: (illnessId, status, endDate) => {
+        const { illnessLogs } = get();
+        set({
+          illnessLogs: illnessLogs.map(il =>
+            il.id === illnessId
+              ? { ...il, status, ...(endDate ? { endDate } : {}) }
+              : il
+          ),
+        });
+      },
+
+      resolveIllness: (illnessId) => {
+        const { illnessLogs } = get();
+        set({
+          illnessLogs: illnessLogs.map(il =>
+            il.id === illnessId
+              ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0] }
+              : il
+          ),
+        });
+      },
+
+      deleteIllness: (illnessId) => {
+        const { illnessLogs } = get();
+        set({ illnessLogs: illnessLogs.filter(il => il.id !== illnessId) });
+      },
+
+      getActiveIllness: () => {
+        const { illnessLogs } = get();
+        return illnessLogs.find(il => il.status === 'active' || il.status === 'recovering') || null;
+      },
+
+      // Workout skip actions
+      skipWorkout: (skip) => {
+        const { workoutSkips } = get();
+        set({ workoutSkips: [...workoutSkips, { ...skip, id: uuidv4() }] });
+      },
+
+      deleteSkip: (skipId) => {
+        const { workoutSkips } = get();
+        set({ workoutSkips: workoutSkips.filter(s => s.id !== skipId) });
+      },
+
       // Custom exercise actions
       addCustomExercise: (exercise) => {
         const { customExercises } = get();
@@ -2215,6 +2322,8 @@ export const useAppStore = create<AppState>()(
           gripTests: [],
           gripExerciseLogs: [],
           injuryLog: [],
+          illnessLogs: [],
+          workoutSkips: [],
           customExercises: [],
           sessionTemplates: [],
           hrSessions: [],
@@ -2319,6 +2428,8 @@ export const useAppStore = create<AppState>()(
         gripTests: state.gripTests,
         gripExerciseLogs: state.gripExerciseLogs,
         injuryLog: state.injuryLog,
+        illnessLogs: state.illnessLogs,
+        workoutSkips: state.workoutSkips,
         customExercises: state.customExercises,
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -30,6 +30,8 @@ import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, Weara
 
 export default function ProfileSettings() {
   const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'lbs';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -574,15 +576,36 @@ export default function ProfileSettings() {
         </button>
       </div>
 
-      {/* Sign Out */}
-      <div className="card p-4">
-        <button
-          onClick={() => { signOut({ callbackUrl: '/login' }); }}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
-        >
-          <DoorOpen className="w-4 h-4" />
-          Sign Out
-        </button>
+      {/* Auth Section */}
+      <div className="card p-4 space-y-3">
+        {isSignedIn ? (
+          <>
+            <div className="flex items-center gap-2 text-xs text-green-400">
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              Cloud sync active — {session.user?.email}
+            </div>
+            <button
+              onClick={() => { signOut({ callbackUrl: '/' }); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" />
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-grappler-400">
+              Your data is saved locally on this device. Sign in to enable cloud backup &amp; sync across devices.
+            </p>
+            <button
+              onClick={() => { signIn(undefined, { callbackUrl: '/' }); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white font-medium text-sm hover:bg-primary-600 transition-colors"
+            >
+              <User className="w-4 h-4" />
+              Sign In for Cloud Sync
+            </button>
+          </>
+        )}
       </div>
 
       {/* Danger Zone */}

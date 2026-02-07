@@ -1014,6 +1014,85 @@ export interface BlockSuggestion {
   strongPoints: string[];       // muscle groups performing well
 }
 
+// ── Workout Skip Types ─────────────────────────────────────────────────────
+export type SkipReason =
+  | 'schedule_conflict'
+  | 'fatigue'
+  | 'soreness'
+  | 'illness'
+  | 'injury'
+  | 'mental_health'
+  | 'travel'
+  | 'other';
+
+export interface WorkoutSkip {
+  id: string;
+  date: string;
+  scheduledSessionId?: string;
+  reason: SkipReason;
+  notes?: string;
+  rescheduled: boolean;
+  rescheduledTo?: string;
+  illnessLogId?: string;
+}
+
+// ── Illness Logging Types ──────────────────────────────────────────────────
+export type IllnessSymptomLocation = 'above_neck' | 'below_neck' | 'systemic';
+
+export type IllnessSymptom =
+  // Above neck
+  | 'runny_nose' | 'sore_throat' | 'sneezing' | 'headache'
+  // Below neck
+  | 'cough' | 'chest_congestion' | 'shortness_of_breath'
+  // Systemic
+  | 'fever' | 'chills' | 'body_aches' | 'fatigue'
+  | 'nausea' | 'diarrhea' | 'vomiting' | 'dizziness' | 'loss_of_appetite';
+
+export type IllnessSeverity = 'mild' | 'moderate' | 'severe';
+
+export type IllnessStatus = 'active' | 'recovering' | 'resolved';
+
+export type ReturnToTrainingPhaseType = 'test_day' | 'building_back' | 'full_return';
+
+export interface IllnessDailyCheckin {
+  date: string;
+  symptoms: IllnessSymptom[];
+  severity: IllnessSeverity;
+  hasFever: boolean;
+  temperature?: number;
+  energyLevel: 1 | 2 | 3 | 4 | 5;
+  appetiteLevel: 1 | 2 | 3 | 4 | 5;
+  sleepQuality: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface IllnessLog {
+  id: string;
+  startDate: string;
+  endDate?: string;
+  symptoms: IllnessSymptom[];
+  severity: IllnessSeverity;
+  hasFever: boolean;
+  temperature?: number;
+  dailyCheckins: IllnessDailyCheckin[];
+  status: IllnessStatus;
+  returnToTrainingPhase?: ReturnToTrainingPhaseType;
+  doctorVisit: boolean;
+  medication?: string;
+  notes?: string;
+}
+
+export interface IllnessTrainingRecommendation {
+  canTrain: boolean;
+  maxIntensityPercent: number;    // 0-100
+  maxVolumePercent: number;       // 0-100
+  maxDurationMinutes: number;
+  rpeCap: number;
+  message: string;
+  detailedReason: string;
+  suggestedActivities: string[];
+  returnPhase?: ReturnToTrainingPhaseType;
+}
+
 // ── New User Guide ──────────────────────────────────────────────────────────
 export interface GuideStep {
   id: string;

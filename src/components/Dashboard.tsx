@@ -54,11 +54,16 @@ import {
   Watch,
   ClipboardCheck,
   Award,
+  Thermometer,
+  SkipForward,
+  Info,
 } from 'lucide-react';
 import { cn, formatNumber, formatDate } from '@/lib/utils';
-import type { WorkoutLog, MealEntry } from '@/lib/types';
+import type { WorkoutLog, MealEntry, SkipReason } from '@/lib/types';
+import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
+import VersionUpgradePopup from './VersionUpgradePopup';
 import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel, isCurrentWeek } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
@@ -120,9 +125,10 @@ const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loadi
 const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
 const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading: () => <OverlaySkeleton /> });
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
+const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
 
 type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
-type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | 'block_suggestion' | 'user_guide' | null;
+type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | 'block_suggestion' | 'user_guide' | 'illness' | null;
 
 function ReadinessCard() {
   const user = useAppStore(s => s.user);
@@ -576,6 +582,9 @@ export default function Dashboard() {
   if (overlayView === 'user_guide') {
     return <NewUserGuide onComplete={() => setOverlayView(null)} />;
   }
+  if (overlayView === 'illness') {
+    return <IllnessLogger onClose={() => setOverlayView(null)} />;
+  }
 
   // Mesocycle report overlay
   if (reportMesocycleId) {
@@ -661,27 +670,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <ProgressCharts onViewReport={setReportMesocycleId} />
-            </motion.div>
-          )}
-          {activeTab === 'history' && (
-            <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <HistoryTab />
-            </motion.div>
-          )}
-          {activeTab === 'learn' && (
-            <motion.div
-              key="learn"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <KnowledgeHub />
+              <ProgressAndHistoryTab onViewReport={setReportMesocycleId} />
             </motion.div>
           )}
           {activeTab === 'profile' && (
@@ -758,6 +747,17 @@ export default function Dashboard() {
                 <Siren className="w-4 h-4" />
                 Log Injury
               </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                transition={{ delay: 0.25 }}
+                onClick={() => { setFabOpen(false); setOverlayView('illness'); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-grappler-900 rounded-full shadow-lg font-medium text-sm"
+              >
+                <Thermometer className="w-4 h-4" />
+                Log Illness
+              </motion.button>
             </>
           )}
         </AnimatePresence>
@@ -778,15 +778,13 @@ export default function Dashboard() {
         </motion.button>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation — 4 tabs (reduced from 6 for cleaner UX) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom">
         <div className="flex items-center justify-around py-2">
           {[
             { id: 'home', icon: Dumbbell, label: 'Home' },
             { id: 'program', icon: Calendar, label: 'Program' },
             { id: 'progress', icon: BarChart3, label: 'Progress' },
-            { id: 'history', icon: History, label: 'History' },
-            { id: 'learn', icon: BookOpen, label: 'Learn' },
             { id: 'profile', icon: User, label: 'Profile' },
           ].map((tab) => (
             <button
@@ -796,7 +794,7 @@ export default function Dashboard() {
               aria-selected={activeTab === tab.id}
               role="tab"
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all',
+                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -823,6 +821,9 @@ export default function Dashboard() {
           onDismiss={dismissSyncConflict}
         />
       )}
+
+      {/* Version Upgrade Popup */}
+      <VersionUpgradePopup />
     </div>
   );
 }
@@ -1052,6 +1053,44 @@ function HistoryTab() {
   );
 }
 
+// Progress + History combined tab — merges two former tabs into one cleaner view
+function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
+  const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-navigation */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+        {[
+          { id: 'charts', label: 'Progress' },
+          { id: 'log', label: 'Workouts' },
+          { id: 'calendar', label: 'Calendar' },
+          { id: 'weight', label: 'Body Weight' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setView(tab.id as typeof view)}
+            className={cn(
+              'px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0',
+              view === tab.id
+                ? 'bg-primary-500 text-white'
+                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {view === 'charts' && <ProgressCharts onViewReport={onViewReport} />}
+      {view === 'log' && <WorkoutHistory />}
+      {view === 'calendar' && <TrainingCalendar />}
+      {view === 'weight' && <BodyWeightTracker />}
+    </div>
+  );
+}
+
 // Rest day tips by training identity / sport
 function getRestDayTip(identity?: string, sport?: string): { tip: string; category: string } {
   const combatTips = [
@@ -1160,10 +1199,13 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     mesocycleHistory, competitions, bodyWeightLog,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    addTrainingSession, addPastWorkout
+    addTrainingSession, addPastWorkout,
+    illnessLogs, skipWorkout,
   } = useAppStore();
+  const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [heatmapSelectedDate, setHeatmapSelectedDate] = useState<Date | null>(null);
@@ -1562,6 +1604,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   const moreTools = [
     { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-blue-400 bg-blue-500/20' },
     { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
+    { icon: Thermometer, label: 'Illness', view: 'illness' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
     { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
     { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
@@ -1679,6 +1722,52 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Illness Banner ─── */}
+      {(() => {
+        const activeIllness = getActiveIllness();
+        if (!activeIllness) return null;
+        const rec = getIllnessTrainingRecommendation(activeIllness);
+        const daysSick = getIllnessDurationDays(activeIllness);
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-rose-500/20 to-orange-500/10 border border-rose-500/30 rounded-xl p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Thermometer className="w-5 h-5 text-rose-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-rose-300 text-sm">
+                    {activeIllness.status === 'recovering' ? 'Recovering' : 'Feeling Sick'}
+                  </h3>
+                  <span className="text-xs text-rose-400/70">Day {daysSick}</span>
+                </div>
+                <p className="text-xs text-grappler-400 mt-1">{rec.message}</p>
+                {!rec.canTrain && (
+                  <p className="text-xs text-rose-400/70 mt-1 font-medium">Training paused — your streak is frozen.</p>
+                )}
+                <div className="flex items-center gap-2 mt-2.5">
+                  <button
+                    onClick={() => onNavigate('illness')}
+                    className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors"
+                  >
+                    {activeIllness.status === 'active' ? 'Daily Check-In' : 'View Status'}
+                  </button>
+                  {rec.canTrain && rec.returnPhase && (
+                    <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full">
+                      {rec.returnPhase === 'test_day' ? 'Test Day — 50% load' : 'Building Back — 75% load'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* Training Load Warning for Combat Athletes */}
       {trainingLoadWarning && (
@@ -1819,6 +1908,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
         >
           <button
             onClick={() => startWorkout(nextWorkout)}
@@ -1845,6 +1935,14 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <Play className="w-7 h-7 text-white" />
               </div>
             </div>
+          </button>
+          {/* Skip Workout Option */}
+          <button
+            onClick={() => setShowSkipDialog(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+          >
+            <SkipForward className="w-3.5 h-3.5" />
+            Skip this session
           </button>
         </motion.div>
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
@@ -2505,6 +2603,84 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Skip Workout Dialog */}
+      <AnimatePresence>
+        {showSkipDialog && nextWorkout && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setShowSkipDialog(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-amber-500/20">
+                  <SkipForward className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-grappler-100">Skip Session?</h3>
+                  <p className="text-xs text-grappler-400">{nextWorkout.name}</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-grappler-400 mb-4">
+                No stress — pick a reason and we&apos;ll adapt your program.
+              </p>
+
+              <div className="space-y-2">
+                {([
+                  { reason: 'schedule_conflict' as SkipReason, label: 'Schedule conflict', icon: Calendar, color: 'text-blue-400 bg-blue-500/10' },
+                  { reason: 'fatigue' as SkipReason, label: 'Too tired / poor sleep', icon: Moon, color: 'text-purple-400 bg-purple-500/10' },
+                  { reason: 'soreness' as SkipReason, label: 'Still sore', icon: Activity, color: 'text-orange-400 bg-orange-500/10' },
+                  { reason: 'illness' as SkipReason, label: 'Feeling sick', icon: Thermometer, color: 'text-rose-400 bg-rose-500/10' },
+                  { reason: 'mental_health' as SkipReason, label: 'Mental health day', icon: Brain, color: 'text-emerald-400 bg-emerald-500/10' },
+                  { reason: 'travel' as SkipReason, label: 'Traveling / no gym', icon: Target, color: 'text-cyan-400 bg-cyan-500/10' },
+                ]).map(({ reason, label, icon: Icon, color }) => (
+                  <button
+                    key={reason}
+                    onClick={() => {
+                      skipWorkout({
+                        date: new Date().toISOString().split('T')[0],
+                        scheduledSessionId: nextWorkout.id,
+                        reason,
+                        rescheduled: false,
+                      });
+                      setShowSkipDialog(false);
+                      // If sick, open illness logger
+                      if (reason === 'illness') {
+                        onNavigate('illness');
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-grappler-800/60 hover:bg-grappler-700/60 rounded-xl transition-colors"
+                  >
+                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', color)}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm text-grappler-200">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowSkipDialog(false)}
+                className="w-full mt-3 py-2 text-sm text-grappler-500 hover:text-grappler-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>

@@ -64,10 +64,14 @@ export const FEATURE_INFO: Record<string, { name: string; description: string }>
 
 // ── Owner Bypass ──────────────────────────────────────────────────────────
 
-const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL?.toLowerCase().trim() || '';
+const OWNER_EMAILS = (process.env.NEXT_PUBLIC_OWNER_EMAIL || '')
+  .split(',')
+  .map(e => e.toLowerCase().trim())
+  .filter(Boolean);
 
 export function isOwner(email: string | null | undefined): boolean {
-  return !!OWNER_EMAIL && !!email && email.toLowerCase().trim() === OWNER_EMAIL;
+  if (!email || OWNER_EMAILS.length === 0) return false;
+  return OWNER_EMAILS.includes(email.toLowerCase().trim());
 }
 
 // ── Tier Resolution ────────────────────────────────────────────────────────

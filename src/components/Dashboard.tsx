@@ -60,7 +60,7 @@ import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/
 import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
 import VersionUpgradePopup from './VersionUpgradePopup';
-import { getLevelTitle, isCurrentWeek } from '@/lib/gamification';
+import { getLevelTitle, isCurrentWeek, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { getTodayRecommendation } from '@/lib/smart-schedule';
@@ -440,6 +440,77 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   );
 }
 
+function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
+  const title = getLevelTitle(level);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-6"
+      onClick={onDismiss}
+    >
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ type: 'spring', damping: 15, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-gradient-to-br from-grappler-900 via-grappler-900 to-primary-950 rounded-3xl p-6 max-w-xs w-full border border-primary-500/30 shadow-2xl text-center relative overflow-hidden"
+      >
+        {/* Particle burst background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: ['#facc15', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][i % 5],
+                left: '50%',
+                top: '50%',
+              }}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{
+                x: Math.cos((i * 30 * Math.PI) / 180) * (80 + Math.random() * 60),
+                y: Math.sin((i * 30 * Math.PI) / 180) * (80 + Math.random() * 60),
+                opacity: 0,
+                scale: 0,
+              }}
+              transition={{ duration: 1.2, delay: 0.2, ease: 'easeOut' }}
+            />
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
+          className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
+        >
+          <Star className="w-10 h-10 text-white" />
+        </motion.div>
+
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+          <p className="text-xs text-yellow-400 font-semibold uppercase tracking-widest mb-1">Level Up!</p>
+          <h2 className="text-3xl font-black text-white mb-1">Level {level}</h2>
+          <p className="text-sm text-primary-300 font-medium">{title}</p>
+        </motion.div>
+
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
+          <p className="text-xs text-grappler-400 mt-3 mb-4">Keep pushing — your consistency is paying off.</p>
+          <button
+            onClick={onDismiss}
+            className="btn btn-primary btn-md w-full gap-2"
+          >
+            <Flame className="w-4 h-4" />
+            Let&apos;s Go
+          </button>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
@@ -493,6 +564,23 @@ export default function Dashboard() {
       ensureWeeklyChallenge();
     }
   }, []);
+
+  // Level-up detection — compare previous level to current
+  const [levelUpDisplay, setLevelUpDisplay] = useState<number | null>(null);
+  const prevLevelRef = useRef(gamificationStats.level);
+  useEffect(() => {
+    if (gamificationStats.level > prevLevelRef.current && prevLevelRef.current > 0) {
+      setLevelUpDisplay(gamificationStats.level);
+    }
+    prevLevelRef.current = gamificationStats.level;
+  }, [gamificationStats.level]);
+
+  // Streak at-risk: user has a streak > 0 but hasn't trained today
+  const streakAtRisk = gamificationStats.currentStreak > 0 && (() => {
+    const todayStr = new Date().toDateString();
+    const trainedToday = workoutLogs.some(l => new Date(l.date).toDateString() === todayStr);
+    return !trainedToday;
+  })();
 
   // New user walkthrough guide
   if (showNewUserGuide) {
@@ -611,16 +699,26 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="font-bold text-grappler-50">Roots Gains</h1>
-              <p className="text-xs text-grappler-400">
-                Level {gamificationStats.level} {getLevelTitle(gamificationStats.level)}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-grappler-400">
+                  Lv.{gamificationStats.level} {getLevelTitle(gamificationStats.level)}
+                </p>
+                <div className="w-12 h-1 bg-grappler-700 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
+                  <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }} />
+                </div>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <div className="flex items-center gap-1 bg-grappler-800 px-3 py-1.5 rounded-full">
-              <Flame className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-medium text-grappler-200">
+            <div className={cn(
+              'flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors',
+              streakAtRisk
+                ? 'bg-orange-500/20 border border-orange-500/40 animate-pulse'
+                : 'bg-grappler-800'
+            )}>
+              <Flame className={cn('w-4 h-4', streakAtRisk ? 'text-orange-400' : 'text-orange-500')} />
+              <span className={cn('text-sm font-medium', streakAtRisk ? 'text-orange-300' : 'text-grappler-200')}>
                 {gamificationStats.currentStreak}
               </span>
             </div>
@@ -735,6 +833,16 @@ export default function Dashboard() {
 
       {/* Version Upgrade Popup */}
       <VersionUpgradePopup />
+
+      {/* Level-Up Celebration */}
+      <AnimatePresence>
+        {levelUpDisplay && (
+          <LevelUpCelebration
+            level={levelUpDisplay}
+            onDismiss={() => setLevelUpDisplay(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1124,17 +1232,19 @@ function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string
         <div className="space-y-4">
           <ProgressCharts onViewReport={onViewReport} />
 
-          {/* ─── Relocated from Home: Estimated 1RM Trends ─── */}
-          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
-
-          {/* ─── Relocated from Home: Body Recomp ─── */}
-          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
-
-          {/* ─── Relocated from Home: Streak Heatmap ─── */}
-          <StreakHeatmap workoutLogs={workoutLogs} />
-
-          {/* ─── Relocated from Home: Weekly Challenge ─── */}
-          <WeeklyChallengeCard gamificationStats={gamificationStats} />
+          {/* ─── Insights & Trends ─── */}
+          <div className="pt-2">
+            <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <TrendingUp className="w-3.5 h-3.5" />
+              Insights & Trends
+            </h3>
+            <div className="space-y-4">
+              <WeeklyChallengeCard gamificationStats={gamificationStats} />
+              <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+              <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+              <StreakHeatmap workoutLogs={workoutLogs} />
+            </div>
+          </div>
         </div>
       )}
       {view === 'log' && <WorkoutHistory />}
@@ -1252,7 +1362,7 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    skipWorkout,
+    skipWorkout, gamificationStats,
   } = useAppStore();
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [showMoreTools, setShowMoreTools] = useState(false);
@@ -1547,7 +1657,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
   const featuredTools = [
     { icon: Sparkles, label: 'Quick Log', view: 'quick_actions' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
-    { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' },
+    user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness'
+      ? { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' }
+      : { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
     getWearableTool(),
     { icon: Zap, label: 'Recovery AI', view: 'recovery_coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
     { icon: Brain, label: 'Next Block', view: 'block_suggestion' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
@@ -1821,9 +1933,23 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 ))}
               </div>
             )}
-            <div className="mt-3 flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-400" />
+                <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-grappler-500">Lv.{gamificationStats.level}</span>
+                <div className="w-16 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary-400 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }}
+                    transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
+                  />
+                </div>
+                <span className="text-[10px] text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} to go</span>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1975,14 +2101,23 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           className="card p-5 text-center"
         >
           <Dumbbell className="w-10 h-10 text-grappler-600 mx-auto mb-2" />
-          <p className="text-sm text-grappler-400 mb-3">No program yet — generate one to get started</p>
-          <button
-            onClick={handleQuickWorkout}
-            className="btn btn-primary btn-md gap-2"
-          >
-            <Zap className="w-4 h-4" />
-            Quick 30-Min Workout
-          </button>
+          <p className="text-sm text-grappler-400 mb-4">No program yet — create one or jump into a quick session</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => onNavigate('block_suggestion')}
+              className="btn btn-primary btn-md gap-2"
+            >
+              <Brain className="w-4 h-4" />
+              Create Program
+            </button>
+            <button
+              onClick={handleQuickWorkout}
+              className="btn btn-secondary btn-md gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Quick 30m
+            </button>
+          </div>
         </motion.div>
       )}
 
@@ -2029,16 +2164,27 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
 
         <ReadinessCard />
 
-        {/* Activity row */}
+        {/* Activity row — adaptive to training identity */}
         <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => onNavigate('grappling')}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-          >
-            <Shield className="w-4 h-4 text-lime-400" />
-            <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
-            <span className="text-[10px] text-grappler-500">Grappling</span>
-          </button>
+          {user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness' ? (
+            <button
+              onClick={() => onNavigate('grappling')}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            >
+              <Shield className="w-4 h-4 text-lime-400" />
+              <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
+              <span className="text-[10px] text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Grappling' : 'Training'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            >
+              <TrendingUp className="w-4 h-4 text-green-400" />
+              <span className="text-lg font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
+              <span className="text-[10px] text-grappler-500">Volume</span>
+            </button>
+          )}
           <button
             onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
             className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
@@ -2059,15 +2205,20 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       </div>
 
       {/* ─── Contextual Feed (max 4, priority-ranked) ─── */}
-      {feedCards.length > 0 && (
+      {feedCards.length > 0 ? (
         <div className="space-y-3">
           {feedCards}
+        </div>
+      ) : workoutLogs.length > 0 && (
+        <div className="flex items-center gap-3 card p-3">
+          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <p className="text-xs text-grappler-400">All clear — nothing needs your attention right now.</p>
         </div>
       )}
 
       {/* ─── Tools Grid ─── */}
       <div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {featuredTools.map((tool) => (
             <ToolButton key={tool.label} tool={tool} />
           ))}

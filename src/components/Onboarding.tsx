@@ -22,9 +22,9 @@ import {
   MoreVertical,
   X,
 } from 'lucide-react';
-import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, CombatTimeOfDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 
 const TOTAL_STEPS = 3;
 
@@ -584,8 +584,10 @@ function Step1_WhoAreYou({
   );
 }
 
-// ─── Step 2: How You Train (Sessions/Week + Lifting Days) ────────────────────
+// ─── Step 2: How You Train (Week Planner) ────────────────────────────────────
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const TIME_LABELS: Record<CombatTimeOfDay, string> = { morning: 'AM', afternoon: 'PM', evening: 'Eve' };
+const TIME_OPTIONS: CombatTimeOfDay[] = ['morning', 'afternoon', 'evening'];
 
 function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingIdentity): number[] {
   switch (sessionsPerWeek) {
@@ -599,9 +601,7 @@ function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingI
   }
 }
 
-function getRecommendedCombatDays(
-  combatSport: CombatSport | undefined,
-): CombatTrainingDay[] {
+function getRecommendedCombatDays(combatSport: CombatSport | undefined): CombatTrainingDay[] {
   if (combatSport === 'striking') {
     return [
       { day: 2, intensity: 'moderate', timeOfDay: 'afternoon' },
@@ -635,9 +635,11 @@ function Step2_HowYouTrain({
   update: (data: Partial<OnboardingData>) => void;
 }) {
   const isCombat = data.trainingIdentity === 'combat';
-  const selectedDays = data.trainingDays || [];
+  const liftDays = data.trainingDays || [];
+  const combatDays = data.combatTrainingDays || [];
+  const [editingDay, setEditingDay] = useState<number | null>(null);
 
-  // Auto-prefill lifting days when sessions change or on first mount
+  // Auto-prefill on mount / when sessions change
   const prevSessionsRef = useRef(data.sessionsPerWeek);
   const didInitialPrefill = useRef(false);
 
@@ -645,30 +647,63 @@ function Step2_HowYouTrain({
     const sessionsChanged = prevSessionsRef.current !== data.sessionsPerWeek;
     prevSessionsRef.current = data.sessionsPerWeek;
 
-    if (sessionsChanged || (!didInitialPrefill.current && selectedDays.length === 0)) {
-      const recommendedLifting = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
-      const updates: Partial<OnboardingData> = { trainingDays: recommendedLifting };
-
-      if (isCombat) {
+    if (sessionsChanged || (!didInitialPrefill.current && liftDays.length === 0)) {
+      const recommended = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
+      const updates: Partial<OnboardingData> = { trainingDays: recommended };
+      if (isCombat && combatDays.length === 0) {
         updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport);
       }
-
       update(updates);
       didInitialPrefill.current = true;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.sessionsPerWeek]);
 
-  const toggleDay = (day: number) => {
-    const current = [...selectedDays];
+  // --- Lift helpers ---
+  const toggleLift = (day: number) => {
+    const current = [...liftDays];
     const idx = current.indexOf(day);
     if (idx >= 0) {
       current.splice(idx, 1);
     } else {
+      if (current.length >= data.sessionsPerWeek) return; // at limit
       current.push(day);
     }
     current.sort((a, b) => a - b);
     update({ trainingDays: current });
+  };
+
+  // --- Combat helpers ---
+  const combatSessionsForDay = (day: number) => combatDays.filter((s) => s.day === day);
+
+  const addCombatSession = (day: number) => {
+    const updated = [...combatDays, { day, intensity: 'moderate' as const, timeOfDay: 'afternoon' as CombatTimeOfDay }];
+    update({ combatTrainingDays: updated });
+  };
+
+  const removeCombatSession = (day: number, sessionIdx: number) => {
+    // sessionIdx is the index among sessions for this day
+    let count = 0;
+    const updated = combatDays.filter((s) => {
+      if (s.day === day) {
+        if (count === sessionIdx) { count++; return false; }
+        count++;
+      }
+      return true;
+    });
+    update({ combatTrainingDays: updated });
+  };
+
+  const updateCombatTime = (day: number, sessionIdx: number, time: CombatTimeOfDay) => {
+    let count = 0;
+    const updated = combatDays.map((s) => {
+      if (s.day === day) {
+        if (count === sessionIdx) { count++; return { ...s, timeOfDay: time }; }
+        count++;
+      }
+      return s;
+    });
+    update({ combatTrainingDays: updated });
   };
 
   const getSplitLabel = () => {
@@ -683,13 +718,16 @@ function Step2_HowYouTrain({
         <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <CalendarDays className="w-7 h-7 text-white" />
         </div>
-        <h2 className="text-xl font-bold text-grappler-50">How do you train?</h2>
-        <p className="text-grappler-400 text-sm">Pick your schedule — you can change this anytime</p>
+        <h2 className="text-xl font-bold text-grappler-50">Your week</h2>
+        <p className="text-grappler-400 text-sm">Tap a day to edit — you can change this anytime</p>
       </div>
 
       {/* Sessions per week */}
       <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Lifting days per week</label>
+        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
+          Lifting days per week
+          <span className="text-grappler-500 ml-1 normal-case">({liftDays.length}/{data.sessionsPerWeek})</span>
+        </label>
         <div className="grid grid-cols-6 gap-2">
           {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
             <button
@@ -709,81 +747,160 @@ function Step2_HowYouTrain({
         <p className="text-xs text-grappler-500 mt-1.5 text-center">{getSplitLabel()}</p>
       </div>
 
-      {/* Lifting day picker */}
+      {/* ── Week grid ── */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
-            Which days?
-            <span className="text-grappler-500 ml-1 normal-case">({selectedDays.length}/{data.sessionsPerWeek})</span>
-          </label>
-          {selectedDays.length > 0 && (
-            <button
-              onClick={() => update({ trainingDays: [] })}
-              className="text-[10px] text-grappler-500 hover:text-grappler-300 underline"
-            >
-              Clear
-            </button>
-          )}
-        </div>
         <div className="grid grid-cols-7 gap-1">
-          {DAY_NAMES.map((name, i) => {
-            const isSelected = selectedDays.includes(i);
-            const atLimit = selectedDays.length >= data.sessionsPerWeek && !isSelected;
+          {DAY_NAMES.map((name, dayIdx) => {
+            const hasLift = liftDays.includes(dayIdx);
+            const dayCombat = combatSessionsForDay(dayIdx);
+            const hasCombat = dayCombat.length > 0;
+            const isEditing = editingDay === dayIdx;
+            const isRest = !hasLift && !hasCombat;
+
             return (
               <button
-                key={i}
-                onClick={() => !atLimit && toggleDay(i)}
-                disabled={atLimit}
+                key={dayIdx}
+                onClick={() => setEditingDay(isEditing ? null : dayIdx)}
                 className={cn(
-                  'py-3 rounded-lg text-center transition-all',
-                  isSelected
-                    ? 'bg-primary-500 text-white font-bold'
-                    : atLimit
-                    ? 'bg-grappler-800 text-grappler-600 cursor-not-allowed'
-                    : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
+                  'rounded-lg text-center transition-all py-2 min-h-[60px] flex flex-col items-center justify-start gap-1 border-2',
+                  isEditing
+                    ? 'border-primary-400 bg-grappler-750'
+                    : 'border-transparent',
+                  isRest && !isEditing && 'bg-grappler-800/50',
+                  !isRest && !isEditing && 'bg-grappler-700'
                 )}
               >
-                <span className="text-xs">{name}</span>
+                <span className={cn(
+                  'text-[10px] font-medium',
+                  isEditing ? 'text-primary-300' : 'text-grappler-400'
+                )}>{name}</span>
+                <div className="flex flex-col gap-0.5 items-center">
+                  {hasLift && (
+                    <div className="w-5 h-1.5 rounded-full bg-primary-400" title="Lift" />
+                  )}
+                  {dayCombat.map((_, ci) => (
+                    <div key={ci} className="w-5 h-1.5 rounded-full bg-red-400" title="Combat" />
+                  ))}
+                  {isRest && (
+                    <span className="text-[8px] text-grappler-600 mt-0.5">Rest</span>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Week overview — shown once enough days are selected */}
-      {selectedDays.length >= data.sessionsPerWeek && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-grappler-800/50 rounded-xl p-3"
-        >
-          <div className="grid grid-cols-7 gap-1">
-            {DAY_NAMES.map((name, i) => {
-              const isLift = selectedDays.includes(i);
-              return (
-                <div key={i} className="text-center">
-                  <p className="text-[9px] text-grappler-500 mb-1">{name}</p>
-                  <div className={cn(
-                    'h-6 rounded flex items-center justify-center',
-                    isLift
-                      ? 'bg-primary-500/20 border border-primary-500/30'
-                      : 'bg-grappler-800'
-                  )}>
-                    <span className="text-[8px] text-grappler-300">
-                      {isLift ? 'Lift' : 'Rest'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-4 mt-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full bg-primary-400" />
+            <span className="text-[10px] text-grappler-500">Lift</span>
           </div>
           {isCombat && (
-            <p className="text-[10px] text-grappler-500 text-center mt-2">
-              Combat training days will be auto-scheduled around your lifts
-            </p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-1.5 rounded-full bg-red-400" />
+              <span className="text-[10px] text-grappler-500">Combat</span>
+            </div>
           )}
-        </motion.div>
-      )}
+        </div>
+      </div>
+
+      {/* ── Day editor panel ── */}
+      <AnimatePresence mode="wait">
+        {editingDay !== null && (
+          <motion.div
+            key={editingDay}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-grappler-800 rounded-xl p-4 border border-grappler-700 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-grappler-100">{DAY_NAMES[editingDay]}</p>
+                <button
+                  onClick={() => setEditingDay(null)}
+                  className="text-grappler-500 hover:text-grappler-300 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Lift toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-1.5 rounded-full bg-primary-400" />
+                  <span className="text-xs text-grappler-300">Lift</span>
+                </div>
+                <button
+                  onClick={() => toggleLift(editingDay)}
+                  className={cn(
+                    'relative w-10 h-6 rounded-full transition-colors',
+                    liftDays.includes(editingDay) ? 'bg-primary-500' : 'bg-grappler-600'
+                  )}
+                >
+                  <div className={cn(
+                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
+                    liftDays.includes(editingDay) ? 'translate-x-5' : 'translate-x-1'
+                  )} />
+                </button>
+              </div>
+              {liftDays.includes(editingDay) && liftDays.length > data.sessionsPerWeek && (
+                <p className="text-[10px] text-yellow-400/80">
+                  You have more lift days than your target — remove one or increase days/week
+                </p>
+              )}
+
+              {/* Combat sessions (combat users only) */}
+              {isCombat && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-1.5 rounded-full bg-red-400" />
+                    <span className="text-xs text-grappler-300">Combat</span>
+                  </div>
+
+                  {combatSessionsForDay(editingDay).map((session, si) => (
+                    <div key={si} className="flex items-center gap-2 pl-7">
+                      {/* Time of day pills */}
+                      <div className="flex gap-1">
+                        {TIME_OPTIONS.map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => updateCombatTime(editingDay, si, t)}
+                            className={cn(
+                              'px-2 py-1 rounded text-[10px] font-medium transition-all',
+                              session.timeOfDay === t
+                                ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                                : 'bg-grappler-700 text-grappler-400'
+                            )}
+                          >
+                            {TIME_LABELS[t]}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => removeCombatSession(editingDay, si)}
+                        className="ml-auto text-grappler-500 hover:text-red-400 p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => addCombatSession(editingDay)}
+                    className="flex items-center gap-1.5 text-[11px] text-grappler-400 hover:text-red-300 pl-7 transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add combat session
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

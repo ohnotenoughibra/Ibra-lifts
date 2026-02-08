@@ -41,13 +41,10 @@ import {
   Moon,
   Shield,
   Share2,
-  Copy,
   Check,
   Users,
   CalendarDays,
   Plus,
-  X,
-  Scale,
   RefreshCw,
   Sparkles,
   Grip,
@@ -56,15 +53,14 @@ import {
   Award,
   Thermometer,
   SkipForward,
-  Info,
 } from 'lucide-react';
-import { cn, formatNumber, formatDate } from '@/lib/utils';
-import type { WorkoutLog, MealEntry, SkipReason } from '@/lib/types';
+import { cn, formatNumber } from '@/lib/utils';
+import type { WorkoutLog, MealEntry, SkipReason, GamificationStats } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { getExerciseById } from '@/lib/exercises';
 import SyncConflictResolver from './SyncConflictResolver';
 import VersionUpgradePopup from './VersionUpgradePopup';
-import { getMotivationalMessage, getLevelTitle, levelProgress, pointsToNextLevel, isCurrentWeek } from '@/lib/gamification';
+import { getLevelTitle, isCurrentWeek } from '@/lib/gamification';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { getTodayRecommendation } from '@/lib/smart-schedule';
@@ -72,7 +68,6 @@ import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBa
 // Core tabs — always loaded
 import WorkoutView from './WorkoutView';
 import ProgressCharts from './ProgressCharts';
-import KnowledgeHub from './KnowledgeHub';
 import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
 import WorkoutHistory from './WorkoutHistory';
@@ -127,7 +122,7 @@ const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
 const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
 
-type TabType = 'home' | 'program' | 'progress' | 'history' | 'learn' | 'profile';
+type TabType = 'home' | 'program' | 'progress' | 'profile';
 type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | 'block_suggestion' | 'user_guide' | 'illness' | null;
 
 function ReadinessCard() {
@@ -463,7 +458,6 @@ export default function Dashboard() {
     }
   };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
-  const [fabOpen, setFabOpen] = useState(false);
   // Use individual selectors to avoid full re-renders when unrelated state changes
   const user = useAppStore(s => s.user);
   const gamificationStats = useAppStore(s => s.gamificationStats);
@@ -686,97 +680,14 @@ export default function Dashboard() {
         </AnimatePresence>
       </main>
 
-      {/* Quick-Log FAB */}
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col-reverse items-end gap-2">
-        <AnimatePresence>
-          {fabOpen && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setFabOpen(false)}
-                className="fixed inset-0 bg-black/40 -z-10"
-              />
-              {/* FAB Options */}
-              <motion.button
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.05 }}
-                onClick={() => { setFabOpen(false); setOverlayView('grappling'); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-lime-500 text-grappler-900 rounded-full shadow-lg font-medium text-sm"
-              >
-                <Shield className="w-4 h-4" />
-                {user?.combatSport === 'striking' ? 'Log Striking' :
-                 user?.combatSport === 'mma' ? 'Log MMA' :
-                 user?.combatSport === 'grappling_nogi' ? 'Log No-Gi' :
-                 'Log Training'}
-              </motion.button>
-              <motion.button
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.1 }}
-                onClick={() => { setFabOpen(false); setOverlayView('nutrition'); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-full shadow-lg font-medium text-sm"
-              >
-                <Apple className="w-4 h-4" />
-                Log Meal
-              </motion.button>
-              <motion.button
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.15 }}
-                onClick={() => { setFabOpen(false); setActiveTab('history'); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-sky-500 text-white rounded-full shadow-lg font-medium text-sm"
-              >
-                <Scale className="w-4 h-4" />
-                Log Weight
-              </motion.button>
-              <motion.button
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.2 }}
-                onClick={() => { setFabOpen(false); setOverlayView('injury'); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-full shadow-lg font-medium text-sm"
-              >
-                <Siren className="w-4 h-4" />
-                Log Injury
-              </motion.button>
-              <motion.button
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.8 }}
-                transition={{ delay: 0.25 }}
-                onClick={() => { setFabOpen(false); setOverlayView('illness'); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-grappler-900 rounded-full shadow-lg font-medium text-sm"
-              >
-                <Thermometer className="w-4 h-4" />
-                Log Illness
-              </motion.button>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* FAB Button */}
-        <motion.button
-          onClick={() => setFabOpen(!fabOpen)}
-          animate={{ rotate: fabOpen ? 45 : 0 }}
-          aria-label={fabOpen ? 'Close quick log menu' : 'Open quick log menu'}
-          className={cn(
-            'w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-colors',
-            fabOpen
-              ? 'bg-grappler-700 text-grappler-300'
-              : 'bg-gradient-to-br from-primary-500 to-accent-500 text-white'
-          )}
-        >
-          {fabOpen ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-        </motion.button>
-      </div>
+      {/* Single-action FAB — Quick Log */}
+      <button
+        onClick={() => setOverlayView('quick_actions')}
+        aria-label="Quick log"
+        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
       {/* Bottom Navigation — 4 tabs (reduced from 6 for cleaner UX) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom">
@@ -828,227 +739,210 @@ export default function Dashboard() {
   );
 }
 
-// History Tab - combines workout history, calendar, body weight, and data export/import
-function HistoryTab() {
-  const { workoutLogs, user } = useAppStore();
-  const [historyView, setHistoryView] = useState<'log' | 'calendar' | 'weight'>('log');
-  const [showExport, setShowExport] = useState(false);
-  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmImport, setConfirmImport] = useState(false);
-  const weightUnit = user?.weightUnit || 'lbs';
+// ─── Relocated widgets (from Home tab → Progress tab) ───
 
-  const handleExportCSV = () => {
-    const csv = exportToCSV(workoutLogs, weightUnit);
-    const date = new Date().toISOString().split('T')[0];
-    downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
-  };
-
-  const handleExportJSON = () => {
-    const json = exportToJSON(workoutLogs);
-    const date = new Date().toISOString().split('T')[0];
-    downloadFile(json, `roots-gains-${date}.json`, 'application/json');
-  };
-
-  const handleExportBackup = () => {
-    const backup = exportFullBackup();
-    const date = new Date().toISOString().split('T')[0];
-    downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file format and size
-    if (!file.name.endsWith('.json')) {
-      setImportStatus({ type: 'error', message: 'Only .json backup files are supported' });
-      e.target.value = '';
-      setTimeout(() => setImportStatus(null), 5000);
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setImportStatus({ type: 'error', message: 'File too large (max 10MB)' });
-      e.target.value = '';
-      setTimeout(() => setImportStatus(null), 5000);
-      return;
-    }
-
-    try {
-      const text = await readFileAsText(file);
-      // Validate it's parseable JSON before importing
-      try { JSON.parse(text); } catch {
-        setImportStatus({ type: 'error', message: 'File is not valid JSON' });
-        e.target.value = '';
-        setTimeout(() => setImportStatus(null), 5000);
-        return;
+function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
+  const trends = useMemo(() => {
+    const exerciseFreq: Record<string, number> = {};
+    for (const log of workoutLogs) {
+      for (const ex of log.exercises) {
+        exerciseFreq[ex.exerciseId] = (exerciseFreq[ex.exerciseId] || 0) + 1;
       }
-      const result = importFullBackup(text);
-
-      if (result.success) {
-        setImportStatus({
-          type: 'success',
-          message: `Restored ${result.stats?.workouts ?? 0} workouts, ${result.stats?.meals ?? 0} meals, ${result.stats?.trainingSessions ?? 0} sessions`
-        });
-      } else {
-        setImportStatus({ type: 'error', message: result.error || 'Import failed' });
-      }
-    } catch {
-      setImportStatus({ type: 'error', message: 'Could not read file' });
     }
+    const topExercises = Object.entries(exerciseFreq)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id]) => id);
 
-    // Reset file input so the same file can be re-selected
-    e.target.value = '';
-    setConfirmImport(false);
-    setTimeout(() => setImportStatus(null), 5000);
-  };
+    const result: { name: string; current: number; previous: number; exerciseId: string }[] = [];
+    for (const liftId of topExercises) {
+      const logsWithLift = workoutLogs
+        .filter(log => log.exercises.some(ex => ex.exerciseId === liftId))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      if (logsWithLift.length >= 1) {
+        const getE1rm = (log: WorkoutLog) => {
+          const ex = log.exercises.find(e => e.exerciseId === liftId);
+          if (!ex) return 0;
+          const bestSet = ex.sets.filter(s => s.completed).sort((a, b) => {
+            const a1rm = a.weight / (1.0278 - 0.0278 * a.reps);
+            const b1rm = b.weight / (1.0278 - 0.0278 * b.reps);
+            return b1rm - a1rm;
+          })[0];
+          if (!bestSet || bestSet.weight === 0) return 0;
+          return bestSet.reps === 1 ? bestSet.weight : Math.round(bestSet.weight / (1.0278 - 0.0278 * bestSet.reps));
+        };
+        const current = getE1rm(logsWithLift[0]);
+        const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
+        if (current > 0) {
+          const exercise = getExerciseById(liftId);
+          const name = exercise?.name || liftId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          result.push({ name, current, previous, exerciseId: liftId });
+        }
+      }
+    }
+    return result;
+  }, [workoutLogs]);
+
+  if (trends.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Sub-navigation */}
-      <div className="flex gap-2">
-        {[
-          { id: 'log', label: 'Workouts' },
-          { id: 'calendar', label: 'Calendar' },
-          { id: 'weight', label: 'Body Weight' }
-        ].map((view) => (
-          <button
-            key={view.id}
-            onClick={() => setHistoryView(view.id as typeof historyView)}
-            className={cn(
-              'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-              historyView === view.id
-                ? 'bg-primary-500 text-white'
-                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
-            )}
-          >
-            {view.label}
-          </button>
-        ))}
-        <button
-          onClick={() => setShowExport(!showExport)}
-          className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200"
-          title="Export / Import Data"
-          aria-label="Export or import data"
-        >
-          <Download className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Import status toast */}
-      <AnimatePresence>
-        {importStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={cn(
-              'rounded-xl px-4 py-3 text-sm font-medium',
-              importStatus.type === 'success'
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-            )}
-          >
-            {importStatus.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Export / Import options */}
-      <AnimatePresence>
-        {showExport && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="card p-4 space-y-4">
-              {/* Export section */}
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-accent-400" />
+        Estimated 1RM
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        {trends.map((lift) => {
+          const diff = lift.current - lift.previous;
+          const isUp = diff > 0;
+          return (
+            <div key={lift.exerciseId} className="flex items-center justify-between bg-grappler-800/50 rounded-lg px-3 py-2">
               <div>
-                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleExportCSV}
-                    disabled={workoutLogs.length === 0}
-                    className="btn btn-secondary btn-sm flex-1 gap-2"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    CSV
-                  </button>
-                  <button
-                    onClick={handleExportJSON}
-                    disabled={workoutLogs.length === 0}
-                    className="btn btn-secondary btn-sm flex-1 gap-2"
-                  >
-                    <FileJson className="w-4 h-4" />
-                    JSON
-                  </button>
-                </div>
-                {workoutLogs.length === 0 && (
-                  <p className="text-xs text-grappler-500 mt-2 text-center">Complete a workout first to export data</p>
-                )}
+                <p className="text-xs text-grappler-400 capitalize">{lift.name}</p>
+                <p className="text-sm font-bold text-grappler-100">{lift.current} {weightUnit}</p>
               </div>
-
-              {/* Full backup section */}
-              <div className="border-t border-grappler-700 pt-4">
-                <p className="text-sm text-grappler-300 mb-1 font-medium">Full backup</p>
-                <p className="text-xs text-grappler-500 mb-3">Export everything — workouts, programs, templates, nutrition, settings. Use this to transfer data to another device or keep a backup.</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleExportBackup}
-                    className="btn btn-secondary btn-sm flex-1 gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download Backup
-                  </button>
-                </div>
-              </div>
-
-              {/* Import section */}
-              <div className="border-t border-grappler-700 pt-4">
-                <p className="text-sm text-grappler-300 mb-1 font-medium">Restore from backup</p>
-                <p className="text-xs text-grappler-500 mb-3">Import a backup file to restore your data. This will overwrite your current data.</p>
-                {!confirmImport ? (
-                  <button
-                    onClick={() => setConfirmImport(true)}
-                    className="btn btn-sm w-full gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600"
-                  >
-                    <FileJson className="w-4 h-4" />
-                    Import Backup File
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg px-3 py-2">
-                      This will replace all your current data. Make sure to download a backup first.
-                    </p>
-                    <label className="btn btn-primary btn-sm w-full gap-2 cursor-pointer">
-                      <FileJson className="w-4 h-4" />
-                      Choose File
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={handleImportFile}
-                        className="hidden"
-                      />
-                    </label>
-                    <button
-                      onClick={() => setConfirmImport(false)}
-                      className="btn btn-sm w-full bg-grappler-700 text-grappler-400 hover:bg-grappler-600"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
+              {diff !== 0 && (
+                <span className={cn('text-xs font-medium', isUp ? 'text-green-400' : 'text-red-400')}>
+                  {isUp ? '+' : ''}{diff}
+                </span>
+              )}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-      {/* Content */}
-      {historyView === 'log' && <WorkoutHistory />}
-      {historyView === 'calendar' && <TrainingCalendar />}
-      {historyView === 'weight' && <BodyWeightTracker />}
+function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLogs: WorkoutLog[]; bodyWeightLog: { date: Date | string; weight: number }[]; weightUnit: string }) {
+  const data = useMemo(() => {
+    if (bodyWeightLog.length < 2 && workoutLogs.length < 2) return null;
+    const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
+    const recentWeights = bodyWeightLog
+      .filter(e => new Date(e.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let weightDelta: number | null = null;
+    if (recentWeights.length >= 2) {
+      weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
+    }
+    const recentLogs = workoutLogs
+      .filter(l => new Date(l.date).getTime() > fourWeeksAgo)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let volumeDelta: number | null = null;
+    if (recentLogs.length >= 4) {
+      const half = Math.floor(recentLogs.length / 2);
+      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
+      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (recentLogs.length - half);
+      volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
+    }
+    if (weightDelta === null && volumeDelta === null) return null;
+    return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
+  }, [workoutLogs, bodyWeightLog]);
+
+  if (!data) return null;
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+        <Scaling className="w-4 h-4 text-purple-400" />
+        Body Recomp (4 weeks)
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        {data.latestWeight !== null && (
+          <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+            <p className="text-xs text-grappler-400">Weight</p>
+            <p className="text-sm font-bold text-grappler-100">{data.latestWeight} {weightUnit}</p>
+            {data.weightDelta !== null && (
+              <p className={cn('text-xs font-medium', data.weightDelta > 0 ? 'text-amber-400' : data.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+                {data.weightDelta > 0 ? '+' : ''}{data.weightDelta} {weightUnit}
+              </p>
+            )}
+          </div>
+        )}
+        {data.volumeDelta !== null && (
+          <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
+            <p className="text-xs text-grappler-400">Avg Volume</p>
+            <p className={cn('text-sm font-bold', data.volumeDelta > 0 ? 'text-green-400' : data.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
+              {data.volumeDelta > 0 ? '+' : ''}{formatNumber(data.volumeDelta)}
+            </p>
+            <p className="text-xs text-grappler-500">vs first 2 weeks</p>
+          </div>
+        )}
+      </div>
+      {data.weightDelta !== null && data.volumeDelta !== null && (
+        <p className="text-xs text-grappler-500 mt-2">
+          {data.weightDelta <= 0 && data.volumeDelta > 0
+            ? 'Losing weight while lifting more — solid recomp!'
+            : data.weightDelta > 0 && data.volumeDelta > 0
+            ? 'Weight and volume both up — lean bulk territory.'
+            : data.weightDelta < 0 && data.volumeDelta < 0
+            ? 'Both trending down — make sure you\'re fueling enough.'
+            : 'Tracking trends — keep logging to see patterns.'}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WeeklyChallengeCard({ gamificationStats }: { gamificationStats: GamificationStats }) {
+  const challenge = gamificationStats.weeklyChallenge;
+  if (!challenge || !isCurrentWeek(challenge)) return null;
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
+          <Target className="w-4 h-4 text-purple-400" />
+          Weekly Challenge
+        </h3>
+        {challenge.goals.every(g => g.completed) ? (
+          <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">ALL DONE!</span>
+        ) : (
+          <span className="text-xs text-grappler-400">
+            {challenge.goals.filter(g => g.completed).length}/3
+          </span>
+        )}
+      </div>
+      <div className="space-y-2">
+        {challenge.goals.map((goal) => (
+          <div key={goal.id} className={cn(
+            'flex items-center gap-3 p-2.5 rounded-lg transition-colors',
+            goal.completed ? 'bg-emerald-500/10' : 'bg-grappler-800/50'
+          )}>
+            <div className={cn(
+              'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs',
+              goal.completed ? 'bg-emerald-500 text-white' : 'border border-grappler-600 text-grappler-500'
+            )}>
+              {goal.completed ? '✓' : ''}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={cn('text-sm', goal.completed ? 'text-emerald-300 line-through' : 'text-grappler-200')}>
+                {goal.description}
+              </p>
+              {!goal.completed && (
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }} />
+                  </div>
+                  <span className="text-xs text-grappler-400 flex-shrink-0">
+                    {goal.type === 'volume' ? formatNumber(goal.current) : goal.current}/{goal.type === 'volume' ? formatNumber(goal.target) : goal.target}
+                  </span>
+                </div>
+              )}
+            </div>
+            <span className={cn('text-xs font-medium flex-shrink-0', goal.completed ? 'text-emerald-400' : 'text-purple-400')}>
+              +{goal.xpReward} XP
+            </span>
+          </div>
+        ))}
+      </div>
+      {challenge.goals.every(g => g.completed) && !challenge.allCompleteBonusClaimed && (
+        <div className="mt-2 text-center py-2 bg-purple-500/10 rounded-lg">
+          <span className="text-sm font-bold text-purple-300">+{challenge.allCompleteBonus} XP Bonus!</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1056,7 +950,7 @@ function HistoryTab() {
 // Progress + History combined tab — merges two former tabs into one cleaner view
 function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
-  const { workoutLogs, user } = useAppStore();
+  const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore();
   const [showExport, setShowExport] = useState(false);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
@@ -1226,7 +1120,23 @@ function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string
       </AnimatePresence>
 
       {/* Content */}
-      {view === 'charts' && <ProgressCharts onViewReport={onViewReport} />}
+      {view === 'charts' && (
+        <div className="space-y-4">
+          <ProgressCharts onViewReport={onViewReport} />
+
+          {/* ─── Relocated from Home: Estimated 1RM Trends ─── */}
+          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+
+          {/* ─── Relocated from Home: Body Recomp ─── */}
+          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+
+          {/* ─── Relocated from Home: Streak Heatmap ─── */}
+          <StreakHeatmap workoutLogs={workoutLogs} />
+
+          {/* ─── Relocated from Home: Weekly Challenge ─── */}
+          <WeeklyChallengeCard gamificationStats={gamificationStats} />
+        </div>
+      )}
       {view === 'log' && <WorkoutHistory />}
       {view === 'calendar' && <TrainingCalendar />}
       {view === 'weight' && <BodyWeightTracker />}
@@ -1337,13 +1247,12 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
 // Home Tab Content
 function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void }) {
   const {
-    user, gamificationStats, currentMesocycle, workoutLogs, startWorkout,
+    user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
-    mesocycleHistory, competitions, bodyWeightLog,
+    mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    addTrainingSession, addPastWorkout,
-    illnessLogs, skipWorkout,
+    skipWorkout,
   } = useAppStore();
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [showMoreTools, setShowMoreTools] = useState(false);
@@ -1351,7 +1260,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
-  const [heatmapSelectedDate, setHeatmapSelectedDate] = useState<Date | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Today's Summary Data ───
@@ -1373,8 +1281,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     new Date(m.date).toDateString() === todayStr
   );
   const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
-  const todayCalories = todayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
-
   // Whoop recovery data (most recent)
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;
@@ -1405,10 +1311,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
       setTimeout(() => setShareCopied(false), 2000);
     }
   };
-
-  const motivationalMessage = getMotivationalMessage(gamificationStats);
-  const progress = levelProgress(gamificationStats.totalPoints);
-  const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
 
   // Deload detection
   const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
@@ -1451,20 +1353,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
   })();
 
-  // Weekly consistency: how many days this week had a workout
-  const weeklyConsistency = (() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const daysThisWeek = new Set(
-      workoutLogs
-        .filter(log => new Date(log.date) >= startOfWeek)
-        .map(log => new Date(log.date).toDateString())
-    );
-    return { done: daysThisWeek.size, target: user?.sessionsPerWeek || 3 };
-  })();
-
   // Training load warning for combat athletes
   const trainingLoadWarning = (() => {
     if (user?.trainingIdentity !== 'combat') return null;
@@ -1492,55 +1380,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
   // Check if today is a rest day (no workout logged today)
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
-
-  // Estimated 1RM trends — dynamically finds the user's most frequently performed lifts
-  const e1rmTrends = (() => {
-    // Count how many times each exercise appears across all workout logs
-    const exerciseFreq: Record<string, number> = {};
-    for (const log of workoutLogs) {
-      for (const ex of log.exercises) {
-        exerciseFreq[ex.exerciseId] = (exerciseFreq[ex.exerciseId] || 0) + 1;
-      }
-    }
-
-    // Sort by frequency and take the top exercises that have at least 2 occurrences
-    const topExercises = Object.entries(exerciseFreq)
-      .filter(([, count]) => count >= 2)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([id]) => id);
-
-    const trends: { name: string; current: number; previous: number; exerciseId: string }[] = [];
-
-    for (const liftId of topExercises) {
-      const logsWithLift = workoutLogs
-        .filter(log => log.exercises.some(ex => ex.exerciseId === liftId))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      if (logsWithLift.length >= 1) {
-        const getE1rm = (log: WorkoutLog) => {
-          const ex = log.exercises.find(e => e.exerciseId === liftId);
-          if (!ex) return 0;
-          const bestSet = ex.sets.filter(s => s.completed).sort((a, b) => {
-            const a1rm = a.weight / (1.0278 - 0.0278 * a.reps);
-            const b1rm = b.weight / (1.0278 - 0.0278 * b.reps);
-            return b1rm - a1rm;
-          })[0];
-          if (!bestSet || bestSet.weight === 0) return 0;
-          return bestSet.reps === 1 ? bestSet.weight : Math.round(bestSet.weight / (1.0278 - 0.0278 * bestSet.reps));
-        };
-
-        const current = getE1rm(logsWithLift[0]);
-        const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
-        if (current > 0) {
-          const exercise = getExerciseById(liftId);
-          const name = exercise?.name || liftId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          trends.push({ name, current, previous, exerciseId: liftId });
-        }
-      }
-    }
-    return trends;
-  })();
 
   // Mesocycle comparison: compare current block to previous
   const mesocycleComparison = (() => {
@@ -1575,36 +1414,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     const event = active[0];
     const daysUntil = Math.ceil((new Date(event.date).getTime() - now) / (1000 * 60 * 60 * 24));
     return { ...event, daysUntil };
-  })();
-
-  // Body recomp: weight trend vs volume trend (last 4 weeks)
-  const recompData = (() => {
-    if (bodyWeightLog.length < 2 && workoutLogs.length < 2) return null;
-    const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
-
-    // Weight trend
-    const recentWeights = bodyWeightLog
-      .filter(e => new Date(e.date).getTime() > fourWeeksAgo)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    let weightDelta: number | null = null;
-    if (recentWeights.length >= 2) {
-      weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
-    }
-
-    // Volume trend
-    const recentLogs = workoutLogs
-      .filter(l => new Date(l.date).getTime() > fourWeeksAgo)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    let volumeDelta: number | null = null;
-    if (recentLogs.length >= 4) {
-      const half = Math.floor(recentLogs.length / 2);
-      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
-      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (recentLogs.length - half);
-      volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
-    }
-
-    if (weightDelta === null && volumeDelta === null) return null;
-    return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
   })();
 
   // Training period summaries (weekly, monthly, yearly)
@@ -1782,9 +1591,171 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
     </button>
   );
 
+  // ─── Contextual Feed: priority-ranked, max 4 cards ───
+  const feedCards: React.ReactNode[] = [];
+
+  // 1. Illness banner (highest priority)
+  const activeIllness = getActiveIllness();
+  if (activeIllness) {
+    const illnessRec = getIllnessTrainingRecommendation(activeIllness);
+    const daysSick = getIllnessDurationDays(activeIllness);
+    feedCards.push(
+      <motion.div key="illness" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-rose-500/20 to-orange-500/10 border border-rose-500/30 rounded-xl p-3.5">
+        <div className="flex items-start gap-3">
+          <Thermometer className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-rose-300 text-sm">
+                {activeIllness.status === 'recovering' ? 'Recovering' : 'Feeling Sick'}
+              </h3>
+              <span className="text-xs text-rose-400/70">Day {daysSick}</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{illnessRec.message}</p>
+            {!illnessRec.canTrain && (
+              <p className="text-xs text-rose-400/70 mt-1 font-medium">Training paused — streak frozen.</p>
+            )}
+            <button onClick={() => onNavigate('illness')}
+              className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
+              {activeIllness.status === 'active' ? 'Daily Check-In' : 'View Status'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // 2. Meal reminder
+  if (feedCards.length < 4) {
+    feedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
+  }
+
+  // 3. Competition countdown (< 60 days)
+  if (nextCompetition && nextCompetition.daysUntil <= 60 && feedCards.length < 4) {
+    feedCards.push(
+      <motion.div key="competition" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-yellow-300 text-sm">{nextCompetition.name}</h3>
+              <p className="text-xs text-grappler-400 mt-0.5">
+                {new Date(nextCompetition.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                {nextCompetition.weightClass ? ` · ${nextCompetition.weightClass} ${weightUnit}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
+            <p className="text-[10px] text-yellow-400/70">days out</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // 4. Training load warning (combat athletes)
+  if (trainingLoadWarning && feedCards.length < 4) {
+    feedCards.push(
+      <div key="training-load" className="flex items-start gap-3 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5">
+        <Shield className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-amber-300 text-sm">Training Load</h3>
+          <p className="text-xs text-amber-400/80 mt-1">{trainingLoadWarning}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. Deload alert
+  if (deloadCheck && deloadCheck.needed && feedCards.length < 4) {
+    feedCards.push(
+      <div key="deload" className="flex items-start gap-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-3.5">
+        <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
+          <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 6. Rest day tip
+  if (restDayTip && feedCards.length < 4) {
+    feedCards.push(
+      <div key="rest-tip" className="flex items-start gap-3 card p-3.5">
+        <Leaf className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-xs text-emerald-400 font-medium uppercase tracking-wide">{restDayTip.category}</p>
+          <p className="text-sm text-grappler-300 mt-1">{restDayTip.tip}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 7. Weekly pulse — compact this-week summary
+  if (feedCards.length < 4 && periodSummaries.thisWeek.trainingDays > 0) {
+    feedCards.push(
+      <div key="weekly-pulse" className="card p-3.5">
+        <div className="flex items-center gap-2 mb-2">
+          <BarChart3 className="w-4 h-4 text-primary-400" />
+          <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">This Week</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
+            <p className="text-[10px] text-grappler-500">Days</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
+            <p className="text-[10px] text-grappler-500">Lifts</p>
+          </div>
+          {periodSummaries.thisWeek.sessions > 0 && (
+            <div>
+              <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
+              <p className="text-[10px] text-grappler-500">Training</p>
+            </div>
+          )}
+          <div>
+            <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
+            <p className="text-[10px] text-grappler-500">PRs</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Smart daily recommendation (computed once, used below hero)
+  const dailyRec = (() => {
+    if (!user?.trainingDays || user.trainingDays.length === 0) return null;
+    const latestWhoop = useAppStore.getState().latestWhoopData;
+    const wearableHistory = useAppStore.getState().wearableHistory;
+    const recentRecoveries = wearableHistory.filter(w => w.recoveryScore != null).slice(-7).map(w => w.recoveryScore!);
+    const avgRecovery7d = recentRecoveries.length > 0
+      ? Math.round(recentRecoveries.reduce((a, b) => a + b, 0) / recentRecoveries.length) : undefined;
+    const sleepDebtHours = (latestWhoop?.sleepHours != null && latestWhoop?.sleepNeededHours != null)
+      ? latestWhoop.sleepHours - latestWhoop.sleepNeededHours : undefined;
+    const hrvValues = wearableHistory.filter(w => w.hrv != null).slice(-7).map(w => w.hrv!);
+    let hrvCV: number | undefined;
+    if (hrvValues.length >= 4) {
+      const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
+      if (mean > 0) {
+        const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
+        hrvCV = (Math.sqrt(variance) / mean) * 100;
+      }
+    }
+    return getTodayRecommendation(
+      user.trainingDays, user.combatTrainingDays || [],
+      latestWhoop?.recoveryScore ?? undefined, latestWhoop?.sleepHours ?? undefined,
+      { deepSleepMinutes: latestWhoop?.deepSleepMinutes ?? undefined, sleepEfficiency: latestWhoop?.sleepEfficiency ?? undefined,
+        spo2: latestWhoop?.spo2 ?? undefined, strain: latestWhoop?.strain ?? undefined, sleepDebtHours, avgRecovery7d, hrvCV },
+    );
+  })();
+
   return (
-    <div className="space-y-5">
-      {/* Post-Workout Summary Card */}
+    <div className="space-y-4">
+      {/* ─── Post-Workout Summary (ephemeral) ─── */}
       <AnimatePresence>
         {lastCompletedWorkout && (
           <motion.div
@@ -1804,29 +1775,25 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleShareWorkout}
+                <button onClick={handleShareWorkout}
                   className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                  title="Share workout"
-                >
+                  title="Share workout">
                   {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
                 </button>
-                <button
-                  onClick={dismissWorkoutSummary}
-                  className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1"
-                >
+                <button onClick={dismissWorkoutSummary}
+                  className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1">
                   Dismiss
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.exercises.length}</p>
                 <p className="text-xs text-grappler-400">Exercises</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{formatNumber(lastCompletedWorkout.log.totalVolume)}</p>
-                <p className="text-xs text-grappler-400">Volume ({weightUnit})</p>
+                <p className="text-xs text-grappler-400">Vol ({weightUnit})</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.duration}m</p>
@@ -1842,12 +1809,8 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
               <div className="mt-3 space-y-2">
                 {lastCompletedWorkout.newBadges.map((badge) => (
-                  <motion.div
-                    key={badge.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2"
-                  >
+                  <motion.div key={badge.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2">
                     <span className="text-lg">{badge.icon}</span>
                     <div className="flex-1">
                       <span className="text-xs font-medium text-purple-300">{badge.name}</span>
@@ -1866,187 +1829,30 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         )}
       </AnimatePresence>
 
-      {/* ─── Illness Banner ─── */}
-      {(() => {
-        const activeIllness = getActiveIllness();
-        if (!activeIllness) return null;
-        const rec = getIllnessTrainingRecommendation(activeIllness);
-        const daysSick = getIllnessDurationDays(activeIllness);
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-rose-500/20 to-orange-500/10 border border-rose-500/30 rounded-xl p-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Thermometer className="w-5 h-5 text-rose-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-rose-300 text-sm">
-                    {activeIllness.status === 'recovering' ? 'Recovering' : 'Feeling Sick'}
-                  </h3>
-                  <span className="text-xs text-rose-400/70">Day {daysSick}</span>
-                </div>
-                <p className="text-xs text-grappler-400 mt-1">{rec.message}</p>
-                {!rec.canTrain && (
-                  <p className="text-xs text-rose-400/70 mt-1 font-medium">Training paused — your streak is frozen.</p>
-                )}
-                <div className="flex items-center gap-2 mt-2.5">
-                  <button
-                    onClick={() => onNavigate('illness')}
-                    className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors"
-                  >
-                    {activeIllness.status === 'active' ? 'Daily Check-In' : 'View Status'}
-                  </button>
-                  {rec.canTrain && rec.returnPhase && (
-                    <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full">
-                      {rec.returnPhase === 'test_day' ? 'Test Day — 50% load' : 'Building Back — 75% load'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        );
-      })()}
-
-      {/* Training Load Warning for Combat Athletes */}
-      {trainingLoadWarning && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-4"
-        >
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-amber-300 text-sm">Training Load</h3>
-              <p className="text-xs text-amber-400/80 mt-1">{trainingLoadWarning}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Competition Countdown */}
-      {nextCompetition && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-xs text-yellow-400/70 uppercase tracking-wide font-medium">{nextCompetition.type.replace(/_/g, ' ')}</p>
-                <h3 className="font-bold text-yellow-300 text-sm">{nextCompetition.name}</h3>
-                <p className="text-xs text-grappler-400 mt-0.5">
-                  {new Date(nextCompetition.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  {nextCompetition.weightClass ? ` | ${nextCompetition.weightClass} ${weightUnit}` : ''}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
-              <p className="text-xs text-yellow-400/70">days out</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Deload Alert */}
-      {deloadCheck && deloadCheck.needed && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-4"
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
-              <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Meal Reminder Banner */}
-      <MealReminderBanner
-        meals={todayMeals}
-        onNavigate={onNavigate}
-      />
-
-      {/* Smart Daily Recommendation */}
-      {user?.trainingDays && user.trainingDays.length > 0 && (() => {
-        const latestWhoop = useAppStore.getState().latestWhoopData;
-        const wearableHistory = useAppStore.getState().wearableHistory;
-        // Compute 7-day average recovery from wearable history
-        const recentRecoveries = wearableHistory
-          .filter(w => w.recoveryScore != null)
-          .slice(-7)
-          .map(w => w.recoveryScore!);
-        const avgRecovery7d = recentRecoveries.length > 0
-          ? Math.round(recentRecoveries.reduce((a, b) => a + b, 0) / recentRecoveries.length)
-          : undefined;
-        // Sleep debt = actual sleep - needed sleep (negative means debt)
-        const sleepDebtHours = (latestWhoop?.sleepHours != null && latestWhoop?.sleepNeededHours != null)
-          ? latestWhoop.sleepHours - latestWhoop.sleepNeededHours
-          : undefined;
-        // HRV Coefficient of Variation (research-backed overreaching signal)
-        const hrvValues = wearableHistory
-          .filter(w => w.hrv != null)
-          .slice(-7)
-          .map(w => w.hrv!);
-        let hrvCV: number | undefined;
-        if (hrvValues.length >= 4) {
-          const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
-          if (mean > 0) {
-            const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
-            hrvCV = (Math.sqrt(variance) / mean) * 100;
-          }
-        }
-        const rec = getTodayRecommendation(
-          user.trainingDays,
-          user.combatTrainingDays || [],
-          latestWhoop?.recoveryScore ?? undefined,
-          latestWhoop?.sleepHours ?? undefined,
-          {
-            deepSleepMinutes: latestWhoop?.deepSleepMinutes ?? undefined,
-            sleepEfficiency: latestWhoop?.sleepEfficiency ?? undefined,
-            spo2: latestWhoop?.spo2 ?? undefined,
-            strain: latestWhoop?.strain ?? undefined,
-            sleepDebtHours,
-            avgRecovery7d,
-            hrvCV,
-          },
-        );
-        const bgClass = rec.intensity === 'full'
+      {/* ─── Smart Daily Recommendation ─── */}
+      {dailyRec && (() => {
+        const bgClass = dailyRec.intensity === 'full'
           ? 'from-green-500/15 to-emerald-500/10 border-green-500/30'
-          : rec.intensity === 'reduced'
+          : dailyRec.intensity === 'reduced'
           ? 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30'
           : 'from-grappler-700/40 to-grappler-800/40 border-grappler-700';
-        const iconColor = rec.intensity === 'full' ? 'text-green-400' : rec.intensity === 'reduced' ? 'text-yellow-400' : 'text-grappler-400';
+        const iconColor = dailyRec.intensity === 'full' ? 'text-green-400' : dailyRec.intensity === 'reduced' ? 'text-yellow-400' : 'text-grappler-400';
         return (
-          <div className={cn('rounded-xl p-3.5 border bg-gradient-to-r', bgClass)}>
+          <div className={cn('rounded-xl p-3 border bg-gradient-to-r', bgClass)}>
             <div className="flex items-center gap-3">
               <CalendarDays className={cn('w-5 h-5 flex-shrink-0', iconColor)} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-grappler-200">
                   {new Date().toLocaleDateString(undefined, { weekday: 'long' })}
                 </p>
-                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{rec.message}</p>
+                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{dailyRec.message}</p>
               </div>
             </div>
           </div>
         );
       })()}
 
-      {/* Hero: Start Next Workout */}
+      {/* ─── HERO: Start Next Workout ─── */}
       {nextWorkout ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -2073,23 +1879,44 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                     ~{nextWorkout.estimatedDuration}m
                   </span>
                 </div>
+                {/* Inline mesocycle progress */}
+                {mesocycleProgress && (
+                  <div className="flex items-center gap-2 mt-2.5">
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-white/60 rounded-full"
+                        style={{ width: `${mesocycleProgress.percent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-white/60">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+                  </div>
+                )}
               </div>
               <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <Play className="w-7 h-7 text-white" />
               </div>
             </div>
           </button>
-          {/* Skip Workout Option */}
-          <button
-            onClick={() => setShowSkipDialog(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
-          >
-            <SkipForward className="w-3.5 h-3.5" />
-            Skip this session
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={handleQuickWorkout}
+              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Quick 30m
+            </button>
+            <span className="text-grappler-700">·</span>
+            <button
+              onClick={() => setShowSkipDialog(true)}
+              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+            >
+              <SkipForward className="w-3.5 h-3.5" />
+              Skip
+            </button>
+          </div>
         </motion.div>
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
-        /* Mesocycle Complete — Prompt to generate next */
+        /* Mesocycle Complete — generate next */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -2099,11 +1926,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             <Trophy className="w-10 h-10 text-primary-400 mx-auto mb-2" />
             <h3 className="font-bold text-grappler-100 text-sm">Block Complete!</h3>
             <p className="text-xs text-grappler-400 mt-1 mb-4">
-              You finished all {mesocycleProgress.total} sessions in {currentMesocycle.name}.
+              All {mesocycleProgress.total} sessions in {currentMesocycle.name} done.
             </p>
           </div>
-
-          {/* Mesocycle comparison */}
           {mesocycleComparison && (
             <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 space-y-2">
               <p className="text-xs text-grappler-500 uppercase tracking-wide">vs {mesocycleComparison.prevName}</p>
@@ -2111,10 +1936,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <div>
                   <p className="text-xs text-grappler-400">Sessions</p>
                   <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.sessions.current}</p>
-                  <p className="text-xs text-grappler-500">prev: {mesocycleComparison.sessions.prev}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-grappler-400">Avg Volume</p>
+                  <p className="text-xs text-grappler-400">Avg Vol</p>
                   <p className="text-sm font-bold text-grappler-100">{formatNumber(mesocycleComparison.avgVolume.current)}</p>
                   <p className={cn('text-xs font-medium', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-500')}>
                     {mesocycleComparison.avgVolume.delta > 0 ? '+' : ''}{formatNumber(mesocycleComparison.avgVolume.delta)}
@@ -2123,26 +1947,24 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                 <div>
                   <p className="text-xs text-grappler-400">Avg RPE</p>
                   <p className="text-sm font-bold text-grappler-100">{mesocycleComparison.avgRPE.current}</p>
-                  <p className="text-xs text-grappler-500">prev: {mesocycleComparison.avgRPE.prev}</p>
                 </div>
               </div>
             </div>
           )}
-
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={() => onViewReport(currentMesocycle.id)}
               className="btn btn-md gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600"
             >
               <BarChart3 className="w-4 h-4" />
-              View Report
+              Report
             </button>
             <button
               onClick={handleGenerateNext}
               className="btn btn-primary btn-md gap-2"
             >
               <Zap className="w-4 h-4" />
-              Generate Next Block
+              Next Block
             </button>
           </div>
         </motion.div>
@@ -2164,456 +1986,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
         </motion.div>
       )}
 
-      {/* Quick Workout (secondary, only if next workout exists) */}
-      {nextWorkout && (
-        <button
-          onClick={handleQuickWorkout}
-          className="w-full card p-3.5 flex items-center gap-3 hover:bg-grappler-700/50 transition-colors"
-        >
-          <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center">
-            <Zap className="w-5 h-5 text-accent-400" />
-          </div>
-          <div className="text-left flex-1">
-            <p className="font-medium text-grappler-100 text-sm">Quick 30-Min Workout</p>
-            <p className="text-xs text-grappler-500">4 compound exercises</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-grappler-500" />
-        </button>
-      )}
-
-      {/* Mesocycle Progress Bar */}
-      {mesocycleProgress && currentMesocycle && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary-400" />
-              {currentMesocycle.name}
-            </h3>
-            <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total} sessions</span>
-          </div>
-          <div className="w-full h-2.5 bg-grappler-700 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${mesocycleProgress.percent}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-            />
-          </div>
-          <p className="text-xs text-grappler-500 mt-1.5">{mesocycleProgress.percent}% complete</p>
-        </div>
-      )}
-
-      {/* Estimated 1RM Trends */}
-      {e1rmTrends.length > 0 && (
-        <div className="card p-4">
-          <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-accent-400" />
-            Estimated 1RM
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {e1rmTrends.map((lift) => {
-              const diff = lift.current - lift.previous;
-              const isUp = diff > 0;
-              return (
-                <div key={lift.exerciseId} className="flex items-center justify-between bg-grappler-800/50 rounded-lg px-3 py-2">
-                  <div>
-                    <p className="text-xs text-grappler-400 capitalize">{lift.name}</p>
-                    <p className="text-sm font-bold text-grappler-100">{lift.current} {weightUnit}</p>
-                  </div>
-                  {diff !== 0 && (
-                    <span className={cn('text-xs font-medium', isUp ? 'text-green-400' : 'text-red-400')}>
-                      {isUp ? '+' : ''}{diff}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Body Recomp Tracking */}
-      {recompData && (
-        <div className="card p-4">
-          <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-            <Scaling className="w-4 h-4 text-purple-400" />
-            Body Recomp (4 weeks)
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {recompData.latestWeight !== null && (
-              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
-                <p className="text-xs text-grappler-400">Weight</p>
-                <p className="text-sm font-bold text-grappler-100">{recompData.latestWeight} {weightUnit}</p>
-                {recompData.weightDelta !== null && (
-                  <p className={cn('text-xs font-medium', recompData.weightDelta > 0 ? 'text-amber-400' : recompData.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
-                    {recompData.weightDelta > 0 ? '+' : ''}{recompData.weightDelta} {weightUnit}
-                  </p>
-                )}
-              </div>
-            )}
-            {recompData.volumeDelta !== null && (
-              <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
-                <p className="text-xs text-grappler-400">Avg Volume</p>
-                <p className={cn('text-sm font-bold', recompData.volumeDelta > 0 ? 'text-green-400' : recompData.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
-                  {recompData.volumeDelta > 0 ? '+' : ''}{formatNumber(recompData.volumeDelta)}
-                </p>
-                <p className="text-xs text-grappler-500">vs first 2 weeks</p>
-              </div>
-            )}
-          </div>
-          {recompData.weightDelta !== null && recompData.volumeDelta !== null && (
-            <p className="text-xs text-grappler-500 mt-2">
-              {recompData.weightDelta <= 0 && recompData.volumeDelta > 0
-                ? 'Losing weight while lifting more — solid recomp!'
-                : recompData.weightDelta > 0 && recompData.volumeDelta > 0
-                ? 'Weight and volume both up — lean bulk territory.'
-                : recompData.weightDelta < 0 && recompData.volumeDelta < 0
-                ? 'Both trending down — make sure you\'re fueling enough.'
-                : 'Tracking trends — keep logging to see patterns.'}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Rest Day Tip */}
-      {restDayTip && (
-        <div className="card p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Leaf className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-emerald-400 font-medium uppercase tracking-wide">{restDayTip.category}</p>
-              <p className="text-sm text-grappler-300 mt-1">{restDayTip.tip}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Training Streak Heatmap */}
-      <StreakHeatmap workoutLogs={workoutLogs} onDayClick={(date) => setHeatmapSelectedDate(date)} />
-
-      {/* Streak Shield Indicator */}
-      {gamificationStats.streakShield && gamificationStats.streakShield.available > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          <Shield className="w-4 h-4 text-amber-400" />
-          <span className="text-xs text-amber-300">
-            Streak Shield active — miss a day without losing your streak
-          </span>
-        </div>
-      )}
-
-      {/* Weekly Challenges */}
-      {gamificationStats.weeklyChallenge && isCurrentWeek(gamificationStats.weeklyChallenge) && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
-              <Target className="w-4 h-4 text-purple-400" />
-              Weekly Challenge
-            </h3>
-            {gamificationStats.weeklyChallenge.goals.every(g => g.completed) ? (
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">ALL DONE!</span>
-            ) : (
-              <span className="text-xs text-grappler-400">
-                {gamificationStats.weeklyChallenge.goals.filter(g => g.completed).length}/3
-              </span>
-            )}
-          </div>
-          <div className="space-y-2">
-            {gamificationStats.weeklyChallenge.goals.map((goal) => (
-              <div key={goal.id} className={cn(
-                'flex items-center gap-3 p-2.5 rounded-lg transition-colors',
-                goal.completed ? 'bg-emerald-500/10' : 'bg-grappler-800/50'
-              )}>
-                <div className={cn(
-                  'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs',
-                  goal.completed
-                    ? 'bg-emerald-500 text-white'
-                    : 'border border-grappler-600 text-grappler-500'
-                )}>
-                  {goal.completed ? '✓' : ''}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    'text-sm',
-                    goal.completed ? 'text-emerald-300 line-through' : 'text-grappler-200'
-                  )}>
-                    {goal.description}
-                  </p>
-                  {!goal.completed && (
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-purple-500 rounded-full transition-all"
-                          style={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-grappler-400 flex-shrink-0">
-                        {goal.type === 'volume' ? formatNumber(goal.current) : goal.current}/{goal.type === 'volume' ? formatNumber(goal.target) : goal.target}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <span className={cn(
-                  'text-xs font-medium flex-shrink-0',
-                  goal.completed ? 'text-emerald-400' : 'text-purple-400'
-                )}>
-                  +{goal.xpReward} XP
-                </span>
-              </div>
-            ))}
-          </div>
-          {gamificationStats.weeklyChallenge.goals.every(g => g.completed) && !gamificationStats.weeklyChallenge.allCompleteBonusClaimed && (
-            <div className="mt-2 text-center py-2 bg-purple-500/10 rounded-lg">
-              <span className="text-sm font-bold text-purple-300">+{gamificationStats.weeklyChallenge.allCompleteBonus} XP Bonus!</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Add Session Modal from Heatmap */}
-      <AnimatePresence>
-        {heatmapSelectedDate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setHeatmapSelectedDate(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-grappler-800 rounded-2xl p-5 w-full max-w-xs shadow-xl"
-              onClick={e => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-bold text-white mb-1">Add Activity</h3>
-              <p className="text-sm text-grappler-400 mb-4">{heatmapSelectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
-
-              <div className="space-y-2">
-                {/* Lifting option */}
-                <button
-                  onClick={() => {
-                    addPastWorkout({
-                      date: heatmapSelectedDate,
-                      exercises: [{
-                        exerciseId: 'general-lifting',
-                        exerciseName: 'Lifting Session',
-                        sets: [{ setNumber: 1, weight: 0, reps: 1, rpe: 7, completed: true }],
-                        personalRecord: false,
-                      }],
-                      duration: 60,
-                      overallRPE: 7,
-                      notes: 'Quick logged from calendar',
-                    });
-                    setHeatmapSelectedDate(null);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
-                >
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <Dumbbell className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-white">Lifting</p>
-                    <p className="text-xs text-grappler-400">Strength training</p>
-                  </div>
-                </button>
-
-                {/* Grappling option */}
-                <button
-                  onClick={() => {
-                    addTrainingSession({
-                      date: heatmapSelectedDate,
-                      category: 'grappling',
-                      type: 'bjj_nogi',
-                      plannedIntensity: 'moderate',
-                      duration: 60,
-                      timing: 'standalone',
-                      perceivedExertion: 6,
-                    });
-                    setHeatmapSelectedDate(null);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
-                >
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <Target className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-white">Grappling</p>
-                    <p className="text-xs text-grappler-400">BJJ / Wrestling</p>
-                  </div>
-                </button>
-
-                {/* Striking option */}
-                <button
-                  onClick={() => {
-                    addTrainingSession({
-                      date: heatmapSelectedDate,
-                      category: 'striking',
-                      type: 'boxing',
-                      plannedIntensity: 'moderate',
-                      duration: 60,
-                      timing: 'standalone',
-                      perceivedExertion: 6,
-                    });
-                    setHeatmapSelectedDate(null);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
-                >
-                  <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-orange-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-white">Striking</p>
-                    <p className="text-xs text-grappler-400">Boxing / Kickboxing</p>
-                  </div>
-                </button>
-
-                {/* Cardio option */}
-                <button
-                  onClick={() => {
-                    addTrainingSession({
-                      date: heatmapSelectedDate,
-                      category: 'cardio',
-                      type: 'running',
-                      plannedIntensity: 'moderate',
-                      duration: 30,
-                      timing: 'standalone',
-                      perceivedExertion: 5,
-                    });
-                    setHeatmapSelectedDate(null);
-                  }}
-                  className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
-                >
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-white">Cardio</p>
-                    <p className="text-xs text-grappler-400">Running / Cycling</p>
-                  </div>
-                </button>
-              </div>
-
-              <button
-                onClick={() => setHeatmapSelectedDate(null)}
-                className="w-full mt-4 py-2 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ─── Training Roundup ─── */}
-      <div className="card p-4">
-        <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2 mb-3">
-          <BarChart3 className="w-4 h-4 text-primary-400" />
-          Training Roundup
-        </h3>
-        <div className="space-y-3">
-          {/* This Week */}
-          <div className="bg-grappler-800/50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-grappler-300">This Week</span>
-              {periodSummaries.lastWeek.trainingDays > 0 && (
-                <span className={cn(
-                  'text-xs font-medium',
-                  periodSummaries.thisWeek.trainingDays > periodSummaries.lastWeek.trainingDays ? 'text-green-400' :
-                  periodSummaries.thisWeek.trainingDays < periodSummaries.lastWeek.trainingDays ? 'text-amber-400' : 'text-grappler-500'
-                )}>
-                  vs last week
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              <div>
-                <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
-                <p className="text-xs text-grappler-500">Days</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
-                <p className="text-xs text-grappler-500">Lifts</p>
-              </div>
-              {periodSummaries.thisWeek.sessions > 0 && (
-                <div>
-                  <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
-                  <p className="text-xs text-grappler-500">Training</p>
-                </div>
-              )}
-              <div>
-                <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
-                <p className="text-xs text-grappler-500">PRs</p>
-              </div>
-            </div>
-          </div>
-
-          {/* This Month */}
-          <div className="bg-grappler-800/30 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-grappler-400">This Month</span>
-              <span className="text-xs text-grappler-500">{formatNumber(periodSummaries.thisMonth.volume)} {weightUnit} vol</span>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-grappler-300">
-                <span className="font-bold text-grappler-100">{periodSummaries.thisMonth.trainingDays}</span> training days
-              </span>
-              <span className="text-grappler-400">•</span>
-              <span className="text-grappler-300">
-                <span className="font-bold text-yellow-400">{periodSummaries.thisMonth.prs}</span> PRs
-              </span>
-              {periodSummaries.lastMonth.trainingDays > 0 && (
-                <>
-                  <span className="text-grappler-400">•</span>
-                  <span className={cn(
-                    'text-xs',
-                    periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? 'text-green-400' : 'text-grappler-500'
-                  )}>
-                    {periodSummaries.thisMonth.trainingDays > periodSummaries.lastMonth.trainingDays ? '+' : ''}
-                    {periodSummaries.thisMonth.trainingDays - periodSummaries.lastMonth.trainingDays} vs last
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Year to Date */}
-          <div className="bg-grappler-800/20 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-grappler-400">{today.getFullYear()} Year to Date</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span className="text-grappler-300">
-                <span className="font-bold text-grappler-100">{periodSummaries.thisYear.workouts}</span> workouts
-              </span>
-              {periodSummaries.thisYear.sessions > 0 && (
-                <span className="text-grappler-300">
-                  <span className="font-bold text-blue-400">{periodSummaries.thisYear.sessions}</span> sessions
-                </span>
-              )}
-              <span className="text-grappler-300">
-                <span className="font-bold text-yellow-400">{periodSummaries.thisYear.prs}</span> PRs
-              </span>
-              <span className="text-grappler-300">
-                <span className="font-bold text-primary-400">{formatNumber(periodSummaries.thisYear.volume)}</span> {weightUnit}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ─── Today at a Glance ─── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="card p-4"
-      >
-        <div className="flex items-center justify-between mb-3">
+      <div className="card p-3.5">
+        <div className="flex items-center justify-between mb-2.5">
           <h3 className="font-semibold text-grappler-100 text-sm flex items-center gap-2">
             <Sun className="w-4 h-4 text-yellow-400" />
             Today
@@ -2623,10 +1998,10 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
           </span>
         </div>
 
-        {/* Recovery + Readiness (if Whoop connected) */}
+        {/* Recovery (Whoop) */}
         {recoveryScore != null && (
           <div className={cn(
-            'rounded-xl p-3 mb-3 border',
+            'rounded-xl p-2.5 mb-2.5 border',
             recoveryScore >= 67 ? 'bg-green-500/10 border-green-500/30' :
             recoveryScore >= 34 ? 'bg-yellow-500/10 border-yellow-500/30' :
             'bg-red-500/10 border-red-500/30'
@@ -2645,82 +2020,59 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                   {recoveryScore}%
                 </span>
                 {sleepHours != null && (
-                  <span className="text-xs text-grappler-500">
-                    {sleepHours.toFixed(1)}h sleep
-                  </span>
-                )}
-                {strain != null && (
-                  <span className="text-xs text-grappler-500">
-                    {strain.toFixed(1)} strain
-                  </span>
+                  <span className="text-xs text-grappler-500">{sleepHours.toFixed(1)}h sleep</span>
                 )}
               </div>
             </div>
-            <p className="text-xs text-grappler-400 mt-1.5">
-              {recoveryScore >= 67 ? 'Ready to train hard today' :
-               recoveryScore >= 34 ? 'Moderate intensity recommended' :
-               'Consider recovery work or light flow'}
-            </p>
           </div>
         )}
 
-        {/* Holistic Readiness Score (performance engine) */}
         <ReadinessCard />
 
-        {/* Activity Summary Row */}
+        {/* Activity row */}
         <div className="grid grid-cols-3 gap-2">
-          {/* Grappling */}
           <button
             onClick={() => onNavigate('grappling')}
-            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
           >
             <Shield className="w-4 h-4 text-lime-400" />
             <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
-            <span className="text-xs text-grappler-500">Grappling</span>
+            <span className="text-[10px] text-grappler-500">Grappling</span>
           </button>
-
-          {/* Strength */}
           <button
             onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
-            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
           >
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
-            <span className="text-xs text-grappler-500">Lifting</span>
+            <span className="text-[10px] text-grappler-500">Lifting</span>
           </button>
-
-          {/* Nutrition */}
           <button
             onClick={() => onNavigate('nutrition')}
-            className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
           >
             <Apple className="w-4 h-4 text-red-400" />
             <span className="text-lg font-bold text-grappler-100">{todayProtein}g</span>
-            <span className="text-xs text-grappler-500">Protein</span>
+            <span className="text-[10px] text-grappler-500">Protein</span>
           </button>
         </div>
+      </div>
 
-        {/* Quick insight if no activity yet */}
-        {todayTraining.length === 0 && todayWorkouts.length === 0 && todayMeals.length === 0 && (
-          <p className="text-xs text-grappler-500 text-center mt-3 py-2 border-t border-grappler-800">
-            No activity logged yet today. Tap above to get started!
-          </p>
-        )}
-      </motion.div>
+      {/* ─── Contextual Feed (max 4, priority-ranked) ─── */}
+      {feedCards.length > 0 && (
+        <div className="space-y-3">
+          {feedCards}
+        </div>
+      )}
 
-      {/* Featured Tools (4) + expandable More */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      {/* ─── Tools Grid ─── */}
+      <div>
         <div className="grid grid-cols-4 gap-2">
           {featuredTools.map((tool) => (
             <ToolButton key={tool.label} tool={tool} />
           ))}
         </div>
 
-        {/* More Tools toggle */}
         <button
           onClick={() => setShowMoreTools(!showMoreTools)}
           className="w-full mt-2 py-2 flex items-center justify-center gap-1 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
@@ -2745,7 +2097,9 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
+
+      {/* ─── Dialogs ─── */}
 
       {/* Skip Workout Dialog */}
       <AnimatePresence>
@@ -2799,7 +2153,6 @@ function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView)
                         rescheduled: false,
                       });
                       setShowSkipDialog(false);
-                      // If sick, open illness logger
                       if (reason === 'illness') {
                         onNavigate('illness');
                       }

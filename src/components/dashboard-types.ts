@@ -1,0 +1,2 @@
+export type TabType = 'home' | 'program' | 'progress' | 'profile';
+export type OverlayView = 'builder' | 'nutrition' | 'wearable' | 'competition' | 'mobility' | 'coach' | 'profiler' | 'strength' | 'periodization' | 'recovery' | 'injury' | 'overload' | 'custom_exercise' | 'one_rm' | 'hr_zones' | 'templates' | 'volume_map' | 'grappling' | 'community_share' | 'quick_actions' | 'grip_strength' | 'recovery_coach' | 'block_suggestion' | 'user_guide' | 'illness' | null;

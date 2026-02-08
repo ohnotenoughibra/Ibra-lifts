@@ -565,6 +565,53 @@ export default function Dashboard() {
     }
   }, []);
 
+  // ── Daily login bonus ──
+  const claimDailyLoginBonus = useAppStore(s => s.claimDailyLoginBonus);
+  const [loginBonusToast, setLoginBonusToast] = useState<{ points: number; day: number; isMysteryDay: boolean } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    // Small delay so the dashboard renders first
+    const timer = setTimeout(() => {
+      const result = claimDailyLoginBonus();
+      if (result) {
+        setLoginBonusToast(result);
+        // Auto-dismiss after 4 seconds
+        setTimeout(() => setLoginBonusToast(null), 4000);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Notification permission prompt (one-time, after 3rd workout) ──
+  const notificationPreferences = useAppStore(s => s.notificationPreferences);
+  const setNotificationPreferences = useAppStore(s => s.setNotificationPreferences);
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'default' &&
+      !notificationPreferences.enabled &&
+      gamificationStats.totalWorkouts >= 3 &&
+      !localStorage.getItem('roots-notif-prompt-dismissed')
+    ) {
+      const timer = setTimeout(() => setShowNotifPrompt(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [gamificationStats.totalWorkouts, notificationPreferences.enabled]);
+
+  const handleEnableNotifications = async () => {
+    try {
+      const { requestNotificationPermission } = await import('@/lib/notifications');
+      const result = await requestNotificationPermission();
+      if (result === 'granted') {
+        setNotificationPreferences({ enabled: true });
+      }
+    } catch { /* user denied */ }
+    setShowNotifPrompt(false);
+    localStorage.setItem('roots-notif-prompt-dismissed', 'true');
+  };
+
   // Level-up detection — compare previous level to current
   const [levelUpDisplay, setLevelUpDisplay] = useState<number | null>(null);
   const prevLevelRef = useRef(gamificationStats.level);
@@ -581,6 +628,15 @@ export default function Dashboard() {
     const trainedToday = workoutLogs.some(l => new Date(l.date).toDateString() === todayStr);
     return !trainedToday;
   })();
+
+  // ── Schedule streak reminder if at risk ──
+  useEffect(() => {
+    if (streakAtRisk && notificationPreferences.enabled && notificationPreferences.streakAlerts) {
+      import('@/lib/notifications').then(({ scheduleStreakReminder }) => {
+        scheduleStreakReminder(gamificationStats.currentStreak);
+      });
+    }
+  }, [streakAtRisk, notificationPreferences.enabled, notificationPreferences.streakAlerts, gamificationStats.currentStreak]);
 
   // New user walkthrough guide
   if (showNewUserGuide) {
@@ -841,6 +897,84 @@ export default function Dashboard() {
             level={levelUpDisplay}
             onDismiss={() => setLevelUpDisplay(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Daily Login Bonus Toast */}
+      <AnimatePresence>
+        {loginBonusToast && (
+          <motion.div
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50"
+            initial={{ opacity: 0, y: -40, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          >
+            <div
+              className={cn(
+                'px-5 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 cursor-pointer',
+                loginBonusToast.isMysteryDay
+                  ? 'bg-gradient-to-r from-amber-500/20 to-purple-500/20 border-amber-500/30'
+                  : 'bg-grappler-800 border-grappler-700/50'
+              )}
+              onClick={() => setLoginBonusToast(null)}
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
+                <span className="text-lg">{loginBonusToast.isMysteryDay ? '🎁' : '✨'}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-grappler-50">
+                  {loginBonusToast.isMysteryDay ? 'Mystery Bonus!' : `Day ${loginBonusToast.day} Bonus`}
+                </p>
+                <p className="text-xs text-grappler-400">
+                  +{loginBonusToast.points} XP{loginBonusToast.isMysteryDay ? ' — 7-day streak reward!' : ''}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Notification Permission Prompt */}
+      <AnimatePresence>
+        {showNotifPrompt && (
+          <motion.div
+            className="fixed bottom-24 left-4 right-4 z-50"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <div className="bg-grappler-800 rounded-2xl p-4 border border-grappler-700/50 shadow-2xl">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <Zap className="w-5 h-5 text-primary-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-grappler-50">Stay on track</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">
+                    Get streak reminders, daily bonuses, and challenge updates.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setShowNotifPrompt(false);
+                    localStorage.setItem('roots-notif-prompt-dismissed', 'true');
+                  }}
+                  className="flex-1 py-2 rounded-xl text-xs font-medium text-grappler-400 bg-grappler-700/50"
+                >
+                  Not now
+                </button>
+                <button
+                  onClick={handleEnableNotifications}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-primary-500 hover:bg-primary-600 transition-colors"
+                >
+                  Enable notifications
+                </button>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

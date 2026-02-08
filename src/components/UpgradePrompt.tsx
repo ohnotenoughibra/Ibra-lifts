@@ -35,7 +35,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   const [loading, setLoading] = useState(false);
 
   const price = billingCycle === 'annual' ? PRICING.pro.annual : PRICING.pro.monthly;
-  const paypalConfigured = isPayPalConfigured();
+  const paypalConfigured = isPayPalConfigured() && !!(PAYPAL_PLANS.monthly || PAYPAL_PLANS.annual);
 
   const handleUpgrade = useCallback(async () => {
     if (!paypalConfigured) return;

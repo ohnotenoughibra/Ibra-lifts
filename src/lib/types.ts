@@ -1093,6 +1093,38 @@ export interface IllnessTrainingRecommendation {
   returnPhase?: ReturnToTrainingPhaseType;
 }
 
+// ── Subscription Types ─────────────────────────────────────────────────────
+export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionSource = 'paypal' | 'sepa' | 'gym' | 'trial';
+export type SubscriptionPaymentStatus = 'active' | 'grace' | 'expired' | 'cancelled';
+
+export interface Subscription {
+  tier: SubscriptionTier;
+  source: SubscriptionSource;
+  status: SubscriptionPaymentStatus;
+  currentPeriodStart: string; // ISO date
+  currentPeriodEnd: string;   // ISO date
+  paypalSubscriptionId?: string;
+  graceEndsAt?: string;       // ISO date — 14-day grace after expiry
+}
+
+// ── Notification Types ─────────────────────────────────────────────────────
+export interface NotificationPreferences {
+  enabled: boolean;
+  trainingReminders: boolean;
+  streakAlerts: boolean;
+  challengeUpdates: boolean;
+  dailyLoginReminder: boolean;
+  reminderTime: string; // HH:MM
+}
+
+// ── Daily Login Bonus Types ────────────────────────────────────────────────
+export interface DailyLoginBonus {
+  lastClaimedDate: string | null; // YYYY-MM-DD
+  consecutiveDays: number;        // 1-7, resets after 7
+  totalClaimed: number;           // lifetime total XP from login bonuses
+}
+
 // ── New User Guide ──────────────────────────────────────────────────────────
 export interface GuideStep {
   id: string;

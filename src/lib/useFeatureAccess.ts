@@ -1,6 +1,7 @@
 // ── Feature Access Hook ────────────────────────────────────────────────────
 // React hook for gating features behind subscription tiers.
 
+import { useSession } from 'next-auth/react';
 import { useAppStore } from './store';
 import { getEffectiveTier, hasFeatureAccess, FEATURE_GATES, FEATURE_INFO } from './subscription';
 import { SubscriptionTier } from './types';
@@ -29,7 +30,8 @@ export interface FeatureAccessResult {
  */
 export function useFeatureAccess(feature: string): FeatureAccessResult {
   const subscription = useAppStore((state) => state.subscription);
-  const currentTier = getEffectiveTier(subscription);
+  const { data: session } = useSession();
+  const currentTier = getEffectiveTier(subscription, session?.user?.email);
   const requiredTier = FEATURE_GATES[feature] || 'free';
   const info = FEATURE_INFO[feature];
 
@@ -47,7 +49,8 @@ export function useFeatureAccess(feature: string): FeatureAccessResult {
  */
 export function useIsPro(): boolean {
   const subscription = useAppStore((state) => state.subscription);
-  return getEffectiveTier(subscription) === 'pro';
+  const { data: session } = useSession();
+  return getEffectiveTier(subscription, session?.user?.email) === 'pro';
 }
 
 /**
@@ -55,5 +58,6 @@ export function useIsPro(): boolean {
  */
 export function useCurrentTier(): SubscriptionTier {
   const subscription = useAppStore((state) => state.subscription);
-  return getEffectiveTier(subscription);
+  const { data: session } = useSession();
+  return getEffectiveTier(subscription, session?.user?.email);
 }

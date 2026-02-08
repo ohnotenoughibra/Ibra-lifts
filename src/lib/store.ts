@@ -49,6 +49,9 @@ import {
   IllnessSeverity,
   WorkoutSkip,
   SkipReason,
+  Subscription,
+  NotificationPreferences,
+  DailyLoginBonus,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -169,6 +172,15 @@ interface AppState {
   // Sync conflict resolution
   syncConflict: SyncConflict | null;
   pendingRemoteData: Record<string, unknown> | null;
+
+  // Subscription
+  subscription: Subscription | null;
+
+  // Notifications
+  notificationPreferences: NotificationPreferences;
+
+  // Daily login bonus
+  dailyLoginBonus: DailyLoginBonus;
 
   // UI state
   showTip: boolean;
@@ -327,6 +339,15 @@ interface AppState {
   resolveSyncConflict: (resolution: 'local' | 'remote' | 'merge') => void;
   dismissSyncConflict: () => void;
 
+  // Subscription actions
+  setSubscription: (sub: Subscription | null) => void;
+
+  // Notification actions
+  setNotificationPreferences: (prefs: Partial<NotificationPreferences>) => void;
+
+  // Daily login bonus actions
+  claimDailyLoginBonus: () => { points: number; day: number; isMysteryDay: boolean } | null;
+
   // UI actions
   setShowTip: (show: boolean) => void;
   setCurrentTipId: (id: string | null) => void;
@@ -428,6 +449,20 @@ export const useAppStore = create<AppState>()(
       lastCompletedWorkout: null,
       syncConflict: null,
       pendingRemoteData: null,
+      subscription: null,
+      notificationPreferences: {
+        enabled: false,
+        trainingReminders: true,
+        streakAlerts: true,
+        challengeUpdates: true,
+        dailyLoginReminder: true,
+        reminderTime: '09:00',
+      },
+      dailyLoginBonus: {
+        lastClaimedDate: null,
+        consecutiveDays: 0,
+        totalClaimed: 0,
+      },
       showTip: true,
       currentTipId: null,
 
@@ -2300,6 +2335,65 @@ export const useAppStore = create<AppState>()(
       },
       dismissSyncConflict: () => set({ syncConflict: null, pendingRemoteData: null }),
 
+      // Subscription actions
+      setSubscription: (sub) => set({ subscription: sub }),
+
+      // Notification actions
+      setNotificationPreferences: (prefs) => {
+        const { notificationPreferences } = get();
+        set({ notificationPreferences: { ...notificationPreferences, ...prefs } });
+      },
+
+      // Daily login bonus actions
+      claimDailyLoginBonus: () => {
+        const { dailyLoginBonus, gamificationStats } = get();
+        const today = new Date().toISOString().split('T')[0];
+
+        // Already claimed today
+        if (dailyLoginBonus.lastClaimedDate === today) return null;
+
+        // Determine consecutive day
+        let newConsecutive: number;
+        if (!dailyLoginBonus.lastClaimedDate) {
+          newConsecutive = 1;
+        } else {
+          const lastDate = new Date(dailyLoginBonus.lastClaimedDate);
+          const todayDate = new Date(today);
+          const diffMs = todayDate.getTime() - lastDate.getTime();
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            newConsecutive = dailyLoginBonus.consecutiveDays >= 7 ? 1 : dailyLoginBonus.consecutiveDays + 1;
+          } else {
+            newConsecutive = 1;
+          }
+        }
+
+        // XP schedule: 10, 15, 20, 25, 30, 40, 50
+        const xpSchedule = [10, 15, 20, 25, 30, 40, 50];
+        let points = xpSchedule[Math.min(newConsecutive, 7) - 1];
+        const isMysteryDay = newConsecutive === 7;
+
+        // Day 7 mystery bonus: double XP
+        if (isMysteryDay) {
+          points *= 2;
+        }
+
+        set({
+          dailyLoginBonus: {
+            lastClaimedDate: today,
+            consecutiveDays: newConsecutive,
+            totalClaimed: dailyLoginBonus.totalClaimed + points,
+          },
+          gamificationStats: {
+            ...gamificationStats,
+            totalPoints: gamificationStats.totalPoints + points,
+            level: calculateLevel(gamificationStats.totalPoints + points),
+          },
+        });
+
+        return { points, day: newConsecutive, isMysteryDay };
+      },
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -2344,6 +2438,20 @@ export const useAppStore = create<AppState>()(
           competitions: [],
           isOnline: true,
           lastSyncAt: null,
+          subscription: null,
+          notificationPreferences: {
+            enabled: false,
+            trainingReminders: true,
+            streakAlerts: true,
+            challengeUpdates: true,
+            dailyLoginReminder: true,
+            reminderTime: '09:00',
+          },
+          dailyLoginBonus: {
+            lastClaimedDate: null,
+            consecutiveDays: 0,
+            totalClaimed: 0,
+          },
           showTip: true,
           currentTipId: null
         })
@@ -2445,6 +2553,9 @@ export const useAppStore = create<AppState>()(
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,
         lastSyncAt: state.lastSyncAt,
+        subscription: state.subscription,
+        notificationPreferences: state.notificationPreferences,
+        dailyLoginBonus: state.dailyLoginBonus,
       })
     }
   )

@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -52,4 +54,11 @@ const nextConfig = {
   ],
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  // Only upload source maps when SENTRY_AUTH_TOKEN is set (CI/CD)
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  // Hide source maps from end users
+  hideSourceMaps: true,
+  // Automatically tree-shake Sentry logger in production
+  disableLogger: true,
+});

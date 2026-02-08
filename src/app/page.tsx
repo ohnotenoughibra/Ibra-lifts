@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useAppStore } from '@/lib/store';
 import { useDbSync } from '@/lib/useDbSync';
 import { flushSyncQueue } from '@/lib/db-sync';
+import { useWhoopSync } from '@/lib/useWhoopSync';
 import Onboarding from '@/components/Onboarding';
 import Dashboard from '@/components/Dashboard';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -39,6 +40,9 @@ export default function Home() {
 
   // Sync Zustand store with Vercel Postgres — keyed to authenticated user
   const { isInitialLoadComplete } = useDbSync(authUserId);
+
+  // Background Whoop sync — keeps recovery/strain/sleep fresh without opening overlay
+  useWhoopSync();
 
   // When auth session is available, ensure the store user ID matches
   useEffect(() => {

@@ -62,15 +62,24 @@ export const FEATURE_INFO: Record<string, { name: string; description: string }>
   'block-suggestions': { name: 'Block Suggestions', description: 'AI-powered mesocycle focus recommendations' },
 };
 
+// ── Owner Bypass ──────────────────────────────────────────────────────────
+
+const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL?.toLowerCase().trim() || '';
+
+export function isOwner(email: string | null | undefined): boolean {
+  return !!OWNER_EMAIL && !!email && email.toLowerCase().trim() === OWNER_EMAIL;
+}
+
 // ── Tier Resolution ────────────────────────────────────────────────────────
 
 const TIER_RANK: Record<SubscriptionTier, number> = { free: 0, pro: 1 };
 
 /**
  * Get the user's effective subscription tier.
- * Checks active subscription, grace period, gym membership.
+ * Checks owner bypass, active subscription, grace period, gym membership.
  */
-export function getEffectiveTier(subscription: Subscription | null): SubscriptionTier {
+export function getEffectiveTier(subscription: Subscription | null, userEmail?: string | null): SubscriptionTier {
+  if (isOwner(userEmail)) return 'pro';
   if (!subscription) return 'free';
 
   // Active pro subscription

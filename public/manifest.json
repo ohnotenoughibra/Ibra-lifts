@@ -22,12 +22,5 @@
     }
   ],
   "categories": ["health", "fitness", "sports"],
-  "screenshots": [
-    {
-      "src": "/screenshot-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "screenshots": []
 }

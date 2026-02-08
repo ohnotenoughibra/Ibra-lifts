@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -173,13 +174,14 @@ export default function Dashboard() {
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
   const scrollPositionRef = useRef(0);
   const subscription = useAppStore(s => s.subscription);
+  const { data: session } = useSession();
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
   const setOverlayView = (view: OverlayView) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
       const featureKey = OVERLAY_FEATURE_MAP[view];
       if (featureKey) {
-        const tier = getEffectiveTier(subscription);
+        const tier = getEffectiveTier(subscription, session?.user?.email);
         if (!hasFeatureAccess(featureKey, tier)) {
           setUpgradeFeature(featureKey);
           return;

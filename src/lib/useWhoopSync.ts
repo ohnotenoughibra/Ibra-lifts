@@ -129,6 +129,31 @@ function transformApiData(apiData: any): WearableData[] {
     dataMap.set(todayKey, { id: `today-${todayKey}`, date: new Date(), provider: 'whoop' });
   }
 
+  // If today's cycle strain is null, estimate from today's scored workouts
+  const todayEntry = dataMap.get(todayKey);
+  if (todayEntry && todayEntry.strain == null && apiData.workouts) {
+    let maxWorkoutStrain = 0;
+    let totalCalories = 0;
+    let peakHR = 0;
+    for (const w of apiData.workouts) {
+      if (!w.score) continue;
+      const wDate = (w.end || w.start || '')?.substring?.(0, 10);
+      if (wDate !== todayKey) continue;
+      const wStrain = w.score?.strain ?? 0;
+      if (wStrain > maxWorkoutStrain) maxWorkoutStrain = wStrain;
+      totalCalories += w.score?.kilojoule ? Math.round(w.score.kilojoule * 0.239006) : 0;
+      const wMax = w.score?.max_heart_rate ?? 0;
+      if (wMax > peakHR) peakHR = wMax;
+    }
+    if (maxWorkoutStrain > 0) {
+      mergeDay(todayKey, {
+        strain: Math.round(maxWorkoutStrain * 10) / 10,
+        ...(totalCalories > 0 && todayEntry.caloriesBurned == null ? { caloriesBurned: totalCalories } : {}),
+        ...(peakHR > 0 && todayEntry.maxHeartRate == null ? { maxHeartRate: peakHR } : {}),
+      });
+    }
+  }
+
   return Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

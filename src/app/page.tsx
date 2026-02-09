@@ -39,7 +39,7 @@ export default function Home() {
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
   // Sync Zustand store with Vercel Postgres — keyed to authenticated user
-  const { isInitialLoadComplete } = useDbSync(authUserId, sessionStatus);
+  const { isInitialLoadComplete, syncStatus, lastSyncedAt, deviceType, forceSync, isAuthenticated } = useDbSync(authUserId, sessionStatus);
 
   // Background Whoop sync — keeps recovery/strain/sleep fresh without opening overlay
   useWhoopSync();
@@ -220,7 +220,13 @@ export default function Home() {
 
   return (
     <>
-      <Dashboard />
+      <Dashboard
+        syncStatus={syncStatus}
+        lastSyncedAt={lastSyncedAt}
+        deviceType={deviceType}
+        isAuthenticated={isAuthenticated}
+        onForceSync={forceSync}
+      />
 
       {/* PWA Banners */}
       <AnimatePresence>

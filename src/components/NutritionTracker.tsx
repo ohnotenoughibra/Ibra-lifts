@@ -1267,32 +1267,40 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {Array.from({ length: WATER_GOAL }, (_, i) => (
+            {Array.from({ length: Math.max(WATER_GOAL, waterGlasses) }, (_, i) => (
               <motion.button
                 key={i}
                 whileTap={{ scale: 0.85 }}
                 onClick={() => setWaterGlasses(i < waterGlasses ? i : i + 1)}
                 className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${
                   i < waterGlasses
-                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                    ? i < WATER_GOAL
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40'
+                      : 'bg-green-500/20 text-green-400 border border-green-500/40'
                     : 'bg-grappler-700/40 text-grappler-600 border border-grappler-700/60'
                 }`}
               >
                 <Droplet
                   className={`w-4 h-4 ${
-                    i < waterGlasses ? 'fill-blue-400' : ''
+                    i < waterGlasses ? (i < WATER_GOAL ? 'fill-blue-400' : 'fill-green-400') : ''
                   }`}
                 />
               </motion.button>
             ))}
+            <motion.button
+              whileTap={{ scale: 0.85 }}
+              onClick={() => setWaterGlasses(waterGlasses + 1)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center bg-grappler-700/40 text-grappler-400 border border-dashed border-grappler-600 hover:border-blue-500/50 hover:text-blue-400 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+            </motion.button>
           </div>
 
           <p className="text-xs text-grappler-500 mt-2">
             {waterGlasses}/{WATER_GOAL} glasses (250 ml each)
             {waterGlasses >= WATER_GOAL && (
-              <span className="text-blue-400 ml-1 font-medium">
-                {' '}
-                -- Goal reached!
+              <span className={cn('ml-1 font-medium', waterGlasses > WATER_GOAL ? 'text-green-400' : 'text-blue-400')}>
+                {waterGlasses > WATER_GOAL ? ` +${waterGlasses - WATER_GOAL} bonus!` : ' -- Goal reached!'}
               </span>
             )}
           </p>

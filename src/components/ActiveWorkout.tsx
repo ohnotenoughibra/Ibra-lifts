@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Save,
   Shuffle,
+  SkipForward,
   Moon,
   Utensils,
   Brain,
@@ -387,6 +388,30 @@ export default function ActiveWorkout() {
   const handleSwapExercise = (newExerciseId: string, newExerciseName: string) => {
     swapExercise(currentExerciseIndex, newExerciseId, newExerciseName);
     setShowSwapModal(false);
+  };
+
+  const handleSkipExercise = () => {
+    // Mark all remaining (incomplete) sets as completed with 0 weight/reps
+    const skippedSets = currentLog.sets.map(s =>
+      s.completed ? s : { ...s, weight: 0, reps: 0, rpe: 0, completed: true, notes: 'Skipped' }
+    );
+    updateExerciseLog(currentExerciseIndex, {
+      ...currentLog,
+      sets: skippedSets,
+      feedback: {
+        exerciseId: currentLog.exerciseId,
+        pumpRating: 0,
+        difficulty: 'too_hard' as const,
+        jointPain: false,
+        wantToSwap: false,
+      },
+    });
+    // Move to next exercise if not on last one
+    if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+      setCurrentSetIndex(0);
+    }
+    setIsResting(false);
   };
 
   const submitPreCheckIn = () => {
@@ -2036,6 +2061,13 @@ export default function ActiveWorkout() {
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 <span className="text-xs font-medium">Swap Exercise</span>
+              </button>
+              <button
+                onClick={handleSkipExercise}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-orange-500/50 transition-all text-grappler-400 hover:text-orange-400"
+              >
+                <SkipForward className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">Skip</span>
               </button>
             </div>
             {/* Workout Type Context Explanation */}

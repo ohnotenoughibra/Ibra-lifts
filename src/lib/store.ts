@@ -23,6 +23,7 @@ import {
   BodyWeightEntry,
   BodyCompositionEntry,
   InjuryEntry,
+  Exercise,
   CustomExercise,
   SessionTemplate,
   ThemeMode,
@@ -220,6 +221,7 @@ interface AppState {
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  addBonusExercise: (exercise: Exercise, sets: number, reps: number) => void;
   swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback; durationOverride?: number }) => void;
@@ -1150,6 +1152,48 @@ export const useAppStore = create<AppState>()(
             session: updatedSession,
             exerciseLogs: updatedLogs
           }
+        });
+      },
+
+      addBonusExercise: (exercise, sets, reps) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+
+        const prescription = {
+          exerciseId: exercise.id,
+          exercise,
+          sets,
+          prescription: {
+            targetReps: reps,
+            minReps: Math.max(1, reps - 2),
+            maxReps: reps + 2,
+            rpe: 7,
+            restSeconds: 90,
+          },
+        };
+
+        const newLog: ExerciseLog = {
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          sets: Array.from({ length: sets }, (_, i) => ({
+            setNumber: i + 1,
+            weight: 0,
+            reps: 0,
+            rpe: 0,
+            completed: false,
+          })),
+          personalRecord: false,
+        };
+
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            session: {
+              ...activeWorkout.session,
+              exercises: [...activeWorkout.session.exercises, prescription],
+            },
+            exerciseLogs: [...activeWorkout.exerciseLogs, newLog],
+          },
         });
       },
 

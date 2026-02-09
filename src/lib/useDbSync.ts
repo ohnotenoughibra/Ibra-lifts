@@ -9,9 +9,10 @@ import { SyncConflict, buildConflictFields } from '@/components/SyncConflictReso
  * Sync Zustand store with Vercel Postgres.
  * @param authUserId — The authenticated user's ID from NextAuth session.
  *                      When provided, this overrides store.user?.id for all DB operations.
+ * @param sessionStatus — NextAuth session status ('loading' | 'authenticated' | 'unauthenticated')
  * @returns { isInitialLoadComplete } - Whether the initial database load has finished
  */
-export function useDbSync(authUserId?: string | null) {
+export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   const store = useAppStore();
   const lastSyncRef = useRef<string>('');
   const initialLoadDone = useRef(false);
@@ -93,24 +94,22 @@ export function useDbSync(authUserId?: string | null) {
         }
 
         if (dbUpdated > localUpdated) {
-          // DB is newer - hydrate store from DB
+          // DB is newer - hydrate store from DB (restore all synced fields)
           const fieldsToMerge: Record<string, unknown> = {};
-          if (dbData.workoutLogs) fieldsToMerge.workoutLogs = dbData.workoutLogs;
-          if (dbData.bodyWeightLog) fieldsToMerge.bodyWeightLog = dbData.bodyWeightLog;
-          if (dbData.gamificationStats) fieldsToMerge.gamificationStats = dbData.gamificationStats;
-          if (dbData.injuryLog) fieldsToMerge.injuryLog = dbData.injuryLog;
-          if (dbData.customExercises) fieldsToMerge.customExercises = dbData.customExercises;
-          if (dbData.sessionTemplates) fieldsToMerge.sessionTemplates = dbData.sessionTemplates;
-          if (dbData.hrSessions) fieldsToMerge.hrSessions = dbData.hrSessions;
-          if (dbData.trainingSessions) fieldsToMerge.trainingSessions = dbData.trainingSessions;
-          if (dbData.currentMesocycle) fieldsToMerge.currentMesocycle = dbData.currentMesocycle;
-          if (dbData.mesocycleHistory) fieldsToMerge.mesocycleHistory = dbData.mesocycleHistory;
-          if (dbData.baselineLifts) fieldsToMerge.baselineLifts = dbData.baselineLifts;
-          if (dbData.user) fieldsToMerge.user = dbData.user;
+          const restoreFields = [
+            'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
+            'currentMesocycle', 'mesocycleHistory', 'workoutLogs', 'gamificationStats',
+            'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
+            'hrSessions', 'trainingSessions', 'themeMode', 'meals', 'macroTargets',
+            'waterLog', 'activeDietPhase', 'weeklyCheckIns', 'bodyComposition',
+            'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
+            'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
+            'notificationPreferences', 'workoutSkips', 'illnessLogs',
+          ];
+          for (const field of restoreFields) {
+            if (dbData[field] !== undefined) fieldsToMerge[field] = dbData[field];
+          }
           if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
-          if (dbData.isAuthenticated !== undefined) fieldsToMerge.isAuthenticated = dbData.isAuthenticated;
-          if (dbData.onboardingData) fieldsToMerge.onboardingData = dbData.onboardingData;
-          if (dbData.themeMode) fieldsToMerge.themeMode = dbData.themeMode;
 
           if (Object.keys(fieldsToMerge).length > 0) {
             useAppStore.setState(fieldsToMerge);
@@ -127,20 +126,20 @@ export function useDbSync(authUserId?: string | null) {
     });
   }, [effectiveUserId]);
 
-  // If no user, mark initial load as complete immediately (guest mode)
+  // If no user AND session is resolved (not still loading), mark as complete (guest mode)
   useEffect(() => {
-    if (!effectiveUserId && !initialLoadDone.current) {
+    if (!effectiveUserId && !initialLoadDone.current && sessionStatus !== 'loading') {
       initialLoadDone.current = true;
       setIsInitialLoadComplete(true);
     }
-  }, [effectiveUserId]);
+  }, [effectiveUserId, sessionStatus]);
 
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
 
     // Create a fingerprint of the data to detect actual changes
-    const syncData = {
+    const syncData: Record<string, unknown> = {
       user: store.user,
       isOnboarded: store.isOnboarded,
       isAuthenticated: store.isAuthenticated,
@@ -157,6 +156,22 @@ export function useDbSync(authUserId?: string | null) {
       hrSessions: store.hrSessions,
       trainingSessions: store.trainingSessions,
       themeMode: store.themeMode,
+      meals: store.meals,
+      macroTargets: store.macroTargets,
+      waterLog: store.waterLog,
+      activeDietPhase: store.activeDietPhase,
+      weeklyCheckIns: store.weeklyCheckIns,
+      bodyComposition: store.bodyComposition,
+      muscleEmphasis: store.muscleEmphasis,
+      competitions: store.competitions,
+      subscription: store.subscription,
+      quickLogs: store.quickLogs,
+      gripTests: store.gripTests,
+      gripExerciseLogs: store.gripExerciseLogs,
+      activeEquipmentProfile: store.activeEquipmentProfile,
+      notificationPreferences: store.notificationPreferences,
+      workoutSkips: store.workoutSkips,
+      illnessLogs: store.illnessLogs,
     };
 
     const fingerprint = JSON.stringify(syncData);
@@ -181,6 +196,22 @@ export function useDbSync(authUserId?: string | null) {
     store.hrSessions,
     store.trainingSessions,
     store.themeMode,
+    store.meals,
+    store.macroTargets,
+    store.waterLog,
+    store.activeDietPhase,
+    store.weeklyCheckIns,
+    store.bodyComposition,
+    store.muscleEmphasis,
+    store.competitions,
+    store.subscription,
+    store.quickLogs,
+    store.gripTests,
+    store.gripExerciseLogs,
+    store.activeEquipmentProfile,
+    store.notificationPreferences,
+    store.workoutSkips,
+    store.illnessLogs,
   ]);
 
   return { isInitialLoadComplete };

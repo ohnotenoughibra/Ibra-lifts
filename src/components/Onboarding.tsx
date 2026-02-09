@@ -577,6 +577,52 @@ function Step1_WhoAreYou({
                 ))}
               </div>
             </div>
+
+            {/* Program Style — lets the user choose how sessions are structured */}
+            <div>
+              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Program style</label>
+              <div className="space-y-2">
+                {([
+                  {
+                    value: 'linear' as const,
+                    label: 'Repeating',
+                    desc: 'Same session structure each day — simple, great for building habits',
+                    rec: data.experienceLevel === 'beginner',
+                  },
+                  {
+                    value: 'undulating' as const,
+                    label: 'Varied (DUP)',
+                    desc: 'Different focus each day (strength, volume, power) — keeps it fresh',
+                    rec: data.experienceLevel === 'intermediate',
+                  },
+                  {
+                    value: 'block' as const,
+                    label: 'Block',
+                    desc: 'Entire weeks focus on one quality, then rotate — structured peaks',
+                    rec: data.experienceLevel === 'advanced',
+                  },
+                ]).map((style) => (
+                  <button
+                    key={style.value}
+                    onClick={() => update({ periodizationStyle: style.value })}
+                    className={cn(
+                      'w-full p-3 rounded-lg text-left transition-all border',
+                      (data.periodizationStyle ?? (data.experienceLevel === 'beginner' ? 'linear' : data.experienceLevel === 'advanced' ? 'block' : 'undulating')) === style.value
+                        ? 'bg-primary-500/20 border-primary-500 text-white'
+                        : 'bg-grappler-700 border-grappler-600 text-grappler-400'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{style.label}</p>
+                      {style.rec && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-500/30 text-primary-300">Recommended</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] opacity-70 mt-0.5">{style.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -938,6 +984,13 @@ function Step3_Ready({ data }: { data: OnboardingData }) {
     return 'Push / Pull / Legs';
   };
 
+  const getPeriodizationLabel = () => {
+    const style = data.periodizationStyle ?? (data.experienceLevel === 'beginner' ? 'linear' : data.experienceLevel === 'advanced' ? 'block' : 'undulating');
+    if (style === 'linear') return 'Repeating';
+    if (style === 'block') return 'Block';
+    return 'Varied';
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -972,7 +1025,7 @@ function Step3_Ready({ data }: { data: OnboardingData }) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
-        className="grid grid-cols-3 gap-2"
+        className="grid grid-cols-2 gap-2"
       >
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{data.sessionsPerWeek}</p>
@@ -981,6 +1034,10 @@ function Step3_Ready({ data }: { data: OnboardingData }) {
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{getSplitLabel()}</p>
           <p className="text-[10px] text-grappler-400">Split</p>
+        </div>
+        <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-grappler-100">{getPeriodizationLabel()}</p>
+          <p className="text-[10px] text-grappler-400">Style</p>
         </div>
         <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
           <p className="text-lg font-bold text-grappler-100">{data.sessionDurationMinutes || 60}m</p>

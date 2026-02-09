@@ -38,17 +38,17 @@ import {
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
+import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
-import { Building2, Home, Backpack } from 'lucide-react';
+import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
 
 export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
-    setPreCheckIn, updateExerciseFeedback, swapExercise, adaptWorkoutToProfile,
+    setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment
   } = useAppStore();
 
@@ -68,6 +68,9 @@ export default function ActiveWorkout() {
   const [showCheckInSection, setShowCheckInSection] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+  const [addExerciseSearch, setAddExerciseSearch] = useState('');
+  const [addExerciseFilter, setAddExerciseFilter] = useState<string>('all');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
@@ -447,6 +450,23 @@ export default function ActiveWorkout() {
     user.equipment,
     8
   ) : [];
+
+  // Filtered exercises for Add Exercise modal
+  const addExerciseList = useMemo(() => {
+    if (!activeWorkout) return [];
+    const usedIds = new Set(activeWorkout.session.exercises.map(e => e.exerciseId));
+    const userEquipment = user?.equipment;
+    return exerciseLibrary.filter(ex => {
+      if (usedIds.has(ex.id)) return false;
+      if (userEquipment && !ex.equipmentRequired.includes(userEquipment)) return false;
+      if (addExerciseFilter !== 'all' && !ex.primaryMuscles.includes(addExerciseFilter as any)) return false;
+      if (addExerciseSearch) {
+        const q = addExerciseSearch.toLowerCase();
+        return ex.name.toLowerCase().includes(q) || ex.primaryMuscles.some(m => m.includes(q));
+      }
+      return true;
+    });
+  }, [activeWorkout, user, addExerciseSearch, addExerciseFilter]);
 
   // Get previous performance for an alternative exercise
   const getAltHistory = (exerciseId: string) => {
@@ -1481,6 +1501,105 @@ export default function ActiveWorkout() {
         )}
       </AnimatePresence>
 
+      {/* Add Exercise Modal */}
+      <AnimatePresence>
+        {showAddExerciseModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-6 w-full max-w-md max-h-[85vh] flex flex-col"
+            >
+              <h2 className="text-lg font-bold text-grappler-50 mb-3">Add Exercise</h2>
+
+              {/* Search */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+                <input
+                  type="text"
+                  value={addExerciseSearch}
+                  onChange={(e) => setAddExerciseSearch(e.target.value)}
+                  placeholder="Search exercises..."
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-sm text-grappler-100 placeholder-grappler-500 focus:outline-none focus:border-primary-500"
+                  autoFocus
+                />
+              </div>
+
+              {/* Muscle filter chips */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {['all', 'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'core'].map(muscle => (
+                  <button
+                    key={muscle}
+                    onClick={() => setAddExerciseFilter(muscle)}
+                    className={cn(
+                      'text-xs px-2.5 py-1 rounded-full transition-colors capitalize',
+                      addExerciseFilter === muscle
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
+                    )}
+                  >
+                    {muscle === 'all' ? 'All' : muscle}
+                  </button>
+                ))}
+              </div>
+
+              {/* Exercise list */}
+              <div className="overflow-y-auto flex-1 space-y-1.5 min-h-0">
+                {addExerciseList.length > 0 ? addExerciseList.slice(0, 30).map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => {
+                      addBonusExercise(ex, 3, 10);
+                      setShowAddExerciseModal(false);
+                      // Navigate to the newly added exercise
+                      setTimeout(() => {
+                        setCurrentExerciseIndex(activeWorkout.session.exercises.length);
+                        setCurrentSetIndex(0);
+                      }, 50);
+                    }}
+                    className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
+                  >
+                    <p className="font-semibold text-sm text-grappler-100 group-hover:text-primary-300 transition-colors">
+                      {ex.name}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-400 capitalize">
+                        {ex.category}
+                      </span>
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-400 capitalize">
+                        {ex.movementPattern}
+                      </span>
+                    </div>
+                    <p className="text-xs text-grappler-500 mt-1 capitalize">
+                      {ex.primaryMuscles.join(', ')}
+                    </p>
+                  </button>
+                )) : (
+                  <p className="text-sm text-grappler-400 text-center py-6">
+                    No exercises found
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowAddExerciseModal(false)}
+                className="btn btn-secondary btn-md w-full mt-4"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Enhanced Exercise History Modal */}
       <AnimatePresence>
         {showHistoryModal && (
@@ -1856,9 +1975,22 @@ export default function ActiveWorkout() {
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <p className="text-sm text-grappler-400">
-            Exercise {currentExerciseIndex + 1} of {activeWorkout.session.exercises.length}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-grappler-400">
+              Exercise {currentExerciseIndex + 1} of {activeWorkout.session.exercises.length}
+            </p>
+            <button
+              onClick={() => {
+                setAddExerciseSearch('');
+                setAddExerciseFilter('all');
+                setShowAddExerciseModal(true);
+              }}
+              className="w-6 h-6 rounded-full bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 flex items-center justify-center transition-colors"
+              title="Add exercise"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <button
             onClick={() => {
               if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {

@@ -17,6 +17,7 @@ const LS_KEYS = {
 
 const SYNC_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // consider data stale after 15 min
+const LIVE_STALE_THRESHOLD_MS = 5 * 60 * 1000; // re-sync sooner when strain is pending
 
 function getToken(key: string): string {
   if (typeof window === 'undefined') return '';
@@ -44,7 +45,10 @@ function transformApiData(apiData: any): WearableData[] {
   // Cycles (strain, calories, HR)
   if (apiData.cycles) {
     for (const cycle of apiData.cycles) {
-      if (!cycle.score && cycle.score_state && cycle.score_state !== 'SCORED') continue;
+      // Skip unscorable cycles, but allow PENDING_STRAIN (live/current day) through
+      if (cycle.score_state === 'UNSCORABLE') continue;
+      const hasScore = cycle.score && (cycle.score.strain != null || cycle.score.kilojoule != null);
+      if (!hasScore && cycle.score_state && cycle.score_state !== 'SCORED' && cycle.score_state !== 'PENDING_STRAIN') continue;
       const dateKey = whoopDateKey(cycle)
         || cycle.updated_at?.substring(0, 10)
         || new Date().toISOString().substring(0, 10);
@@ -174,9 +178,12 @@ export function useWhoopSync() {
       const accessToken = getToken(LS_KEYS.accessToken);
       if (!accessToken) return; // Whoop not connected
 
-      // Skip if data is still fresh
-      const lastSync = useAppStore.getState().latestWhoopData?.date;
-      if (lastSync && Date.now() - new Date(lastSync).getTime() < STALE_THRESHOLD_MS) return;
+      // Skip if data is still fresh (use shorter threshold when strain is pending)
+      const latestData = useAppStore.getState().latestWhoopData;
+      const lastFetch = getToken('whoop_last_fetch');
+      const lastFetchTime = lastFetch ? parseInt(lastFetch, 10) : 0;
+      const threshold = latestData?.strain == null ? LIVE_STALE_THRESHOLD_MS : STALE_THRESHOLD_MS;
+      if (lastFetchTime && Date.now() - lastFetchTime < threshold) return;
 
       syncInFlight.current = true;
       try {
@@ -209,6 +216,7 @@ export function useWhoopSync() {
           if (workouts.length > 0) {
             useAppStore.getState().setWhoopWorkouts(workouts);
           }
+          setToken('whoop_last_fetch', String(Date.now()));
         }
       } catch {
         // Silent fail — user can still manually refresh from Wearable overlay

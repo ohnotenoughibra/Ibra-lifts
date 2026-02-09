@@ -21,10 +21,11 @@ import {
   Filter,
   ChevronRight,
   FileDown,
+  Plus,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
-import { SetLog, MuscleGroup } from '@/lib/types';
-import { getExerciseById } from '@/lib/exercises';
+import { SetLog, ExerciseLog, MuscleGroup } from '@/lib/types';
+import { exercises as exerciseLibrary, getExerciseById } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 
 export default function WorkoutHistory() {
@@ -34,6 +35,10 @@ export default function WorkoutHistory() {
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
   const [editDuration, setEditDuration] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [addedSets, setAddedSets] = useState<Record<number, SetLog[]>>({});
+  const [addedExercises, setAddedExercises] = useState<ExerciseLog[]>([]);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [exercisePickerSearch, setExercisePickerSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'strength' | 'hypertrophy' | 'power'>('all');
@@ -102,6 +107,8 @@ export default function WorkoutHistory() {
     setEditingLogId(logId);
     setEditData({});
     setEditDuration(log?.duration ?? null);
+    setAddedSets({});
+    setAddedExercises([]);
   };
 
   const updateEditValue = (exerciseIdx: number, setIdx: number, field: keyof SetLog, value: number) => {
@@ -117,30 +124,109 @@ export default function WorkoutHistory() {
     }));
   };
 
+  const addSetToExercise = (exerciseIdx: number, existingSetsCount: number) => {
+    const newSet: SetLog = {
+      setNumber: existingSetsCount + (addedSets[exerciseIdx]?.length || 0) + 1,
+      weight: 0,
+      reps: 0,
+      rpe: 0,
+      completed: true,
+    };
+    setAddedSets(prev => ({
+      ...prev,
+      [exerciseIdx]: [...(prev[exerciseIdx] || []), newSet],
+    }));
+  };
+
+  const updateAddedSetValue = (exerciseIdx: number, addedSetIdx: number, field: keyof SetLog, value: number) => {
+    setAddedSets(prev => ({
+      ...prev,
+      [exerciseIdx]: (prev[exerciseIdx] || []).map((s, i) =>
+        i === addedSetIdx ? { ...s, [field]: value } : s
+      ),
+    }));
+  };
+
+  const removeAddedSet = (exerciseIdx: number, addedSetIdx: number) => {
+    setAddedSets(prev => ({
+      ...prev,
+      [exerciseIdx]: (prev[exerciseIdx] || []).filter((_, i) => i !== addedSetIdx),
+    }));
+  };
+
+  const addExerciseToLog = (exerciseId: string, exerciseName: string) => {
+    const newExercise: ExerciseLog = {
+      exerciseId,
+      exerciseName,
+      sets: [{ setNumber: 1, weight: 0, reps: 0, rpe: 0, completed: true }],
+      personalRecord: false,
+    };
+    setAddedExercises(prev => [...prev, newExercise]);
+    setShowExercisePicker(false);
+    setExercisePickerSearch('');
+  };
+
+  const updateAddedExerciseSet = (addedExIdx: number, setIdx: number, field: keyof SetLog, value: number) => {
+    setAddedExercises(prev => prev.map((ex, i) =>
+      i === addedExIdx ? {
+        ...ex,
+        sets: ex.sets.map((s, j) => j === setIdx ? { ...s, [field]: value } : s),
+      } : ex
+    ));
+  };
+
+  const addSetToAddedExercise = (addedExIdx: number) => {
+    setAddedExercises(prev => prev.map((ex, i) =>
+      i === addedExIdx ? {
+        ...ex,
+        sets: [...ex.sets, { setNumber: ex.sets.length + 1, weight: 0, reps: 0, rpe: 0, completed: true }],
+      } : ex
+    ));
+  };
+
+  const removeAddedExercise = (addedExIdx: number) => {
+    setAddedExercises(prev => prev.filter((_, i) => i !== addedExIdx));
+  };
+
+  const filteredPickerExercises = useMemo(() => {
+    if (!exercisePickerSearch) return exerciseLibrary.slice(0, 20);
+    const q = exercisePickerSearch.toLowerCase();
+    return exerciseLibrary.filter(ex =>
+      ex.name.toLowerCase().includes(q) || ex.primaryMuscles.some(m => m.includes(q))
+    ).slice(0, 20);
+  }, [exercisePickerSearch]);
+
   const saveEdits = (logId: string) => {
     const log = workoutLogs.find(l => l.id === logId);
     if (!log) return;
 
     const updatedExercises = log.exercises.map((ex, eIdx) => {
       const exerciseEdits = editData[eIdx];
-      if (!exerciseEdits) return ex;
+      const extraSets = addedSets[eIdx] || [];
 
-      const updatedSets = ex.sets.map((set, sIdx) => {
-        const setEdits = exerciseEdits[sIdx];
+      let updatedSets = ex.sets.map((set, sIdx) => {
+        const setEdits = exerciseEdits?.[sIdx];
         if (!setEdits) return set;
         return { ...set, ...setEdits };
       });
 
-      // Recalculate total volume for this exercise
+      // Append any added sets
+      if (extraSets.length > 0) {
+        updatedSets = [...updatedSets, ...extraSets];
+      }
+
       return { ...ex, sets: updatedSets };
     });
 
+    // Append added exercises
+    const allExercises = [...updatedExercises, ...addedExercises];
+
     // Recalculate total volume
-    const totalVolume = updatedExercises.reduce((sum, ex) =>
+    const totalVolume = allExercises.reduce((sum, ex) =>
       sum + ex.sets.reduce((s, set) => s + (set.completed ? set.weight * set.reps : 0), 0), 0
     );
 
-    const updates: Partial<typeof log> = { exercises: updatedExercises, totalVolume };
+    const updates: Partial<typeof log> = { exercises: allExercises, totalVolume };
     if (editDuration !== null && editDuration !== log.duration) {
       updates.duration = editDuration;
     }
@@ -148,6 +234,8 @@ export default function WorkoutHistory() {
     setEditingLogId(null);
     setEditData({});
     setEditDuration(null);
+    setAddedSets({});
+    setAddedExercises([]);
   };
 
   const handleDelete = (logId: string) => {
@@ -532,7 +620,7 @@ export default function WorkoutHistory() {
                             <Save className="w-3.5 h-3.5" /> Save Changes
                           </button>
                           <button
-                            onClick={() => { setEditingLogId(null); setEditData({}); setEditDuration(null); }}
+                            onClick={() => { setEditingLogId(null); setEditData({}); setEditDuration(null); setAddedSets({}); setAddedExercises([]); }}
                             className="btn btn-secondary btn-sm gap-1"
                           >
                             <X className="w-3.5 h-3.5" /> Cancel
@@ -667,6 +755,61 @@ export default function WorkoutHistory() {
                             </div>
                             );
                           })}
+
+                          {/* Added sets (edit mode) */}
+                          {editingLogId === log.id && addedSets[i]?.map((addedSet, aIdx) => (
+                            <div key={`added-${aIdx}`} className="flex items-center justify-between text-xs">
+                              <span className="w-12 text-primary-400">Set {ex.sets.length + aIdx + 1}</span>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={addedSet.weight}
+                                  onChange={(e) => updateAddedSetValue(i, aIdx, 'weight', parseFloat(e.target.value) || 0)}
+                                  className="w-14 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                />
+                                <span className="text-grappler-500">{weightUnit}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-grappler-500">x</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={addedSet.reps}
+                                  onChange={(e) => updateAddedSetValue(i, aIdx, 'reps', parseInt(e.target.value) || 0)}
+                                  className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-grappler-500">RPE</span>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={addedSet.rpe}
+                                  onChange={(e) => updateAddedSetValue(i, aIdx, 'rpe', parseFloat(e.target.value) || 0)}
+                                  className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                  min={1}
+                                  max={10}
+                                />
+                              </div>
+                              <button
+                                onClick={() => removeAddedSet(i, aIdx)}
+                                className="text-red-400 hover:text-red-300 ml-1"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add Set button (edit mode) */}
+                          {editingLogId === log.id && (
+                            <button
+                              onClick={() => addSetToExercise(i, ex.sets.length)}
+                              className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 mt-1 transition-colors"
+                            >
+                              <Plus className="w-3 h-3" /> Add Set
+                            </button>
+                          )}
                         </div>
                         {ex.feedback && (
                           <div className="mt-2 pt-2 border-t border-grappler-700 text-xs text-grappler-400 flex flex-wrap gap-2">
@@ -677,6 +820,76 @@ export default function WorkoutHistory() {
                         )}
                       </div>
                     ))}
+
+                    {/* Added exercises (edit mode) */}
+                    {editingLogId === log.id && addedExercises.map((addedEx, aeIdx) => (
+                      <div key={`added-ex-${aeIdx}`} className="bg-primary-500/5 border border-primary-500/20 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium text-primary-300 text-sm">{addedEx.exerciseName}</p>
+                          <button
+                            onClick={() => removeAddedExercise(aeIdx)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="space-y-1">
+                          {addedEx.sets.map((set, sIdx) => (
+                            <div key={sIdx} className="flex items-center justify-between text-xs">
+                              <span className="w-12 text-primary-400">Set {set.setNumber}</span>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={set.weight}
+                                  onChange={(e) => updateAddedExerciseSet(aeIdx, sIdx, 'weight', parseFloat(e.target.value) || 0)}
+                                  className="w-14 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                />
+                                <span className="text-grappler-500">{weightUnit}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-grappler-500">x</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={set.reps}
+                                  onChange={(e) => updateAddedExerciseSet(aeIdx, sIdx, 'reps', parseInt(e.target.value) || 0)}
+                                  className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-grappler-500">RPE</span>
+                                <input
+                                  type="number"
+                                  inputMode="decimal"
+                                  value={set.rpe}
+                                  onChange={(e) => updateAddedExerciseSet(aeIdx, sIdx, 'rpe', parseFloat(e.target.value) || 0)}
+                                  className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                  min={1}
+                                  max={10}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => addSetToAddedExercise(aeIdx)}
+                            className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 mt-1 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" /> Add Set
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Exercise button (edit mode) */}
+                    {editingLogId === log.id && (
+                      <button
+                        onClick={() => { setExercisePickerSearch(''); setShowExercisePicker(true); }}
+                        className="w-full py-2 rounded-lg border border-dashed border-grappler-600 hover:border-primary-500 text-xs text-grappler-400 hover:text-primary-400 flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Exercise
+                      </button>
+                    )}
 
                     {/* Post-workout feedback */}
                     {log.postFeedback && (
@@ -705,6 +918,65 @@ export default function WorkoutHistory() {
           </motion.div>
         );
       })}
+
+      {/* Exercise Picker Modal */}
+      <AnimatePresence>
+        {showExercisePicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-5 w-full max-w-md max-h-[75vh] flex flex-col"
+            >
+              <h2 className="text-lg font-bold text-grappler-50 mb-3">Add Exercise</h2>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+                <input
+                  type="text"
+                  value={exercisePickerSearch}
+                  onChange={(e) => setExercisePickerSearch(e.target.value)}
+                  placeholder="Search exercises..."
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-sm text-grappler-100 placeholder-grappler-500 focus:outline-none focus:border-primary-500"
+                  autoFocus
+                />
+              </div>
+              <div className="overflow-y-auto flex-1 space-y-1.5 min-h-0">
+                {filteredPickerExercises.map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => addExerciseToLog(ex.id, ex.name)}
+                    className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
+                  >
+                    <p className="font-semibold text-sm text-grappler-100 group-hover:text-primary-300 transition-colors">
+                      {ex.name}
+                    </p>
+                    <p className="text-xs text-grappler-500 mt-0.5 capitalize">
+                      {ex.primaryMuscles.join(', ')}
+                    </p>
+                  </button>
+                ))}
+                {filteredPickerExercises.length === 0 && (
+                  <p className="text-sm text-grappler-400 text-center py-6">No exercises found</p>
+                )}
+              </div>
+              <button
+                onClick={() => setShowExercisePicker(false)}
+                className="btn btn-secondary btn-md w-full mt-3"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

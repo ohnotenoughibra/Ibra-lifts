@@ -200,7 +200,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
-  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number) => void;
+  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block') => void;
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
@@ -577,7 +577,7 @@ export const useAppStore = create<AppState>()(
         });
 
         // Generate first mesocycle with user's preferred duration and cycle length
-        get().generateNewMesocycle(onboardingData.mesoCycleWeeks || 5, onboardingData.sessionDurationMinutes || 60);
+        get().generateNewMesocycle(onboardingData.mesoCycleWeeks || 5, onboardingData.sessionDurationMinutes || 60, onboardingData.periodizationStyle);
       },
 
       setBaselineLifts: (lifts) => set({ baselineLifts: lifts }),
@@ -704,7 +704,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5, sessionDurationMinutes) => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block') => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
         // Fall back to user's stored preference if no explicit duration passed
@@ -764,6 +764,7 @@ export const useAppStore = create<AppState>()(
           dietGoal: activeDietPhase?.isActive ? activeDietPhase.goal : undefined,
           sportSessionsPerWeek,
           avgSportIntensity,
+          periodizationType: periodizationStyle,
         });
 
         set({ currentMesocycle: newMesocycle });

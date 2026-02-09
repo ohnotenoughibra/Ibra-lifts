@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
+import SyncStatusIndicator from './SyncStatusIndicator';
 import VersionUpgradePopup from './VersionUpgradePopup';
 import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -24,6 +25,7 @@ import UpgradePrompt from './UpgradePrompt';
 import ThemeToggle from './ThemeToggle';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
+import type { SyncStatus } from '@/lib/useDbSync';
 
 // Core tabs
 import WorkoutView from './WorkoutView';
@@ -169,7 +171,21 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
   );
 }
 
-export default function Dashboard() {
+interface DashboardProps {
+  syncStatus?: SyncStatus;
+  lastSyncedAt?: Date | null;
+  deviceType?: 'phone' | 'tablet' | 'desktop';
+  isAuthenticated?: boolean;
+  onForceSync?: () => void;
+}
+
+export default function Dashboard({
+  syncStatus = 'idle',
+  lastSyncedAt = null,
+  deviceType = 'desktop',
+  isAuthenticated = false,
+  onForceSync,
+}: DashboardProps = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
   const scrollPositionRef = useRef(0);
@@ -383,6 +399,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <SyncStatusIndicator
+              syncStatus={syncStatus}
+              lastSyncedAt={lastSyncedAt}
+              deviceType={deviceType}
+              isAuthenticated={isAuthenticated}
+              onForceSync={onForceSync || (() => {})}
+            />
             <ThemeToggle />
             <div className={cn(
               'flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors',

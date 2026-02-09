@@ -952,6 +952,8 @@ export interface OnboardingData {
   // Wearable preferences
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
+  // Periodization style choice (auto-selected by default based on experience)
+  periodizationStyle?: 'linear' | 'undulating' | 'block';
 }
 
 // ── Performance Engine Types ────────────────────────────────────────────────

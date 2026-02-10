@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -16,6 +16,8 @@ import {
   Flame,
   Shield,
   Calendar,
+  Download,
+  Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GoalFocus, PlannedBlock } from '@/lib/types';
@@ -61,6 +63,55 @@ export default function BlockQueue() {
   const moveUp = (i: number) => { if (i > 0) reorderBlockQueue(i, i - 1); };
   const moveDown = (i: number) => { if (i < blockQueue.length - 1) reorderBlockQueue(i, i + 1); };
 
+  // Export / Import
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  const handleExport = () => {
+    if (blockQueue.length === 0) return;
+    const data = JSON.stringify(blockQueue, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `block-queue-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        const blocks = Array.isArray(parsed) ? parsed : [parsed];
+        let added = 0;
+        for (const b of blocks) {
+          if (b.name && b.focus && b.weeks) {
+            addToBlockQueue({
+              name: b.name,
+              focus: b.focus,
+              weeks: b.weeks,
+              periodization: b.periodization,
+              notes: b.notes,
+            });
+            added++;
+          }
+        }
+        setImportMsg(`Imported ${added} block${added !== 1 ? 's' : ''}`);
+        setTimeout(() => setImportMsg(null), 3000);
+      } catch {
+        setImportMsg('Invalid file format');
+        setTimeout(() => setImportMsg(null), 3000);
+      }
+    };
+    reader.readAsText(file);
+    // Reset so the same file can be imported again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // Estimate timeline
   const getEstimatedStart = (index: number): string => {
     const now = new Date();
@@ -80,16 +131,55 @@ export default function BlockQueue() {
           <Layers className="w-4 h-4 text-primary-400" />
           Block Queue
         </h3>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            showAddForm ? 'bg-grappler-700 text-grappler-200' : 'text-grappler-500 hover:text-primary-400 hover:bg-grappler-800'
+        <div className="flex items-center gap-1">
+          {blockQueue.length > 0 && (
+            <button
+              onClick={handleExport}
+              className="p-1.5 rounded-lg text-grappler-500 hover:text-primary-400 hover:bg-grappler-800 transition-colors"
+              title="Export queue"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
           )}
-        >
-          {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-        </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-1.5 rounded-lg text-grappler-500 hover:text-primary-400 hover:bg-grappler-800 transition-colors"
+            title="Import queue"
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className={cn(
+              'p-1.5 rounded-lg transition-colors',
+              showAddForm ? 'bg-grappler-700 text-grappler-200' : 'text-grappler-500 hover:text-primary-400 hover:bg-grappler-800'
+            )}
+          >
+            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
+
+      {/* Import feedback */}
+      <AnimatePresence>
+        {importMsg && (
+          <motion.p
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-xs text-primary-400 text-center"
+          >
+            {importMsg}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* Add form */}
       <AnimatePresence>

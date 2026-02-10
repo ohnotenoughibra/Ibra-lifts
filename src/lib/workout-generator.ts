@@ -39,7 +39,6 @@ export const VOLUME_LANDMARKS: Record<string, { mev: number; mav: number; mrv: n
   core: { mev: 4, mav: 10, mrv: 16 },
   forearms: { mev: 2, mav: 8, mrv: 14 },
   traps: { mev: 4, mav: 10, mrv: 16 },
-  lats: { mev: 6, mav: 14, mrv: 20 },
   full_body: { mev: 4, mav: 10, mrv: 16 },
 };
 
@@ -384,7 +383,7 @@ const EMPHASIS_MULTIPLIERS: Record<MuscleEmphasis, number> = {
 };
 
 // Map from MuscleGroup to the keys in MuscleGroupConfig
-// Some MuscleGroup values (forearms, traps, lats, full_body) don't have
+// Some MuscleGroup values (forearms, traps, full_body) don't have
 // direct entries in MuscleGroupConfig, so they default to 'maintain'.
 function getMuscleEmphasisMultiplier(
   muscle: MuscleGroup,
@@ -395,7 +394,7 @@ function getMuscleEmphasisMultiplier(
   if (key in config) {
     return EMPHASIS_MULTIPLIERS[config[key]];
   }
-  return 1.0; // default for muscles not in config (forearms, traps, lats, full_body)
+  return 1.0; // default for muscles not in config (forearms, traps, full_body)
 }
 
 // Calculate the average emphasis multiplier for an exercise based on its primary muscles
@@ -632,11 +631,11 @@ function generateWorkoutSession(
 
     // Women: boost upper body volume (evidence-based — proportionally weaker upper body)
     const isUpperBody = exercise.primaryMuscles.some(m =>
-      ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'lats'].includes(m)
+      ['chest', 'back', 'shoulders', 'biceps', 'triceps'].includes(m)
     );
     if (isUpperBody && sexMod.upperBodyVolumeBoost > 0) {
       sets = Math.min(expMod.maxSets, sets + Math.round(sexMod.upperBodyVolumeBoost / selectedExercises.filter(e =>
-        e.primaryMuscles.some(m => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'lats'].includes(m))
+        e.primaryMuscles.some(m => ['chest', 'back', 'shoulders', 'biceps', 'triceps'].includes(m))
       ).length));
     }
 
@@ -1138,7 +1137,7 @@ export function analyzeMuscleGroupVolume(
   const volumeByMuscle: Record<MuscleGroup, number> = {
     chest: 0, back: 0, shoulders: 0, biceps: 0, triceps: 0,
     quadriceps: 0, hamstrings: 0, glutes: 0, calves: 0,
-    core: 0, forearms: 0, traps: 0, lats: 0, full_body: 0
+    core: 0, forearms: 0, traps: 0, full_body: 0
   };
 
   for (const session of sessions) {

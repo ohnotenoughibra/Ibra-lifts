@@ -536,8 +536,10 @@ export const useAppStore = create<AppState>()(
           email: '', // Will be populated from session
           name: onboardingData.name,
           age: onboardingData.age,
+          bodyWeightKg: onboardingData.bodyWeightKg,
           heightCm: onboardingData.heightCm,
           sex: onboardingData.sex,
+          disclaimerAcceptedAt: onboardingData.disclaimerAccepted ? new Date() : undefined,
           experienceLevel: onboardingData.experienceLevel,
           equipment: onboardingData.equipment,
           availableEquipment: onboardingData.availableEquipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment,

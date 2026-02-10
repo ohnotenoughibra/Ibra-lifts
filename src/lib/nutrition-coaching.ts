@@ -648,6 +648,114 @@ function buildMealDatabase(): InternalMeal[] {
       timing: 'lunch or dinner', tags: ['vegetarian'],
       _times: ['midday', 'evening'],
     },
+
+    // ── Fruits ──
+    {
+      name: 'Banana',
+      protein: 1, carbs: 27, fat: 0, calories: 105,
+      timing: 'pre-workout or snack', tags: ['fruit', 'quick', 'portable'],
+      _times: ['morning', 'afternoon', 'post_workout'],
+    },
+    {
+      name: 'Apple',
+      protein: 0, carbs: 25, fat: 0, calories: 95,
+      timing: 'snack', tags: ['fruit', 'quick', 'portable'],
+      _times: ['morning', 'afternoon'],
+    },
+    {
+      name: 'Mixed Berries (blueberries, strawberries, raspberries)',
+      protein: 1, carbs: 20, fat: 1, calories: 85,
+      timing: 'morning or snack', tags: ['fruit', 'antioxidant'],
+      _times: ['morning', 'afternoon'],
+    },
+    {
+      name: 'Orange',
+      protein: 1, carbs: 22, fat: 0, calories: 80,
+      timing: 'snack', tags: ['fruit', 'quick', 'vitamin-c'],
+      _times: ['morning', 'afternoon'],
+    },
+    {
+      name: 'Mango (sliced)',
+      protein: 1, carbs: 28, fat: 0, calories: 110,
+      timing: 'snack or post-workout', tags: ['fruit', 'high-carb'],
+      _times: ['afternoon', 'post_workout'],
+    },
+    {
+      name: 'Grapes (1 cup)',
+      protein: 1, carbs: 27, fat: 0, calories: 104,
+      timing: 'snack', tags: ['fruit', 'quick'],
+      _times: ['afternoon'],
+    },
+
+    // ── Vegetables & Mixed Veggies ──
+    {
+      name: 'Mixed Veggies (broccoli, carrots, bell peppers)',
+      protein: 4, carbs: 12, fat: 0, calories: 65,
+      timing: 'lunch or dinner side', tags: ['vegetable', 'fiber', 'low-cal'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Steamed Broccoli (large bowl)',
+      protein: 5, carbs: 10, fat: 0, calories: 55,
+      timing: 'lunch or dinner side', tags: ['vegetable', 'fiber', 'low-cal'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Stir-Fry Mixed Vegetables (with soy sauce)',
+      protein: 5, carbs: 18, fat: 4, calories: 120,
+      timing: 'lunch or dinner', tags: ['vegetable', 'quick-cook'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Side Salad (mixed greens, tomato, cucumber, olive oil)',
+      protein: 2, carbs: 8, fat: 8, calories: 110,
+      timing: 'lunch or dinner side', tags: ['vegetable', 'healthy-fats'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Roasted Sweet Potato',
+      protein: 2, carbs: 27, fat: 0, calories: 115,
+      timing: 'lunch or dinner side', tags: ['vegetable', 'high-carb', 'fiber'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Spinach & Avocado Salad',
+      protein: 4, carbs: 10, fat: 15, calories: 190,
+      timing: 'lunch side', tags: ['vegetable', 'healthy-fats', 'iron'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Frozen Mixed Veggies (microwaved, 2 cups)',
+      protein: 5, carbs: 15, fat: 0, calories: 80,
+      timing: 'any meal side', tags: ['vegetable', 'quick', 'meal-prep'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Carrot Sticks & Hummus',
+      protein: 5, carbs: 18, fat: 8, calories: 160,
+      timing: 'snack', tags: ['vegetable', 'fiber', 'quick'],
+      _times: ['afternoon'],
+    },
+
+    // ── Snacks / Treats ──
+    {
+      name: 'Haribo Goldbears (1 bag, 100g)',
+      protein: 7, carbs: 77, fat: 0, calories: 340,
+      timing: 'post-workout treat or snack', tags: ['treat', 'high-carb', 'quick'],
+      _times: ['afternoon', 'post_workout'],
+    },
+    {
+      name: 'Haribo Goldbears (small handful, 40g)',
+      protein: 3, carbs: 31, fat: 0, calories: 136,
+      timing: 'post-workout treat or snack', tags: ['treat', 'high-carb', 'quick'],
+      _times: ['afternoon', 'post_workout'],
+    },
+    {
+      name: 'Haribo Starmix (1 bag, 100g)',
+      protein: 6, carbs: 78, fat: 1, calories: 345,
+      timing: 'post-workout treat or snack', tags: ['treat', 'high-carb'],
+      _times: ['afternoon', 'post_workout'],
+    },
   ];
 }
 

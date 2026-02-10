@@ -51,6 +51,16 @@ const nextConfig = {
         },
       ],
     },
+    {
+      // Service worker must never be cached — browser needs to see changes on each deploy
+      source: '/sw.js',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-cache, no-store, must-revalidate',
+        },
+      ],
+    },
   ],
 };
 

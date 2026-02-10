@@ -2650,6 +2650,34 @@ export const useAppStore = create<AppState>()(
           } catch {}
         },
       },
+      // ── Schema version: bump this when you add/rename/remove persisted fields.
+      // Zustand calls `migrate` BEFORE hydrating the store, so the data is safe.
+      version: 2,
+      migrate: (persisted: unknown, fromVersion: number) => {
+        const state = (persisted ?? {}) as Record<string, unknown>;
+
+        if (fromVersion < 2) {
+          // v1 → v2: fields added by Sprints 1-9 + earlier additions
+          if (!state.illnessLogs) state.illnessLogs = [];
+          if (!state.workoutSkips) state.workoutSkips = [];
+          if (!state.quickLogs) state.quickLogs = [];
+          if (!state.gripTests) state.gripTests = [];
+          if (!state.gripExerciseLogs) state.gripExerciseLogs = [];
+          if (!state.injuryLog) state.injuryLog = [];
+          if (!state.hrSessions) state.hrSessions = [];
+          if (!state.bodyComposition) state.bodyComposition = [];
+          if (!state.competitions) state.competitions = [];
+          if (!state.blockQueue) state.blockQueue = [];
+          if (!state.weeklyCheckIns) state.weeklyCheckIns = [];
+          if (!state.waterLog || typeof state.waterLog !== 'object') state.waterLog = {};
+          if (!state.macroTargets) state.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+          if (!state.mealReminders) state.mealReminders = { enabled: false, enabledMeals: { breakfast: true, lunch: true, dinner: true }, reminderTimes: { breakfast: '08:00', lunch: '12:00', dinner: '18:00' } };
+          if (!state.muscleEmphasis) state.muscleEmphasis = {};
+        }
+        // Future: if (fromVersion < 3) { ... }
+
+        return state;
+      },
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

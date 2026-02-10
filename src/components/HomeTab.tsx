@@ -255,7 +255,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
-  const effectiveTier = getEffectiveTier(subscription);
+  const effectiveTier = getEffectiveTier(subscription, user?.email);
   const isFreeUser = effectiveTier === 'free';
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -1675,18 +1675,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               className="overflow-hidden"
             >
               <div className="grid grid-cols-4 gap-2 pt-1">
-                {(isFreeUser ? moreTools.slice(0, 3) : moreTools).map((tool) => (
+                {moreTools.map((tool) => (
                   <ToolButton key={tool.label} tool={tool} />
                 ))}
               </div>
-              {isFreeUser && moreTools.length > 3 && (
-                <button
-                  onClick={() => onNavigate('user_guide')}
-                  className="w-full mt-2 py-2 text-xs text-primary-400 hover:text-primary-300 font-medium"
-                >
-                  See all Pro features ({moreTools.length - 3} more)
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>

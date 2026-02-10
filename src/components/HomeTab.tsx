@@ -60,6 +60,9 @@ import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
 import { buildPerformanceProfiles, findStrongestLifts, findWeakLinks } from '@/lib/performance-model';
 import { generateVariableReward, analyzeStreak, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
+import { calculateFatigueDebt, getSmartDeloadRecommendation, getFatigueInsights } from '@/lib/smart-deload';
+import { buildCycleProfile, getPhaseTrainingAdjustments, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
+import type { CycleLog } from '@/lib/female-athlete';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -334,6 +337,37 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     if (!lastCompletedWorkout) return null;
     return getSessionContext(lastCompletedWorkout.log, workoutLogs, gamificationStats);
   }, [lastCompletedWorkout, workoutLogs, gamificationStats]);
+
+  // ─── Smart Deload & Fatigue ───
+  const fatigueDebt = useMemo(() => {
+    return calculateFatigueDebt(workoutLogs, wearableHistory);
+  }, [workoutLogs, wearableHistory]);
+
+  const deloadRec = useMemo(() => {
+    return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
+  }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
+
+  const fatigueInsight = useMemo(() => {
+    return getFatigueInsights(fatigueDebt, workoutLogs, wearableHistory);
+  }, [fatigueDebt, workoutLogs, wearableHistory]);
+
+  // ─── Female Athlete Intelligence ───
+  const showCycle = shouldShowCycleFeatures(user);
+  const cycleLogs: CycleLog[] = []; // TODO: add cycleLogs to store when cycle_tracking overlay is built
+  const cycleProfile = useMemo(() => {
+    if (!showCycle || cycleLogs.length === 0) return null;
+    return buildCycleProfile(cycleLogs);
+  }, [showCycle, cycleLogs]);
+
+  const cycleInsights = useMemo(() => {
+    if (!cycleProfile) return null;
+    return getCycleInsights(cycleProfile, workoutLogs);
+  }, [cycleProfile, workoutLogs]);
+
+  const phaseAdjustments = useMemo(() => {
+    if (!cycleProfile) return null;
+    return getPhaseTrainingAdjustments(cycleProfile.currentPhase);
+  }, [cycleProfile]);
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -620,6 +654,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   ];
   const moreTools = [
     { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-blue-400 bg-blue-500/20' },
+    { icon: Activity, label: 'Fatigue', view: 'fatigue' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+    ...(showCycle ? [{ icon: HeartPulse, label: 'Cycle', view: 'cycle_tracking' as OverlayView, color: 'text-pink-400 bg-pink-500/20' }] : []),
     { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
     { icon: Thermometer, label: 'Illness', view: 'illness' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
@@ -732,14 +768,35 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 5. Deload alert
-  if (deloadCheck && deloadCheck.needed && feedCards.length < 4) {
+  // 5. Smart Deload (replaces crude deload check)
+  if (deloadRec.needed && feedCards.length < 4) {
+    const urgencyColors = {
+      optional: 'from-yellow-500/15 to-amber-500/10 border-yellow-500/30',
+      recommended: 'from-orange-500/20 to-red-500/10 border-orange-500/30',
+      critical: 'from-red-500/20 to-rose-500/10 border-red-500/30',
+    };
+    const urgencyIcon = {
+      optional: 'text-yellow-400',
+      recommended: 'text-orange-400',
+      critical: 'text-red-400',
+    };
     feedCards.push(
-      <div key="deload" className="flex items-start gap-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-3.5">
-        <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
-          <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
+      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[deloadRec.urgency])}>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[deloadRec.urgency])} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className={cn('font-bold text-sm', urgencyIcon[deloadRec.urgency])}>
+                {deloadRec.urgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
+              </h3>
+              <span className="text-xs text-grappler-500">Fatigue: {fatigueDebt.currentDebt}/100</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{deloadRec.reason}</p>
+            <div className="mt-2 bg-black/20 rounded-lg px-2.5 py-1.5">
+              <p className="text-[10px] font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
+              <p className="text-[10px] text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -809,7 +866,32 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 9. Disengagement nudge
+  // 9. Cycle phase card (female athletes)
+  if (cycleInsights && feedCards.length < 5) {
+    feedCards.push(
+      <div key="cycle-phase" className="bg-gradient-to-r from-pink-500/15 to-purple-500/10 border border-pink-500/30 rounded-xl p-3.5">
+        <div className="flex items-start gap-3">
+          <HeartPulse className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-pink-300 text-sm">{cycleInsights.headline}</h3>
+              <span className="text-[10px] text-pink-400/70">Day {cycleInsights.dayInCycle}</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{cycleInsights.trainingTip}</p>
+            {cycleInsights.nutritionTip && (
+              <p className="text-[10px] text-grappler-500 mt-1">{cycleInsights.nutritionTip}</p>
+            )}
+            <button onClick={() => onNavigate('cycle_tracking')}
+              className="mt-2 px-3 py-1.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 text-xs font-medium rounded-lg transition-colors">
+              View Cycle
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 10. Disengagement nudge
   if (disengagement.nudgeMessage && (disengagement.status === 'at_risk' || disengagement.status === 'churned') && feedCards.length < 5) {
     feedCards.push(
       <div key="nudge" className="flex items-start gap-3 bg-gradient-to-r from-primary-500/15 to-blue-500/10 border border-primary-500/30 rounded-xl p-3.5">
@@ -1353,6 +1435,38 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
                 </span>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Fatigue Debt ─── */}
+      {fatigueDebt.currentDebt > 30 && workoutLogs.length >= 6 && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Activity className={cn('w-4 h-4', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')} />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Fatigue Debt</span>
+            </div>
+            <span className={cn('text-2xl font-black', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')}>
+              {fatigueDebt.currentDebt}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-grappler-700 rounded-full overflow-hidden mb-2">
+            <div
+              className={cn('h-full rounded-full transition-all', fatigueDebt.currentDebt >= 70 ? 'bg-red-400' : fatigueDebt.currentDebt >= 50 ? 'bg-orange-400' : 'bg-yellow-400')}
+              style={{ width: `${Math.min(100, fatigueDebt.currentDebt)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-grappler-400">{fatigueInsight.headline}</p>
+          {fatigueInsight.actionItems.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {fatigueInsight.actionItems.slice(0, 2).map((item, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-grappler-500">{item}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>

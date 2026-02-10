@@ -430,15 +430,17 @@ describe('generateWeeklyChallenge', () => {
     expect(hasSessionGoal).toBe(false);
   });
 
-  it('scales targets based on level', () => {
-    const statsL1 = { ...emptyStats, level: 1 };
-    const statsL20 = { ...emptyStats, level: 20 };
-    const c1 = generateWeeklyChallenge('lifter', statsL1);
-    const c20 = generateWeeklyChallenge('lifter', statsL20);
-    // At least some goals should have higher targets at L20
-    const maxTarget1 = Math.max(...c1.goals.map(g => g.target));
-    const maxTarget20 = Math.max(...c20.goals.map(g => g.target));
-    expect(maxTarget20).toBeGreaterThanOrEqual(maxTarget1);
+  it('scales targets based on recent performance', () => {
+    const beginner = { workouts: 2, volume: 5000, prs: 0, sessions: 1, dualDays: 0 };
+    const advanced = { workouts: 5, volume: 30000, prs: 2, sessions: 3, dualDays: 1 };
+    const c1 = generateWeeklyChallenge('lifter', emptyStats, beginner);
+    const c2 = generateWeeklyChallenge('lifter', emptyStats, advanced);
+    // Advanced user should have higher volume targets
+    const volGoal1 = c1.goals.find(g => g.type === 'volume');
+    const volGoal2 = c2.goals.find(g => g.type === 'volume');
+    if (volGoal1 && volGoal2) {
+      expect(volGoal2.target).toBeGreaterThanOrEqual(volGoal1.target);
+    }
   });
 
   it('has a valid weekStart (Monday)', () => {

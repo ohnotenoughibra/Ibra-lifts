@@ -1537,8 +1537,20 @@ export const useAppStore = create<AppState>()(
         // Update weekly challenge progress
         let weeklyChallenge = gamificationStats.weeklyChallenge;
         if (!weeklyChallenge || !isCurrentWeek(weeklyChallenge)) {
-          // Generate new weekly challenge if none or expired
-          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats);
+          // Compute recent 4-week averages for realistic challenge targets
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          const recentLogs = workoutLogs.filter(l => new Date(l.date) >= fourWeeksAgo);
+          const recentSessions = (get().trainingSessions || []).filter(s => new Date(s.date) >= fourWeeksAgo);
+          const weeks = Math.max(1, 4);
+          const recentWeeklyAvg = {
+            workouts: Math.round((recentLogs.length / weeks) * 10) / 10,
+            volume: Math.round(recentLogs.reduce((s, l) => s + l.totalVolume, 0) / weeks),
+            prs: Math.round((recentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0) / weeks) * 10) / 10,
+            sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
+            dualDays: Math.round(((gamificationStats.dualTrainingDays || 0) / Math.max(1, gamificationStats.totalWorkouts || 1)) * recentLogs.length / weeks * 10) / 10,
+          };
+          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats, recentWeeklyAvg);
         }
         // Update progress
         weeklyChallenge = {
@@ -1889,9 +1901,21 @@ export const useAppStore = create<AppState>()(
       },
 
       ensureWeeklyChallenge: () => {
-        const { gamificationStats, user } = get();
+        const { gamificationStats, user, workoutLogs, trainingSessions } = get();
         if (!gamificationStats.weeklyChallenge || !isCurrentWeek(gamificationStats.weeklyChallenge)) {
-          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats);
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          const recentLogs = workoutLogs.filter(l => new Date(l.date) >= fourWeeksAgo);
+          const recentSessions = (trainingSessions || []).filter(s => new Date(s.date) >= fourWeeksAgo);
+          const weeks = Math.max(1, 4);
+          const recentWeeklyAvg = {
+            workouts: Math.round((recentLogs.length / weeks) * 10) / 10,
+            volume: Math.round(recentLogs.reduce((s, l) => s + l.totalVolume, 0) / weeks),
+            prs: Math.round((recentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0) / weeks) * 10) / 10,
+            sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
+            dualDays: 0,
+          };
+          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats, recentWeeklyAvg);
           set({
             gamificationStats: {
               ...gamificationStats,

@@ -115,7 +115,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
         if (!onboardingData.goalFocus) return false;
         if (onboardingData.name.length < 2) return false;
         if (!onboardingData.age || onboardingData.age < 14) return false;
-        if (onboardingData.age <= 15 && !(onboardingData as any).parentalConsent) return false;
+        if (onboardingData.age <= 15 && !onboardingData.parentalConsent) return false;
         if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
         if (!onboardingData.sex) return false;
         return true;
@@ -658,16 +658,16 @@ function Step1_WhoAreYou({
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
                 <p className="text-xs text-yellow-400 mb-2">Users aged 14-15 require parental or guardian consent.</p>
                 <button
-                  onClick={() => update({ parentalConsent: !data.parentalConsent } as any)}
+                  onClick={() => update({ parentalConsent: !data.parentalConsent })}
                   className="flex items-center gap-2"
                 >
                   <div className={cn(
                     'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
-                    (data as any).parentalConsent
+                    data.parentalConsent
                       ? 'border-green-500 bg-green-500'
                       : 'border-grappler-500'
                   )}>
-                    {(data as any).parentalConsent && (
+                    {data.parentalConsent && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>

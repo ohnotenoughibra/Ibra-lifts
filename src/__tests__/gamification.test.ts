@@ -433,13 +433,32 @@ describe('generateWeeklyChallenge', () => {
   it('scales targets based on recent performance', () => {
     const beginner = { workouts: 2, volume: 5000, prs: 0, sessions: 1, dualDays: 0 };
     const advanced = { workouts: 5, volume: 30000, prs: 2, sessions: 3, dualDays: 1 };
-    const c1 = generateWeeklyChallenge('lifter', emptyStats, beginner);
-    const c2 = generateWeeklyChallenge('lifter', emptyStats, advanced);
+    const c1 = generateWeeklyChallenge('lifter', emptyStats, beginner, 2);
+    const c2 = generateWeeklyChallenge('lifter', emptyStats, advanced, 5);
     // Advanced user should have higher volume targets
     const volGoal1 = c1.goals.find(g => g.type === 'volume');
     const volGoal2 = c2.goals.find(g => g.type === 'volume');
     if (volGoal1 && volGoal2) {
       expect(volGoal2.target).toBeGreaterThanOrEqual(volGoal1.target);
+    }
+  });
+
+  it('caps workout targets at sessionsPerWeek', () => {
+    const highAvg = { workouts: 6, volume: 40000, prs: 3, sessions: 4, dualDays: 0 };
+    // User only plans 2 sessions/week — should never see workout target > 2
+    const challenges = Array.from({ length: 20 }, () =>
+      generateWeeklyChallenge('lifter', emptyStats, highAvg, 2)
+    );
+    for (const c of challenges) {
+      const workoutGoal = c.goals.find(g => g.type === 'workouts');
+      if (workoutGoal) {
+        expect(workoutGoal.target).toBeLessThanOrEqual(2);
+      }
+      // PR target should always be 1
+      const prGoal = c.goals.find(g => g.type === 'prs');
+      if (prGoal) {
+        expect(prGoal.target).toBe(1);
+      }
     }
   });
 

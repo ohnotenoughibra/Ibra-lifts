@@ -1550,7 +1550,7 @@ export const useAppStore = create<AppState>()(
             sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
             dualDays: Math.round(((gamificationStats.dualTrainingDays || 0) / Math.max(1, gamificationStats.totalWorkouts || 1)) * recentLogs.length / weeks * 10) / 10,
           };
-          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats, recentWeeklyAvg);
+          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats, recentWeeklyAvg, user.sessionsPerWeek || 3);
         }
         // Update progress
         weeklyChallenge = {
@@ -1902,7 +1902,16 @@ export const useAppStore = create<AppState>()(
 
       ensureWeeklyChallenge: () => {
         const { gamificationStats, user, workoutLogs, trainingSessions } = get();
-        if (!gamificationStats.weeklyChallenge || !isCurrentWeek(gamificationStats.weeklyChallenge)) {
+        const planned = user?.sessionsPerWeek || 3;
+
+        // Regenerate if: no challenge, wrong week, OR targets exceed plan (stale from old code)
+        const existing = gamificationStats.weeklyChallenge;
+        const needsRegen = !existing || !isCurrentWeek(existing) ||
+          existing.goals.some(g =>
+            (g.type === 'workouts' && g.target > planned) ||
+            (g.type === 'prs' && g.target > 2)
+          );
+        if (needsRegen) {
           const fourWeeksAgo = new Date();
           fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
           const recentLogs = workoutLogs.filter(l => new Date(l.date) >= fourWeeksAgo);
@@ -1915,7 +1924,7 @@ export const useAppStore = create<AppState>()(
             sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
             dualDays: 0,
           };
-          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats, recentWeeklyAvg);
+          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats, recentWeeklyAvg, user?.sessionsPerWeek || 3);
           set({
             gamificationStats: {
               ...gamificationStats,

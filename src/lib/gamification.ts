@@ -867,46 +867,44 @@ export function generateWeeklyChallenge(
     prs: number;
     sessions: number;
     dualDays: number;
-  }
+  },
+  sessionsPerWeek: number = 3
 ): WeeklyChallenge {
   const weekStart = getMonday(new Date());
   const isCombat = trainingIdentity === 'combat' || trainingIdentity === 'general_fitness';
 
   // Base targets on actual recent performance — stretch by 10-20% to be achievable yet challenging
-  const avg = recentWeeklyAvg ?? { workouts: 2, volume: 8000, prs: 0, sessions: 1, dualDays: 0 };
-  const stretchLow = 1.1;   // 10% more than usual = "achievable"
-  const stretchHigh = 1.25;  // 25% more than usual = "challenging"
+  const avg = recentWeeklyAvg ?? { workouts: Math.min(2, sessionsPerWeek), volume: 4000 * sessionsPerWeek, prs: 0, sessions: 1, dualDays: 0 };
+  const plannedSessions = Math.max(1, sessionsPerWeek);
 
   // Pool of possible goals per training identity
   type GoalTemplate = { type: WeeklyChallengeGoal['type']; target: number; desc: string; xp: number };
 
-  // Workout targets: user's average + 0–1 extra session, capped sensibly
-  const workoutBase = Math.max(2, Math.round(avg.workouts));
-  const workoutStretch = Math.min(7, workoutBase + 1);
+  // Workout targets: capped by the user's actual plan — never exceed sessionsPerWeek
+  const workoutTarget = Math.min(plannedSessions, Math.max(1, Math.round(avg.workouts)));
 
-  // Volume targets: 10-25% above user's recent average, rounded to nearest 500
-  const volBase = Math.round(avg.volume * stretchLow / 500) * 500;
-  const volStretch = Math.round(avg.volume * stretchHigh / 500) * 500;
+  // Volume targets: per-session average × planned sessions, stretched 10-20%, rounded to 500
+  const perSessionVol = avg.workouts > 0 ? avg.volume / avg.workouts : 4000;
+  const weeklyVolForPlan = perSessionVol * plannedSessions;
+  const volBase = Math.round(weeklyVolForPlan * 1.0 / 500) * 500;   // match plan
+  const volStretch = Math.round(weeklyVolForPlan * 1.15 / 500) * 500; // 15% stretch
 
-  // PR targets: always 1-2, PRs shouldn't be forced — they happen naturally
-  const prTarget = avg.prs >= 2 ? 2 : 1;
+  // PR targets: always 1 — PRs are rare, shouldn't be forced
+  const prTarget = 1;
 
   const commonGoals: GoalTemplate[] = [
-    { type: 'workouts', target: workoutBase, desc: `Complete ${workoutBase} lifting session${workoutBase !== 1 ? 's' : ''}`, xp: 75 },
-    { type: 'workouts', target: workoutStretch, desc: `Complete ${workoutStretch} lifting session${workoutStretch !== 1 ? 's' : ''}`, xp: 100 },
-    { type: 'volume', target: Math.max(2000, volBase), desc: `Lift ${Math.max(2000, volBase).toLocaleString()} total volume`, xp: 75 },
-    { type: 'volume', target: Math.max(3000, volStretch), desc: `Lift ${Math.max(3000, volStretch).toLocaleString()} total volume`, xp: 100 },
-    { type: 'prs', target: prTarget, desc: `Hit ${prTarget} personal record${prTarget > 1 ? 's' : ''}`, xp: 100 + (prTarget > 1 ? 50 : 0) },
+    { type: 'workouts', target: workoutTarget, desc: `Complete ${workoutTarget} lifting session${workoutTarget !== 1 ? 's' : ''}`, xp: 75 },
+    { type: 'volume', target: Math.max(1000, volBase), desc: `Lift ${Math.max(1000, volBase).toLocaleString()} kg total volume`, xp: 75 },
+    { type: 'volume', target: Math.max(1500, volStretch), desc: `Lift ${Math.max(1500, volStretch).toLocaleString()} kg total volume`, xp: 100 },
+    { type: 'prs', target: prTarget, desc: `Hit ${prTarget} personal record`, xp: 100 },
   ];
 
-  // Combat-specific: based on actual training session frequency
-  const sessionBase = Math.max(1, Math.round(avg.sessions * stretchLow));
-  const sessionStretch = Math.max(2, Math.round(avg.sessions * stretchHigh));
-  const dualTarget = Math.max(1, Math.round(avg.dualDays * stretchLow));
+  // Combat-specific: based on actual training session frequency, capped by plan
+  const sessionTarget = Math.max(1, Math.min(plannedSessions, Math.round(avg.sessions)));
+  const dualTarget = Math.max(1, Math.min(plannedSessions, Math.round(avg.dualDays) || 1));
 
   const combatGoals: GoalTemplate[] = [
-    { type: 'sessions', target: sessionBase, desc: `Log ${sessionBase} training session${sessionBase !== 1 ? 's' : ''}`, xp: 75 },
-    { type: 'sessions', target: sessionStretch, desc: `Log ${sessionStretch} training session${sessionStretch !== 1 ? 's' : ''}`, xp: 100 },
+    { type: 'sessions', target: sessionTarget, desc: `Log ${sessionTarget} training session${sessionTarget !== 1 ? 's' : ''}`, xp: 75 },
     { type: 'dual_days', target: dualTarget, desc: `Train lifting + combat on the same day ${dualTarget} time${dualTarget !== 1 ? 's' : ''}`, xp: 125 },
   ];
 

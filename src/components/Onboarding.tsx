@@ -624,9 +624,18 @@ function Step1_WhoAreYou({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
-                  Body weight ({data.weightUnit === 'kg' ? 'kg' : 'lbs'})
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
+                    Body weight
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+                  >
+                    {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
+                  </button>
+                </div>
                 <input
                   type="number"
                   value={

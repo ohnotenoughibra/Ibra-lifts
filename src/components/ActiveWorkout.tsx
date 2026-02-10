@@ -66,6 +66,10 @@ export default function ActiveWorkout() {
   const [showPRCelebration, setShowPRCelebration] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showOverview, setShowOverview] = useState(true);
+  const [checkInSkippedThisWeek] = useState(() => {
+    const skipUntil = localStorage.getItem('skipCheckInUntil');
+    return skipUntil ? new Date(skipUntil) > new Date() : false;
+  });
   const [showCheckInSection, setShowCheckInSection] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
@@ -1227,7 +1231,8 @@ export default function ActiveWorkout() {
               </div>
             </div>
 
-            {/* Inline Check-In (collapsible) */}
+            {/* Inline Check-In (collapsible, hideable for the week) */}
+            {!checkInSkippedThisWeek && (
             <div className="mt-5">
               <button
                 onClick={() => setShowCheckInSection(!showCheckInSection)}
@@ -1356,7 +1361,19 @@ export default function ActiveWorkout() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              <button
+                onClick={() => {
+                  const skipUntil = new Date();
+                  skipUntil.setDate(skipUntil.getDate() + 7);
+                  localStorage.setItem('skipCheckInUntil', skipUntil.toISOString());
+                  setShowCheckInSection(false);
+                }}
+                className="w-full mt-2 text-xs text-grappler-500 hover:text-grappler-300 py-1"
+              >
+                Don&apos;t ask this week
+              </button>
             </div>
+            )}
 
             {/* Bottom CTA */}
             <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4">

@@ -26,7 +26,7 @@ import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingD
 import { cn } from '@/lib/utils';
 import { CalendarDays, Plus } from 'lucide-react';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 /** Detect if user is on a mobile browser (not already installed as PWA) */
 function useIsMobileBrowser() {
@@ -123,6 +123,9 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
         // Sessions/week + lifting days
         return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
       case 4:
+        // Baseline lifts — optional, always passable
+        return true;
+      case 5:
         return true;
       default:
         return true;
@@ -292,7 +295,10 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
               <Step2_HowYouTrain data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 4 && (
-              <Step3_Ready data={onboardingData} />
+              <Step3_BaselineLifts data={onboardingData} update={updateOnboardingData} />
+            )}
+            {currentStep === 5 && (
+              <Step4_Ready data={onboardingData} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -1095,8 +1101,88 @@ function Step2_HowYouTrain({
   );
 }
 
-// ─── Step 3: Ready ───────────────────────────────────────────────────────────
-function Step3_Ready({ data }: { data: OnboardingData }) {
+// ─── Step 3: Baseline Lifts (Optional) ──────────────────────────────────────
+function Step3_BaselineLifts({
+  data,
+  update,
+}: {
+  data: OnboardingData;
+  update: (d: Partial<OnboardingData>) => void;
+}) {
+  const weightUnit = data.weightUnit || 'lbs';
+  const bw = data.bodyWeightKg || 70;
+  // Conservative bodyweight-based defaults for complete beginners
+  const defaults = {
+    squat: Math.round(bw * (weightUnit === 'kg' ? 0.5 : 0.5 * 2.205)),
+    benchPress: Math.round(bw * (weightUnit === 'kg' ? 0.4 : 0.4 * 2.205)),
+    deadlift: Math.round(bw * (weightUnit === 'kg' ? 0.6 : 0.6 * 2.205)),
+    overheadPress: Math.round(bw * (weightUnit === 'kg' ? 0.3 : 0.3 * 2.205)),
+    barbellRow: Math.round(bw * (weightUnit === 'kg' ? 0.4 : 0.4 * 2.205)),
+  };
+
+  const lifts: { key: string; label: string; defaultVal: number }[] = [
+    { key: 'squat', label: 'Squat', defaultVal: defaults.squat },
+    { key: 'benchPress', label: 'Bench Press', defaultVal: defaults.benchPress },
+    { key: 'deadlift', label: 'Deadlift', defaultVal: defaults.deadlift },
+    { key: 'overheadPress', label: 'Overhead Press', defaultVal: defaults.overheadPress },
+    { key: 'barbellRow', label: 'Barbell Row', defaultVal: defaults.barbellRow },
+  ];
+
+  const baselineLifts = (data as any).baselineLifts || {};
+
+  const setLift = (key: string, value: number) => {
+    update({ baselineLifts: { ...baselineLifts, [key]: value } } as any);
+  };
+
+  const skipAll = () => {
+    const auto: Record<string, number> = {};
+    for (const l of lifts) auto[l.key] = l.defaultVal;
+    update({ baselineLifts: auto } as any);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-2">
+        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Dumbbell className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-grappler-50">Estimate Your Lifts</h2>
+        <p className="text-sm text-grappler-400 mt-2">
+          Enter your working weights (approximate is fine). This helps us prescribe the right starting loads.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {lifts.map(({ key, label, defaultVal }) => (
+          <div key={key} className="flex items-center gap-3 bg-grappler-800/40 rounded-xl p-3">
+            <label className="text-sm text-grappler-300 w-28 flex-shrink-0">{label}</label>
+            <input
+              type="number"
+              min={0}
+              value={baselineLifts[key] ?? ''}
+              onChange={(e) => setLift(key, Number(e.target.value))}
+              placeholder={String(defaultVal)}
+              className="flex-1 bg-grappler-700/50 rounded-lg px-3 py-2 text-grappler-100 text-sm
+                border border-grappler-600/50 focus:border-primary-500 focus:outline-none"
+            />
+            <span className="text-xs text-grappler-500 w-8">{weightUnit}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={skipAll}
+        className="w-full py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50
+          text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+      >
+        I&apos;m new — auto-estimate from bodyweight
+      </button>
+    </div>
+  );
+}
+
+// ─── Step 4: Ready ───────────────────────────────────────────────────────────
+function Step4_Ready({ data }: { data: OnboardingData }) {
   const getIdentityLabel = () => {
     if (data.trainingIdentity === 'combat') {
       const sportLabels: Record<string, string> = {

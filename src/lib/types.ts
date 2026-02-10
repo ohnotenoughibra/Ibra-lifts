@@ -168,6 +168,7 @@ export interface Mesocycle {
   goalFocus: GoalFocus;
   splitType: SplitType;
   status: 'active' | 'completed' | 'upcoming';
+  volumeWarnings?: string[];
   createdAt: Date;
 }
 

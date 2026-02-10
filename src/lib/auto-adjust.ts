@@ -546,6 +546,86 @@ export function getJointPainHistory(
   };
 }
 
+// Double progression: increase reps first, then weight
+// Standard evidence-based progression model for hypertrophy
+export function evaluateDoubleProgression(
+  exerciseId: string,
+  targetRepRange: [number, number],
+  previousLogs: WorkoutLog[],
+  weightIncrement: number = 2.5 // 2.5 kg default, 5 for lbs
+): {
+  action: 'increase_weight' | 'increase_reps' | 'maintain' | 'decrease_weight';
+  newWeight?: number;
+  reason: string;
+} {
+  // Find the most recent logs containing this exercise (last 3 sessions)
+  const relevantLogs = previousLogs
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter(log => log.exercises.some(e => e.exerciseId === exerciseId))
+    .slice(0, 3);
+
+  if (relevantLogs.length === 0) {
+    return { action: 'maintain', reason: 'No previous data for this exercise.' };
+  }
+
+  const latest = relevantLogs[0];
+  const exerciseLog = latest.exercises.find(e => e.exerciseId === exerciseId);
+  if (!exerciseLog || exerciseLog.sets.length === 0) {
+    return { action: 'maintain', reason: 'No set data found.' };
+  }
+
+  const completedSets = exerciseLog.sets.filter(s => s.completed);
+  if (completedSets.length === 0) {
+    return { action: 'maintain', reason: 'No completed sets found.' };
+  }
+
+  const lastWeight = completedSets[0].weight;
+  const allHitTop = completedSets.every(s => s.reps >= targetRepRange[1]);
+  const allHitBottom = completedSets.every(s => s.reps >= targetRepRange[0]);
+  const anyBelowBottom = completedSets.some(s => s.reps < targetRepRange[0]);
+
+  // All sets hit top of rep range → increase weight, reset to bottom of range
+  if (allHitTop) {
+    return {
+      action: 'increase_weight',
+      newWeight: lastWeight + weightIncrement,
+      reason: `All sets hit ${targetRepRange[1]} reps — increase weight by ${weightIncrement} and target ${targetRepRange[0]} reps.`,
+    };
+  }
+
+  // All sets hit at least bottom of range but not all at top → keep weight, aim for more reps
+  if (allHitBottom && !allHitTop) {
+    return {
+      action: 'increase_reps',
+      reason: `Good work — maintain ${lastWeight} and aim for +1 rep per set next time.`,
+    };
+  }
+
+  // Check for consecutive failures (2+ sessions below bottom)
+  if (anyBelowBottom && relevantLogs.length >= 2) {
+    const prevLog = relevantLogs[1];
+    const prevExLog = prevLog.exercises.find(e => e.exerciseId === exerciseId);
+    if (prevExLog) {
+      const prevBelowBottom = prevExLog.sets
+        .filter(s => s.completed)
+        .some(s => s.reps < targetRepRange[0]);
+      if (prevBelowBottom) {
+        return {
+          action: 'decrease_weight',
+          newWeight: Math.max(0, lastWeight - weightIncrement),
+          reason: `Two consecutive sessions below ${targetRepRange[0]} reps — reduce weight by ${weightIncrement}.`,
+        };
+      }
+    }
+  }
+
+  // Single session below bottom → maintain and recover
+  return {
+    action: 'maintain',
+    reason: `Some sets below target — maintain ${lastWeight} and focus on form.`,
+  };
+}
+
 // Determine if a deload is needed based on accumulated fatigue signals
 export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reason: string } {
   if (recentLogs.length < 3) return { needed: false, reason: '' };

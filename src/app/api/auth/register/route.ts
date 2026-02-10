@@ -5,6 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 import { ensureAuthTables } from '@/lib/db-init';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   try {
     // Rate limit: 5 registrations per IP per minute

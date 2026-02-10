@@ -6,6 +6,8 @@ import { Resend } from 'resend';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 import { ensureAuthTables } from '@/lib/db-init';
 
+export const runtime = 'nodejs';
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // POST - Request a password reset (generates token + sends email)

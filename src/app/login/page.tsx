@@ -33,9 +33,12 @@ function LoginForm() {
         AccessDenied: 'Sign-in was denied. Please try again.',
         OAuthSignin: 'Could not start Google sign-in. Please try again.',
         OAuthCallback: 'Google sign-in failed. Please try again.',
-        Default: 'Something went wrong. Please try again.',
+        OAuthAccountNotLinked: 'This email is already linked to another sign-in method. Try using your password instead.',
+        OAuthCreateAccount: 'Could not create account via Google. Please try again.',
+        Callback: 'Sign-in callback error. Please try again.',
+        Configuration: 'Server configuration error. Please try again later.',
       };
-      setError(messages[oauthError] || messages.Default);
+      setError(messages[oauthError] || `Sign-in failed (${oauthError}). Please try again.`);
     }
   }, [searchParams]);
 

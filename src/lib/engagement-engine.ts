@@ -356,19 +356,26 @@ function pickEpicReward(_log: WorkoutLog, stats: GamificationStats): VariableRew
 
 /**
  * Deep analysis of training streaks, consistency patterns, and risk signals.
+ *
+ * Frequency-aware: a 2x/week user with 3 rest days between sessions is
+ * perfectly on track — streaks and risk signals respect the user's plan.
+ *
+ * "Streak" here means consecutive weeks where the user hit their planned
+ * session count, NOT consecutive calendar days.
  */
 export function analyzeStreak(
   workoutLogs: WorkoutLog[],
-  gamificationStats: GamificationStats
+  gamificationStats: GamificationStats,
+  sessionsPerWeek: number = 3
 ): StreakAnalysis {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
   const dates = uniqueWorkoutDates(workoutLogs);
 
-  // ── Current streak (consecutive training days allowing 2-day gaps) ─────────
-  let currentStreak = gamificationStats.currentStreak;
-  const longestStreak = Math.max(gamificationStats.longestStreak, currentStreak);
+  // ── Expected gap between sessions based on plan ──────────────────────────
+  // 2x/week → expect ~3.5 day gap, 3x → ~2.3, 4x → ~1.75, etc.
+  const expectedGapDays = 7 / Math.max(sessionsPerWeek, 1);
 
   // ── Weekly consistency (last 4 weeks) ─────────────────────────────────────
   const fourWeeksAgo = new Date(now.getTime() - 28 * MS_PER_DAY);
@@ -376,7 +383,7 @@ export function analyzeStreak(
     l => toDateOnly(l.date).getTime() >= fourWeeksAgo.getTime()
   );
 
-  // Count unique training weeks
+  // Bucket sessions by ISO week
   const weekBuckets: Record<string, number> = {};
   recentLogs.forEach(l => {
     const d = toDateOnly(l.date);
@@ -384,20 +391,46 @@ export function analyzeStreak(
     weekBuckets[weekStart] = (weekBuckets[weekStart] || 0) + 1;
   });
 
-  // Planned sessions per week — estimate from the user's recent average or default to 3
-  const weekKeys = Object.keys(weekBuckets);
-  const totalWeeksActive = Math.max(weekKeys.length, 1);
-  const totalSessionsLast4 = recentLogs.length;
-  const avgPerWeek = totalSessionsLast4 / 4;
-  // Use the gamification stats to infer planned frequency (rough estimate)
-  const plannedPerWeek = Math.max(
-    Math.round(avgPerWeek),
-    3 // minimum assumption
-  );
+  // Consistency = avg sessions per week / planned sessions per week
+  const avgPerWeek = recentLogs.length / 4;
   const weeklyConsistency = Math.min(
     100,
-    Math.round((avgPerWeek / plannedPerWeek) * 100)
+    Math.round((avgPerWeek / sessionsPerWeek) * 100)
   );
+
+  // ── Week-streak: consecutive weeks where user hit their target ────────────
+  // Walk backwards from the current week
+  const weekStreak = (() => {
+    let streak = 0;
+    const currentMonday = getMonday(now);
+    const currentWeekSessions = weekBuckets[currentMonday] || 0;
+
+    // Check if current week is still in progress (not yet fully passed)
+    const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1, Sun=7
+    const currentWeekOnTrack = currentWeekSessions >= Math.ceil(sessionsPerWeek * (dayOfWeek / 7) * 0.7);
+
+    if (currentWeekOnTrack && currentWeekSessions > 0) {
+      streak = 1;
+    }
+
+    // Walk back through prior weeks
+    for (let w = 1; w <= 12; w++) {
+      const weekStart = new Date(now.getTime() - (w * 7 + (dayOfWeek - 1)) * MS_PER_DAY);
+      const key = getMonday(weekStart);
+      const count = weekBuckets[key] || 0;
+      // A week is "hit" if the user did at least 70% of planned sessions
+      if (count >= Math.ceil(sessionsPerWeek * 0.7)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  })();
+
+  // Use week streak as the primary streak number — more meaningful than day-streak
+  const currentStreak = weekStreak;
+  const longestStreak = Math.max(gamificationStats.longestStreak, currentStreak);
 
   // ── Best day ──────────────────────────────────────────────────────────────
   const dayCount: number[] = [0, 0, 0, 0, 0, 0, 0];
@@ -426,19 +459,20 @@ export function analyzeStreak(
   const averageGapDays = gapCount > 0 ? Math.round((totalGap / gapCount) * 10) / 10 : 0;
 
   // ── Streak at risk ────────────────────────────────────────────────────────
-  // True if the current gap since last workout is significantly longer than average
+  // Only at risk if days since last session exceeds expected gap by a good margin
+  // For 2x/week: expected gap = 3.5 days, threshold = ~5-6 days
   const lastWorkoutDate = sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null;
   const daysSinceLast = lastWorkoutDate ? daysBetween(now, lastWorkoutDate) : 999;
-  const streakAtRisk = daysSinceLast > Math.max(averageGapDays * 1.5, 3) && currentStreak > 0;
+  const riskThreshold = Math.max(expectedGapDays * 2, averageGapDays * 1.8, 5);
+  const streakAtRisk = daysSinceLast >= riskThreshold && currentStreak > 0;
 
-  // ── Comeback streak (sessions since last break > 7 days) ──────────────────
+  // ── Comeback streak (sessions since last break > 2 weeks) ─────────────────
   let comebackStreak = 0;
   if (sortedDates.length > 0) {
-    // Walk backwards from most recent workout
     comebackStreak = 1;
     for (let i = sortedDates.length - 1; i > 0; i--) {
       const gap = daysBetween(sortedDates[i], sortedDates[i - 1]);
-      if (gap > 7) break;
+      if (gap > 14) break; // 2-week gap = real break
       comebackStreak++;
     }
   }
@@ -446,26 +480,22 @@ export function analyzeStreak(
   // ── Message ───────────────────────────────────────────────────────────────
   let message: string;
 
-  if (streakAtRisk && currentStreak > 7) {
-    message = `Your ${currentStreak}-day streak is at risk. It\'s been ${daysSinceLast} days — don\'t let momentum slip.`;
+  if (streakAtRisk && currentStreak >= 4) {
+    message = `${currentStreak}-week streak at risk. It\'s been ${daysSinceLast} days — get a session in this week.`;
   } else if (streakAtRisk && currentStreak > 0) {
-    message = `${daysSinceLast} days since your last session. A quick workout today keeps the streak alive.`;
-  } else if (currentStreak >= 30) {
-    message = `${currentStreak} days strong. At this point, training is just who you are.`;
-  } else if (currentStreak >= 14) {
-    message = `${currentStreak}-day streak — you\'re in the zone. This is where real progress happens.`;
-  } else if (currentStreak >= 7) {
-    message = `One full week and counting. The hardest part is behind you.`;
-  } else if (currentStreak >= 3) {
-    message = `${currentStreak} days in — momentum is building. Keep it rolling.`;
+    message = `${daysSinceLast} days since your last session — a bit longer than your usual rhythm.`;
+  } else if (currentStreak >= 8) {
+    message = `${currentStreak} weeks consistent. At this point, training is just who you are.`;
+  } else if (currentStreak >= 4) {
+    message = `${currentStreak} weeks on plan — this is where real progress compounds.`;
+  } else if (weeklyConsistency >= 90) {
+    message = `${weeklyConsistency}% weekly consistency. You\'re nailing the routine.`;
+  } else if (weeklyConsistency >= 70) {
+    message = `${weeklyConsistency}% consistency — solid. Keep hitting your ${sessionsPerWeek}x/week target.`;
   } else if (daysSinceLast > 14) {
     message = 'It\'s been a while. No pressure — just one session to restart.';
   } else if (daysSinceLast > 7) {
     message = 'Short break — nothing wrong with that. Ready to go again?';
-  } else if (weeklyConsistency >= 90) {
-    message = `${weeklyConsistency}% weekly consistency. You\'re nailing the routine.`;
-  } else if (weeklyConsistency >= 70) {
-    message = `${weeklyConsistency}% consistency — solid base. A bit more regularity and you\'re elite.`;
   } else {
     message = 'Every session counts. Show up and the results follow.';
   }

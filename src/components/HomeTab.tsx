@@ -246,7 +246,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    skipWorkout, gamificationStats, blockQueue, completeMesocycle,
+    skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
     subscription,
   } = useAppStore();
   const wearableHistory = useAppStore(s => s.wearableHistory);
@@ -1208,7 +1208,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               >
                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
                   <p className="text-xs text-grappler-200 mb-2">
-                    Complete current block{blockQueue.length > 0 ? ` and start ${blockQueue[0].name}?` : ' and generate next?'}
+                    Complete current block{mesocycleQueue.length > 0 ? ` and start ${mesocycleQueue[0].name}?` : ' and generate next?'}
                   </p>
                   <div className="flex items-center justify-center gap-2">
                     <button
@@ -1266,11 +1266,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             </div>
           )}
-          {blockQueue.length > 0 && (
+          {mesocycleQueue.length > 0 && (
             <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 text-center">
               <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1">Up next from queue</p>
-              <p className="text-sm font-bold text-primary-300">{blockQueue[0].name}</p>
-              <p className="text-[10px] text-grappler-500">{blockQueue[0].weeks} weeks · {blockQueue[0].periodization || 'auto'}</p>
+              <p className="text-sm font-bold text-primary-300">{mesocycleQueue[0].name}</p>
+              <p className="text-[10px] text-grappler-500">{mesocycleQueue[0].weeks} weeks · {mesocycleQueue[0].periodization || 'auto'}</p>
             </div>
           )}
           <div className="flex items-center justify-center gap-2">
@@ -1286,7 +1286,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               className="btn btn-primary btn-md gap-2"
             >
               <Zap className="w-4 h-4" />
-              {blockQueue.length > 0 ? 'Start Next' : 'Next Block'}
+              {mesocycleQueue.length > 0 ? 'Start Next' : 'Next Mesocycle'}
             </button>
           </div>
         </motion.div>

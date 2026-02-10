@@ -53,7 +53,7 @@ import {
   Subscription,
   NotificationPreferences,
   DailyLoginBonus,
-  PlannedBlock,
+  PlannedMesocycle,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -79,7 +79,7 @@ interface AppState {
   // Current mesocycle
   currentMesocycle: Mesocycle | null;
   mesocycleHistory: Mesocycle[];
-  blockQueue: PlannedBlock[];
+  mesocycleQueue: PlannedMesocycle[];
 
   // Workout state
   activeWorkout: {
@@ -206,11 +206,11 @@ interface AppState {
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block') => void;
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
-  addToBlockQueue: (block: Omit<PlannedBlock, 'id' | 'createdAt'>) => void;
-  updateBlockInQueue: (id: string, updates: Partial<Omit<PlannedBlock, 'id' | 'createdAt'>>) => void;
-  removeFromBlockQueue: (id: string) => void;
-  reorderBlockQueue: (fromIndex: number, toIndex: number) => void;
-  advanceBlockQueue: () => void;
+  addToMesocycleQueue: (block: Omit<PlannedMesocycle, 'id' | 'createdAt'>) => void;
+  updateMesocycleInQueue: (id: string, updates: Partial<Omit<PlannedMesocycle, 'id' | 'createdAt'>>) => void;
+  removeFromMesocycleQueue: (id: string) => void;
+  reorderMesocycleQueue: (fromIndex: number, toIndex: number) => void;
+  advanceMesocycleQueue: () => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
   getCurrentMesocycleLogCount: () => number;
   getImportableWorkoutLogs: () => {
@@ -422,7 +422,7 @@ export const useAppStore = create<AppState>()(
       baselineLifts: null,
       currentMesocycle: null,
       mesocycleHistory: [],
-      blockQueue: [],
+      mesocycleQueue: [],
       activeWorkout: null,
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
@@ -784,7 +784,7 @@ export const useAppStore = create<AppState>()(
       },
 
       completeMesocycle: () => {
-        const { currentMesocycle, mesocycleHistory, gamificationStats, blockQueue } = get();
+        const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue } = get();
         if (!currentMesocycle) return;
 
         set({
@@ -799,9 +799,9 @@ export const useAppStore = create<AppState>()(
           }
         });
 
-        // If there's a queued block, use it; otherwise generate default
-        if (blockQueue.length > 0) {
-          get().advanceBlockQueue();
+        // If there's a queued mesocycle, use it; otherwise generate default
+        if (mesocycleQueue.length > 0) {
+          get().advanceMesocycleQueue();
         } else {
           get().generateNewMesocycle();
         }
@@ -816,34 +816,34 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      addToBlockQueue: (block) => {
-        const { blockQueue } = get();
-        set({ blockQueue: [...blockQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
+      addToMesocycleQueue: (block) => {
+        const { mesocycleQueue } = get();
+        set({ mesocycleQueue: [...mesocycleQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
       },
 
-      updateBlockInQueue: (id, updates) => {
-        const { blockQueue } = get();
-        set({ blockQueue: blockQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
+      updateMesocycleInQueue: (id, updates) => {
+        const { mesocycleQueue } = get();
+        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
       },
 
-      removeFromBlockQueue: (id) => {
-        const { blockQueue } = get();
-        set({ blockQueue: blockQueue.filter(b => b.id !== id) });
+      removeFromMesocycleQueue: (id) => {
+        const { mesocycleQueue } = get();
+        set({ mesocycleQueue: mesocycleQueue.filter(b => b.id !== id) });
       },
 
-      reorderBlockQueue: (fromIndex, toIndex) => {
-        const { blockQueue } = get();
-        const updated = [...blockQueue];
+      reorderMesocycleQueue: (fromIndex, toIndex) => {
+        const { mesocycleQueue } = get();
+        const updated = [...mesocycleQueue];
         const [moved] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, moved);
-        set({ blockQueue: updated });
+        set({ mesocycleQueue: updated });
       },
 
-      advanceBlockQueue: () => {
-        const { blockQueue, user } = get();
-        if (blockQueue.length === 0 || !user) return;
-        const next = blockQueue[0];
-        // Temporarily set user's goalFocus and sessionsPerWeek to the queued block's values
+      advanceMesocycleQueue: () => {
+        const { mesocycleQueue, user } = get();
+        if (mesocycleQueue.length === 0 || !user) return;
+        const next = mesocycleQueue[0];
+        // Temporarily set user's goalFocus and sessionsPerWeek to the queued mesocycle's values
         const prevGoal = user.goalFocus;
         const prevSessions = user.sessionsPerWeek;
         const overrides: Partial<typeof user> = { goalFocus: next.focus };
@@ -854,7 +854,7 @@ export const useAppStore = create<AppState>()(
         const updatedUser = get().user;
         if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions } });
         // Remove from queue
-        set({ blockQueue: blockQueue.slice(1) });
+        set({ mesocycleQueue: mesocycleQueue.slice(1) });
       },
 
       migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
@@ -2676,7 +2676,12 @@ export const useAppStore = create<AppState>()(
           if (!state.hrSessions) state.hrSessions = [];
           if (!state.bodyComposition) state.bodyComposition = [];
           if (!state.competitions) state.competitions = [];
-          if (!state.blockQueue) state.blockQueue = [];
+          // Migrate blockQueue → mesocycleQueue
+          if (state.blockQueue) {
+            state.mesocycleQueue = state.blockQueue;
+            delete state.blockQueue;
+          }
+          if (!state.mesocycleQueue) state.mesocycleQueue = [];
           if (!state.weeklyCheckIns) state.weeklyCheckIns = [];
           if (!state.waterLog || typeof state.waterLog !== 'object') state.waterLog = {};
           if (!state.macroTargets) state.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -2695,7 +2700,7 @@ export const useAppStore = create<AppState>()(
         baselineLifts: state.baselineLifts,
         currentMesocycle: state.currentMesocycle,
         mesocycleHistory: state.mesocycleHistory,
-        blockQueue: state.blockQueue,
+        mesocycleQueue: state.mesocycleQueue,
         activeWorkout: state.activeWorkout,
         workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,

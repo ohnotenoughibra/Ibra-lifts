@@ -951,6 +951,7 @@ export interface OnboardingData {
   heightCm?: number;
   sex?: BiologicalSex;
   disclaimerAccepted?: boolean;
+  parentalConsent?: boolean;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];

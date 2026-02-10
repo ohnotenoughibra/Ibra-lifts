@@ -323,8 +323,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
 
   // ─── Engagement Engine ───
   const streakAnalysis = useMemo(() => {
-    return analyzeStreak(workoutLogs, gamificationStats);
-  }, [workoutLogs, gamificationStats]);
+    return analyzeStreak(workoutLogs, gamificationStats, user?.sessionsPerWeek || 3);
+  }, [workoutLogs, gamificationStats, user?.sessionsPerWeek]);
 
   const disengagement = useMemo(() => {
     return detectDisengagement(workoutLogs, user);
@@ -1629,7 +1629,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           {streakAnalysis.streakAtRisk && (
             <div className="mt-2 flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3 text-amber-400" />
-              <p className="text-[10px] text-amber-400 font-medium">Streak at risk — train today to keep it alive</p>
+              <p className="text-[10px] text-amber-400 font-medium">Streak at risk — get a session in this week</p>
             </div>
           )}
         </div>

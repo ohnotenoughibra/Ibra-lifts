@@ -84,7 +84,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
     }
     if (!onboardingData.sessionDurationMinutes) defaults.sessionDurationMinutes = 60;
     if (!onboardingData.mesoCycleWeeks) defaults.mesoCycleWeeks = 5;
-    if (!onboardingData.weightUnit) defaults.weightUnit = 'lbs';
+    if (!onboardingData.weightUnit) defaults.weightUnit = 'kg';
     if (Object.keys(defaults).length > 0) updateOnboardingData(defaults);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1109,7 +1109,7 @@ function Step3_BaselineLifts({
   data: OnboardingData;
   update: (d: Partial<OnboardingData>) => void;
 }) {
-  const weightUnit = data.weightUnit || 'lbs';
+  const weightUnit = data.weightUnit || 'kg';
   const bw = data.bodyWeightKg || 70;
   // Conservative bodyweight-based defaults for complete beginners
   const defaults = {

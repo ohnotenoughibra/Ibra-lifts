@@ -1,20 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Show OAuth errors from NextAuth redirect (e.g. ?error=AccessDenied)
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        AccessDenied: 'Sign-in was denied. Please try again.',
+        OAuthSignin: 'Could not start Google sign-in. Please try again.',
+        OAuthCallback: 'Google sign-in failed. Please try again.',
+        Default: 'Something went wrong. Please try again.',
+      };
+      setError(messages[oauthError] || messages.Default);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

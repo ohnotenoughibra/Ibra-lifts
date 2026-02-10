@@ -29,7 +29,7 @@ import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/g
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'kg';
@@ -48,6 +48,11 @@ export default function ProfileSettings() {
   const [editAvailableEquipment, setEditAvailableEquipment] = useState<EquipmentType[]>(user?.availableEquipment || []);
   const [editWearable, setEditWearable] = useState<WearableUsage | undefined>(user?.wearableUsage);
   const [editWearableProvider, setEditWearableProvider] = useState<WearableProvider | undefined>(user?.wearableProvider);
+  const [editSquat, setEditSquat] = useState<number | ''>(baselineLifts?.squat ?? '');
+  const [editDeadlift, setEditDeadlift] = useState<number | ''>(baselineLifts?.deadlift ?? '');
+  const [editBench, setEditBench] = useState<number | ''>(baselineLifts?.benchPress ?? '');
+  const [editOHP, setEditOHP] = useState<number | ''>(baselineLifts?.overheadPress ?? '');
+  const [editRow, setEditRow] = useState<number | ''>(baselineLifts?.barbellRow ?? '');
 
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
@@ -65,6 +70,11 @@ export default function ProfileSettings() {
     setEditAvailableEquipment(user?.availableEquipment || []);
     setEditWearable(user?.wearableUsage);
     setEditWearableProvider(user?.wearableProvider);
+    setEditSquat(baselineLifts?.squat ?? '');
+    setEditDeadlift(baselineLifts?.deadlift ?? '');
+    setEditBench(baselineLifts?.benchPress ?? '');
+    setEditOHP(baselineLifts?.overheadPress ?? '');
+    setEditRow(baselineLifts?.barbellRow ?? '');
     setIsEditing(true);
   };
 
@@ -93,13 +103,36 @@ export default function ProfileSettings() {
       wearableProvider: editWearableProvider,
       updatedAt: new Date(),
     });
+    // Save baseline lifts
+    const newBaseline = {
+      id: baselineLifts?.id || user.id + '-baseline',
+      userId: user.id,
+      squat: editSquat === '' ? null : Number(editSquat),
+      deadlift: editDeadlift === '' ? null : Number(editDeadlift),
+      benchPress: editBench === '' ? null : Number(editBench),
+      overheadPress: editOHP === '' ? null : Number(editOHP),
+      barbellRow: editRow === '' ? null : Number(editRow),
+      pullUp: baselineLifts?.pullUp ?? null,
+      createdAt: baselineLifts?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    setBaselineLifts(newBaseline);
+
+    // Check if baseline lifts actually changed
+    const baselineChanged =
+      (editSquat === '' ? null : Number(editSquat)) !== (baselineLifts?.squat ?? null) ||
+      (editDeadlift === '' ? null : Number(editDeadlift)) !== (baselineLifts?.deadlift ?? null) ||
+      (editBench === '' ? null : Number(editBench)) !== (baselineLifts?.benchPress ?? null) ||
+      (editOHP === '' ? null : Number(editOHP)) !== (baselineLifts?.overheadPress ?? null) ||
+      (editRow === '' ? null : Number(editRow)) !== (baselineLifts?.barbellRow ?? null);
+
     setIsEditing(false);
 
     // If critical training fields changed, offer to regenerate the mesocycle
-    if (trainingFieldsChanged) {
+    if (trainingFieldsChanged || baselineChanged) {
       setTimeout(() => {
         if (confirm(
-          'You changed training settings (sex, experience, or equipment) that affect your program. ' +
+          'You changed settings that affect your program. ' +
           'Regenerate your mesocycle with the new settings?\n\n' +
           'Your workout history will be preserved.'
         )) {
@@ -488,24 +521,37 @@ export default function ProfileSettings() {
       )}
 
       {/* Baseline Lifts */}
-      {baselineLifts && (
+      {(baselineLifts || isEditing) && (
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-grappler-700">
             <h3 className="font-medium text-grappler-200">Baseline Lifts (1RM)</h3>
           </div>
           <div className="p-4 grid grid-cols-2 gap-4">
-            {[
-              { label: 'Squat', value: baselineLifts.squat },
-              { label: 'Deadlift', value: baselineLifts.deadlift },
-              { label: 'Bench Press', value: baselineLifts.benchPress },
-              { label: 'OHP', value: baselineLifts.overheadPress },
-              { label: 'Barbell Row', value: baselineLifts.barbellRow },
-            ].map((lift) => (
+            {([
+              { label: 'Squat', value: baselineLifts?.squat, setter: setEditSquat, editValue: editSquat },
+              { label: 'Deadlift', value: baselineLifts?.deadlift, setter: setEditDeadlift, editValue: editDeadlift },
+              { label: 'Bench Press', value: baselineLifts?.benchPress, setter: setEditBench, editValue: editBench },
+              { label: 'OHP', value: baselineLifts?.overheadPress, setter: setEditOHP, editValue: editOHP },
+              { label: 'Barbell Row', value: baselineLifts?.barbellRow, setter: setEditRow, editValue: editRow },
+            ] as const).map((lift) => (
               <div key={lift.label} className="bg-grappler-800/50 rounded-lg p-3">
                 <p className="text-xs text-grappler-400 mb-1">{lift.label}</p>
-                <p className="text-lg font-bold text-grappler-100">
-                  {lift.value ? `${lift.value} ${weightUnit}` : 'Not set'}
-                </p>
+                {isEditing ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={lift.editValue}
+                      onChange={(e) => lift.setter(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="—"
+                      className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm font-bold text-grappler-100 outline-none focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <span className="text-xs text-grappler-500 shrink-0">{weightUnit}</span>
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold text-grappler-100">
+                    {lift.value ? `${lift.value} ${weightUnit}` : 'Not set'}
+                  </p>
+                )}
               </div>
             ))}
           </div>

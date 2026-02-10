@@ -30,6 +30,7 @@ import {
   Dumbbell,
   Shield,
   Star,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
@@ -347,6 +348,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     macroTargets,
     waterLog,
     addMeal,
+    updateMeal,
     deleteMeal,
     setWaterGlasses: storeSetWater,
     bodyWeightLog,
@@ -882,6 +884,14 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const handleDeleteMeal = (id: string) => {
     deleteMeal(id);
+  };
+
+  // Move meal to a different mealType
+  const [movingMealId, setMovingMealId] = useState<string | null>(null);
+
+  const handleMoveMeal = (id: string, newType: MealType) => {
+    updateMeal(id, { mealType: newType });
+    setMovingMealId(null);
   };
 
   // ── Date formatting ──
@@ -1745,7 +1755,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="flex items-center justify-between py-2 px-3 bg-grappler-800/40 rounded-lg group"
+                          className="relative flex items-center justify-between py-2 px-3 bg-grappler-800/40 rounded-lg group"
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-grappler-200 font-medium truncate">
@@ -1769,12 +1779,44 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                               </span>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleDeleteMeal(meal.id)}
-                            className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setMovingMealId(movingMealId === meal.id ? null : meal.id)}
+                              className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-primary-400 transition-colors"
+                              title="Move to different meal"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMeal(meal.id)}
+                              className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {/* Move-to dropdown */}
+                          <AnimatePresence>
+                            {movingMealId === meal.id && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                className="absolute right-0 top-full mt-1 z-20 bg-grappler-800 border border-grappler-700 rounded-xl shadow-lg overflow-hidden min-w-[160px]"
+                              >
+                                <p className="px-3 py-1.5 text-[10px] text-grappler-500 uppercase tracking-wide font-medium">Move to</p>
+                                {MEAL_TYPE_ORDER.filter(t => t !== type).map(t => (
+                                  <button
+                                    key={t}
+                                    onClick={() => handleMoveMeal(meal.id, t)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-grappler-200 hover:bg-grappler-700 transition-colors"
+                                  >
+                                    {MEAL_TYPE_ICONS[t]}
+                                    <span>{MEAL_TYPE_LABELS[t]}</span>
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </motion.div>
                       ))}
                     </div>

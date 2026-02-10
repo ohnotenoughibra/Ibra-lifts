@@ -377,7 +377,7 @@ const initialOnboardingData: OnboardingData = {
   goalFocus: 'balanced',
   sessionsPerWeek: 3,
   sessionDurationMinutes: 60,
-  weightUnit: 'lbs',
+  weightUnit: 'kg',
   baselineLifts: {},
   trainingIdentity: 'combat',
   wearableUsage: undefined,

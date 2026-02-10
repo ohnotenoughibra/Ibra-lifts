@@ -2594,6 +2594,7 @@ export const useAppStore = create<AppState>()(
           baselineLifts: null,
           currentMesocycle: null,
           mesocycleHistory: [],
+          mesocycleQueue: [],
           activeWorkout: null,
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
@@ -2622,6 +2623,10 @@ export const useAppStore = create<AppState>()(
           bodyComposition: [],
           muscleEmphasis: null,
           competitions: [],
+          activeEquipmentProfile: 'gym' as const,
+          latestWhoopData: null,
+          wearableHistory: [],
+          whoopWorkouts: [],
           isOnline: true,
           lastSyncAt: null,
           subscription: null,
@@ -2733,7 +2738,8 @@ export const useAppStore = create<AppState>()(
           if (!state.waterLog || typeof state.waterLog !== 'object') state.waterLog = {};
           if (!state.macroTargets) state.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
           if (!state.mealReminders) state.mealReminders = { enabled: false, enabledMeals: { breakfast: true, lunch: true, dinner: true }, reminderTimes: { breakfast: '08:00', lunch: '12:00', dinner: '18:00' } };
-          if (!state.muscleEmphasis) state.muscleEmphasis = {};
+          if (!state.muscleEmphasis) state.muscleEmphasis = null;
+          if (!state.activeEquipmentProfile) state.activeEquipmentProfile = 'gym';
         }
         // Future: if (fromVersion < 3) { ... }
 
@@ -2772,6 +2778,7 @@ export const useAppStore = create<AppState>()(
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,
+        activeEquipmentProfile: state.activeEquipmentProfile,
         lastSyncAt: state.lastSyncAt,
         subscription: state.subscription,
         notificationPreferences: state.notificationPreferences,

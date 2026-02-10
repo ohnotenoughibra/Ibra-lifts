@@ -95,6 +95,7 @@ export function exportFullBackup(): string {
     // ── Training program ──
     currentMesocycle: state.currentMesocycle,
     mesocycleHistory: state.mesocycleHistory,
+    mesocycleQueue: state.mesocycleQueue,
     activeWorkout: state.activeWorkout,
     // ── Workout logs ──
     workoutLogs: state.workoutLogs,
@@ -208,6 +209,12 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
         state.mesocycleHistory || [],
         data.mesocycleHistory,
       );
+    }
+    // Mesocycle queue — merge (support old blockQueue name)
+    const importedQueue = Array.isArray(data.mesocycleQueue) ? data.mesocycleQueue
+      : Array.isArray(data.blockQueue) ? data.blockQueue : null;
+    if (importedQueue) {
+      update.mesocycleQueue = mergeById(state.mesocycleQueue || [], importedQueue);
     }
     // Don't overwrite an active workout in progress
     if (data.activeWorkout && !state.activeWorkout) {

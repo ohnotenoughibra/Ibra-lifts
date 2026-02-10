@@ -63,6 +63,8 @@ import { generateVariableReward, analyzeStreak, detectDisengagement, getSessionC
 import { calculateFatigueDebt, getSmartDeloadRecommendation, getFatigueInsights } from '@/lib/smart-deload';
 import { buildCycleProfile, getPhaseTrainingAdjustments, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
 import type { CycleLog } from '@/lib/female-athlete';
+import { getWeeklyNutritionScore, getHydrationTarget, getNutritionInsights } from '@/lib/nutrition-coaching';
+import { toMonetizationTier, shouldShowUpgradePrompt } from '@/lib/monetization-engine';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -368,6 +370,32 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     if (!cycleProfile) return null;
     return getPhaseTrainingAdjustments(cycleProfile.currentPhase);
   }, [cycleProfile]);
+
+  // ─── Nutrition Coaching ───
+  const hasWorkoutToday = workoutLogs.some(l => new Date(l.date).toDateString() === new Date().toDateString());
+
+  const weeklyNutrition = useMemo(() => {
+    if (meals.length === 0 || macroTargets.calories === 0) return null;
+    return getWeeklyNutritionScore(meals, macroTargets, waterLog);
+  }, [meals, macroTargets, waterLog]);
+
+  const nutritionInsights = useMemo(() => {
+    if (meals.length === 0) return null;
+    return getNutritionInsights(user, meals, macroTargets, workoutLogs, waterLog);
+  }, [user, meals, macroTargets, workoutLogs, waterLog]);
+
+  const hydration = useMemo(() => {
+    const todayWaterMl = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    return getHydrationTarget(user, todayWaterMl, hasWorkoutToday);
+  }, [user, waterLog, hasWorkoutToday]);
+
+  // ─── Monetization ───
+  const monetizationTier = toMonetizationTier(effectiveTier);
+
+  const upgradePrompt = useMemo(() => {
+    if (monetizationTier === 'elite') return null;
+    return shouldShowUpgradePrompt(workoutLogs, gamificationStats, monetizationTier);
+  }, [workoutLogs, gamificationStats, monetizationTier]);
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -1440,6 +1468,64 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
+      {/* ─── Nutrition Score ─── */}
+      {weeklyNutrition && showNutritionCard && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <Apple className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Nutrition</span>
+            </div>
+            <span className={cn('text-2xl font-black', {
+              'text-green-400': weeklyNutrition.overall >= 80,
+              'text-blue-400': weeklyNutrition.overall >= 65 && weeklyNutrition.overall < 80,
+              'text-yellow-400': weeklyNutrition.overall >= 50 && weeklyNutrition.overall < 65,
+              'text-orange-400': weeklyNutrition.overall >= 35 && weeklyNutrition.overall < 50,
+              'text-red-400': weeklyNutrition.overall < 35,
+            })}>{weeklyNutrition.overall}/100</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center mb-2">
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.proteinScore}</p>
+              <p className="text-[10px] text-grappler-500">Protein</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.calorieScore}</p>
+              <p className="text-[10px] text-grappler-500">Calories</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.hydrationScore}</p>
+              <p className="text-[10px] text-grappler-500">Water</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.consistencyScore}</p>
+              <p className="text-[10px] text-grappler-500">Tracking</p>
+            </div>
+          </div>
+          {nutritionInsights && (
+            <p className="text-[11px] text-grappler-400">{nutritionInsights.topInsight}</p>
+          )}
+          {weeklyNutrition.improvements.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {weeklyNutrition.improvements.slice(0, 2).map((tip, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-grappler-500">{tip}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {hydration.currentIntake < hydration.dailyMl && (
+            <div className="mt-2 flex items-center gap-2 bg-cyan-500/10 rounded-lg px-2.5 py-1.5">
+              <Sparkles className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+              <p className="text-[10px] text-cyan-300">
+                {Math.round(hydration.dailyMl - hydration.currentIntake)}ml water remaining ({Math.round(hydration.currentIntake)}/{Math.round(hydration.dailyMl)}ml)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─── Fatigue Debt ─── */}
       {fatigueDebt.currentDebt > 30 && workoutLogs.length >= 6 && (
         <div className="card p-4">
@@ -1546,6 +1632,21 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <p className="text-[10px] text-amber-400 font-medium">Streak at risk — train today to keep it alive</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── Upgrade Prompt (subtle, value-driven) ─── */}
+      {upgradePrompt && isFreeUser && (
+        <div className="bg-gradient-to-r from-primary-500/10 to-violet-500/10 border border-primary-500/20 rounded-xl p-3.5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-primary-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-primary-300">{upgradePrompt.headline}</p>
+              <p className="text-[10px] text-grappler-400 mt-0.5">{upgradePrompt.body}</p>
+            </div>
+          </div>
         </div>
       )}
 

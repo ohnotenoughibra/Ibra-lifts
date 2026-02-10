@@ -95,6 +95,7 @@ export function exportFullBackup(): string {
     // ── Training program ──
     currentMesocycle: state.currentMesocycle,
     mesocycleHistory: state.mesocycleHistory,
+    mesocycleQueue: state.mesocycleQueue,
     activeWorkout: state.activeWorkout,
     // ── Workout logs ──
     workoutLogs: state.workoutLogs,
@@ -116,6 +117,7 @@ export function exportFullBackup(): string {
     injuryLog: state.injuryLog,
     illnessLogs: state.illnessLogs,
     workoutSkips: state.workoutSkips,
+    cycleLogs: state.cycleLogs,
     // ── Quick logs & grip ──
     quickLogs: state.quickLogs,
     gripTests: state.gripTests,
@@ -209,6 +211,12 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
         data.mesocycleHistory,
       );
     }
+    // Mesocycle queue — merge (support old blockQueue name)
+    const importedQueue = Array.isArray(data.mesocycleQueue) ? data.mesocycleQueue
+      : Array.isArray(data.blockQueue) ? data.blockQueue : null;
+    if (importedQueue) {
+      update.mesocycleQueue = mergeById(state.mesocycleQueue || [], importedQueue);
+    }
     // Don't overwrite an active workout in progress
     if (data.activeWorkout && !state.activeWorkout) {
       update.activeWorkout = data.activeWorkout;
@@ -253,6 +261,7 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
     if (Array.isArray(data.illnessLogs)) update.illnessLogs = data.illnessLogs;
     if (Array.isArray(data.workoutSkips)) update.workoutSkips = data.workoutSkips;
+    if (Array.isArray(data.cycleLogs)) update.cycleLogs = data.cycleLogs;
 
     // ── Quick logs & grip ──
     if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;

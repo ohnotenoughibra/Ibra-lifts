@@ -43,8 +43,28 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip API routes and external requests — always go to network
-  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
+  // Skip external requests
+  if (url.origin !== self.location.origin) return;
+
+  // API routes: network-first, queue POST/PUT for offline replay
+  if (url.pathname.startsWith('/api/')) {
+    if (request.method === 'GET') {
+      // Cache GET API responses for offline reads
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            return response;
+          })
+          .catch(() => caches.match(request).then((cached) =>
+            cached || new Response(JSON.stringify({ error: 'offline' }), {
+              status: 503, headers: { 'Content-Type': 'application/json' }
+            })
+          ))
+      );
+    }
+    // Non-GET API requests pass through to network (POST/PUT handled by sync queue)
     return;
   }
 

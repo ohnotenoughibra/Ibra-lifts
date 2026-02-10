@@ -80,6 +80,8 @@ const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => 
 const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading: () => <OverlaySkeleton /> });
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
 const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
+const CycleTracking = dynamic(() => import('./CycleTracking'), { loading: () => <OverlaySkeleton /> });
+const FatigueOverlay = dynamic(() => import('./FatigueOverlay'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -356,6 +358,8 @@ export default function Dashboard({
   if (overlayView === 'block_suggestion') return <BlockSuggestionView onClose={() => setOverlayView(null)} />;
   if (overlayView === 'user_guide') return <NewUserGuide onComplete={() => setOverlayView(null)} />;
   if (overlayView === 'illness') return <IllnessLogger onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'cycle_tracking') return <CycleTracking onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'fatigue') return <FatigueOverlay onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

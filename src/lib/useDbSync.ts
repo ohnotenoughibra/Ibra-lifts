@@ -19,7 +19,7 @@ const RESTORE_FIELDS = [
   'waterLog', 'activeDietPhase', 'weeklyCheckIns', 'bodyComposition',
   'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
   'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
-  'notificationPreferences', 'workoutSkips', 'illnessLogs',
+  'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
   'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
 ];
 
@@ -305,6 +305,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       notificationPreferences: store.notificationPreferences,
       workoutSkips: store.workoutSkips,
       illnessLogs: store.illnessLogs,
+      cycleLogs: store.cycleLogs,
       mealReminders: store.mealReminders,
       dailyLoginBonus: store.dailyLoginBonus,
       lastSyncAt: store.lastSyncAt,
@@ -365,6 +366,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.notificationPreferences,
     store.workoutSkips,
     store.illnessLogs,
+    store.cycleLogs,
     store.mealReminders,
     store.dailyLoginBonus,
     store.lastSyncAt,

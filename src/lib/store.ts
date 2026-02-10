@@ -207,6 +207,7 @@ interface AppState {
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
   addToBlockQueue: (block: Omit<PlannedBlock, 'id' | 'createdAt'>) => void;
+  updateBlockInQueue: (id: string, updates: Partial<Omit<PlannedBlock, 'id' | 'createdAt'>>) => void;
   removeFromBlockQueue: (id: string) => void;
   reorderBlockQueue: (fromIndex: number, toIndex: number) => void;
   advanceBlockQueue: () => void;
@@ -820,6 +821,11 @@ export const useAppStore = create<AppState>()(
         set({ blockQueue: [...blockQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
       },
 
+      updateBlockInQueue: (id, updates) => {
+        const { blockQueue } = get();
+        set({ blockQueue: blockQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
+      },
+
       removeFromBlockQueue: (id) => {
         const { blockQueue } = get();
         set({ blockQueue: blockQueue.filter(b => b.id !== id) });
@@ -837,13 +843,16 @@ export const useAppStore = create<AppState>()(
         const { blockQueue, user } = get();
         if (blockQueue.length === 0 || !user) return;
         const next = blockQueue[0];
-        // Temporarily set user's goalFocus to the queued block's focus
+        // Temporarily set user's goalFocus and sessionsPerWeek to the queued block's values
         const prevGoal = user.goalFocus;
-        set({ user: { ...user, goalFocus: next.focus } });
-        get().generateNewMesocycle(next.weeks, undefined, next.periodization);
-        // Restore original goal focus
+        const prevSessions = user.sessionsPerWeek;
+        const overrides: Partial<typeof user> = { goalFocus: next.focus };
+        if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
+        set({ user: { ...user, ...overrides } });
+        get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
+        // Restore original user settings
         const updatedUser = get().user;
-        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal } });
+        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions } });
         // Remove from queue
         set({ blockQueue: blockQueue.slice(1) });
       },
@@ -1528,8 +1537,20 @@ export const useAppStore = create<AppState>()(
         // Update weekly challenge progress
         let weeklyChallenge = gamificationStats.weeklyChallenge;
         if (!weeklyChallenge || !isCurrentWeek(weeklyChallenge)) {
-          // Generate new weekly challenge if none or expired
-          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats);
+          // Compute recent 4-week averages for realistic challenge targets
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          const recentLogs = workoutLogs.filter(l => new Date(l.date) >= fourWeeksAgo);
+          const recentSessions = (get().trainingSessions || []).filter(s => new Date(s.date) >= fourWeeksAgo);
+          const weeks = Math.max(1, 4);
+          const recentWeeklyAvg = {
+            workouts: Math.round((recentLogs.length / weeks) * 10) / 10,
+            volume: Math.round(recentLogs.reduce((s, l) => s + l.totalVolume, 0) / weeks),
+            prs: Math.round((recentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0) / weeks) * 10) / 10,
+            sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
+            dualDays: Math.round(((gamificationStats.dualTrainingDays || 0) / Math.max(1, gamificationStats.totalWorkouts || 1)) * recentLogs.length / weeks * 10) / 10,
+          };
+          weeklyChallenge = generateWeeklyChallenge(user.trainingIdentity, gamificationStats, recentWeeklyAvg);
         }
         // Update progress
         weeklyChallenge = {
@@ -1880,9 +1901,21 @@ export const useAppStore = create<AppState>()(
       },
 
       ensureWeeklyChallenge: () => {
-        const { gamificationStats, user } = get();
+        const { gamificationStats, user, workoutLogs, trainingSessions } = get();
         if (!gamificationStats.weeklyChallenge || !isCurrentWeek(gamificationStats.weeklyChallenge)) {
-          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats);
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          const recentLogs = workoutLogs.filter(l => new Date(l.date) >= fourWeeksAgo);
+          const recentSessions = (trainingSessions || []).filter(s => new Date(s.date) >= fourWeeksAgo);
+          const weeks = Math.max(1, 4);
+          const recentWeeklyAvg = {
+            workouts: Math.round((recentLogs.length / weeks) * 10) / 10,
+            volume: Math.round(recentLogs.reduce((s, l) => s + l.totalVolume, 0) / weeks),
+            prs: Math.round((recentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0) / weeks) * 10) / 10,
+            sessions: Math.round((recentSessions.length / weeks) * 10) / 10,
+            dualDays: 0,
+          };
+          const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats, recentWeeklyAvg);
           set({
             gamificationStats: {
               ...gamificationStats,

@@ -852,6 +852,11 @@ function generateMesocycleWeek(
   } else {
     workoutTypes = UNDULATING_SCHEMES[sessionsPerWeek];
   }
+  // Safety: beginners should not do power training — replace with hypertrophy
+  if (experienceLevel === 'beginner') {
+    workoutTypes = workoutTypes.map(t => t === 'power' ? 'hypertrophy' : t);
+  }
+
   const usedExerciseIds = new Set<string>();
 
   // Adjust volume and intensity for deload or progression

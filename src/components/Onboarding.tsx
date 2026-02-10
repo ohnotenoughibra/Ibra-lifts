@@ -26,7 +26,7 @@ import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingD
 import { cn } from '@/lib/utils';
 import { CalendarDays, Plus } from 'lucide-react';
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 /** Detect if user is on a mobile browser (not already installed as PWA) */
 function useIsMobileBrowser() {
@@ -106,19 +106,23 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
+        // Disclaimer acceptance
+        return !!onboardingData.disclaimerAccepted;
+      case 2:
         // Identity + combat sport + goal + name + age + bodyweight + sex + experience
         if (!onboardingData.trainingIdentity) return false;
         if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
         if (!onboardingData.goalFocus) return false;
         if (onboardingData.name.length < 2) return false;
         if (!onboardingData.age || onboardingData.age < 14) return false;
+        if (onboardingData.age <= 15 && !(onboardingData as any).parentalConsent) return false;
         if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
         if (!onboardingData.sex) return false;
         return true;
-      case 2:
+      case 3:
         // Sessions/week + lifting days
         return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
-      case 3:
+      case 4:
         return true;
       default:
         return true;
@@ -279,12 +283,15 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
             className="card p-6"
           >
             {currentStep === 1 && (
-              <Step1_WhoAreYou data={onboardingData} update={updateOnboardingData} />
+              <Step0_Disclaimer data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 2 && (
-              <Step2_HowYouTrain data={onboardingData} update={updateOnboardingData} />
+              <Step1_WhoAreYou data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 3 && (
+              <Step2_HowYouTrain data={onboardingData} update={updateOnboardingData} />
+            )}
+            {currentStep === 4 && (
               <Step3_Ready data={onboardingData} />
             )}
           </motion.div>
@@ -313,6 +320,72 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Step 0: Disclaimer & Health Acknowledgment ─────────────────────────────
+function Step0_Disclaimer({
+  data,
+  update,
+}: {
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-2">
+        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Shield className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-grappler-50">Before we begin</h2>
+        <p className="text-grappler-400 text-sm">Please read and acknowledge</p>
+      </div>
+
+      <div className="bg-grappler-800/60 rounded-xl p-4 space-y-3 text-sm text-grappler-300 leading-relaxed">
+        <p>
+          Rootsler Gains provides general fitness programming based on exercise science principles.
+          It is <span className="font-semibold text-grappler-100">not a substitute for professional medical advice</span>,
+          diagnosis, or treatment.
+        </p>
+        <p>
+          Consult a physician before starting any exercise program, especially if you have pre-existing
+          health conditions, injuries, or have been inactive for an extended period.
+        </p>
+        <p>
+          By proceeding, you acknowledge that you exercise <span className="font-semibold text-grappler-100">at your own risk</span> and
+          that Rootsler Gains is not liable for injuries sustained during training.
+        </p>
+        <p className="text-xs text-grappler-500">
+          You must be at least 14 years old to use this app. Users aged 14-15 require parental consent.
+        </p>
+      </div>
+
+      <button
+        onClick={() => update({ disclaimerAccepted: !data.disclaimerAccepted })}
+        className={cn(
+          'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',
+          data.disclaimerAccepted
+            ? 'border-green-500 bg-green-500/10'
+            : 'border-grappler-700 hover:border-grappler-600'
+        )}
+      >
+        <div className={cn(
+          'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all',
+          data.disclaimerAccepted
+            ? 'border-green-500 bg-green-500'
+            : 'border-grappler-600'
+        )}>
+          {data.disclaimerAccepted && (
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+        <span className="text-sm text-grappler-200">
+          I understand and accept these terms
+        </span>
+      </button>
     </div>
   );
 }
@@ -568,6 +641,36 @@ function Step1_WhoAreYou({
                 />
               </div>
             </div>
+
+            {/* Age gate warning */}
+            {data.age > 0 && data.age < 14 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                <p className="text-xs text-red-400 font-medium">You must be at least 14 years old to use this app.</p>
+              </div>
+            )}
+            {data.age >= 14 && data.age <= 15 && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                <p className="text-xs text-yellow-400 mb-2">Users aged 14-15 require parental or guardian consent.</p>
+                <button
+                  onClick={() => update({ parentalConsent: !data.parentalConsent } as any)}
+                  className="flex items-center gap-2"
+                >
+                  <div className={cn(
+                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                    (data as any).parentalConsent
+                      ? 'border-green-500 bg-green-500'
+                      : 'border-grappler-500'
+                  )}>
+                    {(data as any).parentalConsent && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs text-grappler-300">I have parental/guardian consent</span>
+                </button>
+              </div>
+            )}
 
             {/* Sex */}
             <div>

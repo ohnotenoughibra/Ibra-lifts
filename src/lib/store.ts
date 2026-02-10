@@ -629,7 +629,31 @@ export const useAppStore = create<AppState>()(
       },
 
       // Whoop actions
-      setLatestWhoopData: (data) => set({ latestWhoopData: data }),
+      setLatestWhoopData: (data) => {
+        set({ latestWhoopData: data });
+
+        // Auto-sync wearable sleep → QuickLog (once per day)
+        if (data?.sleepHours && data.sleepHours > 0) {
+          const today = new Date().toISOString().split('T')[0];
+          const { quickLogs } = get();
+          const alreadyLogged = quickLogs.some(
+            l => l.type === 'sleep' && new Date(l.timestamp).toISOString().split('T')[0] === today
+          );
+          if (!alreadyLogged) {
+            const quality = data.sleepScore ? Math.round(data.sleepScore / 20) : undefined; // 0-100 → 1-5
+            set({
+              quickLogs: [...get().quickLogs, {
+                id: uuidv4(),
+                type: 'sleep' as const,
+                value: Math.round(data.sleepHours * 10) / 10,
+                unit: 'hours',
+                timestamp: new Date(),
+                notes: quality ? `Quality: ${quality}/5 (wearable)` : 'From wearable',
+              }],
+            });
+          }
+        }
+      },
       setWearableHistory: (data) => set({ wearableHistory: data }),
       setWhoopWorkouts: (data) => set({ whoopWorkouts: data }),
 
@@ -2018,6 +2042,14 @@ export const useAppStore = create<AppState>()(
           id: uuidv4(),
         };
         set({ quickLogs: [...quickLogs, entry] });
+
+        // Sync water quick logs → waterLog Record for nutrition/readiness engines
+        if (log.type === 'water' && typeof log.value === 'number') {
+          const dateStr = new Date(log.timestamp).toISOString().split('T')[0];
+          const { waterLog } = get();
+          const existing = waterLog[dateStr] || 0;
+          set({ waterLog: { ...waterLog, [dateStr]: existing + log.value } });
+        }
       },
 
       deleteQuickLog: (id) => {
@@ -2353,8 +2385,23 @@ export const useAppStore = create<AppState>()(
       setMacroTargets: (targets) => set({ macroTargets: targets }),
 
       setWaterGlasses: (date, glasses) => {
-        const { waterLog } = get();
+        const { waterLog, quickLogs } = get();
+        const prev = waterLog[date] || 0;
         set({ waterLog: { ...waterLog, [date]: glasses } });
+
+        // Sync → QuickLog so quick log UI stays in sync
+        const delta = glasses - prev;
+        if (delta > 0) {
+          set({
+            quickLogs: [...quickLogs, {
+              id: uuidv4(),
+              type: 'water' as const,
+              value: delta,
+              unit: 'ml',
+              timestamp: new Date(),
+            }],
+          });
+        }
       },
 
       // Diet coaching actions

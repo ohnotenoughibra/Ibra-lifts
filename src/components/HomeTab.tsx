@@ -57,6 +57,9 @@ import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
 import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
+import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
+import { buildPerformanceProfiles, findStrongestLifts, findWeakLinks } from '@/lib/performance-model';
+import { generateVariableReward, analyzeStreak, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -290,6 +293,47 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const showReadiness = accountAgeDays >= 7 || workoutLogs.length >= 3;
   const showNutritionCard = accountAgeDays >= 14 || workoutLogs.length >= 5;
   const showWeeklySynthesis = accountAgeDays >= 7 || workoutLogs.length >= 4;
+
+  // ─── Injury Intelligence ───
+  const injuryProfiles = useMemo(() => {
+    return getInjuryProfiles(injuryLog, workoutLogs);
+  }, [injuryLog, workoutLogs]);
+
+  const injuryInsights = useMemo(() => {
+    return getInjuryInsights(injuryProfiles, workoutLogs);
+  }, [injuryProfiles, workoutLogs]);
+
+  // ─── Performance Model ───
+  const performanceProfiles = useMemo(() => {
+    return buildPerformanceProfiles(workoutLogs);
+  }, [workoutLogs]);
+
+  const strongestLifts = useMemo(() => {
+    return findStrongestLifts(workoutLogs, 3);
+  }, [workoutLogs]);
+
+  const weakLinks = useMemo(() => {
+    return findWeakLinks(workoutLogs);
+  }, [workoutLogs]);
+
+  // ─── Engagement Engine ───
+  const streakAnalysis = useMemo(() => {
+    return analyzeStreak(workoutLogs, gamificationStats);
+  }, [workoutLogs, gamificationStats]);
+
+  const disengagement = useMemo(() => {
+    return detectDisengagement(workoutLogs, user);
+  }, [workoutLogs, user]);
+
+  const variableReward = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return generateVariableReward(lastCompletedWorkout.log, gamificationStats, workoutLogs);
+  }, [lastCompletedWorkout, gamificationStats, workoutLogs]);
+
+  const sessionContext = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return getSessionContext(lastCompletedWorkout.log, workoutLogs, gamificationStats);
+  }, [lastCompletedWorkout, workoutLogs, gamificationStats]);
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -746,6 +790,40 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
+  // 8. Injury alerts
+  if (injuryInsights.alerts.length > 0 && feedCards.length < 5) {
+    feedCards.push(
+      <div key="injury-alert" className="flex items-start gap-3 bg-gradient-to-r from-rose-500/15 to-red-500/10 border border-rose-500/30 rounded-xl p-3.5">
+        <Siren className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-rose-300 text-sm">Injury Alert</h3>
+          {injuryInsights.alerts.slice(0, 2).map((alert, i) => (
+            <p key={i} className="text-xs text-rose-400/80 mt-1">{alert}</p>
+          ))}
+          <button onClick={() => onNavigate('injury')}
+            className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
+            View Injuries
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 9. Disengagement nudge
+  if (disengagement.nudgeMessage && (disengagement.status === 'at_risk' || disengagement.status === 'churned') && feedCards.length < 5) {
+    feedCards.push(
+      <div key="nudge" className="flex items-start gap-3 bg-gradient-to-r from-primary-500/15 to-blue-500/10 border border-primary-500/30 rounded-xl p-3.5">
+        <HeartPulse className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-primary-300 text-sm">
+            {disengagement.status === 'churned' ? 'Welcome Back' : 'Missing You'}
+          </h3>
+          <p className="text-xs text-grappler-400 mt-1">{disengagement.nudgeMessage}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* ─── Post-Workout Summary (ephemeral) ─── */}
@@ -819,6 +897,45 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <Brain className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-grappler-300 leading-relaxed">{postWorkoutCoaching}</p>
               </div>
+            )}
+            {sessionContext && sessionContext.contextLines.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {sessionContext.contextLines.slice(0, 2).map((line, i) => (
+                  <div key={i} className="flex items-start gap-2 px-3">
+                    <Sparkles className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-grappler-400">{line}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {variableReward && variableReward.type !== 'none' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.4, ease: 'easeOut' }}
+                className={cn('mt-3 rounded-lg px-3 py-2.5 border', {
+                  'bg-blue-500/10 border-blue-500/30': variableReward.rarity === 'common',
+                  'bg-purple-500/10 border-purple-500/30': variableReward.rarity === 'uncommon',
+                  'bg-yellow-500/10 border-yellow-500/30': variableReward.rarity === 'rare',
+                  'bg-gradient-to-r from-orange-500/15 to-pink-500/15 border-orange-500/30': variableReward.rarity === 'epic',
+                })}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className={cn('w-4 h-4', {
+                      'text-blue-400': variableReward.rarity === 'common',
+                      'text-purple-400': variableReward.rarity === 'uncommon',
+                      'text-yellow-400': variableReward.rarity === 'rare',
+                      'text-orange-400': variableReward.rarity === 'epic',
+                    })} />
+                    <div>
+                      <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>
+                      <p className="text-[10px] text-grappler-400">{variableReward.description}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-primary-400">+{variableReward.bonusPoints} XP</span>
+                </div>
+              </motion.div>
             )}
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1236,6 +1353,83 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
                 </span>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Performance Snapshot — strongest lifts + weak links ─── */}
+      {strongestLifts.length > 0 && workoutLogs.length >= 5 && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Performance</span>
+          </div>
+          <div className="space-y-2">
+            {strongestLifts.slice(0, 3).map((lift) => (
+              <div key={lift.exerciseId} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Dumbbell className="w-3 h-3 text-grappler-500 flex-shrink-0" />
+                  <span className="text-xs text-grappler-300 truncate">{lift.exerciseName}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-bold text-grappler-100">{Math.round(lift.estimated1RM)} {weightUnit}</span>
+                  <span className={cn('text-[10px]', {
+                    'text-green-400': lift.trend === 'rising',
+                    'text-yellow-400': lift.trend === 'plateau',
+                    'text-red-400': lift.trend === 'declining',
+                  })}>
+                    {lift.trend === 'rising' ? '\u2191' : lift.trend === 'declining' ? '\u2193' : '\u2192'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {weakLinks.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-grappler-700/50">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-amber-300 font-medium">{weakLinks[0].issue}</p>
+                  <p className="text-[10px] text-grappler-500 mt-0.5">{weakLinks[0].suggestion}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Streak Intelligence ─── */}
+      {streakAnalysis.currentStreak > 0 && workoutLogs.length >= 3 && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Streak</span>
+            </div>
+            <span className="text-2xl font-black text-orange-400">{streakAnalysis.currentStreak}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center mb-2">
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.longestStreak}</p>
+              <p className="text-[10px] text-grappler-500">Best</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.weeklyConsistency}%</p>
+              <p className="text-[10px] text-grappler-500">Consistency</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.bestDay}</p>
+              <p className="text-[10px] text-grappler-500">Best Day</p>
+            </div>
+          </div>
+          {streakAnalysis.message && (
+            <p className="text-[11px] text-grappler-400 leading-relaxed">{streakAnalysis.message}</p>
+          )}
+          {streakAnalysis.streakAtRisk && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <p className="text-[10px] text-amber-400 font-medium">Streak at risk — train today to keep it alive</p>
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@
 
 // ── Version Constants ─────────────────────────────────────────────────────
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '2.0.0';
 export const APP_VERSION_KEY = 'roots-gains-version';
 export const UPGRADE_DISMISSED_KEY = 'roots-gains-upgrade-dismissed';
 
@@ -22,6 +22,24 @@ export interface VersionInfo {
 
 // Version history — newest first
 export const VERSION_HISTORY: VersionInfo[] = [
+  {
+    version: '2.0.0',
+    releasedAt: '2026-02-10',
+    highlights: [
+      'Daily Directive — one clear mission every day based on your readiness',
+      'Weekly Coaching — AI narrative reviewing your training week',
+      'Injury Intelligence — body map, auto-substitution, risk alerts',
+      'Performance Model — strength curves, weak links, progression tracking',
+      'Engagement Engine — variable rewards, streak analysis, milestones',
+      'Female Athlete Intelligence — cycle phase-aware training adjustments',
+      'Smart Deloads — fatigue debt tracking with 5 deload protocols',
+      'Nutrition Coaching — protein timing, caloric periodization, hydration',
+      'Monetization — feature tiers (free/pro/elite) with value-driven prompts',
+      'Seamless upgrades — updates install silently without interruption',
+    ],
+    breakingChanges: false,
+    migrationNotes: 'All new features are added automatically. Your existing data is fully compatible.',
+  },
   {
     version: '1.1.0',
     releasedAt: '2026-02-07',
@@ -82,6 +100,24 @@ const MIGRATIONS: Record<string, MigrationFn> = {
     // Add new fields for illness tracking and workout skips
     if (!data.illnessLogs) data.illnessLogs = [];
     if (!data.workoutSkips) data.workoutSkips = [];
+    return data;
+  },
+  '2.0.0': (data) => {
+    // Ensure all array/object fields added by Sprints 1-9 exist.
+    // Zustand's persist migrate handles this too, but this catches
+    // edge cases where app-version migration runs first.
+    if (!data.quickLogs) data.quickLogs = [];
+    if (!data.gripTests) data.gripTests = [];
+    if (!data.gripExerciseLogs) data.gripExerciseLogs = [];
+    if (!data.injuryLog) data.injuryLog = [];
+    if (!data.hrSessions) data.hrSessions = [];
+    if (!data.bodyComposition) data.bodyComposition = [];
+    if (!data.competitions) data.competitions = [];
+    if (!data.blockQueue) data.blockQueue = [];
+    if (!data.weeklyCheckIns) data.weeklyCheckIns = [];
+    if (!data.waterLog || typeof data.waterLog !== 'object') data.waterLog = {};
+    if (!data.macroTargets) data.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    if (!data.muscleEmphasis) data.muscleEmphasis = {};
     return data;
   },
 };

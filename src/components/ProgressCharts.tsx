@@ -144,7 +144,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
       chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Arms',
       triceps: 'Arms', quadriceps: 'Legs', hamstrings: 'Legs', glutes: 'Legs',
       calves: 'Legs', core: 'Core', forearms: 'Arms', traps: 'Back',
-      lats: 'Back', full_body: 'Full Body'
+      full_body: 'Full Body'
     };
 
     workoutLogs.forEach(log => {

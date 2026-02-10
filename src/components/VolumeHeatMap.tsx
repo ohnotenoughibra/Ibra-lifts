@@ -16,7 +16,7 @@ interface VolumeHeatMapProps {
 const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'biceps', 'triceps',
   'quadriceps', 'hamstrings', 'glutes', 'calves',
-  'core', 'forearms', 'traps', 'lats', 'full_body',
+  'core', 'forearms', 'traps', 'full_body',
 ];
 
 const MUSCLE_LABELS: Record<MuscleGroup, string> = {
@@ -32,7 +32,6 @@ const MUSCLE_LABELS: Record<MuscleGroup, string> = {
   core: 'Core',
   forearms: 'Forearms',
   traps: 'Traps',
-  lats: 'Lats',
   full_body: 'Full Body',
 };
 

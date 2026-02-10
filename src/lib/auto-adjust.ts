@@ -496,6 +496,136 @@ export function getPreviousSessionSets(
   return null;
 }
 
+// Analyze joint pain history for an exercise across recent logs
+// Returns escalation level: 1x = recommend swap, 2x = force swap, 3x same region = recommend rest
+export function getJointPainHistory(
+  exerciseId: string,
+  recentLogs: WorkoutLog[]
+): { count: number; bodyRegion: string | null; shouldForceSwap: boolean; shouldRecommendRest: boolean } {
+  let count = 0;
+  let bodyRegion: string | null = null;
+  const regionCounts = new Map<string, number>();
+
+  for (const log of recentLogs) {
+    for (const ex of log.exercises) {
+      if (ex.exerciseId === exerciseId && ex.feedback?.jointPain) {
+        count++;
+        const region = ex.feedback.jointPainLocation || 'unknown';
+        bodyRegion = region;
+        regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
+      }
+      // Also count same-region pain across different exercises
+      if (ex.feedback?.jointPain && ex.feedback.jointPainLocation) {
+        const region = ex.feedback.jointPainLocation;
+        if (!regionCounts.has(region)) {
+          regionCounts.set(region, 0);
+        }
+        // Only count once per exercise (already counted above for matching exerciseId)
+        if (ex.exerciseId !== exerciseId) {
+          regionCounts.set(region, regionCounts.get(region)! + 1);
+        }
+      }
+    }
+  }
+
+  // Check for any body region with 3+ pain reports across all exercises
+  let shouldRecommendRest = false;
+  for (const [region, regionCount] of Array.from(regionCounts.entries())) {
+    if (regionCount >= 3) {
+      shouldRecommendRest = true;
+      bodyRegion = region;
+      break;
+    }
+  }
+
+  return {
+    count,
+    bodyRegion,
+    shouldForceSwap: count >= 2,
+    shouldRecommendRest,
+  };
+}
+
+// Double progression: increase reps first, then weight
+// Standard evidence-based progression model for hypertrophy
+export function evaluateDoubleProgression(
+  exerciseId: string,
+  targetRepRange: [number, number],
+  previousLogs: WorkoutLog[],
+  weightIncrement: number = 2.5 // 2.5 kg default, 5 for lbs
+): {
+  action: 'increase_weight' | 'increase_reps' | 'maintain' | 'decrease_weight';
+  newWeight?: number;
+  reason: string;
+} {
+  // Find the most recent logs containing this exercise (last 3 sessions)
+  const relevantLogs = previousLogs
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter(log => log.exercises.some(e => e.exerciseId === exerciseId))
+    .slice(0, 3);
+
+  if (relevantLogs.length === 0) {
+    return { action: 'maintain', reason: 'No previous data for this exercise.' };
+  }
+
+  const latest = relevantLogs[0];
+  const exerciseLog = latest.exercises.find(e => e.exerciseId === exerciseId);
+  if (!exerciseLog || exerciseLog.sets.length === 0) {
+    return { action: 'maintain', reason: 'No set data found.' };
+  }
+
+  const completedSets = exerciseLog.sets.filter(s => s.completed);
+  if (completedSets.length === 0) {
+    return { action: 'maintain', reason: 'No completed sets found.' };
+  }
+
+  const lastWeight = completedSets[0].weight;
+  const allHitTop = completedSets.every(s => s.reps >= targetRepRange[1]);
+  const allHitBottom = completedSets.every(s => s.reps >= targetRepRange[0]);
+  const anyBelowBottom = completedSets.some(s => s.reps < targetRepRange[0]);
+
+  // All sets hit top of rep range → increase weight, reset to bottom of range
+  if (allHitTop) {
+    return {
+      action: 'increase_weight',
+      newWeight: lastWeight + weightIncrement,
+      reason: `All sets hit ${targetRepRange[1]} reps — increase weight by ${weightIncrement} and target ${targetRepRange[0]} reps.`,
+    };
+  }
+
+  // All sets hit at least bottom of range but not all at top → keep weight, aim for more reps
+  if (allHitBottom && !allHitTop) {
+    return {
+      action: 'increase_reps',
+      reason: `Good work — maintain ${lastWeight} and aim for +1 rep per set next time.`,
+    };
+  }
+
+  // Check for consecutive failures (2+ sessions below bottom)
+  if (anyBelowBottom && relevantLogs.length >= 2) {
+    const prevLog = relevantLogs[1];
+    const prevExLog = prevLog.exercises.find(e => e.exerciseId === exerciseId);
+    if (prevExLog) {
+      const prevBelowBottom = prevExLog.sets
+        .filter(s => s.completed)
+        .some(s => s.reps < targetRepRange[0]);
+      if (prevBelowBottom) {
+        return {
+          action: 'decrease_weight',
+          newWeight: Math.max(0, lastWeight - weightIncrement),
+          reason: `Two consecutive sessions below ${targetRepRange[0]} reps — reduce weight by ${weightIncrement}.`,
+        };
+      }
+    }
+  }
+
+  // Single session below bottom → maintain and recover
+  return {
+    action: 'maintain',
+    reason: `Some sets below target — maintain ${lastWeight} and focus on form.`,
+  };
+}
+
 // Determine if a deload is needed based on accumulated fatigue signals
 export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reason: string } {
   if (recentLogs.length < 3) return { needed: false, reason: '' };

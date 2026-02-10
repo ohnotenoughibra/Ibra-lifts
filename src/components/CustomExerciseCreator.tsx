@@ -28,7 +28,7 @@ interface CustomExerciseCreatorProps {
 const MUSCLE_GROUPS: MuscleGroup[] = [
   'chest', 'back', 'shoulders', 'biceps', 'triceps',
   'quadriceps', 'hamstrings', 'glutes', 'calves',
-  'core', 'forearms', 'traps', 'lats', 'full_body'
+  'core', 'forearms', 'traps', 'full_body'
 ];
 
 const CATEGORIES: { value: ExerciseCategory; label: string }[] = [

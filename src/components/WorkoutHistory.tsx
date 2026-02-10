@@ -72,7 +72,6 @@ export default function WorkoutHistory() {
       biceps: 'Biceps',
       triceps: 'Triceps',
       core: 'Core',
-      lats: 'Lats',
       calves: 'Calves',
       forearms: 'Forearms',
       traps: 'Traps',
@@ -92,7 +91,7 @@ export default function WorkoutHistory() {
 
     const groups: { id: MuscleGroup | 'all'; label: string }[] = [{ id: 'all', label: 'All' }];
     // Add only muscles the user has trained, maintaining a logical order
-    const orderedMuscles: MuscleGroup[] = ['chest', 'back', 'lats', 'shoulders', 'biceps', 'triceps', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'core', 'forearms', 'traps', 'full_body'];
+    const orderedMuscles: MuscleGroup[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'core', 'forearms', 'traps', 'full_body'];
     orderedMuscles.forEach(muscle => {
       if (foundMuscles.has(muscle)) {
         groups.push({ id: muscle, label: muscleLabels[muscle] });

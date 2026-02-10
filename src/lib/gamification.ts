@@ -860,31 +860,54 @@ function getMonday(date: Date): string {
 
 export function generateWeeklyChallenge(
   trainingIdentity: TrainingIdentity | undefined,
-  stats: GamificationStats
+  stats: GamificationStats,
+  recentWeeklyAvg?: {
+    workouts: number;
+    volume: number;
+    prs: number;
+    sessions: number;
+    dualDays: number;
+  }
 ): WeeklyChallenge {
   const weekStart = getMonday(new Date());
   const isCombat = trainingIdentity === 'combat' || trainingIdentity === 'general_fitness';
 
-  // Scale targets based on user's level / experience
-  const scaleFactor = Math.min(1 + (stats.level - 1) * 0.1, 3); // 1.0 at L1, 3.0 at L21+
+  // Base targets on actual recent performance — stretch by 10-20% to be achievable yet challenging
+  const avg = recentWeeklyAvg ?? { workouts: 2, volume: 8000, prs: 0, sessions: 1, dualDays: 0 };
+  const stretchLow = 1.1;   // 10% more than usual = "achievable"
+  const stretchHigh = 1.25;  // 25% more than usual = "challenging"
 
   // Pool of possible goals per training identity
-  type GoalTemplate = { type: WeeklyChallengeGoal['type']; base: number; desc: string; xp: number };
+  type GoalTemplate = { type: WeeklyChallengeGoal['type']; target: number; desc: string; xp: number };
+
+  // Workout targets: user's average + 0–1 extra session, capped sensibly
+  const workoutBase = Math.max(2, Math.round(avg.workouts));
+  const workoutStretch = Math.min(7, workoutBase + 1);
+
+  // Volume targets: 10-25% above user's recent average, rounded to nearest 500
+  const volBase = Math.round(avg.volume * stretchLow / 500) * 500;
+  const volStretch = Math.round(avg.volume * stretchHigh / 500) * 500;
+
+  // PR targets: always 1-2, PRs shouldn't be forced — they happen naturally
+  const prTarget = avg.prs >= 2 ? 2 : 1;
 
   const commonGoals: GoalTemplate[] = [
-    { type: 'workouts', base: 3, desc: 'Complete {n} lifting sessions', xp: 75 },
-    { type: 'workouts', base: 4, desc: 'Complete {n} lifting sessions', xp: 100 },
-    { type: 'volume', base: 10000, desc: 'Lift {n} kg total volume', xp: 75 },
-    { type: 'volume', base: 15000, desc: 'Lift {n} kg total volume', xp: 100 },
-    { type: 'prs', base: 1, desc: 'Hit {n} personal record', xp: 100 },
-    { type: 'prs', base: 2, desc: 'Hit {n} personal records', xp: 150 },
+    { type: 'workouts', target: workoutBase, desc: `Complete ${workoutBase} lifting session${workoutBase !== 1 ? 's' : ''}`, xp: 75 },
+    { type: 'workouts', target: workoutStretch, desc: `Complete ${workoutStretch} lifting session${workoutStretch !== 1 ? 's' : ''}`, xp: 100 },
+    { type: 'volume', target: Math.max(2000, volBase), desc: `Lift ${Math.max(2000, volBase).toLocaleString()} total volume`, xp: 75 },
+    { type: 'volume', target: Math.max(3000, volStretch), desc: `Lift ${Math.max(3000, volStretch).toLocaleString()} total volume`, xp: 100 },
+    { type: 'prs', target: prTarget, desc: `Hit ${prTarget} personal record${prTarget > 1 ? 's' : ''}`, xp: 100 + (prTarget > 1 ? 50 : 0) },
   ];
 
+  // Combat-specific: based on actual training session frequency
+  const sessionBase = Math.max(1, Math.round(avg.sessions * stretchLow));
+  const sessionStretch = Math.max(2, Math.round(avg.sessions * stretchHigh));
+  const dualTarget = Math.max(1, Math.round(avg.dualDays * stretchLow));
+
   const combatGoals: GoalTemplate[] = [
-    { type: 'sessions', base: 2, desc: 'Log {n} training sessions', xp: 75 },
-    { type: 'sessions', base: 3, desc: 'Log {n} training sessions', xp: 100 },
-    { type: 'sessions', base: 4, desc: 'Log {n} training sessions', xp: 125 },
-    { type: 'dual_days', base: 2, desc: 'Train lifting + combat on the same day {n} times', xp: 125 },
+    { type: 'sessions', target: sessionBase, desc: `Log ${sessionBase} training session${sessionBase !== 1 ? 's' : ''}`, xp: 75 },
+    { type: 'sessions', target: sessionStretch, desc: `Log ${sessionStretch} training session${sessionStretch !== 1 ? 's' : ''}`, xp: 100 },
+    { type: 'dual_days', target: dualTarget, desc: `Train lifting + combat on the same day ${dualTarget} time${dualTarget !== 1 ? 's' : ''}`, xp: 125 },
   ];
 
   const pool = isCombat ? [...commonGoals, ...combatGoals] : commonGoals;
@@ -896,12 +919,9 @@ export function generateWeeklyChallenge(
 
   for (const goal of shuffled) {
     if (selected.length >= 3) break;
-    // Avoid duplicate types (allow 2 of same type only if pool is small)
-    const typeKey = `${goal.type}-${goal.base}`;
     if (usedTypes.has(goal.type) && selected.length < 2) continue;
-    if (!usedTypes.has(typeKey)) {
+    if (!usedTypes.has(goal.type)) {
       usedTypes.add(goal.type);
-      usedTypes.add(typeKey);
       selected.push(goal);
     }
   }
@@ -912,16 +932,12 @@ export function generateWeeklyChallenge(
   }
 
   const goals: WeeklyChallengeGoal[] = selected.map(tmpl => {
-    const scaledTarget = tmpl.type === 'volume'
-      ? Math.round(tmpl.base * scaleFactor / 500) * 500 // Round volume to nearest 500
-      : Math.max(1, Math.round(tmpl.base * Math.min(scaleFactor, 2))); // Cap non-volume at 2x
-
     return {
       id: uuidv4(),
       type: tmpl.type,
-      target: scaledTarget,
+      target: tmpl.target,
       current: 0,
-      description: tmpl.desc.replace('{n}', String(scaledTarget)),
+      description: tmpl.desc,
       xpReward: tmpl.xp,
       completed: false,
     };

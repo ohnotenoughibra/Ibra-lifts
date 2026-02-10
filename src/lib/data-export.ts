@@ -274,9 +274,22 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     // Apply the update
     useAppStore.setState(update);
 
+    // After merge, auto-reassign imported logs whose mesocycleId doesn't match
+    // the current mesocycle. This fixes the bug where importing a backup into a
+    // device with a different mesocycle leaves logs orphaned (not shown as completed).
+    const postState = useAppStore.getState();
+    const activeMeso = postState.currentMesocycle;
+    if (activeMeso) {
+      const allLogs = (postState.workoutLogs || []) as WorkoutLog[];
+      const orphanedIds = allLogs
+        .filter(log => !log.mesocycleId || log.mesocycleId !== activeMeso.id)
+        .map(log => log.id);
+      if (orphanedIds.length > 0) {
+        postState.importWorkoutLogsToCurrentMesocycle(orphanedIds);
+      }
+    }
+
     // Recalculate derived stats from imported workout data
-    // This ensures streaks, PR flags, heat map, and gamification stats are accurate
-    // even if the backup had stale or missing gamification data
     const mergedLogs = (update.workoutLogs as WorkoutLog[] | undefined) || state.workoutLogs;
     if (mergedLogs && mergedLogs.length > 0) {
       queueMicrotask(() => {

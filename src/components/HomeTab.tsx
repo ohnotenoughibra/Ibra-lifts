@@ -37,7 +37,6 @@ import {
   Share2,
   Check,
   Users,
-  CalendarDays,
   Sparkles,
   Grip,
   Watch,
@@ -55,8 +54,17 @@ import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/
 import { shouldDeload } from '@/lib/auto-adjust';
 import { getEffectiveTier } from '@/lib/subscription';
 import { generateQuickWorkout } from '@/lib/workout-generator';
-import { getTodayRecommendation } from '@/lib/smart-schedule';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
+import { generateDailyDirective } from '@/lib/daily-directive';
+import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
+import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
+import { buildPerformanceProfiles, findStrongestLifts, findWeakLinks } from '@/lib/performance-model';
+import { generateVariableReward, analyzeStreak, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
+import { calculateFatigueDebt, getSmartDeloadRecommendation, getFatigueInsights } from '@/lib/smart-deload';
+import { buildCycleProfile, getPhaseTrainingAdjustments, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
+import type { CycleLog } from '@/lib/female-athlete';
+import { getWeeklyNutritionScore, getHydrationTarget, getNutritionInsights } from '@/lib/nutrition-coaching';
+import { toMonetizationTier, shouldShowUpgradePrompt } from '@/lib/monetization-engine';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -241,6 +249,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     skipWorkout, gamificationStats, blockQueue, completeMesocycle,
     subscription,
   } = useAppStore();
+  const wearableHistory = useAppStore(s => s.wearableHistory);
+  const macroTargets = useAppStore(s => s.macroTargets);
+  const waterLog = useAppStore(s => s.waterLog);
+  const injuryLog = useAppStore(s => s.injuryLog);
+  const quickLogs = useAppStore(s => s.quickLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const effectiveTier = getEffectiveTier(subscription);
   const isFreeUser = effectiveTier === 'free';
@@ -251,6 +264,138 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  // ─── Daily Directive — single mission for today ───
+  const directive = useMemo(() => {
+    return generateDailyDirective({
+      user, currentMesocycle, workoutLogs, trainingSessions,
+      wearableData: latestWhoopData, wearableHistory, meals,
+      macroTargets, waterLog, injuryLog, quickLogs,
+    });
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs]);
+
+  // ─── Weekly Synthesis — coaching narrative ───
+  const synthesis = useMemo(() => {
+    return generateWeeklySynthesis({
+      user, workoutLogs, trainingSessions, wearableHistory,
+      meals, macroTargets, weightUnit,
+    });
+  }, [user, workoutLogs, trainingSessions, wearableHistory, meals, macroTargets, weightUnit]);
+
+  // ─── Post-workout coaching line ───
+  const postWorkoutCoaching = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return generatePostWorkoutCoachingLine(
+      lastCompletedWorkout.log, workoutLogs, latestWhoopData
+    );
+  }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  // ─── Progressive disclosure: feature unlocking based on age of account ───
+  const accountAgeDays = useMemo(() => {
+    if (!user?.createdAt) return 999;
+    return Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+  }, [user?.createdAt]);
+  const showReadiness = accountAgeDays >= 7 || workoutLogs.length >= 3;
+  const showNutritionCard = accountAgeDays >= 14 || workoutLogs.length >= 5;
+  const showWeeklySynthesis = accountAgeDays >= 7 || workoutLogs.length >= 4;
+
+  // ─── Injury Intelligence ───
+  const injuryProfiles = useMemo(() => {
+    return getInjuryProfiles(injuryLog, workoutLogs);
+  }, [injuryLog, workoutLogs]);
+
+  const injuryInsights = useMemo(() => {
+    return getInjuryInsights(injuryProfiles, workoutLogs);
+  }, [injuryProfiles, workoutLogs]);
+
+  // ─── Performance Model ───
+  const performanceProfiles = useMemo(() => {
+    return buildPerformanceProfiles(workoutLogs);
+  }, [workoutLogs]);
+
+  const strongestLifts = useMemo(() => {
+    return findStrongestLifts(workoutLogs, 3);
+  }, [workoutLogs]);
+
+  const weakLinks = useMemo(() => {
+    return findWeakLinks(workoutLogs);
+  }, [workoutLogs]);
+
+  // ─── Engagement Engine ───
+  const streakAnalysis = useMemo(() => {
+    return analyzeStreak(workoutLogs, gamificationStats);
+  }, [workoutLogs, gamificationStats]);
+
+  const disengagement = useMemo(() => {
+    return detectDisengagement(workoutLogs, user);
+  }, [workoutLogs, user]);
+
+  const variableReward = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return generateVariableReward(lastCompletedWorkout.log, gamificationStats, workoutLogs);
+  }, [lastCompletedWorkout, gamificationStats, workoutLogs]);
+
+  const sessionContext = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return getSessionContext(lastCompletedWorkout.log, workoutLogs, gamificationStats);
+  }, [lastCompletedWorkout, workoutLogs, gamificationStats]);
+
+  // ─── Smart Deload & Fatigue ───
+  const fatigueDebt = useMemo(() => {
+    return calculateFatigueDebt(workoutLogs, wearableHistory);
+  }, [workoutLogs, wearableHistory]);
+
+  const deloadRec = useMemo(() => {
+    return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
+  }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
+
+  const fatigueInsight = useMemo(() => {
+    return getFatigueInsights(fatigueDebt, workoutLogs, wearableHistory);
+  }, [fatigueDebt, workoutLogs, wearableHistory]);
+
+  // ─── Female Athlete Intelligence ───
+  const showCycle = shouldShowCycleFeatures(user);
+  const cycleLogs: CycleLog[] = []; // TODO: add cycleLogs to store when cycle_tracking overlay is built
+  const cycleProfile = useMemo(() => {
+    if (!showCycle || cycleLogs.length === 0) return null;
+    return buildCycleProfile(cycleLogs);
+  }, [showCycle, cycleLogs]);
+
+  const cycleInsights = useMemo(() => {
+    if (!cycleProfile) return null;
+    return getCycleInsights(cycleProfile, workoutLogs);
+  }, [cycleProfile, workoutLogs]);
+
+  const phaseAdjustments = useMemo(() => {
+    if (!cycleProfile) return null;
+    return getPhaseTrainingAdjustments(cycleProfile.currentPhase);
+  }, [cycleProfile]);
+
+  // ─── Nutrition Coaching ───
+  const hasWorkoutToday = workoutLogs.some(l => new Date(l.date).toDateString() === new Date().toDateString());
+
+  const weeklyNutrition = useMemo(() => {
+    if (meals.length === 0 || macroTargets.calories === 0) return null;
+    return getWeeklyNutritionScore(meals, macroTargets, waterLog);
+  }, [meals, macroTargets, waterLog]);
+
+  const nutritionInsights = useMemo(() => {
+    if (meals.length === 0) return null;
+    return getNutritionInsights(user, meals, macroTargets, workoutLogs, waterLog);
+  }, [user, meals, macroTargets, workoutLogs, waterLog]);
+
+  const hydration = useMemo(() => {
+    const todayWaterMl = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    return getHydrationTarget(user, todayWaterMl, hasWorkoutToday);
+  }, [user, waterLog, hasWorkoutToday]);
+
+  // ─── Monetization ───
+  const monetizationTier = toMonetizationTier(effectiveTier);
+
+  const upgradePrompt = useMemo(() => {
+    if (monetizationTier === 'elite') return null;
+    return shouldShowUpgradePrompt(workoutLogs, gamificationStats, monetizationTier);
+  }, [workoutLogs, gamificationStats, monetizationTier]);
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -537,6 +682,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   ];
   const moreTools = [
     { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-blue-400 bg-blue-500/20' },
+    { icon: Activity, label: 'Fatigue', view: 'fatigue' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
+    ...(showCycle ? [{ icon: HeartPulse, label: 'Cycle', view: 'cycle_tracking' as OverlayView, color: 'text-pink-400 bg-pink-500/20' }] : []),
     { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
     { icon: Thermometer, label: 'Illness', view: 'illness' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
     { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
@@ -649,14 +796,35 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 5. Deload alert
-  if (deloadCheck && deloadCheck.needed && feedCards.length < 4) {
+  // 5. Smart Deload (replaces crude deload check)
+  if (deloadRec.needed && feedCards.length < 4) {
+    const urgencyColors = {
+      optional: 'from-yellow-500/15 to-amber-500/10 border-yellow-500/30',
+      recommended: 'from-orange-500/20 to-red-500/10 border-orange-500/30',
+      critical: 'from-red-500/20 to-rose-500/10 border-red-500/30',
+    };
+    const urgencyIcon = {
+      optional: 'text-yellow-400',
+      recommended: 'text-orange-400',
+      critical: 'text-red-400',
+    };
     feedCards.push(
-      <div key="deload" className="flex items-start gap-3 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-3.5">
-        <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-bold text-orange-300 text-sm">Deload Recommended</h3>
-          <p className="text-xs text-orange-400/80 mt-1">{deloadCheck.reason}</p>
+      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[deloadRec.urgency])}>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[deloadRec.urgency])} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className={cn('font-bold text-sm', urgencyIcon[deloadRec.urgency])}>
+                {deloadRec.urgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
+              </h3>
+              <span className="text-xs text-grappler-500">Fatigue: {fatigueDebt.currentDebt}/100</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{deloadRec.reason}</p>
+            <div className="mt-2 bg-black/20 rounded-lg px-2.5 py-1.5">
+              <p className="text-[10px] font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
+              <p className="text-[10px] text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -707,32 +875,64 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // Smart daily recommendation
-  const dailyRec = (() => {
-    if (!user?.trainingDays || user.trainingDays.length === 0) return null;
-    const latestWhoop = useAppStore.getState().latestWhoopData;
-    const wearableHistory = useAppStore.getState().wearableHistory;
-    const recentRecoveries = wearableHistory.filter(w => w.recoveryScore != null).slice(-7).map(w => w.recoveryScore!);
-    const avgRecovery7d = recentRecoveries.length > 0
-      ? Math.round(recentRecoveries.reduce((a, b) => a + b, 0) / recentRecoveries.length) : undefined;
-    const sleepDebtHours = (latestWhoop?.sleepHours != null && latestWhoop?.sleepNeededHours != null)
-      ? latestWhoop.sleepHours - latestWhoop.sleepNeededHours : undefined;
-    const hrvValues = wearableHistory.filter(w => w.hrv != null).slice(-7).map(w => w.hrv!);
-    let hrvCV: number | undefined;
-    if (hrvValues.length >= 4) {
-      const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
-      if (mean > 0) {
-        const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
-        hrvCV = (Math.sqrt(variance) / mean) * 100;
-      }
-    }
-    return getTodayRecommendation(
-      user.trainingDays, user.combatTrainingDays || [],
-      latestWhoop?.recoveryScore ?? undefined, latestWhoop?.sleepHours ?? undefined,
-      { deepSleepMinutes: latestWhoop?.deepSleepMinutes ?? undefined, sleepEfficiency: latestWhoop?.sleepEfficiency ?? undefined,
-        spo2: latestWhoop?.spo2 ?? undefined, strain: latestWhoop?.strain ?? undefined, sleepDebtHours, avgRecovery7d, hrvCV },
+  // 8. Injury alerts
+  if (injuryInsights.alerts.length > 0 && feedCards.length < 5) {
+    feedCards.push(
+      <div key="injury-alert" className="flex items-start gap-3 bg-gradient-to-r from-rose-500/15 to-red-500/10 border border-rose-500/30 rounded-xl p-3.5">
+        <Siren className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-rose-300 text-sm">Injury Alert</h3>
+          {injuryInsights.alerts.slice(0, 2).map((alert, i) => (
+            <p key={i} className="text-xs text-rose-400/80 mt-1">{alert}</p>
+          ))}
+          <button onClick={() => onNavigate('injury')}
+            className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
+            View Injuries
+          </button>
+        </div>
+      </div>
     );
-  })();
+  }
+
+  // 9. Cycle phase card (female athletes)
+  if (cycleInsights && feedCards.length < 5) {
+    feedCards.push(
+      <div key="cycle-phase" className="bg-gradient-to-r from-pink-500/15 to-purple-500/10 border border-pink-500/30 rounded-xl p-3.5">
+        <div className="flex items-start gap-3">
+          <HeartPulse className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-pink-300 text-sm">{cycleInsights.headline}</h3>
+              <span className="text-[10px] text-pink-400/70">Day {cycleInsights.dayInCycle}</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{cycleInsights.trainingTip}</p>
+            {cycleInsights.nutritionTip && (
+              <p className="text-[10px] text-grappler-500 mt-1">{cycleInsights.nutritionTip}</p>
+            )}
+            <button onClick={() => onNavigate('cycle_tracking')}
+              className="mt-2 px-3 py-1.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 text-xs font-medium rounded-lg transition-colors">
+              View Cycle
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 10. Disengagement nudge
+  if (disengagement.nudgeMessage && (disengagement.status === 'at_risk' || disengagement.status === 'churned') && feedCards.length < 5) {
+    feedCards.push(
+      <div key="nudge" className="flex items-start gap-3 bg-gradient-to-r from-primary-500/15 to-blue-500/10 border border-primary-500/30 rounded-xl p-3.5">
+        <HeartPulse className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-primary-300 text-sm">
+            {disengagement.status === 'churned' ? 'Welcome Back' : 'Missing You'}
+          </h3>
+          <p className="text-xs text-grappler-400 mt-1">{disengagement.nudgeMessage}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -802,6 +1002,51 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 ))}
               </div>
             )}
+            {postWorkoutCoaching && (
+              <div className="mt-3 flex items-start gap-2 bg-grappler-800/40 rounded-lg px-3 py-2">
+                <Brain className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-grappler-300 leading-relaxed">{postWorkoutCoaching}</p>
+              </div>
+            )}
+            {sessionContext && sessionContext.contextLines.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {sessionContext.contextLines.slice(0, 2).map((line, i) => (
+                  <div key={i} className="flex items-start gap-2 px-3">
+                    <Sparkles className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-grappler-400">{line}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {variableReward && variableReward.type !== 'none' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.4, ease: 'easeOut' }}
+                className={cn('mt-3 rounded-lg px-3 py-2.5 border', {
+                  'bg-blue-500/10 border-blue-500/30': variableReward.rarity === 'common',
+                  'bg-purple-500/10 border-purple-500/30': variableReward.rarity === 'uncommon',
+                  'bg-yellow-500/10 border-yellow-500/30': variableReward.rarity === 'rare',
+                  'bg-gradient-to-r from-orange-500/15 to-pink-500/15 border-orange-500/30': variableReward.rarity === 'epic',
+                })}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className={cn('w-4 h-4', {
+                      'text-blue-400': variableReward.rarity === 'common',
+                      'text-purple-400': variableReward.rarity === 'uncommon',
+                      'text-yellow-400': variableReward.rarity === 'rare',
+                      'text-orange-400': variableReward.rarity === 'epic',
+                    })} />
+                    <div>
+                      <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>
+                      <p className="text-[10px] text-grappler-400">{variableReward.description}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-primary-400">+{variableReward.bonusPoints} XP</span>
+                </div>
+              </motion.div>
+            )}
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-orange-400" />
@@ -824,25 +1069,60 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
       </AnimatePresence>
 
-      {/* ─── Smart Daily Recommendation ─── */}
-      {dailyRec && (() => {
-        const bgClass = dailyRec.intensity === 'full'
-          ? 'from-green-500/15 to-emerald-500/10 border-green-500/30'
-          : dailyRec.intensity === 'reduced'
-          ? 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30'
-          : 'from-grappler-700/40 to-grappler-800/40 border-grappler-700';
-        const iconColor = dailyRec.intensity === 'full' ? 'text-green-400' : dailyRec.intensity === 'reduced' ? 'text-yellow-400' : 'text-grappler-400';
+      {/* ─── Daily Directive — your single mission for today ─── */}
+      {(() => {
+        const levelBg: Record<string, string> = {
+          peak: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
+          good: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
+          moderate: 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30',
+          low: 'from-orange-500/15 to-red-500/10 border-orange-500/30',
+          critical: 'from-red-500/15 to-rose-500/10 border-red-500/30',
+        };
+        const levelIcon: Record<string, string> = {
+          peak: 'text-green-400',
+          good: 'text-blue-400',
+          moderate: 'text-yellow-400',
+          low: 'text-orange-400',
+          critical: 'text-red-400',
+        };
+        const bg = levelBg[directive.readinessLevel] || levelBg.moderate;
+        const ic = levelIcon[directive.readinessLevel] || levelIcon.moderate;
         return (
-          <div className={cn('rounded-xl p-3 border bg-gradient-to-r', bgClass)}>
-            <div className="flex items-center gap-3">
-              <CalendarDays className={cn('w-5 h-5 flex-shrink-0', iconColor)} />
+          <div className={cn('rounded-xl p-4 border bg-gradient-to-r', bg)}>
+            <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-grappler-200">
-                  {new Date().toLocaleDateString(undefined, { weekday: 'long' })}
-                </p>
-                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{dailyRec.message}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className={cn('w-4 h-4', ic)} />
+                  {directive.sessionLabel && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-grappler-400">
+                      {directive.sessionLabel}
+                    </span>
+                  )}
+                  {directive.isDeload && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Deload</span>
+                  )}
+                </div>
+                <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>
+                <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
+              </div>
+              <div className="text-right flex-shrink-0 ml-3">
+                <p className={cn('text-2xl font-black', ic)}>{directive.readinessScore}</p>
+                <p className="text-[10px] text-grappler-500">Readiness</p>
               </div>
             </div>
+            {directive.actions.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {directive.actions.map((action, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-grappler-300">{action}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {directive.modifierText && (
+              <p className="text-[10px] text-grappler-500 mt-2 italic">{directive.modifierText}</p>
+            )}
           </div>
         );
       })()}
@@ -1083,7 +1363,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </div>
         )}
 
-        <ReadinessCard />
+        {showReadiness && <ReadinessCard />}
 
         {/* Activity row — adaptive to training identity */}
         <div className="grid grid-cols-3 gap-2">
@@ -1134,6 +1414,239 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         <div className="flex items-center gap-3 card p-3">
           <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <p className="text-xs text-grappler-400">All clear — nothing needs your attention right now.</p>
+        </div>
+      )}
+
+      {/* ─── Weekly Synthesis — coaching narrative ─── */}
+      {showWeeklySynthesis && synthesis.hasData && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Brain className="w-4 h-4 text-primary-400" />
+            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Coaching</span>
+          </div>
+          <p className="text-sm text-grappler-300 leading-relaxed">{synthesis.narrative}</p>
+          <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+            <div>
+              <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
+              <p className="text-[10px] text-grappler-500">Sessions</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
+              <p className="text-[10px] text-grappler-500">PRs</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
+              <p className="text-[10px] text-grappler-500">Avg RPE</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-grappler-100">
+                {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
+              </p>
+              <p className="text-[10px] text-grappler-500">Protein</p>
+            </div>
+          </div>
+          {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
+            <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
+              {synthesis.trends.volume !== 'stable' && (
+                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                  synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-orange-400'
+                )}>
+                  <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
+                  Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
+                </span>
+              )}
+              {synthesis.trends.prs !== 'stable' && (
+                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                  synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-orange-400'
+                )}>
+                  <Star className="w-3 h-3" />
+                  PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Nutrition Score ─── */}
+      {weeklyNutrition && showNutritionCard && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <Apple className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Nutrition</span>
+            </div>
+            <span className={cn('text-2xl font-black', {
+              'text-green-400': weeklyNutrition.overall >= 80,
+              'text-blue-400': weeklyNutrition.overall >= 65 && weeklyNutrition.overall < 80,
+              'text-yellow-400': weeklyNutrition.overall >= 50 && weeklyNutrition.overall < 65,
+              'text-orange-400': weeklyNutrition.overall >= 35 && weeklyNutrition.overall < 50,
+              'text-red-400': weeklyNutrition.overall < 35,
+            })}>{weeklyNutrition.overall}/100</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center mb-2">
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.proteinScore}</p>
+              <p className="text-[10px] text-grappler-500">Protein</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.calorieScore}</p>
+              <p className="text-[10px] text-grappler-500">Calories</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.hydrationScore}</p>
+              <p className="text-[10px] text-grappler-500">Water</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.consistencyScore}</p>
+              <p className="text-[10px] text-grappler-500">Tracking</p>
+            </div>
+          </div>
+          {nutritionInsights && (
+            <p className="text-[11px] text-grappler-400">{nutritionInsights.topInsight}</p>
+          )}
+          {weeklyNutrition.improvements.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {weeklyNutrition.improvements.slice(0, 2).map((tip, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-grappler-500">{tip}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {hydration.currentIntake < hydration.dailyMl && (
+            <div className="mt-2 flex items-center gap-2 bg-cyan-500/10 rounded-lg px-2.5 py-1.5">
+              <Sparkles className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+              <p className="text-[10px] text-cyan-300">
+                {Math.round(hydration.dailyMl - hydration.currentIntake)}ml water remaining ({Math.round(hydration.currentIntake)}/{Math.round(hydration.dailyMl)}ml)
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Fatigue Debt ─── */}
+      {fatigueDebt.currentDebt > 30 && workoutLogs.length >= 6 && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Activity className={cn('w-4 h-4', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')} />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Fatigue Debt</span>
+            </div>
+            <span className={cn('text-2xl font-black', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')}>
+              {fatigueDebt.currentDebt}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-grappler-700 rounded-full overflow-hidden mb-2">
+            <div
+              className={cn('h-full rounded-full transition-all', fatigueDebt.currentDebt >= 70 ? 'bg-red-400' : fatigueDebt.currentDebt >= 50 ? 'bg-orange-400' : 'bg-yellow-400')}
+              style={{ width: `${Math.min(100, fatigueDebt.currentDebt)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-grappler-400">{fatigueInsight.headline}</p>
+          {fatigueInsight.actionItems.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {fatigueInsight.actionItems.slice(0, 2).map((item, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-grappler-500">{item}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Performance Snapshot — strongest lifts + weak links ─── */}
+      {strongestLifts.length > 0 && workoutLogs.length >= 5 && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Performance</span>
+          </div>
+          <div className="space-y-2">
+            {strongestLifts.slice(0, 3).map((lift) => (
+              <div key={lift.exerciseId} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Dumbbell className="w-3 h-3 text-grappler-500 flex-shrink-0" />
+                  <span className="text-xs text-grappler-300 truncate">{lift.exerciseName}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-bold text-grappler-100">{Math.round(lift.estimated1RM)} {weightUnit}</span>
+                  <span className={cn('text-[10px]', {
+                    'text-green-400': lift.trend === 'rising',
+                    'text-yellow-400': lift.trend === 'plateau',
+                    'text-red-400': lift.trend === 'declining',
+                  })}>
+                    {lift.trend === 'rising' ? '\u2191' : lift.trend === 'declining' ? '\u2193' : '\u2192'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {weakLinks.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-grappler-700/50">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] text-amber-300 font-medium">{weakLinks[0].issue}</p>
+                  <p className="text-[10px] text-grappler-500 mt-0.5">{weakLinks[0].suggestion}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Streak Intelligence ─── */}
+      {streakAnalysis.currentStreak > 0 && workoutLogs.length >= 3 && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Streak</span>
+            </div>
+            <span className="text-2xl font-black text-orange-400">{streakAnalysis.currentStreak}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center mb-2">
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.longestStreak}</p>
+              <p className="text-[10px] text-grappler-500">Best</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.weeklyConsistency}%</p>
+              <p className="text-[10px] text-grappler-500">Consistency</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.bestDay}</p>
+              <p className="text-[10px] text-grappler-500">Best Day</p>
+            </div>
+          </div>
+          {streakAnalysis.message && (
+            <p className="text-[11px] text-grappler-400 leading-relaxed">{streakAnalysis.message}</p>
+          )}
+          {streakAnalysis.streakAtRisk && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <p className="text-[10px] text-amber-400 font-medium">Streak at risk — train today to keep it alive</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Upgrade Prompt (subtle, value-driven) ─── */}
+      {upgradePrompt && isFreeUser && (
+        <div className="bg-gradient-to-r from-primary-500/10 to-violet-500/10 border border-primary-500/20 rounded-xl p-3.5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-primary-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-primary-300">{upgradePrompt.headline}</p>
+              <p className="text-[10px] text-grappler-400 mt-0.5">{upgradePrompt.body}</p>
+            </div>
+          </div>
         </div>
       )}
 

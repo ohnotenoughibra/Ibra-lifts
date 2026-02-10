@@ -113,7 +113,8 @@ const MIGRATIONS: Record<string, MigrationFn> = {
     if (!data.hrSessions) data.hrSessions = [];
     if (!data.bodyComposition) data.bodyComposition = [];
     if (!data.competitions) data.competitions = [];
-    if (!data.blockQueue) data.blockQueue = [];
+    if (data.blockQueue) { data.mesocycleQueue = data.blockQueue; delete data.blockQueue; }
+    if (!data.mesocycleQueue) data.mesocycleQueue = [];
     if (!data.weeklyCheckIns) data.weeklyCheckIns = [];
     if (!data.waterLog || typeof data.waterLog !== 'object') data.waterLog = {};
     if (!data.macroTargets) data.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };

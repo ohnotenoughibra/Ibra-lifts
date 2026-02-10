@@ -777,7 +777,6 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isStrainEstimated, setIsStrainEstimated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualRecovery, setManualRecovery] = useState('');
@@ -937,9 +936,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       if (data.connected) {
         setIsConnected(true);
         setWhoopProfile(data.profile);
-        const { data: transformed, todayStrainEstimated: strainEst } = transformWhoopData(data);
+        const { data: transformed } = transformWhoopData(data);
         setWearableData(transformed);
-        setIsStrainEstimated(strainEst);
         const whoopWkts = transformWhoopWorkouts(data);
         setWhoopWorkouts(whoopWkts);
         setWhoopBody(transformWhoopBody(data));
@@ -1104,6 +1102,25 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const today = wearableData.length > 0 ? wearableData[wearableData.length - 1] : null;
   const yesterday = wearableData.length >= 2 ? wearableData[wearableData.length - 2] : null;
 
+  // Compute today's strain independently from workouts (Whoop API doesn't give
+  // running cycle strain). This replaces the broken "Live" display.
+  const todayKey = new Date().toISOString().substring(0, 10);
+  const todayWorkouts = useMemo(() => whoopWorkouts.filter(w => {
+    const d = (w.end || w.start);
+    return d && new Date(d).toISOString().substring(0, 10) === todayKey;
+  }), [whoopWorkouts, todayKey]);
+
+  const todayWorkoutStrain = useMemo(() => {
+    if (todayWorkouts.length === 0) return 0;
+    // Use the highest individual workout strain (Whoop day strain is NOT the sum)
+    return Math.max(...todayWorkouts.map(w => w.strain ?? 0));
+  }, [todayWorkouts]);
+
+  // For today: prefer cycle strain if available (rarely), otherwise use workout strain
+  const effectiveStrain = today?.strain ?? (todayWorkoutStrain > 0 ? todayWorkoutStrain : 0);
+  const isStrainFromWorkouts = today?.strain == null && todayWorkoutStrain > 0;
+  const hasNoStrainData = today?.strain == null && todayWorkoutStrain === 0;
+
   const chartData = useMemo(
     () =>
       wearableData.map((d) => ({
@@ -1223,7 +1240,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     };
   }, [today]);
 
-  const strainPct = today?.strain != null ? Math.min((today.strain / 21) * 100, 100) : 0;
+  const strainPct = effectiveStrain > 0 ? Math.min((effectiveStrain / 21) * 100, 100) : 0;
 
   // ------------------------------------------------------------------
   // Loading state
@@ -1489,16 +1506,20 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Zap className="w-3.5 h-3.5 text-blue-400" />
                   <span className="text-[11px] text-grappler-500">Strain</span>
-                  {isStrainEstimated && (
-                    <span className="text-[9px] text-blue-400/70 font-medium ml-auto">from workouts</span>
+                  {hasNoStrainData && (
+                    <span className="relative flex h-1.5 w-1.5 ml-auto">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-400" />
+                    </span>
                   )}
                 </div>
-                <p className={cn('text-xl font-bold', today.strain != null ? strainColor(today.strain) : 'text-grappler-500')}>
-                  {today.strain != null
-                    ? `${isStrainEstimated ? '~' : ''}${today.strain.toFixed(1)}`
-                    : '--'}
+                <p className={cn('text-xl font-bold', effectiveStrain > 0 ? strainColor(effectiveStrain) : 'text-grappler-500')}>
+                  {isStrainFromWorkouts ? '~' : ''}{effectiveStrain.toFixed(1)}
                 </p>
-                <div className="mt-1.5 h-1 bg-grappler-700 rounded-full overflow-hidden">
+                {hasNoStrainData && (
+                  <p className="text-[9px] text-grappler-500 mt-0.5">updates after activities</p>
+                )}
+                <div className={cn('h-1 bg-grappler-700 rounded-full overflow-hidden', hasNoStrainData ? 'mt-0.5' : 'mt-1.5')}>
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${strainPct}%` }}

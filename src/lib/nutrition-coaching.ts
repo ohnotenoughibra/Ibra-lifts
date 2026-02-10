@@ -756,6 +756,244 @@ function buildMealDatabase(): InternalMeal[] {
       timing: 'post-workout treat or snack', tags: ['treat', 'high-carb'],
       _times: ['afternoon', 'post_workout'],
     },
+
+    // ── Innsbruck / Austrian & Central European Foods ──
+
+    // Traditional Austrian
+    {
+      name: 'Wiener Schnitzel (veal, breadcrumbed)',
+      protein: 35, carbs: 20, fat: 22, calories: 420,
+      timing: 'lunch or dinner', tags: ['austrian', 'high-protein'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Kaiserschmarrn (shredded pancake with powdered sugar)',
+      protein: 12, carbs: 65, fat: 15, calories: 440,
+      timing: 'breakfast or post-workout treat', tags: ['austrian', 'high-carb', 'treat'],
+      _times: ['morning', 'post_workout'],
+    },
+    {
+      name: 'Tiroler Gröstl (potato, beef, onion, fried egg)',
+      protein: 30, carbs: 40, fat: 20, calories: 460,
+      timing: 'lunch or dinner', tags: ['austrian', 'tyrolean'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Kaspress Knödel (cheese dumpling in broth)',
+      protein: 18, carbs: 35, fat: 14, calories: 340,
+      timing: 'lunch', tags: ['austrian', 'tyrolean', 'soup'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Käsespätzle (cheese noodles with fried onions)',
+      protein: 22, carbs: 50, fat: 20, calories: 470,
+      timing: 'lunch or dinner', tags: ['austrian', 'high-carb', 'bulk'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Germknödel (yeast dumpling with poppy seeds & butter)',
+      protein: 10, carbs: 60, fat: 16, calories: 420,
+      timing: 'post-workout or dessert', tags: ['austrian', 'high-carb', 'treat'],
+      _times: ['afternoon', 'post_workout'],
+    },
+    {
+      name: 'Leberknödelsuppe (liver dumpling soup)',
+      protein: 18, carbs: 15, fat: 8, calories: 200,
+      timing: 'lunch starter', tags: ['austrian', 'soup', 'iron'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Apfelstrudel (apple strudel, 1 slice)',
+      protein: 4, carbs: 45, fat: 10, calories: 285,
+      timing: 'afternoon snack', tags: ['austrian', 'treat'],
+      _times: ['afternoon'],
+    },
+    {
+      name: 'Topfenstrudel (curd cheese strudel, 1 slice)',
+      protein: 10, carbs: 35, fat: 12, calories: 290,
+      timing: 'afternoon snack', tags: ['austrian', 'treat', 'dairy'],
+      _times: ['afternoon'],
+    },
+    {
+      name: 'Gulaschsuppe (beef goulash soup)',
+      protein: 20, carbs: 15, fat: 10, calories: 230,
+      timing: 'lunch', tags: ['austrian', 'soup', 'iron'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Schweinsbraten (roast pork with sauerkraut & dumpling)',
+      protein: 38, carbs: 45, fat: 22, calories: 530,
+      timing: 'dinner', tags: ['austrian', 'high-protein', 'bulk'],
+      _times: ['evening'],
+    },
+    {
+      name: 'Bauernbrot with Butter & Ham (farmer bread)',
+      protein: 14, carbs: 35, fat: 12, calories: 305,
+      timing: 'breakfast or snack', tags: ['austrian', 'quick'],
+      _times: ['morning', 'afternoon'],
+    },
+
+    // Bakery / Breakfast items common in Innsbruck
+    {
+      name: 'Semmel (Austrian bread roll) with Butter & Cheese',
+      protein: 10, carbs: 30, fat: 12, calories: 270,
+      timing: 'breakfast', tags: ['austrian', 'breakfast', 'quick'],
+      _times: ['morning'],
+    },
+    {
+      name: 'Müsli with Yogurt & Fresh Berries',
+      protein: 15, carbs: 45, fat: 8, calories: 310,
+      timing: 'breakfast', tags: ['breakfast', 'dairy', 'fiber'],
+      _times: ['morning'],
+    },
+    {
+      name: 'Vollkornbrot with Avocado & Egg (whole grain bread)',
+      protein: 16, carbs: 28, fat: 18, calories: 340,
+      timing: 'breakfast', tags: ['breakfast', 'healthy-fats'],
+      _times: ['morning'],
+    },
+
+    // Kebab / Döner (very common in Innsbruck)
+    {
+      name: 'Döner Kebab (chicken, salad, garlic sauce)',
+      protein: 32, carbs: 45, fat: 18, calories: 470,
+      timing: 'lunch or dinner', tags: ['quick-cook', 'portable', 'high-protein'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Dürüm Wrap (chicken, lettuce, sauce)',
+      protein: 30, carbs: 40, fat: 16, calories: 425,
+      timing: 'lunch or dinner', tags: ['quick-cook', 'portable'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Falafel Wrap with Hummus',
+      protein: 14, carbs: 48, fat: 16, calories: 390,
+      timing: 'lunch', tags: ['vegetarian', 'portable'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Lahmacun (Turkish pizza) with Salad',
+      protein: 18, carbs: 42, fat: 10, calories: 330,
+      timing: 'lunch', tags: ['quick-cook'],
+      _times: ['midday'],
+    },
+
+    // Italian (very popular in Tyrol/Innsbruck)
+    {
+      name: 'Spaghetti Bolognese',
+      protein: 28, carbs: 65, fat: 14, calories: 500,
+      timing: 'lunch or dinner', tags: ['italian', 'high-carb', 'bulk'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Margherita Pizza (half)',
+      protein: 16, carbs: 50, fat: 14, calories: 390,
+      timing: 'lunch or dinner', tags: ['italian', 'high-carb'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Penne Arrabiata with Parmesan',
+      protein: 16, carbs: 60, fat: 10, calories: 395,
+      timing: 'lunch or dinner', tags: ['italian', 'vegetarian', 'high-carb'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Caprese Salad (mozzarella, tomato, basil)',
+      protein: 14, carbs: 6, fat: 18, calories: 245,
+      timing: 'lunch side or snack', tags: ['italian', 'low-carb', 'quick'],
+      _times: ['midday', 'afternoon'],
+    },
+
+    // Supermarket / quick meals (SPAR, MPREIS, Hofer common in Innsbruck)
+    {
+      name: 'Skyr (Icelandic yogurt, 200g)',
+      protein: 22, carbs: 8, fat: 0, calories: 120,
+      timing: 'snack or breakfast', tags: ['dairy', 'high-protein', 'quick'],
+      _times: ['morning', 'afternoon'],
+    },
+    {
+      name: 'Topfen (Austrian quark, 250g) with Honey',
+      protein: 30, carbs: 15, fat: 0, calories: 185,
+      timing: 'breakfast or snack', tags: ['austrian', 'dairy', 'high-protein'],
+      _times: ['morning', 'afternoon'],
+    },
+    {
+      name: 'Leberkäse Semmel (meatloaf roll)',
+      protein: 18, carbs: 30, fat: 20, calories: 370,
+      timing: 'lunch or snack', tags: ['austrian', 'quick', 'portable'],
+      _times: ['midday', 'afternoon'],
+    },
+    {
+      name: 'Wurstsemmel (sausage roll)',
+      protein: 14, carbs: 28, fat: 16, calories: 315,
+      timing: 'snack', tags: ['austrian', 'quick', 'portable'],
+      _times: ['midday', 'afternoon'],
+    },
+    {
+      name: 'Manner Wafers (1 pack, 75g)',
+      protein: 4, carbs: 48, fat: 16, calories: 350,
+      timing: 'snack or treat', tags: ['austrian', 'treat'],
+      _times: ['afternoon'],
+    },
+    {
+      name: 'Knödel (bread dumpling, 2 pieces)',
+      protein: 8, carbs: 40, fat: 6, calories: 245,
+      timing: 'lunch or dinner side', tags: ['austrian', 'high-carb'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Erdäpfelsalat (Austrian potato salad)',
+      protein: 4, carbs: 25, fat: 8, calories: 185,
+      timing: 'lunch or dinner side', tags: ['austrian', 'vegetarian'],
+      _times: ['midday', 'evening'],
+    },
+
+    // More fruits & produce (Alpine / Central European)
+    {
+      name: 'Birchermüsli (overnight oats, Swiss style)',
+      protein: 10, carbs: 40, fat: 8, calories: 275,
+      timing: 'breakfast', tags: ['breakfast', 'fiber', 'quick'],
+      _times: ['morning'],
+    },
+    {
+      name: 'Pear (Williams)',
+      protein: 0, carbs: 25, fat: 0, calories: 95,
+      timing: 'snack', tags: ['fruit', 'quick'],
+      _times: ['afternoon'],
+    },
+    {
+      name: 'Plums (5 pieces)',
+      protein: 1, carbs: 19, fat: 0, calories: 75,
+      timing: 'snack', tags: ['fruit', 'quick', 'fiber'],
+      _times: ['afternoon'],
+    },
+    {
+      name: 'Apricots (4 pieces)',
+      protein: 1, carbs: 15, fat: 0, calories: 60,
+      timing: 'snack', tags: ['fruit', 'quick'],
+      _times: ['afternoon'],
+    },
+
+    // High-protein Austrian / European options
+    {
+      name: 'Speckknödel (bacon dumpling soup)',
+      protein: 20, carbs: 30, fat: 14, calories: 330,
+      timing: 'lunch', tags: ['austrian', 'tyrolean', 'soup'],
+      _times: ['midday'],
+    },
+    {
+      name: 'Forelle (trout, pan-fried) with Parsley Potatoes',
+      protein: 35, carbs: 30, fat: 12, calories: 370,
+      timing: 'lunch or dinner', tags: ['austrian', 'omega-3', 'lean'],
+      _times: ['midday', 'evening'],
+    },
+    {
+      name: 'Protein Pancakes (Palatschinken style, with quark)',
+      protein: 30, carbs: 35, fat: 8, calories: 335,
+      timing: 'breakfast or post-workout', tags: ['austrian', 'high-protein', 'breakfast'],
+      _times: ['morning', 'post_workout'],
+    },
   ];
 }
 

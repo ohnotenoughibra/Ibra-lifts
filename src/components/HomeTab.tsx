@@ -53,6 +53,7 @@ import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { getEffectiveTier } from '@/lib/subscription';
+import CardErrorBoundary from './CardErrorBoundary';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
@@ -254,6 +255,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
+  const cycleLogs = useAppStore(s => s.cycleLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const effectiveTier = getEffectiveTier(subscription, user?.email);
   const isFreeUser = effectiveTier === 'free';
@@ -355,7 +357,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
 
   // ─── Female Athlete Intelligence ───
   const showCycle = shouldShowCycleFeatures(user);
-  const cycleLogs: CycleLog[] = []; // TODO: add cycleLogs to store when cycle_tracking overlay is built
+  // cycleLogs now comes from store (added above)
   const cycleProfile = useMemo(() => {
     if (!showCycle || cycleLogs.length === 0) return null;
     return buildCycleProfile(cycleLogs);
@@ -1070,6 +1072,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       </AnimatePresence>
 
       {/* ─── Daily Directive — your single mission for today ─── */}
+      <CardErrorBoundary fallbackLabel="Daily Directive">
       {(() => {
         const levelBg: Record<string, string> = {
           peak: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
@@ -1126,6 +1129,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </div>
         );
       })()}
+      </CardErrorBoundary>
 
       {/* ─── HERO: Start Next Workout ─── */}
       {nextWorkout ? (
@@ -1418,6 +1422,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       )}
 
       {/* ─── Weekly Synthesis — coaching narrative ─── */}
+      <CardErrorBoundary fallbackLabel="Weekly Coaching">
       {showWeeklySynthesis && synthesis.hasData && (
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-2.5">
@@ -1468,7 +1473,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
+      </CardErrorBoundary>
+
       {/* ─── Nutrition Score ─── */}
+      <CardErrorBoundary fallbackLabel="Nutrition Score">
       {weeklyNutrition && showNutritionCard && (
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2.5">
@@ -1526,7 +1534,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
+      </CardErrorBoundary>
+
       {/* ─── Fatigue Debt ─── */}
+      <CardErrorBoundary fallbackLabel="Fatigue">
       {fatigueDebt.currentDebt > 30 && workoutLogs.length >= 6 && (
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
@@ -1558,7 +1569,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
+      </CardErrorBoundary>
+
       {/* ─── Performance Snapshot — strongest lifts + weak links ─── */}
+      <CardErrorBoundary fallbackLabel="Performance">
       {strongestLifts.length > 0 && workoutLogs.length >= 5 && (
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -1599,7 +1613,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
+      </CardErrorBoundary>
+
       {/* ─── Streak Intelligence ─── */}
+      <CardErrorBoundary fallbackLabel="Streak">
       {streakAnalysis.currentStreak > 0 && workoutLogs.length >= 3 && (
         <div className="card p-4">
           <div className="flex items-center justify-between mb-2">
@@ -1634,6 +1651,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           )}
         </div>
       )}
+
+      </CardErrorBoundary>
 
       {/* ─── Upgrade Prompt (subtle, value-driven) ─── */}
       {upgradePrompt && isFreeUser && (

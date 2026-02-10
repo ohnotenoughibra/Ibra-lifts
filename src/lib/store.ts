@@ -55,6 +55,7 @@ import {
   DailyLoginBonus,
   PlannedMesocycle,
 } from './types';
+import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
@@ -112,6 +113,9 @@ interface AppState {
 
   // Workout skips
   workoutSkips: WorkoutSkip[];
+
+  // Cycle tracking (female athlete)
+  cycleLogs: CycleLog[];
 
   // Custom exercises
   customExercises: CustomExercise[];
@@ -261,6 +265,9 @@ interface AppState {
   // Quick log actions
   addQuickLog: (log: Omit<QuickLog, 'id'>) => void;
   deleteQuickLog: (id: string) => void;
+  addCycleLog: (log: Omit<CycleLog, 'id'>) => void;
+  updateCycleLog: (id: string, updates: Partial<CycleLog>) => void;
+  deleteCycleLog: (id: string) => void;
 
   // Grip strength actions
   addGripTest: (test: Omit<GripTest, 'id'>) => void;
@@ -433,6 +440,7 @@ export const useAppStore = create<AppState>()(
       injuryLog: [],
       illnessLogs: [],
       workoutSkips: [],
+      cycleLogs: [],
       customExercises: [],
       sessionTemplates: [],
       hrSessions: [],
@@ -2057,6 +2065,20 @@ export const useAppStore = create<AppState>()(
         set({ quickLogs: quickLogs.filter(l => l.id !== id) });
       },
 
+      // Cycle tracking actions
+      addCycleLog: (log) => {
+        const { cycleLogs } = get();
+        set({ cycleLogs: [...cycleLogs, { ...log, id: uuidv4() }] });
+      },
+      updateCycleLog: (id, updates) => {
+        const { cycleLogs } = get();
+        set({ cycleLogs: cycleLogs.map(l => l.id === id ? { ...l, ...updates } : l) });
+      },
+      deleteCycleLog: (id) => {
+        const { cycleLogs } = get();
+        set({ cycleLogs: cycleLogs.filter(l => l.id !== id) });
+      },
+
       // Grip strength actions
       addGripTest: (test) => {
         const { gripTests } = get();
@@ -2605,6 +2627,7 @@ export const useAppStore = create<AppState>()(
           injuryLog: [],
           illnessLogs: [],
           workoutSkips: [],
+          cycleLogs: [],
           customExercises: [],
           sessionTemplates: [],
           hrSessions: [],
@@ -2738,6 +2761,7 @@ export const useAppStore = create<AppState>()(
           if (!state.waterLog || typeof state.waterLog !== 'object') state.waterLog = {};
           if (!state.macroTargets) state.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
           if (!state.mealReminders) state.mealReminders = { enabled: false, enabledMeals: { breakfast: true, lunch: true, dinner: true }, reminderTimes: { breakfast: '08:00', lunch: '12:00', dinner: '18:00' } };
+          if (!state.cycleLogs) state.cycleLogs = [];
           if (!state.muscleEmphasis) state.muscleEmphasis = null;
           if (!state.activeEquipmentProfile) state.activeEquipmentProfile = 'gym';
         }
@@ -2764,6 +2788,7 @@ export const useAppStore = create<AppState>()(
         injuryLog: state.injuryLog,
         illnessLogs: state.illnessLogs,
         workoutSkips: state.workoutSkips,
+        cycleLogs: state.cycleLogs,
         customExercises: state.customExercises,
         sessionTemplates: state.sessionTemplates,
         hrSessions: state.hrSessions,

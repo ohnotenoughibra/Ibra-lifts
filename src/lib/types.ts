@@ -179,6 +179,8 @@ export interface PlannedBlock {
   focus: GoalFocus;
   weeks: number;
   periodization?: 'linear' | 'undulating' | 'block';
+  sessionsPerWeek?: SessionsPerWeek;
+  sessionDurationMinutes?: number;
   notes?: string;
   createdAt: Date;
 }

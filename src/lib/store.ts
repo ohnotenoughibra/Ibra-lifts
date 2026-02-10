@@ -207,6 +207,7 @@ interface AppState {
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
   addToBlockQueue: (block: Omit<PlannedBlock, 'id' | 'createdAt'>) => void;
+  updateBlockInQueue: (id: string, updates: Partial<Omit<PlannedBlock, 'id' | 'createdAt'>>) => void;
   removeFromBlockQueue: (id: string) => void;
   reorderBlockQueue: (fromIndex: number, toIndex: number) => void;
   advanceBlockQueue: () => void;
@@ -820,6 +821,11 @@ export const useAppStore = create<AppState>()(
         set({ blockQueue: [...blockQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
       },
 
+      updateBlockInQueue: (id, updates) => {
+        const { blockQueue } = get();
+        set({ blockQueue: blockQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
+      },
+
       removeFromBlockQueue: (id) => {
         const { blockQueue } = get();
         set({ blockQueue: blockQueue.filter(b => b.id !== id) });
@@ -837,13 +843,16 @@ export const useAppStore = create<AppState>()(
         const { blockQueue, user } = get();
         if (blockQueue.length === 0 || !user) return;
         const next = blockQueue[0];
-        // Temporarily set user's goalFocus to the queued block's focus
+        // Temporarily set user's goalFocus and sessionsPerWeek to the queued block's values
         const prevGoal = user.goalFocus;
-        set({ user: { ...user, goalFocus: next.focus } });
-        get().generateNewMesocycle(next.weeks, undefined, next.periodization);
-        // Restore original goal focus
+        const prevSessions = user.sessionsPerWeek;
+        const overrides: Partial<typeof user> = { goalFocus: next.focus };
+        if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
+        set({ user: { ...user, ...overrides } });
+        get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
+        // Restore original user settings
         const updatedUser = get().user;
-        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal } });
+        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions } });
         // Remove from queue
         set({ blockQueue: blockQueue.slice(1) });
       },

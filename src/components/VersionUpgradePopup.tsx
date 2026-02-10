@@ -26,19 +26,23 @@ export default function VersionUpgradePopup() {
   const breaking = hasBreakingChanges(previousVersion);
 
   useEffect(() => {
-    // Run migration on mount
+    // Run migration on mount — always, regardless of popup
     const result = runStartupMigration();
     if (result) {
       setMigrationRan(true);
     }
 
-    // Show popup if upgrading (not first install, not dismissed)
+    // Only show popup for breaking changes or major version bumps.
+    // Non-breaking updates (patches, new features) migrate silently.
     if (isUpgrade() && !isFirstInstall() && !isUpgradeDismissed()) {
-      // Small delay so the app renders first
-      const timer = setTimeout(() => setShow(true), 500);
-      return () => clearTimeout(timer);
+      if (breaking) {
+        const timer = setTimeout(() => setShow(true), 500);
+        return () => clearTimeout(timer);
+      }
+      // Non-breaking: silently dismiss so user isn't interrupted
+      dismissUpgrade();
     }
-  }, []);
+  }, [breaking]);
 
   const handleBackup = () => {
     const backup = exportFullBackup();

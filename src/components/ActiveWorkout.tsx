@@ -43,6 +43,7 @@ import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommende
 import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
+import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
 
@@ -50,7 +51,8 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
-    activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment
+    activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
+    baselineLifts
   } = useAppStore();
 
   // Calculate personal baseline from wearable history for accurate HRV/RHR analysis
@@ -594,6 +596,21 @@ export default function ActiveWorkout() {
   };
 
   const rpeSuggestion = getRPEWeightSuggestion();
+
+  // First-time weight estimate (when no exercise history exists)
+  const firstTimeEstimate: WeightEstimate | null = useMemo(() => {
+    if (previousPerformance) return null; // has history, no need
+    return estimateFirstTimeWeight(
+      currentExercise.exercise,
+      currentExercise.prescription.targetReps,
+      baselineLifts,
+      user?.bodyWeightKg,
+      user?.sex,
+      user?.experienceLevel,
+      weightUnit,
+    );
+  }, [previousPerformance, currentExercise.exerciseId, baselineLifts, user?.bodyWeightKg, user?.sex, user?.experienceLevel, weightUnit]);
+
   const exerciseHistory = showHistory ? getExerciseFullHistory(currentExercise.exerciseId) : [];
 
   // Extended history for modal - gets last 10 sessions and computes all-time best
@@ -2277,17 +2294,43 @@ export default function ActiveWorkout() {
               )}
             </AnimatePresence>
 
-            {/* Weight suggestion explanation */}
+            {/* First-time weight estimate or generic hint */}
             {!previousPerformance && currentLog.sets[0]?.weight === 0 && (
-              <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
-                <p className="text-xs text-grappler-400">
-                  No history yet. Start with a weight you can handle for {currentExercise.prescription.targetReps} reps
-                  with {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps left in reserve.
-                  {currentExercise.prescription.rpe <= 7 && ' This should feel moderate.'}
-                  {currentExercise.prescription.rpe === 8 && ' This should be challenging but doable.'}
-                  {currentExercise.prescription.rpe >= 9 && ' This should be near your limit.'}
-                </p>
-              </div>
+              firstTimeEstimate ? (
+                <div className="mt-2 px-3 py-2 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-primary-400 font-medium flex items-center gap-1">
+                      <Dumbbell className="w-3 h-3" />
+                      Estimated: {firstTimeEstimate.weight} {weightUnit}
+                      <span className={cn(
+                        'ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                        firstTimeEstimate.confidence === 'high' && 'bg-green-500/20 text-green-400',
+                        firstTimeEstimate.confidence === 'medium' && 'bg-yellow-500/20 text-yellow-400',
+                        firstTimeEstimate.confidence === 'low' && 'bg-orange-500/20 text-orange-400',
+                      )}>
+                        {firstTimeEstimate.confidence}
+                      </span>
+                    </p>
+                    <button
+                      onClick={() => setExactValue('weight', firstTimeEstimate.weight)}
+                      className="text-xs text-primary-400 bg-primary-500/20 px-2 py-0.5 rounded-full hover:bg-primary-500/30 transition-colors"
+                    >
+                      Use
+                    </button>
+                  </div>
+                  <p className="text-xs text-grappler-500 mt-0.5">{firstTimeEstimate.source}</p>
+                </div>
+              ) : (
+                <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
+                  <p className="text-xs text-grappler-400">
+                    No history yet. Start with a weight you can handle for {currentExercise.prescription.targetReps} reps
+                    with {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps left in reserve.
+                    {currentExercise.prescription.rpe <= 7 && ' This should feel moderate.'}
+                    {currentExercise.prescription.rpe === 8 && ' This should be challenging but doable.'}
+                    {currentExercise.prescription.rpe >= 9 && ' This should be near your limit.'}
+                  </p>
+                </div>
+              )
             )}
 
             {/* Adjustment transparency */}

@@ -91,9 +91,9 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
     injuryLog,
     wearableHistory,
     competitions,
-    addToBlockQueue,
-    updateBlockInQueue,
-    blockQueue,
+    addToMesocycleQueue,
+    updateMesocycleInQueue,
+    mesocycleQueue,
   } = useAppStore();
 
   const [showDetails, setShowDetails] = useState(false);
@@ -101,7 +101,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
 
   const handleQueueBlock = (focus: BlockFocus, weeks: number, which: 'main' | 'alt') => {
-    addToBlockQueue({
+    addToMesocycleQueue({
       name: `${FOCUS_CONFIG[focus].label} Block`,
       focus: BLOCK_TO_GOAL[focus],
       weeks,
@@ -196,7 +196,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
             {queued === 'main' ? (
               <>
                 <Check className="w-4 h-4" />
-                Added to queue{blockQueue.length > 0 ? ` (${blockQueue.length} in queue)` : ''}
+                Added to queue{mesocycleQueue.length > 0 ? ` (${mesocycleQueue.length} in queue)` : ''}
               </>
             ) : (
               <>
@@ -306,13 +306,13 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
         )}
 
         {/* Block Queue */}
-        {blockQueue.length > 0 && (
+        {mesocycleQueue.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
               <ListChecks className="w-4 h-4 text-primary-400" />
-              Queued Blocks ({blockQueue.length})
+              Queued Mesocycles ({mesocycleQueue.length})
             </h3>
-            {blockQueue.map((block, idx) => {
+            {mesocycleQueue.map((block, idx) => {
               const isEditing = editingBlockId === block.id;
               return (
                 <div key={block.id} className="bg-grappler-800 rounded-xl border border-grappler-700 overflow-hidden">
@@ -340,7 +340,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                         {isEditing ? <X className="w-4 h-4" /> : <Pencil className="w-3.5 h-3.5" />}
                       </button>
                       <button
-                        onClick={() => useAppStore.getState().removeFromBlockQueue(block.id)}
+                        onClick={() => useAppStore.getState().removeFromMesocycleQueue(block.id)}
                         className="text-grappler-500 hover:text-red-400 transition-colors p-1.5"
                       >
                         <Minus className="w-4 h-4" />
@@ -365,7 +365,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                             <input
                               type="text"
                               value={block.name}
-                              onChange={(e) => updateBlockInQueue(block.id, { name: e.target.value })}
+                              onChange={(e) => updateMesocycleInQueue(block.id, { name: e.target.value })}
                               className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 focus:border-primary-500 outline-none"
                             />
                           </div>
@@ -377,7 +377,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               {(['hypertrophy', 'strength', 'power', 'balanced'] as GoalFocus[]).map(f => (
                                 <button
                                   key={f}
-                                  onClick={() => updateBlockInQueue(block.id, { focus: f })}
+                                  onClick={() => updateMesocycleInQueue(block.id, { focus: f })}
                                   className={cn(
                                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
                                     block.focus === f
@@ -399,14 +399,14 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               </label>
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() => updateBlockInQueue(block.id, { weeks: Math.max(1, block.weeks - 1) })}
+                                  onClick={() => updateMesocycleInQueue(block.id, { weeks: Math.max(1, block.weeks - 1) })}
                                   className="w-8 h-8 rounded-lg bg-grappler-900 border border-grappler-600 text-grappler-300 flex items-center justify-center"
                                 >
                                   <Minus className="w-3 h-3" />
                                 </button>
                                 <span className="text-sm font-medium text-grappler-100 w-6 text-center">{block.weeks}</span>
                                 <button
-                                  onClick={() => updateBlockInQueue(block.id, { weeks: Math.min(12, block.weeks + 1) })}
+                                  onClick={() => updateMesocycleInQueue(block.id, { weeks: Math.min(12, block.weeks + 1) })}
                                   className="w-8 h-8 rounded-lg bg-grappler-900 border border-grappler-600 text-grappler-300 flex items-center justify-center"
                                 >
                                   <Plus className="w-3 h-3" />
@@ -421,7 +421,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                                 {([2, 3, 4, 5, 6] as SessionsPerWeek[]).map(n => (
                                   <button
                                     key={n}
-                                    onClick={() => updateBlockInQueue(block.id, { sessionsPerWeek: n })}
+                                    onClick={() => updateMesocycleInQueue(block.id, { sessionsPerWeek: n })}
                                     className={cn(
                                       'w-8 h-8 rounded-lg text-xs font-medium transition-all',
                                       (block.sessionsPerWeek || user?.sessionsPerWeek) === n
@@ -445,7 +445,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               {[30, 45, 60, 75, 90].map(mins => (
                                 <button
                                   key={mins}
-                                  onClick={() => updateBlockInQueue(block.id, { sessionDurationMinutes: mins })}
+                                  onClick={() => updateMesocycleInQueue(block.id, { sessionDurationMinutes: mins })}
                                   className={cn(
                                     'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                                     (block.sessionDurationMinutes || user?.sessionDurationMinutes || 60) === mins
@@ -470,7 +470,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               ] as const).map(p => (
                                 <button
                                   key={p.value}
-                                  onClick={() => updateBlockInQueue(block.id, { periodization: p.value })}
+                                  onClick={() => updateMesocycleInQueue(block.id, { periodization: p.value })}
                                   className={cn(
                                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-1',
                                     (block.periodization || 'undulating') === p.value
@@ -489,7 +489,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                             <label className="text-xs text-grappler-500 mb-1 block">Notes</label>
                             <textarea
                               value={block.notes || ''}
-                              onChange={(e) => updateBlockInQueue(block.id, { notes: e.target.value || undefined })}
+                              onChange={(e) => updateMesocycleInQueue(block.id, { notes: e.target.value || undefined })}
                               placeholder="Optional notes for this block..."
                               rows={2}
                               className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 outline-none resize-none"

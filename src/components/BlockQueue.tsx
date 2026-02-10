@@ -20,7 +20,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { GoalFocus, PlannedBlock } from '@/lib/types';
+import type { GoalFocus, PlannedMesocycle } from '@/lib/types';
 
 const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; color: string; desc: string }[] = [
   { value: 'strength', label: 'Strength', icon: <Dumbbell className="w-4 h-4" />, color: 'text-red-400 bg-red-500/20', desc: 'Heavy loads, low reps' },
@@ -40,7 +40,7 @@ function getFocusMeta(focus: GoalFocus) {
 }
 
 export default function BlockQueue() {
-  const { blockQueue, addToBlockQueue, removeFromBlockQueue, reorderBlockQueue, currentMesocycle } = useAppStore();
+  const { mesocycleQueue, addToMesocycleQueue, removeFromMesocycleQueue, reorderMesocycleQueue, currentMesocycle } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [formFocus, setFormFocus] = useState<GoalFocus>('strength');
   const [formWeeks, setFormWeeks] = useState(5);
@@ -49,7 +49,7 @@ export default function BlockQueue() {
 
   const handleAdd = () => {
     const meta = getFocusMeta(formFocus);
-    addToBlockQueue({
+    addToMesocycleQueue({
       name: `${meta.label} Block`,
       focus: formFocus,
       weeks: formWeeks,
@@ -60,21 +60,21 @@ export default function BlockQueue() {
     setFormNotes('');
   };
 
-  const moveUp = (i: number) => { if (i > 0) reorderBlockQueue(i, i - 1); };
-  const moveDown = (i: number) => { if (i < blockQueue.length - 1) reorderBlockQueue(i, i + 1); };
+  const moveUp = (i: number) => { if (i > 0) reorderMesocycleQueue(i, i - 1); };
+  const moveDown = (i: number) => { if (i < mesocycleQueue.length - 1) reorderMesocycleQueue(i, i + 1); };
 
   // Export / Import
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const handleExport = () => {
-    if (blockQueue.length === 0) return;
-    const data = JSON.stringify(blockQueue, null, 2);
+    if (mesocycleQueue.length === 0) return;
+    const data = JSON.stringify(mesocycleQueue, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `block-queue-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `mesocycle-queue-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -90,7 +90,7 @@ export default function BlockQueue() {
         let added = 0;
         for (const b of blocks) {
           if (b.name && b.focus && b.weeks) {
-            addToBlockQueue({
+            addToMesocycleQueue({
               name: b.name,
               focus: b.focus,
               weeks: b.weeks,
@@ -100,7 +100,7 @@ export default function BlockQueue() {
             added++;
           }
         }
-        setImportMsg(`Imported ${added} block${added !== 1 ? 's' : ''}`);
+        setImportMsg(`Imported ${added} mesocycle${added !== 1 ? 's' : ''}`);
         setTimeout(() => setImportMsg(null), 3000);
       } catch {
         setImportMsg('Invalid file format');
@@ -112,8 +112,8 @@ export default function BlockQueue() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Estimate timeline — first block starts after current block ends,
-  // each subsequent block starts after the previous queued one ends
+  // Estimate timeline — first queued mesocycle starts after current one ends,
+  // each subsequent one starts after the previous queued one ends
   const getEstimatedStart = (index: number): string => {
     let baseDate: Date;
     if (currentMesocycle?.endDate) {
@@ -124,7 +124,7 @@ export default function BlockQueue() {
 
     let weeksOffset = 0;
     for (let i = 0; i < index; i++) {
-      weeksOffset += blockQueue[i].weeks;
+      weeksOffset += mesocycleQueue[i].weeks;
     }
     const startDate = new Date(baseDate);
     startDate.setDate(startDate.getDate() + weeksOffset * 7);
@@ -141,7 +141,7 @@ export default function BlockQueue() {
 
     let weeksOffset = 0;
     for (let i = 0; i <= index; i++) {
-      weeksOffset += blockQueue[i].weeks;
+      weeksOffset += mesocycleQueue[i].weeks;
     }
     const endDate = new Date(baseDate);
     endDate.setDate(endDate.getDate() + weeksOffset * 7);
@@ -153,10 +153,10 @@ export default function BlockQueue() {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
           <Layers className="w-4 h-4 text-primary-400" />
-          Block Queue
+          Mesocycle Queue
         </h3>
         <div className="flex items-center gap-1">
-          {blockQueue.length > 0 && (
+          {mesocycleQueue.length > 0 && (
             <button
               onClick={handleExport}
               className="p-1.5 rounded-lg text-grappler-500 hover:text-primary-400 hover:bg-grappler-800 transition-colors"
@@ -300,15 +300,15 @@ export default function BlockQueue() {
       </AnimatePresence>
 
       {/* Queue list */}
-      {blockQueue.length === 0 && !showAddForm ? (
+      {mesocycleQueue.length === 0 && !showAddForm ? (
         <div className="text-center py-4">
           <Calendar className="w-8 h-8 text-grappler-700 mx-auto mb-2" />
-          <p className="text-xs text-grappler-500">No blocks queued yet</p>
-          <p className="text-[10px] text-grappler-600 mt-0.5">Plan your next training blocks ahead</p>
+          <p className="text-xs text-grappler-500">No mesocycles queued yet</p>
+          <p className="text-[10px] text-grappler-600 mt-0.5">Plan your next training mesocycles ahead</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {blockQueue.map((block, i) => {
+          {mesocycleQueue.map((block, i) => {
             const meta = getFocusMeta(block.focus);
             return (
               <motion.div
@@ -331,7 +331,7 @@ export default function BlockQueue() {
                   <span className="text-xs font-black text-grappler-500 w-5 text-center">{i + 1}</span>
                   <button
                     onClick={() => moveDown(i)}
-                    disabled={i === blockQueue.length - 1}
+                    disabled={i === mesocycleQueue.length - 1}
                     className="text-grappler-600 hover:text-grappler-300 disabled:opacity-20 transition-colors"
                   >
                     <ChevronDown className="w-3.5 h-3.5" />
@@ -362,7 +362,7 @@ export default function BlockQueue() {
 
                 {/* Delete */}
                 <button
-                  onClick={() => removeFromBlockQueue(block.id)}
+                  onClick={() => removeFromMesocycleQueue(block.id)}
                   className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-red-400 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -372,13 +372,13 @@ export default function BlockQueue() {
           })}
 
           {/* Timeline summary */}
-          {blockQueue.length > 0 && (
+          {mesocycleQueue.length > 0 && (
             <div className="flex items-center justify-between px-2 pt-1">
               <span className="text-[10px] text-grappler-600">
-                {blockQueue.length} block{blockQueue.length > 1 ? 's' : ''} · {blockQueue.reduce((s, b) => s + b.weeks, 0)} weeks
+                {mesocycleQueue.length} mesocycle{mesocycleQueue.length > 1 ? 's' : ''} · {mesocycleQueue.reduce((s, b) => s + b.weeks, 0)} weeks
               </span>
               <span className="text-[10px] text-grappler-600">
-                Planned through {getEstimatedEnd(blockQueue.length - 1)}
+                Planned through {getEstimatedEnd(mesocycleQueue.length - 1)}
               </span>
             </div>
           )}

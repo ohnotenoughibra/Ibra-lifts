@@ -172,8 +172,8 @@ export interface Mesocycle {
   createdAt: Date;
 }
 
-// Block queue for planning upcoming training blocks
-export interface PlannedBlock {
+// Queue for planning upcoming mesocycles
+export interface PlannedMesocycle {
   id: string;
   name: string;
   focus: GoalFocus;

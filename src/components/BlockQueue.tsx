@@ -40,7 +40,7 @@ function getFocusMeta(focus: GoalFocus) {
 }
 
 export default function BlockQueue() {
-  const { blockQueue, addToBlockQueue, removeFromBlockQueue, reorderBlockQueue } = useAppStore();
+  const { blockQueue, addToBlockQueue, removeFromBlockQueue, reorderBlockQueue, currentMesocycle } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [formFocus, setFormFocus] = useState<GoalFocus>('strength');
   const [formWeeks, setFormWeeks] = useState(5);
@@ -112,16 +112,40 @@ export default function BlockQueue() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Estimate timeline
+  // Estimate timeline — first block starts after current block ends,
+  // each subsequent block starts after the previous queued one ends
   const getEstimatedStart = (index: number): string => {
-    const now = new Date();
+    let baseDate: Date;
+    if (currentMesocycle?.endDate) {
+      baseDate = new Date(currentMesocycle.endDate);
+    } else {
+      baseDate = new Date();
+    }
+
     let weeksOffset = 0;
     for (let i = 0; i < index; i++) {
       weeksOffset += blockQueue[i].weeks;
     }
-    const startDate = new Date(now);
+    const startDate = new Date(baseDate);
     startDate.setDate(startDate.getDate() + weeksOffset * 7);
     return startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getEstimatedEnd = (index: number): string => {
+    let baseDate: Date;
+    if (currentMesocycle?.endDate) {
+      baseDate = new Date(currentMesocycle.endDate);
+    } else {
+      baseDate = new Date();
+    }
+
+    let weeksOffset = 0;
+    for (let i = 0; i <= index; i++) {
+      weeksOffset += blockQueue[i].weeks;
+    }
+    const endDate = new Date(baseDate);
+    endDate.setDate(endDate.getDate() + weeksOffset * 7);
+    return endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -329,7 +353,7 @@ export default function BlockQueue() {
                     {block.periodization && (
                       <span className="text-[10px] text-grappler-500 capitalize">{block.periodization}</span>
                     )}
-                    <span className="text-[10px] text-grappler-600">~{getEstimatedStart(i)}</span>
+                    <span className="text-[10px] text-grappler-600">{getEstimatedStart(i)} — {getEstimatedEnd(i)}</span>
                   </div>
                   {block.notes && (
                     <p className="text-[10px] text-grappler-500 mt-0.5 truncate">{block.notes}</p>
@@ -351,10 +375,10 @@ export default function BlockQueue() {
           {blockQueue.length > 0 && (
             <div className="flex items-center justify-between px-2 pt-1">
               <span className="text-[10px] text-grappler-600">
-                {blockQueue.length} block{blockQueue.length > 1 ? 's' : ''} queued
+                {blockQueue.length} block{blockQueue.length > 1 ? 's' : ''} · {blockQueue.reduce((s, b) => s + b.weeks, 0)} weeks
               </span>
               <span className="text-[10px] text-grappler-600">
-                ~{blockQueue.reduce((s, b) => s + b.weeks, 0)} weeks planned
+                Planned through {getEstimatedEnd(blockQueue.length - 1)}
               </span>
             </div>
           )}

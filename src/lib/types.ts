@@ -46,6 +46,7 @@ export interface UserProfile {
   email: string;
   name: string;
   age: number;
+  bodyWeightKg?: number;       // body weight in kilograms (for nutrition, relative strength)
   heightCm?: number;           // height in centimetres
   sex?: BiologicalSex;         // for BMR calculation (Mifflin-St Jeor)
   experienceLevel: ExperienceLevel;
@@ -63,6 +64,7 @@ export interface UserProfile {
   // Wearable preferences
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
+  disclaimerAcceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,7 +87,7 @@ export interface BaselineLifts {
 export type MuscleGroup =
   | 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps'
   | 'quadriceps' | 'hamstrings' | 'glutes' | 'calves'
-  | 'core' | 'forearms' | 'traps' | 'lats' | 'full_body';
+  | 'core' | 'forearms' | 'traps' | 'full_body';
 
 export type ExerciseCategory =
   | 'compound' | 'isolation' | 'power' | 'grappling_specific' | 'grip';
@@ -166,6 +168,7 @@ export interface Mesocycle {
   goalFocus: GoalFocus;
   splitType: SplitType;
   status: 'active' | 'completed' | 'upcoming';
+  volumeWarnings?: string[];
   createdAt: Date;
 }
 
@@ -944,8 +947,11 @@ export interface OnboardingData {
   step: number;
   name: string;
   age: number;
+  bodyWeightKg?: number;
   heightCm?: number;
   sex?: BiologicalSex;
+  disclaimerAccepted?: boolean;
+  parentalConsent?: boolean;
   experienceLevel: ExperienceLevel;
   equipment: Equipment;
   availableEquipment: EquipmentType[];

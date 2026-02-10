@@ -90,7 +90,7 @@ const MESOCYCLE_TEMPLATES = [
     description: 'Prioritize pushing and pulling muscles for upper body development',
     sessions: 3,
     focus: 'hypertrophy' as const,
-    muscleGroups: ['chest', 'back', 'lats', 'shoulders'],
+    muscleGroups: ['chest', 'back', 'shoulders'],
     icon: '🎯'
   },
   {
@@ -126,7 +126,7 @@ const MUSCLE_GROUP_LABELS: Record<string, string> = {
   chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Biceps',
   triceps: 'Triceps', quadriceps: 'Quads', hamstrings: 'Hamstrings',
   glutes: 'Glutes', calves: 'Calves', core: 'Core', forearms: 'Forearms',
-  traps: 'Traps', lats: 'Lats', full_body: 'Full Body'
+  traps: 'Traps', full_body: 'Full Body'
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

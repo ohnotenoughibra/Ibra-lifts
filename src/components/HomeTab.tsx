@@ -53,6 +53,7 @@ import { cn, formatNumber } from '@/lib/utils';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
+import { getEffectiveTier } from '@/lib/subscription';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { getTodayRecommendation } from '@/lib/smart-schedule';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -238,8 +239,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, blockQueue, completeMesocycle,
+    subscription,
   } = useAppStore();
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
+  const effectiveTier = getEffectiveTier(subscription);
+  const isFreeUser = effectiveTier === 'free';
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
@@ -1158,10 +1162,18 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               className="overflow-hidden"
             >
               <div className="grid grid-cols-4 gap-2 pt-1">
-                {moreTools.map((tool) => (
+                {(isFreeUser ? moreTools.slice(0, 3) : moreTools).map((tool) => (
                   <ToolButton key={tool.label} tool={tool} />
                 ))}
               </div>
+              {isFreeUser && moreTools.length > 3 && (
+                <button
+                  onClick={() => onNavigate('user_guide')}
+                  className="w-full mt-2 py-2 text-xs text-primary-400 hover:text-primary-300 font-medium"
+                >
+                  See all Pro features ({moreTools.length - 3} more)
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

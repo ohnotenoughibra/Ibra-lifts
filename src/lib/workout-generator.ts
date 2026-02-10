@@ -35,7 +35,7 @@ export const VOLUME_LANDMARKS: Record<string, { mev: number; mav: number; mrv: n
   quadriceps: { mev: 6, mav: 14, mrv: 20 },
   hamstrings: { mev: 4, mav: 12, mrv: 18 },
   glutes: { mev: 4, mav: 12, mrv: 18 },
-  calves: { mev: 6, mav: 12, mrv: 18 },
+  calves: { mev: 4, mav: 10, mrv: 16 },
   core: { mev: 4, mav: 10, mrv: 16 },
   forearms: { mev: 2, mav: 8, mrv: 14 },
   traps: { mev: 4, mav: 10, mrv: 16 },
@@ -203,6 +203,25 @@ const UNDULATING_SCHEMES: Record<number, WorkoutType[]> = {
   4: ['strength', 'hypertrophy', 'power', 'hypertrophy'],
   5: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy'],
   6: ['strength', 'hypertrophy', 'power', 'strength', 'hypertrophy', 'power'],
+};
+
+// Goal-focused schemes: all sessions match the goal
+const HYPERTROPHY_FOCUSED_SCHEMES: Record<number, WorkoutType[]> = {
+  1: ['hypertrophy'],
+  2: ['hypertrophy', 'hypertrophy'],
+  3: ['hypertrophy', 'hypertrophy', 'hypertrophy'],
+  4: ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+  5: ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+  6: ['hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy', 'hypertrophy'],
+};
+
+const STRENGTH_FOCUSED_SCHEMES: Record<number, WorkoutType[]> = {
+  1: ['strength'],
+  2: ['strength', 'strength'],
+  3: ['strength', 'strength', 'strength'],
+  4: ['strength', 'strength', 'strength', 'strength'],
+  5: ['strength', 'strength', 'strength', 'strength', 'strength'],
+  6: ['strength', 'strength', 'strength', 'strength', 'strength', 'strength'],
 };
 
 // Linear periodization: all sessions use the same type based on goal focus
@@ -440,6 +459,34 @@ function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPresc
     tempo: config.tempo,
     percentageOf1RM: randomBetween(config.percentageOf1RM[0], config.percentageOf1RM[1])
   };
+}
+
+// Generate warm-up sets for a compound exercise based on working weight
+export function generateWarmUpSets(
+  workingWeight: number,
+  workingReps: number,
+  weightUnit: 'kg' | 'lbs' = 'kg'
+): { weight: number; reps: number; note: string }[] {
+  const barWeight = weightUnit === 'kg' ? 20 : 45;
+  const increment = weightUnit === 'kg' ? 2.5 : 5;
+  const roundTo = (w: number) => Math.round(w / increment) * increment;
+
+  if (workingWeight > barWeight * 2) {
+    return [
+      { weight: barWeight, reps: 10, note: 'Empty bar — groove the pattern' },
+      { weight: roundTo(workingWeight * 0.5), reps: 5, note: 'Light warm-up' },
+      { weight: roundTo(workingWeight * 0.7), reps: 3, note: 'Medium warm-up' },
+      { weight: roundTo(workingWeight * 0.85), reps: 1, note: 'Heavy single — prime the nervous system' },
+    ];
+  } else if (workingWeight > barWeight) {
+    return [
+      { weight: barWeight, reps: 8, note: 'Empty bar' },
+      { weight: roundTo(workingWeight * 0.7), reps: 5, note: 'Warm-up' },
+    ];
+  }
+  return [
+    { weight: 0, reps: 10, note: 'Bodyweight movement warm-up' },
+  ];
 }
 
 function selectExercisesForType(
@@ -839,7 +886,8 @@ function generateMesocycleWeek(
   sportSessionsPerWeek?: number,
   avgSportIntensity?: 'light' | 'moderate' | 'hard',
   sex?: BiologicalSex,
-  dietGoal?: DietGoal
+  dietGoal?: DietGoal,
+  totalWeeks: number = 5
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -850,7 +898,16 @@ function generateMesocycleWeek(
   } else if (periodizationType === 'block') {
     workoutTypes = BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek];
   } else {
-    workoutTypes = UNDULATING_SCHEMES[sessionsPerWeek];
+    // Undulating: use goal-specific schemes when goal is focused,
+    // DUP rotation only for 'balanced' goal
+    if (goalFocus === 'hypertrophy') {
+      workoutTypes = HYPERTROPHY_FOCUSED_SCHEMES[sessionsPerWeek];
+    } else if (goalFocus === 'strength') {
+      workoutTypes = STRENGTH_FOCUSED_SCHEMES[sessionsPerWeek];
+    } else {
+      // 'balanced' and 'power' keep DUP for variety
+      workoutTypes = UNDULATING_SCHEMES[sessionsPerWeek];
+    }
   }
   // Safety: beginners should not do power training — replace with hypertrophy
   if (experienceLevel === 'beginner') {
@@ -871,8 +928,9 @@ function generateMesocycleWeek(
     intensityMultiplier = sex === 'female' ? 0.88 : 0.85;
   } else if (periodizationType === 'linear') {
     // Linear: steady 5% per week (simple, predictable for beginners)
-    volumeMultiplier = 1 + (weekNumber - 1) * 0.05;
-    intensityMultiplier = 1 + (weekNumber - 1) * 0.02;
+    // 3% per week for beginners (was 5% — too aggressive for novices)
+    volumeMultiplier = 1 + (weekNumber - 1) * 0.03;
+    intensityMultiplier = 1 + (weekNumber - 1) * 0.015;
   } else {
     // DUP / Block: wave loading — undulating volume & intensity
     const wave = getWaveMultipliers(weekNumber);
@@ -943,20 +1001,33 @@ function generateMesocycleWeek(
         ? Math.max(5, ex.prescription.rpe - 2)
         : Math.min(10, +(ex.prescription.rpe * intensityMultiplier).toFixed(1));
 
+      // Progressive rep targets: Week 1 targets top of range (accumulation),
+      // final training week targets bottom of range (intensification)
+      const trainingWeeks = Math.max(1, totalWeeks - 1); // exclude deload week
+      const progressFraction = Math.min(1, (weekNumber - 1) / Math.max(1, trainingWeeks - 1));
+      const repRange = ex.prescription.maxReps - ex.prescription.minReps;
+      const progressiveReps = Math.round(
+        ex.prescription.maxReps - progressFraction * repRange
+      );
+
       return {
         ...ex,
         sets: adjustedSets,
         prescription: {
           ...ex.prescription,
+          targetReps: isDeload ? ex.prescription.maxReps : progressiveReps,
           percentageOf1RM: adjustedPercentage,
           rpe: adjustedRPE,
         },
       };
     });
 
-    if (isDeload) {
-      session.name = `Deload - ${session.name}`;
-    }
+    // Structured naming: "W2/D1 — Hypertrophy" (fun name preserved in subtitle)
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    const structuredName = isDeload
+      ? `Deload / Day ${index + 1}`
+      : `W${weekNumber}/D${index + 1} — ${capitalize(type)}`;
+    session.name = structuredName;
 
     return session;
   });
@@ -999,7 +1070,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
         sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
-        sportSessionsPerWeek, avgSportIntensity, sex, dietGoal
+        sportSessionsPerWeek, avgSportIntensity, sex, dietGoal, weeks
       )
     );
   }
@@ -1024,16 +1095,23 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   const namePool = trainingIdentity === 'combat' ? combatNames : generalNames;
   const splitType = determineSplitType(sessionsPerWeek, trainingIdentity);
 
+  // Validate per-muscle volume stays within MEV–MRV
+  const allExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const { weeks: validatedWeeks, warnings } = validateAndFixMuscleVolume(
+    mesocycleWeeks, VOLUME_LANDMARKS, allExercises
+  );
+
   return {
     id: uuidv4(),
     userId,
     name: pickRandom(namePool[goalFocus]),
     startDate,
     endDate,
-    weeks: mesocycleWeeks,
+    weeks: validatedWeeks,
     goalFocus,
     splitType,
     status: 'active',
+    volumeWarnings: warnings.length > 0 ? warnings : undefined,
     createdAt: new Date()
   };
 }
@@ -1162,6 +1240,96 @@ export function analyzeMuscleGroupVolume(
   }
 
   return volumeByMuscle;
+}
+
+// Per-muscle volume validation: ensures weekly sets stay within MEV–MRV
+export function validateAndFixMuscleVolume(
+  weeks: MesocycleWeek[],
+  landmarks: Record<string, { mev: number; mav: number; mrv: number }>,
+  availableExercises: Exercise[]
+): { weeks: MesocycleWeek[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const majorMuscles: MuscleGroup[] = [
+    'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes'
+  ];
+
+  for (const week of weeks) {
+    if (week.isDeload) continue;
+
+    const volume = analyzeMuscleGroupVolume(week.sessions);
+
+    for (const muscle of Object.keys(landmarks) as MuscleGroup[]) {
+      const lm = landmarks[muscle];
+      if (!lm) continue;
+      const sets = volume[muscle] || 0;
+
+      // Undertrained: below MEV — try to add an isolation exercise
+      if (sets < lm.mev && majorMuscles.includes(muscle)) {
+        const deficit = Math.ceil(lm.mev - sets);
+        const usedIds = new Set(
+          week.sessions.flatMap(s => s.exercises.map(e => e.exerciseId))
+        );
+        const candidate = availableExercises.find(
+          e =>
+            e.category === 'isolation' &&
+            e.primaryMuscles.includes(muscle) &&
+            !usedIds.has(e.id)
+        );
+        if (candidate) {
+          // Add to the session with the fewest exercises
+          const target = [...week.sessions].sort(
+            (a, b) => a.exercises.length - b.exercises.length
+          )[0];
+          const setsToAdd = Math.min(deficit, 4);
+          target.exercises.push({
+            exerciseId: candidate.id,
+            exercise: candidate,
+            sets: setsToAdd,
+            prescription: createSetPrescription('hypertrophy'),
+            notes: `Added to meet ${muscle} MEV`,
+          });
+        } else {
+          warnings.push(
+            `${muscle}: ${Math.round(sets)} sets/week is below MEV (${lm.mev}). No suitable isolation exercise available.`
+          );
+        }
+      }
+
+      // Overtrained: above MRV — trim sets from the biggest contributor
+      if (sets > lm.mrv) {
+        let excess = Math.ceil(sets - lm.mrv);
+        // Find exercises contributing to this muscle, sorted by sets desc
+        const contributors: { session: WorkoutSession; exIdx: number; sets: number }[] = [];
+        for (const session of week.sessions) {
+          for (let i = 0; i < session.exercises.length; i++) {
+            const ex = session.exercises[i];
+            const isPrimary = ex.exercise.primaryMuscles.includes(muscle);
+            const isSecondary = ex.exercise.secondaryMuscles.includes(muscle);
+            if (isPrimary || isSecondary) {
+              contributors.push({ session, exIdx: i, sets: ex.sets });
+            }
+          }
+        }
+        contributors.sort((a, b) => b.sets - a.sets);
+        for (const contrib of contributors) {
+          if (excess <= 0) break;
+          const ex = contrib.session.exercises[contrib.exIdx];
+          const canRemove = Math.min(excess, ex.sets - 2); // keep at least 2 sets
+          if (canRemove > 0) {
+            ex.sets -= canRemove;
+            excess -= canRemove;
+          }
+        }
+        if (excess > 0) {
+          warnings.push(
+            `${muscle}: volume exceeds MRV (${lm.mrv}) — trimmed where possible but ${Math.round(sets - (sets - excess))} sets remain above limit.`
+          );
+        }
+      }
+    }
+  }
+
+  return { weeks, warnings };
 }
 
 // ── Autoregulation ──────────────────────────────────────────────────────────

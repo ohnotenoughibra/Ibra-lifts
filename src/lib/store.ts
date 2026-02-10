@@ -300,6 +300,7 @@ interface AppState {
 
   // Nutrition actions
   addMeal: (meal: Omit<MealEntry, 'id'>) => void;
+  updateMeal: (id: string, updates: Partial<MealEntry>) => void;
   deleteMeal: (id: string) => void;
   setMacroTargets: (targets: MacroTargets) => void;
   setWaterGlasses: (date: string, glasses: number) => void;
@@ -2249,6 +2250,11 @@ export const useAppStore = create<AppState>()(
       addMeal: (meal) => {
         const { meals } = get();
         set({ meals: [...meals, { ...meal, id: uuidv4() }] });
+      },
+
+      updateMeal: (id, updates) => {
+        const { meals } = get();
+        set({ meals: meals.map(m => m.id === id ? { ...m, ...updates } : m) });
       },
 
       deleteMeal: (id) => {

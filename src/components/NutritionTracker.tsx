@@ -31,6 +31,8 @@ import {
   Shield,
   Star,
   ArrowRightLeft,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
@@ -894,6 +896,39 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setMovingMealId(null);
   };
 
+  // Edit meal inline
+  const [editingMeal, setEditingMeal] = useState<{
+    id: string; name: string; calories: string; protein: string; carbs: string; fat: string; portion: string;
+  } | null>(null);
+
+  const startEditMeal = (meal: MealEntry) => {
+    setEditingMeal({
+      id: meal.id,
+      name: meal.name,
+      calories: String(meal.calories),
+      protein: String(meal.protein),
+      carbs: String(meal.carbs),
+      fat: String(meal.fat),
+      portion: meal.portion || '',
+    });
+    setMovingMealId(null);
+  };
+
+  const saveEditMeal = () => {
+    if (!editingMeal) return;
+    const cal = parseFloat(editingMeal.calories) || 0;
+    if (!editingMeal.name.trim() || cal === 0) return;
+    updateMeal(editingMeal.id, {
+      name: editingMeal.name.trim(),
+      calories: Math.round(cal),
+      protein: Math.round((parseFloat(editingMeal.protein) || 0) * 10) / 10,
+      carbs: Math.round((parseFloat(editingMeal.carbs) || 0) * 10) / 10,
+      fat: Math.round((parseFloat(editingMeal.fat) || 0) * 10) / 10,
+      portion: editingMeal.portion.trim() || undefined,
+    });
+    setEditingMeal(null);
+  };
+
   // ── Date formatting ──
   const todayFormatted = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -1755,68 +1790,158 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.05 }}
-                          className="relative flex items-center justify-between py-2 px-3 bg-grappler-800/40 rounded-lg group"
+                          className="relative py-2 px-3 bg-grappler-800/40 rounded-lg group"
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-grappler-200 font-medium truncate">
-                              {meal.name}
-                              {meal.portion && (
-                                <span className="text-grappler-500 font-normal ml-1">({meal.portion})</span>
-                              )}
-                            </p>
-                            <div className="flex gap-3 mt-0.5 text-[10px]">
-                              <span className="text-orange-400">
-                                {meal.calories} kcal
-                              </span>
-                              <span className="text-red-400">
-                                {meal.protein}g P
-                              </span>
-                              <span className="text-blue-400">
-                                {meal.carbs}g C
-                              </span>
-                              <span className="text-yellow-400">
-                                {meal.fat}g F
-                              </span>
+                          {editingMeal?.id === meal.id ? (
+                            /* ── Inline edit mode ── */
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <input
+                                  value={editingMeal.name}
+                                  onChange={e => setEditingMeal({ ...editingMeal, name: e.target.value })}
+                                  className="flex-1 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                                  placeholder="Name"
+                                  autoFocus
+                                  onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                />
+                                <input
+                                  value={editingMeal.portion}
+                                  onChange={e => setEditingMeal({ ...editingMeal, portion: e.target.value })}
+                                  className="w-20 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                                  placeholder="Portion"
+                                  onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <label className="text-[9px] text-orange-400 font-medium">Cal</label>
+                                  <input
+                                    value={editingMeal.calories}
+                                    onChange={e => setEditingMeal({ ...editingMeal, calories: e.target.value })}
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-orange-500 outline-none"
+                                    type="number" inputMode="numeric"
+                                    onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="text-[9px] text-red-400 font-medium">Protein</label>
+                                  <input
+                                    value={editingMeal.protein}
+                                    onChange={e => setEditingMeal({ ...editingMeal, protein: e.target.value })}
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-red-500 outline-none"
+                                    type="number" inputMode="decimal"
+                                    onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="text-[9px] text-blue-400 font-medium">Carbs</label>
+                                  <input
+                                    value={editingMeal.carbs}
+                                    onChange={e => setEditingMeal({ ...editingMeal, carbs: e.target.value })}
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-blue-500 outline-none"
+                                    type="number" inputMode="decimal"
+                                    onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="text-[9px] text-yellow-400 font-medium">Fat</label>
+                                  <input
+                                    value={editingMeal.fat}
+                                    onChange={e => setEditingMeal({ ...editingMeal, fat: e.target.value })}
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-yellow-500 outline-none"
+                                    type="number" inputMode="decimal"
+                                    onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => setEditingMeal(null)}
+                                  className="px-3 py-1 text-xs rounded-lg text-grappler-400 hover:bg-grappler-700 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={saveEditMeal}
+                                  className="px-3 py-1 text-xs rounded-lg bg-primary-600 text-white hover:bg-primary-500 transition-colors flex items-center gap-1"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  Save
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => setMovingMealId(movingMealId === meal.id ? null : meal.id)}
-                              className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-primary-400 transition-colors"
-                              title="Move to different meal"
-                            >
-                              <ArrowRightLeft className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteMeal(meal.id)}
-                              className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-red-400 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          {/* Move-to dropdown */}
-                          <AnimatePresence>
-                            {movingMealId === meal.id && (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                                className="absolute right-0 top-full mt-1 z-20 bg-grappler-800 border border-grappler-700 rounded-xl shadow-lg overflow-hidden min-w-[160px]"
-                              >
-                                <p className="px-3 py-1.5 text-[10px] text-grappler-500 uppercase tracking-wide font-medium">Move to</p>
-                                {MEAL_TYPE_ORDER.filter(t => t !== type).map(t => (
-                                  <button
-                                    key={t}
-                                    onClick={() => handleMoveMeal(meal.id, t)}
-                                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-grappler-200 hover:bg-grappler-700 transition-colors"
+                          ) : (
+                            /* ── Display mode ── */
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-grappler-200 font-medium truncate">
+                                  {meal.name}
+                                  {meal.portion && (
+                                    <span className="text-grappler-500 font-normal ml-1">({meal.portion})</span>
+                                  )}
+                                </p>
+                                <div className="flex gap-3 mt-0.5 text-[10px]">
+                                  <span className="text-orange-400">
+                                    {meal.calories} kcal
+                                  </span>
+                                  <span className="text-red-400">
+                                    {meal.protein}g P
+                                  </span>
+                                  <span className="text-blue-400">
+                                    {meal.carbs}g C
+                                  </span>
+                                  <span className="text-yellow-400">
+                                    {meal.fat}g F
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => startEditMeal(meal)}
+                                  className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-grappler-200 transition-colors"
+                                  title="Edit meal"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setMovingMealId(movingMealId === meal.id ? null : meal.id)}
+                                  className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-primary-400 transition-colors"
+                                  title="Move to different meal"
+                                >
+                                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteMeal(meal.id)}
+                                  className="p-1.5 rounded hover:bg-grappler-700 text-grappler-600 hover:text-red-400 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              {/* Move-to dropdown */}
+                              <AnimatePresence>
+                                {movingMealId === meal.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    className="absolute right-0 top-full mt-1 z-20 bg-grappler-800 border border-grappler-700 rounded-xl shadow-lg overflow-hidden min-w-[160px]"
                                   >
-                                    {MEAL_TYPE_ICONS[t]}
-                                    <span>{MEAL_TYPE_LABELS[t]}</span>
-                                  </button>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                                    <p className="px-3 py-1.5 text-[10px] text-grappler-500 uppercase tracking-wide font-medium">Move to</p>
+                                    {MEAL_TYPE_ORDER.filter(t => t !== type).map(t => (
+                                      <button
+                                        key={t}
+                                        onClick={() => handleMoveMeal(meal.id, t)}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-grappler-200 hover:bg-grappler-700 transition-colors"
+                                      >
+                                        {MEAL_TYPE_ICONS[t]}
+                                        <span>{MEAL_TYPE_LABELS[t]}</span>
+                                      </button>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
                         </motion.div>
                       ))}
                     </div>

@@ -13,7 +13,7 @@ const RESYNC_COOLDOWN_MS = 30_000;
 // Fields to restore from the database
 const RESTORE_FIELDS = [
   'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
-  'currentMesocycle', 'mesocycleHistory', 'workoutLogs', 'gamificationStats',
+  'currentMesocycle', 'mesocycleHistory', 'blockQueue', 'workoutLogs', 'gamificationStats',
   'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
   'hrSessions', 'trainingSessions', 'themeMode', 'meals', 'macroTargets',
   'waterLog', 'activeDietPhase', 'weeklyCheckIns', 'bodyComposition',
@@ -279,6 +279,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       baselineLifts: store.baselineLifts,
       currentMesocycle: store.currentMesocycle,
       mesocycleHistory: store.mesocycleHistory,
+      blockQueue: store.blockQueue,
       workoutLogs: store.workoutLogs,
       gamificationStats: store.gamificationStats,
       bodyWeightLog: store.bodyWeightLog,
@@ -338,6 +339,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.baselineLifts,
     store.currentMesocycle,
     store.mesocycleHistory,
+    store.blockQueue,
     store.workoutLogs,
     store.gamificationStats,
     store.bodyWeightLog,

@@ -53,6 +53,7 @@ import {
   Subscription,
   NotificationPreferences,
   DailyLoginBonus,
+  PlannedBlock,
 } from './types';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -78,6 +79,7 @@ interface AppState {
   // Current mesocycle
   currentMesocycle: Mesocycle | null;
   mesocycleHistory: Mesocycle[];
+  blockQueue: PlannedBlock[];
 
   // Workout state
   activeWorkout: {
@@ -204,6 +206,10 @@ interface AppState {
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block') => void;
   completeMesocycle: () => void;
   deleteMesocycle: (mesocycleId: string) => void;
+  addToBlockQueue: (block: Omit<PlannedBlock, 'id' | 'createdAt'>) => void;
+  removeFromBlockQueue: (id: string) => void;
+  reorderBlockQueue: (fromIndex: number, toIndex: number) => void;
+  advanceBlockQueue: () => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
   getCurrentMesocycleLogCount: () => number;
   getImportableWorkoutLogs: () => {
@@ -415,6 +421,7 @@ export const useAppStore = create<AppState>()(
       baselineLifts: null,
       currentMesocycle: null,
       mesocycleHistory: [],
+      blockQueue: [],
       activeWorkout: null,
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
@@ -774,7 +781,7 @@ export const useAppStore = create<AppState>()(
       },
 
       completeMesocycle: () => {
-        const { currentMesocycle, mesocycleHistory, gamificationStats } = get();
+        const { currentMesocycle, mesocycleHistory, gamificationStats, blockQueue } = get();
         if (!currentMesocycle) return;
 
         set({
@@ -789,8 +796,12 @@ export const useAppStore = create<AppState>()(
           }
         });
 
-        // Generate new mesocycle
-        get().generateNewMesocycle();
+        // If there's a queued block, use it; otherwise generate default
+        if (blockQueue.length > 0) {
+          get().advanceBlockQueue();
+        } else {
+          get().generateNewMesocycle();
+        }
         get().checkAndAwardBadges();
       },
 
@@ -800,6 +811,39 @@ export const useAppStore = create<AppState>()(
           mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
           workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
         });
+      },
+
+      addToBlockQueue: (block) => {
+        const { blockQueue } = get();
+        set({ blockQueue: [...blockQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
+      },
+
+      removeFromBlockQueue: (id) => {
+        const { blockQueue } = get();
+        set({ blockQueue: blockQueue.filter(b => b.id !== id) });
+      },
+
+      reorderBlockQueue: (fromIndex, toIndex) => {
+        const { blockQueue } = get();
+        const updated = [...blockQueue];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, moved);
+        set({ blockQueue: updated });
+      },
+
+      advanceBlockQueue: () => {
+        const { blockQueue, user } = get();
+        if (blockQueue.length === 0 || !user) return;
+        const next = blockQueue[0];
+        // Temporarily set user's goalFocus to the queued block's focus
+        const prevGoal = user.goalFocus;
+        set({ user: { ...user, goalFocus: next.focus } });
+        get().generateNewMesocycle(next.weeks, undefined, next.periodization);
+        // Restore original goal focus
+        const updatedUser = get().user;
+        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal } });
+        // Remove from queue
+        set({ blockQueue: blockQueue.slice(1) });
       },
 
       migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
@@ -2579,6 +2623,7 @@ export const useAppStore = create<AppState>()(
         baselineLifts: state.baselineLifts,
         currentMesocycle: state.currentMesocycle,
         mesocycleHistory: state.mesocycleHistory,
+        blockQueue: state.blockQueue,
         activeWorkout: state.activeWorkout,
         workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,

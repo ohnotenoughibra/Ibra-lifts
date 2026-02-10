@@ -169,6 +169,17 @@ export interface Mesocycle {
   createdAt: Date;
 }
 
+// Block queue for planning upcoming training blocks
+export interface PlannedBlock {
+  id: string;
+  name: string;
+  focus: GoalFocus;
+  weeks: number;
+  periodization?: 'linear' | 'undulating' | 'block';
+  notes?: string;
+  createdAt: Date;
+}
+
 // Workout Logging Types
 export interface SetLog {
   setNumber: number;

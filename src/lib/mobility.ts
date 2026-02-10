@@ -762,7 +762,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
         id: 'dead-hang',
         name: 'Dead Hang',
         category: 'grip',
-        primaryMuscles: ['lats', 'shoulders', 'forearms'],
+        primaryMuscles: ['back', 'shoulders', 'forearms'],
         secondaryMuscles: ['core'],
         movementPattern: 'pull',
         equipmentRequired: ['minimal', 'home_gym', 'full_gym'],

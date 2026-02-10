@@ -66,18 +66,13 @@ const muscleRegions: Record<string, MuscleRegion> = {
     label: 'Core',
     d: 'M78,152 L122,152 L124,210 Q112,218 100,220 Q88,218 76,210 Z',
   },
-  lats: {
-    label: 'Lats',
-    d: 'M68,130 L76,140 L76,170 Q72,175 66,168 L62,140 Z M132,130 L124,140 L124,170 Q128,175 134,168 L138,140 Z',
-  },
   traps: {
     label: 'Traps',
     d: 'M78,88 Q88,82 100,80 Q112,82 122,88 L128,100 Q114,104 100,105 Q86,104 72,100 Z',
   },
   back: {
     label: 'Back',
-    // Represented as a thin strip behind chest/lats on front view
-    d: 'M76,120 L80,115 L120,115 L124,120 L124,145 Q112,150 100,150 Q88,150 76,145 Z',
+    d: 'M76,120 L80,115 L120,115 L124,120 L124,145 Q112,150 100,150 Q88,150 76,145 Z M68,130 L76,140 L76,170 Q72,175 66,168 L62,140 Z M132,130 L124,140 L124,170 Q128,175 134,168 L138,140 Z',
   },
   quadriceps: {
     label: 'Quads',

@@ -106,11 +106,13 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        // Identity + combat sport + goal + name + sex + experience
+        // Identity + combat sport + goal + name + age + bodyweight + sex + experience
         if (!onboardingData.trainingIdentity) return false;
         if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
         if (!onboardingData.goalFocus) return false;
         if (onboardingData.name.length < 2) return false;
+        if (!onboardingData.age || onboardingData.age < 14) return false;
+        if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
         if (!onboardingData.sex) return false;
         return true;
       case 2:
@@ -526,6 +528,45 @@ function Step1_WhoAreYou({
                 className="input"
                 autoFocus
               />
+            </div>
+
+            {/* Age + Bodyweight — side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Age</label>
+                <input
+                  type="number"
+                  value={data.age || ''}
+                  onChange={(e) => update({ age: parseInt(e.target.value) || 0 })}
+                  placeholder="25"
+                  min={14}
+                  max={100}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
+                  Body weight ({data.weightUnit === 'kg' ? 'kg' : 'lbs'})
+                </label>
+                <input
+                  type="number"
+                  value={
+                    data.bodyWeightKg
+                      ? data.weightUnit === 'kg'
+                        ? Math.round(data.bodyWeightKg)
+                        : Math.round(data.bodyWeightKg * 2.205)
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    const kg = data.weightUnit === 'kg' ? val : val / 2.205;
+                    update({ bodyWeightKg: kg > 0 ? Math.round(kg * 10) / 10 : undefined });
+                  }}
+                  placeholder={data.weightUnit === 'kg' ? '75' : '165'}
+                  min={1}
+                  className="input"
+                />
+              </div>
             </div>
 
             {/* Sex */}

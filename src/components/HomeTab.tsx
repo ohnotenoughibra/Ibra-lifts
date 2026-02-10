@@ -46,7 +46,9 @@ import {
   Thermometer,
   SkipForward,
   RefreshCw,
+  CheckCircle,
 } from 'lucide-react';
+import BlockQueue from './BlockQueue';
 import { cn, formatNumber } from '@/lib/utils';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
@@ -235,7 +237,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
-    skipWorkout, gamificationStats,
+    skipWorkout, gamificationStats, blockQueue, completeMesocycle,
   } = useAppStore();
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [showMoreTools, setShowMoreTools] = useState(false);
@@ -243,6 +245,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
+  const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Today's Summary Data ───
@@ -458,13 +461,28 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       setPreviousMesocycleId(activeMesocycle.id);
       setShowMigrateDialog(true);
     } else {
-      generateNewMesocycle();
+      completeMesocycle();
     }
+  };
+
+  const handleValidateBlock = () => {
+    const state = useAppStore.getState();
+    const activeMesocycle = state.currentMesocycle;
+    if (!activeMesocycle) return;
+
+    const currentLogCount = state.getCurrentMesocycleLogCount();
+    if (currentLogCount > 0) {
+      setPreviousMesocycleId(activeMesocycle.id);
+      setShowMigrateDialog(true);
+    } else {
+      completeMesocycle();
+    }
+    setShowValidateConfirm(false);
   };
 
   const handleMigrateResponse = (shouldMigrate: boolean) => {
     const oldMesocycleId = previousMesocycleId;
-    generateNewMesocycle();
+    completeMesocycle();
 
     if (shouldMigrate && oldMesocycleId) {
       setTimeout(() => {
@@ -885,7 +903,48 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <SkipForward className="w-3.5 h-3.5" />
               Skip
             </button>
+            <span className="text-grappler-700">·</span>
+            <button
+              onClick={() => setShowValidateConfirm(true)}
+              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              Validate Block
+            </button>
           </div>
+
+          {/* Validate block confirmation */}
+          <AnimatePresence>
+            {showValidateConfirm && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+                  <p className="text-xs text-grappler-200 mb-2">
+                    Complete current block{blockQueue.length > 0 ? ` and start ${blockQueue[0].name}?` : ' and generate next?'}
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setShowValidateConfirm(false)}
+                      className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleValidateBlock}
+                      className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Validate
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
         /* Mesocycle Complete — generate next */
@@ -923,6 +982,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             </div>
           )}
+          {blockQueue.length > 0 && (
+            <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 text-center">
+              <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1">Up next from queue</p>
+              <p className="text-sm font-bold text-primary-300">{blockQueue[0].name}</p>
+              <p className="text-[10px] text-grappler-500">{blockQueue[0].weeks} weeks · {blockQueue[0].periodization || 'auto'}</p>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={() => onViewReport(currentMesocycle.id)}
@@ -936,7 +1002,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               className="btn btn-primary btn-md gap-2"
             >
               <Zap className="w-4 h-4" />
-              Next Block
+              {blockQueue.length > 0 ? 'Start Next' : 'Next Block'}
             </button>
           </div>
         </motion.div>
@@ -966,6 +1032,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </div>
         </motion.div>
       )}
+
+      {/* ─── Block Queue ─── */}
+      <div className="card p-3.5">
+        <BlockQueue />
+      </div>
 
       {/* ─── Today at a Glance ─── */}
       <div className="card p-3.5">

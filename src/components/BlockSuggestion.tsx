@@ -15,11 +15,24 @@ import {
   Brain,
   RefreshCw,
   ChevronDown,
+  Plus,
+  ListChecks,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { suggestNextBlock } from '@/lib/block-suggestion';
-import type { BlockFocus, BlockSuggestion as BlockSuggestionType } from '@/lib/types';
+import type { BlockFocus, GoalFocus, BlockSuggestion as BlockSuggestionType } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+// Map BlockFocus → GoalFocus for mesocycle generation
+// deload/peaking/base_building map to 'balanced' as closest equivalent
+const BLOCK_TO_GOAL: Record<BlockFocus, GoalFocus> = {
+  strength: 'strength',
+  hypertrophy: 'hypertrophy',
+  power: 'power',
+  deload: 'balanced',
+  peaking: 'strength',
+  base_building: 'balanced',
+};
 
 interface BlockSuggestionProps {
   onClose: () => void;
@@ -74,9 +87,23 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
     injuryLog,
     wearableHistory,
     competitions,
+    addToBlockQueue,
+    blockQueue,
   } = useAppStore();
 
   const [showDetails, setShowDetails] = useState(false);
+  const [queued, setQueued] = useState<'main' | 'alt' | null>(null);
+
+  const handleQueueBlock = (focus: BlockFocus, weeks: number, which: 'main' | 'alt') => {
+    addToBlockQueue({
+      name: `${FOCUS_CONFIG[focus].label} Block`,
+      focus: BLOCK_TO_GOAL[focus],
+      weeks,
+      periodization: focus === 'strength' || focus === 'peaking' ? 'linear' : 'undulating',
+    });
+    setQueued(which);
+    setTimeout(() => setQueued(null), 3000);
+  };
 
   const suggestion = useMemo<BlockSuggestionType>(() => {
     return suggestNextBlock({
@@ -147,9 +174,31 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
               <p className="text-xs opacity-60">confidence</p>
             </div>
           </div>
-          <p className="text-sm opacity-80 leading-relaxed">
+          <p className="text-sm opacity-80 leading-relaxed mb-3">
             {config.description}
           </p>
+          <button
+            onClick={() => handleQueueBlock(suggestion.recommendedFocus, suggestion.suggestedWeeks, 'main')}
+            disabled={queued === 'main'}
+            className={cn(
+              'w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2',
+              queued === 'main'
+                ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+            )}
+          >
+            {queued === 'main' ? (
+              <>
+                <Check className="w-4 h-4" />
+                Added to queue{blockQueue.length > 0 ? ` (${blockQueue.length} in queue)` : ''}
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Add to Queue as Mesocycle
+              </>
+            )}
+          </button>
         </motion.div>
 
         {/* Reasoning */}
@@ -216,14 +265,66 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
         )}
 
         {/* Alternative Suggestion */}
-        {altConfig && suggestion.alternativeReason && (
+        {altConfig && suggestion.alternativeFocus && suggestion.alternativeReason && (
           <div className="bg-grappler-800/60 rounded-xl p-4 border border-grappler-700">
             <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2 mb-2">
               <RefreshCw className="w-4 h-4 text-grappler-400" />
               Alternative: {altConfig.label}
             </h3>
-            <p className="text-xs text-grappler-400 leading-relaxed">
+            <p className="text-xs text-grappler-400 leading-relaxed mb-3">
               {suggestion.alternativeReason}
+            </p>
+            <button
+              onClick={() => handleQueueBlock(suggestion.alternativeFocus!, suggestion.suggestedWeeks, 'alt')}
+              disabled={queued === 'alt'}
+              className={cn(
+                'w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5',
+                queued === 'alt'
+                  ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                  : 'bg-grappler-700 hover:bg-grappler-600 text-grappler-200 border border-grappler-600'
+              )}
+            >
+              {queued === 'alt' ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Added to queue
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  Queue this instead
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Block Queue */}
+        {blockQueue.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+              <ListChecks className="w-4 h-4 text-primary-400" />
+              Queued Blocks ({blockQueue.length})
+            </h3>
+            {blockQueue.map((block, idx) => (
+              <div key={block.id} className="flex items-center justify-between bg-grappler-800 rounded-lg p-3 border border-grappler-700">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-grappler-700 flex items-center justify-center text-xs text-grappler-400 font-medium">{idx + 1}</span>
+                  <div>
+                    <p className="text-sm text-grappler-100 font-medium">{block.name}</p>
+                    <p className="text-xs text-grappler-500">{block.weeks} weeks · {block.focus}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => useAppStore.getState().removeFromBlockQueue(block.id)}
+                  className="text-grappler-500 hover:text-red-400 transition-colors p-1"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            <p className="text-xs text-grappler-500">
+              Queued blocks auto-start when your current mesocycle completes.
             </p>
           </div>
         )}

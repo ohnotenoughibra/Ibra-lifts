@@ -73,28 +73,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       // For Google sign-in, auto-create or link user in our auth_users table
       if (account?.provider === 'google' && user.email) {
-        try {
-          await ensureAuthTables();
+        const email = user.email.toLowerCase().trim();
 
-          const email = user.email.toLowerCase().trim();
-          const { rows } = await sql`
-            SELECT id FROM auth_users WHERE email = ${email}
-          `;
+        // Retry DB operations up to 2 times (handles Vercel Postgres cold starts)
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            await ensureAuthTables();
 
-          if (rows.length === 0) {
-            // New Google user — create account
-            const userId = uuidv4();
-            await sql`
-              INSERT INTO auth_users (id, name, email, password_hash, auth_provider)
-              VALUES (${userId}, ${user.name || 'Athlete'}, ${email}, ${null}, 'google')
+            const { rows } = await sql`
+              SELECT id FROM auth_users WHERE email = ${email}
             `;
-            user.id = userId;
-          } else {
-            user.id = rows[0].id;
+
+            if (rows.length === 0) {
+              // New Google user — create account
+              const userId = uuidv4();
+              await sql`
+                INSERT INTO auth_users (id, name, email, password_hash, auth_provider)
+                VALUES (${userId}, ${user.name || 'Athlete'}, ${email}, ${null}, 'google')
+              `;
+              user.id = userId;
+            } else {
+              user.id = rows[0].id;
+            }
+            // Success — break out of retry loop
+            break;
+          } catch (error) {
+            console.error(`[auth] Google sign-in DB error (attempt ${attempt + 1}):`, error);
+            if (attempt === 0) {
+              // Wait briefly before retry (DB cold start)
+              await new Promise(r => setTimeout(r, 1000));
+            }
+            // On final failure, still allow sign-in — user gets Google's profile ID
+            // and DB user will be created on next successful sign-in
           }
-        } catch (error) {
-          console.error('[auth] Google sign-in DB error:', error);
-          return false;
         }
       }
       return true;

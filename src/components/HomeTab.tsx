@@ -37,7 +37,6 @@ import {
   Share2,
   Check,
   Users,
-  CalendarDays,
   Sparkles,
   Grip,
   Watch,
@@ -55,8 +54,9 @@ import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/
 import { shouldDeload } from '@/lib/auto-adjust';
 import { getEffectiveTier } from '@/lib/subscription';
 import { generateQuickWorkout } from '@/lib/workout-generator';
-import { getTodayRecommendation } from '@/lib/smart-schedule';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
+import { generateDailyDirective } from '@/lib/daily-directive';
+import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -241,6 +241,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     skipWorkout, gamificationStats, blockQueue, completeMesocycle,
     subscription,
   } = useAppStore();
+  const wearableHistory = useAppStore(s => s.wearableHistory);
+  const macroTargets = useAppStore(s => s.macroTargets);
+  const waterLog = useAppStore(s => s.waterLog);
+  const injuryLog = useAppStore(s => s.injuryLog);
+  const quickLogs = useAppStore(s => s.quickLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const effectiveTier = getEffectiveTier(subscription);
   const isFreeUser = effectiveTier === 'free';
@@ -251,6 +256,40 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  // ─── Daily Directive — single mission for today ───
+  const directive = useMemo(() => {
+    return generateDailyDirective({
+      user, currentMesocycle, workoutLogs, trainingSessions,
+      wearableData: latestWhoopData, wearableHistory, meals,
+      macroTargets, waterLog, injuryLog, quickLogs,
+    });
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs]);
+
+  // ─── Weekly Synthesis — coaching narrative ───
+  const synthesis = useMemo(() => {
+    return generateWeeklySynthesis({
+      user, workoutLogs, trainingSessions, wearableHistory,
+      meals, macroTargets, weightUnit,
+    });
+  }, [user, workoutLogs, trainingSessions, wearableHistory, meals, macroTargets, weightUnit]);
+
+  // ─── Post-workout coaching line ───
+  const postWorkoutCoaching = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return generatePostWorkoutCoachingLine(
+      lastCompletedWorkout.log, workoutLogs, latestWhoopData
+    );
+  }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  // ─── Progressive disclosure: feature unlocking based on age of account ───
+  const accountAgeDays = useMemo(() => {
+    if (!user?.createdAt) return 999;
+    return Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+  }, [user?.createdAt]);
+  const showReadiness = accountAgeDays >= 7 || workoutLogs.length >= 3;
+  const showNutritionCard = accountAgeDays >= 14 || workoutLogs.length >= 5;
+  const showWeeklySynthesis = accountAgeDays >= 7 || workoutLogs.length >= 4;
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -707,33 +746,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // Smart daily recommendation
-  const dailyRec = (() => {
-    if (!user?.trainingDays || user.trainingDays.length === 0) return null;
-    const latestWhoop = useAppStore.getState().latestWhoopData;
-    const wearableHistory = useAppStore.getState().wearableHistory;
-    const recentRecoveries = wearableHistory.filter(w => w.recoveryScore != null).slice(-7).map(w => w.recoveryScore!);
-    const avgRecovery7d = recentRecoveries.length > 0
-      ? Math.round(recentRecoveries.reduce((a, b) => a + b, 0) / recentRecoveries.length) : undefined;
-    const sleepDebtHours = (latestWhoop?.sleepHours != null && latestWhoop?.sleepNeededHours != null)
-      ? latestWhoop.sleepHours - latestWhoop.sleepNeededHours : undefined;
-    const hrvValues = wearableHistory.filter(w => w.hrv != null).slice(-7).map(w => w.hrv!);
-    let hrvCV: number | undefined;
-    if (hrvValues.length >= 4) {
-      const mean = hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length;
-      if (mean > 0) {
-        const variance = hrvValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / hrvValues.length;
-        hrvCV = (Math.sqrt(variance) / mean) * 100;
-      }
-    }
-    return getTodayRecommendation(
-      user.trainingDays, user.combatTrainingDays || [],
-      latestWhoop?.recoveryScore ?? undefined, latestWhoop?.sleepHours ?? undefined,
-      { deepSleepMinutes: latestWhoop?.deepSleepMinutes ?? undefined, sleepEfficiency: latestWhoop?.sleepEfficiency ?? undefined,
-        spo2: latestWhoop?.spo2 ?? undefined, strain: latestWhoop?.strain ?? undefined, sleepDebtHours, avgRecovery7d, hrvCV },
-    );
-  })();
-
   return (
     <div className="space-y-4">
       {/* ─── Post-Workout Summary (ephemeral) ─── */}
@@ -802,6 +814,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 ))}
               </div>
             )}
+            {postWorkoutCoaching && (
+              <div className="mt-3 flex items-start gap-2 bg-grappler-800/40 rounded-lg px-3 py-2">
+                <Brain className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-grappler-300 leading-relaxed">{postWorkoutCoaching}</p>
+              </div>
+            )}
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-orange-400" />
@@ -824,25 +842,60 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
       </AnimatePresence>
 
-      {/* ─── Smart Daily Recommendation ─── */}
-      {dailyRec && (() => {
-        const bgClass = dailyRec.intensity === 'full'
-          ? 'from-green-500/15 to-emerald-500/10 border-green-500/30'
-          : dailyRec.intensity === 'reduced'
-          ? 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30'
-          : 'from-grappler-700/40 to-grappler-800/40 border-grappler-700';
-        const iconColor = dailyRec.intensity === 'full' ? 'text-green-400' : dailyRec.intensity === 'reduced' ? 'text-yellow-400' : 'text-grappler-400';
+      {/* ─── Daily Directive — your single mission for today ─── */}
+      {(() => {
+        const levelBg: Record<string, string> = {
+          peak: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
+          good: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
+          moderate: 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30',
+          low: 'from-orange-500/15 to-red-500/10 border-orange-500/30',
+          critical: 'from-red-500/15 to-rose-500/10 border-red-500/30',
+        };
+        const levelIcon: Record<string, string> = {
+          peak: 'text-green-400',
+          good: 'text-blue-400',
+          moderate: 'text-yellow-400',
+          low: 'text-orange-400',
+          critical: 'text-red-400',
+        };
+        const bg = levelBg[directive.readinessLevel] || levelBg.moderate;
+        const ic = levelIcon[directive.readinessLevel] || levelIcon.moderate;
         return (
-          <div className={cn('rounded-xl p-3 border bg-gradient-to-r', bgClass)}>
-            <div className="flex items-center gap-3">
-              <CalendarDays className={cn('w-5 h-5 flex-shrink-0', iconColor)} />
+          <div className={cn('rounded-xl p-4 border bg-gradient-to-r', bg)}>
+            <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-grappler-200">
-                  {new Date().toLocaleDateString(undefined, { weekday: 'long' })}
-                </p>
-                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{dailyRec.message}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className={cn('w-4 h-4', ic)} />
+                  {directive.sessionLabel && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-grappler-400">
+                      {directive.sessionLabel}
+                    </span>
+                  )}
+                  {directive.isDeload && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Deload</span>
+                  )}
+                </div>
+                <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>
+                <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
+              </div>
+              <div className="text-right flex-shrink-0 ml-3">
+                <p className={cn('text-2xl font-black', ic)}>{directive.readinessScore}</p>
+                <p className="text-[10px] text-grappler-500">Readiness</p>
               </div>
             </div>
+            {directive.actions.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {directive.actions.map((action, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-grappler-300">{action}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {directive.modifierText && (
+              <p className="text-[10px] text-grappler-500 mt-2 italic">{directive.modifierText}</p>
+            )}
           </div>
         );
       })()}
@@ -1083,7 +1136,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </div>
         )}
 
-        <ReadinessCard />
+        {showReadiness && <ReadinessCard />}
 
         {/* Activity row — adaptive to training identity */}
         <div className="grid grid-cols-3 gap-2">
@@ -1134,6 +1187,57 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         <div className="flex items-center gap-3 card p-3">
           <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <p className="text-xs text-grappler-400">All clear — nothing needs your attention right now.</p>
+        </div>
+      )}
+
+      {/* ─── Weekly Synthesis — coaching narrative ─── */}
+      {showWeeklySynthesis && synthesis.hasData && (
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Brain className="w-4 h-4 text-primary-400" />
+            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Coaching</span>
+          </div>
+          <p className="text-sm text-grappler-300 leading-relaxed">{synthesis.narrative}</p>
+          <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+            <div>
+              <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
+              <p className="text-[10px] text-grappler-500">Sessions</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
+              <p className="text-[10px] text-grappler-500">PRs</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
+              <p className="text-[10px] text-grappler-500">Avg RPE</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-grappler-100">
+                {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
+              </p>
+              <p className="text-[10px] text-grappler-500">Protein</p>
+            </div>
+          </div>
+          {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
+            <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
+              {synthesis.trends.volume !== 'stable' && (
+                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                  synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-orange-400'
+                )}>
+                  <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
+                  Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
+                </span>
+              )}
+              {synthesis.trends.prs !== 'stable' && (
+                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                  synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-orange-400'
+                )}>
+                  <Star className="w-3 h-3" />
+                  PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 

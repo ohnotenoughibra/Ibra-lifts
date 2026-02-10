@@ -313,24 +313,24 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   const thisWeekLiftingCount = useMemo(() => {
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 6);
-    let count = 0;
-    liftingDateKeys.forEach(key => {
-      const d = new Date(key);
-      if (d >= weekAgo && d <= today) count++;
-    });
-    return count;
-  }, [liftingDateKeys, today]);
+    if (!workoutLogs || workoutLogs.length === 0) return 0;
+    return workoutLogs.filter(log => {
+      if (!log.date) return false;
+      const d = typeof log.date === 'string' ? new Date(log.date) : log.date;
+      return d >= weekAgo && d <= today;
+    }).length;
+  }, [workoutLogs, today]);
 
   const thisWeekSessionCount = useMemo(() => {
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 6);
-    let count = 0;
-    sessionDateKeys.forEach(key => {
-      const d = new Date(key);
-      if (d >= weekAgo && d <= today) count++;
-    });
-    return count;
-  }, [sessionDateKeys, today]);
+    if (!includeOtherSessions || !trainingSessions) return 0;
+    return trainingSessions.filter(s => {
+      if (!s.date) return false;
+      const d = typeof s.date === 'string' ? new Date(s.date) : s.date;
+      return d >= weekAgo && d <= today;
+    }).length;
+  }, [trainingSessions, includeOtherSessions, today]);
 
   type DayData = {
     date: Date;

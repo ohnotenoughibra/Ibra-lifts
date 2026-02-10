@@ -17,10 +17,14 @@ import {
   ChevronDown,
   Plus,
   ListChecks,
+  Pencil,
+  X,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { suggestNextBlock } from '@/lib/block-suggestion';
-import type { BlockFocus, GoalFocus, BlockSuggestion as BlockSuggestionType } from '@/lib/types';
+import type { BlockFocus, GoalFocus, SessionsPerWeek, BlockSuggestion as BlockSuggestionType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 // Map BlockFocus → GoalFocus for mesocycle generation
@@ -88,11 +92,13 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
     wearableHistory,
     competitions,
     addToBlockQueue,
+    updateBlockInQueue,
     blockQueue,
   } = useAppStore();
 
   const [showDetails, setShowDetails] = useState(false);
   const [queued, setQueued] = useState<'main' | 'alt' | null>(null);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
 
   const handleQueueBlock = (focus: BlockFocus, weeks: number, which: 'main' | 'alt') => {
     addToBlockQueue({
@@ -306,23 +312,196 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
               <ListChecks className="w-4 h-4 text-primary-400" />
               Queued Blocks ({blockQueue.length})
             </h3>
-            {blockQueue.map((block, idx) => (
-              <div key={block.id} className="flex items-center justify-between bg-grappler-800 rounded-lg p-3 border border-grappler-700">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-grappler-700 flex items-center justify-center text-xs text-grappler-400 font-medium">{idx + 1}</span>
-                  <div>
-                    <p className="text-sm text-grappler-100 font-medium">{block.name}</p>
-                    <p className="text-xs text-grappler-500">{block.weeks} weeks · {block.focus}</p>
+            {blockQueue.map((block, idx) => {
+              const isEditing = editingBlockId === block.id;
+              return (
+                <div key={block.id} className="bg-grappler-800 rounded-xl border border-grappler-700 overflow-hidden">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="w-5 h-5 rounded-full bg-grappler-700 flex items-center justify-center text-xs text-grappler-400 font-medium flex-shrink-0">{idx + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-grappler-100 font-medium truncate">{block.name}</p>
+                        <p className="text-xs text-grappler-500">
+                          {block.weeks}wk · {block.focus} · {block.periodization || 'undulating'}
+                          {block.sessionsPerWeek ? ` · ${block.sessionsPerWeek}x/wk` : ''}
+                          {block.sessionDurationMinutes ? ` · ${block.sessionDurationMinutes}min` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => setEditingBlockId(isEditing ? null : block.id)}
+                        className={cn(
+                          'p-1.5 rounded-lg transition-colors',
+                          isEditing ? 'bg-primary-500/20 text-primary-400' : 'text-grappler-500 hover:text-grappler-300'
+                        )}
+                      >
+                        {isEditing ? <X className="w-4 h-4" /> : <Pencil className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => useAppStore.getState().removeFromBlockQueue(block.id)}
+                        className="text-grappler-500 hover:text-red-400 transition-colors p-1.5"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Expandable editor */}
+                  <AnimatePresence>
+                    {isEditing && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-3 pb-3 space-y-3 border-t border-grappler-700 pt-3">
+                          {/* Name */}
+                          <div>
+                            <label className="text-xs text-grappler-500 mb-1 block">Block Name</label>
+                            <input
+                              type="text"
+                              value={block.name}
+                              onChange={(e) => updateBlockInQueue(block.id, { name: e.target.value })}
+                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                            />
+                          </div>
+
+                          {/* Focus */}
+                          <div>
+                            <label className="text-xs text-grappler-500 mb-1 block">Focus</label>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {(['hypertrophy', 'strength', 'power', 'balanced'] as GoalFocus[]).map(f => (
+                                <button
+                                  key={f}
+                                  onClick={() => updateBlockInQueue(block.id, { focus: f })}
+                                  className={cn(
+                                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
+                                    block.focus === f
+                                      ? 'bg-primary-500 text-white'
+                                      : 'bg-grappler-900 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
+                                  )}
+                                >
+                                  {f}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Duration + Sessions row */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" /> Weeks
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateBlockInQueue(block.id, { weeks: Math.max(1, block.weeks - 1) })}
+                                  className="w-8 h-8 rounded-lg bg-grappler-900 border border-grappler-600 text-grappler-300 flex items-center justify-center"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-sm font-medium text-grappler-100 w-6 text-center">{block.weeks}</span>
+                                <button
+                                  onClick={() => updateBlockInQueue(block.id, { weeks: Math.min(12, block.weeks + 1) })}
+                                  className="w-8 h-8 rounded-lg bg-grappler-900 border border-grappler-600 text-grappler-300 flex items-center justify-center"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                                <Dumbbell className="w-3 h-3" /> Days/Week
+                              </label>
+                              <div className="flex items-center gap-1">
+                                {([2, 3, 4, 5, 6] as SessionsPerWeek[]).map(n => (
+                                  <button
+                                    key={n}
+                                    onClick={() => updateBlockInQueue(block.id, { sessionsPerWeek: n })}
+                                    className={cn(
+                                      'w-8 h-8 rounded-lg text-xs font-medium transition-all',
+                                      (block.sessionsPerWeek || user?.sessionsPerWeek) === n
+                                        ? 'bg-primary-500 text-white'
+                                        : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
+                                    )}
+                                  >
+                                    {n}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Session duration */}
+                          <div>
+                            <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Session Duration
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              {[30, 45, 60, 75, 90].map(mins => (
+                                <button
+                                  key={mins}
+                                  onClick={() => updateBlockInQueue(block.id, { sessionDurationMinutes: mins })}
+                                  className={cn(
+                                    'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                    (block.sessionDurationMinutes || user?.sessionDurationMinutes || 60) === mins
+                                      ? 'bg-primary-500 text-white'
+                                      : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
+                                  )}
+                                >
+                                  {mins}m
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Periodization */}
+                          <div>
+                            <label className="text-xs text-grappler-500 mb-1 block">Periodization</label>
+                            <div className="flex items-center gap-1.5">
+                              {([
+                                { value: 'undulating', label: 'DUP' },
+                                { value: 'linear', label: 'Linear' },
+                                { value: 'block', label: 'Block' },
+                              ] as const).map(p => (
+                                <button
+                                  key={p.value}
+                                  onClick={() => updateBlockInQueue(block.id, { periodization: p.value })}
+                                  className={cn(
+                                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-1',
+                                    (block.periodization || 'undulating') === p.value
+                                      ? 'bg-primary-500 text-white'
+                                      : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
+                                  )}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          <div>
+                            <label className="text-xs text-grappler-500 mb-1 block">Notes</label>
+                            <textarea
+                              value={block.notes || ''}
+                              onChange={(e) => updateBlockInQueue(block.id, { notes: e.target.value || undefined })}
+                              placeholder="Optional notes for this block..."
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 outline-none resize-none"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <button
-                  onClick={() => useAppStore.getState().removeFromBlockQueue(block.id)}
-                  className="text-grappler-500 hover:text-red-400 transition-colors p-1"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
             <p className="text-xs text-grappler-500">
               Queued blocks auto-start when your current mesocycle completes.
             </p>

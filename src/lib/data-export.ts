@@ -131,7 +131,41 @@ export function exportFullBackup(): string {
   return JSON.stringify(backup, null, 2);
 }
 
-// Validate and import a full backup
+// Merge two arrays by a key field, keeping local items and adding new incoming ones
+function mergeById<T>(
+  local: T[],
+  incoming: T[],
+  key: string = 'id',
+): T[] {
+  const map = new Map<unknown, T>();
+  for (const item of local) map.set((item as Record<string, unknown>)[key], item);
+  for (const item of incoming) {
+    const k = (item as Record<string, unknown>)[key];
+    if (!map.has(k)) map.set(k, item);
+  }
+  return Array.from(map.values());
+}
+
+// Merge workout logs by sessionId+date to avoid duplicates
+function mergeWorkoutLogs(local: WorkoutLog[], incoming: WorkoutLog[]): WorkoutLog[] {
+  const map = new Map<string, WorkoutLog>();
+  for (const log of local) {
+    const key = `${log.sessionId}__${log.date}`;
+    map.set(key, log);
+  }
+  for (const log of incoming) {
+    const key = `${log.sessionId}__${log.date}`;
+    if (!map.has(key)) map.set(key, log);
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+}
+
+// Validate and import a full backup.
+// Uses MERGE strategy: workout logs, training sessions, and custom content
+// are merged (deduplicated) instead of replaced. The current training program
+// and active workout are preserved so importing old data doesn't wipe them.
 export function importFullBackup(jsonString: string): { success: boolean; error?: string; stats?: { workouts: number; exercises: number; templates: number; meals: number; trainingSessions: number } } {
   try {
     const data = JSON.parse(jsonString);
@@ -162,39 +196,76 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     if (data.isOnboarded) update.isAuthenticated = true;
     if (data.onboardingData) update.onboardingData = data.onboardingData;
     if (data.baselineLifts) update.baselineLifts = data.baselineLifts;
+
     // ── Training program ──
-    if (data.currentMesocycle) update.currentMesocycle = data.currentMesocycle;
-    if (Array.isArray(data.mesocycleHistory)) update.mesocycleHistory = data.mesocycleHistory;
-    if (data.activeWorkout) update.activeWorkout = data.activeWorkout;
-    // ── Workout logs ──
-    if (Array.isArray(data.workoutLogs)) update.workoutLogs = data.workoutLogs;
+    // PRESERVE current mesocycle if one exists locally — importing old data
+    // should not wipe your freshly generated program
+    if (data.currentMesocycle && !state.currentMesocycle) {
+      update.currentMesocycle = data.currentMesocycle;
+    }
+    if (Array.isArray(data.mesocycleHistory)) {
+      update.mesocycleHistory = mergeById(
+        state.mesocycleHistory || [],
+        data.mesocycleHistory,
+      );
+    }
+    // Don't overwrite an active workout in progress
+    if (data.activeWorkout && !state.activeWorkout) {
+      update.activeWorkout = data.activeWorkout;
+    }
+
+    // ── Workout logs — MERGE instead of replace ──
+    if (Array.isArray(data.workoutLogs)) {
+      update.workoutLogs = mergeWorkoutLogs(state.workoutLogs || [], data.workoutLogs);
+    }
     // Support both old (grapplingSessions) and new (trainingSessions) format
-    if (Array.isArray(data.trainingSessions)) update.trainingSessions = data.trainingSessions;
-    else if (Array.isArray(data.grapplingSessions)) update.trainingSessions = data.grapplingSessions;
-    if (Array.isArray(data.hrSessions)) update.hrSessions = data.hrSessions;
+    const importedTraining = Array.isArray(data.trainingSessions) ? data.trainingSessions
+      : Array.isArray(data.grapplingSessions) ? data.grapplingSessions : null;
+    if (importedTraining) {
+      update.trainingSessions = mergeById(state.trainingSessions || [], importedTraining);
+    }
+    if (Array.isArray(data.hrSessions)) {
+      update.hrSessions = mergeById(state.hrSessions || [], data.hrSessions);
+    }
+
     // ── Gamification ──
     if (data.gamificationStats) update.gamificationStats = data.gamificationStats;
-    // ── Body tracking ──
-    if (Array.isArray(data.bodyWeightLog)) update.bodyWeightLog = data.bodyWeightLog;
-    if (Array.isArray(data.bodyComposition)) update.bodyComposition = data.bodyComposition;
-    // ── Nutrition (meals, macros, water, diet, reminders) ──
-    if (Array.isArray(data.meals)) update.meals = data.meals;
+
+    // ── Body tracking — merge by date ──
+    if (Array.isArray(data.bodyWeightLog)) {
+      update.bodyWeightLog = mergeById(state.bodyWeightLog || [], data.bodyWeightLog, 'date');
+    }
+    if (Array.isArray(data.bodyComposition)) {
+      update.bodyComposition = mergeById(state.bodyComposition || [], data.bodyComposition, 'date');
+    }
+
+    // ── Nutrition ──
+    if (Array.isArray(data.meals)) {
+      update.meals = mergeById(state.meals || [], data.meals);
+    }
     if (data.macroTargets) update.macroTargets = data.macroTargets;
     if (data.waterLog && typeof data.waterLog === 'object') update.waterLog = data.waterLog;
     if (data.activeDietPhase) update.activeDietPhase = data.activeDietPhase;
     if (Array.isArray(data.weeklyCheckIns)) update.weeklyCheckIns = data.weeklyCheckIns;
     if (data.mealReminders) update.mealReminders = data.mealReminders;
+
     // ── Health & recovery ──
     if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
     if (Array.isArray(data.illnessLogs)) update.illnessLogs = data.illnessLogs;
     if (Array.isArray(data.workoutSkips)) update.workoutSkips = data.workoutSkips;
+
     // ── Quick logs & grip ──
     if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;
     if (Array.isArray(data.gripTests)) update.gripTests = data.gripTests;
     if (Array.isArray(data.gripExerciseLogs)) update.gripExerciseLogs = data.gripExerciseLogs;
-    // ── Customisation ──
-    if (Array.isArray(data.customExercises)) update.customExercises = data.customExercises;
-    if (Array.isArray(data.sessionTemplates)) update.sessionTemplates = data.sessionTemplates;
+
+    // ── Customisation — merge ──
+    if (Array.isArray(data.customExercises)) {
+      update.customExercises = mergeById(state.customExercises || [], data.customExercises);
+    }
+    if (Array.isArray(data.sessionTemplates)) {
+      update.sessionTemplates = mergeById(state.sessionTemplates || [], data.sessionTemplates);
+    }
     if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
     if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
     if (Array.isArray(data.competitions)) update.competitions = data.competitions;
@@ -206,19 +277,21 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     // Recalculate derived stats from imported workout data
     // This ensures streaks, PR flags, heat map, and gamification stats are accurate
     // even if the backup had stale or missing gamification data
-    if (Array.isArray(data.workoutLogs) && data.workoutLogs.length > 0) {
-      // First recalculate PR flags (which exercise logs are actual PRs)
-      // then recalculate gamification stats (streak, totals, PR count)
-      // recalculatePRs triggers recalculateGamificationStats internally
+    const mergedLogs = (update.workoutLogs as WorkoutLog[] | undefined) || state.workoutLogs;
+    if (mergedLogs && mergedLogs.length > 0) {
       queueMicrotask(() => {
         useAppStore.getState().recalculatePRs();
       });
     }
 
+    const importedWorkouts = data.workoutLogs?.length ?? 0;
+    const finalWorkouts = (update.workoutLogs as WorkoutLog[] | undefined)?.length ?? state.workoutLogs?.length ?? 0;
+    const newWorkoutsAdded = finalWorkouts - (state.workoutLogs?.length ?? 0);
+
     return {
       success: true,
       stats: {
-        workouts: data.workoutLogs?.length ?? 0,
+        workouts: importedWorkouts,
         exercises: data.customExercises?.length ?? 0,
         templates: data.sessionTemplates?.length ?? 0,
         meals: data.meals?.length ?? 0,

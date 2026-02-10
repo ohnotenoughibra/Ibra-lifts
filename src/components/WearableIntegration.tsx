@@ -183,7 +183,12 @@ function whoopDateKey(record: any): string | null {
   return ts?.substring(0, 10) || null;
 }
 
-function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
+interface TransformResult {
+  data: WearableData[];
+  todayStrainEstimated: boolean;
+}
+
+function transformWhoopData(apiData: WhoopApiResponse): TransformResult {
   const dataMap = new Map<string, Partial<WearableData>>();
 
   // Helper: merge new fields into an existing day entry
@@ -302,20 +307,7 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     }
   }
 
-  // --- DO NOT carry forward strain/calories from previous day ---
-  // The current physiological cycle (today) is PENDING_STRAIN — Whoop's API
-  // doesn't expose running strain for in-progress cycles. Previously we copied
-  // yesterday's completed strain to today, but that's misleading (15.8 yesterday
-  // vs 0.4 today). Instead, leave today's strain as null and let the UI show
-  // "accumulating" or no data. Recovery, HRV, and sleep are already correct
-  // because they come from today's scored recovery/sleep records.
-
   // --- Ensure today always has an entry ---
-  // If WHOOP hasn't scored today's cycle/recovery/sleep yet (e.g., early morning,
-  // or PENDING_STRAIN cycle with no score object), the dataMap won't contain today.
-  // Without this, the UI falls back to the last available day (yesterday) and
-  // silently shows stale data. Create a placeholder so the UI shows "Live"/null
-  // instead of yesterday's values.
   const todayKey = new Date().toISOString().substring(0, 10);
   if (!dataMap.has(todayKey)) {
     dataMap.set(todayKey, {
@@ -325,9 +317,46 @@ function transformWhoopData(apiData: WhoopApiResponse): WearableData[] {
     });
   }
 
-  return Array.from(dataMap.values())
+  // --- Estimate today's strain from completed workouts ---
+  // Whoop's API doesn't expose running strain for PENDING_STRAIN (in-progress)
+  // day cycles. Instead of showing nothing all day, pull strain from today's
+  // scored workouts. This gives a meaningful running number.
+  let todayStrainEstimated = false;
+  const todayEntry = dataMap.get(todayKey);
+  if (todayEntry && todayEntry.strain == null && apiData.workouts) {
+    let maxWorkoutStrain = 0;
+    let totalCalories = 0;
+    let peakHR = 0;
+    let peakAvgHR = 0;
+    for (const w of apiData.workouts) {
+      if (!w.score) continue;
+      const wDate = (w.end || w.start || '')?.substring?.(0, 10);
+      if (wDate !== todayKey) continue;
+      const wStrain = w.score?.strain ?? 0;
+      if (wStrain > maxWorkoutStrain) maxWorkoutStrain = wStrain;
+      totalCalories += w.score?.kilojoule ? Math.round(w.score.kilojoule * 0.239006) : 0;
+      const wMax = w.score?.max_heart_rate ?? 0;
+      if (wMax > peakHR) peakHR = wMax;
+      const wAvg = w.score?.average_heart_rate ?? 0;
+      if (wAvg > peakAvgHR) peakAvgHR = wAvg;
+    }
+    if (maxWorkoutStrain > 0) {
+      todayStrainEstimated = true;
+      const updates: Partial<WearableData> = {
+        strain: Math.round(maxWorkoutStrain * 10) / 10,
+      };
+      if (totalCalories > 0 && todayEntry.caloriesBurned == null) updates.caloriesBurned = totalCalories;
+      if (peakHR > 0 && todayEntry.maxHeartRate == null) updates.maxHeartRate = peakHR;
+      if (peakAvgHR > 0 && todayEntry.avgHeartRate == null) updates.avgHeartRate = peakAvgHR;
+      mergeDay(todayKey, updates);
+    }
+  }
+
+  const data = Array.from(dataMap.values())
     .filter((d): d is WearableData => d.date != null && d.id != null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return { data, todayStrainEstimated };
 }
 
 // ---------------------------------------------------------------------------
@@ -907,7 +936,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       if (data.connected) {
         setIsConnected(true);
         setWhoopProfile(data.profile);
-        const transformed = transformWhoopData(data);
+        const { data: transformed } = transformWhoopData(data);
         setWearableData(transformed);
         const whoopWkts = transformWhoopWorkouts(data);
         setWhoopWorkouts(whoopWkts);
@@ -1073,6 +1102,25 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   const today = wearableData.length > 0 ? wearableData[wearableData.length - 1] : null;
   const yesterday = wearableData.length >= 2 ? wearableData[wearableData.length - 2] : null;
 
+  // Compute today's strain independently from workouts (Whoop API doesn't give
+  // running cycle strain). This replaces the broken "Live" display.
+  const todayKey = new Date().toISOString().substring(0, 10);
+  const todayWorkouts = useMemo(() => whoopWorkouts.filter(w => {
+    const d = (w.end || w.start);
+    return d && new Date(d).toISOString().substring(0, 10) === todayKey;
+  }), [whoopWorkouts, todayKey]);
+
+  const todayWorkoutStrain = useMemo(() => {
+    if (todayWorkouts.length === 0) return 0;
+    // Use the highest individual workout strain (Whoop day strain is NOT the sum)
+    return Math.max(...todayWorkouts.map(w => w.strain ?? 0));
+  }, [todayWorkouts]);
+
+  // For today: prefer cycle strain if available (rarely), otherwise use workout strain
+  const effectiveStrain = today?.strain ?? (todayWorkoutStrain > 0 ? todayWorkoutStrain : 0);
+  const isStrainFromWorkouts = today?.strain == null && todayWorkoutStrain > 0;
+  const hasNoStrainData = today?.strain == null && todayWorkoutStrain === 0;
+
   const chartData = useMemo(
     () =>
       wearableData.map((d) => ({
@@ -1192,7 +1240,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     };
   }, [today]);
 
-  const strainPct = today?.strain != null ? Math.min((today.strain / 21) * 100, 100) : 0;
+  const strainPct = effectiveStrain > 0 ? Math.min((effectiveStrain / 21) * 100, 100) : 0;
 
   // ------------------------------------------------------------------
   // Loading state
@@ -1458,11 +1506,20 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Zap className="w-3.5 h-3.5 text-blue-400" />
                   <span className="text-[11px] text-grappler-500">Strain</span>
+                  {hasNoStrainData && (
+                    <span className="relative flex h-1.5 w-1.5 ml-auto">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-400" />
+                    </span>
+                  )}
                 </div>
-                <p className={cn('text-xl font-bold', today.strain != null ? strainColor(today.strain) : 'text-grappler-500')}>
-                  {today.strain != null ? today.strain.toFixed(1) : 'Live'}
+                <p className={cn('text-xl font-bold', effectiveStrain > 0 ? strainColor(effectiveStrain) : 'text-grappler-500')}>
+                  {isStrainFromWorkouts ? '~' : ''}{effectiveStrain.toFixed(1)}
                 </p>
-                <div className="mt-1.5 h-1 bg-grappler-700 rounded-full overflow-hidden">
+                {hasNoStrainData && (
+                  <p className="text-[9px] text-grappler-500 mt-0.5">updates after activities</p>
+                )}
+                <div className={cn('h-1 bg-grappler-700 rounded-full overflow-hidden', hasNoStrainData ? 'mt-0.5' : 'mt-1.5')}>
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${strainPct}%` }}

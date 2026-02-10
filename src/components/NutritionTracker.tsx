@@ -35,6 +35,7 @@ import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
 import { cn } from '@/lib/utils';
 import DietCoach from './DietCoach';
+import NutritionTrends from './NutritionTrends';
 
 // ── Preset foods with metric portions ──────────────────────────────────────
 const PRESET_FOODS: Omit<MealEntry, 'id' | 'date' | 'mealType'>[] = [
@@ -1843,6 +1844,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           </motion.div>
         )}
+
+        {/* Nutrition Trends */}
+        <NutritionTrends meals={meals} macroTargets={macroTargets} />
       </div>
     </motion.div>
   );

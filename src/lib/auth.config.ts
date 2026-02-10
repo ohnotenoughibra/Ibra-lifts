@@ -16,6 +16,14 @@ export default {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Explicit endpoints skip OIDC discovery fetch on cold start,
+      // preventing Configuration errors from discovery timeouts.
+      authorization: {
+        url: 'https://accounts.google.com/o/oauth2/v2/auth',
+        params: { scope: 'openid email profile' },
+      },
+      token: { url: 'https://oauth2.googleapis.com/token' },
+      userinfo: { url: 'https://openidconnect.googleapis.com/v1/userinfo' },
     }),
     // NOTE: Credentials provider is added in auth.ts (Node.js only)
     // because it requires @vercel/postgres + bcryptjs which aren't

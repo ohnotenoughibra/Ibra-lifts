@@ -496,6 +496,56 @@ export function getPreviousSessionSets(
   return null;
 }
 
+// Analyze joint pain history for an exercise across recent logs
+// Returns escalation level: 1x = recommend swap, 2x = force swap, 3x same region = recommend rest
+export function getJointPainHistory(
+  exerciseId: string,
+  recentLogs: WorkoutLog[]
+): { count: number; bodyRegion: string | null; shouldForceSwap: boolean; shouldRecommendRest: boolean } {
+  let count = 0;
+  let bodyRegion: string | null = null;
+  const regionCounts = new Map<string, number>();
+
+  for (const log of recentLogs) {
+    for (const ex of log.exercises) {
+      if (ex.exerciseId === exerciseId && ex.feedback?.jointPain) {
+        count++;
+        const region = ex.feedback.jointPainLocation || 'unknown';
+        bodyRegion = region;
+        regionCounts.set(region, (regionCounts.get(region) || 0) + 1);
+      }
+      // Also count same-region pain across different exercises
+      if (ex.feedback?.jointPain && ex.feedback.jointPainLocation) {
+        const region = ex.feedback.jointPainLocation;
+        if (!regionCounts.has(region)) {
+          regionCounts.set(region, 0);
+        }
+        // Only count once per exercise (already counted above for matching exerciseId)
+        if (ex.exerciseId !== exerciseId) {
+          regionCounts.set(region, regionCounts.get(region)! + 1);
+        }
+      }
+    }
+  }
+
+  // Check for any body region with 3+ pain reports across all exercises
+  let shouldRecommendRest = false;
+  for (const [region, regionCount] of Array.from(regionCounts.entries())) {
+    if (regionCount >= 3) {
+      shouldRecommendRest = true;
+      bodyRegion = region;
+      break;
+    }
+  }
+
+  return {
+    count,
+    bodyRegion,
+    shouldForceSwap: count >= 2,
+    shouldRecommendRest,
+  };
+}
+
 // Determine if a deload is needed based on accumulated fatigue signals
 export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reason: string } {
   if (recentLogs.length < 3) return { needed: false, reason: '' };

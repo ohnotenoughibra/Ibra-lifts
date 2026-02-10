@@ -87,6 +87,7 @@ export default function ActiveWorkout() {
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
   const [showGrapplingQ, setShowGrapplingQ] = useState(true);
+  const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
@@ -681,6 +682,53 @@ export default function ActiveWorkout() {
           </motion.div>
         </>
       )}
+
+      {/* Critical Readiness Interstitial */}
+      <AnimatePresence>
+        {showOverview && whoopReadiness && whoopReadiness.score < 30 && !criticalReadinessAcknowledged && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-grappler-900/95 flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-grappler-800 border border-red-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <AlertTriangle className="w-8 h-8 text-red-400" />
+                </div>
+                <h2 className="text-lg font-bold text-grappler-50">Recovery is compromised</h2>
+                <p className="text-sm text-grappler-400 mt-1">
+                  Your readiness score is {whoopReadiness.score}%. Multiple recovery factors are low.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                {whoopReadiness.factors.map((f, i) => (
+                  <p key={i} className="text-xs text-grappler-400">• {f}</p>
+                ))}
+              </div>
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={() => cancelWorkout()}
+                  className="w-full btn btn-primary btn-md"
+                >
+                  Rest today
+                </button>
+                <button
+                  onClick={() => setCriticalReadinessAcknowledged(true)}
+                  className="w-full btn btn-ghost btn-sm text-grappler-500"
+                >
+                  I understand the risk — train anyway
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Workout Overview Modal */}
       <AnimatePresence>

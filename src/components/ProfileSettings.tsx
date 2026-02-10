@@ -32,7 +32,7 @@ export default function ProfileSettings() {
   const { user, gamificationStats, baselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = user?.weightUnit || 'kg';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -41,7 +41,8 @@ export default function ProfileSettings() {
   const [editAge, setEditAge] = useState(user?.age || 0);
   const [editHeight, setEditHeight] = useState(user?.heightCm || 0);
   const [editSex, setEditSex] = useState<BiologicalSex | undefined>(user?.sex);
-  const [editUnit, setEditUnit] = useState<WeightUnit>(user?.weightUnit || 'lbs');
+  const [editBodyWeight, setEditBodyWeight] = useState(user?.bodyWeightKg || 0);
+  const [editUnit, setEditUnit] = useState<WeightUnit>(user?.weightUnit || 'kg');
   const [editExperience, setEditExperience] = useState<ExperienceLevel>(user?.experienceLevel || 'intermediate');
   const [editEquipment, setEditEquipment] = useState<Equipment>(user?.equipment || 'full_gym');
   const [editAvailableEquipment, setEditAvailableEquipment] = useState<EquipmentType[]>(user?.availableEquipment || []);
@@ -57,7 +58,8 @@ export default function ProfileSettings() {
     setEditAge(user?.age || 0);
     setEditHeight(user?.heightCm || 0);
     setEditSex(user?.sex);
-    setEditUnit(user?.weightUnit || 'lbs');
+    setEditBodyWeight(user?.bodyWeightKg || 0);
+    setEditUnit(user?.weightUnit || 'kg');
     setEditExperience(user?.experienceLevel || 'intermediate');
     setEditEquipment(user?.equipment || 'full_gym');
     setEditAvailableEquipment(user?.availableEquipment || []);
@@ -80,6 +82,7 @@ export default function ProfileSettings() {
       ...user,
       name: editName,
       age: editAge,
+      bodyWeightKg: editBodyWeight || undefined,
       heightCm: editHeight || undefined,
       sex: editSex,
       weightUnit: editUnit,
@@ -191,6 +194,7 @@ export default function ProfileSettings() {
             <>
               <SettingRow icon={User} label="Name" value={user?.name || 'Not set'} />
               <SettingRow icon={Calendar} label="Age" value={user?.age ? `${user.age} years` : 'Not set'} />
+              <SettingRow icon={Scale} label="Body Weight" value={user?.bodyWeightKg ? `${weightUnit === 'kg' ? Math.round(user.bodyWeightKg) : Math.round(user.bodyWeightKg * 2.205)} ${weightUnit}` : 'Not set'} />
               <SettingRow icon={Ruler} label="Height" value={user?.heightCm ? `${user.heightCm} cm` : 'Not set'} />
               <SettingRow icon={User} label="Sex" value={user?.sex ? (user.sex === 'male' ? 'Male' : 'Female') : 'Not set'} />
               <SettingRow icon={Scale} label="Units" value={(user?.weightUnit || 'lbs').toUpperCase()} />
@@ -211,7 +215,7 @@ export default function ProfileSettings() {
                 />
               </div>
 
-              {/* Age + Height */}
+              {/* Age + Body Weight */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-grappler-400 mb-1">Age</label>
@@ -220,19 +224,41 @@ export default function ProfileSettings() {
                     value={editAge || ''}
                     onChange={(e) => setEditAge(parseInt(e.target.value) || 0)}
                     className="input w-full"
-                    min={13} max={80}
+                    min={14} max={100}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-grappler-400 mb-1">Height (cm)</label>
+                  <label className="block text-xs text-grappler-400 mb-1">Body Weight ({editUnit})</label>
                   <input
                     type="number"
-                    value={editHeight || ''}
-                    onChange={(e) => setEditHeight(parseInt(e.target.value) || 0)}
+                    value={
+                      editBodyWeight
+                        ? editUnit === 'kg'
+                          ? Math.round(editBodyWeight)
+                          : Math.round(editBodyWeight * 2.205)
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      const kg = editUnit === 'kg' ? val : val / 2.205;
+                      setEditBodyWeight(kg > 0 ? Math.round(kg * 10) / 10 : 0);
+                    }}
                     className="input w-full"
-                    min={100} max={230}
+                    min={1}
                   />
                 </div>
+              </div>
+
+              {/* Height */}
+              <div>
+                <label className="block text-xs text-grappler-400 mb-1">Height (cm)</label>
+                <input
+                  type="number"
+                  value={editHeight || ''}
+                  onChange={(e) => setEditHeight(parseInt(e.target.value) || 0)}
+                  className="input w-full"
+                  min={100} max={230}
+                />
               </div>
 
               {/* Sex */}
@@ -473,6 +499,7 @@ export default function ProfileSettings() {
               { label: 'Deadlift', value: baselineLifts.deadlift },
               { label: 'Bench Press', value: baselineLifts.benchPress },
               { label: 'OHP', value: baselineLifts.overheadPress },
+              { label: 'Barbell Row', value: baselineLifts.barbellRow },
             ].map((lift) => (
               <div key={lift.label} className="bg-grappler-800/50 rounded-lg p-3">
                 <p className="text-xs text-grappler-400 mb-1">{lift.label}</p>

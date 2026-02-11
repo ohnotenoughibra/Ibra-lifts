@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
+import { calculateElectrolyteNeeds, getIntraTrainingFuel } from '@/lib/electrolyte-engine';
 import { cn } from '@/lib/utils';
 import DietCoach from './DietCoach';
 import NutritionTrends from './NutritionTrends';
@@ -483,6 +484,18 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     });
   }, [trainingSessions]);
 
+  // Combat context for nutrition detection
+  const { competitions, combatNutritionProfile } = useAppStore();
+  const nearestComp = useMemo(() => {
+    const now = Date.now();
+    return (competitions || [])
+      .filter(c => new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+  }, [competitions]);
+  const daysToComp = nearestComp
+    ? Math.ceil((new Date(nearestComp.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : undefined;
+
   const contextualNutrition = useMemo<ContextualMacros>(() => {
     return getContextualNutrition(
       computedTargets,
@@ -491,13 +504,30 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       todayTraining,
       latestWhoopData,
       user,
-      activeIllness
+      activeIllness,
+      daysToComp != null ? { daysToCompetition: daysToComp } : undefined,
     );
-  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user, activeIllness]);
+  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user, activeIllness, daysToComp]);
 
   const supplements = useMemo(() => {
     return getSupplementRecommendations(contextualNutrition.dayType);
   }, [contextualNutrition.dayType]);
+
+  // Electrolyte needs for training days
+  const bodyWeightKg = bodyWeightLbs / 2.205;
+  const trainingDuration = todayTraining.reduce((sum, s) => sum + s.duration, 0);
+  const electrolyteInfo = useMemo(() => {
+    if (trainingDuration < 30) return null;
+    const sessionType = todayTraining[0]?.type || 'other';
+    return calculateElectrolyteNeeds(bodyWeightKg, sessionType, trainingDuration, 'moderate');
+  }, [bodyWeightKg, trainingDuration, todayTraining]);
+
+  const intraFuel = useMemo(() => {
+    if (trainingDuration < 60) return null;
+    const sessionType = todayTraining[0]?.type || 'other';
+    const isInCut = user?.goalFocus === 'weight_loss';
+    return getIntraTrainingFuel(trainingDuration, sessionType, !!isInCut, bodyWeightKg);
+  }, [trainingDuration, todayTraining, user?.goalFocus, bodyWeightKg]);
 
   // ── UI State ──
   const [showContextual, setShowContextual] = useState(true);
@@ -1117,6 +1147,43 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <span className="text-sm font-medium text-blue-300">{(contextualNutrition.hydrationGoal / 1000).toFixed(1)} L</span>
                   </div>
 
+                  {/* Electrolyte & Intra-Training Fueling */}
+                  {electrolyteInfo && (
+                    <div className="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-lg space-y-1.5">
+                      <p className="text-xs text-purple-300 font-medium flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> Electrolyte Needs ({trainingDuration}min session)
+                      </p>
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        <div className="bg-grappler-800/40 rounded p-1">
+                          <p className="text-[10px] text-grappler-500">Sodium</p>
+                          <p className="text-xs font-medium text-grappler-200">{electrolyteInfo.sodiumMg}mg</p>
+                        </div>
+                        <div className="bg-grappler-800/40 rounded p-1">
+                          <p className="text-[10px] text-grappler-500">Potassium</p>
+                          <p className="text-xs font-medium text-grappler-200">{electrolyteInfo.potassiumMg}mg</p>
+                        </div>
+                        <div className="bg-grappler-800/40 rounded p-1">
+                          <p className="text-[10px] text-grappler-500">Fluid Loss</p>
+                          <p className="text-xs font-medium text-grappler-200">{electrolyteInfo.fluidLossL}L</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {intraFuel && intraFuel.carbsG > 0 && (
+                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                      <p className="text-xs text-orange-300 font-medium mb-1">Intra-Training Fuel</p>
+                      <p className="text-[10px] text-grappler-400">{intraFuel.notes}</p>
+                      {intraFuel.foods.length > 0 && (
+                        <div className="mt-1 space-y-0.5">
+                          {intraFuel.foods.slice(0, 3).map((f, i) => (
+                            <p key={i} className="text-[10px] text-grappler-400">&#x2022; {f}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Recommendations */}
                   {contextualNutrition.recommendations.length > 0 && (
                     <div className="space-y-1.5">
@@ -1125,6 +1192,21 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         <p key={i} className="text-xs text-gray-400 flex items-start gap-2">
                           <span className="text-primary-400">•</span>
                           {rec}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Supplement recommendations */}
+                  {supplements.length > 3 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-emerald-400" /> Supplements
+                      </p>
+                      {supplements.slice(3, 6).map((sup, i) => (
+                        <p key={i} className="text-[10px] text-gray-400 flex items-start gap-2">
+                          <span className="text-emerald-400">&#x2022;</span>
+                          {sup}
                         </p>
                       ))}
                     </div>

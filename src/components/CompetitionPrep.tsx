@@ -18,8 +18,12 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CompetitionType, CompetitionEvent } from '@/lib/types';
+import { CompetitionType, CompetitionEvent, WeighInType } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
+import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
+import { detectWeightCutPhase, assessWeightCutSafety, getWaterProtocol, getSodiumProtocol } from '@/lib/weight-cut-engine';
+import { calculateElectrolyteNeeds } from '@/lib/electrolyte-engine';
+import WeightCutDashboard from './WeightCutDashboard';
 
 interface CompetitionPrepProps {
   onClose: () => void;
@@ -240,10 +244,14 @@ function getWeightProgress(current?: number, target?: number): number {
 }
 
 export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
-  const { user, competitions: events, addCompetition, deleteCompetition } = useAppStore();
+  const {
+    user, competitions: events, addCompetition, deleteCompetition,
+    weightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
+  } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [showWeightCutDashboard, setShowWeightCutDashboard] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -251,8 +259,10 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const [formDate, setFormDate] = useState('');
   const [formWeightClass, setFormWeightClass] = useState('');
   const [formPeakingWeeks, setFormPeakingWeeks] = useState(3);
+  const [formWeighInType, setFormWeighInType] = useState<WeighInType>('day_before');
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
+  const isCombatAthlete = user?.trainingIdentity === 'combat';
 
   const handleAddEvent = () => {
     if (!formName.trim() || !formDate) return;
@@ -425,6 +435,16 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
           )}
         </AnimatePresence>
 
+        {/* Weight Cut Dashboard (full-screen overlay) */}
+        <AnimatePresence>
+          {showWeightCutDashboard && (
+            <WeightCutDashboard
+              competitionId={showWeightCutDashboard}
+              onClose={() => setShowWeightCutDashboard(null)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Event Detail View */}
         <AnimatePresence mode="wait">
           {selectedEvent ? (
@@ -434,6 +454,38 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
               onBack={() => setSelectedEventId(null)}
               onDelete={() => handleDeleteEvent(selectedEvent.id)}
               weightUnit={weightUnit}
+              isCombatAthlete={isCombatAthlete}
+              weightCutPlan={weightCutPlans.find(p => p.competitionId === selectedEvent.id)}
+              onOpenWeightCut={() => setShowWeightCutDashboard(selectedEvent.id)}
+              onStartWeightCut={() => {
+                if (!selectedEvent.weightClass || !user) return;
+                const latestWeight = bodyWeightLog[bodyWeightLog.length - 1];
+                const currentKg = latestWeight
+                  ? (latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight)
+                  : (user.bodyWeight ? (weightUnit === 'lbs' ? user.bodyWeight / 2.205 : user.bodyWeight) : 80);
+                const targetKg = weightUnit === 'lbs' ? selectedEvent.weightClass / 2.205 : selectedEvent.weightClass;
+                createWeightCutPlan({
+                  competitionId: selectedEvent.id,
+                  competitionDate: new Date(selectedEvent.date).toISOString(),
+                  targetWeightKg: targetKg,
+                  startWeightKg: currentKg,
+                  currentPhase: 'not_started',
+                  phaseStartDate: new Date().toISOString(),
+                  weighInType: formWeighInType,
+                  rehydrationTimeHours: formWeighInType === 'day_before' ? 24 : formWeighInType === '2hr_before' ? 2 : 6,
+                  waterLoadStarted: false,
+                  sodiumLoadStarted: false,
+                  carbDepletionStarted: false,
+                  safetyLevel: 'safe',
+                  safetyAlerts: [],
+                  maxWaterCutPercent: 6,
+                  dailyLogs: [],
+                  isActive: true,
+                });
+                setShowWeightCutDashboard(selectedEvent.id);
+              }}
+              combatNutritionProfile={combatNutritionProfile}
+              userSex={user?.sex}
             />
           ) : (
             <motion.div
@@ -659,11 +711,23 @@ function EventDetail({
   onBack,
   onDelete,
   weightUnit,
+  isCombatAthlete,
+  weightCutPlan,
+  onOpenWeightCut,
+  onStartWeightCut,
+  combatNutritionProfile,
+  userSex,
 }: {
   event: CompetitionEvent;
   onBack: () => void;
   onDelete: () => void;
   weightUnit: string;
+  isCombatAthlete?: boolean;
+  weightCutPlan?: any;
+  onOpenWeightCut: () => void;
+  onStartWeightCut: () => void;
+  combatNutritionProfile?: any;
+  userSex?: string;
 }) {
   const daysRemaining = getDaysRemaining(new Date(event.date));
   const weeksRemaining = getWeeksRemaining(new Date(event.date));
@@ -673,12 +737,25 @@ function EventDetail({
   const isPast = daysRemaining < 0;
   const isAesthetic = event.type === 'aesthetic_event';
   const isStriking = event.type === 'kickboxing_fight' || event.type === 'muay_thai_fight' || event.type === 'boxing_match' || event.type === 'mma_fight';
+  const isCombatEvent = isStriking || ['bjj_tournament', 'wrestling_meet'].includes(event.type);
   const recommendations = isAesthetic
     ? AESTHETIC_RECOMMENDATIONS[phase]
     : isStriking
       ? STRIKING_RECOMMENDATIONS[phase]
       : PHASE_RECOMMENDATIONS[phase];
   const weightProgress = getWeightProgress(event.currentWeight, event.weightClass);
+
+  // Fight camp nutrition phase (combat athletes only)
+  const fightCampPhase = isCombatEvent && daysRemaining > 0
+    ? detectFightCampPhase(daysRemaining, event.type === 'bjj_tournament')
+    : null;
+  const fightCampConfig = fightCampPhase
+    ? getPhaseConfig(fightCampPhase, (userSex as any) || 'male')
+    : null;
+
+  // Weight cut safety assessment
+  const needsWeightCut = event.weightClass && event.currentWeight && event.currentWeight > event.weightClass;
+  const hasWeightCutPlan = !!weightCutPlan;
 
   return (
     <motion.div
@@ -946,6 +1023,119 @@ function EventDetail({
           </div>
         )}
       </div>
+
+      {/* Fight Camp Nutrition Phase (combat athletes) */}
+      {isCombatAthlete && fightCampPhase && fightCampConfig && !isPast && (
+        <div className="card p-4 border border-orange-500/30 bg-orange-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Flame className="w-5 h-5 text-orange-400" />
+            <h3 className="font-medium text-orange-300">Fight Camp Nutrition</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium ml-auto">
+              {fightCampPhase.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <p className="text-sm text-grappler-300 mb-3">{fightCampConfig.focus}</p>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+              <p className="text-xs text-grappler-400">Protein</p>
+              <p className="text-sm font-bold text-grappler-100">
+                {fightCampConfig.proteinGKg.min}-{fightCampConfig.proteinGKg.max} g/kg
+              </p>
+            </div>
+            <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+              <p className="text-xs text-grappler-400">Carbs</p>
+              <p className="text-sm font-bold text-grappler-100">
+                {fightCampConfig.carbsGKg.min}-{fightCampConfig.carbsGKg.max} g/kg
+              </p>
+            </div>
+            <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+              <p className="text-xs text-grappler-400">Fat</p>
+              <p className="text-sm font-bold text-grappler-100">
+                {fightCampConfig.fatGKg.min}-{fightCampConfig.fatGKg.max} g/kg
+              </p>
+            </div>
+          </div>
+          {fightCampConfig.recommendations.length > 0 && (
+            <div className="space-y-1">
+              {fightCampConfig.recommendations.map((rec: string, i: number) => (
+                <p key={i} className="text-xs text-grappler-300 flex items-start gap-2">
+                  <span className="text-orange-400 mt-0.5">&#x2022;</span>
+                  {rec}
+                </p>
+              ))}
+            </div>
+          )}
+          {fightCampConfig.warnings.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {fightCampConfig.warnings.map((w: string, i: number) => (
+                <p key={i} className="text-xs text-yellow-400 flex items-start gap-2">
+                  <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                  {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Weight Cut Plan (combat athletes) */}
+      {isCombatAthlete && isCombatEvent && needsWeightCut && !isPast && (
+        <div className="card p-4 border border-purple-500/30 bg-purple-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <Scale className="w-5 h-5 text-purple-400" />
+            <h3 className="font-medium text-purple-300">Weight Cut Protocol</h3>
+          </div>
+          {hasWeightCutPlan ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-grappler-200">
+                    Phase: <span className="font-medium text-purple-300">{weightCutPlan.currentPhase.replace(/_/g, ' ')}</span>
+                  </p>
+                  <p className="text-xs text-grappler-400">
+                    Safety: <span className={cn(
+                      'font-medium',
+                      weightCutPlan.safetyLevel === 'safe' ? 'text-green-400' :
+                      weightCutPlan.safetyLevel === 'caution' ? 'text-yellow-400' :
+                      weightCutPlan.safetyLevel === 'danger' ? 'text-red-400' : 'text-red-500'
+                    )}>{weightCutPlan.safetyLevel}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={onOpenWeightCut}
+                  className="btn btn-primary btn-sm"
+                >
+                  Open Dashboard
+                </button>
+              </div>
+              {weightCutPlan.safetyAlerts.length > 0 && (
+                <div className="space-y-1">
+                  {weightCutPlan.safetyAlerts.slice(0, 2).map((alert: string, i: number) => (
+                    <p key={i} className="text-xs text-yellow-400 flex items-start gap-2">
+                      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                      {alert}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-grappler-300">
+                You need to lose {event.currentWeight && event.weightClass
+                  ? `${(event.currentWeight - event.weightClass).toFixed(1)} ${weightUnit}`
+                  : 'weight'} for this event. Start a guided weight cut protocol with safety monitoring.
+              </p>
+              <button
+                onClick={onStartWeightCut}
+                className="btn btn-primary btn-sm w-full"
+              >
+                Start Weight Cut Protocol
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Notes */}
       {event.notes && (

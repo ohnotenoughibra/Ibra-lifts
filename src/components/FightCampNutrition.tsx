@@ -37,7 +37,7 @@ interface FightCampNutritionProps {
 const PHASE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
   off_season:       { text: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
   base_camp:        { text: 'text-cyan-400', bg: 'bg-cyan-500/20', border: 'border-cyan-500/30' },
-  intensification:  { text: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30' },
+  intensification:  { text: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/30' },
   fight_camp_peak:  { text: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30' },
   fight_week:       { text: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-500/30' },
   weigh_in_day:     { text: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
@@ -129,7 +129,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       >
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <button onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-grappler-50">Fight Camp Nutrition</h1>
@@ -156,7 +156,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       >
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <button onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-grappler-50">Fight Camp Nutrition</h1>
@@ -186,12 +186,12 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
               <h1 className="text-xl font-bold text-grappler-50 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500" />
+                <Flame className="w-5 h-5 text-blue-500" />
                 Fight Camp Nutrition
               </h1>
               <p className="text-sm text-grappler-400">

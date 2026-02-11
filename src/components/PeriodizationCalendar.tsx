@@ -35,8 +35,8 @@ const typeConfig: Record<WorkoutType, { label: string; color: string; bg: string
   },
   power: {
     label: 'Power',
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/20',
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/20',
     icon: Zap,
   },
 };
@@ -85,7 +85,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
     return (
       <div className="min-h-screen bg-grappler-900 p-4">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={onClose} className="btn btn-ghost btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h2 className="text-xl font-bold text-grappler-50">Periodization Calendar</h2>
@@ -110,7 +110,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>

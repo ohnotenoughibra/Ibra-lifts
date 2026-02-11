@@ -230,7 +230,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
     switch (type) {
       case 'strength': return 'text-red-400 bg-red-500/10';
       case 'hypertrophy': return 'text-purple-400 bg-purple-500/10';
-      case 'power': return 'text-orange-400 bg-orange-500/10';
+      case 'power': return 'text-blue-400 bg-blue-500/10';
     }
   };
 
@@ -307,7 +307,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
                       value={templateName}
                       onChange={(e) => setTemplateName(e.target.value)}
                       placeholder="Template name..."
-                      className="flex-1 px-3 py-1.5 rounded-lg bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 text-sm outline-none focus:border-accent-500"
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 text-sm outline-none focus-visible:border-accent-500"
                     />
                     <button
                       onClick={() => {
@@ -396,7 +396,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             <p className="text-xs text-grappler-400 mt-1">
               Each week varies intensity: <span className="text-red-400">Strength</span> (heavy, low reps),{' '}
               <span className="text-purple-400">Hypertrophy</span> (moderate, more reps),{' '}
-              <span className="text-orange-400">Power</span> (explosive, lighter loads).
+              <span className="text-blue-400">Power</span> (explosive, lighter loads).
             </p>
           </div>
         </div>
@@ -479,10 +479,10 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
                         </div>
                       )}
                       {breakdown.power > 0 && (
-                        <div className="flex-1 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
-                          <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
-                          <p className="text-sm font-bold text-orange-400">{breakdown.power}</p>
-                          <p className="text-xs text-orange-400/70">Power</p>
+                        <div className="flex-1 bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-center">
+                          <Flame className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+                          <p className="text-sm font-bold text-blue-400">{breakdown.power}</p>
+                          <p className="text-xs text-blue-400/70">Power</p>
                         </div>
                       )}
                     </div>

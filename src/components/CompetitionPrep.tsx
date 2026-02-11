@@ -61,9 +61,9 @@ const PHASE_INFO: Record<Phase, PhaseInfo> = {
   },
   intensification: {
     name: 'Intensification',
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/20',
-    borderColor: 'border-orange-500/40',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/40',
     icon: <Flame className="w-4 h-4" />,
   },
   peaking: {
@@ -299,7 +299,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
@@ -1026,11 +1026,11 @@ function EventDetail({
 
       {/* Fight Camp Nutrition Phase (combat athletes) */}
       {isCombatAthlete && fightCampPhase && fightCampConfig && !isPast && (
-        <div className="card p-4 border border-orange-500/30 bg-orange-500/5">
+        <div className="card p-4 border border-blue-500/30 bg-blue-500/5">
           <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-5 h-5 text-orange-400" />
-            <h3 className="font-medium text-orange-300">Fight Camp Nutrition</h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium ml-auto">
+            <Flame className="w-5 h-5 text-blue-400" />
+            <h3 className="font-medium text-blue-300">Fight Camp Nutrition</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium ml-auto">
               {fightCampPhase.replace(/_/g, ' ')}
             </span>
           </div>
@@ -1059,7 +1059,7 @@ function EventDetail({
             <div className="space-y-1">
               {fightCampConfig.recommendations.map((rec: string, i: number) => (
                 <p key={i} className="text-xs text-grappler-300 flex items-start gap-2">
-                  <span className="text-orange-400 mt-0.5">&#x2022;</span>
+                  <span className="text-blue-400 mt-0.5">&#x2022;</span>
                   {rec}
                 </p>
               ))}

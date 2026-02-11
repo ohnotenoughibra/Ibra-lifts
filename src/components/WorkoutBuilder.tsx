@@ -263,7 +263,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm">
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm">
             <X className="w-5 h-5" />
           </button>
           <h1 className="font-bold text-grappler-50">
@@ -329,7 +329,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         'text-xs px-2 py-0.5 rounded-full font-medium',
                         template.focus === 'strength' ? 'bg-red-500/20 text-red-400' :
                         template.focus === 'hypertrophy' ? 'bg-purple-500/20 text-purple-400' :
-                        template.focus === 'power' ? 'bg-orange-500/20 text-orange-400' :
+                        template.focus === 'power' ? 'bg-blue-500/20 text-blue-400' :
                         'bg-primary-500/20 text-primary-400'
                       )}>
                         {template.focus}
@@ -577,7 +577,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   {([
                     { type: 'strength', label: 'Strength', icon: Zap, color: 'bg-red-500' },
                     { type: 'hypertrophy', label: 'Hypertrophy', icon: Heart, color: 'bg-purple-500' },
-                    { type: 'power', label: 'Power', icon: Flame, color: 'bg-orange-500' }
+                    { type: 'power', label: 'Power', icon: Flame, color: 'bg-blue-500' }
                   ] as const).map((opt) => (
                     <button
                       key={opt.type}

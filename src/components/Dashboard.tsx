@@ -149,7 +149,7 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
-          className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
+          className="w-20 h-20 bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
         >
           <Star className="w-10 h-10 text-white" />
         </motion.div>
@@ -416,11 +416,11 @@ export default function Dashboard({
             <div className={cn(
               'flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors',
               streakAtRisk
-                ? 'bg-orange-500/20 border border-orange-500/40 animate-pulse'
+                ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
                 : 'bg-grappler-800'
             )}>
-              <Flame className={cn('w-4 h-4', streakAtRisk ? 'text-orange-400' : 'text-orange-500')} />
-              <span className={cn('text-sm font-medium', streakAtRisk ? 'text-orange-300' : 'text-grappler-200')}>
+              <Flame className={cn('w-4 h-4', streakAtRisk ? 'text-blue-400' : 'text-blue-500')} />
+              <span className={cn('text-sm font-medium', streakAtRisk ? 'text-blue-300' : 'text-grappler-200')}>
                 {gamificationStats.currentStreak}
               </span>
             </div>
@@ -580,7 +580,7 @@ export default function Dashboard({
               className={cn(
                 'px-5 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 cursor-pointer',
                 loginBonusToast.isMysteryDay
-                  ? 'bg-gradient-to-r from-amber-500/20 to-purple-500/20 border-amber-500/30'
+                  ? 'bg-gradient-to-r from-sky-500/20 to-purple-500/20 border-sky-500/30'
                   : 'bg-grappler-800 border-grappler-700/50'
               )}
               onClick={() => setLoginBonusToast(null)}

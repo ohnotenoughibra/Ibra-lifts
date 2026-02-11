@@ -268,7 +268,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="p-2 -ml-2 rounded-lg hover:bg-grappler-800 transition-colors"
           >
@@ -385,7 +385,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-grappler-800 rounded-full px-3 py-1">
-                          <Thermometer className="w-3 h-3 text-orange-400" />
+                          <Thermometer className="w-3 h-3 text-blue-400" />
                           <span className="text-xs text-grappler-200">
                             Soreness {logsWithCheckIn[0].preCheckIn!.soreness}/5
                           </span>
@@ -643,7 +643,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
               {/* Stress & Soreness Trend */}
               <motion.div variants={itemVariants} className="card p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <Thermometer className="w-5 h-5 text-orange-400" />
+                  <Thermometer className="w-5 h-5 text-blue-400" />
                   <h2 className="text-base font-semibold text-grappler-50">Stress & Soreness</h2>
                   <span className="text-xs text-grappler-400 ml-auto">Last 10 sessions</span>
                 </div>
@@ -706,7 +706,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                       <span className="text-xs text-grappler-400">Stress</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
                       <span className="text-xs text-grappler-400">Soreness</span>
                     </div>
                   </div>

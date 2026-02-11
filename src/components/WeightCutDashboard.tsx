@@ -32,7 +32,7 @@ const SAFETY_COLORS: Record<WeightCutSafetyLevel, { bg: string; border: string; 
 const PHASE_LABELS: Record<string, { name: string; color: string }> = {
   not_started: { name: 'Not Started', color: 'text-zinc-400' },
   chronic_loss: { name: 'Chronic Weight Loss', color: 'text-blue-400' },
-  acute_reduction: { name: 'Acute Reduction', color: 'text-orange-400' },
+  acute_reduction: { name: 'Acute Reduction', color: 'text-blue-400' },
   water_cut: { name: 'Water Cut', color: 'text-red-400' },
   rehydration: { name: 'Rehydration', color: 'text-green-400' },
   fight_ready: { name: 'Fight Ready', color: 'text-emerald-400' },
@@ -57,7 +57,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
     return (
       <div className="p-6 text-center text-zinc-400">
         <p>Competition not found.</p>
-        <button onClick={onClose} className="mt-4 text-blue-400 hover:text-blue-300">Close</button>
+        <button aria-label="Close" onClick={onClose} className="mt-4 text-blue-400 hover:text-blue-300">Close</button>
       </div>
     );
   }
@@ -276,8 +276,8 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
                         <div className="text-sm font-bold text-white">{Math.round(waterProtocol.targetMl / 1000)}L</div>
                         <div className="text-xs text-zinc-400">Water</div>
                       </div>
-                      <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2 text-center">
-                        <Thermometer className="w-4 h-4 text-orange-400 mx-auto mb-1" />
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
+                        <Thermometer className="w-4 h-4 text-blue-400 mx-auto mb-1" />
                         <div className="text-sm font-bold text-white">{sodiumProtocol.targetMg}mg</div>
                         <div className="text-xs text-zinc-400">Sodium</div>
                       </div>
@@ -289,7 +289,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-zinc-400"><span className="text-blue-400">Water:</span> {waterProtocol.note}</p>
-                      <p className="text-xs text-zinc-400"><span className="text-orange-400">Sodium:</span> {sodiumProtocol.note}</p>
+                      <p className="text-xs text-zinc-400"><span className="text-blue-400">Sodium:</span> {sodiumProtocol.note}</p>
                       <p className="text-xs text-zinc-400"><span className="text-purple-400">Carbs:</span> {carbProtocol.note}</p>
                     </div>
                   </div>

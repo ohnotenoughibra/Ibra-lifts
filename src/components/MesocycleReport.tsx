@@ -109,7 +109,7 @@ export default function MesocycleReport({
               This will permanently delete <span className="text-grappler-200 font-medium">{mesocycle.name}</span> and all {report.workoutsCompleted} workout logs associated with it. This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button
+              <button aria-label="Go back"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 btn btn-md bg-grappler-700 text-grappler-200"
               >
@@ -158,7 +158,7 @@ export default function MesocycleReport({
             report.completionRate >= 90
               ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/20'
               : report.completionRate >= 70
-                ? 'bg-gradient-to-br from-yellow-500/20 to-amber-500/10 border border-yellow-500/20'
+                ? 'bg-gradient-to-br from-yellow-500/20 to-sky-500/10 border border-yellow-500/20'
                 : 'bg-gradient-to-br from-grappler-800/50 to-grappler-700/30 border border-grappler-700'
           )}
         >
@@ -207,7 +207,7 @@ export default function MesocycleReport({
             icon={Activity}
             label="Avg RPE"
             value={report.avgRPE || '—'}
-            color="text-orange-400"
+            color="text-blue-400"
           />
         </motion.div>
 
@@ -307,7 +307,7 @@ export default function MesocycleReport({
             className="card p-4"
           >
             <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2 mb-3">
-              <Flame className="w-4 h-4 text-orange-400" />
+              <Flame className="w-4 h-4 text-blue-400" />
               RPE Trend
             </h3>
             <div className="flex items-end gap-1 h-20">
@@ -320,7 +320,7 @@ export default function MesocycleReport({
                       <div
                         className={cn(
                           'w-full rounded-t',
-                          rpe >= 9 ? 'bg-red-500' : rpe >= 7.5 ? 'bg-orange-500' : rpe >= 6 ? 'bg-yellow-500' : 'bg-green-500'
+                          rpe >= 9 ? 'bg-red-500' : rpe >= 7.5 ? 'bg-blue-500' : rpe >= 6 ? 'bg-yellow-500' : 'bg-green-500'
                         )}
                         style={{ height: `${height}%`, minHeight: rpe > 0 ? '4px' : '0px' }}
                       />
@@ -354,7 +354,7 @@ export default function MesocycleReport({
                     'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
                     i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
                     i === 1 ? 'bg-grappler-400/20 text-grappler-300' :
-                    i === 2 ? 'bg-orange-500/20 text-orange-400' :
+                    i === 2 ? 'bg-blue-500/20 text-blue-400' :
                     'bg-grappler-700/50 text-grappler-500'
                   )}>
                     {i + 1}

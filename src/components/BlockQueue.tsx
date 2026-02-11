@@ -24,7 +24,7 @@ import type { GoalFocus, PlannedMesocycle } from '@/lib/types';
 
 const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; color: string; desc: string }[] = [
   { value: 'strength', label: 'Strength', icon: <Dumbbell className="w-4 h-4" />, color: 'text-red-400 bg-red-500/20', desc: 'Heavy loads, low reps' },
-  { value: 'hypertrophy', label: 'Hypertrophy', icon: <Flame className="w-4 h-4" />, color: 'text-orange-400 bg-orange-500/20', desc: 'Moderate loads, higher volume' },
+  { value: 'hypertrophy', label: 'Hypertrophy', icon: <Flame className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Moderate loads, higher volume' },
   { value: 'power', label: 'Power', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-400 bg-yellow-500/20', desc: 'Explosive, speed-strength' },
   { value: 'balanced', label: 'Balanced', icon: <Shield className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Mix of strength & hypertrophy' },
 ];
@@ -266,7 +266,7 @@ export default function BlockQueue() {
                   <select
                     value={formPeriodization}
                     onChange={e => setFormPeriodization(e.target.value as typeof formPeriodization)}
-                    className="w-full bg-grappler-800 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-200 outline-none focus:border-primary-500"
+                    className="w-full bg-grappler-800 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-200 outline-none focus-visible:border-primary-500"
                   >
                     {PERIODIZATION_OPTIONS.map(p => (
                       <option key={p.value} value={p.value}>{p.label}</option>
@@ -282,7 +282,7 @@ export default function BlockQueue() {
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
                   placeholder="e.g. Focus on squat, prep for comp..."
-                  className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 outline-none"
+                  className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 outline-none"
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
                 />
               </div>

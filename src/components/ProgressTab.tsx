@@ -149,7 +149,7 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
             <p className="text-xs text-grappler-400">Weight</p>
             <p className="text-sm font-bold text-grappler-100">{data.latestWeight} {weightUnit}</p>
             {data.weightDelta !== null && (
-              <p className={cn('text-xs font-medium', data.weightDelta > 0 ? 'text-amber-400' : data.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+              <p className={cn('text-xs font-medium', data.weightDelta > 0 ? 'text-sky-400' : data.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
                 {data.weightDelta > 0 ? '+' : ''}{data.weightDelta} {weightUnit}
               </p>
             )}
@@ -388,7 +388,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-2">
-          <Flame className="w-4 h-4 text-orange-400" />
+          <Flame className="w-4 h-4 text-blue-400" />
           Training Streaks
         </h3>
         <div className="flex items-center gap-3">
@@ -617,7 +617,7 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
                   )}
                 </div>
                 {confirmImport && (
-                  <p className="text-xs text-amber-400 mt-2">
+                  <p className="text-xs text-sky-400 mt-2">
                     This will replace all current data. Make sure you have a backup first.
                   </p>
                 )}

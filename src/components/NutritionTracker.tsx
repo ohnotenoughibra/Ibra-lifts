@@ -1061,7 +1061,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       {/* ── Header ── */}
       <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center justify-between">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="flex items-center gap-1 text-grappler-400 hover:text-grappler-200 transition-colors"
           >
@@ -1186,8 +1186,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   )}
 
                   {intraFuel && intraFuel.carbsG > 0 && (
-                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                      <p className="text-xs text-orange-300 font-medium mb-1">Intra-Training Fuel</p>
+                    <div className="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <p className="text-xs text-blue-300 font-medium mb-1">Intra-Training Fuel</p>
                       <p className="text-xs text-grappler-400">{intraFuel.notes}</p>
                       {intraFuel.foods.length > 0 && (
                         <div className="mt-1 space-y-0.5">
@@ -1270,9 +1270,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           </div>
           {!isToday && (
-            <div className="mb-3 flex items-center gap-2 bg-amber-500/10 rounded-lg px-2.5 py-1.5">
-              <CalendarDays className="w-3 h-3 text-amber-400 flex-shrink-0" />
-              <p className="text-xs text-amber-300">
+            <div className="mb-3 flex items-center gap-2 bg-sky-500/10 rounded-lg px-2.5 py-1.5">
+              <CalendarDays className="w-3 h-3 text-sky-400 flex-shrink-0" />
+              <p className="text-xs text-sky-300">
                 Logging for {selectedDateFormatted} — meals and water will be saved to this date
               </p>
             </div>
@@ -1282,12 +1282,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="bg-grappler-800/50 rounded-lg p-3">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-orange-400">{totals.calories}</span>
+                <span className="text-2xl font-bold text-blue-400">{totals.calories}</span>
                 <span className="text-xs text-grappler-500">/ {contextualNutrition.adjustedTargets.calories}</span>
               </div>
               <p className="text-xs text-grappler-400 mt-0.5">calories</p>
               <div className="mt-1.5 h-1.5 rounded-full bg-grappler-700 overflow-hidden">
-                <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${Math.min(100, contextualNutrition.adjustedTargets.calories > 0 ? (totals.calories / contextualNutrition.adjustedTargets.calories) * 100 : 0)}%` }} />
+                <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(100, contextualNutrition.adjustedTargets.calories > 0 ? (totals.calories / contextualNutrition.adjustedTargets.calories) * 100 : 0)}%` }} />
               </div>
             </div>
             <div className="bg-grappler-800/50 rounded-lg p-3">
@@ -1411,7 +1411,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             className="card p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-amber-400" />
+              <Sparkles className="w-4 h-4 text-sky-400" />
               <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
                 Suggested Next
               </h2>
@@ -1429,12 +1429,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   className={cn(
                     "flex-shrink-0 p-2.5 rounded-xl transition-colors text-left min-w-[140px]",
                     food.fromHistory
-                      ? "bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+                      ? "bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30"
                       : "bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50"
                   )}
                 >
                   <div className="flex items-center gap-1">
-                    {food.fromHistory && <Clock className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                    {food.fromHistory && <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />}
                     <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
                   </div>
                   <p className="text-xs text-grappler-400 mt-1">
@@ -1722,7 +1722,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         {preset.name}
                       </p>
                       <div className="flex gap-2 mt-1 text-xs text-grappler-500">
-                        <span className="text-orange-400/80">
+                        <span className="text-blue-400/80">
                           {preset.calories} kcal
                         </span>
                         <span className="text-red-400/80">
@@ -1778,7 +1778,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   {favoriteFoods.length > 0 && (
                     <div>
                       <label className="text-xs text-grappler-400 mb-1.5 block flex items-center gap-1">
-                        <Star className="w-3 h-3 text-amber-400" />
+                        <Star className="w-3 h-3 text-sky-400" />
                         Your Favorites
                       </label>
                       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
@@ -1786,7 +1786,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           <button
                             key={food.name}
                             onClick={() => selectAutocomplete(food)}
-                            className="flex-shrink-0 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors text-left"
+                            className="flex-shrink-0 px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-colors text-left"
                           >
                             <p className="text-xs font-medium text-grappler-100 truncate max-w-[120px]">{food.name}</p>
                             <p className="text-xs text-grappler-500">{food.calories} kcal · {food.protein}g P</p>
@@ -1854,7 +1854,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                             >
                               <span className="text-sm flex-shrink-0">
                                 {item.source === 'history' ? (
-                                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                                  <Clock className="w-3.5 h-3.5 text-sky-400" />
                                 ) : (
                                   <Apple className="w-3.5 h-3.5 text-grappler-500" />
                                 )}
@@ -1864,7 +1864,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 <p className="text-xs text-grappler-500">
                                   {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
                                   {item.source === 'history' && item.count > 1 && (
-                                    <span className="text-amber-400/70 ml-1">· logged {item.count}x</span>
+                                    <span className="text-sky-400/70 ml-1">· logged {item.count}x</span>
                                   )}
                                 </p>
                               </div>
@@ -1930,7 +1930,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-orange-400" />
+                        <Flame className="w-3 h-3 text-blue-400" />
                         kcal
                       </label>
                       <input
@@ -2080,7 +2080,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 <input
                                   value={editingMeal.name}
                                   onChange={e => setEditingMeal({ ...editingMeal, name: e.target.value })}
-                                  className="flex-1 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                                  className="flex-1 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus-visible:border-primary-500 outline-none"
                                   placeholder="Name"
                                   autoFocus
                                   onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
@@ -2088,18 +2088,18 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 <input
                                   value={editingMeal.portion}
                                   onChange={e => setEditingMeal({ ...editingMeal, portion: e.target.value })}
-                                  className="w-20 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                                  className="w-20 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus-visible:border-primary-500 outline-none"
                                   placeholder="Portion"
                                   onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
                                 />
                               </div>
                               <div className="flex gap-2">
                                 <div className="flex-1">
-                                  <label className="text-xs text-orange-400 font-medium">Cal</label>
+                                  <label className="text-xs text-blue-400 font-medium">Cal</label>
                                   <input
                                     value={editingMeal.calories}
                                     onChange={e => setEditingMeal({ ...editingMeal, calories: e.target.value })}
-                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-orange-500 outline-none"
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus-visible:border-blue-500 outline-none"
                                     type="number" inputMode="numeric"
                                     onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
                                   />
@@ -2109,7 +2109,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                   <input
                                     value={editingMeal.protein}
                                     onChange={e => setEditingMeal({ ...editingMeal, protein: e.target.value })}
-                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-red-500 outline-none"
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus-visible:border-red-500 outline-none"
                                     type="number" inputMode="decimal"
                                     onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
                                   />
@@ -2119,7 +2119,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                   <input
                                     value={editingMeal.carbs}
                                     onChange={e => setEditingMeal({ ...editingMeal, carbs: e.target.value })}
-                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-blue-500 outline-none"
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus-visible:border-blue-500 outline-none"
                                     type="number" inputMode="decimal"
                                     onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
                                   />
@@ -2129,7 +2129,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                   <input
                                     value={editingMeal.fat}
                                     onChange={e => setEditingMeal({ ...editingMeal, fat: e.target.value })}
-                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus:border-yellow-500 outline-none"
+                                    className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1 text-xs text-grappler-100 focus-visible:border-yellow-500 outline-none"
                                     type="number" inputMode="decimal"
                                     onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}
                                   />
@@ -2162,7 +2162,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                   )}
                                 </p>
                                 <div className="flex gap-3 mt-0.5 text-xs">
-                                  <span className="text-orange-400">
+                                  <span className="text-blue-400">
                                     {meal.calories} kcal
                                   </span>
                                   <span className="text-red-400">
@@ -2246,7 +2246,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </h2>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div>
-                <p className="text-lg font-bold text-orange-400">
+                <p className="text-lg font-bold text-blue-400">
                   {totals.calories}
                 </p>
                 <p className="text-xs text-grappler-500">

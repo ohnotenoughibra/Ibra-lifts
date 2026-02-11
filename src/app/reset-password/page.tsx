@@ -146,7 +146,7 @@ function ResetPasswordContent() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 focus-visible:ring-1 focus-visible:ring-primary-500 outline-none transition-colors text-sm"
                 />
               </div>
             </div>
@@ -187,7 +187,7 @@ function ResetPasswordContent() {
                   placeholder="At least 8 characters"
                   required
                   minLength={8}
-                  className="w-full pl-10 pr-12 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
+                  className="w-full pl-10 pr-12 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 focus-visible:ring-1 focus-visible:ring-primary-500 outline-none transition-colors text-sm"
                 />
                 <button
                   type="button"
@@ -210,7 +210,7 @@ function ResetPasswordContent() {
                   placeholder="Repeat your password"
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors text-sm"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-grappler-800 border border-grappler-700 text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 focus-visible:ring-1 focus-visible:ring-primary-500 outline-none transition-colors text-sm"
                 />
               </div>
             </div>

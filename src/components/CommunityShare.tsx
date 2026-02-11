@@ -193,7 +193,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-lg border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
-          <button onClick={onClose} className="p-2 -ml-2 rounded-xl hover:bg-grappler-800">
+          <button aria-label="Go back" onClick={onClose} className="p-2 -ml-2 rounded-xl hover:bg-grappler-800">
             <ArrowLeft className="w-5 h-5 text-grappler-300" />
           </button>
           <div className="flex-1">
@@ -250,7 +250,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               <div className="grid grid-cols-4 gap-2">
                 {[
                   { label: 'Workouts', value: gamificationStats.totalWorkouts, icon: Target, color: 'text-green-400' },
-                  { label: 'Streak', value: gamificationStats.currentStreak, icon: Flame, color: 'text-orange-400' },
+                  { label: 'Streak', value: gamificationStats.currentStreak, icon: Flame, color: 'text-blue-400' },
                   { label: 'PRs', value: gamificationStats.personalRecords, icon: Trophy, color: 'text-yellow-400' },
                   { label: 'Badges', value: gamificationStats.badges.length, icon: Award, color: 'text-purple-400' },
                 ].map(stat => (
@@ -453,8 +453,8 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
             <div className="space-y-3">
               {[
                 { label: 'Total Workouts', value: gamificationStats.totalWorkouts, icon: Target, color: 'from-green-500/20 to-emerald-500/10 border-green-500/20', textColor: 'text-green-400' },
-                { label: 'Training Streak', value: `${gamificationStats.currentStreak} days`, icon: Flame, color: 'from-orange-500/20 to-amber-500/10 border-orange-500/20', textColor: 'text-orange-400' },
-                { label: 'Personal Records', value: gamificationStats.personalRecords, icon: Trophy, color: 'from-yellow-500/20 to-amber-500/10 border-yellow-500/20', textColor: 'text-yellow-400' },
+                { label: 'Training Streak', value: `${gamificationStats.currentStreak} days`, icon: Flame, color: 'from-blue-500/20 to-sky-500/10 border-blue-500/20', textColor: 'text-blue-400' },
+                { label: 'Personal Records', value: gamificationStats.personalRecords, icon: Trophy, color: 'from-yellow-500/20 to-sky-500/10 border-yellow-500/20', textColor: 'text-yellow-400' },
                 { label: 'Total Volume', value: `${formatNumber(Math.round(stats.totalVolume))} ${weightUnit}`, icon: BarChart3, color: 'from-primary-500/20 to-sky-500/10 border-primary-500/20', textColor: 'text-primary-400' },
                 { label: 'Longest Streak', value: `${gamificationStats.longestStreak} days`, icon: Zap, color: 'from-purple-500/20 to-violet-500/10 border-purple-500/20', textColor: 'text-purple-400' },
                 { label: 'Blocks Completed', value: mesocycleHistory.length, icon: Calendar, color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/20', textColor: 'text-cyan-400' },

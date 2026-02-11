@@ -100,11 +100,11 @@ export default function VersionUpgradePopup() {
             <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
               {/* Breaking changes warning */}
               {breaking && (
-                <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 bg-sky-500/10 border border-sky-500/30 rounded-xl p-3">
+                  <AlertTriangle className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-amber-300">Data format changes</p>
-                    <p className="text-xs text-amber-400/80 mt-0.5">
+                    <p className="text-sm font-medium text-sky-300">Data format changes</p>
+                    <p className="text-xs text-sky-400/80 mt-0.5">
                       This update includes changes to how your data is stored. We strongly recommend backing up before continuing.
                     </p>
                   </div>

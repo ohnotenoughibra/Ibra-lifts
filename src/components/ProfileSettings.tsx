@@ -543,7 +543,7 @@ export default function ProfileSettings() {
                       value={lift.editValue}
                       onChange={(e) => lift.setter(e.target.value === '' ? '' : Number(e.target.value))}
                       placeholder="—"
-                      className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm font-bold text-grappler-100 outline-none focus:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm font-bold text-grappler-100 outline-none focus-visible:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="text-xs text-grappler-500 shrink-0">{weightUnit}</span>
                   </div>

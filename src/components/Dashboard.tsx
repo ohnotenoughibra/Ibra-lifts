@@ -103,6 +103,14 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   recovery_coach: 'ai-coach',
   block_suggestion: 'block-suggestions',
   volume_map: 'advanced-analytics',
+  periodization: 'advanced-analytics',
+  overload: 'advanced-analytics',
+  recovery: 'advanced-analytics',
+  hr_zones: 'wearable-integration',
+  cycle_tracking: 'advanced-analytics',
+  fatigue: 'advanced-analytics',
+  fight_camp: 'fight-camp-nutrition',
+  grappling: 'competition-prep',
 };
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {

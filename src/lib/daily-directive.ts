@@ -19,8 +19,10 @@ import type {
   MesocycleWeek,
   WorkoutSession,
   ReadinessLevel,
+  CompetitionEvent,
 } from './types';
 import { calculateReadiness } from './performance-engine';
+import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
 
 export interface DailyDirective {
   /** One-line mission headline, e.g. "Upper Body Hypertrophy" or "Rest & Recover" */
@@ -45,6 +47,8 @@ export interface DailyDirective {
   proteinGap: number;
   /** Volume/intensity modifier text */
   modifierText: string | null;
+  /** Fight camp phase tag, e.g. "Intensification · 32d out" */
+  fightCampTag: string | null;
 }
 
 interface DirectiveInput {
@@ -59,6 +63,7 @@ interface DirectiveInput {
   waterLog: Record<string, number>;
   injuryLog: InjuryEntry[];
   quickLogs: QuickLog[];
+  competitions?: CompetitionEvent[];
 }
 
 export function generateDailyDirective(input: DirectiveInput): DailyDirective {
@@ -79,6 +84,25 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const nextWorkoutInfo = getNextWorkout(currentMesocycle, workoutLogs);
   const nextSession = nextWorkoutInfo?.session ?? null;
   const isDeload = nextWorkoutInfo?.isDeload ?? false;
+
+  // ─── Fight camp context ───
+  let fightCampTag: string | null = null;
+  const competitions = input.competitions || [];
+  const now = Date.now();
+  const nextComp = competitions
+    .filter(c => c.isActive && new Date(c.date).getTime() > now)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+  const daysToComp = nextComp
+    ? Math.ceil((new Date(nextComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
+    : null;
+  const isCombat = user?.trainingIdentity === 'combat';
+  const campPhase = isCombat && daysToComp != null
+    ? detectFightCampPhase(daysToComp)
+    : null;
+  if (campPhase && campPhase !== 'off_season' && daysToComp != null) {
+    const cfg = getPhaseConfig(campPhase, (user?.sex || 'male') as 'male' | 'female');
+    fightCampTag = `${cfg.name.split('(')[0].trim()} · ${daysToComp}d out`;
+  }
 
   // ─── Today's nutrition ───
   const todayStr = new Date().toDateString();
@@ -144,6 +168,23 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     }
   }
 
+  // Fight camp phase-specific action
+  if (campPhase && campPhase !== 'off_season' && actions.length < 3) {
+    const phaseActions: Record<string, string> = {
+      base_camp: 'Track macros consistently — build your competition-day habits',
+      intensification: 'Strict macro tracking — every meal counts this phase',
+      fight_camp_peak: 'Weigh in daily (AM, fasted) — monitor your weight cut trajectory',
+      fight_week: 'Follow water/sodium protocol precisely — no improvising',
+      weigh_in_day: 'Weigh-in protocol active — begin rehydration immediately after',
+      fight_day: 'Performance fueling — last solid meal 3-4hrs before fight',
+      tournament_day: 'Pack all food tonight — fuel between matches every 30-60min',
+      post_competition: 'Recovery priority — no strict dieting for at least 1 week',
+    };
+    if (phaseActions[campPhase]) {
+      actions.push(phaseActions[campPhase]);
+    }
+  }
+
   // Sleep action based on readiness
   const sleepFactor = readiness.factors.find(f => f.source === 'sleep' && f.available);
   if (sleepFactor && sleepFactor.score < 50) {
@@ -174,6 +215,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     isDeload,
     proteinGap,
     modifierText,
+    fightCampTag,
   };
 }
 

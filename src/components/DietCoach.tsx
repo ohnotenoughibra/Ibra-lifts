@@ -31,6 +31,7 @@ import {
   Bell,
   BellOff,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 
 const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
@@ -82,6 +83,7 @@ export default function DietCoach() {
   const [selectedGoal, setSelectedGoal] = useState<DietGoal>('cut');
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
+  const [showSwitchGoal, setShowSwitchGoal] = useState(false);
 
   // Setup form state — pre-fill from user profile / weight log
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -165,6 +167,35 @@ export default function DietCoach() {
 
     setShowSetup(false);
     setSetupStep('info');
+  };
+
+  // Handle switching goal on active phase
+  const handleSwitchGoal = (newGoal: DietGoal) => {
+    if (activeDietPhase && newGoal === activeDietPhase.goal) {
+      setShowSwitchGoal(false);
+      return;
+    }
+    const newMacros = calculateMacros({
+      bodyWeightKg,
+      heightCm,
+      age,
+      sex: formSex,
+      goal: newGoal,
+      activityMultiplier,
+    });
+    const rate = getTargetRate(newGoal, bodyWeightKg, formSex);
+
+    endDietPhase();
+    startDietPhase({
+      goal: newGoal,
+      startDate: new Date().toISOString().split('T')[0],
+      startWeightKg: bodyWeightKg,
+      targetRatePerWeek: rate,
+      currentMacros: newMacros,
+      weeksCompleted: 0,
+      isActive: true,
+    });
+    setShowSwitchGoal(false);
   };
 
   // Handle weekly check-in
@@ -463,6 +494,64 @@ export default function DietCoach() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Switch Goal */}
+                  {!showSwitchGoal ? (
+                    <button
+                      onClick={() => setShowSwitchGoal(true)}
+                      className="w-full py-2 px-3 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl text-xs text-grappler-300 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
+                      Switch Goal
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-grappler-800/60 rounded-xl space-y-2 border border-violet-500/20">
+                      <p className="text-xs font-medium text-violet-300">Switch to a new goal</p>
+                      <div className="space-y-1.5">
+                        {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
+                          const config = GOAL_CONFIG[goal];
+                          const isCurrent = activeDietPhase?.goal === goal;
+                          const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier });
+                          return (
+                            <button
+                              key={goal}
+                              onClick={() => handleSwitchGoal(goal)}
+                              className={`w-full p-2.5 rounded-lg text-left transition-all flex items-center justify-between ${
+                                isCurrent
+                                  ? 'bg-violet-500/20 border border-violet-500/40'
+                                  : 'bg-grappler-800/40 border border-grappler-700/30 hover:border-violet-500/30'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {config.icon}
+                                <div>
+                                  <p className={`text-xs font-medium ${isCurrent ? config.color : 'text-grappler-200'}`}>
+                                    {config.label}
+                                    {isCurrent && <span className="text-[10px] text-grappler-500 ml-1.5">(current)</span>}
+                                  </p>
+                                  <p className="text-[10px] text-grappler-500">{config.description}</p>
+                                </div>
+                              </div>
+                              {!isCurrent && (
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-[10px] text-grappler-300">{previewMacros.calories} kcal</p>
+                                  <p className="text-[10px] text-grappler-500">
+                                    {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
+                                  </p>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => setShowSwitchGoal(false)}
+                        className="w-full py-1.5 text-[10px] text-grappler-500 hover:text-grappler-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
 
                   {/* Weight trend */}
                   {bodyWeightLog.length >= 3 && (
@@ -771,8 +860,9 @@ export default function DietCoach() {
                     onClick={() => {
                       endDietPhase();
                       setShowSetup(false);
+                      setShowSwitchGoal(false);
                     }}
-                    className="w-full text-[10px] text-grappler-600 hover:text-grappler-400 transition-colors py-1"
+                    className="w-full text-xs text-grappler-500 hover:text-red-400 transition-colors py-1.5"
                   >
                     End current phase
                   </button>

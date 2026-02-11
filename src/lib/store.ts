@@ -55,6 +55,8 @@ import {
   NotificationPreferences,
   DailyLoginBonus,
   PlannedMesocycle,
+  WeightCutPlan,
+  CombatAthleteNutritionProfile,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
@@ -157,6 +159,12 @@ interface AppState {
 
   // Competitions
   competitions: CompetitionEvent[];
+
+  // Weight Cut Plans (combat athletes)
+  weightCutPlans: WeightCutPlan[];
+
+  // Combat Athlete Nutrition Profile (extended profile for nutrition engine)
+  combatNutritionProfile: CombatAthleteNutritionProfile | null;
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
@@ -465,6 +473,8 @@ export const useAppStore = create<AppState>()(
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
       competitions: [],
+      weightCutPlans: [],
+      combatNutritionProfile: null,
       latestWhoopData: null,
       wearableHistory: [],
       whoopWorkouts: [],
@@ -2693,6 +2703,8 @@ export const useAppStore = create<AppState>()(
           bodyComposition: [],
           muscleEmphasis: null,
           competitions: [],
+          weightCutPlans: [],
+          combatNutritionProfile: null,
           activeEquipmentProfile: 'gym' as const,
           latestWhoopData: null,
           wearableHistory: [],
@@ -2798,6 +2810,8 @@ export const useAppStore = create<AppState>()(
           if (!state.hrSessions) state.hrSessions = [];
           if (!state.bodyComposition) state.bodyComposition = [];
           if (!state.competitions) state.competitions = [];
+          if (!state.weightCutPlans) state.weightCutPlans = [];
+          if (!state.combatNutritionProfile) state.combatNutritionProfile = null;
           // Migrate blockQueue → mesocycleQueue
           if (state.blockQueue) {
             state.mesocycleQueue = state.blockQueue;
@@ -2852,6 +2866,8 @@ export const useAppStore = create<AppState>()(
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,
+        weightCutPlans: state.weightCutPlans,
+        combatNutritionProfile: state.combatNutritionProfile,
         activeEquipmentProfile: state.activeEquipmentProfile,
         lastSyncAt: state.lastSyncAt,
         subscription: state.subscription,

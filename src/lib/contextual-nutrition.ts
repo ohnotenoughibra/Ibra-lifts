@@ -1,7 +1,15 @@
 import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserProfile, CombatTrainingDay, IllnessLog } from './types';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 
-export type TrainingDayType = 'strength' | 'hypertrophy' | 'power' | 'grappling_hard' | 'grappling_light' | 'rest';
+export type TrainingDayType =
+  | 'strength' | 'hypertrophy' | 'power'
+  | 'grappling_hard' | 'grappling_light'
+  | 'two_a_day'     // AM + PM sessions (combat athletes)
+  | 'sparring'      // striking/MMA sparring (highest intensity)
+  | 'fight_week'    // during weight cut week
+  | 'tournament_day' // multiple matches in a day
+  | 'travel'        // travel day (disrupted eating)
+  | 'rest';
 
 export interface ContextualMacros {
   baseTargets: MacroTargets;
@@ -26,6 +34,12 @@ export function getContextualNutrition(
   whoopData: WearableData | null,
   user: UserProfile | null,
   activeIllness?: IllnessLog | null,
+  /** Optional combat context for fight week / tournament / travel detection */
+  combatContext?: {
+    daysToCompetition?: number;
+    isTournamentDay?: boolean;
+    isTravelDay?: boolean;
+  },
 ): ContextualMacros {
   const recommendations: string[] = [];
   let dayType: TrainingDayType = 'rest';
@@ -49,7 +63,28 @@ export function getContextualNutrition(
     return intensity === 'hard_sparring' || intensity === 'competition_prep';
   });
 
-  if (hasHardTraining || trainingMinutes >= 60) {
+  // Detect two-a-day: multiple combat/training sessions logged today
+  const hasTwoADay = todayTraining.length >= 2 && trainingMinutes >= 90;
+
+  // Detect sparring specifically (striking/MMA hard sessions)
+  const hasSparring = todayTraining.some(s => {
+    const intensity = s.actualIntensity || s.plannedIntensity;
+    const isStriking = ['boxing', 'kickboxing', 'muay_thai', 'mma', 'karate', 'taekwondo'].includes(s.type);
+    return isStriking && (intensity === 'hard_sparring' || intensity === 'competition_prep');
+  });
+
+  // Combat-specific day types (highest priority — override training detection)
+  if (combatContext?.isTournamentDay) {
+    dayType = 'tournament_day';
+  } else if (combatContext?.isTravelDay) {
+    dayType = 'travel';
+  } else if (combatContext?.daysToCompetition != null && combatContext.daysToCompetition <= 7) {
+    dayType = 'fight_week';
+  } else if (hasTwoADay) {
+    dayType = 'two_a_day';
+  } else if (hasSparring) {
+    dayType = 'sparring';
+  } else if (hasHardTraining || trainingMinutes >= 60) {
     dayType = 'grappling_hard';
   } else if (hasTraining) {
     dayType = 'grappling_light';
@@ -149,6 +184,36 @@ export function getContextualNutrition(
       recommendations.push('Post-training: fast digesting carbs + protein');
       break;
 
+    case 'two_a_day':
+      // Two-a-day: AM + PM sessions (common in fight camps)
+      // Glycogen resynthesis rate is ~5-7%/hr — need minimum 4hrs between sessions
+      calorieMultiplier = 1.4;
+      proteinMultiplier = 1.2;
+      carbMultiplier = 1.5;
+      preworkoutTiming = 'Eat 2-3 hours before first session';
+      postworkoutTiming = 'CRITICAL: 1-1.5g/kg carbs + 30g protein within 1hr of first session ending';
+      carbCycleNote = 'Very high carb day — glycogen demands are extreme with two sessions';
+      recommendations.push('Between sessions: easily digestible carbs + protein (rice + chicken, or shake)');
+      recommendations.push('Pre-second session: light carbs 60-90 min before (banana, rice cake)');
+      recommendations.push('Track hydration for BOTH sessions — cumulative fluid loss is significant');
+      recommendations.push('Electrolytes are critical — sweat losses compound across sessions');
+      recommendations.push('If second session is <4hrs after first: prioritize liquid nutrition');
+      break;
+
+    case 'sparring':
+      // Striking/MMA sparring — highest intensity, highest injury risk
+      calorieMultiplier = 1.25;
+      proteinMultiplier = 1.2;
+      carbMultiplier = 1.3;
+      preworkoutTiming = 'Eat 2-3 hours before — nothing heavy in stomach';
+      postworkoutTiming = 'Protein + carbs within 1-2 hours. Anti-inflammatory foods.';
+      carbCycleNote = 'High carb day — sparring is the most glycogen-demanding activity';
+      recommendations.push('Pre-sparring: avoid anything that could cause nausea if hit to the body');
+      recommendations.push('Post-sparring: omega-3, tart cherry juice for inflammation');
+      recommendations.push('Do NOT take NSAIDs (ibuprofen) — blocks recovery adaptation');
+      recommendations.push('If you took head impacts: prioritize omega-3 (2-3g EPA+DHA) and sleep');
+      break;
+
     case 'grappling_light':
       calorieMultiplier = 1.1;
       proteinMultiplier = 1.1;
@@ -157,6 +222,48 @@ export function getContextualNutrition(
       postworkoutTiming = 'Normal meal within 2 hours';
       carbCycleNote = 'Moderate carb day';
       recommendations.push('Focus on whole foods for sustained energy');
+      break;
+
+    case 'fight_week':
+      // During fight week — reduced training, weight manipulation active
+      calorieMultiplier = 0.7;
+      proteinMultiplier = 1.3; // preserve muscle at all costs
+      carbMultiplier = 0.4;     // glycogen depletion
+      preworkoutTiming = 'Light session only — minimal fuel needed';
+      postworkoutTiming = 'Protein shake, minimal carbs unless protocol allows';
+      carbCycleNote = 'Fight week: low carbs for glycogen depletion. Follow weight cut protocol.';
+      recommendations.push('Follow the weight cut protocol checklist precisely');
+      recommendations.push('Prioritize protein to preserve lean mass');
+      recommendations.push('Reduce training to light technique only');
+      recommendations.push('Monitor: weight, hydration, mood, energy, resting HR');
+      break;
+
+    case 'tournament_day':
+      // Multiple matches in one day — sustained fueling is critical
+      calorieMultiplier = 1.4;
+      proteinMultiplier = 1.1;
+      carbMultiplier = 1.6;
+      preworkoutTiming = '3-4 hours before first match: 500-600cal (rice + chicken + banana)';
+      postworkoutTiming = 'Between matches: 100-200cal every 30-60min (dates, rice cakes, sports drink)';
+      carbCycleNote = 'Tournament day: sustained energy with frequent small feeds between matches';
+      recommendations.push('Pre-first match: rice + chicken + banana (3-4 hrs before)');
+      recommendations.push('Between matches: dates, rice cakes, sports drink — every 30-60 min');
+      recommendations.push('Sip 200-400ml water + electrolytes between matches');
+      recommendations.push('Post-final match: large recovery meal within 60 minutes');
+      recommendations.push('Pack ALL food the night before — do not rely on venue food');
+      break;
+
+    case 'travel':
+      // Travel day — disrupted eating, stress hormones elevated
+      calorieMultiplier = 0.95;
+      proteinMultiplier = 1.0;
+      carbMultiplier = 0.9;
+      carbCycleNote = 'Travel day: focus on protein and hydration, carbs are secondary';
+      recommendations.push('Pack protein bars, jerky, rice cakes, electrolyte packets');
+      recommendations.push('If flying: 500ml water per 2 hours (cabin air is 10-20% humidity)');
+      recommendations.push('Avoid salty airline food (causes bloating)');
+      recommendations.push('Match new local meal timing immediately on arrival');
+      recommendations.push('Use caffeine strategically to shift circadian rhythm if crossing time zones');
       break;
 
     case 'rest':
@@ -180,8 +287,8 @@ export function getContextualNutrition(
         recommendations.push('Rest days are when strength adaptations occur');
         recommendations.push('Keep calories at maintenance for optimal recovery');
       } else {
-        // Power/cutting or unknown: moderate reduction
-        calorieMultiplier = 0.93; // 7% reduction (compromise)
+        // Power/other: moderate reduction (less aggressive for combat athletes)
+        calorieMultiplier = 0.95; // 5% reduction (combat athletes need recovery fuel)
         carbMultiplier = 0.85;
         carbCycleNote = 'Lower carb day - maintain protein';
         recommendations.push('Moderate calorie reduction while preserving protein');
@@ -345,6 +452,11 @@ export function getSupplementRecommendations(dayType: TrainingDayType): string[]
     power: ['Caffeine if needed', 'Light on stimulants to maintain feel'],
     grappling_hard: ['Electrolytes during training', 'Tart cherry for recovery', 'Magnesium before bed'],
     grappling_light: ['Electrolytes if sweating', 'Optional: adaptogens for stress'],
+    two_a_day: ['Electrolytes for BOTH sessions', 'Collagen + vitamin C before first session', 'Tart cherry post second session', 'Magnesium before bed'],
+    sparring: ['Collagen + vitamin C 30-60min before', 'Electrolytes during', 'Omega-3 post (neuroprotective)', 'Tart cherry for inflammation'],
+    fight_week: ['Electrolytes (but follow sodium protocol)', 'Melatonin if sleep is disrupted', 'Magnesium before bed'],
+    tournament_day: ['Caffeine before first match (3-6mg/kg)', 'Electrolytes between matches', 'Tart cherry post-tournament'],
+    travel: ['Melatonin if crossing time zones', 'Vitamin C for immune support', 'Electrolyte packets for hydration'],
     rest: ['Focus on food over supplements', 'Magnesium and zinc for recovery'],
   };
 

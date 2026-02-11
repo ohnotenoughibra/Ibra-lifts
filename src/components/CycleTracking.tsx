@@ -321,17 +321,17 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-xs text-grappler-400">{fmt(log.startDate)}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lc.bg} ${lc.border} ${lc.color}`}>{lc.label}</span>
-                        <span className="text-[10px] text-grappler-500">E:{log.energyLevel}/5</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${lc.bg} ${lc.border} ${lc.color}`}>{lc.label}</span>
+                        <span className="text-xs text-grappler-500">E:{log.energyLevel}/5</span>
                       </div>
                       {log.symptoms.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {log.symptoms.map(s => (
-                            <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-800 text-grappler-400 border border-grappler-700">{SYMPTOM_LABELS[s]}</span>
+                            <span key={s} className="text-xs px-1.5 py-0.5 rounded bg-grappler-800 text-grappler-400 border border-grappler-700">{SYMPTOM_LABELS[s]}</span>
                           ))}
                         </div>
                       )}
-                      {log.notes && <p className="text-[10px] text-grappler-500 mt-1 truncate">{log.notes}</p>}
+                      {log.notes && <p className="text-xs text-grappler-500 mt-1 truncate">{log.notes}</p>}
                     </div>
                     <button onClick={() => deleteCycleLog(log.id)} className="shrink-0 text-grappler-600 hover:text-red-400 transition-colors p-0.5" title="Delete entry">
                       <X className="w-3.5 h-3.5" />

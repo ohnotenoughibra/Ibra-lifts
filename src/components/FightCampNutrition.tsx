@@ -306,11 +306,11 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
                     <div className="flex-1 min-w-0">
                       <p className={cn('text-xs font-medium', isCurrent ? colors.text : 'text-grappler-400')}>
                         {item.phase.replace(/_/g, ' ')}
-                        {isCurrent && <span className="ml-2 text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full">Now</span>}
+                        {isCurrent && <span className="ml-2 text-xs bg-white/10 px-1.5 py-0.5 rounded-full">Now</span>}
                       </p>
-                      <p className="text-[10px] text-grappler-500">{item.focus}</p>
+                      <p className="text-xs text-grappler-500">{item.focus}</p>
                     </div>
-                    <span className="text-[10px] text-grappler-500 flex-shrink-0">
+                    <span className="text-xs text-grappler-500 flex-shrink-0">
                       {new Date(item.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                   </button>
@@ -343,31 +343,31 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
                 <div className="mt-3 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                      <p className="text-[10px] text-grappler-500">Est. Fluid Loss</p>
+                      <p className="text-xs text-grappler-500">Est. Fluid Loss</p>
                       <p className="text-sm font-bold text-blue-300">{electrolyteNeeds.fluidLossL}L</p>
-                      <p className="text-[10px] text-grappler-500">per 90min session</p>
+                      <p className="text-xs text-grappler-500">per 90min session</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                      <p className="text-[10px] text-grappler-500">Replace</p>
+                      <p className="text-xs text-grappler-500">Replace</p>
                       <p className="text-sm font-bold text-blue-300">{electrolyteNeeds.replacementFluidL}L</p>
-                      <p className="text-[10px] text-grappler-500">150% replacement</p>
+                      <p className="text-xs text-grappler-500">150% replacement</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-[10px] text-grappler-500">Sodium</p>
+                      <p className="text-xs text-grappler-500">Sodium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.sodiumMg}mg</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-[10px] text-grappler-500">Potassium</p>
+                      <p className="text-xs text-grappler-500">Potassium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.potassiumMg}mg</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-[10px] text-grappler-500">Magnesium</p>
+                      <p className="text-xs text-grappler-500">Magnesium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.magnesiumMg}mg</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-grappler-500">{electrolyteNeeds.timing}</p>
+                  <p className="text-xs text-grappler-500">{electrolyteNeeds.timing}</p>
                 </div>
               </motion.div>
             )}
@@ -417,7 +417,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
               <Shield className="w-5 h-5 text-emerald-400" />
               <h3 className="font-medium text-grappler-200">Supplement Protocol</h3>
               {supplementPauses.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">
                   {supplementPauses.length} to pause
                 </span>
               )}

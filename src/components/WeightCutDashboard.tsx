@@ -274,17 +274,17 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
                       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
                         <Droplets className="w-4 h-4 text-blue-400 mx-auto mb-1" />
                         <div className="text-sm font-bold text-white">{Math.round(waterProtocol.targetMl / 1000)}L</div>
-                        <div className="text-[10px] text-zinc-400">Water</div>
+                        <div className="text-xs text-zinc-400">Water</div>
                       </div>
                       <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2 text-center">
                         <Thermometer className="w-4 h-4 text-orange-400 mx-auto mb-1" />
                         <div className="text-sm font-bold text-white">{sodiumProtocol.targetMg}mg</div>
-                        <div className="text-[10px] text-zinc-400">Sodium</div>
+                        <div className="text-xs text-zinc-400">Sodium</div>
                       </div>
                       <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2 text-center">
                         <Target className="w-4 h-4 text-purple-400 mx-auto mb-1" />
                         <div className="text-sm font-bold text-white">{carbProtocol.targetG}g</div>
-                        <div className="text-[10px] text-zinc-400">Carbs</div>
+                        <div className="text-xs text-zinc-400">Carbs</div>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -339,7 +339,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
 
           {/* Emergency Warning */}
           <div className="text-center p-3 rounded-lg bg-zinc-800/30 border border-zinc-700/30">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+            <p className="text-xs text-zinc-500 uppercase tracking-wider">
               Emergency: if you experience confusion, chest pain, inability to urinate, or fainting — STOP immediately and seek medical attention
             </p>
           </div>

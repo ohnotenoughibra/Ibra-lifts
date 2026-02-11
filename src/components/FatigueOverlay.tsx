@@ -172,9 +172,9 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                     const last = i === fatigueDebt.weeklyFatigueScores.length - 1;
                     return (
                       <div key={ws.week} className="flex-1 flex flex-col items-center gap-1">
-                        <span className="text-[10px] text-grappler-500">{ws.score}</span>
+                        <span className="text-xs text-grappler-500">{ws.score}</span>
                         <div className={`w-full rounded-t-md transition-all ${GAUGE_COLORS[bc].bg} ${last ? 'ring-2 ring-primary-400/50' : ''}`} style={{ height: `${Math.max(pct, 6)}%` }} />
-                        <span className={`text-[10px] ${last ? 'text-primary-400 font-bold' : 'text-grappler-500'}`}>W{ws.week}</span>
+                        <span className={`text-xs ${last ? 'text-primary-400 font-bold' : 'text-grappler-500'}`}>W{ws.week}</span>
                       </div>
                     );
                   })}
@@ -198,7 +198,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
             <motion.div {...fadeUp} transition={{ delay: 0.2 }} className="bg-grappler-800 rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-grappler-200">Deload Recommendation</h2>
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${URGENCY_STYLES[recommendation.urgency]}`}>
+                <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full border ${URGENCY_STYLES[recommendation.urgency]}`}>
                   {recommendation.urgency}
                 </span>
               </div>
@@ -212,7 +212,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-primary-400" />
                   <span className="text-sm font-semibold text-grappler-100">{proto.name}</span>
-                  <span className="text-[10px] text-grappler-500 bg-grappler-700 px-2 py-0.5 rounded-full">{proto.type}</span>
+                  <span className="text-xs text-grappler-500 bg-grappler-700 px-2 py-0.5 rounded-full">{proto.type}</span>
                 </div>
                 <p className="text-xs text-grappler-400">{proto.description}</p>
                 <div className="flex gap-3 mt-2 text-xs">
@@ -223,7 +223,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 <div className="flex gap-2 mt-2">
                   {(['volumeMultiplier', 'intensityMultiplier'] as const).map((k) => (
                     <div key={k} className="flex-1">
-                      <div className="text-[10px] text-grappler-500 mb-1">{k === 'volumeMultiplier' ? 'Volume' : 'Intensity'}</div>
+                      <div className="text-xs text-grappler-500 mb-1">{k === 'volumeMultiplier' ? 'Volume' : 'Intensity'}</div>
                       <div className="h-2 bg-grappler-700 rounded-full overflow-hidden">
                         <div className="h-full bg-primary-500 rounded-full" style={{ width: `${proto[k] * 100}%` }} />
                       </div>
@@ -244,17 +244,17 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 <div className="bg-grappler-900/60 rounded-lg p-3 text-center">
                   <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
                   <div className="text-lg font-bold text-grappler-100">+{prediction.expectedStrengthBounce}%</div>
-                  <div className="text-[10px] text-grappler-500">Strength bounce</div>
+                  <div className="text-xs text-grappler-500">Strength bounce</div>
                 </div>
                 <div className="bg-grappler-900/60 rounded-lg p-3 text-center">
                   <Zap className="w-5 h-5 text-primary-400 mx-auto mb-1" />
                   <div className="text-lg font-bold text-grappler-100">Day {prediction.estimatedPeakDay}</div>
-                  <div className="text-[10px] text-grappler-500">Peak performance</div>
+                  <div className="text-xs text-grappler-500">Peak performance</div>
                 </div>
                 <div className="bg-grappler-900/60 rounded-lg p-3 text-center">
                   <Activity className="w-5 h-5 text-grappler-400 mx-auto mb-1" />
                   <div className="text-lg font-bold text-grappler-100 capitalize">{prediction.confidence}</div>
-                  <div className="text-[10px] text-grappler-500">
+                  <div className="text-xs text-grappler-500">
                     <span className={`inline-block w-2 h-2 rounded-full mr-1 ${CONFIDENCE_STYLES[prediction.confidence].split(' ')[0]}`} />
                     Confidence
                   </div>
@@ -277,7 +277,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
               )}
               {insights.actionItems.length > 0 && (
                 <div className="mt-2 space-y-1.5">
-                  <span className="text-[10px] uppercase font-bold text-grappler-500 tracking-wider">Action items</span>
+                  <span className="text-xs uppercase font-bold text-grappler-500 tracking-wider">Action items</span>
                   {insights.actionItems.map((a, i) => (
                     <label key={i} className="flex items-start gap-2 text-xs text-grappler-300 cursor-pointer">
                       <CheckCircle className="w-3.5 h-3.5 text-primary-500 mt-0.5 shrink-0" />{a}
@@ -301,7 +301,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                         <div key={p.type} className="bg-grappler-900/60 rounded-lg p-4 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-grappler-100">{p.name}</span>
-                            <span className="text-[10px] text-grappler-500 bg-grappler-700 px-2 py-0.5 rounded-full">{p.durationDays}d</span>
+                            <span className="text-xs text-grappler-500 bg-grappler-700 px-2 py-0.5 rounded-full">{p.durationDays}d</span>
                           </div>
                           <p className="text-xs text-grappler-400">{p.description}</p>
                           <div className="flex gap-4 text-xs text-grappler-300">

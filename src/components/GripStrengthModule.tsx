@@ -369,7 +369,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           <h3 className="font-medium text-white">{ex.name}</h3>
                           {level && (
                             <span className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                              "text-xs px-1.5 py-0.5 rounded font-medium",
                               level === 'elite' ? 'bg-purple-500/20 text-purple-300' :
                               level === 'advanced' ? 'bg-blue-500/20 text-blue-300' :
                               level === 'intermediate' ? 'bg-green-500/20 text-green-300' :
@@ -858,7 +858,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           </span>
                           {level && (
                             <span className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                              "text-xs px-1.5 py-0.5 rounded font-medium",
                               level === 'elite' ? 'bg-purple-500/20 text-purple-300' :
                               level === 'advanced' ? 'bg-blue-500/20 text-blue-300' :
                               level === 'intermediate' ? 'bg-green-500/20 text-green-300' :

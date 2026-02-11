@@ -617,7 +617,7 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
                   )}
                 </div>
                 {confirmImport && (
-                  <p className="text-[10px] text-amber-400 mt-2">
+                  <p className="text-xs text-amber-400 mt-2">
                     This will replace all current data. Make sure you have a backup first.
                   </p>
                 )}

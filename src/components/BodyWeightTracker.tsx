@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp, Lightbulb, Heart, Dumbbell, Utensils, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -12,11 +12,30 @@ function calculateBMI(weightKg: number, heightCm: number): number {
   return Math.round((weightKg / (heightM * heightM)) * 10) / 10;
 }
 
-function getBMICategory(bmi: number): { label: string; color: string } {
-  if (bmi < 18.5) return { label: 'Underweight', color: 'text-yellow-400' };
-  if (bmi < 25) return { label: 'Normal', color: 'text-green-400' };
-  if (bmi < 30) return { label: 'Overweight', color: 'text-orange-400' };
-  return { label: 'Obese', color: 'text-red-400' };
+/**
+ * WHO BMI Classification (WHO 2000, updated 2004):
+ *   < 16.0      Severe Underweight
+ *   16.0–16.9   Moderate Underweight
+ *   17.0–18.4   Mild Underweight
+ *   18.5–24.9   Normal weight
+ *   25.0–29.9   Overweight (Pre-obese)
+ *   30.0–34.9   Obese Class I
+ *   35.0–39.9   Obese Class II
+ *   >= 40.0     Obese Class III
+ *
+ * Note: BMI has limitations for athletes — muscular individuals may
+ * register as "overweight" despite low body fat. Always interpret
+ * BMI alongside body fat % and waist measurements.
+ */
+function getBMICategory(bmi: number): { label: string; color: string; range: string; description: string } {
+  if (bmi < 16) return { label: 'Severe Underweight', color: 'text-red-400', range: '< 16', description: 'Significantly below healthy range. Consult a healthcare provider.' };
+  if (bmi < 17) return { label: 'Moderate Underweight', color: 'text-orange-400', range: '16–16.9', description: 'Below healthy range. May indicate insufficient nutrition.' };
+  if (bmi < 18.5) return { label: 'Mild Underweight', color: 'text-yellow-400', range: '17–18.4', description: 'Slightly below normal. Monitor intake and energy levels.' };
+  if (bmi < 25) return { label: 'Normal', color: 'text-green-400', range: '18.5–24.9', description: 'Healthy weight range associated with lowest health risks.' };
+  if (bmi < 30) return { label: 'Overweight', color: 'text-yellow-400', range: '25–29.9', description: 'Above normal range. For athletes, check body fat % — muscle mass can skew BMI.' };
+  if (bmi < 35) return { label: 'Obese Class I', color: 'text-orange-400', range: '30–34.9', description: 'Moderate obesity. Elevated risk for metabolic conditions.' };
+  if (bmi < 40) return { label: 'Obese Class II', color: 'text-red-400', range: '35–39.9', description: 'Severe obesity. Significantly elevated health risks.' };
+  return { label: 'Obese Class III', color: 'text-red-500', range: '≥ 40', description: 'Very severe obesity. Medical consultation strongly recommended.' };
 }
 
 // Navy method body fat estimation
@@ -30,27 +49,273 @@ function estimateBodyFat(waistCm: number, neckCm: number, heightCm: number, sex:
   }
 }
 
-function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string; color: string } {
+/**
+ * Body fat % categories based on ACE (American Council on Exercise) guidelines.
+ * Male:   Essential 2–5%, Athletic 6–13%, Fit 14–17%, Average 18–24%, Above Average 25%+
+ * Female: Essential 10–13%, Athletic 14–20%, Fit 21–24%, Average 25–31%, Above Average 32%+
+ */
+function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string; color: string; range: string } {
   if (sex === 'male') {
-    if (bf < 6) return { label: 'Essential', color: 'text-red-400' };
-    if (bf < 14) return { label: 'Athletic', color: 'text-green-400' };
-    if (bf < 18) return { label: 'Fit', color: 'text-blue-400' };
-    if (bf < 25) return { label: 'Average', color: 'text-yellow-400' };
-    return { label: 'Above Average', color: 'text-orange-400' };
+    if (bf < 6) return { label: 'Essential', color: 'text-red-400', range: '2–5%' };
+    if (bf < 14) return { label: 'Athletic', color: 'text-green-400', range: '6–13%' };
+    if (bf < 18) return { label: 'Fit', color: 'text-blue-400', range: '14–17%' };
+    if (bf < 25) return { label: 'Average', color: 'text-yellow-400', range: '18–24%' };
+    return { label: 'Above Average', color: 'text-orange-400', range: '25%+' };
   } else {
-    if (bf < 14) return { label: 'Essential', color: 'text-red-400' };
-    if (bf < 21) return { label: 'Athletic', color: 'text-green-400' };
-    if (bf < 25) return { label: 'Fit', color: 'text-blue-400' };
-    if (bf < 32) return { label: 'Average', color: 'text-yellow-400' };
-    return { label: 'Above Average', color: 'text-orange-400' };
+    if (bf < 14) return { label: 'Essential', color: 'text-red-400', range: '10–13%' };
+    if (bf < 21) return { label: 'Athletic', color: 'text-green-400', range: '14–20%' };
+    if (bf < 25) return { label: 'Fit', color: 'text-blue-400', range: '21–24%' };
+    if (bf < 32) return { label: 'Average', color: 'text-yellow-400', range: '25–31%' };
+    return { label: 'Above Average', color: 'text-orange-400', range: '32%+' };
   }
 }
 
+/** WHO BMI scale segments for visual bar */
+const BMI_SCALE_SEGMENTS = [
+  { label: 'UW', max: 18.5, color: 'bg-yellow-400' },
+  { label: 'Normal', max: 25, color: 'bg-green-400' },
+  { label: 'OW', max: 30, color: 'bg-yellow-500' },
+  { label: 'OB I', max: 35, color: 'bg-orange-400' },
+  { label: 'OB II', max: 40, color: 'bg-red-400' },
+  { label: 'OB III', max: 50, color: 'bg-red-600' },
+];
+
+/** Visual BMI scale bar component */
+function BMIScaleBar({ bmi }: { bmi: number }) {
+  const minBMI = 14;
+  const maxBMI = 45;
+  const clampedBMI = Math.max(minBMI, Math.min(maxBMI, bmi));
+  const position = ((clampedBMI - minBMI) / (maxBMI - minBMI)) * 100;
+
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="relative h-3 rounded-full overflow-hidden flex">
+        {BMI_SCALE_SEGMENTS.map((seg, i) => {
+          const prevMax = i > 0 ? BMI_SCALE_SEGMENTS[i - 1].max : minBMI;
+          const width = ((Math.min(seg.max, maxBMI) - prevMax) / (maxBMI - minBMI)) * 100;
+          return (
+            <div
+              key={seg.label}
+              className={cn(seg.color, 'h-full opacity-70')}
+              style={{ width: `${width}%` }}
+            />
+          );
+        })}
+        {/* Marker */}
+        <div
+          className="absolute top-0 h-full w-0.5 bg-white shadow-[0_0_4px_rgba(255,255,255,0.8)]"
+          style={{ left: `${position}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-grappler-500">
+        <span>18.5</span>
+        <span>25</span>
+        <span>30</span>
+        <span>35</span>
+        <span>40</span>
+      </div>
+    </div>
+  );
+}
+
+/** Body fat % scale bar component */
+function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
+  const segments = sex === 'male'
+    ? [
+        { label: 'Ess', max: 6, color: 'bg-red-400' },
+        { label: 'Athletic', max: 14, color: 'bg-green-400' },
+        { label: 'Fit', max: 18, color: 'bg-blue-400' },
+        { label: 'Avg', max: 25, color: 'bg-yellow-400' },
+        { label: 'Above', max: 40, color: 'bg-orange-400' },
+      ]
+    : [
+        { label: 'Ess', max: 14, color: 'bg-red-400' },
+        { label: 'Athletic', max: 21, color: 'bg-green-400' },
+        { label: 'Fit', max: 25, color: 'bg-blue-400' },
+        { label: 'Avg', max: 32, color: 'bg-yellow-400' },
+        { label: 'Above', max: 45, color: 'bg-orange-400' },
+      ];
+  const minBF = sex === 'male' ? 2 : 8;
+  const maxBF = sex === 'male' ? 40 : 45;
+  const clampedBF = Math.max(minBF, Math.min(maxBF, bf));
+  const position = ((clampedBF - minBF) / (maxBF - minBF)) * 100;
+
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="relative h-3 rounded-full overflow-hidden flex">
+        {segments.map((seg, i) => {
+          const prevMax = i > 0 ? segments[i - 1].max : minBF;
+          const width = ((Math.min(seg.max, maxBF) - prevMax) / (maxBF - minBF)) * 100;
+          return (
+            <div
+              key={seg.label}
+              className={cn(seg.color, 'h-full opacity-70')}
+              style={{ width: `${width}%` }}
+            />
+          );
+        })}
+        <div
+          className="absolute top-0 h-full w-0.5 bg-white shadow-[0_0_4px_rgba(255,255,255,0.8)]"
+          style={{ left: `${position}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-[9px] text-grappler-500">
+        {sex === 'male' ? (
+          <>
+            <span>6%</span>
+            <span>14%</span>
+            <span>18%</span>
+            <span>25%</span>
+          </>
+        ) : (
+          <>
+            <span>14%</span>
+            <span>21%</span>
+            <span>25%</span>
+            <span>32%</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface HealthSuggestion {
+  icon: 'heart' | 'dumbbell' | 'utensils' | 'alert' | 'info';
+  title: string;
+  text: string;
+  priority: 'info' | 'warning' | 'success';
+}
+
+/**
+ * Generate contextual health suggestions based on BMI, body fat, weight trend, and diet goal.
+ * Suggestions are evidence-informed and intended to guide — not diagnose.
+ */
+function getHealthSuggestions(
+  bmi: number | null,
+  bodyFat: number | null,
+  sex: 'male' | 'female',
+  weightTrend: number | null,
+  dietGoal: string | null,
+): HealthSuggestion[] {
+  const suggestions: HealthSuggestion[] = [];
+
+  if (bmi !== null) {
+    // BMI + body fat combined insight for athletes
+    if (bmi >= 25 && bodyFat !== null) {
+      const athleticBF = sex === 'male' ? 14 : 21;
+      if (bodyFat < athleticBF) {
+        suggestions.push({
+          icon: 'info',
+          title: 'BMI may overestimate for you',
+          text: `Your BMI is ${bmi} (${getBMICategory(bmi).label}) but your body fat is ${bodyFat}% (${getBodyFatCategory(bodyFat, sex).label}). For muscular athletes, body fat % is a more reliable indicator. You're in great shape.`,
+          priority: 'success',
+        });
+      } else if (bmi >= 30 && bodyFat >= (sex === 'male' ? 25 : 32)) {
+        suggestions.push({
+          icon: 'heart',
+          title: 'Health priority: body composition',
+          text: 'Both BMI and body fat indicate elevated health risk. A gradual caloric deficit (0.5–0.7% body weight per week) combined with resistance training preserves muscle while reducing fat.',
+          priority: 'warning',
+        });
+      }
+    }
+
+    // Underweight suggestions
+    if (bmi < 18.5 && !(bodyFat !== null && bodyFat > (sex === 'male' ? 14 : 21))) {
+      suggestions.push({
+        icon: 'utensils',
+        title: 'Consider a caloric surplus',
+        text: 'Underweight BMI can affect energy, recovery, and hormonal health. A moderate surplus of 300–500 calories with adequate protein (1.6–2.0 g/kg) supports healthy weight gain.',
+        priority: 'warning',
+      });
+    }
+
+    // Overweight with no body fat data — prompt for measurements
+    if (bmi >= 25 && bmi < 30 && bodyFat === null) {
+      suggestions.push({
+        icon: 'info',
+        title: 'Log body composition for better insights',
+        text: 'BMI alone doesn\'t distinguish muscle from fat. Add waist and neck measurements to estimate body fat % — this gives a much clearer picture of your health.',
+        priority: 'info',
+      });
+    }
+  }
+
+  // Body fat specific suggestions
+  if (bodyFat !== null) {
+    const essentialThreshold = sex === 'male' ? 6 : 14;
+    if (bodyFat < essentialThreshold) {
+      suggestions.push({
+        icon: 'alert',
+        title: 'Body fat is very low',
+        text: sex === 'male'
+          ? 'Below 6% body fat can impair hormone production, immune function, and recovery. This is not sustainable long-term. Consider transitioning to maintenance.'
+          : 'Below 14% body fat in women can disrupt menstrual function, bone density, and thyroid health (RED-S). Prioritize transitioning to a higher caloric intake.',
+        priority: 'warning',
+      });
+    }
+  }
+
+  // Weight trend insights
+  if (weightTrend !== null && Math.abs(weightTrend) > 0.1) {
+    if (dietGoal === 'cut' && weightTrend > 0.1) {
+      suggestions.push({
+        icon: 'utensils',
+        title: 'Weight trending up during cut',
+        text: 'Your weight is rising despite a cut goal. Check that you\'re logging all meals accurately — liquids and sauces add up. If adherence is >90%, your calories may need a small reduction.',
+        priority: 'warning',
+      });
+    } else if (dietGoal === 'bulk' && weightTrend < -0.1) {
+      suggestions.push({
+        icon: 'utensils',
+        title: 'Weight trending down during bulk',
+        text: 'You\'re losing weight while trying to bulk. Increase daily calories by 200–300, focusing on carbs around training. Aim for 0.25–0.5% body weight gain per week.',
+        priority: 'warning',
+      });
+    } else if (dietGoal === 'cut' && weightTrend < -1.0) {
+      suggestions.push({
+        icon: 'dumbbell',
+        title: 'Losing weight quickly',
+        text: 'Losing more than 1% body weight per week risks muscle loss. Slow your deficit slightly and keep protein high (2.0+ g/kg) to preserve lean mass during your cut.',
+        priority: 'warning',
+      });
+    }
+  }
+
+  // General training suggestion when data is limited
+  if (suggestions.length === 0 && bmi !== null && bmi >= 18.5 && bmi < 25) {
+    suggestions.push({
+      icon: 'dumbbell',
+      title: 'On track',
+      text: 'Your weight is in a healthy range. Focus on progressive overload in training and adequate protein intake to continue improving body composition.',
+      priority: 'success',
+    });
+  }
+
+  return suggestions.slice(0, 3); // Max 3 suggestions
+}
+
+const SUGGESTION_ICONS = {
+  heart: Heart,
+  dumbbell: Dumbbell,
+  utensils: Utensils,
+  alert: AlertTriangle,
+  info: Info,
+};
+
+const SUGGESTION_STYLES = {
+  info: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', iconColor: 'text-blue-400' },
+  warning: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', iconColor: 'text-amber-400' },
+  success: { border: 'border-green-500/20', bg: 'bg-green-500/5', iconColor: 'text-green-400' },
+};
+
 export default function BodyWeightTracker() {
-  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user } = useAppStore();
+  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase } = useAppStore();
   const bodyComposition = rawBodyComposition || [];
   const [showAddForm, setShowAddForm] = useState(false);
   const [showComposition, setShowComposition] = useState(false);
+  const [showBenchmarks, setShowBenchmarks] = useState(false);
   // Form fields
   const [newWeight, setNewWeight] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -91,6 +356,37 @@ export default function BodyWeightTracker() {
   }, [latestWeight, heightCm, weightUnit]);
 
   const bmiCategory = bmi ? getBMICategory(bmi) : null;
+
+  // Weekly weight trend (simple: difference over last 7+ days)
+  const weeklyWeightTrend = useMemo(() => {
+    if (sortedLog.length < 2) return null;
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const recentEntries = sortedLog.filter(e => new Date(e.date).getTime() > weekAgo);
+    if (recentEntries.length < 1) return null;
+    const oldest = recentEntries[0];
+    const newest = recentEntries[recentEntries.length - 1];
+    if (oldest.id === newest.id) {
+      // Only one entry this week; compare to entry before it
+      const idx = sortedLog.indexOf(oldest);
+      if (idx <= 0) return null;
+      return newest.weight - sortedLog[idx - 1].weight;
+    }
+    return newest.weight - oldest.weight;
+  }, [sortedLog]);
+
+  // Health suggestions
+  const healthSuggestions = useMemo(() => {
+    const effectiveBMI = bmi || (latestWeight && heightCm
+      ? calculateBMI(weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight, heightCm)
+      : null);
+    const sortedComp = [...bodyComposition].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    const bf = sortedComp.length > 0 ? sortedComp[sortedComp.length - 1]?.bodyFatPercent ?? null : null;
+    const dietGoal = activeDietPhase?.isActive ? activeDietPhase.goal : null;
+    return getHealthSuggestions(effectiveBMI, bf, sex, weeklyWeightTrend, dietGoal);
+  }, [bmi, latestWeight, heightCm, weightUnit, bodyComposition, sex, weeklyWeightTrend, activeDietPhase]);
 
   // Latest saved body composition entry
   const sortedComposition = [...bodyComposition].sort(
@@ -236,14 +532,22 @@ export default function BodyWeightTracker() {
             {/* BMI display */}
             <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
               <p className="text-xs text-grappler-500 mb-0.5">BMI</p>
-              {(latestSavedBMI || bmi) ? (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-grappler-50">{latestSavedBMI || bmi}</span>
-                  <span className={cn('text-xs font-medium', getBMICategory(latestSavedBMI || bmi!).color)}>
-                    {getBMICategory(latestSavedBMI || bmi!).label}
-                  </span>
-                </div>
-              ) : (
+              {(latestSavedBMI || bmi) ? (() => {
+                const displayBMI = latestSavedBMI || bmi!;
+                const cat = getBMICategory(displayBMI);
+                return (
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-lg font-bold text-grappler-50">{displayBMI}</span>
+                      <span className={cn('text-xs font-medium', cat.color)}>
+                        {cat.label}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {cat.range}</p>
+                    <BMIScaleBar bmi={displayBMI} />
+                  </div>
+                );
+              })() : (
                 <p className="text-xs text-grappler-500">Set height in settings</p>
               )}
             </div>
@@ -251,18 +555,32 @@ export default function BodyWeightTracker() {
             {/* Body Fat display */}
             <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
               <p className="text-xs text-grappler-500 mb-0.5">Body Fat</p>
-              {latestBF != null ? (
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-grappler-50">{latestBF}%</span>
-                  <span className={cn('text-xs font-medium', getBodyFatCategory(latestBF, sex).color)}>
-                    {getBodyFatCategory(latestBF, sex).label}
-                  </span>
-                </div>
-              ) : (
+              {latestBF != null ? (() => {
+                const bfCat = getBodyFatCategory(latestBF, sex);
+                return (
+                  <div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-lg font-bold text-grappler-50">{latestBF}%</span>
+                      <span className={cn('text-xs font-medium', bfCat.color)}>
+                        {bfCat.label}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
+                    <BodyFatScaleBar bf={latestBF} sex={sex} />
+                  </div>
+                );
+              })() : (
                 <p className="text-xs text-grappler-500">Log measurements below</p>
               )}
             </div>
           </div>
+
+          {/* BMI description */}
+          {(latestSavedBMI || bmi) && (
+            <p className="text-[11px] text-grappler-400 leading-relaxed">
+              {getBMICategory(latestSavedBMI || bmi!).description}
+            </p>
+          )}
 
           {/* Latest measurements */}
           {latestComp && (latestComp.waist || latestComp.neck) && (
@@ -275,6 +593,163 @@ export default function BodyWeightTracker() {
               </span>
             </div>
           )}
+
+          {/* Benchmarks toggle */}
+          <button
+            type="button"
+            onClick={() => setShowBenchmarks(!showBenchmarks)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-grappler-700/30 hover:bg-grappler-700/50 transition-colors"
+          >
+            <span className="text-xs font-medium text-grappler-300 flex items-center gap-1.5">
+              <Info className="w-3 h-3" />
+              Classification Benchmarks
+            </span>
+            {showBenchmarks ? (
+              <ChevronUp className="w-4 h-4 text-grappler-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-grappler-400" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showBenchmarks && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-3 pt-1">
+                  {/* BMI Benchmarks */}
+                  <div>
+                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">BMI Classification (WHO)</p>
+                    <div className="space-y-1">
+                      {[
+                        { range: '< 16', label: 'Severe Underweight', color: 'bg-red-400' },
+                        { range: '16–16.9', label: 'Moderate Underweight', color: 'bg-orange-400' },
+                        { range: '17–18.4', label: 'Mild Underweight', color: 'bg-yellow-400' },
+                        { range: '18.5–24.9', label: 'Normal', color: 'bg-green-400' },
+                        { range: '25–29.9', label: 'Overweight', color: 'bg-yellow-500' },
+                        { range: '30–34.9', label: 'Obese Class I', color: 'bg-orange-400' },
+                        { range: '35–39.9', label: 'Obese Class II', color: 'bg-red-400' },
+                        { range: '≥ 40', label: 'Obese Class III', color: 'bg-red-600' },
+                      ].map(row => {
+                        const isActive = bmiCategory && row.label === bmiCategory.label;
+                        return (
+                          <div
+                            key={row.label}
+                            className={cn(
+                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
+                            )}
+                          >
+                            <div className={cn('w-2 h-2 rounded-full flex-shrink-0', row.color)} />
+                            <span className={cn('font-mono w-16 flex-shrink-0', isActive ? 'text-grappler-100 font-bold' : 'text-grappler-400')}>
+                              {row.range}
+                            </span>
+                            <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
+                              {row.label}
+                            </span>
+                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                      BMI can overestimate body fat in muscular athletes. Use alongside body fat % for a complete picture.
+                    </p>
+                  </div>
+
+                  {/* Body Fat Benchmarks */}
+                  <div className="border-t border-grappler-700/50 pt-2">
+                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">
+                      Body Fat % Classification (ACE) — {sex === 'male' ? 'Male' : 'Female'}
+                    </p>
+                    <div className="space-y-1">
+                      {(sex === 'male'
+                        ? [
+                            { range: '2–5%', label: 'Essential', color: 'bg-red-400' },
+                            { range: '6–13%', label: 'Athletic', color: 'bg-green-400' },
+                            { range: '14–17%', label: 'Fit', color: 'bg-blue-400' },
+                            { range: '18–24%', label: 'Average', color: 'bg-yellow-400' },
+                            { range: '25%+', label: 'Above Average', color: 'bg-orange-400' },
+                          ]
+                        : [
+                            { range: '10–13%', label: 'Essential', color: 'bg-red-400' },
+                            { range: '14–20%', label: 'Athletic', color: 'bg-green-400' },
+                            { range: '21–24%', label: 'Fit', color: 'bg-blue-400' },
+                            { range: '25–31%', label: 'Average', color: 'bg-yellow-400' },
+                            { range: '32%+', label: 'Above Average', color: 'bg-orange-400' },
+                          ]
+                      ).map(row => {
+                        const isActive = latestBF != null && row.label === getBodyFatCategory(latestBF, sex).label;
+                        return (
+                          <div
+                            key={row.label}
+                            className={cn(
+                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
+                            )}
+                          >
+                            <div className={cn('w-2 h-2 rounded-full flex-shrink-0', row.color)} />
+                            <span className={cn('font-mono w-16 flex-shrink-0', isActive ? 'text-grappler-100 font-bold' : 'text-grappler-400')}>
+                              {row.range}
+                            </span>
+                            <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
+                              {row.label}
+                            </span>
+                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                      {sex === 'male'
+                        ? 'Essential fat is the minimum needed for physiological function. Sustained levels below 6% are not recommended.'
+                        : 'Women need higher essential fat for hormonal health. Below 14% can disrupt menstrual function and bone density.'}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Health Suggestions */}
+      {healthSuggestions.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-semibold text-grappler-300 uppercase tracking-wide flex items-center gap-1.5">
+            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+            Suggestions
+          </h4>
+          {healthSuggestions.map((suggestion, i) => {
+            const IconComp = SUGGESTION_ICONS[suggestion.icon];
+            const style = SUGGESTION_STYLES[suggestion.priority];
+            return (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className={cn(
+                  'rounded-xl border p-3',
+                  style.border,
+                  style.bg,
+                )}
+              >
+                <div className="flex gap-2.5">
+                  <div className={cn('mt-0.5 flex-shrink-0', style.iconColor)}>
+                    <IconComp className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-grappler-100">{suggestion.title}</p>
+                    <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{suggestion.text}</p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

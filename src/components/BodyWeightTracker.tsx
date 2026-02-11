@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp, Lightbulb, Heart, Dumbbell, Utensils, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calculateAdherence, analyzeWeightTrend } from '@/lib/diet-coach';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 function calculateBMI(weightKg: number, heightCm: number): number {
@@ -187,8 +188,18 @@ interface HealthSuggestion {
   priority: 'info' | 'warning' | 'success';
 }
 
+interface DietCoachContext {
+  dietGoal: string | null;           // 'cut' | 'bulk' | 'maintain' | null
+  adherencePercent: number | null;   // 0–100 from calculateAdherence
+  weeksInPhase: number | null;       // activeDietPhase.weeksCompleted
+  weeksAtPlateau: number;            // from analyzeWeightTrend
+  macroCalories: number | null;      // current macro target calories
+  isFemale: boolean;
+}
+
 /**
- * Generate contextual health suggestions based on BMI, body fat, weight trend, and diet goal.
+ * Generate contextual health suggestions based on BMI, body fat, weight trend,
+ * AND diet coach intelligence (adherence, phase duration, plateau, macros).
  * Suggestions are evidence-informed and intended to guide — not diagnose.
  */
 function getHealthSuggestions(
@@ -196,12 +207,84 @@ function getHealthSuggestions(
   bodyFat: number | null,
   sex: 'male' | 'female',
   weightTrend: number | null,
-  dietGoal: string | null,
+  dietCoach: DietCoachContext,
 ): HealthSuggestion[] {
   const suggestions: HealthSuggestion[] = [];
+  const { dietGoal, adherencePercent, weeksInPhase, weeksAtPlateau, macroCalories, isFemale } = dietCoach;
 
+  // ── Diet Coach: Adherence warnings (highest priority — unreliable data affects everything) ──
+  if (dietGoal && adherencePercent !== null && adherencePercent < 50) {
+    suggestions.push({
+      icon: 'utensils',
+      title: 'Low meal logging',
+      text: `Only ${adherencePercent}% of days logged this week. Your suggestions and macro adjustments rely on consistent data — aim to log at least 2 meals per day for accurate coaching.`,
+      priority: 'warning',
+    });
+  }
+
+  // ── Diet Coach: Diet break timing (sex-aware — women every 4 weeks, men every 6) ──
+  if (dietGoal === 'cut' && weeksInPhase !== null) {
+    const breakInterval = isFemale ? 4 : 6;
+    const maxCutWeeks = isFemale ? 8 : 12;
+    if (weeksInPhase >= maxCutWeeks) {
+      suggestions.push({
+        icon: 'alert',
+        title: 'Extended cut — time to transition',
+        text: isFemale
+          ? `You've been cutting for ${weeksInPhase} weeks. Prolonged deficits increase RED-S risk in women. Transition to maintenance for 2–3 weeks to normalize hormones before resuming.`
+          : `You've been cutting for ${weeksInPhase} weeks. Transition to maintenance for 2–3 weeks to restore metabolic rate and training performance.`,
+        priority: 'warning',
+      });
+    } else if (weeksInPhase >= breakInterval && weeksInPhase % breakInterval === 0) {
+      suggestions.push({
+        icon: 'heart',
+        title: 'Diet break recommended',
+        text: isFemale
+          ? `${weeksInPhase} weeks in your cut. Women benefit from a 1-week break every ${breakInterval} weeks — it protects hormonal function, thyroid, and training performance (Byrne et al. 2017).`
+          : `${weeksInPhase} weeks in your cut. A 1-week diet break at maintenance supports hormones, recovery, and long-term adherence (MATADOR study).`,
+        priority: 'info',
+      });
+    }
+  }
+
+  // ── Diet Coach: Plateau detection ──
+  if (dietGoal && weeksAtPlateau >= 2) {
+    if (dietGoal === 'cut') {
+      suggestions.push({
+        icon: 'info',
+        title: `Weight stalled for ${weeksAtPlateau} weeks`,
+        text: adherencePercent !== null && adherencePercent >= 70
+          ? 'Adherence looks solid but weight isn\'t moving. Your weekly check-in will suggest a small calorie reduction (~7%). Alternatively, add 1–2 low-intensity cardio sessions.'
+          : 'Weight has stalled, but your logging adherence is low. Before adjusting calories, try hitting your current targets consistently for a full week.',
+        priority: 'warning',
+      });
+    } else if (dietGoal === 'bulk') {
+      suggestions.push({
+        icon: 'info',
+        title: `Not gaining for ${weeksAtPlateau} weeks`,
+        text: 'Your weight trend has been flat despite a bulk goal. Your weekly check-in will suggest adding ~5% more calories from carbs. Make sure you\'re eating on rest days too.',
+        priority: 'info',
+      });
+    }
+  }
+
+  // ── Diet Coach: Calorie floor warning ──
+  if (dietGoal === 'cut' && macroCalories !== null) {
+    const calorieFloor = isFemale ? 1200 : 1400;
+    if (macroCalories <= calorieFloor) {
+      suggestions.push({
+        icon: 'alert',
+        title: 'Calories are very low',
+        text: isFemale
+          ? `At ${macroCalories} kcal you're at the minimum safe threshold. Below ~30 kcal/kg FFM risks hormonal disruption (RED-S). Take a 1–2 week diet break at maintenance.`
+          : `At ${macroCalories} kcal your deficit is aggressive. Consider a 1–2 week diet break at maintenance to support recovery and metabolic health.`,
+        priority: 'warning',
+      });
+    }
+  }
+
+  // ── BMI + Body Fat composition insights ──
   if (bmi !== null) {
-    // BMI + body fat combined insight for athletes
     if (bmi >= 25 && bodyFat !== null) {
       const athleticBF = sex === 'male' ? 14 : 21;
       if (bodyFat < athleticBF) {
@@ -215,23 +298,27 @@ function getHealthSuggestions(
         suggestions.push({
           icon: 'heart',
           title: 'Health priority: body composition',
-          text: 'Both BMI and body fat indicate elevated health risk. A gradual caloric deficit (0.5–0.7% body weight per week) combined with resistance training preserves muscle while reducing fat.',
+          text: dietGoal === 'cut'
+            ? 'Both BMI and body fat are elevated — your cut is the right move. Stay consistent with your macros and the diet coach will guide weekly adjustments.'
+            : 'Both BMI and body fat indicate elevated health risk. Consider starting a cut phase in Diet Coach — a gradual deficit (0.5–0.7% BW/week) combined with resistance training preserves muscle.',
           priority: 'warning',
         });
       }
     }
 
-    // Underweight suggestions
+    // Underweight
     if (bmi < 18.5 && !(bodyFat !== null && bodyFat > (sex === 'male' ? 14 : 21))) {
       suggestions.push({
         icon: 'utensils',
         title: 'Consider a caloric surplus',
-        text: 'Underweight BMI can affect energy, recovery, and hormonal health. A moderate surplus of 300–500 calories with adequate protein (1.6–2.0 g/kg) supports healthy weight gain.',
+        text: dietGoal === 'bulk'
+          ? 'Underweight BMI — your bulk phase is the right call. Focus on hitting your protein target and eating consistently on rest days too.'
+          : 'Underweight BMI can affect energy, recovery, and hormonal health. Set up a bulk phase in Diet Coach for personalized macro targets (+300–500 cal surplus).',
         priority: 'warning',
       });
     }
 
-    // Overweight with no body fat data — prompt for measurements
+    // Overweight with no body fat data
     if (bmi >= 25 && bmi < 30 && bodyFat === null) {
       suggestions.push({
         icon: 'info',
@@ -242,7 +329,7 @@ function getHealthSuggestions(
     }
   }
 
-  // Body fat specific suggestions
+  // ── Body fat specific ──
   if (bodyFat !== null) {
     const essentialThreshold = sex === 'male' ? 6 : 14;
     if (bodyFat < essentialThreshold) {
@@ -257,20 +344,22 @@ function getHealthSuggestions(
     }
   }
 
-  // Weight trend insights
+  // ── Weight trend vs diet goal mismatches ──
   if (weightTrend !== null && Math.abs(weightTrend) > 0.1) {
     if (dietGoal === 'cut' && weightTrend > 0.1) {
       suggestions.push({
         icon: 'utensils',
         title: 'Weight trending up during cut',
-        text: 'Your weight is rising despite a cut goal. Check that you\'re logging all meals accurately — liquids and sauces add up. If adherence is >90%, your calories may need a small reduction.',
+        text: adherencePercent !== null && adherencePercent < 70
+          ? 'Your weight is rising during a cut, but logging is inconsistent. Before adjusting calories, focus on tracking all meals for a full week — the data might not reflect reality.'
+          : 'Your weight is rising despite a cut goal. Check that you\'re logging all meals accurately — liquids and sauces add up. Your weekly check-in will suggest a calorie adjustment.',
         priority: 'warning',
       });
     } else if (dietGoal === 'bulk' && weightTrend < -0.1) {
       suggestions.push({
         icon: 'utensils',
         title: 'Weight trending down during bulk',
-        text: 'You\'re losing weight while trying to bulk. Increase daily calories by 200–300, focusing on carbs around training. Aim for 0.25–0.5% body weight gain per week.',
+        text: 'You\'re losing weight while trying to bulk. Increase daily calories by 200–300, focusing on carbs around training. Your weekly check-in will auto-adjust macros.',
         priority: 'warning',
       });
     } else if (dietGoal === 'cut' && weightTrend < -1.0) {
@@ -283,7 +372,33 @@ function getHealthSuggestions(
     }
   }
 
-  // General training suggestion when data is limited
+  // ── No diet phase active — nudge to start one ──
+  if (!dietGoal && bmi !== null && (bmi < 18.5 || bmi >= 25) && bodyFat !== null) {
+    const needsCut = bmi >= 25 && bodyFat >= (sex === 'male' ? 18 : 25);
+    const needsBulk = bmi < 18.5;
+    if (needsCut || needsBulk) {
+      suggestions.push({
+        icon: 'utensils',
+        title: 'Set up Diet Coach',
+        text: needsCut
+          ? 'Based on your body composition, a structured cut could help. The Diet Coach calculates macros, tracks adherence, and adjusts weekly — tap Diet Coach on the home tab to start.'
+          : 'A structured bulk with tracked macros will help you gain weight safely. The Diet Coach provides personalized targets — set it up on the home tab.',
+        priority: 'info',
+      });
+    }
+  }
+
+  // ── Diet Coach: Good adherence + on track ──
+  if (dietGoal && adherencePercent !== null && adherencePercent >= 80 && weeksAtPlateau < 2 && suggestions.length === 0) {
+    suggestions.push({
+      icon: 'dumbbell',
+      title: 'Dialed in',
+      text: `${adherencePercent}% adherence${weeksInPhase !== null ? `, week ${weeksInPhase + 1} of your ${dietGoal}` : ''}. Your logging is consistent and weight is trending as expected. Keep it up.`,
+      priority: 'success',
+    });
+  }
+
+  // ── Fallback: healthy range, no issues ──
   if (suggestions.length === 0 && bmi !== null && bmi >= 18.5 && bmi < 25) {
     suggestions.push({
       icon: 'dumbbell',
@@ -311,7 +426,7 @@ const SUGGESTION_STYLES = {
 };
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase } = useAppStore();
+  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals, macroTargets } = useAppStore();
   const bodyComposition = rawBodyComposition || [];
   const [showAddForm, setShowAddForm] = useState(false);
   const [showComposition, setShowComposition] = useState(false);
@@ -375,7 +490,14 @@ export default function BodyWeightTracker() {
     return newest.weight - oldest.weight;
   }, [sortedLog]);
 
-  // Health suggestions
+  // Diet coach data for suggestions
+  const adherencePercent = useMemo(() => calculateAdherence(meals), [meals]);
+  const smoothedTrend = useMemo(
+    () => analyzeWeightTrend(bodyWeightLog, weightUnit === 'lbs' ? 'lbs' : 'kg'),
+    [bodyWeightLog, weightUnit]
+  );
+
+  // Health suggestions — now powered by diet coach intelligence
   const healthSuggestions = useMemo(() => {
     const effectiveBMI = bmi || (latestWeight && heightCm
       ? calculateBMI(weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight, heightCm)
@@ -384,9 +506,16 @@ export default function BodyWeightTracker() {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     const bf = sortedComp.length > 0 ? sortedComp[sortedComp.length - 1]?.bodyFatPercent ?? null : null;
-    const dietGoal = activeDietPhase?.isActive ? activeDietPhase.goal : null;
-    return getHealthSuggestions(effectiveBMI, bf, sex, weeklyWeightTrend, dietGoal);
-  }, [bmi, latestWeight, heightCm, weightUnit, bodyComposition, sex, weeklyWeightTrend, activeDietPhase]);
+    const dietCoach: DietCoachContext = {
+      dietGoal: activeDietPhase?.isActive ? activeDietPhase.goal : null,
+      adherencePercent: activeDietPhase?.isActive ? adherencePercent : null,
+      weeksInPhase: activeDietPhase?.isActive ? activeDietPhase.weeksCompleted : null,
+      weeksAtPlateau: smoothedTrend.weeksAtPlateau,
+      macroCalories: activeDietPhase?.isActive ? macroTargets.calories : null,
+      isFemale: sex === 'female',
+    };
+    return getHealthSuggestions(effectiveBMI, bf, sex, weeklyWeightTrend, dietCoach);
+  }, [bmi, latestWeight, heightCm, weightUnit, bodyComposition, sex, weeklyWeightTrend, activeDietPhase, adherencePercent, smoothedTrend, macroTargets]);
 
   // Latest saved body composition entry
   const sortedComposition = [...bodyComposition].sort(

@@ -299,13 +299,13 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     interval={range === '30d' ? 4 : range === '14d' ? 1 : 0}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     width={35}
@@ -316,7 +316,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                     stroke="#f59e0b"
                     strokeDasharray="4 4"
                     strokeWidth={1.5}
-                    label={{ value: 'Target', position: 'right', fontSize: 9, fill: '#f59e0b' }}
+                    label={{ value: 'Target', position: 'right', fontSize: 12, fill: '#f59e0b' }}
                   />
                   <Bar
                     dataKey="calories"
@@ -333,13 +333,13 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     interval={range === '30d' ? 4 : range === '14d' ? 1 : 0}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     width={30}
@@ -389,12 +389,12 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
                       axisLine={false}
                       tickLine={false}
                       width={30}

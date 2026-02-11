@@ -277,12 +277,12 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                         dataKey="weight"
                         name="Weight"
                         stroke="#64748b"
-                        fontSize={11}
+                        fontSize={12}
                         label={{
                           value: 'Weight',
                           position: 'insideBottom',
                           offset: -5,
-                          style: { fill: '#64748b', fontSize: 10 },
+                          style: { fill: '#64748b', fontSize: 12 },
                         }}
                       />
                       <YAxis
@@ -290,13 +290,13 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                         dataKey="avgRPE"
                         name="RPE"
                         stroke="#64748b"
-                        fontSize={11}
+                        fontSize={12}
                         domain={[5, 10]}
                         label={{
                           value: 'RPE',
                           angle: -90,
                           position: 'insideLeft',
-                          style: { fill: '#64748b', fontSize: 10 },
+                          style: { fill: '#64748b', fontSize: 12 },
                         }}
                       />
                       <Tooltip
@@ -334,8 +334,8 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={failureRepData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="rep" stroke="#64748b" fontSize={11} />
-                      <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
+                      <XAxis dataKey="rep" stroke="#64748b" fontSize={12} />
+                      <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#1e293b',
@@ -427,30 +427,30 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={strengthTrends}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="week" stroke="#64748b" fontSize={11} />
+                      <XAxis dataKey="week" stroke="#64748b" fontSize={12} />
                       <YAxis
                         yAxisId="rpe"
                         orientation="left"
                         stroke="#ef4444"
-                        fontSize={10}
+                        fontSize={12}
                         domain={[5, 10]}
                         label={{
                           value: 'RPE',
                           angle: -90,
                           position: 'insideLeft',
-                          style: { fill: '#ef4444', fontSize: 10 },
+                          style: { fill: '#ef4444', fontSize: 12 },
                         }}
                       />
                       <YAxis
                         yAxisId="volume"
                         orientation="right"
                         stroke="#0ea5e9"
-                        fontSize={10}
+                        fontSize={12}
                         label={{
                           value: 'Volume',
                           angle: 90,
                           position: 'insideRight',
-                          style: { fill: '#0ea5e9', fontSize: 10 },
+                          style: { fill: '#0ea5e9', fontSize: 12 },
                         }}
                       />
                       <Tooltip

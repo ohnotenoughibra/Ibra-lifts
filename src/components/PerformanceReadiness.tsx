@@ -76,7 +76,7 @@ export default function PerformanceReadiness() {
     const todaySleepLog = quickLogs.find(
       l => l.type === 'sleep' && new Date(l.timestamp).toISOString().split('T')[0] === today
     );
-    const sleepHours = latestWhoopData?.sleepHours || (todaySleepLog?.value ? todaySleepLog.value * 2 : undefined);
+    const sleepHours = latestWhoopData?.sleepHours || (todaySleepLog?.value ? Number(todaySleepLog.value) * 2 : undefined);
 
     return calculateReadiness({
       calorieAdherence,

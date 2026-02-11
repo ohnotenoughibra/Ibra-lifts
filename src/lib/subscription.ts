@@ -36,6 +36,14 @@ export const FEATURE_GATES: Record<string, SubscriptionTier> = {
   'mobility-routines': 'pro',
   'strength-analysis': 'pro',
   'block-suggestions': 'pro',
+
+  // ── Elite tier features (combat nutrition) ──
+  'weight-cut-protocol': 'pro',
+  'fight-camp-nutrition': 'pro',
+  'supplement-protocol': 'pro',
+  'performance-readiness': 'pro',
+  'energy-availability': 'pro',
+  'intra-training-fuel': 'pro',
 };
 
 // ── Feature Info ───────────────────────────────────────────────────────────
@@ -60,6 +68,12 @@ export const FEATURE_INFO: Record<string, { name: string; description: string }>
   'mobility-routines': { name: 'Mobility Routines', description: 'Guided mobility and flexibility work' },
   'strength-analysis': { name: 'Strength Analysis', description: 'Sticking point analysis and exercise profiling' },
   'block-suggestions': { name: 'Block Suggestions', description: 'AI-powered mesocycle focus recommendations' },
+  'weight-cut-protocol': { name: 'Weight Cut Protocol', description: 'Safe, phased weight cut planning for combat athletes' },
+  'fight-camp-nutrition': { name: 'Fight Camp Nutrition', description: 'Periodized nutrition across fight camp phases' },
+  'supplement-protocol': { name: 'Supplement Protocol', description: 'Evidence-based supplement recommendations with pre-comp pauses' },
+  'performance-readiness': { name: 'Performance Readiness', description: 'Composite nutrition readiness scoring' },
+  'energy-availability': { name: 'Energy Availability', description: 'EA tracking with RED-S warning system' },
+  'intra-training-fuel': { name: 'Intra-Training Fuel', description: 'Real-time fueling recommendations during training' },
 };
 
 // ── Owner Bypass ──────────────────────────────────────────────────────────

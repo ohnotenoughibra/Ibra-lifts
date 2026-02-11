@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp, Lightbulb, Heart, Dumbbell, Utensils, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { calculateAdherence, analyzeWeightTrend } from '@/lib/diet-coach';
+import { calculateAdherence, analyzeWeightTrend, calculateEnergyAvailability, estimateDailyExerciseCost } from '@/lib/diet-coach';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 function calculateBMI(weightKg: number, heightCm: number): number {
@@ -704,12 +704,43 @@ export default function BodyWeightTracker() {
             </div>
           </div>
 
-          {/* BMI description */}
+          {/* BMI description (de-emphasized for athletes) */}
           {(latestSavedBMI || bmi) && (
-            <p className="text-[11px] text-grappler-400 leading-relaxed">
+            <p className="text-[10px] text-grappler-500 leading-relaxed">
               {getBMICategory(latestSavedBMI || bmi!).description}
+              {' '}BMI is less reliable for muscular athletes — body fat % is more meaningful.
             </p>
           )}
+
+          {/* Energy Availability (combat athletes / anyone on a cut) */}
+          {latestWeight && latestBF != null && (() => {
+            const wKg = latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight;
+            const leanMass = wKg * (1 - latestBF / 100);
+            const ea = calculateEnergyAvailability(
+              macroTargets?.calories || 0,
+              0, // simplified — no exercise cost here
+              leanMass,
+            );
+            const color = ea.status === 'critical' ? 'text-red-400 border-red-500/30 bg-red-500/10'
+              : ea.status === 'low' ? 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+              : ea.status === 'caution' ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
+              : 'text-green-400 border-green-500/30 bg-green-500/10';
+            return (
+              <div className={cn('p-2.5 rounded-lg border', color)}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">Energy Availability</span>
+                  <span className="text-sm font-bold">{Math.round(ea.ea)} kcal/kg FFM</span>
+                </div>
+                <p className="text-[10px] mt-0.5 opacity-80">{ea.message}</p>
+                {ea.status === 'critical' && (
+                  <p className="text-[10px] mt-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    RED-S risk: Do not restrict further
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Latest measurements */}
           {latestComp && (latestComp.waist || latestComp.neck) && (

@@ -56,7 +56,10 @@ import {
   DailyLoginBonus,
   PlannedMesocycle,
   WeightCutPlan,
+  WeightCutDailyLog,
   CombatAthleteNutritionProfile,
+  FightCampNutritionPlan,
+  SupplementRecommendation,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
@@ -165,6 +168,12 @@ interface AppState {
 
   // Combat Athlete Nutrition Profile (extended profile for nutrition engine)
   combatNutritionProfile: CombatAthleteNutritionProfile | null;
+
+  // Fight Camp Plans (periodized nutrition for competition prep)
+  fightCampPlans: FightCampNutritionPlan[];
+
+  // Active supplements (user's current supplement protocol)
+  activeSupplements: SupplementRecommendation[];
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
@@ -352,6 +361,26 @@ interface AppState {
   addCompetition: (event: Omit<CompetitionEvent, 'id'>) => void;
   deleteCompetition: (id: string) => void;
 
+  // Weight Cut Plan actions
+  createWeightCutPlan: (plan: Omit<WeightCutPlan, 'id' | 'createdAt'>) => string;
+  updateWeightCutPlan: (id: string, updates: Partial<WeightCutPlan>) => void;
+  deleteWeightCutPlan: (id: string) => void;
+  addWeightCutDailyLog: (planId: string, log: WeightCutDailyLog) => void;
+
+  // Combat Nutrition Profile actions
+  setCombatNutritionProfile: (profile: CombatAthleteNutritionProfile) => void;
+  updateCombatNutritionProfile: (updates: Partial<CombatAthleteNutritionProfile>) => void;
+
+  // Fight Camp Plan actions
+  createFightCampPlan: (plan: Omit<FightCampNutritionPlan, 'id' | 'createdAt'>) => string;
+  updateFightCampPlan: (id: string, updates: Partial<FightCampNutritionPlan>) => void;
+  deleteFightCampPlan: (id: string) => void;
+
+  // Supplement actions
+  setActiveSupplements: (supplements: SupplementRecommendation[]) => void;
+  addActiveSupplement: (supplement: SupplementRecommendation) => void;
+  removeActiveSupplement: (supplementId: string) => void;
+
   // Whoop actions
   setLatestWhoopData: (data: WearableData | null) => void;
   setWearableHistory: (data: WearableData[]) => void;
@@ -475,6 +504,8 @@ export const useAppStore = create<AppState>()(
       competitions: [],
       weightCutPlans: [],
       combatNutritionProfile: null,
+      fightCampPlans: [],
+      activeSupplements: [],
       latestWhoopData: null,
       wearableHistory: [],
       whoopWorkouts: [],
@@ -649,6 +680,96 @@ export const useAppStore = create<AppState>()(
       deleteCompetition: (id) => {
         const { competitions } = get();
         set({ competitions: competitions.filter(c => c.id !== id) });
+      },
+
+      // ── Weight Cut Plan actions ───────────────────────────────────────
+      createWeightCutPlan: (plan) => {
+        const id = uuidv4();
+        const newPlan: WeightCutPlan = {
+          ...plan,
+          id,
+          createdAt: new Date().toISOString(),
+        };
+        set({ weightCutPlans: [...get().weightCutPlans, newPlan] });
+        return id;
+      },
+
+      updateWeightCutPlan: (id, updates) => {
+        set({
+          weightCutPlans: get().weightCutPlans.map(p =>
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        });
+      },
+
+      deleteWeightCutPlan: (id) => {
+        set({ weightCutPlans: get().weightCutPlans.filter(p => p.id !== id) });
+      },
+
+      addWeightCutDailyLog: (planId, log) => {
+        set({
+          weightCutPlans: get().weightCutPlans.map(p =>
+            p.id === planId
+              ? { ...p, dailyLogs: [...p.dailyLogs, log] }
+              : p
+          ),
+        });
+      },
+
+      // ── Combat Nutrition Profile actions ──────────────────────────────
+      setCombatNutritionProfile: (profile) => {
+        set({ combatNutritionProfile: profile });
+      },
+
+      updateCombatNutritionProfile: (updates) => {
+        const current = get().combatNutritionProfile;
+        set({
+          combatNutritionProfile: current
+            ? { ...current, ...updates }
+            : updates as CombatAthleteNutritionProfile,
+        });
+      },
+
+      // ── Fight Camp Plan actions ───────────────────────────────────────
+      createFightCampPlan: (plan) => {
+        const id = uuidv4();
+        const newPlan: FightCampNutritionPlan = {
+          ...plan,
+          id,
+          createdAt: new Date().toISOString(),
+        };
+        set({ fightCampPlans: [...get().fightCampPlans, newPlan] });
+        return id;
+      },
+
+      updateFightCampPlan: (id, updates) => {
+        set({
+          fightCampPlans: get().fightCampPlans.map(p =>
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        });
+      },
+
+      deleteFightCampPlan: (id) => {
+        set({ fightCampPlans: get().fightCampPlans.filter(p => p.id !== id) });
+      },
+
+      // ── Supplement actions ────────────────────────────────────────────
+      setActiveSupplements: (supplements) => {
+        set({ activeSupplements: supplements });
+      },
+
+      addActiveSupplement: (supplement) => {
+        const existing = get().activeSupplements;
+        if (!existing.some(s => s.id === supplement.id)) {
+          set({ activeSupplements: [...existing, supplement] });
+        }
+      },
+
+      removeActiveSupplement: (supplementId) => {
+        set({
+          activeSupplements: get().activeSupplements.filter(s => s.id !== supplementId),
+        });
       },
 
       // Whoop actions
@@ -2705,6 +2826,8 @@ export const useAppStore = create<AppState>()(
           competitions: [],
           weightCutPlans: [],
           combatNutritionProfile: null,
+          fightCampPlans: [],
+          activeSupplements: [],
           activeEquipmentProfile: 'gym' as const,
           latestWhoopData: null,
           wearableHistory: [],
@@ -2812,6 +2935,8 @@ export const useAppStore = create<AppState>()(
           if (!state.competitions) state.competitions = [];
           if (!state.weightCutPlans) state.weightCutPlans = [];
           if (!state.combatNutritionProfile) state.combatNutritionProfile = null;
+          if (!state.fightCampPlans) state.fightCampPlans = [];
+          if (!state.activeSupplements) state.activeSupplements = [];
           // Migrate blockQueue → mesocycleQueue
           if (state.blockQueue) {
             state.mesocycleQueue = state.blockQueue;
@@ -2868,6 +2993,8 @@ export const useAppStore = create<AppState>()(
         competitions: state.competitions,
         weightCutPlans: state.weightCutPlans,
         combatNutritionProfile: state.combatNutritionProfile,
+        fightCampPlans: state.fightCampPlans,
+        activeSupplements: state.activeSupplements,
         activeEquipmentProfile: state.activeEquipmentProfile,
         lastSyncAt: state.lastSyncAt,
         subscription: state.subscription,

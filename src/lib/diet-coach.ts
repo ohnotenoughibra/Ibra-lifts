@@ -253,12 +253,15 @@ export function calculateMacros({
 
   // Step 2: Calculate TDEE (dynamic from training data, or legacy multiplier)
   let tdee: number;
+  const hasTrainingData =
+    (weeklyTrainingSessions && weeklyTrainingSessions.length > 0) ||
+    (weeklyLiftingSessions && weeklyLiftingSessions.length > 0);
 
-  if (weeklyTrainingSessions && weeklyLiftingSessions) {
+  if (hasTrainingData) {
     const dynamic = calculateDynamicTDEE({
       bmr,
-      weeklyTrainingSessions,
-      weeklyLiftingSessions,
+      weeklyTrainingSessions: weeklyTrainingSessions ?? [],
+      weeklyLiftingSessions: weeklyLiftingSessions ?? [],
       bodyWeightKg: bw,
       occupation,
     });
@@ -305,7 +308,28 @@ export function calculateMacros({
       break;
   }
 
-  // Step 4: Set protein and fat, fill rest with carbs
+  // Step 4: Energy Availability safety floor (RED-S prevention)
+  // If we have lean mass data, ensure EA >= 25 kcal/kg FFM (critical threshold)
+  if (leanMassKg && hasTrainingData && goal === 'cut') {
+    let dailyExerciseCost = 0;
+    for (const s of weeklyTrainingSessions ?? []) {
+      dailyExerciseCost += estimateSessionCalories(s.type, s.duration, bw, s.actualIntensity || s.plannedIntensity);
+    }
+    for (const w of weeklyLiftingSessions ?? []) {
+      dailyExerciseCost += estimateLiftingCalories('hypertrophy', w.duration, bw);
+    }
+    dailyExerciseCost = dailyExerciseCost / 7;
+
+    // EA = (Intake - Exercise Cost) / Lean Mass
+    const ea = (calories - dailyExerciseCost) / leanMassKg;
+    const EA_CRITICAL = 25; // kcal/kg FFM — below this triggers RED-S
+    if (ea < EA_CRITICAL) {
+      // Bump calories to ensure EA >= critical threshold
+      calories = Math.round(EA_CRITICAL * leanMassKg + dailyExerciseCost);
+    }
+  }
+
+  // Step 5: Set protein and fat, fill rest with carbs
   const protein = Math.round(bw * proteinPerKg);
   const fat = Math.round(bw * fatPerKg);
   const proteinCal = protein * 4;

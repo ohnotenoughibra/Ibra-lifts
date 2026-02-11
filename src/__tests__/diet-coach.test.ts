@@ -252,7 +252,7 @@ describe('analyzeWeightTrend', () => {
     const entries = Array.from({ length: 14 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (13 - i));
-      return { date: d, weight: 80 + i * 0.1, unit: 'kg' as const };
+      return { id: `e${i}`, date: d, weight: 80 + i * 0.1, unit: 'kg' as const };
     });
     const result = analyzeWeightTrend(entries);
     expect(result.current).toBeGreaterThan(0);
@@ -261,7 +261,7 @@ describe('analyzeWeightTrend', () => {
 
   it('converts lbs to kg internally and back for display', () => {
     const entries = [
-      { date: new Date(), weight: 176, unit: 'lbs' as const },
+      { id: 'e0', date: new Date(), weight: 176, unit: 'lbs' as const },
     ];
     const kgResult = analyzeWeightTrend(entries, 'kg');
     const lbsResult = analyzeWeightTrend(entries, 'lbs');
@@ -274,7 +274,7 @@ describe('analyzeWeightTrend', () => {
     const entries = Array.from({ length: 21 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (20 - i));
-      return { date: d, weight: 80 + Math.random() * 0.05, unit: 'kg' as const }; // ~0.05kg noise
+      return { id: `e${i}`, date: d, weight: 80 + Math.random() * 0.05, unit: 'kg' as const }; // ~0.05kg noise
     });
     const result = analyzeWeightTrend(entries);
     expect(result.weeksAtPlateau).toBeGreaterThanOrEqual(1);
@@ -297,7 +297,7 @@ describe('getPhaseRecommendation', () => {
 
   it('recommends transition after max cut weeks (male: 12)', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'cut', weeksCompleted: 12 },
+      { isActive: true, goal: 'cut', weeksCompleted: 12 } as any,
       'male'
     );
     expect(result.shouldTransition).toBe(true);
@@ -306,7 +306,7 @@ describe('getPhaseRecommendation', () => {
 
   it('recommends earlier transition for women (8 weeks)', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'cut', weeksCompleted: 8 },
+      { isActive: true, goal: 'cut', weeksCompleted: 8 } as any,
       'female'
     );
     expect(result.shouldTransition).toBe(true);
@@ -314,7 +314,7 @@ describe('getPhaseRecommendation', () => {
 
   it('suggests diet break every 6 weeks for men on cut', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'cut', weeksCompleted: 6 },
+      { isActive: true, goal: 'cut', weeksCompleted: 6 } as any,
       'male'
     );
     expect(result.shouldTakeBreak).toBe(true);
@@ -322,7 +322,7 @@ describe('getPhaseRecommendation', () => {
 
   it('suggests diet break every 4 weeks for women on cut', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'cut', weeksCompleted: 4 },
+      { isActive: true, goal: 'cut', weeksCompleted: 4 } as any,
       'female'
     );
     expect(result.shouldTakeBreak).toBe(true);
@@ -330,7 +330,7 @@ describe('getPhaseRecommendation', () => {
 
   it('recommends transition after max bulk weeks (male: 16)', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'bulk', weeksCompleted: 16 },
+      { isActive: true, goal: 'bulk', weeksCompleted: 16 } as any,
       'male'
     );
     expect(result.shouldTransition).toBe(true);
@@ -338,7 +338,7 @@ describe('getPhaseRecommendation', () => {
 
   it('recommends earlier bulk transition for women (12 weeks)', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'bulk', weeksCompleted: 12 },
+      { isActive: true, goal: 'bulk', weeksCompleted: 12 } as any,
       'female'
     );
     expect(result.shouldTransition).toBe(true);
@@ -346,7 +346,7 @@ describe('getPhaseRecommendation', () => {
 
   it('no action needed in early cut', () => {
     const result = getPhaseRecommendation(
-      { isActive: true, goal: 'cut', weeksCompleted: 2 },
+      { isActive: true, goal: 'cut', weeksCompleted: 2 } as any,
       'male'
     );
     expect(result.shouldTakeBreak).toBe(false);

@@ -714,7 +714,7 @@ export default function BodyWeightTracker() {
 
           {/* Energy Availability (combat athletes / anyone on a cut) */}
           {latestWeight && latestBF != null && (() => {
-            const wKg = latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight;
+            const wKg = weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight;
             const leanMass = wKg * (1 - latestBF / 100);
             const ea = calculateEnergyAvailability(
               macroTargets?.calories || 0,

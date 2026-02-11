@@ -95,6 +95,14 @@ const FEATURE_GATE_LIST: FeatureGate[] = [
   { id: 'hr-zones',               name: 'Heart Rate Zone Training',      tier: 'elite', category: 'wearables',     description: 'Personalised HR zones with time-in-zone tracking' },
   { id: 'grip-tracking',          name: 'Grip Strength Tracking',        tier: 'elite', category: 'analytics',     description: 'Dynamometer and dead-hang tracking with trends' },
   { id: 'advanced-analytics',     name: 'Advanced Analytics Dashboard',  tier: 'elite', category: 'analytics',     description: '1RM trends, volume heatmaps, and deep training insights' },
+
+  // ── Combat Nutrition (Pro tier) ─────────────────────────────────────────
+  { id: 'weight-cut-protocol',   name: 'Weight Cut Protocol',           tier: 'pro',   category: 'nutrition',     description: 'Safe, phased weight cut planning for combat athletes' },
+  { id: 'fight-camp-nutrition',  name: 'Fight Camp Nutrition',          tier: 'pro',   category: 'nutrition',     description: 'Periodized nutrition across fight camp phases' },
+  { id: 'supplement-protocol',   name: 'Supplement Protocol',           tier: 'pro',   category: 'nutrition',     description: 'Evidence-based supplement recommendations with pre-comp pauses' },
+  { id: 'performance-readiness', name: 'Performance Readiness',         tier: 'pro',   category: 'nutrition',     description: 'Composite nutrition readiness scoring with bottleneck detection' },
+  { id: 'energy-availability',   name: 'Energy Availability',           tier: 'pro',   category: 'nutrition',     description: 'EA tracking with RED-S warning system' },
+  { id: 'intra-training-fuel',   name: 'Intra-Training Fueling',       tier: 'pro',   category: 'nutrition',     description: 'Real-time fueling recommendations during training sessions' },
 ];
 
 /**
@@ -151,6 +159,14 @@ export function getUpgradeReason(featureId: string): string {
     'hr-zones':               'Personalised heart rate zones with time-in-zone tracking for conditioning and recovery.',
     'grip-tracking':          'Dedicated grip strength tracking with dynamometer and dead-hang trend analysis.',
     'advanced-analytics':     'Deep-dive analytics: 1RM trends, volume heatmaps, muscle-group balance, and more.',
+
+    // Combat nutrition
+    'weight-cut-protocol':    'Safe, science-backed weight cuts with daily tracking and safety alerts built for fighters.',
+    'fight-camp-nutrition':   'Phase-specific nutrition targets that auto-adjust as you move through fight camp.',
+    'supplement-protocol':    'Evidence-based supplement timing with auto-pauses before weigh-ins for banned substance safety.',
+    'performance-readiness':  'A composite readiness score showing exactly what to fix before your next session.',
+    'energy-availability':    'Track energy availability to prevent RED-S and keep performance on track.',
+    'intra-training-fuel':    'Real-time fueling cues during training so you never bonk in hard sessions.',
   };
 
   return reasons[featureId] || 'Upgrade to unlock this feature and take your training to the next level.';
@@ -214,6 +230,20 @@ const SOFT_PAYWALLS: SoftPaywallConfig[] = [
     ctaText: 'Unlock Advanced Analytics',
     freePreview: 'Summary view only',
   },
+  {
+    featureId: 'performance-readiness',
+    tier: 'pro',
+    message: 'You can see your overall score. Upgrade to Pro for component breakdown and action items.',
+    ctaText: 'Unlock Full Readiness',
+    freePreview: 'Overall score only',
+  },
+  {
+    featureId: 'fight-camp-nutrition',
+    tier: 'pro',
+    message: 'You can see your current phase. Upgrade to Pro for full macro targets and phase recommendations.',
+    ctaText: 'Unlock Fight Camp Nutrition',
+    freePreview: 'Current phase only',
+  },
 ];
 
 // Hard paywalls — feature is completely locked
@@ -228,6 +258,10 @@ const HARD_PAYWALL_IDS: string[] = [
   'female-athlete-intel',
   'hr-zones',
   'grip-tracking',
+  'weight-cut-protocol',
+  'supplement-protocol',
+  'energy-availability',
+  'intra-training-fuel',
 ];
 
 /**

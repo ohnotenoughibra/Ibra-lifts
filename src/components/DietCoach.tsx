@@ -10,8 +10,11 @@ import {
   analyzeWeightTrend,
   getPhaseRecommendation,
   calculateAdherence,
+  calculateEnergyAvailability,
+  estimateDailyExerciseCost,
 } from '@/lib/diet-coach';
 import { DietGoal, BiologicalSex } from '@/lib/types';
+import { detectFightCampPhase } from '@/lib/fight-camp-engine';
 import {
   Scale,
   TrendingDown,
@@ -83,6 +86,10 @@ export default function DietCoach() {
     getActiveIllness,
     deleteDietPhaseFromHistory,
     editDietPhaseInHistory,
+    combatNutritionProfile,
+    trainingSessions,
+    competitions,
+    bodyComposition,
   } = useAppStore();
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
@@ -144,12 +151,53 @@ export default function DietCoach() {
   );
 
   // Activity multiplier from sessions per week
+  const isCombatAthlete = user?.trainingIdentity === 'combat';
   const activityMultiplier = useMemo(() => {
     const sessions = user?.sessionsPerWeek || 3;
     if (sessions <= 2) return 1.4;
     if (sessions <= 4) return 1.55;
     return 1.7;
   }, [user?.sessionsPerWeek]);
+
+  // Combat context: detect nearest competition & fight camp phase
+  const nearestCompetition = useMemo(() => {
+    if (!competitions?.length) return null;
+    const now = Date.now();
+    return competitions
+      .filter(c => new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+  }, [competitions]);
+
+  const daysToCompetition = nearestCompetition
+    ? Math.ceil((new Date(nearestCompetition.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : undefined;
+
+  const fightCampPhase = isCombatAthlete && daysToCompetition
+    ? detectFightCampPhase(daysToCompetition)
+    : null;
+
+  // Body fat % from latest composition entry
+  const latestBodyFat = bodyComposition?.length > 0
+    ? bodyComposition[bodyComposition.length - 1]?.bodyFatPercent
+    : undefined;
+
+  // Energy availability calculation (for display)
+  const energyAvailability = useMemo(() => {
+    if (!macroTargets?.calories || !bodyWeightKg) return null;
+    const exerciseCost = estimateDailyExerciseCost(
+      trainingSessions?.slice(-7) || [],
+      [],
+      bodyWeightKg,
+    );
+    const leanMassKg = latestBodyFat
+      ? bodyWeightKg * (1 - latestBodyFat / 100)
+      : bodyWeightKg * 0.8; // fallback estimate
+    return calculateEnergyAvailability(
+      macroTargets.calories,
+      exerciseCost,
+      leanMassKg,
+    );
+  }, [macroTargets?.calories, bodyWeightKg, trainingSessions, latestBodyFat]);
 
   // Handle starting a new diet phase
   const handleStartPhase = () => {
@@ -165,6 +213,10 @@ export default function DietCoach() {
       sex: formSex,
       goal: selectedGoal,
       activityMultiplier,
+      bodyFatPercent: latestBodyFat,
+      isCombatAthlete,
+      occupation: combatNutritionProfile?.occupation,
+      weeklyTrainingSessions: trainingSessions?.slice(-7) || [],
     });
     const rate = getTargetRate(selectedGoal, bodyWeightKg, formSex);
 
@@ -195,6 +247,10 @@ export default function DietCoach() {
       sex: formSex,
       goal: newGoal,
       activityMultiplier,
+      bodyFatPercent: latestBodyFat,
+      isCombatAthlete,
+      occupation: combatNutritionProfile?.occupation,
+      weeklyTrainingSessions: trainingSessions?.slice(-7) || [],
     });
     const rate = getTargetRate(newGoal, bodyWeightKg, formSex);
 
@@ -224,6 +280,9 @@ export default function DietCoach() {
       adherencePercent: adherence,
       sex: formSex,
       isIll,
+      bodyWeightKg,
+      isFightCamp: !!fightCampPhase,
+      daysToCompetition,
     });
 
     addWeeklyCheckIn({
@@ -389,8 +448,11 @@ export default function DietCoach() {
                   {formWeight && formHeight && (
                     <div className="p-2.5 bg-grappler-800/30 rounded-lg">
                       <p className="text-[10px] text-grappler-500">
-                        Estimated BMR: {Math.round(10 * bodyWeightKg + 6.25 * heightCm - 5 * age + (formSex === 'male' ? 5 : -161))} kcal/day
-                        &middot; Age {age}
+                        {latestBodyFat ? (
+                          <>Estimated BMR (Cunningham): {Math.round(500 + 22 * bodyWeightKg * (1 - latestBodyFat / 100))} kcal/day &middot; BF {latestBodyFat}%</>
+                        ) : (
+                          <>Estimated BMR (Mifflin-St Jeor): {Math.round(10 * bodyWeightKg + 6.25 * heightCm - 5 * age + (formSex === 'male' ? 5 : -161))} kcal/day &middot; Age {age}</>
+                        )}
                       </p>
                     </div>
                   )}
@@ -507,6 +569,52 @@ export default function DietCoach() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Energy Availability indicator (shows when on a cut) */}
+                  {energyAvailability && activeDietPhase.goal === 'cut' && (
+                    <div className={`p-2.5 rounded-lg border ${
+                      energyAvailability.status === 'critical' ? 'bg-red-500/10 border-red-500/30' :
+                      energyAvailability.status === 'low' ? 'bg-orange-500/10 border-orange-500/30' :
+                      energyAvailability.status === 'caution' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                      'bg-green-500/10 border-green-500/30'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-grappler-400">Energy Availability</p>
+                        <span className={`text-xs font-medium ${
+                          energyAvailability.status === 'critical' ? 'text-red-400' :
+                          energyAvailability.status === 'low' ? 'text-orange-400' :
+                          energyAvailability.status === 'caution' ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          {Math.round(energyAvailability.ea)} kcal/kg FFM
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-grappler-400 mt-0.5">{energyAvailability.message}</p>
+                      {energyAvailability.status === 'critical' && (
+                        <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          RED-S risk: Increase intake or reduce training volume
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fight Camp Phase (combat athletes) */}
+                  {isCombatAthlete && fightCampPhase && nearestCompetition && (
+                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5 text-orange-400" />
+                          <p className="text-xs font-medium text-orange-300">
+                            {fightCampPhase.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-grappler-400">
+                          {daysToCompetition}d to {nearestCompetition.name}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Switch Goal */}
                   {!showSwitchGoal ? (

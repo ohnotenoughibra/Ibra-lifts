@@ -66,6 +66,8 @@ import { buildCycleProfile, getPhaseTrainingAdjustments, getCycleInsights, shoul
 import type { CycleLog } from '@/lib/female-athlete';
 import { getWeeklyNutritionScore, getHydrationTarget, getNutritionInsights } from '@/lib/nutrition-coaching';
 import { toMonetizationTier, shouldShowUpgradePrompt } from '@/lib/monetization-engine';
+import { detectFightCampPhase } from '@/lib/fight-camp-engine';
+import PerformanceReadiness from './PerformanceReadiness';
 import type { OverlayView } from './dashboard-types';
 
 function ReadinessCard() {
@@ -785,6 +787,51 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
+  // 3b. Fight camp status (combat athletes with upcoming competition)
+  const fightCampPhase = useMemo(() => {
+    if (user?.trainingIdentity !== 'combat' || !nextCompetition) return null;
+    return detectFightCampPhase(nextCompetition.daysUntil);
+  }, [user?.trainingIdentity, nextCompetition]);
+
+  if (fightCampPhase && feedCards.length < 4) {
+    const phaseColors: Record<string, string> = {
+      base_camp: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
+      intensification: 'from-purple-500/15 to-violet-500/10 border-purple-500/30',
+      peak_week: 'from-orange-500/20 to-amber-500/10 border-orange-500/30',
+      acute_reduction: 'from-red-500/20 to-rose-500/10 border-red-500/30',
+      water_cut: 'from-red-500/25 to-rose-500/15 border-red-500/40',
+      rehydration: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30',
+      competition_day: 'from-yellow-500/20 to-amber-500/10 border-yellow-500/30',
+      recovery: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
+      off_season: 'from-grappler-600/20 to-grappler-700/10 border-grappler-600/30',
+    };
+    const phaseLabels: Record<string, string> = {
+      base_camp: 'Base Camp', intensification: 'Intensification', peak_week: 'Peak Week',
+      acute_reduction: 'Acute Reduction', water_cut: 'Water Cut', rehydration: 'Rehydration',
+      competition_day: 'Competition Day', recovery: 'Recovery', off_season: 'Off Season',
+    };
+    feedCards.push(
+      <motion.div key="fight-camp" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className={cn('rounded-xl p-3.5 border bg-gradient-to-r', phaseColors[fightCampPhase] || phaseColors.off_season)}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Crosshair className="w-5 h-5 text-primary-400 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-grappler-100 text-sm">Fight Camp</h3>
+              <p className="text-xs text-grappler-400 mt-0.5">
+                Phase: {phaseLabels[fightCampPhase] || fightCampPhase}
+              </p>
+            </div>
+          </div>
+          <button onClick={() => onNavigate('competition')}
+            className="px-2.5 py-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-xs font-medium rounded-lg transition-colors">
+            Details
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
   // 4. Training load warning (combat athletes)
   if (trainingLoadWarning && feedCards.length < 4) {
     feedCards.push(
@@ -1368,6 +1415,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
 
         {showReadiness && <ReadinessCard />}
+
+        {/* Performance Readiness — nutrition-focused composite score */}
+        <PerformanceReadiness />
 
         {/* Activity row — adaptive to training identity */}
         <div className="grid grid-cols-3 gap-2">

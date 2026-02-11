@@ -90,6 +90,7 @@ export default function DietCoach() {
     trainingSessions,
     competitions,
     bodyComposition,
+    workoutLogs,
   } = useAppStore();
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
@@ -150,7 +151,7 @@ export default function DietCoach() {
     [activeDietPhase, formSex]
   );
 
-  // Activity multiplier from sessions per week
+  // Activity multiplier — fallback if no dynamic training data
   const isCombatAthlete = user?.trainingIdentity === 'combat';
   const activityMultiplier = useMemo(() => {
     const sessions = user?.sessionsPerWeek || 3;
@@ -158,6 +159,19 @@ export default function DietCoach() {
     if (sessions <= 4) return 1.55;
     return 1.7;
   }, [user?.sessionsPerWeek]);
+
+  // Last 7 days of training data for dynamic TDEE
+  const recentTrainingSessions = useMemo(() => {
+    if (!trainingSessions?.length) return [];
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return trainingSessions.filter(s => new Date(s.date).getTime() > weekAgo);
+  }, [trainingSessions]);
+
+  const recentLiftingSessions = useMemo(() => {
+    if (!workoutLogs?.length) return [];
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return workoutLogs.filter(w => new Date(w.date).getTime() > weekAgo);
+  }, [workoutLogs]);
 
   // Combat context: detect nearest competition & fight camp phase
   const nearestCompetition = useMemo(() => {
@@ -216,7 +230,8 @@ export default function DietCoach() {
       bodyFatPercent: latestBodyFat,
       isCombatAthlete,
       occupation: combatNutritionProfile?.occupation,
-      weeklyTrainingSessions: trainingSessions?.slice(-7) || [],
+      weeklyTrainingSessions: recentTrainingSessions,
+      weeklyLiftingSessions: recentLiftingSessions,
     });
     const rate = getTargetRate(selectedGoal, bodyWeightKg, formSex);
 
@@ -250,7 +265,8 @@ export default function DietCoach() {
       bodyFatPercent: latestBodyFat,
       isCombatAthlete,
       occupation: combatNutritionProfile?.occupation,
-      weeklyTrainingSessions: trainingSessions?.slice(-7) || [],
+      weeklyTrainingSessions: recentTrainingSessions,
+      weeklyLiftingSessions: recentLiftingSessions,
     });
     const rate = getTargetRate(newGoal, bodyWeightKg, formSex);
 
@@ -482,7 +498,7 @@ export default function DietCoach() {
                     {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
                       const config = GOAL_CONFIG[goal];
                       const isSelected = selectedGoal === goal;
-                      const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier });
+                      const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier, weeklyTrainingSessions: recentTrainingSessions, weeklyLiftingSessions: recentLiftingSessions });
                       return (
                         <button
                           key={goal}
@@ -632,7 +648,7 @@ export default function DietCoach() {
                         {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
                           const config = GOAL_CONFIG[goal];
                           const isCurrent = activeDietPhase?.goal === goal;
-                          const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier });
+                          const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier, weeklyTrainingSessions: recentTrainingSessions, weeklyLiftingSessions: recentLiftingSessions });
                           return (
                             <button
                               key={goal}
@@ -755,6 +771,8 @@ export default function DietCoach() {
                                   sex: formSex,
                                   goal: phaseStatus.nextGoal!,
                                   activityMultiplier,
+                                  weeklyTrainingSessions: recentTrainingSessions,
+                                  weeklyLiftingSessions: recentLiftingSessions,
                                 });
                                 endDietPhase();
                                 startDietPhase({

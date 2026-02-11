@@ -5,7 +5,7 @@ import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
   Heart, Shield, Thermometer, Zap, Moon,
-  Apple, Grip,
+  Apple, Grip, Flame,
   Swords, Navigation, Move, Watch,
   Users, MessageSquare,
 } from 'lucide-react';
@@ -60,6 +60,7 @@ const CATEGORIES: Category[] = [
     title: 'Fuel & Body',
     tools: [
       { id: 'nutrition', label: 'Nutrition', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400' },
+      { id: 'fight_camp', label: 'Fight Camp Fuel', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
       { id: 'grip_strength', label: 'Grip Strength', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400' },
       { id: 'cycle_tracking', label: 'Cycle Tracking', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400' },
     ],

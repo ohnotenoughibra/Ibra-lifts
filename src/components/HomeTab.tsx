@@ -950,7 +950,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                       'text-blue-400': variableReward.rarity === 'common',
                       'text-purple-400': variableReward.rarity === 'uncommon',
                       'text-yellow-400': variableReward.rarity === 'rare',
-                      'text-blue-400': variableReward.rarity === 'epic',
+                      'text-cyan-400': variableReward.rarity === 'epic',
                     })} />
                     <div>
                       <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>

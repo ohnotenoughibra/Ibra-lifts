@@ -89,6 +89,7 @@ export default function ActiveWorkout() {
   const [showRPEInfo, setShowRPEInfo] = useState(false);
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
   const [overviewSwapIndex, setOverviewSwapIndex] = useState<number | null>(null);
+  const [lastCompletedExerciseIndex, setLastCompletedExerciseIndex] = useState<number | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
@@ -199,6 +200,7 @@ export default function ActiveWorkout() {
       if (remaining <= 0) {
         setIsResting(false);
         setRestEndTime(null);
+        setLastCompletedExerciseIndex(null);
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([200, 100, 200, 100, 300]);
         }
@@ -327,6 +329,8 @@ export default function ActiveWorkout() {
     const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
 
     if (isLastSetOfExercise) {
+      // Track which exercise just had its last set completed (for "Add Extra Set" option)
+      setLastCompletedExerciseIndex(currentExerciseIndex);
       // Show inline feedback bar instead of modal
       setFeedbackExerciseIndex(currentExerciseIndex);
       setExerciseFeedbackState({
@@ -440,6 +444,34 @@ export default function ActiveWorkout() {
   const skipRest = () => {
     setIsResting(false);
     setRestEndTime(null);
+    setLastCompletedExerciseIndex(null);
+  };
+
+  const addExtraSet = (exerciseIdx: number) => {
+    const exerciseLog = activeWorkout.exerciseLogs[exerciseIdx];
+    const lastSet = exerciseLog.sets[exerciseLog.sets.length - 1];
+
+    const newSet: SetLog = {
+      setNumber: exerciseLog.sets.length + 1,
+      weight: lastSet.weight,
+      reps: lastSet.reps,
+      rpe: lastSet.rpe,
+      completed: false,
+    };
+
+    updateExerciseLog(exerciseIdx, {
+      ...exerciseLog,
+      sets: [...exerciseLog.sets, newSet],
+    });
+
+    // Navigate to the new set on the correct exercise
+    setCurrentExerciseIndex(exerciseIdx);
+    setCurrentSetIndex(exerciseLog.sets.length); // index of the newly added set
+
+    // End rest and clear tracking state
+    setIsResting(false);
+    setRestEndTime(null);
+    setLastCompletedExerciseIndex(null);
   };
 
   const formatRestTime = (seconds: number) => {
@@ -1962,6 +1994,17 @@ export default function ActiveWorkout() {
                   Some exercises still have incomplete sets
                 </p>
               </div>
+            )}
+
+            {/* Add Extra Set option — shown after completing last set of an exercise */}
+            {lastCompletedExerciseIndex !== null && (
+              <button
+                onClick={() => addExtraSet(lastCompletedExerciseIndex)}
+                className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Add Extra Set — {activeWorkout.exerciseLogs[lastCompletedExerciseIndex]?.exerciseName}
+              </button>
             )}
 
             {/* Tip during rest */}

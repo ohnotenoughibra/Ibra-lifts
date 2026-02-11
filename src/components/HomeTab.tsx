@@ -53,6 +53,7 @@ import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
 import { getEffectiveTier } from '@/lib/subscription';
+import { useSession } from 'next-auth/react';
 import CardErrorBoundary from './CardErrorBoundary';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -252,6 +253,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
     subscription,
   } = useAppStore();
+  const { data: session } = useSession();
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
@@ -259,7 +261,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const quickLogs = useAppStore(s => s.quickLogs);
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
-  const effectiveTier = getEffectiveTier(subscription, user?.email);
+  const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const isFreeUser = effectiveTier === 'free';
   const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -389,7 +391,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   }, [user, meals, macroTargets, workoutLogs, waterLog]);
 
   const hydration = useMemo(() => {
-    const todayWaterMl = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    const todayWaterGlasses = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    const todayWaterMl = todayWaterGlasses * 250; // waterLog stores glasses (250ml each)
     return getHydrationTarget(user, todayWaterMl, hasWorkoutToday);
   }, [user, waterLog, hasWorkoutToday]);
 

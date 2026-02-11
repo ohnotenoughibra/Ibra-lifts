@@ -1083,7 +1083,7 @@ export function getWeeklyNutritionScore(
     const dayMeals = mealsOnDate(meals, dateStr);
     const protein = sumMealField(dayMeals, 'protein');
     const calories = sumMealField(dayMeals, 'calories');
-    const water = waterLog[dateStr] || 0;
+    const water = (waterLog[dateStr] || 0) * 250; // waterLog stores glasses (250ml each)
     const logged = dayMeals.length > 0;
     return { dateStr, protein, calories, water, logged, mealCount: dayMeals.length };
   });
@@ -1140,7 +1140,7 @@ export function getWeeklyNutritionScore(
     const bodyWeight = 75; // Cannot access user here; use default
     const waterTarget = bodyWeight * 35; // ml
     const dayScores = waterEntries.map(dateStr => {
-      const intake = waterLog[dateStr] || 0;
+      const intake = (waterLog[dateStr] || 0) * 250; // waterLog stores glasses (250ml each)
       const ratio = intake / waterTarget;
       if (ratio >= 0.85) return 100;
       if (ratio >= 0.5) return Math.round(50 + ((ratio - 0.5) / 0.35) * 50);
@@ -1348,7 +1348,7 @@ export function getNutritionInsights(
   if (waterDays.length === 0) {
     tips.push('Start tracking water intake — dehydration impairs performance and recovery more than most people think.');
   } else {
-    const avgWater = waterDays.reduce((s, d) => s + (waterLog[d] || 0), 0) / waterDays.length;
+    const avgWater = waterDays.reduce((s, d) => s + (waterLog[d] || 0) * 250, 0) / waterDays.length;
     const waterTarget = bwKg(user) * 35;
     if (avgWater < waterTarget * 0.7) {
       tips.push(

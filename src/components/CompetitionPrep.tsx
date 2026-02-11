@@ -462,7 +462,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                 const latestWeight = bodyWeightLog[bodyWeightLog.length - 1];
                 const currentKg = latestWeight
                   ? (latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight)
-                  : (user.bodyWeight ? (weightUnit === 'lbs' ? user.bodyWeight / 2.205 : user.bodyWeight) : 80);
+                  : (user.bodyWeightKg ? user.bodyWeightKg : 80);
                 const targetKg = weightUnit === 'lbs' ? selectedEvent.weightClass / 2.205 : selectedEvent.weightClass;
                 createWeightCutPlan({
                   competitionId: selectedEvent.id,

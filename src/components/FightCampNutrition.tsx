@@ -61,7 +61,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
   const bodyWeightKg = latestWeight
     ? (latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight)
-    : (user?.bodyWeight ? (weightUnit === 'lbs' ? user.bodyWeight / 2.205 : user.bodyWeight) : 80);
+    : (user?.bodyWeightKg ? user.bodyWeightKg : 80);
 
   // Nearest active competition
   const nearestCompetition = useMemo(() => {

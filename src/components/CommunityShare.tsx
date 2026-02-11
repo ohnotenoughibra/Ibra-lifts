@@ -24,8 +24,10 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatDate, getRelativeTime } from '@/lib/utils';
 import { getLevelTitle } from '@/lib/gamification';
+import { detectFightCampPhase, getPhaseConfig } from '@/lib/fight-camp-engine';
+import { Apple } from 'lucide-react';
 
-type ShareTab = 'summary' | 'pr' | 'badge' | 'milestone';
+type ShareTab = 'summary' | 'pr' | 'badge' | 'milestone' | 'nutrition';
 
 interface CommunityShareProps {
   onClose: () => void;
@@ -34,6 +36,7 @@ interface CommunityShareProps {
 export default function CommunityShare({ onClose }: CommunityShareProps) {
   const {
     user, gamificationStats, workoutLogs, currentMesocycle, mesocycleHistory, bodyWeightLog,
+    meals, competitions, trainingSessions,
   } = useAppStore();
   const [activeTab, setActiveTab] = useState<ShareTab>('summary');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -97,6 +100,53 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       avgPerWeek,
     };
   }, [workoutLogs]);
+
+  // Nutrition & fight camp stats
+  const nutritionStats = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekMeals = (meals || []).filter(m => new Date(m.date).getTime() > weekAgo);
+    const daysWithMeals = new Set(weekMeals.map(m => new Date(m.date).toDateString())).size;
+    const avgCals = daysWithMeals > 0 ? Math.round(weekMeals.reduce((s, m) => s + m.calories, 0) / daysWithMeals) : 0;
+    const avgProtein = daysWithMeals > 0 ? Math.round(weekMeals.reduce((s, m) => s + m.protein, 0) / daysWithMeals) : 0;
+    const weekSessions = (trainingSessions || []).filter(s => new Date(s.date).getTime() > weekAgo);
+    const trainingHrs = +(weekSessions.reduce((s, t) => s + t.duration, 0) / 60).toFixed(1);
+
+    // Fight camp phase
+    const now = Date.now();
+    const nextComp = (competitions || [])
+      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+    const daysOut = nextComp ? Math.ceil((new Date(nextComp.date).getTime() - now) / (1000 * 60 * 60 * 24)) : null;
+    const phase = user?.trainingIdentity === 'combat' && daysOut != null ? detectFightCampPhase(daysOut) : null;
+    const phaseConfig = phase && phase !== 'off_season' ? getPhaseConfig(phase, (user?.sex || 'male') as 'male' | 'female') : null;
+
+    // Body weight change
+    const recentWeights = (bodyWeightLog || []).filter(w => new Date(w.date).getTime() > weekAgo);
+    const weightDelta = recentWeights.length >= 2
+      ? +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1)
+      : null;
+
+    return { avgCals, avgProtein, daysWithMeals, trainingHrs, phase, phaseConfig, nextComp, daysOut, weightDelta };
+  }, [meals, trainingSessions, competitions, bodyWeightLog, user]);
+
+  const buildNutritionShare = () => {
+    const lines = [
+      `${user?.name || 'Athlete'}'s Weekly Nutrition`,
+      ``,
+      `Avg ${nutritionStats.avgCals} cal/day | ${nutritionStats.avgProtein}g protein/day`,
+      `${nutritionStats.daysWithMeals} days tracked | ${nutritionStats.trainingHrs}h training`,
+    ];
+    if (nutritionStats.weightDelta != null) {
+      const dir = nutritionStats.weightDelta > 0 ? '+' : '';
+      lines.push(`Weight: ${dir}${nutritionStats.weightDelta} ${weightUnit} this week`);
+    }
+    if (nutritionStats.phaseConfig && nutritionStats.daysOut != null) {
+      lines.push(`\nFight Camp: ${nutritionStats.phaseConfig.name.split('(')[0].trim()} — ${nutritionStats.daysOut}d out`);
+      lines.push(`Focus: ${nutritionStats.phaseConfig.focus}`);
+    }
+    lines.push(`\n-- Roots Gains`);
+    return lines.join('\n');
+  };
 
   const handleShare = async (text: string, id: string) => {
     if (navigator.share) {
@@ -183,6 +233,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
 
   const tabs = [
     { id: 'summary' as ShareTab, label: 'Summary', icon: BarChart3 },
+    { id: 'nutrition' as ShareTab, label: 'Nutrition', icon: Apple },
     { id: 'pr' as ShareTab, label: 'PRs', icon: Trophy },
     { id: 'badge' as ShareTab, label: 'Badges', icon: Award },
     { id: 'milestone' as ShareTab, label: 'Milestones', icon: Target },
@@ -352,6 +403,82 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                 <p className="text-xs text-grappler-500">Last 4 weeks average</p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* Nutrition Tab */}
+        {activeTab === 'nutrition' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            {/* Nutrition overview card */}
+            <div className="bg-gradient-to-br from-green-900/30 to-grappler-850 border border-green-500/20 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <Apple className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-grappler-50">Weekly Nutrition</h3>
+                  <p className="text-xs text-grappler-400">
+                    {nutritionStats.daysWithMeals} day{nutritionStats.daysWithMeals !== 1 ? 's' : ''} tracked this week
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-green-400">{nutritionStats.avgCals}</p>
+                  <p className="text-xs text-grappler-500">Avg cal/day</p>
+                </div>
+                <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-blue-400">{nutritionStats.avgProtein}g</p>
+                  <p className="text-xs text-grappler-500">Avg protein/day</p>
+                </div>
+                <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-yellow-400">{nutritionStats.trainingHrs}h</p>
+                  <p className="text-xs text-grappler-500">Training this week</p>
+                </div>
+                <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-grappler-200">
+                    {nutritionStats.weightDelta != null
+                      ? `${nutritionStats.weightDelta > 0 ? '+' : ''}${nutritionStats.weightDelta} ${weightUnit}`
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-grappler-500">Weight change</p>
+                </div>
+              </div>
+
+              {nutritionStats.phaseConfig && nutritionStats.daysOut != null && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-red-300">
+                      {nutritionStats.phaseConfig.name.split('(')[0].trim()} — {nutritionStats.daysOut}d out
+                    </p>
+                    <p className="text-xs text-grappler-400 truncate">{nutritionStats.phaseConfig.focus}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
+                <span className="text-xs text-grappler-500">
+                  {nutritionStats.avgCals > 0 ? `${nutritionStats.avgProtein}g protein · ${nutritionStats.trainingHrs}h training` : 'Start logging meals to share'}
+                </span>
+                <span className="text-xs text-grappler-600">Roots Gains</span>
+              </div>
+            </div>
+
+            {/* Share button */}
+            <button
+              onClick={() => handleShare(buildNutritionShare(), 'nutrition')}
+              disabled={nutritionStats.daysWithMeals === 0}
+              className="btn btn-primary w-full gap-2 disabled:opacity-40"
+            >
+              {copiedId === 'nutrition' ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+              {copiedId === 'nutrition' ? 'Copied!' : 'Share Nutrition Summary'}
+            </button>
           </motion.div>
         )}
 

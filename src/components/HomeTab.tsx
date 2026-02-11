@@ -391,7 +391,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   }, [user, meals, macroTargets, workoutLogs, waterLog]);
 
   const hydration = useMemo(() => {
-    const todayWaterMl = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    const todayWaterGlasses = waterLog[new Date().toISOString().split('T')[0]] || 0;
+    const todayWaterMl = todayWaterGlasses * 250; // waterLog stores glasses (250ml each)
     return getHydrationTarget(user, todayWaterMl, hasWorkoutToday);
   }, [user, waterLog, hasWorkoutToday]);
 

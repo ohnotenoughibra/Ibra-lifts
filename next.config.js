@@ -3,6 +3,26 @@ const { withSentryConfig } = require('@sentry/nextjs');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    // Dynamically set AUTH_URL per Vercel deployment so that NextAuth sends
+    // Google the correct OAuth callback URL.  Without this, preview deploys
+    // inherit the production AUTH_URL and redirect users to production after
+    // Google sign-in.
+    //
+    // Priority:
+    //   Production  → NEXT_PUBLIC_APP_URL (custom domain) or VERCEL_URL
+    //   Preview     → VERCEL_URL (unique per deploy)
+    //   Local       → left unset (NextAuth falls back to localhost)
+    ...(process.env.VERCEL_URL
+      ? {
+          AUTH_URL:
+            process.env.VERCEL_ENV === 'production' &&
+            process.env.NEXT_PUBLIC_APP_URL
+              ? process.env.NEXT_PUBLIC_APP_URL
+              : `https://${process.env.VERCEL_URL}`,
+        }
+      : {}),
+  },
   images: {
     domains: ['images.unsplash.com'],
   },

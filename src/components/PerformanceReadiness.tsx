@@ -115,6 +115,9 @@ export default function PerformanceReadiness() {
              readiness.level === 'needs_attention' ? 'Some areas need attention' :
              'At risk — take action'}
           </p>
+          <p className="text-xs text-grappler-600 mt-0.5">
+            nutrition + hydration + sleep + weight
+          </p>
         </div>
         <TrendingUp className={cn('w-5 h-5', getScoreColor(readiness.score))} />
       </div>
@@ -128,7 +131,7 @@ export default function PerformanceReadiness() {
               <div key={key} className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 w-20 text-grappler-400">
                   {COMPONENT_ICONS[key]}
-                  <span className="text-[10px]">{COMPONENT_LABELS[key]}</span>
+                  <span className="text-xs">{COMPONENT_LABELS[key]}</span>
                 </div>
                 <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden">
                   <motion.div
@@ -138,7 +141,7 @@ export default function PerformanceReadiness() {
                     className={cn('h-full rounded-full', getScoreBg(value))}
                   />
                 </div>
-                <span className={cn('text-[10px] font-medium w-7 text-right', getScoreColor(value))}>
+                <span className={cn('text-xs font-medium w-7 text-right', getScoreColor(value))}>
                   {value}
                 </span>
               </div>
@@ -147,7 +150,7 @@ export default function PerformanceReadiness() {
         </div>
       ) : (
         <div className="mt-1 p-2 bg-grappler-800/30 rounded-lg border border-grappler-700/50">
-          <p className="text-[10px] text-grappler-500 text-center">
+          <p className="text-xs text-grappler-500 text-center">
             Upgrade to Pro for component breakdown and action items
           </p>
         </div>
@@ -161,8 +164,8 @@ export default function PerformanceReadiness() {
               readiness.level === 'at_risk' ? 'text-red-400' : 'text-yellow-400'
             )} />
             <div>
-              <p className="text-[10px] text-grappler-300 font-medium">{readiness.bottleneck}</p>
-              <p className="text-[10px] text-grappler-500">{readiness.actionItem}</p>
+              <p className="text-xs text-grappler-300 font-medium">{readiness.bottleneck}</p>
+              <p className="text-xs text-grappler-500">{readiness.actionItem}</p>
             </div>
           </div>
         </div>

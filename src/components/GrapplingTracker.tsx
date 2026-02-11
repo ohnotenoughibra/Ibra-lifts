@@ -535,7 +535,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                                 <button
                                   key={opt.id}
                                   onClick={() => setFormNutrition(opt.id as PreWorkoutCheckIn['nutrition'])}
-                                  className={`py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                                  className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
                                     formNutrition === opt.id
                                       ? 'bg-orange-500/30 text-orange-300 border border-orange-500/50'
                                       : 'bg-grappler-700 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
@@ -553,14 +553,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             <div>
                               <div className="flex items-center gap-1 mb-1">
                                 <Brain className="w-3 h-3 text-red-400" />
-                                <span className="text-[10px] text-grappler-400">Stress</span>
+                                <span className="text-xs text-grappler-400">Stress</span>
                               </div>
                               <div className="flex gap-0.5">
                                 {[1, 2, 3, 4, 5].map((val) => (
                                   <button
                                     key={val}
                                     onClick={() => setFormStress(val)}
-                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                    className={`flex-1 py-1 rounded text-xs font-medium transition-all ${
                                       formStress === val
                                         ? 'bg-red-500/30 text-red-300 border border-red-500/50'
                                         : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
@@ -576,14 +576,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             <div>
                               <div className="flex items-center gap-1 mb-1">
                                 <Flame className="w-3 h-3 text-yellow-400" />
-                                <span className="text-[10px] text-grappler-400">Soreness</span>
+                                <span className="text-xs text-grappler-400">Soreness</span>
                               </div>
                               <div className="flex gap-0.5">
                                 {[1, 2, 3, 4, 5].map((val) => (
                                   <button
                                     key={val}
                                     onClick={() => setFormSoreness(val)}
-                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                    className={`flex-1 py-1 rounded text-xs font-medium transition-all ${
                                       formSoreness === val
                                         ? 'bg-yellow-500/30 text-yellow-300 border border-yellow-500/50'
                                         : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
@@ -599,14 +599,14 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             <div>
                               <div className="flex items-center gap-1 mb-1">
                                 <Zap className="w-3 h-3 text-green-400" />
-                                <span className="text-[10px] text-grappler-400">Energy</span>
+                                <span className="text-xs text-grappler-400">Energy</span>
                               </div>
                               <div className="flex gap-0.5">
                                 {[1, 2, 3, 4, 5].map((val) => (
                                   <button
                                     key={val}
                                     onClick={() => setFormMotivation(val)}
-                                    className={`flex-1 py-1 rounded text-[10px] font-medium transition-all ${
+                                    className={`flex-1 py-1 rounded text-xs font-medium transition-all ${
                                       formMotivation === val
                                         ? 'bg-green-500/30 text-green-300 border border-green-500/50'
                                         : 'bg-grappler-700 text-grappler-500 border border-grappler-600'
@@ -741,7 +741,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     onChange={(e) => setFormRPE(Number(e.target.value))}
                     className="w-full h-2 bg-grappler-700 rounded-full appearance-none cursor-pointer accent-emerald-500"
                   />
-                  <div className="flex justify-between text-[10px] text-grappler-600 mt-1">
+                  <div className="flex justify-between text-xs text-grappler-600 mt-1">
                     <span>Easy</span>
                     <span>Moderate</span>
                     <span>Max</span>
@@ -865,7 +865,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     >
                       {/* Type badge */}
                       <span
-                        className={`text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${typeBadgeColor(session.type)}`}
+                        className={`text-xs font-bold px-2 py-1 rounded-md border whitespace-nowrap ${typeBadgeColor(session.type)}`}
                       >
                         {typeShort(session.type)}
                       </span>
@@ -877,7 +877,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             {typeLabel(session.type)}
                           </span>
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${intensityColor((session.actualIntensity || session.plannedIntensity))}`}
+                            className={`text-xs px-1.5 py-0.5 rounded border font-medium ${intensityColor((session.actualIntensity || session.plannedIntensity))}`}
                           >
                             {intensityLabel((session.actualIntensity || session.plannedIntensity))}
                           </span>
@@ -957,7 +957,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
                             {session.techniques && (
                               <div>
-                                <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">
+                                <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">
                                   Techniques
                                 </span>
                                 <p className="text-xs text-grappler-300 mt-0.5">
@@ -968,7 +968,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
                             {session.notes && (
                               <div>
-                                <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">
+                                <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">
                                   Notes
                                 </span>
                                 <p className="text-xs text-grappler-400 italic mt-0.5">
@@ -980,7 +980,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             {/* Whoop HR data (auto-synced) */}
                             {session.whoopHR && (
                               <div className="bg-grappler-900/50 rounded-lg p-3 space-y-2">
-                                <span className="text-[10px] uppercase tracking-wider text-primary-400 font-semibold flex items-center gap-1">
+                                <span className="text-xs uppercase tracking-wider text-primary-400 font-semibold flex items-center gap-1">
                                   <Flame className="w-3 h-3" /> Whoop Data
                                 </span>
                                 <div className="grid grid-cols-4 gap-2 text-xs">
@@ -1199,11 +1199,11 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                         }`}
                       >
                         <div className="text-lg font-bold">{count}</div>
-                        <div className="text-[10px] font-medium mt-0.5">
+                        <div className="text-xs font-medium mt-0.5">
                           {opt.label}
                         </div>
                         {count > 0 && (
-                          <div className="text-[10px] opacity-70 mt-0.5">{pct}%</div>
+                          <div className="text-xs opacity-70 mt-0.5">{pct}%</div>
                         )}
                       </div>
                     );

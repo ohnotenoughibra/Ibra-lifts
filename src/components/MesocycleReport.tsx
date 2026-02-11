@@ -43,9 +43,9 @@ interface MesocycleReportProps {
 function DeltaBadge({ value, suffix = '', invert = false }: { value: number; suffix?: string; invert?: boolean }) {
   const positive = invert ? value < 0 : value > 0;
   const negative = invert ? value > 0 : value < 0;
-  if (value === 0) return <span className="text-[10px] text-grappler-500 flex items-center gap-0.5"><Minus className="w-3 h-3" />same</span>;
+  if (value === 0) return <span className="text-xs text-grappler-500 flex items-center gap-0.5"><Minus className="w-3 h-3" />same</span>;
   return (
-    <span className={cn('text-[10px] font-medium flex items-center gap-0.5', positive ? 'text-green-400' : negative ? 'text-red-400' : 'text-grappler-400')}>
+    <span className={cn('text-xs font-medium flex items-center gap-0.5', positive ? 'text-green-400' : negative ? 'text-red-400' : 'text-grappler-400')}>
       {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
       {value > 0 ? '+' : ''}{value}{suffix}
     </span>
@@ -63,7 +63,7 @@ function StatCard({ label, value, sub, icon: Icon, color = 'text-primary-400' }:
     <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
       <Icon className={cn('w-4 h-4 mx-auto mb-1', color)} />
       <p className="text-lg font-bold text-grappler-100">{value}</p>
-      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs text-grappler-500 uppercase tracking-wide">{label}</p>
       {sub && <div className="mt-0.5">{sub}</div>}
     </div>
   );
@@ -175,7 +175,7 @@ export default function MesocycleReport({
               style={{ width: `${report.completionRate}%` }}
             />
           </div>
-          <p className="text-[10px] text-grappler-500 mt-2">
+          <p className="text-xs text-grappler-500 mt-2">
             {new Date(report.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             {' — '}
             {new Date(report.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -194,7 +194,7 @@ export default function MesocycleReport({
             icon={Dumbbell}
             label="Total Volume"
             value={formatVolume(report.totalVolume)}
-            sub={<span className="text-[10px] text-grappler-500">{unit}</span>}
+            sub={<span className="text-xs text-grappler-500">{unit}</span>}
             color="text-primary-400"
           />
           <StatCard
@@ -227,14 +227,14 @@ export default function MesocycleReport({
             icon={BarChart3}
             label="Avg Volume"
             value={formatVolume(report.avgVolumePerSession)}
-            sub={<span className="text-[10px] text-grappler-500">per session</span>}
+            sub={<span className="text-xs text-grappler-500">per session</span>}
             color="text-accent-400"
           />
           <StatCard
             icon={Clock}
             label="Avg Duration"
             value={`${report.avgDuration}m`}
-            sub={<span className="text-[10px] text-grappler-500">per session</span>}
+            sub={<span className="text-xs text-grappler-500">per session</span>}
             color="text-emerald-400"
           />
         </motion.div>
@@ -275,7 +275,7 @@ export default function MesocycleReport({
           <div className="space-y-2">
             {report.weekSummaries.map((week, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className={cn('text-[10px] w-12 text-right shrink-0', week.isDeload ? 'text-yellow-400' : 'text-grappler-500')}>
+                <span className={cn('text-xs w-12 text-right shrink-0', week.isDeload ? 'text-yellow-400' : 'text-grappler-500')}>
                   {week.isDeload ? 'Deload' : `Wk ${week.weekNumber}`}
                 </span>
                 <div className="flex-1 h-5 bg-grappler-800 rounded-full overflow-hidden relative">
@@ -286,11 +286,11 @@ export default function MesocycleReport({
                     )}
                     style={{ width: `${maxWeekVol > 0 ? (report.volumeByWeek[i] / maxWeekVol) * 100 : 0}%` }}
                   />
-                  <span className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-grappler-200">
+                  <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-grappler-200">
                     {formatVolume(report.volumeByWeek[i])} {unit}
                   </span>
                 </div>
-                <span className="text-[10px] text-grappler-500 w-14 text-right">
+                <span className="text-xs text-grappler-500 w-14 text-right">
                   {week.workoutsCompleted}/{week.workoutsPlanned} done
                 </span>
               </div>
@@ -316,7 +316,7 @@ export default function MesocycleReport({
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex flex-col items-center justify-end" style={{ height: '60px' }}>
-                      <span className="text-[9px] text-grappler-400 mb-0.5">{rpe > 0 ? rpe : '—'}</span>
+                      <span className="text-xs text-grappler-400 mb-0.5">{rpe > 0 ? rpe : '—'}</span>
                       <div
                         className={cn(
                           'w-full rounded-t',
@@ -325,7 +325,7 @@ export default function MesocycleReport({
                         style={{ height: `${height}%`, minHeight: rpe > 0 ? '4px' : '0px' }}
                       />
                     </div>
-                    <span className="text-[8px] text-grappler-600">
+                    <span className="text-xs text-grappler-600">
                       {report.weekSummaries[i]?.isDeload ? 'DL' : `W${i + 1}`}
                     </span>
                   </div>
@@ -351,7 +351,7 @@ export default function MesocycleReport({
               {report.topExercisesByVolume.map((ex, i) => (
                 <div key={ex.exerciseId} className="flex items-center gap-3">
                   <span className={cn(
-                    'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
                     i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
                     i === 1 ? 'bg-grappler-400/20 text-grappler-300' :
                     i === 2 ? 'bg-orange-500/20 text-orange-400' :
@@ -364,7 +364,7 @@ export default function MesocycleReport({
                       {ex.exerciseName}
                       {ex.hadPR && <Star className="w-3 h-3 text-yellow-400 shrink-0" />}
                     </p>
-                    <div className="flex items-center gap-3 text-[10px] text-grappler-500">
+                    <div className="flex items-center gap-3 text-xs text-grappler-500">
                       <span>{ex.totalSets} sets</span>
                       <span>{formatVolume(ex.totalVolume)} {unit}</span>
                       <span>Best: {ex.bestWeight}{unit}</span>
@@ -446,7 +446,7 @@ export default function MesocycleReport({
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
                 <p className="text-xs text-grappler-500">Volume</p>
                 <DeltaBadge value={report.comparison.volumeDeltaPct} suffix="%" />
-                <p className="text-[9px] text-grappler-600 mt-0.5">{report.comparison.volumeDelta > 0 ? '+' : ''}{formatVolume(report.comparison.volumeDelta)} {unit}</p>
+                <p className="text-xs text-grappler-600 mt-0.5">{report.comparison.volumeDelta > 0 ? '+' : ''}{formatVolume(report.comparison.volumeDelta)} {unit}</p>
               </div>
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
                 <p className="text-xs text-grappler-500">Avg RPE</p>
@@ -478,7 +478,7 @@ export default function MesocycleReport({
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-grappler-500 text-[10px] uppercase tracking-wider">
+                <tr className="text-grappler-500 text-xs uppercase tracking-wider">
                   <th className="text-left py-1.5 px-1">Week</th>
                   <th className="text-center py-1.5 px-1">Done</th>
                   <th className="text-right py-1.5 px-1">Volume</th>

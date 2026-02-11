@@ -640,7 +640,7 @@ export default function TrainingCalendar() {
                     {expandedExercise === exIndex && (
                       <div className="px-3 pb-3 space-y-2">
                         {/* Header */}
-                        <div className="grid grid-cols-4 gap-2 text-[10px] text-grappler-500 uppercase px-1">
+                        <div className="grid grid-cols-4 gap-2 text-xs text-grappler-500 uppercase px-1">
                           <span>Set</span>
                           <span>{weightUnit}</span>
                           <span>Reps</span>
@@ -768,19 +768,19 @@ export default function TrainingCalendar() {
       <div className="grid grid-cols-4 gap-2">
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-green-400">{monthStats.totalLifts}</p>
-          <p className="text-[10px] text-grappler-400">Lifts</p>
+          <p className="text-xs text-grappler-400">Lifts</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-blue-400">{monthStats.totalSessions}</p>
-          <p className="text-[10px] text-grappler-400">Sessions</p>
+          <p className="text-xs text-grappler-400">Sessions</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-grappler-50">{formatNumber(Math.round(monthStats.totalVolume))}</p>
-          <p className="text-[10px] text-grappler-400">Vol ({weightUnit})</p>
+          <p className="text-xs text-grappler-400">Vol ({weightUnit})</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-grappler-50">{monthStats.avgRPE > 0 ? monthStats.avgRPE.toFixed(1) : '-'}</p>
-          <p className="text-[10px] text-grappler-400">Avg RPE</p>
+          <p className="text-xs text-grappler-400">Avg RPE</p>
         </div>
       </div>
 

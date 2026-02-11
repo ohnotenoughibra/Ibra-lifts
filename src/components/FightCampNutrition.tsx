@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
+import { useSession } from 'next-auth/react';
 import {
   detectFightCampPhase,
   getPhaseConfig,
@@ -47,11 +48,12 @@ const PHASE_COLORS: Record<string, { text: string; bg: string; border: string }>
 
 export default function FightCampNutrition({ onClose }: FightCampNutritionProps) {
   const { user, competitions, bodyWeightLog, combatNutritionProfile, activeSupplements, subscription } = useAppStore();
+  const { data: session } = useSession();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showSupplements, setShowSupplements] = useState(false);
   const [showElectrolytes, setShowElectrolytes] = useState(false);
 
-  const effectiveTier = getEffectiveTier(subscription, user?.email);
+  const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const hasFightCampAccess = hasFeatureAccess('fight-camp-nutrition', effectiveTier);
 
   const weightUnit = user?.weightUnit || 'lbs';

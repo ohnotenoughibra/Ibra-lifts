@@ -2188,11 +2188,13 @@ export const useAppStore = create<AppState>()(
         set({ quickLogs: [...quickLogs, entry] });
 
         // Sync water quick logs → waterLog Record for nutrition/readiness engines
+        // waterLog stores glasses (1 glass = 250ml), QuickActions logs in ml
         if (log.type === 'water' && typeof log.value === 'number') {
           const dateStr = new Date(log.timestamp).toISOString().split('T')[0];
           const { waterLog } = get();
           const existing = waterLog[dateStr] || 0;
-          set({ waterLog: { ...waterLog, [dateStr]: existing + log.value } });
+          const glassesAdded = log.value / 250; // convert ml → glasses
+          set({ waterLog: { ...waterLog, [dateStr]: existing + glassesAdded } });
         }
       },
 
@@ -2548,13 +2550,14 @@ export const useAppStore = create<AppState>()(
         set({ waterLog: { ...waterLog, [date]: glasses } });
 
         // Sync → QuickLog so quick log UI stays in sync
+        // Convert glasses delta to ml for QuickLog (1 glass = 250ml)
         const delta = glasses - prev;
         if (delta > 0) {
           set({
             quickLogs: [...quickLogs, {
               id: uuidv4(),
               type: 'water' as const,
-              value: delta,
+              value: Math.round(delta * 250), // glasses → ml
               unit: 'ml',
               timestamp: new Date(),
             }],

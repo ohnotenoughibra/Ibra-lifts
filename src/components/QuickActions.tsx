@@ -18,6 +18,7 @@ import {
   AlertCircle,
   TrendingUp,
   Sparkles,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -25,16 +26,28 @@ import {
   type ActivityType,
   type TrainingIntensity,
   type SessionTiming,
+  type MealType,
 } from '@/lib/types';
 
 interface QuickActionsProps {
   onClose: () => void;
 }
 
-type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'readiness' | 'training' | 'mobility' | null;
+type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'readiness' | 'training' | 'mobility' | 'food' | null;
+
+const QUICK_FOODS = [
+  { name: 'Protein Shake', cal: 160, p: 30, c: 8, f: 2 },
+  { name: 'Chicken Breast', cal: 165, p: 31, c: 0, f: 3.6 },
+  { name: 'Rice (1 cup)', cal: 206, p: 4, c: 45, f: 0.4 },
+  { name: 'Eggs (2)', cal: 156, p: 12, c: 1, f: 11 },
+  { name: 'Banana', cal: 105, p: 1.3, c: 27, f: 0.4 },
+  { name: 'Greek Yogurt', cal: 130, p: 17, c: 6, f: 4.5 },
+  { name: 'Oats (1 cup)', cal: 307, p: 11, c: 55, f: 5 },
+  { name: 'Peanut Butter (2 tbsp)', cal: 190, p: 7, c: 7, f: 16 },
+] as const;
 
 export default function QuickActions({ onClose }: QuickActionsProps) {
-  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession } = useAppStore();
+  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession, addMeal, meals } = useAppStore();
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
   const [waterMl, setWaterMl] = useState(250); // Default 250ml (1 glass)
@@ -54,6 +67,18 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const [sessionTiming, setSessionTiming] = useState<SessionTiming>('standalone');
   const [perceivedExertion, setPerceivedExertion] = useState(6);
   const [mobilityMinutes, setMobilityMinutes] = useState(15);
+  const [foodName, setFoodName] = useState('');
+  const [foodCal, setFoodCal] = useState(0);
+  const [foodProtein, setFoodProtein] = useState(0);
+  const [foodCarbs, setFoodCarbs] = useState(0);
+  const [foodFat, setFoodFat] = useState(0);
+  const [foodMealType, setFoodMealType] = useState<MealType>(() => {
+    const h = new Date().getHours();
+    if (h < 11) return 'breakfast';
+    if (h < 15) return 'lunch';
+    if (h < 18) return 'snack';
+    return 'dinner';
+  });
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -69,6 +94,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const todayWater = todayLogs
     .filter(log => log.type === 'water')
     .reduce((sum, log) => sum + (typeof log.value === 'number' ? log.value : 0), 0);
+
+  const todayMeals = (meals || []).filter(m => {
+    const mDate = new Date(m.date);
+    mDate.setHours(0, 0, 0, 0);
+    return mDate.getTime() === today.getTime();
+  });
+  const todayCals = todayMeals.reduce((s, m) => s + m.calories, 0);
+  const todayProteinG = todayMeals.reduce((s, m) => s + m.protein, 0);
 
   const todayWeight = bodyWeightLog?.find(w => {
     const wDate = new Date(w.date);
@@ -123,6 +156,24 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
         addQuickLog({ type: 'mobility', value: mobilityMinutes, unit: 'min', timestamp: new Date() });
         message = `${mobilityMinutes}min mobility logged`;
         break;
+      case 'food':
+        if (!foodName.trim() || foodCal <= 0) return;
+        addMeal({
+          date: new Date(),
+          mealType: foodMealType,
+          name: foodName.trim(),
+          calories: Math.round(foodCal),
+          protein: Math.round(foodProtein),
+          carbs: Math.round(foodCarbs),
+          fat: Math.round(foodFat),
+        });
+        message = `${foodName.trim()} — ${Math.round(foodCal)} cal logged`;
+        setFoodName('');
+        setFoodCal(0);
+        setFoodProtein(0);
+        setFoodCarbs(0);
+        setFoodFat(0);
+        break;
     }
 
     setSuccessMessage(message);
@@ -139,6 +190,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       color: 'text-blue-400 bg-blue-500/20',
       stat: todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L today` : `${todayWater}ml today`,
       highlight: todayWater >= 2000, // 2L goal
+    },
+    {
+      id: 'food' as QuickLogType,
+      icon: UtensilsCrossed,
+      label: 'Food',
+      color: 'text-orange-400 bg-orange-500/20',
+      stat: todayCals > 0 ? `${todayCals} cal · ${todayProteinG}g P` : 'No meals',
+      highlight: todayMeals.length > 0,
     },
     {
       id: 'weight' as QuickLogType,
@@ -532,6 +591,118 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           </div>
         );
 
+      case 'food':
+        return (
+          <div className="space-y-4">
+            <div className="text-center">
+              <UtensilsCrossed className="w-12 h-12 mx-auto text-orange-400 mb-2" />
+              <h3 className="text-lg font-semibold text-white">Quick Food Log</h3>
+              <p className="text-sm text-gray-400">{todayCals > 0 ? `${todayCals} cal today` : 'No meals yet'}</p>
+            </div>
+
+            {/* Meal type selector */}
+            <div className="flex gap-1.5 justify-center flex-wrap">
+              {([
+                { v: 'breakfast' as MealType, l: 'Breakfast' },
+                { v: 'lunch' as MealType, l: 'Lunch' },
+                { v: 'dinner' as MealType, l: 'Dinner' },
+                { v: 'snack' as MealType, l: 'Snack' },
+                { v: 'pre_workout' as MealType, l: 'Pre-WO' },
+                { v: 'post_workout' as MealType, l: 'Post-WO' },
+              ]).map(({ v, l }) => (
+                <button
+                  key={v}
+                  onClick={() => setFoodMealType(v)}
+                  className={cn(
+                    "btn btn-xs",
+                    foodMealType === v ? "btn-primary" : "btn-ghost"
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick presets */}
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5">Quick add</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {QUICK_FOODS.map(food => (
+                  <button
+                    key={food.name}
+                    onClick={() => {
+                      setFoodName(food.name);
+                      setFoodCal(food.cal);
+                      setFoodProtein(food.p);
+                      setFoodCarbs(food.c);
+                      setFoodFat(food.f);
+                    }}
+                    className={cn(
+                      "btn btn-xs",
+                      foodName === food.name ? "btn-primary" : "btn-ghost"
+                    )}
+                  >
+                    {food.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom input */}
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={foodName}
+                onChange={(e) => setFoodName(e.target.value)}
+                placeholder="Food name"
+                className="input input-bordered w-full text-sm"
+              />
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="text-xs text-gray-500">Cal</label>
+                  <input
+                    type="number"
+                    value={foodCal || ''}
+                    onChange={(e) => setFoodCal(parseFloat(e.target.value) || 0)}
+                    className="input input-bordered w-full text-sm text-center"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Protein</label>
+                  <input
+                    type="number"
+                    value={foodProtein || ''}
+                    onChange={(e) => setFoodProtein(parseFloat(e.target.value) || 0)}
+                    className="input input-bordered w-full text-sm text-center"
+                    placeholder="0g"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Carbs</label>
+                  <input
+                    type="number"
+                    value={foodCarbs || ''}
+                    onChange={(e) => setFoodCarbs(parseFloat(e.target.value) || 0)}
+                    className="input input-bordered w-full text-sm text-center"
+                    placeholder="0g"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Fat</label>
+                  <input
+                    type="number"
+                    value={foodFat || ''}
+                    onChange={(e) => setFoodFat(parseFloat(e.target.value) || 0)}
+                    className="input input-bordered w-full text-sm text-center"
+                    placeholder="0g"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'mobility':
         return (
           <div className="space-y-4">
@@ -693,6 +864,12 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <span className="text-gray-400">Water intake</span>
                 <span className={cn(todayWater >= 2000 ? "text-green-400" : "text-gray-300")}>
                   {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`} {todayWater >= 2000 && '✓'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Meals</span>
+                <span className={cn(todayMeals.length > 0 ? "text-orange-400" : "text-gray-500")}>
+                  {todayMeals.length > 0 ? `${todayCals} cal · ${todayProteinG}g P` : 'None'}
                 </span>
               </div>
               <div className="flex justify-between">

@@ -1535,33 +1535,38 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <Apple className="w-4 h-4 text-red-400" />
-              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Nutrition</span>
+              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Nutrition</span>
             </div>
-            <span className={cn('text-2xl font-black', {
-              'text-green-400': weeklyNutrition.overall >= 80,
-              'text-blue-400': weeklyNutrition.overall >= 65 && weeklyNutrition.overall < 80,
-              'text-yellow-400': weeklyNutrition.overall >= 50 && weeklyNutrition.overall < 65,
-              'text-orange-400': weeklyNutrition.overall >= 35 && weeklyNutrition.overall < 50,
-              'text-red-400': weeklyNutrition.overall < 35,
-            })}>{weeklyNutrition.overall}/100</span>
+            <div className="text-right">
+              <span className={cn('text-2xl font-black', {
+                'text-green-400': weeklyNutrition.overall >= 80,
+                'text-blue-400': weeklyNutrition.overall >= 65 && weeklyNutrition.overall < 80,
+                'text-yellow-400': weeklyNutrition.overall >= 50 && weeklyNutrition.overall < 65,
+                'text-orange-400': weeklyNutrition.overall >= 35 && weeklyNutrition.overall < 50,
+                'text-red-400': weeklyNutrition.overall < 35,
+              })}>{weeklyNutrition.overall}</span>
+              <span className="text-xs text-grappler-500 ml-1">
+                {weeklyNutrition.overall >= 90 ? 'Dialed In' : weeklyNutrition.overall >= 75 ? 'Solid' : weeklyNutrition.overall >= 60 ? 'Room to Improve' : weeklyNutrition.overall >= 40 ? 'Needs Work' : 'Off Track'}
+              </span>
+            </div>
           </div>
           <div className="grid grid-cols-4 gap-2 text-center mb-2">
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.proteinScore}</p>
-              <p className="text-[10px] text-grappler-500">Protein</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.calorieScore}</p>
-              <p className="text-[10px] text-grappler-500">Calories</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.hydrationScore}</p>
-              <p className="text-[10px] text-grappler-500">Water</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{weeklyNutrition.consistencyScore}</p>
-              <p className="text-[10px] text-grappler-500">Tracking</p>
-            </div>
+            {([
+              { label: 'Protein', score: weeklyNutrition.proteinScore, desc: 'vs target' },
+              { label: 'Calories', score: weeklyNutrition.calorieScore, desc: 'vs target' },
+              { label: 'Water', score: weeklyNutrition.hydrationScore, desc: 'intake' },
+              { label: 'Tracking', score: weeklyNutrition.consistencyScore, desc: 'logged' },
+            ] as const).map(({ label, score, desc }) => {
+              const grade = score >= 90 ? 'On Point' : score >= 75 ? 'Good' : score >= 60 ? 'Okay' : score >= 40 ? 'Low' : 'Poor';
+              const color = score >= 90 ? 'text-green-400' : score >= 75 ? 'text-blue-400' : score >= 60 ? 'text-yellow-400' : score >= 40 ? 'text-orange-400' : 'text-red-400';
+              return (
+                <div key={label}>
+                  <p className={cn('text-xs font-bold', color)}>{grade}</p>
+                  <p className="text-[10px] text-grappler-400 font-medium mt-0.5">{label}</p>
+                  <p className="text-[9px] text-grappler-600">{score}% {desc}</p>
+                </div>
+              );
+            })}
           </div>
           {nutritionInsights && (
             <p className="text-[11px] text-grappler-400">{nutritionInsights.topInsight}</p>

@@ -206,6 +206,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
+                aria-label="Decrease water amount"
                 onClick={() => setWaterMl(Math.max(100, waterMl - 100))}
                 className="btn btn-circle btn-ghost"
               >
@@ -213,6 +214,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </button>
               <div className="text-4xl font-bold text-white w-28 text-center">{waterMl}ml</div>
               <button
+                aria-label="Increase water amount"
                 onClick={() => setWaterMl(waterMl + 100)}
                 className="btn btn-circle btn-ghost"
               >
@@ -246,6 +248,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
+                aria-label="Decrease weight"
                 onClick={() => setWeightLbs(Math.max(50, weightLbs - 0.5))}
                 className="btn btn-circle btn-ghost"
               >
@@ -259,6 +262,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 step="0.1"
               />
               <button
+                aria-label="Increase weight"
                 onClick={() => setWeightLbs(weightLbs + 0.5)}
                 className="btn btn-circle btn-ghost"
               >
@@ -280,6 +284,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               <label className="text-sm text-gray-400">Hours slept</label>
               <div className="flex items-center justify-center gap-4">
                 <button
+                  aria-label="Decrease sleep hours"
                   onClick={() => setSleepHours(Math.max(0, sleepHours - 0.5))}
                   className="btn btn-circle btn-ghost"
                 >
@@ -287,6 +292,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </button>
                 <div className="text-4xl font-bold text-white w-20 text-center">{sleepHours}h</div>
                 <button
+                  aria-label="Increase sleep hours"
                   onClick={() => setSleepHours(Math.min(14, sleepHours + 0.5))}
                   className="btn btn-circle btn-ghost"
                 >
@@ -393,6 +399,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               <label className="text-sm text-gray-400">Duration (minutes)</label>
               <div className="flex items-center justify-center gap-4">
                 <button
+                  aria-label="Decrease training duration"
                   onClick={() => setTrainingMinutes(Math.max(5, trainingMinutes - 15))}
                   className="btn btn-circle btn-ghost"
                 >
@@ -400,6 +407,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </button>
                 <div className="text-4xl font-bold text-white w-24 text-center">{trainingMinutes}</div>
                 <button
+                  aria-label="Increase training duration"
                   onClick={() => setTrainingMinutes(trainingMinutes + 15)}
                   className="btn btn-circle btn-ghost"
                 >
@@ -533,6 +541,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
+                aria-label="Decrease mobility duration"
                 onClick={() => setMobilityMinutes(Math.max(5, mobilityMinutes - 5))}
                 className="btn btn-circle btn-ghost"
               >
@@ -540,6 +549,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </button>
               <div className="text-4xl font-bold text-white w-24 text-center">{mobilityMinutes}</div>
               <button
+                aria-label="Increase mobility duration"
                 onClick={() => setMobilityMinutes(mobilityMinutes + 5)}
                 className="btn btn-circle btn-ghost"
               >
@@ -574,7 +584,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
+          <button aria-label="Close quick actions" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             <X className="w-5 h-5" />
           </button>
           <div className="flex-1">

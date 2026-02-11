@@ -175,10 +175,10 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
           className="w-full max-w-lg bg-grappler-900 border border-grappler-700 rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
         >
           {/* Header */}
-          <div className="p-5 bg-gradient-to-b from-amber-500/10 to-transparent border-b border-grappler-800">
+          <div className="p-5 bg-gradient-to-b from-sky-500/10 to-transparent border-b border-grappler-800">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-sky-400" />
               </div>
               <div className="flex-1">
                 <h2 className="font-bold text-grappler-50 text-lg">Sync Conflict Detected</h2>
@@ -231,14 +231,14 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
-                              <p className="text-[10px] text-blue-400 uppercase tracking-wide mb-0.5">This Device</p>
+                              <p className="text-xs text-blue-400 uppercase tracking-wide mb-0.5">This Device</p>
                               <p className="text-xs text-grappler-200 font-medium">{field.localValue}</p>
-                              {field.localDetail && <p className="text-[10px] text-grappler-500 mt-0.5">{field.localDetail}</p>}
+                              {field.localDetail && <p className="text-xs text-grappler-500 mt-0.5">{field.localDetail}</p>}
                             </div>
                             <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2">
-                              <p className="text-[10px] text-purple-400 uppercase tracking-wide mb-0.5">Cloud</p>
+                              <p className="text-xs text-purple-400 uppercase tracking-wide mb-0.5">Cloud</p>
                               <p className="text-xs text-grappler-200 font-medium">{field.remoteValue}</p>
-                              {field.remoteDetail && <p className="text-[10px] text-grappler-500 mt-0.5">{field.remoteDetail}</p>}
+                              {field.remoteDetail && <p className="text-xs text-grappler-500 mt-0.5">{field.remoteDetail}</p>}
                             </div>
                           </div>
                         </div>
@@ -269,13 +269,13 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-grappler-100">{option.title}</p>
                         {option.id === 'merge' && (
-                          <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
                             Recommended
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-grappler-400 mt-0.5">{option.description}</p>
-                      <p className="text-[10px] text-grappler-500 mt-1">{option.detail}</p>
+                      <p className="text-xs text-grappler-500 mt-1">{option.detail}</p>
                     </div>
                     {selectedResolution === option.id && (
                       <Check className="w-5 h-5 text-primary-400 mt-0.5" />

@@ -165,7 +165,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <button
+            <button aria-label="Go back"
               onClick={onClose}
               className="p-2 rounded-lg bg-grappler-800 text-grappler-300 hover:text-grappler-100 transition-colors"
             >
@@ -217,7 +217,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     value={form.name}
                     onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Gi Pull-Ups"
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
                   />
                 </div>
 
@@ -429,7 +429,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe how to perform this exercise..."
                     rows={3}
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600 resize-none"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600 resize-none"
                   />
                 </div>
 
@@ -473,7 +473,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                         }
                       }}
                       placeholder="Add a coaching cue..."
-                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600 text-sm"
+                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600 text-sm"
                     />
                     <button
                       onClick={handleAddCue}
@@ -495,7 +495,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     value={form.videoUrl}
                     onChange={(e) => setForm((prev) => ({ ...prev, videoUrl: e.target.value }))}
                     placeholder="https://youtube.com/watch?v=..."
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
                   />
                 </div>
 
@@ -527,7 +527,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search your exercises..."
-              className="w-full bg-grappler-800 border border-grappler-700 rounded-lg pl-10 pr-3 py-2.5 text-sm text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+              className="w-full bg-grappler-800 border border-grappler-700 rounded-lg pl-10 pr-3 py-2.5 text-sm text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
             />
           </motion.div>
         )}
@@ -552,12 +552,12 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                           {exercise.name}
                         </h3>
                         {exercise.grapplerFriendly && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-500/20 text-accent-400">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-accent-500/20 text-accent-400">
                             GRAPPLER
                           </span>
                         )}
                       </div>
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-500/20 text-primary-400 border border-primary-500/30 capitalize">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-primary-500/20 text-primary-400 border border-primary-500/30 capitalize">
                         {exercise.category.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -592,7 +592,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                       {exercise.primaryMuscles.map((muscle) => (
                         <span
                           key={muscle}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-grappler-700 text-grappler-300"
+                          className="px-2 py-0.5 rounded-full text-xs font-medium bg-grappler-700 text-grappler-300"
                         >
                           {formatMuscle(muscle)}
                         </span>
@@ -606,7 +606,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                       {exercise.equipmentRequired.map((eq) => (
                         <span
                           key={eq}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-grappler-700/60 text-grappler-400"
+                          className="px-2 py-0.5 rounded-full text-xs font-medium bg-grappler-700/60 text-grappler-400"
                         >
                           {eq.replace(/_/g, ' ')}
                         </span>
@@ -616,13 +616,13 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
 
                   {/* Strength / Aesthetic badges */}
                   <div className="flex items-center gap-3 mt-2 pt-2 border-t border-grappler-700/50">
-                    <span className="text-[10px] text-grappler-400">
+                    <span className="text-xs text-grappler-400">
                       Strength: <span className="text-grappler-200 font-medium">{exercise.strengthValue}/10</span>
                     </span>
-                    <span className="text-[10px] text-grappler-400">
+                    <span className="text-xs text-grappler-400">
                       Aesthetic: <span className="text-grappler-200 font-medium">{exercise.aestheticValue}/10</span>
                     </span>
-                    <span className="text-[10px] text-grappler-400 capitalize">
+                    <span className="text-xs text-grappler-400 capitalize">
                       {exercise.movementPattern}
                     </span>
                   </div>

@@ -276,8 +276,8 @@ export default function Home() {
             className="fixed bottom-24 left-4 right-4 z-50 bg-grappler-800 border border-grappler-700 rounded-2xl p-4 shadow-xl"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Bell className="w-5 h-5 text-orange-400" />
+              <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Bell className="w-5 h-5 text-blue-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-grappler-100 text-sm">Streak Reminders</h3>
@@ -290,7 +290,7 @@ export default function Home() {
             <div className="flex gap-2 mt-3">
               <button
                 onClick={handleEnableNotifications}
-                className="flex-1 bg-orange-500 text-white font-medium text-sm py-2 rounded-xl hover:bg-orange-400 transition-colors"
+                className="flex-1 bg-blue-500 text-white font-medium text-sm py-2 rounded-xl hover:bg-blue-400 transition-colors"
               >
                 Enable Reminders
               </button>

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, CombatTimeOfDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, Plus, Check } from 'lucide-react';
 
 const TOTAL_STEPS = 5;
 
@@ -242,7 +242,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
                   ].map((b) => (
                     <div key={b.label} className="flex items-center gap-1.5">
                       <span className="text-sm">{b.icon}</span>
-                      <span className="text-[11px] text-grappler-400">{b.label}</span>
+                      <span className="text-xs text-grappler-400">{b.label}</span>
                     </div>
                   ))}
                 </div>
@@ -341,7 +341,7 @@ function Step0_Disclaimer({
   return (
     <div className="space-y-5">
       <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Shield className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-xl font-bold text-grappler-50">Before we begin</h2>
@@ -447,7 +447,7 @@ function Step1_WhoAreYou({
 
   const colorMap: Record<string, { border: string; bg: string; text: string }> = {
     red: { border: 'border-red-500', bg: 'bg-red-500/10', text: 'text-red-400' },
-    orange: { border: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+    orange: { border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
     purple: { border: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400' },
     yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
     green: { border: 'border-green-500', bg: 'bg-green-500/10', text: 'text-green-400' },
@@ -545,7 +545,7 @@ function Step1_WhoAreYou({
                     )}
                   >
                     <p className="text-sm font-medium text-grappler-100">{sport.title}</p>
-                    <p className="text-[10px] text-grappler-400">{sport.desc}</p>
+                    <p className="text-xs text-grappler-400">{sport.desc}</p>
                   </button>
                 );
               })}
@@ -631,7 +631,7 @@ function Step1_WhoAreYou({
                   <button
                     type="button"
                     onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+                    className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
                   >
                     {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
                   </button>
@@ -731,7 +731,7 @@ function Step1_WhoAreYou({
                     )}
                   >
                     <p className="text-xs font-medium">{level.label}</p>
-                    <p className="text-[10px] opacity-70">{level.desc}</p>
+                    <p className="text-xs opacity-70">{level.desc}</p>
                   </button>
                 ))}
               </div>
@@ -774,10 +774,10 @@ function Step1_WhoAreYou({
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">{style.label}</p>
                       {style.rec && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-500/30 text-primary-300">Recommended</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/30 text-primary-300">Recommended</span>
                       )}
                     </div>
-                    <p className="text-[11px] opacity-70 mt-0.5">{style.desc}</p>
+                    <p className="text-xs opacity-70 mt-0.5">{style.desc}</p>
                   </button>
                 ))}
               </div>
@@ -976,7 +976,7 @@ function Step2_HowYouTrain({
                 )}
               >
                 <span className={cn(
-                  'text-[10px] font-medium',
+                  'text-xs font-medium',
                   isEditing ? 'text-primary-300' : 'text-grappler-400'
                 )}>{name}</span>
                 <div className="flex flex-col gap-0.5 items-center">
@@ -987,7 +987,7 @@ function Step2_HowYouTrain({
                     <div key={ci} className="w-5 h-1.5 rounded-full bg-red-400" title="Combat" />
                   ))}
                   {isRest && (
-                    <span className="text-[8px] text-grappler-600 mt-0.5">Rest</span>
+                    <span className="text-xs text-grappler-600 mt-0.5">Rest</span>
                   )}
                 </div>
               </button>
@@ -999,12 +999,12 @@ function Step2_HowYouTrain({
         <div className="flex items-center justify-center gap-4 mt-2">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-1.5 rounded-full bg-primary-400" />
-            <span className="text-[10px] text-grappler-500">Lift</span>
+            <span className="text-xs text-grappler-500">Lift</span>
           </div>
           {isCombat && (
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-1.5 rounded-full bg-red-400" />
-              <span className="text-[10px] text-grappler-500">Combat</span>
+              <span className="text-xs text-grappler-500">Combat</span>
             </div>
           )}
         </div>
@@ -1052,7 +1052,7 @@ function Step2_HowYouTrain({
                 </button>
               </div>
               {liftDays.includes(editingDay) && liftDays.length > data.sessionsPerWeek && (
-                <p className="text-[10px] text-yellow-400/80">
+                <p className="text-xs text-yellow-400/80">
                   You have more lift days than your target — remove one or increase days/week
                 </p>
               )}
@@ -1074,7 +1074,7 @@ function Step2_HowYouTrain({
                             key={t}
                             onClick={() => updateCombatTime(editingDay, si, t)}
                             className={cn(
-                              'px-2 py-1 rounded text-[10px] font-medium transition-all',
+                              'px-2 py-1 rounded text-xs font-medium transition-all',
                               session.timeOfDay === t
                                 ? 'bg-red-500/20 text-red-300 border border-red-500/40'
                                 : 'bg-grappler-700 text-grappler-400'
@@ -1095,7 +1095,7 @@ function Step2_HowYouTrain({
 
                   <button
                     onClick={() => addCombatSession(editingDay)}
-                    className="flex items-center gap-1.5 text-[11px] text-grappler-400 hover:text-red-300 pl-7 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-grappler-400 hover:text-red-300 pl-7 transition-colors"
                   >
                     <Plus className="w-3 h-3" />
                     Add combat session
@@ -1172,7 +1172,7 @@ function Step3_BaselineLifts({
               onChange={(e) => setLift(key, Number(e.target.value))}
               placeholder={String(defaultVal)}
               className="flex-1 bg-grappler-700/50 rounded-lg px-3 py-2 text-grappler-100 text-sm
-                border border-grappler-600/50 focus:border-primary-500 focus:outline-none"
+                border border-grappler-600/50 focus-visible:border-primary-500 focus-visible:outline-none"
             />
             <span className="text-xs text-grappler-500 w-8">{weightUnit}</span>
           </div>
@@ -1230,67 +1230,139 @@ function Step4_Ready({ data }: { data: OnboardingData }) {
     return 'Varied';
   };
 
+  const weekCount = data.mesoCycleWeeks || 5;
+  const dayLabels = (data.trainingDays || []).map(d => {
+    const names: Record<string, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+    return names[d] || d;
+  });
+
   return (
     <div className="space-y-6">
+      {/* Hero "Built For You" reveal */}
       <div className="text-center">
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.1 }}
-          className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-5"
+          initial={{ scale: 0, rotate: -20 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', damping: 10, stiffness: 150, delay: 0.1 }}
+          className="w-20 h-20 bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary-500/30"
         >
-          <Sparkles className="w-8 h-8 text-white" />
+          <Sparkles className="w-10 h-10 text-white" />
         </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-xs font-bold uppercase tracking-widest text-primary-400 mb-2"
+        >
+          Built for you
+        </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-xl font-bold text-grappler-50"
+          transition={{ delay: 0.3 }}
+          className="text-2xl font-black text-grappler-50"
         >
-          You&apos;re all set, {data.name}
+          {data.name}&apos;s {getGoalLabel()} program
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="text-grappler-400 text-sm mt-2"
+          transition={{ delay: 0.45 }}
+          className="text-grappler-400 text-sm mt-2 max-w-xs mx-auto"
         >
-          {data.sessionsPerWeek}-day {getSplitLabel()} program for {getIdentityLabel()} — focused on {getGoalLabel()}
+          {weekCount}-week {getPeriodizationLabel().toLowerCase()} periodization, {data.sessionsPerWeek}x/week {getSplitLabel()} — tailored for {getIdentityLabel().toLowerCase()}
         </motion.p>
       </div>
 
-      {/* Quick stats */}
+      {/* Program blueprint card */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45 }}
-        className="grid grid-cols-2 gap-2"
+        transition={{ delay: 0.55 }}
+        className="bg-gradient-to-br from-primary-500/10 to-accent-500/5 border border-primary-500/20 rounded-2xl p-4"
       >
-        <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
-          <p className="text-lg font-bold text-grappler-100">{data.sessionsPerWeek}</p>
-          <p className="text-[10px] text-grappler-400">Days/Week</p>
+        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+          <div>
+            <p className="text-2xl font-black text-primary-400">{data.sessionsPerWeek}</p>
+            <p className="text-xs text-grappler-400">Days/Week</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-accent-400">{weekCount}</p>
+            <p className="text-xs text-grappler-400">Weeks</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black text-grappler-100">{data.sessionDurationMinutes || 60}m</p>
+            <p className="text-xs text-grappler-400">Per Session</p>
+          </div>
         </div>
-        <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
-          <p className="text-lg font-bold text-grappler-100">{getSplitLabel()}</p>
-          <p className="text-[10px] text-grappler-400">Split</p>
+
+        {/* Training days */}
+        {dayLabels.length > 0 && (
+          <div className="flex items-center justify-center gap-1.5 mb-3">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+              <div
+                key={d}
+                className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium',
+                  dayLabels.includes(d)
+                    ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
+                    : 'bg-grappler-800/40 text-grappler-600'
+                )}
+              >
+                {d.charAt(0)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
+            <p className="text-sm font-bold text-grappler-100">{getSplitLabel()}</p>
+            <p className="text-xs text-grappler-500">Split</p>
+          </div>
+          <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
+            <p className="text-sm font-bold text-grappler-100">{getPeriodizationLabel()}</p>
+            <p className="text-xs text-grappler-500">Periodization</p>
+          </div>
         </div>
-        <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
-          <p className="text-lg font-bold text-grappler-100">{getPeriodizationLabel()}</p>
-          <p className="text-[10px] text-grappler-400">Style</p>
-        </div>
-        <div className="bg-grappler-800/50 rounded-lg p-3 text-center">
-          <p className="text-lg font-bold text-grappler-100">{data.sessionDurationMinutes || 60}m</p>
-          <p className="text-[10px] text-grappler-400">Per Session</p>
-        </div>
+      </motion.div>
+
+      {/* What makes it yours */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="space-y-2"
+      >
+        {[
+          data.trainingIdentity === 'combat'
+            ? `Sport-aware programming — lifts won't wreck your ${getIdentityLabel().toLowerCase()} sessions`
+            : 'Progressive overload built in — volume ramps each week',
+          `${data.experienceLevel === 'beginner' ? 'Beginner-friendly' : data.experienceLevel === 'advanced' ? 'Advanced' : 'Intermediate'} exercise selection`,
+          'Auto-adjusts to your recovery and readiness',
+        ].map((line, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.8 + i * 0.1 }}
+            className="flex items-start gap-2.5"
+          >
+            <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Check className="w-3 h-3 text-primary-400" />
+            </div>
+            <p className="text-xs text-grappler-300">{line}</p>
+          </motion.div>
+        ))}
       </motion.div>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.55 }}
-        className="text-xs text-grappler-500 text-center"
+        transition={{ delay: 1.1 }}
+        className="text-xs text-grappler-600 text-center"
       >
-        Customize equipment, session length, units, and more in Settings
+        Customize everything in Settings anytime
       </motion.p>
     </div>
   );

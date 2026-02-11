@@ -30,11 +30,11 @@ function calculateBMI(weightKg: number, heightCm: number): number {
  */
 function getBMICategory(bmi: number): { label: string; color: string; range: string; description: string } {
   if (bmi < 16) return { label: 'Severe Underweight', color: 'text-red-400', range: '< 16', description: 'Significantly below healthy range. Consult a healthcare provider.' };
-  if (bmi < 17) return { label: 'Moderate Underweight', color: 'text-orange-400', range: '16–16.9', description: 'Below healthy range. May indicate insufficient nutrition.' };
+  if (bmi < 17) return { label: 'Moderate Underweight', color: 'text-blue-400', range: '16–16.9', description: 'Below healthy range. May indicate insufficient nutrition.' };
   if (bmi < 18.5) return { label: 'Mild Underweight', color: 'text-yellow-400', range: '17–18.4', description: 'Slightly below normal. Monitor intake and energy levels.' };
   if (bmi < 25) return { label: 'Normal', color: 'text-green-400', range: '18.5–24.9', description: 'Healthy weight range associated with lowest health risks.' };
   if (bmi < 30) return { label: 'Overweight', color: 'text-yellow-400', range: '25–29.9', description: 'Above normal range. For athletes, check body fat % — muscle mass can skew BMI.' };
-  if (bmi < 35) return { label: 'Obese Class I', color: 'text-orange-400', range: '30–34.9', description: 'Moderate obesity. Elevated risk for metabolic conditions.' };
+  if (bmi < 35) return { label: 'Obese Class I', color: 'text-blue-400', range: '30–34.9', description: 'Moderate obesity. Elevated risk for metabolic conditions.' };
   if (bmi < 40) return { label: 'Obese Class II', color: 'text-red-400', range: '35–39.9', description: 'Severe obesity. Significantly elevated health risks.' };
   return { label: 'Obese Class III', color: 'text-red-500', range: '≥ 40', description: 'Very severe obesity. Medical consultation strongly recommended.' };
 }
@@ -61,13 +61,13 @@ function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string
     if (bf < 14) return { label: 'Athletic', color: 'text-green-400', range: '6–13%' };
     if (bf < 18) return { label: 'Fit', color: 'text-blue-400', range: '14–17%' };
     if (bf < 25) return { label: 'Average', color: 'text-yellow-400', range: '18–24%' };
-    return { label: 'Above Average', color: 'text-orange-400', range: '25%+' };
+    return { label: 'Above Average', color: 'text-blue-400', range: '25%+' };
   } else {
     if (bf < 14) return { label: 'Essential', color: 'text-red-400', range: '10–13%' };
     if (bf < 21) return { label: 'Athletic', color: 'text-green-400', range: '14–20%' };
     if (bf < 25) return { label: 'Fit', color: 'text-blue-400', range: '21–24%' };
     if (bf < 32) return { label: 'Average', color: 'text-yellow-400', range: '25–31%' };
-    return { label: 'Above Average', color: 'text-orange-400', range: '32%+' };
+    return { label: 'Above Average', color: 'text-blue-400', range: '32%+' };
   }
 }
 
@@ -76,7 +76,7 @@ const BMI_SCALE_SEGMENTS = [
   { label: 'UW', max: 18.5, color: 'bg-yellow-400' },
   { label: 'Normal', max: 25, color: 'bg-green-400' },
   { label: 'OW', max: 30, color: 'bg-yellow-500' },
-  { label: 'OB I', max: 35, color: 'bg-orange-400' },
+  { label: 'OB I', max: 35, color: 'bg-blue-400' },
   { label: 'OB II', max: 40, color: 'bg-red-400' },
   { label: 'OB III', max: 50, color: 'bg-red-600' },
 ];
@@ -108,7 +108,7 @@ function BMIScaleBar({ bmi }: { bmi: number }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-500">
         <span>18.5</span>
         <span>25</span>
         <span>30</span>
@@ -127,14 +127,14 @@ function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
         { label: 'Athletic', max: 14, color: 'bg-green-400' },
         { label: 'Fit', max: 18, color: 'bg-blue-400' },
         { label: 'Avg', max: 25, color: 'bg-yellow-400' },
-        { label: 'Above', max: 40, color: 'bg-orange-400' },
+        { label: 'Above', max: 40, color: 'bg-blue-400' },
       ]
     : [
         { label: 'Ess', max: 14, color: 'bg-red-400' },
         { label: 'Athletic', max: 21, color: 'bg-green-400' },
         { label: 'Fit', max: 25, color: 'bg-blue-400' },
         { label: 'Avg', max: 32, color: 'bg-yellow-400' },
-        { label: 'Above', max: 45, color: 'bg-orange-400' },
+        { label: 'Above', max: 45, color: 'bg-blue-400' },
       ];
   const minBF = sex === 'male' ? 2 : 8;
   const maxBF = sex === 'male' ? 40 : 45;
@@ -160,7 +160,7 @@ function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-500">
         {sex === 'male' ? (
           <>
             <span>6%</span>
@@ -421,7 +421,7 @@ const SUGGESTION_ICONS = {
 
 const SUGGESTION_STYLES = {
   info: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', iconColor: 'text-blue-400' },
-  warning: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', iconColor: 'text-amber-400' },
+  warning: { border: 'border-sky-500/20', bg: 'bg-sky-500/5', iconColor: 'text-sky-400' },
   success: { border: 'border-green-500/20', bg: 'bg-green-500/5', iconColor: 'text-green-400' },
 };
 
@@ -672,7 +672,7 @@ export default function BodyWeightTracker() {
                         {cat.label}
                       </span>
                     </div>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {cat.range}</p>
+                    <p className="text-xs text-grappler-500 mt-0.5">Range: {cat.range}</p>
                     <BMIScaleBar bmi={displayBMI} />
                   </div>
                 );
@@ -694,7 +694,7 @@ export default function BodyWeightTracker() {
                         {bfCat.label}
                       </span>
                     </div>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
+                    <p className="text-xs text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
                     <BodyFatScaleBar bf={latestBF} sex={sex} />
                   </div>
                 );
@@ -706,7 +706,7 @@ export default function BodyWeightTracker() {
 
           {/* BMI description (de-emphasized for athletes) */}
           {(latestSavedBMI || bmi) && (
-            <p className="text-[10px] text-grappler-500 leading-relaxed">
+            <p className="text-xs text-grappler-500 leading-relaxed">
               {getBMICategory(latestSavedBMI || bmi!).description}
               {' '}BMI is less reliable for muscular athletes — body fat % is more meaningful.
             </p>
@@ -722,7 +722,7 @@ export default function BodyWeightTracker() {
               leanMass,
             );
             const color = ea.status === 'critical' ? 'text-red-400 border-red-500/30 bg-red-500/10'
-              : ea.status === 'low' ? 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+              : ea.status === 'low' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10'
               : ea.status === 'caution' ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
               : 'text-green-400 border-green-500/30 bg-green-500/10';
             return (
@@ -731,9 +731,9 @@ export default function BodyWeightTracker() {
                   <span className="text-xs font-medium">Energy Availability</span>
                   <span className="text-sm font-bold">{Math.round(ea.ea)} kcal/kg FFM</span>
                 </div>
-                <p className="text-[10px] mt-0.5 opacity-80">{ea.message}</p>
+                <p className="text-xs mt-0.5 opacity-80">{ea.message}</p>
                 {ea.status === 'critical' && (
-                  <p className="text-[10px] mt-1 flex items-center gap-1">
+                  <p className="text-xs mt-1 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     RED-S risk: Do not restrict further
                   </p>
@@ -782,15 +782,15 @@ export default function BodyWeightTracker() {
                 <div className="space-y-3 pt-1">
                   {/* BMI Benchmarks */}
                   <div>
-                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">BMI Classification (WHO)</p>
+                    <p className="text-xs font-semibold text-grappler-300 mb-1.5">BMI Classification (WHO)</p>
                     <div className="space-y-1">
                       {[
                         { range: '< 16', label: 'Severe Underweight', color: 'bg-red-400' },
-                        { range: '16–16.9', label: 'Moderate Underweight', color: 'bg-orange-400' },
+                        { range: '16–16.9', label: 'Moderate Underweight', color: 'bg-blue-400' },
                         { range: '17–18.4', label: 'Mild Underweight', color: 'bg-yellow-400' },
                         { range: '18.5–24.9', label: 'Normal', color: 'bg-green-400' },
                         { range: '25–29.9', label: 'Overweight', color: 'bg-yellow-500' },
-                        { range: '30–34.9', label: 'Obese Class I', color: 'bg-orange-400' },
+                        { range: '30–34.9', label: 'Obese Class I', color: 'bg-blue-400' },
                         { range: '35–39.9', label: 'Obese Class II', color: 'bg-red-400' },
                         { range: '≥ 40', label: 'Obese Class III', color: 'bg-red-600' },
                       ].map(row => {
@@ -799,7 +799,7 @@ export default function BodyWeightTracker() {
                           <div
                             key={row.label}
                             className={cn(
-                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              'flex items-center gap-2 px-2 py-1 rounded text-xs',
                               isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
                             )}
                           >
@@ -810,19 +810,19 @@ export default function BodyWeightTracker() {
                             <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
                               {row.label}
                             </span>
-                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                            {isActive && <span className="ml-auto text-primary-400 text-xs font-bold">YOU</span>}
                           </div>
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-grappler-600 mt-1.5 leading-relaxed">
                       BMI can overestimate body fat in muscular athletes. Use alongside body fat % for a complete picture.
                     </p>
                   </div>
 
                   {/* Body Fat Benchmarks */}
                   <div className="border-t border-grappler-700/50 pt-2">
-                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">
+                    <p className="text-xs font-semibold text-grappler-300 mb-1.5">
                       Body Fat % Classification (ACE) — {sex === 'male' ? 'Male' : 'Female'}
                     </p>
                     <div className="space-y-1">
@@ -832,14 +832,14 @@ export default function BodyWeightTracker() {
                             { range: '6–13%', label: 'Athletic', color: 'bg-green-400' },
                             { range: '14–17%', label: 'Fit', color: 'bg-blue-400' },
                             { range: '18–24%', label: 'Average', color: 'bg-yellow-400' },
-                            { range: '25%+', label: 'Above Average', color: 'bg-orange-400' },
+                            { range: '25%+', label: 'Above Average', color: 'bg-blue-400' },
                           ]
                         : [
                             { range: '10–13%', label: 'Essential', color: 'bg-red-400' },
                             { range: '14–20%', label: 'Athletic', color: 'bg-green-400' },
                             { range: '21–24%', label: 'Fit', color: 'bg-blue-400' },
                             { range: '25–31%', label: 'Average', color: 'bg-yellow-400' },
-                            { range: '32%+', label: 'Above Average', color: 'bg-orange-400' },
+                            { range: '32%+', label: 'Above Average', color: 'bg-blue-400' },
                           ]
                       ).map(row => {
                         const isActive = latestBF != null && row.label === getBodyFatCategory(latestBF, sex).label;
@@ -847,7 +847,7 @@ export default function BodyWeightTracker() {
                           <div
                             key={row.label}
                             className={cn(
-                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              'flex items-center gap-2 px-2 py-1 rounded text-xs',
                               isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
                             )}
                           >
@@ -858,12 +858,12 @@ export default function BodyWeightTracker() {
                             <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
                               {row.label}
                             </span>
-                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                            {isActive && <span className="ml-auto text-primary-400 text-xs font-bold">YOU</span>}
                           </div>
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-grappler-600 mt-1.5 leading-relaxed">
                       {sex === 'male'
                         ? 'Essential fat is the minimum needed for physiological function. Sustained levels below 6% are not recommended.'
                         : 'Women need higher essential fat for hormonal health. Below 14% can disrupt menstrual function and bone density.'}
@@ -880,7 +880,7 @@ export default function BodyWeightTracker() {
       {healthSuggestions.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-grappler-300 uppercase tracking-wide flex items-center gap-1.5">
-            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+            <Lightbulb className="w-3.5 h-3.5 text-sky-400" />
             Suggestions
           </h4>
           {healthSuggestions.map((suggestion, i) => {
@@ -976,7 +976,7 @@ export default function BodyWeightTracker() {
                         <p className="text-xs text-grappler-400 mb-2">Measurements (for body fat calculation)</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Waist (cm)</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Waist (cm)</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -987,7 +987,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Neck (cm)</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Neck (cm)</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -999,7 +999,7 @@ export default function BodyWeightTracker() {
                           </div>
                           {sex === 'female' && (
                             <div className="col-span-2">
-                              <label className="text-[11px] text-grappler-500 mb-0.5 block">Hip (cm)</label>
+                              <label className="text-xs text-grappler-500 mb-0.5 block">Hip (cm)</label>
                               <input
                                 type="number"
                                 inputMode="decimal"
@@ -1021,7 +1021,7 @@ export default function BodyWeightTracker() {
                           <span className={cn('text-xs font-medium', getBodyFatCategory(autoCalcBF, sex).color)}>
                             {getBodyFatCategory(autoCalcBF, sex).label}
                           </span>
-                          <span className="text-[10px] text-grappler-600 ml-auto">Navy method</span>
+                          <span className="text-xs text-grappler-600 ml-auto">Navy method</span>
                         </div>
                       )}
 
@@ -1030,7 +1030,7 @@ export default function BodyWeightTracker() {
                         <p className="text-xs text-grappler-500">Or enter manually</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Body Fat %</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Body Fat %</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -1044,7 +1044,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">BMI</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">BMI</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -1059,12 +1059,12 @@ export default function BodyWeightTracker() {
                           </div>
                         </div>
                         {useManualBF && formBodyFat && (
-                          <p className="text-[11px] text-grappler-500">
+                          <p className="text-xs text-grappler-500">
                             Using your manual body fat value. Clear the field to use Navy method calculation.
                           </p>
                         )}
                         {useManualBMI && formBMI && (
-                          <p className="text-[11px] text-grappler-500">
+                          <p className="text-xs text-grappler-500">
                             Using your manual BMI value. Clear the field to auto-calculate from weight & height.
                           </p>
                         )}
@@ -1107,12 +1107,12 @@ export default function BodyWeightTracker() {
             <LineChart data={chartData}>
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 domain={['auto', 'auto']}
@@ -1156,12 +1156,12 @@ export default function BodyWeightTracker() {
             <LineChart data={bfChartData}>
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 domain={['auto', 'auto']}
@@ -1206,12 +1206,12 @@ export default function BodyWeightTracker() {
                       {entry.weight} {entry.unit}
                     </p>
                     {comp?.bmi && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
                         BMI {comp.bmi}
                       </span>
                     )}
                     {comp?.bodyFatPercent != null && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
                         {comp.bodyFatPercent}% BF
                       </span>
                     )}
@@ -1239,9 +1239,12 @@ export default function BodyWeightTracker() {
       )}
 
       {sortedLog.length === 0 && !showAddForm && (
-        <p className="text-sm text-grappler-500 text-center py-6">
-          No body weight entries yet. Tap &quot;Log&quot; to start tracking.
-        </p>
+        <div className="text-center py-8">
+          <p className="text-sm font-medium text-grappler-300">Start tracking your weight</p>
+          <p className="text-xs text-grappler-500 mt-1 max-w-[260px] mx-auto">
+            Log 2+ entries to see trends. Weekly weigh-ins are enough to track progress during a bulk or cut.
+          </p>
+        </div>
       )}
     </div>
   );

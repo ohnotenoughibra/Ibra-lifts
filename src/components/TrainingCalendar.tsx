@@ -374,11 +374,11 @@ export default function TrainingCalendar() {
                           <div className={cn(
                             'w-8 h-8 rounded-lg flex items-center justify-center',
                             session.category === 'grappling' ? 'bg-blue-500/20' :
-                            session.category === 'striking' ? 'bg-orange-500/20' :
+                            session.category === 'striking' ? 'bg-blue-500/20' :
                             'bg-purple-500/20'
                           )}>
                             {session.category === 'grappling' ? <Target className="w-4 h-4 text-blue-400" /> :
-                             session.category === 'striking' ? <Zap className="w-4 h-4 text-orange-400" /> :
+                             session.category === 'striking' ? <Zap className="w-4 h-4 text-blue-400" /> :
                              <TrendingUp className="w-4 h-4 text-purple-400" />}
                           </div>
                           <div>
@@ -481,8 +481,8 @@ export default function TrainingCalendar() {
                     }}
                     className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
                   >
-                    <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-orange-400" />
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-white">Striking</p>
@@ -640,7 +640,7 @@ export default function TrainingCalendar() {
                     {expandedExercise === exIndex && (
                       <div className="px-3 pb-3 space-y-2">
                         {/* Header */}
-                        <div className="grid grid-cols-4 gap-2 text-[10px] text-grappler-500 uppercase px-1">
+                        <div className="grid grid-cols-4 gap-2 text-xs text-grappler-500 uppercase px-1">
                           <span>Set</span>
                           <span>{weightUnit}</span>
                           <span>Reps</span>
@@ -768,19 +768,19 @@ export default function TrainingCalendar() {
       <div className="grid grid-cols-4 gap-2">
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-green-400">{monthStats.totalLifts}</p>
-          <p className="text-[10px] text-grappler-400">Lifts</p>
+          <p className="text-xs text-grappler-400">Lifts</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-blue-400">{monthStats.totalSessions}</p>
-          <p className="text-[10px] text-grappler-400">Sessions</p>
+          <p className="text-xs text-grappler-400">Sessions</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-grappler-50">{formatNumber(Math.round(monthStats.totalVolume))}</p>
-          <p className="text-[10px] text-grappler-400">Vol ({weightUnit})</p>
+          <p className="text-xs text-grappler-400">Vol ({weightUnit})</p>
         </div>
         <div className="card p-3 text-center">
           <p className="text-lg font-bold text-grappler-50">{monthStats.avgRPE > 0 ? monthStats.avgRPE.toFixed(1) : '-'}</p>
-          <p className="text-[10px] text-grappler-400">Avg RPE</p>
+          <p className="text-xs text-grappler-400">Avg RPE</p>
         </div>
       </div>
 

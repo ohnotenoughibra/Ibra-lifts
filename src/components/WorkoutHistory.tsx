@@ -356,10 +356,18 @@ export default function WorkoutHistory() {
 
   if (workoutLogs.length === 0) {
     return (
-      <div className="text-center py-16">
-        <Dumbbell className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-grappler-300 mb-2">No Workouts Yet</h3>
-        <p className="text-sm text-grappler-500">Complete your first workout to see your history here.</p>
+      <div className="text-center py-12 px-4">
+        <div className="w-14 h-14 rounded-2xl bg-primary-500/15 flex items-center justify-center mx-auto mb-4">
+          <Dumbbell className="w-7 h-7 text-primary-400" />
+        </div>
+        <h3 className="text-lg font-bold text-grappler-200 mb-1">Your history starts here</h3>
+        <p className="text-sm text-grappler-400 max-w-xs mx-auto">
+          After your first workout you'll see volume trends, PRs, and strength progression over time.
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-grappler-500">
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary-500 inline-block" /> 3 workouts = volume trends</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 5 workouts = PR tracking</span>
+        </div>
       </div>
     );
   }
@@ -394,12 +402,12 @@ export default function WorkoutHistory() {
                   <p className="text-sm font-medium text-grappler-100">{p.exercise}</p>
                   <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} {weightUnit}</span></p>
                 </div>
-                <p className="text-[11px] text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
+                <p className="text-xs text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
                 <div className="flex gap-2">
                   {p.milestones.map((m, j) => (
                     <div key={j} className="flex-1 bg-grappler-700/40 rounded-lg px-3 py-2 text-center">
                       <p className="text-sm font-bold text-primary-400">{m.target} {weightUnit}</p>
-                      <p className="text-[10px] text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
                     </div>
                   ))}
                 </div>
@@ -490,14 +498,14 @@ export default function WorkoutHistory() {
               <div className="space-y-3 pt-1">
                 {/* Muscle group filter */}
                 <div>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
+                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
                   <div className="flex flex-wrap gap-1.5">
                     {muscleGroups.map(mg => (
                       <button
                         key={mg.id}
                         onClick={() => setMuscleFilter(mg.id)}
                         className={cn(
-                          'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors',
+                          'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
                           muscleFilter === mg.id
                             ? 'bg-accent-500 text-white'
                             : 'bg-grappler-700 text-grappler-400 hover:text-grappler-200'
@@ -511,7 +519,7 @@ export default function WorkoutHistory() {
 
                 {/* Sort */}
                 <div>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
+                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
                   <div className="flex gap-2">
                     {([
                       { value: 'date', label: 'Date' },
@@ -943,7 +951,7 @@ export default function WorkoutHistory() {
                   value={exercisePickerSearch}
                   onChange={(e) => setExercisePickerSearch(e.target.value)}
                   placeholder="Search exercises..."
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-sm text-grappler-100 placeholder-grappler-500 focus:outline-none focus:border-primary-500"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-sm text-grappler-100 placeholder-grappler-500 focus-visible:outline-none focus-visible:border-primary-500"
                   autoFocus
                 />
               </div>

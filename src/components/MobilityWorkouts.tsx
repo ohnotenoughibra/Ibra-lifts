@@ -226,7 +226,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       >
         {/* Timer Header */}
         <div className="p-4 flex items-center justify-between border-b border-grappler-800">
-          <button
+          <button aria-label="Go back"
             onClick={() => {
               setTimerActive(false);
               setTimerPaused(false);
@@ -662,7 +662,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
                   {routine.name}
                 </h3>
                 {routine.forGrapplers && (
-                  <span className="text-[10px] bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
+                  <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">
                     Grappler
                   </span>
                 )}
@@ -681,7 +681,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
                 {routine.focus.map((f) => (
                   <span
                     key={f}
-                    className="flex items-center gap-1 text-[11px] bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full"
+                    className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full"
                   >
                     {focusIcons[f]}
                     {focusLabels[f]}

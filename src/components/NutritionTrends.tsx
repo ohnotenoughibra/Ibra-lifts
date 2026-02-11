@@ -174,7 +174,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           <div className="text-left">
             <h2 className="text-sm font-semibold text-grappler-200">Nutrition Trends</h2>
             {stats && !expanded && (
-              <p className="text-[10px] text-grappler-500">
+              <p className="text-xs text-grappler-500">
                 Avg {stats.avg.calories} kcal / {stats.avg.protein}g protein
               </p>
             )}
@@ -215,7 +215,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           {stats && (
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'Avg Cal', value: `${stats.avg.calories}`, icon: Flame, color: 'text-orange-400', diff: stats.calDiff },
+                { label: 'Avg Cal', value: `${stats.avg.calories}`, icon: Flame, color: 'text-blue-400', diff: stats.calDiff },
                 { label: 'Avg Pro', value: `${stats.avg.protein}g`, icon: Beef, color: 'text-red-400', diff: stats.proteinDiff },
                 { label: 'Avg Carbs', value: `${stats.avg.carbs}g`, icon: Wheat, color: 'text-blue-400' },
                 { label: 'Avg Fat', value: `${stats.avg.fat}g`, icon: Droplet, color: 'text-yellow-400' },
@@ -223,9 +223,9 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                 <div key={i} className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
                   <s.icon className={cn('w-3.5 h-3.5 mx-auto mb-1', s.color)} />
                   <p className={cn('text-sm font-bold', s.color)}>{s.value}</p>
-                  <p className="text-[9px] text-grappler-500 mt-0.5">{s.label}</p>
+                  <p className="text-xs text-grappler-500 mt-0.5">{s.label}</p>
                   {s.diff != null && (
-                    <p className={cn('text-[9px] mt-0.5 font-medium',
+                    <p className={cn('text-xs mt-0.5 font-medium',
                       s.diff > 0 ? 'text-green-400' : s.diff < -100 ? 'text-red-400' : 'text-grappler-500'
                     )}>
                       {s.diff > 0 ? '+' : ''}{s.diff}{s.label.includes('Cal') ? '' : 'g'} vs target
@@ -242,10 +242,10 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
               <Calendar className="w-3.5 h-3.5 text-grappler-500" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-grappler-400">
+                  <span className="text-xs text-grappler-400">
                     Logging adherence ({stats.daysLogged}/{dailyData.length} days)
                   </span>
-                  <span className={cn('text-[10px] font-bold',
+                  <span className={cn('text-xs font-bold',
                     stats.adherence >= 80 ? 'text-green-400' :
                     stats.adherence >= 50 ? 'text-yellow-400' : 'text-red-400'
                   )}>
@@ -272,7 +272,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
               className={cn(
                 'flex-1 py-1.5 text-xs font-medium rounded-md transition-all',
                 activeChart === 'calories'
-                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                   : 'bg-grappler-900/40 text-grappler-500'
               )}
             >
@@ -299,13 +299,13 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     interval={range === '30d' ? 4 : range === '14d' ? 1 : 0}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     width={35}
@@ -316,7 +316,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                     stroke="#f59e0b"
                     strokeDasharray="4 4"
                     strokeWidth={1.5}
-                    label={{ value: 'Target', position: 'right', fontSize: 9, fill: '#f59e0b' }}
+                    label={{ value: 'Target', position: 'right', fontSize: 12, fill: '#f59e0b' }}
                   />
                   <Bar
                     dataKey="calories"
@@ -333,13 +333,13 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     interval={range === '30d' ? 4 : range === '14d' ? 1 : 0}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    tick={{ fontSize: 12, fill: '#6b7280' }}
                     axisLine={false}
                     tickLine={false}
                     width={30}
@@ -380,7 +380,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           {/* Weekly averages */}
           {weeklyData.length > 1 && (
             <div>
-              <h3 className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-2">
+              <h3 className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-2">
                 Weekly Averages (per day)
               </h3>
               <div className="h-36">
@@ -389,12 +389,12 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                     <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" />
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fontSize: 9, fill: '#6b7280' }}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
                       axisLine={false}
                       tickLine={false}
                       width={30}
@@ -423,7 +423,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full" style={{ background: l.color }} />
-                  <span className="text-[10px] text-grappler-400">{l.label}</span>
+                  <span className="text-xs text-grappler-400">{l.label}</span>
                 </div>
               ))}
             </div>

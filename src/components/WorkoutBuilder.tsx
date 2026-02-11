@@ -263,7 +263,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm">
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm">
             <X className="w-5 h-5" />
           </button>
           <h1 className="font-bold text-grappler-50">
@@ -326,10 +326,10 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                     <div className="flex items-center gap-2 mb-0.5">
                       <h3 className="font-bold text-grappler-100">{template.name}</h3>
                       <span className={cn(
-                        'text-[10px] px-2 py-0.5 rounded-full font-medium',
+                        'text-xs px-2 py-0.5 rounded-full font-medium',
                         template.focus === 'strength' ? 'bg-red-500/20 text-red-400' :
                         template.focus === 'hypertrophy' ? 'bg-purple-500/20 text-purple-400' :
-                        template.focus === 'power' ? 'bg-orange-500/20 text-orange-400' :
+                        template.focus === 'power' ? 'bg-blue-500/20 text-blue-400' :
                         'bg-primary-500/20 text-primary-400'
                       )}>
                         {template.focus}
@@ -478,7 +478,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-grappler-100 truncate">{exercise.name}</p>
                           {exercise.grapplerFriendly && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-400 flex-shrink-0">
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-400 flex-shrink-0">
                               Rootsler
                             </span>
                           )}
@@ -511,11 +511,11 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         <p className="text-xs text-grappler-300">{exercise.description}</p>
 
                         <div className="flex flex-wrap gap-1.5">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300">
                             {exercise.movementPattern}
                           </span>
                           {exercise.secondaryMuscles.map(m => (
-                            <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-400">
+                            <span key={m} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-400">
                               {MUSCLE_GROUP_LABELS[m] || m}
                             </span>
                           ))}
@@ -528,7 +528,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
                         {exercise.cues.length > 0 && (
                           <div>
-                            <p className="text-[10px] text-grappler-500 uppercase mb-1">Form Cues</p>
+                            <p className="text-xs text-grappler-500 uppercase mb-1">Form Cues</p>
                             <ul className="space-y-0.5">
                               {exercise.cues.map((cue, i) => (
                                 <li key={i} className="text-xs text-grappler-400 flex items-start gap-1.5">
@@ -577,7 +577,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   {([
                     { type: 'strength', label: 'Strength', icon: Zap, color: 'bg-red-500' },
                     { type: 'hypertrophy', label: 'Hypertrophy', icon: Heart, color: 'bg-purple-500' },
-                    { type: 'power', label: 'Power', icon: Flame, color: 'bg-orange-500' }
+                    { type: 'power', label: 'Power', icon: Flame, color: 'bg-blue-500' }
                   ] as const).map((opt) => (
                     <button
                       key={opt.type}
@@ -631,7 +631,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                       <span className="text-xs text-grappler-500 font-mono w-5">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-grappler-100 truncate">{be.exercise.name}</p>
-                        <p className="text-[10px] text-grappler-500">
+                        <p className="text-xs text-grappler-500">
                           {be.exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(', ')}
                         </p>
                       </div>
@@ -646,7 +646,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                     {/* Editable parameters */}
                     <div className="grid grid-cols-4 gap-2">
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-grappler-500 mb-1">Sets</p>
+                        <p className="text-xs text-grappler-500 mb-1">Sets</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'sets', Math.max(1, be.sets - 1))}
@@ -664,7 +664,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-grappler-500 mb-1">Reps</p>
+                        <p className="text-xs text-grappler-500 mb-1">Reps</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'reps', Math.max(1, be.reps - 1))}
@@ -682,7 +682,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-grappler-500 mb-1">RPE</p>
+                        <p className="text-xs text-grappler-500 mb-1">RPE</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'rpe', Math.max(5, be.rpe - 0.5))}
@@ -700,7 +700,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-grappler-500 mb-1">Rest</p>
+                        <p className="text-xs text-grappler-500 mb-1">Rest</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'restSeconds', Math.max(30, be.restSeconds - 15))}
@@ -708,7 +708,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="text-[11px] font-bold text-grappler-100 w-7 text-center">
+                          <span className="text-xs font-bold text-grappler-100 w-7 text-center">
                             {be.restSeconds >= 60 ? `${Math.floor(be.restSeconds / 60)}m` : `${be.restSeconds}s`}
                           </span>
                           <button

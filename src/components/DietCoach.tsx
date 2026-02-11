@@ -36,6 +36,10 @@ import {
   Share2,
   Copy,
   Trophy,
+  Pencil,
+  Trash2,
+  X,
+  Check,
 } from 'lucide-react';
 
 const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
@@ -77,6 +81,8 @@ export default function DietCoach() {
     mealReminders,
     setMealReminders,
     getActiveIllness,
+    deleteDietPhaseFromHistory,
+    editDietPhaseInHistory,
   } = useAppStore();
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
@@ -872,6 +878,8 @@ export default function DietCoach() {
                     copiedShare={copiedShare}
                     setCopiedShare={setCopiedShare}
                     unitLabel={unitLabel}
+                    onDelete={deleteDietPhaseFromHistory}
+                    onEdit={editDietPhaseInHistory}
                   />
 
                   {/* End phase */}
@@ -899,6 +907,8 @@ export default function DietCoach() {
                   copiedShare={copiedShare}
                   setCopiedShare={setCopiedShare}
                   unitLabel={unitLabel}
+                  onDelete={deleteDietPhaseFromHistory}
+                  onEdit={editDietPhaseInHistory}
                 />
               )}
             </div>
@@ -920,6 +930,8 @@ function DietHistorySection({
   copiedShare,
   setCopiedShare,
   unitLabel,
+  onDelete,
+  onEdit,
 }: {
   dietPhaseHistory: import('@/lib/types').CompletedDietPhase[];
   weeklyCheckIns: import('@/lib/types').WeeklyCheckIn[];
@@ -929,7 +941,13 @@ function DietHistorySection({
   copiedShare: boolean;
   setCopiedShare: (v: boolean) => void;
   unitLabel: string;
+  onDelete: (id: string) => void;
+  onEdit: (id: string, updates: Partial<import('@/lib/types').CompletedDietPhase>) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ endWeightKg: '', calories: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   if (dietPhaseHistory.length === 0 && !activeDietPhase) return null;
 
   const sortedHistory = [...dietPhaseHistory].sort(
@@ -957,6 +975,17 @@ function DietHistorySection({
     return `${Math.round(kg * 10) / 10} kg`;
   };
 
+  const parseWeightToKg = (val: string) => {
+    const num = parseFloat(val);
+    if (isNaN(num)) return null;
+    return unitLabel === 'lbs' ? num * 0.453592 : num;
+  };
+
+  const displayWeightValue = (kg: number) => {
+    if (unitLabel === 'lbs') return (Math.round(kg * 2.205 * 10) / 10).toString();
+    return (Math.round(kg * 10) / 10).toString();
+  };
+
   const goalLabel = (goal: string) => {
     switch (goal) {
       case 'cut': return 'Fat Loss';
@@ -979,6 +1008,29 @@ function DietHistorySection({
       case 'bulk': return 'bg-green-500/10 border-green-500/20';
       default: return 'bg-blue-500/10 border-blue-500/20';
     }
+  };
+
+  const startEditing = (phase: import('@/lib/types').CompletedDietPhase) => {
+    setEditingId(phase.id);
+    setEditForm({
+      endWeightKg: displayWeightValue(phase.endWeightKg),
+      calories: phase.finalMacros.calories.toString(),
+    });
+    setConfirmDeleteId(null);
+  };
+
+  const saveEdit = (phase: import('@/lib/types').CompletedDietPhase) => {
+    const newEndKg = parseWeightToKg(editForm.endWeightKg);
+    const newCals = parseInt(editForm.calories);
+    if (newEndKg === null || isNaN(newCals)) return;
+
+    const roundedEndKg = Math.round(newEndKg * 10) / 10;
+    onEdit(phase.id, {
+      endWeightKg: roundedEndKg,
+      totalWeightChangeKg: Math.round((roundedEndKg - phase.startWeightKg) * 10) / 10,
+      finalMacros: { ...phase.finalMacros, calories: newCals },
+    });
+    setEditingId(null);
   };
 
   const handleShareProgress = async () => {
@@ -1130,20 +1182,127 @@ function DietHistorySection({
                   : null;
                 const change = phase.totalWeightChangeKg;
                 const sign = change > 0 ? '+' : '';
+                const isEditing = editingId === phase.id;
+                const isConfirmingDelete = confirmDeleteId === phase.id;
 
                 return (
                   <div key={phase.id} className="relative pl-6">
                     <div className={`absolute left-2 top-0 w-0.5 ${i < sortedHistory.length - 1 || activeDietPhase ? 'bottom-0' : 'h-3'} bg-grappler-700/40`} />
                     <div className="absolute left-[5px] top-2.5 w-2.5 h-2.5 rounded-full bg-grappler-600 border border-grappler-500" />
-                    <div className="p-2.5 bg-grappler-800/40 rounded-lg border border-grappler-700/30">
+                    <div className="p-2.5 bg-grappler-800/40 rounded-lg border border-grappler-700/30 group">
+                      {/* Header row with actions */}
                       <div className="flex items-center justify-between mb-1">
                         <p className={`text-xs font-medium ${goalColor(phase.goal)}`}>
                           {goalLabel(phase.goal)}
                         </p>
-                        <span className={`text-xs font-bold ${change < 0 ? 'text-red-400' : change > 0 ? 'text-green-400' : 'text-blue-400'}`}>
-                          {sign}{formatWeight(change)}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {!isEditing && !isConfirmingDelete && (
+                            <>
+                              <span className={`text-xs font-bold ${change < 0 ? 'text-red-400' : change > 0 ? 'text-green-400' : 'text-blue-400'}`}>
+                                {sign}{formatWeight(change)}
+                              </span>
+                              <button
+                                onClick={() => startEditing(phase)}
+                                className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-grappler-700/50 transition-all"
+                                title="Edit"
+                              >
+                                <Pencil className="w-3 h-3 text-grappler-400 hover:text-violet-400" />
+                              </button>
+                              <button
+                                onClick={() => { setConfirmDeleteId(phase.id); setEditingId(null); }}
+                                className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-grappler-700/50 transition-all"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3 text-grappler-400 hover:text-red-400" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Confirm delete bar */}
+                      <AnimatePresence>
+                        {isConfirmingDelete && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="flex items-center justify-between py-1.5 px-2 mb-1.5 bg-red-500/10 border border-red-500/20 rounded-lg">
+                              <p className="text-[10px] text-red-400">Remove this phase?</p>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => { onDelete(phase.id); setConfirmDeleteId(null); }}
+                                  className="p-1 rounded bg-red-500/20 hover:bg-red-500/40 transition-colors"
+                                  title="Confirm delete"
+                                >
+                                  <Trash2 className="w-3 h-3 text-red-400" />
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="p-1 rounded bg-grappler-700/40 hover:bg-grappler-700/60 transition-colors"
+                                  title="Cancel"
+                                >
+                                  <X className="w-3 h-3 text-grappler-400" />
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Edit form */}
+                      <AnimatePresence>
+                        {isEditing && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="py-1.5 px-2 mb-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg space-y-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] text-grappler-400 w-16">End weight</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={editForm.endWeightKg}
+                                  onChange={e => setEditForm(f => ({ ...f, endWeightKg: e.target.value }))}
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                />
+                                <span className="text-[10px] text-grappler-500">{unitLabel}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="text-[10px] text-grappler-400 w-16">Calories</label>
+                                <input
+                                  type="number"
+                                  value={editForm.calories}
+                                  onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                />
+                                <span className="text-[10px] text-grappler-500">kcal</span>
+                              </div>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => saveEdit(phase)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-[10px] text-violet-300 transition-colors"
+                                >
+                                  <Check className="w-3 h-3" /> Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingId(null)}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-grappler-700/40 hover:bg-grappler-700/60 text-[10px] text-grappler-400 transition-colors"
+                                >
+                                  <X className="w-3 h-3" /> Cancel
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Details */}
                       <div className="flex items-center gap-3 text-[10px] text-grappler-500">
                         <span>{formatDate(phase.startDate)} – {formatDate(phase.endDate)}</span>
                         <span>{phase.weeksCompleted} wk{phase.weeksCompleted !== 1 ? 's' : ''}</span>

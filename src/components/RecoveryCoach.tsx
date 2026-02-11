@@ -58,7 +58,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
       case 'optimal': return 'bg-green-500/20 text-green-400 border-green-500/50';
       case 'ready': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
       case 'moderate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
-      case 'compromised': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
+      case 'compromised': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
       case 'rest_recommended': return 'bg-red-500/20 text-red-400 border-red-500/50';
     }
   };
@@ -109,7 +109,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
               <ChevronLeft className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">

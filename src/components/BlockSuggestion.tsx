@@ -57,7 +57,7 @@ const FOCUS_CONFIG: Record<BlockFocus, { label: string; color: string; icon: str
   },
   power: {
     label: 'Power',
-    color: 'text-orange-400 bg-orange-500/20 border-orange-500/40',
+    color: 'text-blue-400 bg-blue-500/20 border-blue-500/40',
     icon: '⚡',
     description: 'Explosive movements at 50-70% 1RM, 2-5 reps, full recovery. Develop rate of force development.',
   },
@@ -143,7 +143,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center gap-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
             <ChevronLeft className="w-5 h-5 text-grappler-200" />
           </button>
           <div className="flex items-center gap-2">
@@ -366,7 +366,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               type="text"
                               value={block.name}
                               onChange={(e) => updateMesocycleInQueue(block.id, { name: e.target.value })}
-                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 focus:border-primary-500 outline-none"
+                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 focus-visible:border-primary-500 outline-none"
                             />
                           </div>
 
@@ -492,7 +492,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               onChange={(e) => updateMesocycleInQueue(block.id, { notes: e.target.value || undefined })}
                               placeholder="Optional notes for this block..."
                               rows={2}
-                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 outline-none resize-none"
+                              className="w-full px-3 py-2 rounded-lg bg-grappler-900 border border-grappler-600 text-sm text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 outline-none resize-none"
                             />
                           </div>
                         </div>

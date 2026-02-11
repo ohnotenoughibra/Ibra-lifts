@@ -220,7 +220,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onClose} className="btn btn-secondary btn-sm">
+        <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
@@ -280,7 +280,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   type="number"
                   value={weight}
                   onChange={(e) => setWeight(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus:outline-none focus:border-primary-500 transition-colors"
+                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
                 />
                 <button
                   onClick={() => setWeight((prev) => prev + 5)}
@@ -309,7 +309,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   onChange={(e) =>
                     setReps(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))
                   }
-                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus:outline-none focus:border-primary-500 transition-colors"
+                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
                 />
                 <button
                   onClick={() => setReps((prev) => Math.min(30, prev + 1))}
@@ -558,7 +558,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                       setProtocolEstimate(Math.max(0, parseInt(e.target.value) || 0))
                     }
                     placeholder={calculations.average > 0 ? String(Math.round(calculations.average)) : '0'}
-                    className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus:outline-none focus:border-primary-500 transition-colors placeholder:text-grappler-600"
+                    className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors placeholder:text-grappler-600"
                   />
                   <button
                     onClick={() => setProtocolEstimate((prev) => prev + 5)}
@@ -701,7 +701,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                       value={actual1RM}
                       onChange={(e) => setActual1RM(e.target.value)}
                       placeholder="Enter weight"
-                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus:outline-none focus:border-primary-500 transition-colors placeholder:text-grappler-600 placeholder:text-base placeholder:font-normal"
+                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors placeholder:text-grappler-600 placeholder:text-base placeholder:font-normal"
                     />
                     <span className="text-sm text-grappler-400 font-medium">{unit}</span>
                   </div>

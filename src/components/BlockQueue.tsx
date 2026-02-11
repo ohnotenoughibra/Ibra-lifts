@@ -24,7 +24,7 @@ import type { GoalFocus, PlannedMesocycle } from '@/lib/types';
 
 const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; color: string; desc: string }[] = [
   { value: 'strength', label: 'Strength', icon: <Dumbbell className="w-4 h-4" />, color: 'text-red-400 bg-red-500/20', desc: 'Heavy loads, low reps' },
-  { value: 'hypertrophy', label: 'Hypertrophy', icon: <Flame className="w-4 h-4" />, color: 'text-orange-400 bg-orange-500/20', desc: 'Moderate loads, higher volume' },
+  { value: 'hypertrophy', label: 'Hypertrophy', icon: <Flame className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Moderate loads, higher volume' },
   { value: 'power', label: 'Power', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-400 bg-yellow-500/20', desc: 'Explosive, speed-strength' },
   { value: 'balanced', label: 'Balanced', icon: <Shield className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Mix of strength & hypertrophy' },
 ];
@@ -217,7 +217,7 @@ export default function BlockQueue() {
             <div className="bg-grappler-800/60 rounded-xl p-3 space-y-3 border border-grappler-700/50">
               {/* Focus selector */}
               <div>
-                <label className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1.5 block">Focus</label>
+                <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1.5 block">Focus</label>
                 <div className="grid grid-cols-2 gap-2">
                   {FOCUS_OPTIONS.map(opt => (
                     <button
@@ -233,7 +233,7 @@ export default function BlockQueue() {
                       {opt.icon}
                       <div>
                         <p className="text-xs font-semibold">{opt.label}</p>
-                        <p className="text-[9px] opacity-70">{opt.desc}</p>
+                        <p className="text-xs opacity-70">{opt.desc}</p>
                       </div>
                     </button>
                   ))}
@@ -243,7 +243,7 @@ export default function BlockQueue() {
               {/* Weeks + periodization row */}
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Weeks</label>
+                  <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Weeks</label>
                   <div className="flex items-center gap-1">
                     {[3, 4, 5, 6].map(w => (
                       <button
@@ -262,11 +262,11 @@ export default function BlockQueue() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <label className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Style</label>
+                  <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Style</label>
                   <select
                     value={formPeriodization}
                     onChange={e => setFormPeriodization(e.target.value as typeof formPeriodization)}
-                    className="w-full bg-grappler-800 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-200 outline-none focus:border-primary-500"
+                    className="w-full bg-grappler-800 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-200 outline-none focus-visible:border-primary-500"
                   >
                     {PERIODIZATION_OPTIONS.map(p => (
                       <option key={p.value} value={p.value}>{p.label}</option>
@@ -277,12 +277,12 @@ export default function BlockQueue() {
 
               {/* Notes */}
               <div>
-                <label className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Notes (optional)</label>
+                <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Notes (optional)</label>
                 <input
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
                   placeholder="e.g. Focus on squat, prep for comp..."
-                  className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-100 placeholder:text-grappler-600 focus:border-primary-500 outline-none"
+                  className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-xs text-grappler-100 placeholder:text-grappler-600 focus-visible:border-primary-500 outline-none"
                   onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
                 />
               </div>
@@ -304,7 +304,7 @@ export default function BlockQueue() {
         <div className="text-center py-4">
           <Calendar className="w-8 h-8 text-grappler-700 mx-auto mb-2" />
           <p className="text-xs text-grappler-500">No mesocycles queued yet</p>
-          <p className="text-[10px] text-grappler-600 mt-0.5">Plan your next training mesocycles ahead</p>
+          <p className="text-xs text-grappler-600 mt-0.5">Plan your next training mesocycles ahead</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -347,16 +347,16 @@ export default function BlockQueue() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-grappler-200 truncate">{block.name}</p>
-                    <span className="text-[10px] text-grappler-500 shrink-0">{block.weeks}wk</span>
+                    <span className="text-xs text-grappler-500 shrink-0">{block.weeks}wk</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     {block.periodization && (
-                      <span className="text-[10px] text-grappler-500 capitalize">{block.periodization}</span>
+                      <span className="text-xs text-grappler-500 capitalize">{block.periodization}</span>
                     )}
-                    <span className="text-[10px] text-grappler-600">{getEstimatedStart(i)} — {getEstimatedEnd(i)}</span>
+                    <span className="text-xs text-grappler-600">{getEstimatedStart(i)} — {getEstimatedEnd(i)}</span>
                   </div>
                   {block.notes && (
-                    <p className="text-[10px] text-grappler-500 mt-0.5 truncate">{block.notes}</p>
+                    <p className="text-xs text-grappler-500 mt-0.5 truncate">{block.notes}</p>
                   )}
                 </div>
 
@@ -374,10 +374,10 @@ export default function BlockQueue() {
           {/* Timeline summary */}
           {mesocycleQueue.length > 0 && (
             <div className="flex items-center justify-between px-2 pt-1">
-              <span className="text-[10px] text-grappler-600">
+              <span className="text-xs text-grappler-600">
                 {mesocycleQueue.length} mesocycle{mesocycleQueue.length > 1 ? 's' : ''} · {mesocycleQueue.reduce((s, b) => s + b.weeks, 0)} weeks
               </span>
-              <span className="text-[10px] text-grappler-600">
+              <span className="text-xs text-grappler-600">
                 Planned through {getEstimatedEnd(mesocycleQueue.length - 1)}
               </span>
             </div>

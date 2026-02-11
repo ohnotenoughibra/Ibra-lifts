@@ -458,7 +458,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-grappler-800 transition-colors"
           >
@@ -653,7 +653,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                   <BarChart data={zoneBarData} layout="vertical">
                     <XAxis
                       type="number"
-                      tick={{ fill: '#6b7280', fontSize: 10 }}
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
                       domain={[0, maxHR]}
@@ -694,7 +694,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
               {/* Grappling-specific tips */}
               <div className="bg-grappler-800 rounded-xl p-4 space-y-3">
                 <h3 className="font-semibold text-grappler-50 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-blue-400" />
                   Grappling Conditioning Guide
                 </h3>
                 <div className="space-y-2">
@@ -764,7 +764,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             <p className="text-sm font-medium text-grappler-100 truncate">
                               {item.label}
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               {new Date(item.date).toLocaleDateString('en-US', {
                                 weekday: 'short',
                                 month: 'short',
@@ -780,16 +780,16 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             <p className="text-xs font-mono text-grappler-200">
                               {item.avgHR} avg
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               {item.maxHR} max
                             </p>
                           </div>
                           {item.strain !== undefined && (
-                            <div className="text-center bg-orange-500/15 rounded-md px-2 py-1">
-                              <p className="text-xs font-bold text-orange-400">
+                            <div className="text-center bg-blue-500/15 rounded-md px-2 py-1">
+                              <p className="text-xs font-bold text-blue-400">
                                 {item.strain.toFixed(1)}
                               </p>
-                              <p className="text-[9px] text-orange-400/70">strain</p>
+                              <p className="text-xs text-blue-400/70">strain</p>
                             </div>
                           )}
                         </div>
@@ -1029,7 +1029,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                               <p className="font-semibold text-grappler-50 truncate">
                                 {entry.label}
                               </p>
-                              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 ${sourceBadgeColor(entry.source)}`}>
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full shrink-0 ${sourceBadgeColor(entry.source)}`}>
                                 {sourceLabel(entry.source)}
                               </span>
                             </div>
@@ -1046,7 +1046,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {entry.strain !== undefined && (
-                              <span className="text-xs font-mono text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-mono text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
                                 {entry.strain.toFixed(1)} strain
                               </span>
                             )}
@@ -1065,7 +1065,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             <p className="text-sm font-bold text-grappler-200">
                               {entry.duration}
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               min
                             </p>
                           </div>
@@ -1073,7 +1073,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             <p className="text-sm font-bold text-grappler-200">
                               {entry.avgHR}
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               avg bpm
                             </p>
                           </div>
@@ -1081,7 +1081,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             <p className="text-sm font-bold text-grappler-200">
                               {entry.maxHR}
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               max bpm
                             </p>
                           </div>
@@ -1091,7 +1091,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                                 ? entry.caloriesBurned
                                 : '--'}
                             </p>
-                            <p className="text-[10px] text-grappler-400">
+                            <p className="text-xs text-grappler-400">
                               kcal
                             </p>
                           </div>
@@ -1100,7 +1100,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                         {/* Zone distribution bar */}
                         {zoneWidths && (
                           <div>
-                            <p className="text-[10px] text-grappler-400 mb-1">
+                            <p className="text-xs text-grappler-400 mb-1">
                               Zone Distribution
                             </p>
                             <div className="flex h-3 rounded-full overflow-hidden">
@@ -1130,7 +1130,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                                       className="w-2 h-2 rounded-full"
                                       style={{ backgroundColor: w.color }}
                                     />
-                                    <span className="text-[10px] text-grappler-400">
+                                    <span className="text-xs text-grappler-400">
                                       {w.zone.replace('zone', 'Z')}{' '}
                                       {Math.round(w.fraction * 100)}%
                                     </span>

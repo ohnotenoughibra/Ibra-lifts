@@ -282,12 +282,25 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
       }
     }
 
-    // Default insight
+    // Default insight — milestone-based encouragement
     if (results.length === 0) {
-      results.push({
-        type: 'neutral',
-        message: 'Keep logging workouts to unlock personalized insights!'
-      });
+      const totalW = gamificationStats.totalWorkouts;
+      if (totalW < 3) {
+        results.push({
+          type: 'neutral',
+          message: `${3 - totalW} more workout${3 - totalW === 1 ? '' : 's'} until volume trends unlock.`
+        });
+      } else if (totalW < 5) {
+        results.push({
+          type: 'neutral',
+          message: `${5 - totalW} more workout${5 - totalW === 1 ? '' : 's'} until strength progression insights unlock.`
+        });
+      } else {
+        results.push({
+          type: 'neutral',
+          message: 'Keep logging consistently to build your personal baseline for deeper insights.'
+        });
+      }
     }
 
     return results;
@@ -570,9 +583,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={recoveryTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
-                      <YAxis yAxisId="left" stroke="#22c55e" fontSize={11} domain={[0, 100]} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#0ea5e9" fontSize={11} />
+                      <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
+                      <YAxis yAxisId="left" stroke="#22c55e" fontSize={12} domain={[0, 100]} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#0ea5e9" fontSize={12} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#1e293b',
@@ -611,9 +624,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={recoveryTrend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
-                      <YAxis yAxisId="left" stroke="#f59e0b" fontSize={11} domain={[0, 21]} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#d946ef" fontSize={11} domain={[0, 12]} />
+                      <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
+                      <YAxis yAxisId="left" stroke="#f59e0b" fontSize={12} domain={[0, 21]} />
+                      <YAxis yAxisId="right" orientation="right" stroke="#d946ef" fontSize={12} domain={[0, 12]} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#1e293b',

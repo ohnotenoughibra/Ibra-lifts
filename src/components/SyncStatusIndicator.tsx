@@ -81,7 +81,7 @@ export default function SyncStatusIndicator({
         ) : (
           <Cloud className="w-3 h-3 text-grappler-400" />
         )}
-        <span className="text-[10px] text-grappler-400 font-medium">
+        <span className="text-xs text-grappler-400 font-medium">
           {lastSyncedAt ? getRelativeTime(lastSyncedAt) : config.label}
         </span>
       </button>
@@ -155,7 +155,7 @@ export default function SyncStatusIndicator({
 
                 {/* Info text */}
                 <div className="bg-grappler-800/50 rounded-xl p-3 mt-2">
-                  <p className="text-[11px] text-grappler-400 leading-relaxed">
+                  <p className="text-xs text-grappler-400 leading-relaxed">
                     {syncStatus === 'offline'
                       ? 'Changes are saved locally and will sync when you reconnect.'
                       : 'Your data syncs automatically across devices. Switching between phone and computer? Just sign in with the same account — your workouts, progress, and settings follow you.'}
@@ -164,7 +164,7 @@ export default function SyncStatusIndicator({
 
                 {/* How it works */}
                 <div className="space-y-2">
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium">How multi-device sync works</p>
+                  <p className="text-xs text-grappler-500 uppercase tracking-wide font-medium">How multi-device sync works</p>
                   <div className="space-y-1.5">
                     {[
                       { icon: Check, text: 'Changes push to cloud within seconds' },
@@ -173,7 +173,7 @@ export default function SyncStatusIndicator({
                     ].map((item, i) => (
                       <div key={i} className="flex items-start gap-2">
                         <item.icon className="w-3 h-3 text-primary-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-[11px] text-grappler-300">{item.text}</span>
+                        <span className="text-xs text-grappler-300">{item.text}</span>
                       </div>
                     ))}
                   </div>

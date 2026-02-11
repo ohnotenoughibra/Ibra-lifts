@@ -345,7 +345,7 @@ export default function DietCoach() {
         </div>
         <div className="flex items-center gap-2">
           {checkInDue && activeDietPhase && (
-            <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 rounded-full">
+            <span className="px-2 py-0.5 text-xs font-medium bg-sky-500/20 text-sky-400 rounded-full">
               Check-in due
             </span>
           )}
@@ -385,20 +385,20 @@ export default function DietCoach() {
               {showSetup && setupStep === 'info' && (
                 <div className="space-y-3">
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Your Info</p>
-                  <p className="text-[10px] text-grappler-500">
+                  <p className="text-xs text-grappler-500">
                     Used for Mifflin-St Jeor BMR — the most accurate validated formula (ADA 2005).
                   </p>
 
                   {/* Weight */}
                   <div>
-                    <label className="text-[10px] text-grappler-400 mb-1 block">Weight (kg)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">Weight (kg)</label>
                     <div className="flex items-center gap-2">
                       <Scale className="w-4 h-4 text-grappler-500" />
                       <input
                         type="number"
                         value={formWeight}
                         onChange={(e) => setFormWeight(e.target.value)}
-                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
                         placeholder="80"
                         min="30"
                         max="250"
@@ -408,14 +408,14 @@ export default function DietCoach() {
 
                   {/* Height */}
                   <div>
-                    <label className="text-[10px] text-grappler-400 mb-1 block">Height (cm)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">Height (cm)</label>
                     <div className="flex items-center gap-2">
                       <Ruler className="w-4 h-4 text-grappler-500" />
                       <input
                         type="number"
                         value={formHeight}
                         onChange={(e) => setFormHeight(e.target.value)}
-                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
                         placeholder="175"
                         min="120"
                         max="230"
@@ -425,7 +425,7 @@ export default function DietCoach() {
 
                   {/* Sex */}
                   <div>
-                    <label className="text-[10px] text-grappler-400 mb-1 block">Biological sex (for BMR calculation)</label>
+                    <label className="text-xs text-grappler-400 mb-1 block">Biological sex (for BMR calculation)</label>
                     <div className="flex gap-2">
                       {(['male', 'female'] as BiologicalSex[]).map((s) => (
                         <button
@@ -447,7 +447,7 @@ export default function DietCoach() {
                   {/* BMR preview */}
                   {formWeight && formHeight && (
                     <div className="p-2.5 bg-grappler-800/30 rounded-lg">
-                      <p className="text-[10px] text-grappler-500">
+                      <p className="text-xs text-grappler-500">
                         {latestBodyFat ? (
                           <>Estimated BMR (Cunningham): {Math.round(500 + 22 * bodyWeightKg * (1 - latestBodyFat / 100))} kcal/day &middot; BF {latestBodyFat}%</>
                         ) : (
@@ -500,13 +500,13 @@ export default function DietCoach() {
                                 <p className={`text-sm font-medium ${isSelected ? config.color : 'text-grappler-200'}`}>
                                   {config.label}
                                 </p>
-                                <p className="text-[10px] text-grappler-500">{config.description}</p>
+                                <p className="text-xs text-grappler-500">{config.description}</p>
                               </div>
                             </div>
                             {isSelected && (
                               <div className="text-right">
                                 <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
-                                <p className="text-[10px] text-grappler-500">
+                                <p className="text-xs text-grappler-500">
                                   {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
                                 </p>
                               </div>
@@ -518,12 +518,12 @@ export default function DietCoach() {
                   </div>
 
                   <div className="p-2.5 bg-grappler-800/30 rounded-lg flex items-center justify-between">
-                    <p className="text-[10px] text-grappler-500">
+                    <p className="text-xs text-grappler-500">
                       {Math.round(bodyWeightKg)}kg &middot; {Math.round(heightCm)}cm &middot; {formSex} &middot; age {age}
                     </p>
                     <button
                       onClick={() => setSetupStep('info')}
-                      className="text-[10px] text-violet-400 hover:text-violet-300 underline ml-2 flex-shrink-0"
+                      className="text-xs text-violet-400 hover:text-violet-300 underline ml-2 flex-shrink-0"
                     >
                       Edit
                     </button>
@@ -552,19 +552,19 @@ export default function DietCoach() {
                   {/* Phase info + macros */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
-                      <p className="text-[10px] text-grappler-500 mb-1">Current Phase</p>
+                      <p className="text-xs text-grappler-500 mb-1">Current Phase</p>
                       <div className="flex items-center gap-1.5">
                         {GOAL_CONFIG[activeDietPhase.goal].icon}
                         <span className={`text-sm font-medium ${GOAL_CONFIG[activeDietPhase.goal].color}`}>
                           {GOAL_CONFIG[activeDietPhase.goal].label}
                         </span>
                       </div>
-                      <p className="text-[10px] text-grappler-500 mt-1">Week {activeDietPhase.weeksCompleted + 1}</p>
+                      <p className="text-xs text-grappler-500 mt-1">Week {activeDietPhase.weeksCompleted + 1}</p>
                     </div>
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
-                      <p className="text-[10px] text-grappler-500 mb-1">Daily Targets</p>
+                      <p className="text-xs text-grappler-500 mb-1">Daily Targets</p>
                       <p className="text-sm font-medium text-white">{macroTargets.calories} kcal</p>
-                      <p className="text-[10px] text-grappler-400">
+                      <p className="text-xs text-grappler-400">
                         {macroTargets.protein}P / {macroTargets.carbs}C / {macroTargets.fat}F
                       </p>
                     </div>
@@ -574,24 +574,24 @@ export default function DietCoach() {
                   {energyAvailability && activeDietPhase.goal === 'cut' && (
                     <div className={`p-2.5 rounded-lg border ${
                       energyAvailability.status === 'critical' ? 'bg-red-500/10 border-red-500/30' :
-                      energyAvailability.status === 'low' ? 'bg-orange-500/10 border-orange-500/30' :
+                      energyAvailability.status === 'low' ? 'bg-blue-500/10 border-blue-500/30' :
                       energyAvailability.status === 'caution' ? 'bg-yellow-500/10 border-yellow-500/30' :
                       'bg-green-500/10 border-green-500/30'
                     }`}>
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-grappler-400">Energy Availability</p>
+                        <p className="text-xs text-grappler-400">Energy Availability</p>
                         <span className={`text-xs font-medium ${
                           energyAvailability.status === 'critical' ? 'text-red-400' :
-                          energyAvailability.status === 'low' ? 'text-orange-400' :
+                          energyAvailability.status === 'low' ? 'text-blue-400' :
                           energyAvailability.status === 'caution' ? 'text-yellow-400' :
                           'text-green-400'
                         }`}>
                           {Math.round(energyAvailability.ea)} kcal/kg FFM
                         </span>
                       </div>
-                      <p className="text-[10px] text-grappler-400 mt-0.5">{energyAvailability.message}</p>
+                      <p className="text-xs text-grappler-400 mt-0.5">{energyAvailability.message}</p>
                       {energyAvailability.status === 'critical' && (
-                        <p className="text-[10px] text-red-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
                           RED-S risk: Increase intake or reduce training volume
                         </p>
@@ -601,15 +601,15 @@ export default function DietCoach() {
 
                   {/* Fight Camp Phase (combat athletes) */}
                   {isCombatAthlete && fightCampPhase && nearestCompetition && (
-                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <div className="p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Flame className="w-3.5 h-3.5 text-orange-400" />
-                          <p className="text-xs font-medium text-orange-300">
+                          <Flame className="w-3.5 h-3.5 text-blue-400" />
+                          <p className="text-xs font-medium text-blue-300">
                             {fightCampPhase.replace(/_/g, ' ')}
                           </p>
                         </div>
-                        <span className="text-[10px] text-grappler-400">
+                        <span className="text-xs text-grappler-400">
                           {daysToCompetition}d to {nearestCompetition.name}
                         </span>
                       </div>
@@ -648,15 +648,15 @@ export default function DietCoach() {
                                 <div>
                                   <p className={`text-xs font-medium ${isCurrent ? config.color : 'text-grappler-200'}`}>
                                     {config.label}
-                                    {isCurrent && <span className="text-[10px] text-grappler-500 ml-1.5">(current)</span>}
+                                    {isCurrent && <span className="text-xs text-grappler-500 ml-1.5">(current)</span>}
                                   </p>
-                                  <p className="text-[10px] text-grappler-500">{config.description}</p>
+                                  <p className="text-xs text-grappler-500">{config.description}</p>
                                 </div>
                               </div>
                               {!isCurrent && (
                                 <div className="text-right flex-shrink-0">
-                                  <p className="text-[10px] text-grappler-300">{previewMacros.calories} kcal</p>
-                                  <p className="text-[10px] text-grappler-500">
+                                  <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
+                                  <p className="text-xs text-grappler-500">
                                     {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
                                   </p>
                                 </div>
@@ -667,7 +667,7 @@ export default function DietCoach() {
                       </div>
                       <button
                         onClick={() => setShowSwitchGoal(false)}
-                        className="w-full py-1.5 text-[10px] text-grappler-500 hover:text-grappler-300 transition-colors"
+                        className="w-full py-1.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
                       >
                         Cancel
                       </button>
@@ -678,7 +678,7 @@ export default function DietCoach() {
                   {bodyWeightLog.length >= 3 && (
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] text-grappler-500">Weight Trend</p>
+                        <p className="text-xs text-grappler-500">Weight Trend</p>
                         <div className="flex items-center gap-1">
                           {weightTrend.weeklyChange < -0.1 ? (
                             <TrendingDown className="w-3 h-3 text-red-400" />
@@ -700,7 +700,7 @@ export default function DietCoach() {
                         {weightTrend.current} {unitLabel}
                       </p>
                       {weightTrend.weeksAtPlateau >= 2 && (
-                        <p className="text-[10px] text-amber-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-sky-400 mt-1 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
                           Plateau detected ({weightTrend.weeksAtPlateau} weeks)
                         </p>
@@ -711,10 +711,10 @@ export default function DietCoach() {
                   {/* Adherence */}
                   <div className="p-2.5 bg-grappler-800/40 rounded-lg">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] text-grappler-500">7-Day Logging</p>
+                      <p className="text-xs text-grappler-500">7-Day Logging</p>
                       <span className={`text-xs font-medium ${
                         adherence >= 80 ? 'text-green-400' :
-                        adherence >= 60 ? 'text-amber-400' :
+                        adherence >= 60 ? 'text-sky-400' :
                         'text-red-400'
                       }`}>
                         {adherence}% adherence
@@ -726,13 +726,13 @@ export default function DietCoach() {
                         animate={{ width: `${adherence}%` }}
                         className={`h-full rounded-full ${
                           adherence >= 80 ? 'bg-green-500' :
-                          adherence >= 60 ? 'bg-amber-500' :
+                          adherence >= 60 ? 'bg-sky-500' :
                           'bg-red-500'
                         }`}
                       />
                     </div>
                     {adherence < 70 && (
-                      <p className="text-[10px] text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-500 mt-1">
                         Log at least 2 meals/day for accurate macro adjustments
                       </p>
                     )}
@@ -740,11 +740,11 @@ export default function DietCoach() {
 
                   {/* Phase recommendation */}
                   {(phaseStatus.shouldTakeBreak || phaseStatus.shouldTransition) && (
-                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <div className="p-2.5 bg-sky-500/10 border border-sky-500/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-sky-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-xs text-amber-300">{phaseStatus.suggestion}</p>
+                          <p className="text-xs text-sky-300">{phaseStatus.suggestion}</p>
                           {phaseStatus.shouldTransition && phaseStatus.nextGoal && (
                             <button
                               onClick={() => {
@@ -767,7 +767,7 @@ export default function DietCoach() {
                                   isActive: true,
                                 });
                               }}
-                              className="mt-2 flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                              className="mt-2 flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 transition-colors"
                             >
                               Switch to {GOAL_CONFIG[phaseStatus.nextGoal].label} <ArrowRight className="w-3 h-3" />
                             </button>
@@ -810,7 +810,7 @@ export default function DietCoach() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-grappler-400">Logging adherence</span>
-                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-amber-400'}`}>
+                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-sky-400'}`}>
                             {adherence}%
                           </span>
                         </div>
@@ -850,14 +850,14 @@ export default function DietCoach() {
                                  'Increasing macros'}
                               </p>
                             </div>
-                            <p className="text-[10px] text-grappler-400">{preview.reason}</p>
+                            <p className="text-xs text-grappler-400">{preview.reason}</p>
                             {preview.adjustment !== 'maintain' && (
-                              <p className="text-[10px] text-grappler-300 mt-1">
+                              <p className="text-xs text-grappler-300 mt-1">
                                 New: {preview.newMacros.calories} kcal &middot; {preview.newMacros.protein}P / {preview.newMacros.carbs}C / {preview.newMacros.fat}F
                               </p>
                             )}
                             {preview.alert && (
-                              <p className="text-[10px] text-amber-400 mt-1">{preview.alert}</p>
+                              <p className="text-xs text-sky-400 mt-1">{preview.alert}</p>
                             )}
                           </div>
                         );
@@ -893,7 +893,7 @@ export default function DietCoach() {
                       )}
                       <span>Meal Reminders</span>
                     </div>
-                    <span className={`text-[10px] ${mealReminders.enabled ? 'text-violet-400' : 'text-grappler-500'}`}>
+                    <span className={`text-xs ${mealReminders.enabled ? 'text-violet-400' : 'text-grappler-500'}`}>
                       {mealReminders.enabled ? 'On' : 'Off'}
                     </span>
                   </button>
@@ -921,7 +921,7 @@ export default function DietCoach() {
 
                           {mealReminders.enabled && (
                             <div className="space-y-2">
-                              <p className="text-[10px] text-grappler-500">
+                              <p className="text-xs text-grappler-500">
                                 Get notified when it&apos;s time to log meals. Requires notification permission.
                               </p>
 
@@ -963,7 +963,7 @@ export default function DietCoach() {
                                             },
                                           })
                                         }
-                                        className="bg-grappler-800/60 border border-grappler-700/30 rounded px-2 py-0.5 text-[10px] text-grappler-200 focus:outline-none focus:border-violet-500/50"
+                                        className="bg-grappler-800/60 border border-grappler-700/30 rounded px-2 py-0.5 text-xs text-grappler-200 focus-visible:outline-none focus-visible:border-violet-500/50"
                                       />
                                     </div>
                                   )}
@@ -1232,27 +1232,27 @@ function DietHistorySection({
                   <div className="grid grid-cols-3 gap-2">
                     <div className="text-center">
                       <p className="text-lg font-bold text-white">{totalPhases}</p>
-                      <p className="text-[10px] text-grappler-400">Phase{totalPhases !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-grappler-400">Phase{totalPhases !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-white">{totalWeeks}</p>
-                      <p className="text-[10px] text-grappler-400">Weeks</p>
+                      <p className="text-xs text-grappler-400">Weeks</p>
                     </div>
                     <div className="text-center">
                       {totalLost > 0 ? (
                         <>
                           <p className="text-lg font-bold text-red-400">-{formatWeight(totalLost)}</p>
-                          <p className="text-[10px] text-grappler-400">Lost</p>
+                          <p className="text-xs text-grappler-400">Lost</p>
                         </>
                       ) : totalGained > 0 ? (
                         <>
                           <p className="text-lg font-bold text-green-400">+{formatWeight(totalGained)}</p>
-                          <p className="text-[10px] text-grappler-400">Gained</p>
+                          <p className="text-xs text-grappler-400">Gained</p>
                         </>
                       ) : (
                         <>
                           <p className="text-lg font-bold text-blue-400">0</p>
-                          <p className="text-[10px] text-grappler-400">Net change</p>
+                          <p className="text-xs text-grappler-400">Net change</p>
                         </>
                       )}
                     </div>
@@ -1270,9 +1270,9 @@ function DietHistorySection({
                       <div>
                         <p className={`text-xs font-medium ${goalColor(activeDietPhase.goal)}`}>
                           {goalLabel(activeDietPhase.goal)}
-                          <span className="text-[10px] text-grappler-500 ml-1.5">active</span>
+                          <span className="text-xs text-grappler-500 ml-1.5">active</span>
                         </p>
-                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-500 mt-0.5">
                           Since {formatDate(activeDietPhase.startDate)} · Week {activeDietPhase.weeksCompleted + 1}
                         </p>
                       </div>
@@ -1338,7 +1338,7 @@ function DietHistorySection({
                             className="overflow-hidden"
                           >
                             <div className="flex items-center justify-between py-1.5 px-2 mb-1.5 bg-red-500/10 border border-red-500/20 rounded-lg">
-                              <p className="text-[10px] text-red-400">Remove this phase?</p>
+                              <p className="text-xs text-red-400">Remove this phase?</p>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => { onDelete(phase.id); setConfirmDeleteId(null); }}
@@ -1371,36 +1371,36 @@ function DietHistorySection({
                           >
                             <div className="py-1.5 px-2 mb-1.5 bg-violet-500/10 border border-violet-500/20 rounded-lg space-y-2">
                               <div className="flex items-center gap-2">
-                                <label className="text-[10px] text-grappler-400 w-16">End weight</label>
+                                <label className="text-xs text-grappler-400 w-16">End weight</label>
                                 <input
                                   type="number"
                                   step="0.1"
                                   value={editForm.endWeightKg}
                                   onChange={e => setEditForm(f => ({ ...f, endWeightKg: e.target.value }))}
-                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
-                                <span className="text-[10px] text-grappler-500">{unitLabel}</span>
+                                <span className="text-xs text-grappler-500">{unitLabel}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <label className="text-[10px] text-grappler-400 w-16">Calories</label>
+                                <label className="text-xs text-grappler-400 w-16">Calories</label>
                                 <input
                                   type="number"
                                   value={editForm.calories}
                                   onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
-                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
-                                <span className="text-[10px] text-grappler-500">kcal</span>
+                                <span className="text-xs text-grappler-500">kcal</span>
                               </div>
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => saveEdit(phase)}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-[10px] text-violet-300 transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-violet-500/20 hover:bg-violet-500/30 text-xs text-violet-300 transition-colors"
                                 >
                                   <Check className="w-3 h-3" /> Save
                                 </button>
                                 <button
                                   onClick={() => setEditingId(null)}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-grappler-700/40 hover:bg-grappler-700/60 text-[10px] text-grappler-400 transition-colors"
+                                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-grappler-700/40 hover:bg-grappler-700/60 text-xs text-grappler-400 transition-colors"
                                 >
                                   <X className="w-3 h-3" /> Cancel
                                 </button>
@@ -1411,16 +1411,16 @@ function DietHistorySection({
                       </AnimatePresence>
 
                       {/* Details */}
-                      <div className="flex items-center gap-3 text-[10px] text-grappler-500">
+                      <div className="flex items-center gap-3 text-xs text-grappler-500">
                         <span>{formatDate(phase.startDate)} – {formatDate(phase.endDate)}</span>
                         <span>{phase.weeksCompleted} wk{phase.weeksCompleted !== 1 ? 's' : ''}</span>
                         {avgAdherence !== null && (
-                          <span className={avgAdherence >= 70 ? 'text-green-400' : 'text-amber-400'}>
+                          <span className={avgAdherence >= 70 ? 'text-green-400' : 'text-sky-400'}>
                             {avgAdherence}% adherence
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-grappler-500">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-grappler-500">
                         <span>{formatWeight(phase.startWeightKg)} → {formatWeight(phase.endWeightKg)}</span>
                         <span>·</span>
                         <span>{phase.finalMacros.calories} kcal final</span>
@@ -1431,7 +1431,7 @@ function DietHistorySection({
               })}
 
               {sortedHistory.length === 0 && !activeDietPhase && (
-                <p className="text-[10px] text-grappler-500 text-center py-2">
+                <p className="text-xs text-grappler-500 text-center py-2">
                   No completed phases yet. Your diet history will appear here.
                 </p>
               )}

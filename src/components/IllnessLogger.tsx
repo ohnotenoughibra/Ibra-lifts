@@ -134,7 +134,7 @@ function SymptomChecklist({
                         ? group.location === 'above_neck'
                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
                           : group.location === 'below_neck'
-                            ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400'
                             : 'bg-red-500/20 border-red-500/50 text-red-400'
                         : 'bg-grappler-700 border-grappler-600 text-grappler-400 hover:border-grappler-500',
                     )}
@@ -368,8 +368,8 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
               <X className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                <Thermometer className="w-4 h-4 text-orange-400" />
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Thermometer className="w-4 h-4 text-blue-400" />
               </div>
               <div>
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
@@ -604,7 +604,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                     day: 'numeric',
                                   })}
                                 </p>
-                                <p className="text-[10px] text-grappler-500">
+                                <p className="text-xs text-grappler-500">
                                   {ci.symptoms.length} symptom{ci.symptoms.length !== 1 ? 's' : ''}{' '}
                                   &middot; {ci.severity}
                                 </p>
@@ -718,13 +718,13 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                   {illness.symptoms.slice(0, 4).map((s) => (
                                     <span
                                       key={s}
-                                      className="px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded text-[10px]"
+                                      className="px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded text-xs"
                                     >
                                       {getSymptomLabel(s)}
                                     </span>
                                   ))}
                                   {illness.symptoms.length > 4 && (
-                                    <span className="px-1.5 py-0.5 text-grappler-500 text-[10px]">
+                                    <span className="px-1.5 py-0.5 text-grappler-500 text-xs">
                                       +{illness.symptoms.length - 4} more
                                     </span>
                                   )}

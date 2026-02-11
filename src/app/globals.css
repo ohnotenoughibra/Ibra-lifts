@@ -4,30 +4,30 @@
 
 @layer base {
   :root {
-    --background: 250 250 250;
+    --background: 248 250 252;
     --foreground: 15 23 42;
 
     --card: 255 255 255;
     --card-foreground: 15 23 42;
 
-    --primary: 14 165 233;
+    --primary: 59 130 246;
     --primary-foreground: 255 255 255;
 
-    --secondary: 241 245 249;
+    --secondary: 226 232 240;
     --secondary-foreground: 15 23 42;
 
-    --muted: 241 245 249;
+    --muted: 226 232 240;
     --muted-foreground: 100 116 139;
 
-    --accent: 217 70 239;
+    --accent: 6 182 212;
     --accent-foreground: 255 255 255;
 
     --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
 
-    --border: 226 232 240;
-    --input: 226 232 240;
-    --ring: 14 165 233;
+    --border: 203 213 225;
+    --input: 203 213 225;
+    --ring: 59 130 246;
 
     --radius: 0.75rem;
   }
@@ -39,7 +39,7 @@
     --card: 30 41 59;
     --card-foreground: 248 250 252;
 
-    --primary: 56 189 248;
+    --primary: 96 165 250;
     --primary-foreground: 15 23 42;
 
     --secondary: 51 65 85;
@@ -48,7 +48,7 @@
     --muted: 51 65 85;
     --muted-foreground: 148 163 184;
 
-    --accent: 217 70 239;
+    --accent: 6 182 212;
     --accent-foreground: 255 255 255;
 
     --destructive: 239 68 68;
@@ -56,7 +56,7 @@
 
     --border: 51 65 85;
     --input: 51 65 85;
-    --ring: 56 189 248;
+    --ring: 96 165 250;
   }
 }
 
@@ -79,7 +79,7 @@
      Applied via body.light-mode class toggled by ThemeToggle.tsx
      Must override every grappler-* color used across all components. */
   body.light-mode {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-slate-50 text-slate-900;
   }
 
   /* Backgrounds */
@@ -127,7 +127,7 @@
   body.light-mode .hover\:border-grappler-600:hover { border-color: #cbd5e1; }
 
   /* Focus ring offset */
-  body.light-mode .focus\:ring-offset-grappler-900:focus { --tw-ring-offset-color: #f8fafc; }
+  body.light-mode .focus-visible\:ring-offset-grappler-900:focus-visible { --tw-ring-offset-color: #f8fafc; }
 
   /* Placeholder */
   body.light-mode .placeholder-grappler-500::placeholder { color: #94a3b8; }
@@ -170,21 +170,22 @@
   }
 
   body.light-mode .card {
-    @apply bg-white/80 border-gray-200/60 shadow-sm;
+    @apply bg-white/80 border-slate-200/60 shadow-sm;
   }
 
   .card-hover {
-    @apply hover:bg-grappler-800/70 hover:border-grappler-600/50 transition-all duration-200;
+    @apply hover:bg-grappler-800/70 hover:border-grappler-600/50 active:scale-[0.98] transition-all duration-200;
   }
 
   body.light-mode .card-hover {
-    @apply hover:bg-gray-50 hover:border-gray-300/60;
+    @apply hover:bg-slate-50 hover:border-slate-300/60;
   }
 
   /* Button styles */
   .btn {
     @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200
-           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-grappler-900
+           active:scale-95
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-grappler-900
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
@@ -193,20 +194,20 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-500
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500
            shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40;
   }
 
   .btn-secondary {
-    @apply btn bg-grappler-700 text-grappler-100 hover:bg-grappler-600 focus:ring-grappler-500;
+    @apply btn bg-grappler-700 text-grappler-100 hover:bg-grappler-600 focus-visible:ring-grappler-500;
   }
 
   body.light-mode .btn-secondary {
-    @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+    @apply bg-slate-200 text-slate-700 hover:bg-slate-300;
   }
 
   .btn-accent {
-    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus:ring-accent-500
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500
            shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40;
   }
 
@@ -215,11 +216,11 @@
   }
 
   body.light-mode .btn-ghost {
-    @apply text-gray-500 hover:bg-gray-100 hover:text-gray-700;
+    @apply text-slate-500 hover:bg-slate-100 hover:text-slate-700;
   }
 
   .btn-danger {
-    @apply btn bg-error text-white hover:bg-red-600 focus:ring-error;
+    @apply btn bg-error text-white hover:bg-red-600 focus-visible:ring-error;
   }
 
   .btn-sm {
@@ -238,16 +239,16 @@
   .input {
     @apply w-full px-4 py-3 bg-grappler-800 border border-grappler-700 rounded-lg
            text-grappler-100 placeholder-grappler-500
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:border-transparent
            transition-all duration-200;
   }
 
   body.light-mode .input {
-    @apply bg-white border-gray-300 text-gray-900 placeholder-gray-400;
+    @apply bg-white border-slate-300 text-slate-900 placeholder-slate-400;
   }
 
   .input-error {
-    @apply border-error focus:ring-error;
+    @apply border-error focus-visible:ring-error;
   }
 
   /* Badge styles */
@@ -264,7 +265,7 @@
   }
 
   .badge-power {
-    @apply bg-power/20 text-orange-400 border border-power/30;
+    @apply bg-power/20 text-teal-400 border border-power/30;
   }
 
   .badge-success {
@@ -277,7 +278,7 @@
   }
 
   body.light-mode .progress-bar {
-    @apply bg-gray-200;
+    @apply bg-slate-200;
   }
 
   .progress-bar-fill {
@@ -294,7 +295,7 @@
   }
 
   .workout-power {
-    @apply bg-gradient-to-r from-orange-600 to-orange-500;
+    @apply bg-gradient-to-r from-teal-600 to-teal-500;
   }
 
   /* Glass effect */
@@ -303,12 +304,12 @@
   }
 
   body.light-mode .glass {
-    @apply bg-white/60 border-gray-200/40;
+    @apply bg-white/60 border-slate-200/40;
   }
 
   /* Gradient text */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-400 via-accent-400 to-primary-500 bg-clip-text text-transparent;
   }
 
   /* Stat card */
@@ -373,6 +374,11 @@
     scrollbar-width: none;
   }
 
+  /* Tap target feedback for non-button clickable elements */
+  .tap-target {
+    @apply active:scale-95 transition-transform duration-150;
+  }
+
   /* Text shadow */
   .text-shadow {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -385,21 +391,21 @@
   /* Gradient backgrounds */
   .bg-mesh {
     background-image:
-      radial-gradient(at 40% 20%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(217, 70, 239, 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(14, 165, 233, 0.1) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(217, 70, 239, 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.1) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.06) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
   }
 
   /* Light mode mesh is more subtle */
   body.light-mode .bg-mesh {
     background-image:
-      radial-gradient(at 40% 20%, rgba(14, 165, 233, 0.06) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(217, 70, 239, 0.04) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(14, 165, 233, 0.04) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(217, 70, 239, 0.04) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.04) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.02) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.03) 0px, transparent 50%);
   }
 
   /* Animation delays */

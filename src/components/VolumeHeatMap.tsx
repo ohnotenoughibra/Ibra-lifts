@@ -204,7 +204,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="p-2 -ml-2 rounded-lg hover:bg-grappler-800 transition-colors"
           >
@@ -238,19 +238,19 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
           <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2">
             <div className="card p-3 text-center">
               <div className="text-lg font-bold text-emerald-400">{summary.optimal}</div>
-              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Optimal</div>
+              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Optimal</div>
             </div>
             <div className="card p-3 text-center">
               <div className="text-lg font-bold text-yellow-400">{summary.maintenance}</div>
-              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Maintenance</div>
+              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Maintenance</div>
             </div>
             <div className="card p-3 text-center">
               <div className="text-lg font-bold text-red-400">{summary.belowMev}</div>
-              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Below MEV</div>
+              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Below MEV</div>
             </div>
             <div className="card p-3 text-center">
               <div className="text-lg font-bold text-red-400">{summary.overreaching}</div>
-              <div className="text-[10px] text-grappler-400 leading-tight mt-0.5">Over MRV</div>
+              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Over MRV</div>
             </div>
           </motion.div>
 
@@ -278,7 +278,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
                 <span className="text-grappler-300">Above MRV <span className="text-grappler-500">(overreaching)</span></span>
               </div>
             </div>
-            <p className="text-[10px] text-grappler-500 mt-2.5">
+            <p className="text-xs text-grappler-500 mt-2.5">
               MEV = Minimum Effective Volume &bull; MAV = Maximum Adaptive Volume &bull; MRV = Maximum Recoverable Volume
             </p>
           </motion.div>
@@ -429,7 +429,7 @@ function MuscleVolumeBar({
           </span>
           <span
             className={cn(
-              'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+              'text-xs px-1.5 py-0.5 rounded-full font-medium',
               getZoneBgColor(zone),
               getZoneColor(zone)
             )}
@@ -491,19 +491,19 @@ function MuscleVolumeBar({
 
         {/* Landmark labels inside bar */}
         <span
-          className="absolute top-0.5 text-[8px] font-medium text-red-400/80 leading-none"
+          className="absolute top-0.5 text-xs font-medium text-red-400/80 leading-none"
           style={{ left: `${mevPct}%`, transform: 'translateX(2px)' }}
         >
           MEV
         </span>
         <span
-          className="absolute top-0.5 text-[8px] font-medium text-yellow-400/80 leading-none"
+          className="absolute top-0.5 text-xs font-medium text-yellow-400/80 leading-none"
           style={{ left: `${mavPct}%`, transform: 'translateX(2px)' }}
         >
           MAV
         </span>
         <span
-          className="absolute top-0.5 text-[8px] font-medium text-red-400/80 leading-none"
+          className="absolute top-0.5 text-xs font-medium text-red-400/80 leading-none"
           style={{ left: `${mrvPct}%`, transform: 'translateX(2px)' }}
         >
           MRV
@@ -513,19 +513,19 @@ function MuscleVolumeBar({
       {/* Landmark numbers below bar */}
       <div className="relative h-3 mt-0.5">
         <span
-          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-500 tabular-nums"
           style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}
         >
           {mev}
         </span>
         <span
-          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-500 tabular-nums"
           style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}
         >
           {mav}
         </span>
         <span
-          className="absolute text-[9px] text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-500 tabular-nums"
           style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}
         >
           {mrv}
@@ -544,17 +544,17 @@ function MuscleVolumeBar({
             <div>
               <div className="text-red-400 font-semibold">{mev}</div>
               <div className="text-grappler-500">MEV</div>
-              <div className="text-grappler-600 text-[10px]">Min Effective</div>
+              <div className="text-grappler-600 text-xs">Min Effective</div>
             </div>
             <div>
               <div className="text-yellow-400 font-semibold">{mav}</div>
               <div className="text-grappler-500">MAV</div>
-              <div className="text-grappler-600 text-[10px]">Max Adaptive</div>
+              <div className="text-grappler-600 text-xs">Max Adaptive</div>
             </div>
             <div>
               <div className="text-red-400 font-semibold">{mrv}</div>
               <div className="text-grappler-500">MRV</div>
-              <div className="text-grappler-600 text-[10px]">Max Recoverable</div>
+              <div className="text-grappler-600 text-xs">Max Recoverable</div>
             </div>
           </div>
           <div className="border-t border-grappler-700/50 pt-1.5">

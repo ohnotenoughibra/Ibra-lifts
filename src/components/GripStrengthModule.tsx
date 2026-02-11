@@ -285,20 +285,20 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             <X className="w-5 h-5" />
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <Grip className="w-5 h-5 text-orange-400" />
+              <Grip className="w-5 h-5 text-blue-400" />
               Grip Strength
             </h1>
             <p className="text-sm text-gray-400">Track and build grappling grip</p>
           </div>
           {gripScore > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/20 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 rounded-lg">
               <span className="text-xs text-gray-400">Score</span>
-              <span className="text-lg font-bold text-orange-400">{gripScore}</span>
+              <span className="text-lg font-bold text-blue-400">{gripScore}</span>
             </div>
           )}
         </div>
@@ -312,7 +312,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium transition-colors",
                 activeTab === tab
-                  ? "text-orange-400 border-b-2 border-orange-400"
+                  ? "text-blue-400 border-b-2 border-blue-400"
                   : "text-gray-500 hover:text-gray-300"
               )}
             >
@@ -353,7 +353,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                     key={ex.id}
                     onClick={() => setSelectedExercise(ex.id)}
                     whileTap={{ scale: 0.98 }}
-                    className="card p-4 text-left hover:border-orange-500/50 transition-colors"
+                    className="card p-4 text-left hover:border-blue-500/50 transition-colors"
                   >
                     <div className="flex items-start gap-3">
                       <div className={cn(
@@ -369,7 +369,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           <h3 className="font-medium text-white">{ex.name}</h3>
                           {level && (
                             <span className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                              "text-xs px-1.5 py-0.5 rounded font-medium",
                               level === 'elite' ? 'bg-purple-500/20 text-purple-300' :
                               level === 'advanced' ? 'bg-blue-500/20 text-blue-300' :
                               level === 'intermediate' ? 'bg-green-500/20 text-green-300' :
@@ -381,7 +381,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         </div>
                         <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{ex.description}</p>
                         {pb && (
-                          <p className="text-xs text-orange-400 mt-1">
+                          <p className="text-xs text-blue-400 mt-1">
                             PR: {pb} {ex.unit.split(' ')[0]}
                           </p>
                         )}
@@ -394,11 +394,11 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
             </div>
 
             {/* Grip Training Tip */}
-            <div className="card p-4 bg-orange-500/10 border-orange-500/30">
+            <div className="card p-4 bg-blue-500/10 border-blue-500/30">
               <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-orange-400 shrink-0" />
+                <Info className="w-5 h-5 text-blue-400 shrink-0" />
                 <div>
-                  <h4 className="font-medium text-orange-300 text-sm">Grip Training for Grapplers</h4>
+                  <h4 className="font-medium text-blue-300 text-sm">Grip Training for Grapplers</h4>
                   <p className="text-xs text-gray-400 mt-1">
                     Train grip 2-3x per week. Focus on hang time for endurance, towel work for gi grips,
                     and pinch holds for no-gi control. Always balance flexor work with extensor work.
@@ -653,7 +653,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         className={cn(
                           "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                           testType === 'hang_time'
-                            ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500"
+                            ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
                             : "bg-grappler-800 text-gray-400"
                         )}
                       >
@@ -664,7 +664,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         className={cn(
                           "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                           testType === 'dynamometer'
-                            ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500"
+                            ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
                             : "bg-grappler-800 text-gray-400"
                         )}
                       >
@@ -684,7 +684,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                             className={cn(
                               "flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-colors",
                               testHand === hand
-                                ? "bg-orange-500/20 text-orange-300 ring-1 ring-orange-500"
+                                ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
                                 : "bg-grappler-800 text-gray-400"
                             )}
                           >
@@ -774,7 +774,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
             {/* Benchmarks */}
             <div className="card p-4">
               <h3 className="font-medium text-white mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4 text-orange-400" />
+                <Award className="w-4 h-4 text-blue-400" />
                 Grappler Grip Benchmarks
               </h3>
               <div className="space-y-3">
@@ -831,7 +831,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
             {/* Grip Score Card */}
             <div className="card p-4 text-center">
               <h3 className="text-sm text-gray-400 mb-2">Your Grip Score</h3>
-              <div className="text-5xl font-bold text-orange-400">{gripScore}</div>
+              <div className="text-5xl font-bold text-blue-400">{gripScore}</div>
               <p className="text-xs text-gray-500 mt-2">
                 Based on your tests and exercise PRs
               </p>
@@ -858,7 +858,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           </span>
                           {level && (
                             <span className={cn(
-                              "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                              "text-xs px-1.5 py-0.5 rounded font-medium",
                               level === 'elite' ? 'bg-purple-500/20 text-purple-300' :
                               level === 'advanced' ? 'bg-blue-500/20 text-blue-300' :
                               level === 'intermediate' ? 'bg-green-500/20 text-green-300' :
@@ -886,21 +886,21 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               <div className="space-y-3 text-sm">
                 {gripScore < 30 && (
                   <p className="text-gray-400">
-                    Focus on <span className="text-orange-300">dead hangs</span> 3x per week.
+                    Focus on <span className="text-blue-300">dead hangs</span> 3x per week.
                     Start with 3 sets to failure and track your progress.
                   </p>
                 )}
                 {gripScore >= 30 && gripScore < 60 && (
                   <p className="text-gray-400">
-                    Add <span className="text-orange-300">towel hangs</span> and{' '}
-                    <span className="text-orange-300">plate pinches</span> to develop
+                    Add <span className="text-blue-300">towel hangs</span> and{' '}
+                    <span className="text-blue-300">plate pinches</span> to develop
                     grappling-specific grip strength.
                   </p>
                 )}
                 {gripScore >= 60 && (
                   <p className="text-gray-400">
-                    Strong grip! Focus on <span className="text-orange-300">gi pull-ups</span>{' '}
-                    and <span className="text-orange-300">farmer&apos;s walks</span> for
+                    Strong grip! Focus on <span className="text-blue-300">gi pull-ups</span>{' '}
+                    and <span className="text-blue-300">farmer&apos;s walks</span> for
                     competition-level grip endurance.
                   </p>
                 )}

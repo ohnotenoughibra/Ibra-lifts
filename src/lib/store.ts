@@ -326,6 +326,8 @@ interface AppState {
   endDietPhase: () => void;
   addWeeklyCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id'>) => void;
   incrementPhaseWeek: () => void;
+  deleteDietPhaseFromHistory: (id: string) => void;
+  editDietPhaseInHistory: (id: string, updates: Partial<CompletedDietPhase>) => void;
 
   // Meal reminder actions
   setMealReminders: (settings: Partial<MealReminderSettings>) => void;
@@ -2489,6 +2491,20 @@ export const useAppStore = create<AppState>()(
             },
           });
         }
+      },
+
+      deleteDietPhaseFromHistory: (id) => {
+        const { dietPhaseHistory } = get();
+        set({ dietPhaseHistory: dietPhaseHistory.filter(p => p.id !== id) });
+      },
+
+      editDietPhaseInHistory: (id, updates) => {
+        const { dietPhaseHistory } = get();
+        set({
+          dietPhaseHistory: dietPhaseHistory.map(p =>
+            p.id === id ? { ...p, ...updates, id } : p
+          ),
+        });
       },
 
       // Meal reminder actions

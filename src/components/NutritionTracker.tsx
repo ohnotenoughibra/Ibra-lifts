@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
-import { calculateElectrolyteNeeds, getIntraTrainingFuel } from '@/lib/electrolyte-engine';
+import { calculateElectrolyteNeeds, getIntraTrainingFuel, assessHydrationStatus } from '@/lib/electrolyte-engine';
 import { cn } from '@/lib/utils';
 import DietCoach from './DietCoach';
 import NutritionTrends from './NutritionTrends';
@@ -542,6 +542,28 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     const isInCut = combatNutritionProfile?.nutritionGoal === 'fight_prep' || combatNutritionProfile?.nutritionGoal === 'move_down';
     return getIntraTrainingFuel(trainingDuration, sessionType, !!isInCut, bodyWeightKg);
   }, [trainingDuration, todayTraining, combatNutritionProfile?.nutritionGoal, bodyWeightKg]);
+
+  // Hydration status assessment
+  const hydrationStatus = useMemo(() => {
+    const glasses = waterLog[selectedDate] || 0;
+    const intakeMl = glasses * 250;
+    const targetMl = contextualNutrition.hydrationGoal || 3000;
+    if (intakeMl === 0) return null;
+    return assessHydrationStatus(intakeMl, targetMl);
+  }, [waterLog, selectedDate, contextualNutrition.hydrationGoal]);
+
+  // Collagen timing nudge for grappling/combat athletes
+  const collagenNudge = useMemo(() => {
+    if (user?.trainingIdentity !== 'combat') return null;
+    const grapplingTypes = ['bjj_gi', 'bjj_nogi', 'wrestling', 'judo', 'sambo', 'mma'];
+    const hasGrappling = todayTraining.some(s => grapplingTypes.includes(s.type));
+    if (!hasGrappling && !todaySession) return null;
+    return {
+      dose: '15-20g collagen + 50mg vitamin C',
+      timing: '30-60 min before training',
+      reason: 'Supports tendon/ligament adaptation — critical for grappling load',
+    };
+  }, [user?.trainingIdentity, todayTraining, todaySession]);
 
   // ── UI State ──
   const [showContextual, setShowContextual] = useState(true);
@@ -1196,6 +1218,37 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Hydration Status */}
+                  {hydrationStatus && hydrationStatus.status !== 'well_hydrated' && (
+                    <div className={cn(
+                      'p-2.5 rounded-lg border',
+                      hydrationStatus.status === 'severe_dehydration' ? 'bg-red-500/10 border-red-500/20' :
+                      hydrationStatus.status === 'moderate_dehydration' ? 'bg-orange-500/10 border-orange-500/20' :
+                      'bg-yellow-500/10 border-yellow-500/20'
+                    )}>
+                      <p className={cn(
+                        'text-xs font-medium flex items-center gap-1',
+                        hydrationStatus.status === 'severe_dehydration' ? 'text-red-300' :
+                        hydrationStatus.status === 'moderate_dehydration' ? 'text-orange-300' :
+                        'text-yellow-300'
+                      )}>
+                        <Droplets className="w-3 h-3" /> Hydration Alert
+                      </p>
+                      <p className="text-xs text-grappler-400 mt-1">{hydrationStatus.message}</p>
+                    </div>
+                  )}
+
+                  {/* Collagen Timing Nudge */}
+                  {collagenNudge && (
+                    <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                      <p className="text-xs text-emerald-300 font-medium flex items-center gap-1">
+                        <Shield className="w-3 h-3" /> Collagen Protocol
+                      </p>
+                      <p className="text-xs text-grappler-300 mt-1">{collagenNudge.dose}</p>
+                      <p className="text-xs text-grappler-500">{collagenNudge.timing} — {collagenNudge.reason}</p>
                     </div>
                   )}
 

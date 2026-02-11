@@ -9,6 +9,8 @@ import {
   Plus,
   X,
   ChevronLeft,
+  ChevronRight,
+  CalendarDays,
   Flame,
   Beef,
   Wheat,
@@ -432,10 +434,22 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
 
-  // ── Derived state from store ──
+  // ── Selected date (allows logging for past days) ──
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
   const todayStr = new Date().toISOString().split('T')[0];
-  const waterGlasses = waterLog[todayStr] || 0;
-  const setWaterGlasses = (val: number) => storeSetWater(todayStr, val);
+  const isToday = selectedDate === todayStr;
+  const isFuture = selectedDate > todayStr;
+
+  const navigateDate = (direction: -1 | 1) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + direction);
+    const newStr = d.toISOString().split('T')[0];
+    if (newStr <= todayStr) setSelectedDate(newStr);
+  };
+
+  // ── Derived state from store ──
+  const waterGlasses = waterLog[selectedDate] || 0;
+  const setWaterGlasses = (val: number) => storeSetWater(selectedDate, val);
 
   // ── Dynamic macro targets based on body weight + goal ──
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -740,9 +754,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const todayMeals = useMemo(
     () =>
       meals.filter(
-        (m) => new Date(m.date).toISOString().split('T')[0] === todayStr
+        (m) => new Date(m.date).toISOString().split('T')[0] === selectedDate
       ),
-    [meals, todayStr]
+    [meals, selectedDate]
   );
 
   const totals = useMemo(() => {
@@ -837,7 +851,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const handleSuggestionTap = (food: SuggestionItem) => {
     addMeal({
-      date: new Date(),
+      date: new Date(selectedDate + 'T12:00:00'),
       mealType: formMealType,
       name: food.name,
       calories: food.calories,
@@ -923,7 +937,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const handlePlanMealTap = (meal: PlannedMeal) => {
     addMeal({
-      date: new Date(),
+      date: new Date(selectedDate + 'T12:00:00'),
       mealType: meal.mealType,
       name: meal.name,
       calories: meal.calories,
@@ -955,7 +969,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     if (!formName.trim() || cal === 0) return;
 
     addMeal({
-      date: new Date(),
+      date: new Date(selectedDate + 'T12:00:00'),
       mealType: formMealType,
       name: formName.trim(),
       calories: cal,
@@ -970,7 +984,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const handlePresetAdd = (preset: (typeof PRESET_FOODS)[number]) => {
     addMeal({
-      date: new Date(),
+      date: new Date(selectedDate + 'T12:00:00'),
       mealType: formMealType,
       name: preset.name,
       calories: preset.calories,
@@ -1028,7 +1042,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   };
 
   // ── Date formatting ──
-  const todayFormatted = new Date().toLocaleDateString('en-US', {
+  const selectedDateFormatted = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -1231,8 +1245,37 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
               Daily Goals
             </h2>
-            <p className="text-xs text-grappler-500">{todayFormatted}</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => navigateDate(-1)}
+                className="p-1 text-grappler-400 hover:text-grappler-200 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => !isToday && setSelectedDate(todayStr)}
+                className={cn('text-xs px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors', isToday ? 'text-primary-400 font-semibold' : 'text-grappler-400 hover:text-grappler-200 bg-grappler-800')}
+              >
+                <CalendarDays className="w-3 h-3" />
+                {isToday ? 'Today' : selectedDateFormatted}
+              </button>
+              <button
+                onClick={() => navigateDate(1)}
+                disabled={isToday}
+                className={cn('p-1 transition-colors', isToday ? 'text-grappler-700 cursor-not-allowed' : 'text-grappler-400 hover:text-grappler-200')}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+          {!isToday && (
+            <div className="mb-3 flex items-center gap-2 bg-amber-500/10 rounded-lg px-2.5 py-1.5">
+              <CalendarDays className="w-3 h-3 text-amber-400 flex-shrink-0" />
+              <p className="text-[10px] text-amber-300">
+                Logging for {selectedDateFormatted} — meals and water will be saved to this date
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-4 gap-2">
             <MacroRing

@@ -1251,7 +1251,7 @@ export default function ActiveWorkout() {
                                 <span className="text-primary-400 ml-1">~{ex.prescription.percentageOf1RM}% 1RM</span>
                               )}
                             </p>
-                            <p className="text-[11px] text-grappler-500 mt-0.5">
+                            <p className="text-xs text-grappler-500 mt-0.5">
                               Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
                               {' '}| {ex.exercise.primaryMuscles.slice(0, 2).join(', ')}
                             </p>
@@ -1268,7 +1268,7 @@ export default function ActiveWorkout() {
                       {prevPerf && (
                         <div className="mt-2 ml-11 flex items-center gap-1">
                           <TrendingUp className="w-3 h-3 text-primary-400" />
-                          <p className="text-[11px] text-primary-400">
+                          <p className="text-xs text-primary-400">
                             Last: {prevPerf.weight} {weightUnit} x {prevPerf.reps}
                             {prevPerf.rpe ? ` @ RPE ${prevPerf.rpe}` : ''}
                           </p>
@@ -1477,7 +1477,7 @@ export default function ActiveWorkout() {
                 <p className="text-xs text-grappler-400 mb-1">
                   Replace <span className="text-grappler-200 font-medium">{targetEx.exercise.name}</span>
                 </p>
-                <p className="text-[11px] text-grappler-500 mb-4">
+                <p className="text-xs text-grappler-500 mb-4">
                   Sorted by match score — how well each exercise replaces the current one
                 </p>
 
@@ -1502,7 +1502,7 @@ export default function ActiveWorkout() {
                         </span>
                       </div>
                       {rec.reasons.length > 0 && (
-                        <p className="text-[11px] text-grappler-400 mb-1.5">
+                        <p className="text-xs text-grappler-400 mb-1.5">
                           {rec.reasons[0]}
                         </p>
                       )}
@@ -1560,7 +1560,7 @@ export default function ActiveWorkout() {
               <p className="text-xs text-grappler-400 mb-1">
                 Replace <span className="text-grappler-200 font-medium">{currentExercise.exercise.name}</span>
               </p>
-              <p className="text-[11px] text-grappler-500 mb-4">
+              <p className="text-xs text-grappler-500 mb-4">
                 Sorted by match score — how well each exercise replaces the current one
               </p>
 
@@ -1589,7 +1589,7 @@ export default function ActiveWorkout() {
 
                       {/* Reason */}
                       {rec.reasons.length > 0 && (
-                        <p className="text-[11px] text-grappler-400 mb-1.5">
+                        <p className="text-xs text-grappler-400 mb-1.5">
                           {rec.reasons[0]}
                         </p>
                       )}
@@ -1607,7 +1607,7 @@ export default function ActiveWorkout() {
                       {altHistory && (
                         <div className="flex items-center gap-1 mt-1">
                           <TrendingUp className="w-3 h-3 text-primary-400" />
-                          <p className="text-[11px] text-primary-400">
+                          <p className="text-xs text-primary-400">
                             You did {altHistory.weight} {weightUnit} x {altHistory.reps} on {altHistory.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </p>
                         </div>
@@ -1825,7 +1825,7 @@ export default function ActiveWorkout() {
                                 )}
                                 style={{ height: `${heightPct}%` }}
                               />
-                              <p className="text-[8px] text-grappler-500 truncate w-full text-center">
+                              <p className="text-xs text-grappler-500 truncate w-full text-center">
                                 {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </p>
                             </div>
@@ -2369,7 +2369,7 @@ export default function ActiveWorkout() {
                       <Dumbbell className="w-3 h-3" />
                       Estimated: {firstTimeEstimate.weight} {weightUnit}
                       <span className={cn(
-                        'ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                        'ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium',
                         firstTimeEstimate.confidence === 'high' && 'bg-green-500/20 text-green-400',
                         firstTimeEstimate.confidence === 'medium' && 'bg-yellow-500/20 text-yellow-400',
                         firstTimeEstimate.confidence === 'low' && 'bg-orange-500/20 text-orange-400',
@@ -2403,7 +2403,7 @@ export default function ActiveWorkout() {
             {adjustmentReason && (
               <div className="mt-1.5 flex items-center justify-center gap-1">
                 <TrendingUp className="w-3 h-3 text-primary-400" />
-                <p className="text-[11px] text-primary-400">{adjustmentReason}</p>
+                <p className="text-xs text-primary-400">{adjustmentReason}</p>
               </div>
             )}
           </div>
@@ -2574,7 +2574,7 @@ export default function ActiveWorkout() {
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-2 mb-2 p-2.5 bg-grappler-700/50 rounded-lg text-[11px] text-grappler-300 space-y-1">
+                    <div className="mt-2 mb-2 p-2.5 bg-grappler-700/50 rounded-lg text-xs text-grappler-300 space-y-1">
                       <p className="font-medium text-grappler-200">Rate of Perceived Exertion (RPE)</p>
                       <p><span className="text-green-400 font-medium">6</span> — Could do 4+ more reps</p>
                       <p><span className="text-green-400 font-medium">7</span> — Could do 3 more reps</p>
@@ -2936,7 +2936,7 @@ export default function ActiveWorkout() {
                       <label className="text-sm text-yellow-300 mb-1 block font-medium">
                         Actual workout duration
                       </label>
-                      <p className="text-[11px] text-grappler-500 mb-2">
+                      <p className="text-xs text-grappler-500 mb-2">
                         Looks like you logged this after the session. How long did it actually take?
                       </p>
                       <div className="flex items-center gap-3">

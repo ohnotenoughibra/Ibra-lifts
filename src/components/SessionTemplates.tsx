@@ -672,7 +672,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
 
               {/* Sessions/week filter */}
               <div className="flex gap-1.5 items-center">
-                <span className="text-[10px] text-grappler-500 mr-1">Days/wk:</span>
+                <span className="text-xs text-grappler-500 mr-1">Days/wk:</span>
                 <button
                   onClick={() => setProgramFilterSessions(null)}
                   className={cn(
@@ -698,7 +698,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
 
               {/* Weeks filter */}
               <div className="flex gap-1.5 items-center">
-                <span className="text-[10px] text-grappler-500 mr-1">Weeks:</span>
+                <span className="text-xs text-grappler-500 mr-1">Weeks:</span>
                 <button
                   onClick={() => setProgramFilterWeeks(null)}
                   className={cn(
@@ -755,20 +755,20 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full border capitalize', goalColors[program.goalFocus])}>
+                      <span className={cn('text-xs px-2 py-0.5 rounded-full border capitalize', goalColors[program.goalFocus])}>
                         {program.goalFocus}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300">
                         {program.sessionsPerWeek.join('-')}x/week
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300">
                         {program.weeks.join('/')} weeks
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 capitalize">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 capitalize">
                         {program.periodization}
                       </span>
                       {program.tags.map((tag, i) => (
-                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-grappler-700/50 text-grappler-400">
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-grappler-700/50 text-grappler-400">
                           {tag}
                         </span>
                       ))}
@@ -808,13 +808,13 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                         <div className="p-4 space-y-3">
                           {/* Science basis */}
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <p className="text-[10px] font-medium text-grappler-400 uppercase tracking-wide mb-1">Evidence Basis</p>
+                            <p className="text-xs font-medium text-grappler-400 uppercase tracking-wide mb-1">Evidence Basis</p>
                             <p className="text-xs text-grappler-300">{program.science}</p>
                           </div>
 
                           {/* Custom week/session picker */}
                           <div>
-                            <p className="text-[10px] font-medium text-grappler-400 uppercase tracking-wide mb-2">Customize & Start</p>
+                            <p className="text-xs font-medium text-grappler-400 uppercase tracking-wide mb-2">Customize & Start</p>
                             <div className="grid grid-cols-2 gap-2">
                               {program.weeks.map(w =>
                                 program.sessionsPerWeek.map(s => (
@@ -908,7 +908,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     <div className="flex items-center gap-2 mb-1">
                       <Dumbbell className="w-4 h-4 text-primary-400" />
                       <h3 className="font-bold text-grappler-50">{preset.name}</h3>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-400 capitalize ml-auto">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-400 capitalize ml-auto">
                         {preset.category.replace('_', ' ')}
                       </span>
                     </div>
@@ -931,7 +931,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     {/* Exercise list preview */}
                     <div className="flex flex-wrap gap-1 mb-3">
                       {session.exercises.map((ex, i) => (
-                        <span key={i} className="text-[10px] bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
+                        <span key={i} className="text-xs bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
                           {ex.exercise.name}
                         </span>
                       ))}
@@ -1002,7 +1002,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     <Shield className="w-4 h-4" />
                     Browse Grappling Templates
                   </button>
-                  <p className="text-[10px] text-grappler-500">
+                  <p className="text-xs text-grappler-500">
                     Or save sessions from your program using the &quot;Save Current&quot; tab
                   </p>
                 </div>
@@ -1213,7 +1213,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     {/* Exercise list preview */}
                     <div className="flex flex-wrap gap-1 mb-3">
                       {session.exercises.map((ex, i) => (
-                        <span key={i} className="text-[10px] bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
+                        <span key={i} className="text-xs bg-grappler-700/60 text-grappler-300 px-2 py-0.5 rounded-full">
                           {ex.exercise.name}
                         </span>
                       ))}

@@ -394,12 +394,12 @@ export default function WorkoutHistory() {
                   <p className="text-sm font-medium text-grappler-100">{p.exercise}</p>
                   <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} {weightUnit}</span></p>
                 </div>
-                <p className="text-[11px] text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
+                <p className="text-xs text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
                 <div className="flex gap-2">
                   {p.milestones.map((m, j) => (
                     <div key={j} className="flex-1 bg-grappler-700/40 rounded-lg px-3 py-2 text-center">
                       <p className="text-sm font-bold text-primary-400">{m.target} {weightUnit}</p>
-                      <p className="text-[10px] text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
                     </div>
                   ))}
                 </div>
@@ -490,14 +490,14 @@ export default function WorkoutHistory() {
               <div className="space-y-3 pt-1">
                 {/* Muscle group filter */}
                 <div>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
+                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
                   <div className="flex flex-wrap gap-1.5">
                     {muscleGroups.map(mg => (
                       <button
                         key={mg.id}
                         onClick={() => setMuscleFilter(mg.id)}
                         className={cn(
-                          'px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors',
+                          'px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
                           muscleFilter === mg.id
                             ? 'bg-accent-500 text-white'
                             : 'bg-grappler-700 text-grappler-400 hover:text-grappler-200'
@@ -511,7 +511,7 @@ export default function WorkoutHistory() {
 
                 {/* Sort */}
                 <div>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
+                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
                   <div className="flex gap-2">
                     {([
                       { value: 'date', label: 'Date' },

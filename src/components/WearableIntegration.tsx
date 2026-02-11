@@ -1370,7 +1370,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       <span className="text-gray-500">•</span>
                       <span className="capitalize">{session.intensity.replace('_', ' ')}</span>
                       {session.detectionMethod === 'heuristic' && (
-                        <span className="text-yellow-400/70 text-[10px]">(auto-detected)</span>
+                        <span className="text-yellow-400/70 text-xs">(auto-detected)</span>
                       )}
                     </div>
                   ))}
@@ -1382,7 +1382,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   >
                     Dismiss
                   </button>
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-xs text-gray-500">
                     View in Grappling Tracker to edit
                   </span>
                 </div>
@@ -1450,7 +1450,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-grappler-400 uppercase tracking-wider">Recovery</span>
-                    <span className="text-[10px] text-grappler-600">
+                    <span className="text-xs text-grappler-600">
                       {new Date(today.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                     </span>
                   </div>
@@ -1505,7 +1505,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <div className="bg-grappler-800 rounded-xl p-3.5">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Zap className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[11px] text-grappler-500">Strain</span>
+                  <span className="text-xs text-grappler-500">Strain</span>
                   {hasNoStrainData && (
                     <span className="relative flex h-1.5 w-1.5 ml-auto">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
@@ -1517,7 +1517,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   {isStrainFromWorkouts ? '~' : ''}{effectiveStrain.toFixed(1)}
                 </p>
                 {hasNoStrainData && (
-                  <p className="text-[9px] text-grappler-500 mt-0.5">updates after activities</p>
+                  <p className="text-xs text-grappler-500 mt-0.5">updates after activities</p>
                 )}
                 <div className={cn('h-1 bg-grappler-700 rounded-full overflow-hidden', hasNoStrainData ? 'mt-0.5' : 'mt-1.5')}>
                   <motion.div
@@ -1532,25 +1532,25 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <div className="bg-grappler-800 rounded-xl p-3.5">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Activity className="w-3.5 h-3.5 text-primary-400" />
-                  <span className="text-[11px] text-grappler-500">HRV</span>
+                  <span className="text-xs text-grappler-500">HRV</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-xl font-bold text-grappler-50">{today.hrv ?? '--'}</p>
                   {yesterday?.hrv != null && today.hrv != null && trendIcon(today.hrv, yesterday.hrv)}
                 </div>
-                <span className="text-[10px] text-grappler-600">ms</span>
+                <span className="text-xs text-grappler-600">ms</span>
               </div>
               {/* Resting HR */}
               <div className="bg-grappler-800 rounded-xl p-3.5">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Heart className="w-3.5 h-3.5 text-red-400" />
-                  <span className="text-[11px] text-grappler-500">RHR</span>
+                  <span className="text-xs text-grappler-500">RHR</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <p className="text-xl font-bold text-grappler-50">{today.restingHR ?? '--'}</p>
                   {yesterday?.restingHR != null && today.restingHR != null && trendIcon(yesterday.restingHR, today.restingHR)}
                 </div>
-                <span className="text-[10px] text-grappler-600">bpm</span>
+                <span className="text-xs text-grappler-600">bpm</span>
               </div>
             </motion.div>
 
@@ -1607,7 +1607,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                           <div className="bg-purple-400" style={{ width: `${(rem / total) * 100}%` }} />
                           <div className="rounded-r-full bg-purple-300/40" style={{ width: `${(light / total) * 100}%` }} />
                         </div>
-                        <div className="flex justify-between mt-1.5 text-[10px]">
+                        <div className="flex justify-between mt-1.5 text-xs">
                           <span className="text-indigo-400">Deep {deep}m</span>
                           <span className="text-purple-400">REM {rem}m</span>
                           <span className="text-purple-300/60">Light {light}m</span>
@@ -1630,25 +1630,25 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                     <div className="px-4 pb-4 grid grid-cols-2 gap-2.5 border-t border-grappler-700/50 pt-3">
                       {today.sleepConsistency != null && (
                         <div className="bg-grappler-900/50 rounded-lg p-3">
-                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Timer className="w-3 h-3" /> Consistency</span>
+                          <span className="text-xs text-grappler-500 flex items-center gap-1"><Timer className="w-3 h-3" /> Consistency</span>
                           <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepConsistency.toFixed(0)}%</p>
                         </div>
                       )}
                       {today.sleepDisturbances != null && (
                         <div className="bg-grappler-900/50 rounded-lg p-3">
-                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Disturbances</span>
+                          <span className="text-xs text-grappler-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Disturbances</span>
                           <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepDisturbances}</p>
                         </div>
                       )}
                       {today.sleepNeededHours != null && (
                         <div className="bg-grappler-900/50 rounded-lg p-3">
-                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><BedDouble className="w-3 h-3" /> Needed</span>
+                          <span className="text-xs text-grappler-500 flex items-center gap-1"><BedDouble className="w-3 h-3" /> Needed</span>
                           <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepNeededHours.toFixed(1)} hrs</p>
                         </div>
                       )}
                       {today.sleepEfficiency != null && (
                         <div className="bg-grappler-900/50 rounded-lg p-3">
-                          <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Moon className="w-3 h-3" /> Efficiency</span>
+                          <span className="text-xs text-grappler-500 flex items-center gap-1"><Moon className="w-3 h-3" /> Efficiency</span>
                           <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.sleepEfficiency.toFixed(0)}%</p>
                         </div>
                       )}
@@ -1694,43 +1694,43 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       <div className="px-4 pb-4 grid grid-cols-2 gap-2.5 border-t border-grappler-700/50 pt-3">
                         {today.respiratoryRate != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Wind className="w-3 h-3" /> Resp. Rate</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Wind className="w-3 h-3" /> Resp. Rate</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.respiratoryRate.toFixed(1)} <span className="text-xs font-normal text-grappler-500">rpm</span></p>
                           </div>
                         )}
                         {today.skinTemp != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Skin Temp</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Thermometer className="w-3 h-3" /> Skin Temp</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.skinTemp.toFixed(1)}&deg;F</p>
                           </div>
                         )}
                         {today.spo2 != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Droplets className="w-3 h-3" /> SpO2</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Droplets className="w-3 h-3" /> SpO2</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.spo2.toFixed(0)}%</p>
                           </div>
                         )}
                         {today.caloriesBurned != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Zap className="w-3 h-3" /> Calories</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Zap className="w-3 h-3" /> Calories</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.caloriesBurned.toLocaleString()} <span className="text-xs font-normal text-grappler-500">kcal</span></p>
                           </div>
                         )}
                         {today.avgHeartRate != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3" /> Avg HR</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3" /> Avg HR</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.avgHeartRate} <span className="text-xs font-normal text-grappler-500">bpm</span></p>
                           </div>
                         )}
                         {today.maxHeartRate != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3 text-red-400" /> Max HR</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Heart className="w-3 h-3 text-red-400" /> Max HR</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{today.maxHeartRate} <span className="text-xs font-normal text-grappler-500">bpm</span></p>
                           </div>
                         )}
                         {whoopBody && whoopBody.weightKg != null && (
                           <div className="bg-grappler-900/50 rounded-lg p-3">
-                            <span className="text-[10px] text-grappler-500 flex items-center gap-1"><Scale className="w-3 h-3" /> Weight</span>
+                            <span className="text-xs text-grappler-500 flex items-center gap-1"><Scale className="w-3 h-3" /> Weight</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{weightUnit === 'kg' ? Math.round(whoopBody.weightKg * 10) / 10 : Math.round(whoopBody.weightKg * 2.20462 * 10) / 10} <span className="text-xs font-normal text-grappler-500">{weightUnit}</span></p>
                           </div>
                         )}
@@ -1821,26 +1821,26 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                             <Dumbbell className="w-3.5 h-3.5 text-primary-400" />
                             <span className="text-sm font-medium text-grappler-100">{w.sportName}</span>
                           </div>
-                          <span className="text-[11px] text-grappler-500">
+                          <span className="text-xs text-grappler-500">
                             {new Date(w.start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                         <div className="grid grid-cols-4 gap-1.5 text-center">
                           <div className="bg-grappler-900/50 rounded-lg py-1.5">
                             <p className={cn('text-sm font-bold', strainColor(w.strain ?? 0))}>{w.strain?.toFixed(1) ?? '--'}</p>
-                            <p className="text-[10px] text-grappler-600">Strain</p>
+                            <p className="text-xs text-grappler-600">Strain</p>
                           </div>
                           <div className="bg-grappler-900/50 rounded-lg py-1.5">
                             <p className="text-sm font-bold text-grappler-100">{w.calories ?? '--'}</p>
-                            <p className="text-[10px] text-grappler-600">kcal</p>
+                            <p className="text-xs text-grappler-600">kcal</p>
                           </div>
                           <div className="bg-grappler-900/50 rounded-lg py-1.5">
                             <p className="text-sm font-bold text-grappler-100">{w.avgHR ?? '--'}</p>
-                            <p className="text-[10px] text-grappler-600">Avg HR</p>
+                            <p className="text-xs text-grappler-600">Avg HR</p>
                           </div>
                           <div className="bg-grappler-900/50 rounded-lg py-1.5">
                             <p className="text-sm font-bold text-grappler-100">{durationMin}</p>
-                            <p className="text-[10px] text-grappler-600">min</p>
+                            <p className="text-xs text-grappler-600">min</p>
                           </div>
                         </div>
                         {w.zones.length > 0 && (

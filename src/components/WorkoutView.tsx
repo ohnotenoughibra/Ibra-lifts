@@ -468,21 +468,21 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
                         <div className="flex-1 bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
                           <Zap className="w-4 h-4 text-red-400 mx-auto mb-1" />
                           <p className="text-sm font-bold text-red-400">{breakdown.strength}</p>
-                          <p className="text-[10px] text-red-400/70">Strength</p>
+                          <p className="text-xs text-red-400/70">Strength</p>
                         </div>
                       )}
                       {breakdown.hypertrophy > 0 && (
                         <div className="flex-1 bg-purple-500/10 border border-purple-500/30 rounded-lg p-2 text-center">
                           <Heart className="w-4 h-4 text-purple-400 mx-auto mb-1" />
                           <p className="text-sm font-bold text-purple-400">{breakdown.hypertrophy}</p>
-                          <p className="text-[10px] text-purple-400/70">Hypertrophy</p>
+                          <p className="text-xs text-purple-400/70">Hypertrophy</p>
                         </div>
                       )}
                       {breakdown.power > 0 && (
                         <div className="flex-1 bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
                           <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
                           <p className="text-sm font-bold text-orange-400">{breakdown.power}</p>
-                          <p className="text-[10px] text-orange-400/70">Power</p>
+                          <p className="text-xs text-orange-400/70">Power</p>
                         </div>
                       )}
                     </div>
@@ -703,7 +703,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-grappler-500 mt-1.5">
+        <p className="text-xs text-grappler-500 mt-1.5">
           Last week is always a deload. {weeks >= 6 ? 'Longer blocks build more volume.' : ''}
         </p>
       </div>
@@ -733,7 +733,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-grappler-500 mt-1.5">
+        <p className="text-xs text-grappler-500 mt-1.5">
           {sessionMinutes > 0
             ? `Sessions will be trimmed to ~${sessionMinutes} min. Compounds kept, isolation dropped first.`
             : 'Sessions auto-sized based on workout type.'}
@@ -760,7 +760,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
                 {MUSCLE_GROUP_LABELS[muscle]}
               </span>
               <span className={cn(
-                'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full',
+                'text-xs font-semibold uppercase px-1.5 py-0.5 rounded-full',
                 emphasis === 'focus' && 'bg-green-500/30 text-green-300',
                 emphasis === 'maintain' && 'bg-grappler-600/50 text-grappler-400',
                 emphasis === 'ignore' && 'bg-red-500/20 text-red-300',
@@ -885,10 +885,10 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-2">
-              <p className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wider mb-1">
+              <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-1">
                 Swap with
               </p>
-              <p className="text-[10px] text-grappler-500 mb-2">
+              <p className="text-xs text-grappler-500 mb-2">
                 Sorted by match score — how well each exercise replaces the current one
               </p>
               {alternatives.length === 0 ? (
@@ -911,7 +911,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                             {rec.exercise.name}
                           </p>
                           <span className={cn(
-                            'text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2',
+                            'text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2',
                             rec.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
                             rec.matchScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
                             'bg-grappler-700 text-grappler-400'
@@ -922,7 +922,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
 
                         {/* Reason */}
                         {rec.reasons.length > 0 && (
-                          <p className="text-[10px] text-grappler-400 mb-1">
+                          <p className="text-xs text-grappler-400 mb-1">
                             {rec.reasons[0]}
                           </p>
                         )}
@@ -930,7 +930,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                         {/* Tags */}
                         <div className="flex flex-wrap gap-1 mb-1">
                           {rec.tags.slice(0, 4).map((tag, i) => (
-                            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
+                            <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
                               {tag}
                             </span>
                           ))}
@@ -940,14 +940,14 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                         {altHistory && (
                           <div className="flex items-center gap-1 mt-1">
                             <TrendingUp className="w-3 h-3 text-primary-400" />
-                            <p className="text-[10px] text-primary-400">
+                            <p className="text-xs text-primary-400">
                               You did {altHistory.weight} {weightUnit} x {altHistory.reps} on {altHistory.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </p>
                           </div>
                         )}
 
                         {/* Muscle info */}
-                        <p className="text-[9px] text-grappler-500 mt-1">
+                        <p className="text-xs text-grappler-500 mt-1">
                           {rec.exercise.primaryMuscles.join(', ')}
                           {rec.exercise.secondaryMuscles.length > 0 && (
                             <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
@@ -1063,7 +1063,7 @@ function ProgramSettingsPanel({
               Reset Changes
             </button>
           )}
-          <p className="text-[11px] text-grappler-500 text-center">
+          <p className="text-xs text-grappler-500 text-center">
             {hasChanges
               ? 'This will create a new program with your updated settings'
               : 'Keep the same settings but get fresh exercise selections'}

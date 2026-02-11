@@ -6,7 +6,8 @@ const APP_SHELL = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  '/favicon.ico',
+  '/favicon.png',
+  '/apple-touch-icon.png',
 ];
 
 // Install: cache the app shell

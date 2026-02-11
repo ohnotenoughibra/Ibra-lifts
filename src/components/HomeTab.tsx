@@ -53,7 +53,7 @@ import { generateVariableReward, detectDisengagement, getSessionContext } from '
 import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-deload';
 import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
 import type { CycleLog } from '@/lib/female-athlete';
-import { detectFightCampPhase } from '@/lib/fight-camp-engine';
+import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
 import PerformanceReadiness from './PerformanceReadiness';
 import type { OverlayView } from './dashboard-types';
 
@@ -240,6 +240,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
   } = useAppStore();
   const { data: session } = useSession();
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
@@ -627,8 +628,101 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     feedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
   }
 
-  // 3. Competition countdown (< 60 days)
-  if (nextCompetition && nextCompetition.daysUntil <= 60 && feedCards.length < 4) {
+  // 3. Fight camp phase detection
+  const fightCampPhase = useMemo(() => {
+    if (user?.trainingIdentity !== 'combat' || !nextCompetition) return null;
+    const isTournament = nextCompetition.type === 'bjj_tournament' || nextCompetition.type === 'wrestling_meet';
+    return detectFightCampPhase(nextCompetition.daysUntil, false, isTournament);
+  }, [user?.trainingIdentity, nextCompetition]);
+
+  const campPhaseConfig = useMemo(() => {
+    if (!fightCampPhase) return null;
+    return getPhaseConfig(fightCampPhase, (user?.sex || 'male') as 'male' | 'female');
+  }, [fightCampPhase, user?.sex]);
+
+  const campPhaseMacros = useMemo(() => {
+    if (!fightCampPhase) return null;
+    const latestW = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+    const bwKg = latestW
+      ? (latestW.unit === 'lbs' ? latestW.weight / 2.205 : latestW.weight)
+      : (user?.bodyWeightKg || 80);
+    const tdee = Math.round(bwKg * 33);
+    return generatePhaseMacros(tdee, bwKg, fightCampPhase, (user?.sex || 'male') as 'male' | 'female');
+  }, [fightCampPhase, bodyWeightLog, user?.bodyWeightKg, user?.sex]);
+
+  // Camp Mode banner (combat athletes with competition <= 56 days / 8 weeks)
+  if (fightCampPhase && fightCampPhase !== 'off_season' && nextCompetition && feedCards.length < 4) {
+    const campColors: Record<string, { gradient: string; accent: string }> = {
+      base_camp:        { gradient: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30', accent: 'text-cyan-400' },
+      intensification:  { gradient: 'from-purple-500/15 to-violet-500/10 border-purple-500/30', accent: 'text-purple-400' },
+      fight_camp_peak:  { gradient: 'from-red-500/15 to-orange-500/10 border-red-500/30', accent: 'text-red-400' },
+      fight_week:       { gradient: 'from-red-500/20 to-rose-500/15 border-red-500/40', accent: 'text-red-300' },
+      weigh_in_day:     { gradient: 'from-yellow-500/20 to-amber-500/10 border-yellow-500/30', accent: 'text-yellow-400' },
+      fight_day:        { gradient: 'from-green-500/20 to-emerald-500/10 border-green-500/30', accent: 'text-green-400' },
+      tournament_day:   { gradient: 'from-green-500/20 to-emerald-500/10 border-green-500/30', accent: 'text-green-400' },
+      post_competition: { gradient: 'from-slate-500/15 to-gray-500/10 border-slate-500/30', accent: 'text-slate-400' },
+    };
+    const colors = campColors[fightCampPhase] || campColors.base_camp;
+
+    feedCards.push(
+      <motion.div key="camp-mode" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className={cn('rounded-xl border bg-gradient-to-r overflow-hidden', colors.gradient)}>
+        {/* Header row */}
+        <div className="flex items-center justify-between p-3.5 pb-2">
+          <div className="flex items-center gap-3">
+            <Crosshair className={cn('w-5 h-5 flex-shrink-0', colors.accent)} />
+            <div>
+              <h3 className="font-bold text-grappler-100 text-sm flex items-center gap-1.5">
+                Camp Mode
+                <span className={cn('text-xs font-normal px-1.5 py-0.5 rounded-full bg-white/10', colors.accent)}>
+                  {campPhaseConfig?.name?.split('(')[0].trim() || fightCampPhase.replace(/_/g, ' ')}
+                </span>
+              </h3>
+              <p className="text-xs text-grappler-400 mt-0.5">
+                {nextCompetition.name} · {new Date(nextCompetition.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                {nextCompetition.weightClass ? ` · ${nextCompetition.weightClass} ${weightUnit}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className={cn('text-2xl font-black', colors.accent)}>{nextCompetition.daysUntil}</p>
+            <p className="text-xs text-grappler-500">days out</p>
+          </div>
+        </div>
+        {/* Phase macros + focus */}
+        <div className="px-3.5 pb-3.5 space-y-2">
+          {campPhaseConfig && (
+            <p className="text-xs text-grappler-300">{campPhaseConfig.focus}</p>
+          )}
+          {campPhaseMacros && (
+            <div className="grid grid-cols-4 gap-1.5">
+              <div className="bg-grappler-900/40 rounded-lg py-1 px-1.5 text-center">
+                <p className="text-[10px] text-grappler-500">Cal</p>
+                <p className="text-xs font-bold text-grappler-200">{campPhaseMacros.calories}</p>
+              </div>
+              <div className="bg-grappler-900/40 rounded-lg py-1 px-1.5 text-center">
+                <p className="text-[10px] text-grappler-500">P</p>
+                <p className="text-xs font-bold text-grappler-200">{campPhaseMacros.protein}g</p>
+              </div>
+              <div className="bg-grappler-900/40 rounded-lg py-1 px-1.5 text-center">
+                <p className="text-[10px] text-grappler-500">C</p>
+                <p className="text-xs font-bold text-grappler-200">{campPhaseMacros.carbs}g</p>
+              </div>
+              <div className="bg-grappler-900/40 rounded-lg py-1 px-1.5 text-center">
+                <p className="text-[10px] text-grappler-500">F</p>
+                <p className="text-xs font-bold text-grappler-200">{campPhaseMacros.fat}g</p>
+              </div>
+            </div>
+          )}
+          <button onClick={() => onNavigate('fight_camp')}
+            className="w-full py-1.5 bg-white/5 hover:bg-white/10 text-grappler-300 text-xs font-medium rounded-lg transition-colors">
+            View Fight Camp Nutrition
+          </button>
+        </div>
+      </motion.div>
+    );
+  } else if (nextCompetition && nextCompetition.daysUntil <= 60 && feedCards.length < 4) {
+    // Non-combat athletes or off-season: simple countdown
     feedCards.push(
       <motion.div key="competition" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-yellow-500/15 to-blue-500/10 border border-yellow-500/30 rounded-xl p-3.5">
@@ -647,51 +741,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
             <p className="text-xs text-yellow-400/70">days out</p>
           </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // 3b. Fight camp status (combat athletes with upcoming competition)
-  const fightCampPhase = useMemo(() => {
-    if (user?.trainingIdentity !== 'combat' || !nextCompetition) return null;
-    return detectFightCampPhase(nextCompetition.daysUntil);
-  }, [user?.trainingIdentity, nextCompetition]);
-
-  if (fightCampPhase && feedCards.length < 4) {
-    const phaseColors: Record<string, string> = {
-      base_camp: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
-      intensification: 'from-purple-500/15 to-violet-500/10 border-purple-500/30',
-      peak_week: 'from-blue-500/20 to-sky-500/10 border-blue-500/30',
-      acute_reduction: 'from-red-500/20 to-rose-500/10 border-red-500/30',
-      water_cut: 'from-red-500/25 to-rose-500/15 border-red-500/40',
-      rehydration: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30',
-      competition_day: 'from-yellow-500/20 to-sky-500/10 border-yellow-500/30',
-      recovery: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
-      off_season: 'from-grappler-600/20 to-grappler-700/10 border-grappler-600/30',
-    };
-    const phaseLabels: Record<string, string> = {
-      base_camp: 'Base Camp', intensification: 'Intensification', peak_week: 'Peak Week',
-      acute_reduction: 'Acute Reduction', water_cut: 'Water Cut', rehydration: 'Rehydration',
-      competition_day: 'Competition Day', recovery: 'Recovery', off_season: 'Off Season',
-    };
-    feedCards.push(
-      <motion.div key="fight-camp" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className={cn('rounded-xl p-3.5 border bg-gradient-to-r', phaseColors[fightCampPhase] || phaseColors.off_season)}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Crosshair className="w-5 h-5 text-primary-400 flex-shrink-0" />
-            <div>
-              <h3 className="font-bold text-grappler-100 text-sm">Fight Camp</h3>
-              <p className="text-xs text-grappler-400 mt-0.5">
-                Phase: {phaseLabels[fightCampPhase] || fightCampPhase}
-              </p>
-            </div>
-          </div>
-          <button onClick={() => onNavigate('competition')}
-            className="px-2.5 py-1 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-xs font-medium rounded-lg transition-colors">
-            Details
-          </button>
         </div>
       </motion.div>
     );

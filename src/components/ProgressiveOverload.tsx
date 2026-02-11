@@ -255,7 +255,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         className="min-h-screen bg-grappler-900 px-4 py-6"
       >
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={onClose} className="btn btn-secondary btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
@@ -287,7 +287,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onClose} className="btn btn-secondary btn-sm">
+        <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
@@ -309,7 +309,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
               setShowDropdown(true);
             }}
             onFocus={() => setShowDropdown(true)}
-            className="w-full bg-grappler-800 border border-grappler-700 rounded-xl pl-10 pr-4 py-3 text-grappler-50 placeholder-grappler-500 focus:outline-none focus:border-primary-500 transition-colors"
+            className="w-full bg-grappler-800 border border-grappler-700 rounded-xl pl-10 pr-4 py-3 text-grappler-50 placeholder-grappler-500 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
           />
         </div>
 

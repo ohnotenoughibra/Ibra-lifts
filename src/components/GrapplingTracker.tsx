@@ -62,7 +62,7 @@ const ACTIVITY_TYPES: { id: ActivityType; label: string; short: string }[] = [
 const INTENSITY_OPTIONS: { id: TrainingIntensity; label: string; color: string }[] = [
   { id: 'light_flow', label: 'Light / Flow', color: 'bg-green-500/20 text-green-400 border-green-500/50' },
   { id: 'moderate', label: 'Moderate', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' },
-  { id: 'hard_sparring', label: 'Hard Sparring', color: 'bg-orange-500/20 text-orange-400 border-orange-500/50' },
+  { id: 'hard_sparring', label: 'Hard Sparring', color: 'bg-blue-500/20 text-blue-400 border-blue-500/50' },
   { id: 'competition_prep', label: 'Comp Prep', color: 'bg-red-500/20 text-red-400 border-red-500/50' },
 ];
 
@@ -94,12 +94,12 @@ function typeBadgeColor(type: ActivityType): string {
     // Grappling
     case 'bjj_gi': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
     case 'bjj_nogi': return 'bg-teal-500/20 text-teal-400 border-teal-500/40';
-    case 'wrestling': return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+    case 'wrestling': return 'bg-sky-500/20 text-sky-400 border-sky-500/40';
     case 'judo': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
     case 'sambo': return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40';
     // Striking
     case 'boxing': return 'bg-rose-500/20 text-rose-400 border-rose-500/40';
-    case 'kickboxing': return 'bg-orange-500/20 text-orange-400 border-orange-500/40';
+    case 'kickboxing': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
     case 'muay_thai': return 'bg-fuchsia-500/20 text-fuchsia-400 border-fuchsia-500/40';
     case 'karate': return 'bg-purple-500/20 text-purple-400 border-purple-500/40';
     case 'taekwondo': return 'bg-violet-500/20 text-violet-400 border-violet-500/40';
@@ -109,7 +109,7 @@ function typeBadgeColor(type: ActivityType): string {
     case 'running': return 'bg-sky-500/20 text-sky-400 border-sky-500/40';
     case 'cycling': return 'bg-lime-500/20 text-lime-400 border-lime-500/40';
     case 'swimming': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40';
-    case 'rowing': return 'bg-stone-500/20 text-stone-400 border-stone-500/40';
+    case 'rowing': return 'bg-slate-500/20 text-slate-400 border-slate-500/40';
     // Outdoor
     case 'hiking': return 'bg-green-500/20 text-green-400 border-green-500/40';
     case 'skiing': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
@@ -125,14 +125,14 @@ function typeBadgeColor(type: ActivityType): string {
 function rpeColor(rpe: number): string {
   if (rpe <= 3) return 'text-green-400';
   if (rpe <= 5) return 'text-yellow-400';
-  if (rpe <= 7) return 'text-orange-400';
+  if (rpe <= 7) return 'text-blue-400';
   return 'text-red-400';
 }
 
 function rpeBarColor(rpe: number): string {
   if (rpe <= 3) return 'bg-green-500';
   if (rpe <= 5) return 'bg-yellow-500';
-  if (rpe <= 7) return 'bg-orange-500';
+  if (rpe <= 7) return 'bg-blue-500';
   return 'bg-red-500';
 }
 
@@ -317,7 +317,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
               <ChevronLeft className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">
@@ -336,7 +336,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
           </div>
           <button
             onClick={() => { resetForm(); setShowAddForm(true); }}
-            className="btn btn-sm gap-1 bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25"
+            className="btn btn-sm gap-1 bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500 shadow-lg shadow-emerald-500/25"
           >
             <Plus className="w-4 h-4" />
             Log
@@ -522,7 +522,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                           {/* Nutrition */}
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
-                              <Utensils className="w-3 h-3 text-orange-400" />
+                              <Utensils className="w-3 h-3 text-blue-400" />
                               <span className="text-xs text-grappler-400">Nutrition</span>
                             </div>
                             <div className="grid grid-cols-4 gap-1.5">
@@ -537,7 +537,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                                   onClick={() => setFormNutrition(opt.id as PreWorkoutCheckIn['nutrition'])}
                                   className={`py-1.5 rounded-lg text-xs font-medium transition-all ${
                                     formNutrition === opt.id
-                                      ? 'bg-orange-500/30 text-orange-300 border border-orange-500/50'
+                                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50'
                                       : 'bg-grappler-700 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
                                   }`}
                                 >
@@ -809,7 +809,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 {/* Save */}
                 <button
                   onClick={handleSave}
-                  className="w-full gap-2 btn bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-lg shadow-emerald-500/25"
+                  className="w-full gap-2 btn bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500 shadow-lg shadow-emerald-500/25"
                 >
                   <Check className="w-4 h-4" />
                   Save Session
@@ -1077,7 +1077,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
               <div className="bg-grappler-800 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-blue-400" />
                   <span className="text-xs text-grappler-400">Avg RPE</span>
                 </div>
                 <div className={`text-xl font-bold ${avgRPE > 0 ? rpeColor(avgRPE) : 'text-grappler-50'}`}>
@@ -1135,7 +1135,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                               className={`w-2 h-2 rounded-full ${
                                 gt.id === 'bjj_gi' ? 'bg-emerald-500' :
                                 gt.id === 'bjj_nogi' ? 'bg-teal-500' :
-                                gt.id === 'wrestling' ? 'bg-amber-500' :
+                                gt.id === 'wrestling' ? 'bg-sky-500' :
                                 gt.id === 'mma' ? 'bg-red-500' :
                                 gt.id === 'judo' ? 'bg-blue-500' :
                                 'bg-grappler-500'
@@ -1155,7 +1155,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             className={`h-full rounded-full ${
                               gt.id === 'bjj_gi' ? 'bg-emerald-500' :
                               gt.id === 'bjj_nogi' ? 'bg-teal-500' :
-                              gt.id === 'wrestling' ? 'bg-amber-500' :
+                              gt.id === 'wrestling' ? 'bg-sky-500' :
                               gt.id === 'mma' ? 'bg-red-500' :
                               gt.id === 'judo' ? 'bg-blue-500' :
                               'bg-grappler-500'
@@ -1172,7 +1172,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
             {/* Intensity distribution */}
             <div className="bg-grappler-800 rounded-xl p-4">
               <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-                <Flame className="w-4 h-4 text-orange-400" />
+                <Flame className="w-4 h-4 text-blue-400" />
                 Intensity Distribution
               </h3>
               {trainingSessions.length === 0 ? (

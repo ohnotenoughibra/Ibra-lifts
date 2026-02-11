@@ -564,7 +564,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     strength: 'text-red-400 bg-red-500/20 border-red-500/30',
     hypertrophy: 'text-purple-400 bg-purple-500/20 border-purple-500/30',
     balanced: 'text-primary-400 bg-primary-500/20 border-primary-500/30',
-    power: 'text-orange-400 bg-orange-500/20 border-orange-500/30',
+    power: 'text-blue-400 bg-blue-500/20 border-blue-500/30',
   };
 
   const filteredQuickPresets = quickFilter
@@ -585,7 +585,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center hover:bg-grappler-700 transition-colors"
           >
@@ -1313,7 +1313,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                               [session.id]: e.target.value
                             }))
                           }
-                          className="w-full bg-grappler-900 border border-grappler-700 rounded-lg px-3 py-2 text-sm text-grappler-100 placeholder:text-grappler-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full bg-grappler-900 border border-grappler-700 rounded-lg px-3 py-2 text-sm text-grappler-100 placeholder:text-grappler-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
                           autoFocus
                         />
                         <div className="flex gap-2">
@@ -1415,7 +1415,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                               [log.id]: e.target.value
                             }))
                           }
-                          className="w-full bg-grappler-900 border border-grappler-700 rounded-lg px-3 py-2 text-sm text-grappler-100 placeholder:text-grappler-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          className="w-full bg-grappler-900 border border-grappler-700 rounded-lg px-3 py-2 text-sm text-grappler-100 placeholder:text-grappler-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
                           autoFocus
                         />
                         <div className="flex gap-2">

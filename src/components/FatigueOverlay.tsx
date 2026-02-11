@@ -20,7 +20,7 @@ interface FatigueOverlayProps { onClose: () => void }
 const GAUGE_COLORS = {
   green: { ring: 'text-green-400', bg: 'bg-green-500/20', label: 'text-green-400' },
   yellow: { ring: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'text-yellow-400' },
-  orange: { ring: 'text-orange-400', bg: 'bg-orange-500/20', label: 'text-orange-400' },
+  orange: { ring: 'text-blue-400', bg: 'bg-blue-500/20', label: 'text-blue-400' },
   red: { ring: 'text-red-400', bg: 'bg-red-500/20', label: 'text-red-400' },
 } as const;
 
@@ -126,7 +126,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
               <p className="text-xs text-grappler-500">Smart deload engine</p>
             </div>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm p-1">
             <X className="w-5 h-5 text-grappler-400" />
           </button>
         </div>

@@ -165,7 +165,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <button
+            <button aria-label="Go back"
               onClick={onClose}
               className="p-2 rounded-lg bg-grappler-800 text-grappler-300 hover:text-grappler-100 transition-colors"
             >
@@ -217,7 +217,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     value={form.name}
                     onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                     placeholder="e.g., Gi Pull-Ups"
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
                   />
                 </div>
 
@@ -429,7 +429,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe how to perform this exercise..."
                     rows={3}
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600 resize-none"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600 resize-none"
                   />
                 </div>
 
@@ -473,7 +473,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                         }
                       }}
                       placeholder="Add a coaching cue..."
-                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600 text-sm"
+                      className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600 text-sm"
                     />
                     <button
                       onClick={handleAddCue}
@@ -495,7 +495,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     value={form.videoUrl}
                     onChange={(e) => setForm((prev) => ({ ...prev, videoUrl: e.target.value }))}
                     placeholder="https://youtube.com/watch?v=..."
-                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+                    className="w-full bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
                   />
                 </div>
 
@@ -527,7 +527,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search your exercises..."
-              className="w-full bg-grappler-800 border border-grappler-700 rounded-lg pl-10 pr-3 py-2.5 text-sm text-grappler-100 focus:border-primary-500 focus:outline-none placeholder:text-grappler-600"
+              className="w-full bg-grappler-800 border border-grappler-700 rounded-lg pl-10 pr-3 py-2.5 text-sm text-grappler-100 focus-visible:border-primary-500 focus-visible:outline-none placeholder:text-grappler-600"
             />
           </motion.div>
         )}

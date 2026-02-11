@@ -9,9 +9,7 @@ import {
   Calendar,
   Trophy,
   BarChart3,
-  BookOpen,
   Play,
-  ChevronRight,
   Flame,
   Target,
   Zap,
@@ -24,13 +22,8 @@ import {
   Apple,
   Leaf,
   Crosshair,
-  Scaling,
   HeartPulse,
   Siren,
-  Calculator,
-  ListPlus,
-  Layers,
-  LayoutGrid,
   Sun,
   Moon,
   Shield,
@@ -38,16 +31,12 @@ import {
   Check,
   Users,
   Sparkles,
-  Grip,
-  Watch,
-  ClipboardCheck,
   Award,
   Thermometer,
   SkipForward,
   RefreshCw,
   CheckCircle,
 } from 'lucide-react';
-import BlockQueue from './BlockQueue';
 import { cn, formatNumber } from '@/lib/utils';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
@@ -129,18 +118,19 @@ function ReadinessCard() {
       {summary.topFactors.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           {summary.topFactors.map(f => (
-            <span key={f.label} className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded">
+            <span key={f.label} className="text-xs bg-black/20 px-1.5 py-0.5 rounded">
               {f.label}: {f.score}/100
             </span>
           ))}
         </div>
       )}
       {summary.topRecommendation && (
-        <p className="text-[11px] opacity-70 mt-1.5">{summary.topRecommendation}</p>
+        <p className="text-xs opacity-70 mt-1.5">{summary.topRecommendation}</p>
       )}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-[10px] mt-1 opacity-60">
+        <p className="text-xs mt-1 opacity-60">
           Auto-adjusting: volume {Math.round(summary.volumeModifier * 100)}%, intensity {Math.round(summary.intensityModifier * 100)}%
+          <span className="opacity-70"> — based on readiness score</span>
         </p>
       )}
     </div>
@@ -225,7 +215,7 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
             <p className="text-xs font-medium text-violet-300">
               Time to log {activeMeal}
             </p>
-            <p className="text-[10px] text-grappler-400">
+            <p className="text-xs text-grappler-400">
               {totalCal > 0
                 ? `${totalCal} kcal logged | ~${Math.max(0, remaining)} remaining`
                 : 'No meals logged yet today'}
@@ -234,7 +224,7 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
         </div>
         <button
           onClick={() => onNavigate('nutrition')}
-          className="px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-[10px] font-medium rounded-lg transition-colors"
+          className="px-3 py-1.5 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-xs font-medium rounded-lg transition-colors"
         >
           Log meal
         </button>
@@ -263,7 +253,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const isFreeUser = effectiveTier === 'free';
-  const [showMoreTools, setShowMoreTools] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
@@ -653,79 +642,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     setPreviousMesocycleId(null);
   };
 
-  const getCombatLabel = () => {
-    if (!user?.combatSport) return 'Combat';
-    switch (user.combatSport) {
-      case 'mma': return 'MMA';
-      case 'grappling_gi': return 'Grappling';
-      case 'grappling_nogi': return 'Grappling';
-      case 'striking': return 'Striking';
-      default: return 'Combat';
-    }
-  };
-
-  const getWearableTool = () => {
-    if (user?.wearableUsage === 'whoop') {
-      return { icon: Activity, label: 'Whoop', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' };
-    }
-    if (user?.wearableUsage === 'other_wearable') {
-      const providerLabel = user?.wearableProvider === 'apple_health' ? 'Apple' :
-        user?.wearableProvider === 'oura' ? 'Oura' :
-        user?.wearableProvider === 'garmin' ? 'Garmin' : 'Wearable';
-      return { icon: Watch, label: providerLabel, view: 'wearable' as OverlayView, color: 'text-blue-400 bg-blue-500/20' };
-    }
-    return { icon: ClipboardCheck, label: 'Check-In', view: 'quick_actions' as OverlayView, color: 'text-amber-400 bg-amber-500/20' };
-  };
-
-  const featuredTools = [
-    { icon: Sparkles, label: 'Quick Log', view: 'quick_actions' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
-    user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness'
-      ? { icon: Shield, label: getCombatLabel(), view: 'grappling' as OverlayView, color: 'text-lime-400 bg-lime-500/20' }
-      : { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
-    getWearableTool(),
-    { icon: Zap, label: 'Recovery AI', view: 'recovery_coach' as OverlayView, color: 'text-primary-400 bg-primary-500/20' },
-    { icon: Brain, label: 'Next Block', view: 'block_suggestion' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
-    { icon: Apple, label: 'Nutrition', view: 'nutrition' as OverlayView, color: 'text-red-400 bg-red-500/20' },
-  ];
-  const moreTools = [
-    { icon: Brain, label: 'AI Coach', view: 'coach' as OverlayView, color: 'text-blue-400 bg-blue-500/20' },
-    { icon: Activity, label: 'Fatigue', view: 'fatigue' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
-    ...(showCycle ? [{ icon: HeartPulse, label: 'Cycle', view: 'cycle_tracking' as OverlayView, color: 'text-pink-400 bg-pink-500/20' }] : []),
-    { icon: Siren, label: 'Injuries', view: 'injury' as OverlayView, color: 'text-rose-400 bg-rose-500/20' },
-    { icon: Thermometer, label: 'Illness', view: 'illness' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
-    { icon: Trophy, label: 'Comp Prep', view: 'competition' as OverlayView, color: 'text-yellow-400 bg-yellow-500/20' },
-    { icon: HeartPulse, label: 'Recovery', view: 'recovery' as OverlayView, color: 'text-pink-400 bg-pink-500/20' },
-    { icon: HeartPulse, label: 'HR Zones', view: 'hr_zones' as OverlayView, color: 'text-red-400 bg-red-500/20' },
-    { icon: Leaf, label: 'Mobility', view: 'mobility' as OverlayView, color: 'text-emerald-400 bg-emerald-500/20' },
-    ...(user?.wearableUsage === 'no_wearable' || !user?.wearableUsage
-      ? [{ icon: Activity, label: 'Wearables', view: 'wearable' as OverlayView, color: 'text-green-400 bg-green-500/20' }]
-      : []),
-    { icon: Users, label: 'Share', view: 'community_share' as OverlayView, color: 'text-violet-400 bg-violet-500/20' },
-    { icon: Crosshair, label: 'Profiler', view: 'profiler' as OverlayView, color: 'text-purple-400 bg-purple-500/20' },
-    { icon: Scaling, label: 'Strength', view: 'strength' as OverlayView, color: 'text-orange-400 bg-orange-500/20' },
-    { icon: Grip, label: 'Grip', view: 'grip_strength' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
-    { icon: Dumbbell, label: 'Builder', view: 'builder' as OverlayView, color: 'text-accent-400 bg-accent-500/20' },
-    { icon: Calendar, label: 'Periodize', view: 'periodization' as OverlayView, color: 'text-sky-400 bg-sky-500/20' },
-    { icon: TrendingUp, label: 'Overload', view: 'overload' as OverlayView, color: 'text-cyan-400 bg-cyan-500/20' },
-    { icon: ListPlus, label: 'Custom Ex', view: 'custom_exercise' as OverlayView, color: 'text-indigo-400 bg-indigo-500/20' },
-    { icon: Calculator, label: '1RM Calc', view: 'one_rm' as OverlayView, color: 'text-amber-400 bg-amber-500/20' },
-    { icon: Layers, label: 'Templates', view: 'templates' as OverlayView, color: 'text-teal-400 bg-teal-500/20' },
-    { icon: LayoutGrid, label: 'Vol Map', view: 'volume_map' as OverlayView, color: 'text-fuchsia-400 bg-fuchsia-500/20' },
-    { icon: BookOpen, label: 'App Guide', view: 'user_guide' as OverlayView, color: 'text-green-400 bg-green-500/20' },
-  ];
-
-  const ToolButton = ({ tool }: { tool: typeof featuredTools[0] }) => (
-    <button
-      onClick={() => onNavigate(tool.view)}
-      className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-    >
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tool.color)}>
-        <tool.icon className="w-4.5 h-4.5" />
-      </div>
-      <span className="text-xs font-medium text-grappler-300">{tool.label}</span>
-    </button>
-  );
-
   // ─── Contextual Feed: priority-ranked, max 4 cards ───
   const feedCards: React.ReactNode[] = [];
 
@@ -783,7 +699,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </div>
           <div className="text-right">
             <p className="text-2xl font-black text-yellow-400">{nextCompetition.daysUntil}</p>
-            <p className="text-[10px] text-yellow-400/70">days out</p>
+            <p className="text-xs text-yellow-400/70">days out</p>
           </div>
         </div>
       </motion.div>
@@ -873,8 +789,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             </div>
             <p className="text-xs text-grappler-400 mt-1">{deloadRec.reason}</p>
             <div className="mt-2 bg-black/20 rounded-lg px-2.5 py-1.5">
-              <p className="text-[10px] font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
-              <p className="text-[10px] text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
+              <p className="text-xs font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
+              <p className="text-xs text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
             </div>
           </div>
         </div>
@@ -906,21 +822,21 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
             <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
-            <p className="text-[10px] text-grappler-500">Days</p>
+            <p className="text-xs text-grappler-500">Days</p>
           </div>
           <div>
             <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
-            <p className="text-[10px] text-grappler-500">Lifts</p>
+            <p className="text-xs text-grappler-500">Lifts</p>
           </div>
           {periodSummaries.thisWeek.sessions > 0 && (
             <div>
               <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
-              <p className="text-[10px] text-grappler-500">Training</p>
+              <p className="text-xs text-grappler-500">Training</p>
             </div>
           )}
           <div>
             <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
-            <p className="text-[10px] text-grappler-500">PRs</p>
+            <p className="text-xs text-grappler-500">PRs</p>
           </div>
         </div>
       </div>
@@ -955,11 +871,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-pink-300 text-sm">{cycleInsights.headline}</h3>
-              <span className="text-[10px] text-pink-400/70">Day {cycleInsights.dayInCycle}</span>
+              <span className="text-xs text-pink-400/70">Day {cycleInsights.dayInCycle}</span>
             </div>
             <p className="text-xs text-grappler-400 mt-1">{cycleInsights.trainingTip}</p>
             {cycleInsights.nutritionTip && (
-              <p className="text-[10px] text-grappler-500 mt-1">{cycleInsights.nutritionTip}</p>
+              <p className="text-xs text-grappler-500 mt-1">{cycleInsights.nutritionTip}</p>
             )}
             <button onClick={() => onNavigate('cycle_tracking')}
               className="mt-2 px-3 py-1.5 bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 text-xs font-medium rounded-lg transition-colors">
@@ -1065,7 +981,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 {sessionContext.contextLines.slice(0, 2).map((line, i) => (
                   <div key={i} className="flex items-start gap-2 px-3">
                     <Sparkles className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-grappler-400">{line}</p>
+                    <p className="text-xs text-grappler-400">{line}</p>
                   </div>
                 ))}
               </div>
@@ -1092,7 +1008,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     })} />
                     <div>
                       <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>
-                      <p className="text-[10px] text-grappler-400">{variableReward.description}</p>
+                      <p className="text-xs text-grappler-400">{variableReward.description}</p>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-primary-400">+{variableReward.bonusPoints} XP</span>
@@ -1105,7 +1021,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-grappler-500">Lv.{gamificationStats.level}</span>
+                <span className="text-xs text-grappler-500">Lv.{gamificationStats.level}</span>
                 <div className="w-16 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-primary-400 rounded-full"
@@ -1114,7 +1030,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
                   />
                 </div>
-                <span className="text-[10px] text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} to go</span>
+                <span className="text-xs text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} to go</span>
               </div>
             </div>
           </motion.div>
@@ -1147,12 +1063,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className={cn('w-4 h-4', ic)} />
                   {directive.sessionLabel && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-grappler-400">
+                    <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">
                       {directive.sessionLabel}
                     </span>
                   )}
                   {directive.isDeload && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Deload</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Deload</span>
                   )}
                 </div>
                 <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>
@@ -1160,7 +1076,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
               <div className="text-right flex-shrink-0 ml-3">
                 <p className={cn('text-2xl font-black', ic)}>{directive.readinessScore}</p>
-                <p className="text-[10px] text-grappler-500">Readiness</p>
+                <p className="text-xs text-grappler-500">Readiness</p>
+                <p className="text-xs text-grappler-600 mt-0.5">
+                  {recoveryScore != null ? 'sleep + strain + nutrition' : 'training load + recovery'}
+                </p>
               </div>
             </div>
             {directive.actions.length > 0 && (
@@ -1174,7 +1093,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             )}
             {directive.modifierText && (
-              <p className="text-[10px] text-grappler-500 mt-2 italic">{directive.modifierText}</p>
+              <p className="text-xs text-grappler-500 mt-2 italic">{directive.modifierText}</p>
             )}
           </div>
         );
@@ -1216,7 +1135,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                         style={{ width: `${mesocycleProgress.percent}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-white/60">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+                    <span className="text-xs text-white/60">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
                   </div>
                 )}
               </div>
@@ -1322,9 +1241,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           )}
           {mesocycleQueue.length > 0 && (
             <div className="bg-grappler-800/40 rounded-xl p-3 mb-4 text-center">
-              <p className="text-[10px] text-grappler-500 uppercase tracking-wide mb-1">Up next from queue</p>
+              <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1">Up next from queue</p>
               <p className="text-sm font-bold text-primary-300">{mesocycleQueue[0].name}</p>
-              <p className="text-[10px] text-grappler-500">{mesocycleQueue[0].weeks} weeks · {mesocycleQueue[0].periodization || 'auto'}</p>
+              <p className="text-xs text-grappler-500">{mesocycleQueue[0].weeks} weeks · {mesocycleQueue[0].periodization || 'auto'}</p>
             </div>
           )}
           <div className="flex items-center justify-center gap-2">
@@ -1371,11 +1290,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </motion.div>
       )}
 
-      {/* ─── Block Queue ─── */}
-      <div className="card p-3.5">
-        <BlockQueue />
-      </div>
-
       {/* ─── Today at a Glance ─── */}
       <div className="card p-3.5">
         <div className="flex items-center justify-between mb-2.5">
@@ -1399,7 +1313,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-green-400" />
-                <span className="text-xs text-grappler-400">Recovery</span>
+                <div>
+                  <span className="text-xs text-grappler-400">Recovery</span>
+                  <span className="text-xs text-grappler-600 ml-1.5">via Whoop HRV</span>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className={cn(
@@ -1431,7 +1348,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             >
               <Shield className="w-4 h-4 text-lime-400" />
               <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
-              <span className="text-[10px] text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Grappling' : 'Training'}</span>
+              <span className="text-xs text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Grappling' : 'Training'}</span>
             </button>
           ) : (
             <button
@@ -1440,7 +1357,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             >
               <TrendingUp className="w-4 h-4 text-green-400" />
               <span className="text-lg font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
-              <span className="text-[10px] text-grappler-500">Volume</span>
+              <span className="text-xs text-grappler-500">Volume ({weightUnit})</span>
             </button>
           )}
           <button
@@ -1449,7 +1366,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           >
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
-            <span className="text-[10px] text-grappler-500">Lifting</span>
+            <span className="text-xs text-grappler-500">Lifting</span>
           </button>
           <button
             onClick={() => onNavigate('nutrition')}
@@ -1457,7 +1374,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           >
             <Apple className="w-4 h-4 text-red-400" />
             <span className="text-lg font-bold text-grappler-100">{todayProtein}g</span>
-            <span className="text-[10px] text-grappler-500">Protein</span>
+            <span className="text-xs text-grappler-500">Protein</span>
+            {macroTargets.protein > 0 && (
+              <span className="text-xs text-grappler-600">
+                {Math.round((todayProtein / macroTargets.protein) * 100)}% of goal
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1486,27 +1408,29 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           <div className="grid grid-cols-4 gap-2 mt-3 text-center">
             <div>
               <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
-              <p className="text-[10px] text-grappler-500">Sessions</p>
+              <p className="text-xs text-grappler-500">Sessions</p>
+              <p className="text-xs text-grappler-600">last 7d</p>
             </div>
             <div>
               <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
-              <p className="text-[10px] text-grappler-500">PRs</p>
+              <p className="text-xs text-grappler-500">PRs</p>
+              <p className="text-xs text-grappler-600">new bests</p>
             </div>
             <div>
               <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
-              <p className="text-[10px] text-grappler-500">Avg RPE</p>
+              <p className="text-xs text-grappler-500">Avg RPE</p>
             </div>
             <div>
               <p className="text-lg font-bold text-grappler-100">
                 {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
               </p>
-              <p className="text-[10px] text-grappler-500">Protein</p>
+              <p className="text-xs text-grappler-500">Protein</p>
             </div>
           </div>
           {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
             <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
               {synthesis.trends.volume !== 'stable' && (
-                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                <span className={cn('text-xs font-medium flex items-center gap-1',
                   synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-orange-400'
                 )}>
                   <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
@@ -1514,7 +1438,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 </span>
               )}
               {synthesis.trends.prs !== 'stable' && (
-                <span className={cn('text-[10px] font-medium flex items-center gap-1',
+                <span className={cn('text-xs font-medium flex items-center gap-1',
                   synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-orange-400'
                 )}>
                   <Star className="w-3 h-3" />
@@ -1528,238 +1452,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
 
       </CardErrorBoundary>
 
-      {/* ─── Nutrition Score ─── */}
-      <CardErrorBoundary fallbackLabel="Nutrition Score">
-      {weeklyNutrition && showNutritionCard && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-2">
-              <Apple className="w-4 h-4 text-red-400" />
-              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Nutrition</span>
-            </div>
-            <div className="text-right">
-              <span className={cn('text-2xl font-black', {
-                'text-green-400': weeklyNutrition.overall >= 80,
-                'text-blue-400': weeklyNutrition.overall >= 65 && weeklyNutrition.overall < 80,
-                'text-yellow-400': weeklyNutrition.overall >= 50 && weeklyNutrition.overall < 65,
-                'text-orange-400': weeklyNutrition.overall >= 35 && weeklyNutrition.overall < 50,
-                'text-red-400': weeklyNutrition.overall < 35,
-              })}>{weeklyNutrition.overall}</span>
-              <span className="text-xs text-grappler-500 ml-1">
-                {weeklyNutrition.overall >= 90 ? 'Dialed In' : weeklyNutrition.overall >= 75 ? 'Solid' : weeklyNutrition.overall >= 60 ? 'Room to Improve' : weeklyNutrition.overall >= 40 ? 'Needs Work' : 'Off Track'}
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-4 gap-2 text-center mb-2">
-            {([
-              { label: 'Protein', score: weeklyNutrition.proteinScore, desc: 'vs target' },
-              { label: 'Calories', score: weeklyNutrition.calorieScore, desc: 'vs target' },
-              { label: 'Water', score: weeklyNutrition.hydrationScore, desc: 'intake' },
-              { label: 'Tracking', score: weeklyNutrition.consistencyScore, desc: 'logged' },
-            ] as const).map(({ label, score, desc }) => {
-              const grade = score >= 90 ? 'On Point' : score >= 75 ? 'Good' : score >= 60 ? 'Okay' : score >= 40 ? 'Low' : 'Poor';
-              const color = score >= 90 ? 'text-green-400' : score >= 75 ? 'text-blue-400' : score >= 60 ? 'text-yellow-400' : score >= 40 ? 'text-orange-400' : 'text-red-400';
-              return (
-                <div key={label}>
-                  <p className={cn('text-xs font-bold', color)}>{grade}</p>
-                  <p className="text-[10px] text-grappler-400 font-medium mt-0.5">{label}</p>
-                  <p className="text-[9px] text-grappler-600">{score}% {desc}</p>
-                </div>
-              );
-            })}
-          </div>
-          {nutritionInsights && (
-            <p className="text-[11px] text-grappler-400">{nutritionInsights.topInsight}</p>
-          )}
-          {weeklyNutrition.improvements.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {weeklyNutrition.improvements.slice(0, 2).map((tip, i) => (
-                <div key={i} className="flex items-start gap-1.5">
-                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-grappler-500">{tip}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          {hydration.currentIntake < hydration.dailyMl && (
-            <div className="mt-2 flex items-center gap-2 bg-cyan-500/10 rounded-lg px-2.5 py-1.5">
-              <Sparkles className="w-3 h-3 text-cyan-400 flex-shrink-0" />
-              <p className="text-[10px] text-cyan-300">
-                {Math.round(hydration.dailyMl - hydration.currentIntake)}ml water remaining ({Math.round(hydration.currentIntake)}/{Math.round(hydration.dailyMl)}ml)
-              </p>
-            </div>
-          )}
-        </div>
-      )}
 
-      </CardErrorBoundary>
 
-      {/* ─── Fatigue Debt ─── */}
-      <CardErrorBoundary fallbackLabel="Fatigue">
-      {fatigueDebt.currentDebt > 30 && workoutLogs.length >= 6 && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Activity className={cn('w-4 h-4', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')} />
-              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Fatigue Debt</span>
-            </div>
-            <span className={cn('text-2xl font-black', fatigueDebt.currentDebt >= 70 ? 'text-red-400' : fatigueDebt.currentDebt >= 50 ? 'text-orange-400' : 'text-yellow-400')}>
-              {fatigueDebt.currentDebt}
-            </span>
-          </div>
-          <div className="w-full h-2 bg-grappler-700 rounded-full overflow-hidden mb-2">
-            <div
-              className={cn('h-full rounded-full transition-all', fatigueDebt.currentDebt >= 70 ? 'bg-red-400' : fatigueDebt.currentDebt >= 50 ? 'bg-orange-400' : 'bg-yellow-400')}
-              style={{ width: `${Math.min(100, fatigueDebt.currentDebt)}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-grappler-400">{fatigueInsight.headline}</p>
-          {fatigueInsight.actionItems.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {fatigueInsight.actionItems.slice(0, 2).map((item, i) => (
-                <div key={i} className="flex items-start gap-1.5">
-                  <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-grappler-500">{item}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
-      </CardErrorBoundary>
 
-      {/* ─── Performance Snapshot — strongest lifts + weak links ─── */}
-      <CardErrorBoundary fallbackLabel="Performance">
-      {strongestLifts.length > 0 && workoutLogs.length >= 5 && (
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Performance</span>
-          </div>
-          <div className="space-y-2">
-            {strongestLifts.slice(0, 3).map((lift) => (
-              <div key={lift.exerciseId} className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Dumbbell className="w-3 h-3 text-grappler-500 flex-shrink-0" />
-                  <span className="text-xs text-grappler-300 truncate">{lift.exerciseName}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-xs font-bold text-grappler-100">{Math.round(lift.estimated1RM)} {weightUnit}</span>
-                  <span className={cn('text-[10px]', {
-                    'text-green-400': lift.trend === 'rising',
-                    'text-yellow-400': lift.trend === 'plateau',
-                    'text-red-400': lift.trend === 'declining',
-                  })}>
-                    {lift.trend === 'rising' ? '\u2191' : lift.trend === 'declining' ? '\u2193' : '\u2192'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {weakLinks.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-grappler-700/50">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[11px] text-amber-300 font-medium">{weakLinks[0].issue}</p>
-                  <p className="text-[10px] text-grappler-500 mt-0.5">{weakLinks[0].suggestion}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
-      </CardErrorBoundary>
-
-      {/* ─── Streak Intelligence ─── */}
-      <CardErrorBoundary fallbackLabel="Streak">
-      {streakAnalysis.currentStreak > 0 && workoutLogs.length >= 3 && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Streak</span>
-            </div>
-            <span className="text-2xl font-black text-orange-400">{streakAnalysis.currentStreak}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center mb-2">
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.longestStreak}</p>
-              <p className="text-[10px] text-grappler-500">Best</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.weeklyConsistency}%</p>
-              <p className="text-[10px] text-grappler-500">Consistency</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-grappler-100">{streakAnalysis.bestDay}</p>
-              <p className="text-[10px] text-grappler-500">Best Day</p>
-            </div>
-          </div>
-          {streakAnalysis.message && (
-            <p className="text-[11px] text-grappler-400 leading-relaxed">{streakAnalysis.message}</p>
-          )}
-          {streakAnalysis.streakAtRisk && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              <p className="text-[10px] text-amber-400 font-medium">Streak at risk — get a session in this week</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      </CardErrorBoundary>
-
-      {/* ─── Upgrade Prompt (subtle, value-driven) ─── */}
-      {upgradePrompt && isFreeUser && (
-        <div className="bg-gradient-to-r from-primary-500/10 to-violet-500/10 border border-primary-500/20 rounded-xl p-3.5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-primary-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-primary-300">{upgradePrompt.headline}</p>
-              <p className="text-[10px] text-grappler-400 mt-0.5">{upgradePrompt.body}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Tools Grid ─── */}
-      <div>
-        <div className="grid grid-cols-3 gap-2">
-          {featuredTools.map((tool) => (
-            <ToolButton key={tool.label} tool={tool} />
-          ))}
-        </div>
-
-        <button
-          onClick={() => setShowMoreTools(!showMoreTools)}
-          className="w-full mt-2 py-2 flex items-center justify-center gap-1 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
-        >
-          {showMoreTools ? 'Show Less' : `More Tools (${moreTools.length})`}
-          <ChevronRight className={cn('w-3 h-3 transition-transform', showMoreTools && 'rotate-90')} />
-        </button>
-
-        <AnimatePresence>
-          {showMoreTools && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="grid grid-cols-4 gap-2 pt-1">
-                {moreTools.map((tool) => (
-                  <ToolButton key={tool.label} tool={tool} />
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* ─── Dialogs ─── */}
 

@@ -171,7 +171,7 @@ export default function VersionUpgradePopup() {
                         ))}
                       </ul>
                       {ver.migrationNotes && (
-                        <p className="text-[10px] text-grappler-500 mt-1 pl-5">{ver.migrationNotes}</p>
+                        <p className="text-xs text-grappler-500 mt-1 pl-5">{ver.migrationNotes}</p>
                       )}
                     </div>
                   ))}
@@ -188,7 +188,7 @@ export default function VersionUpgradePopup() {
                 <Sparkles className="w-4 h-4" />
                 Got it, let&apos;s go
               </button>
-              <p className="text-center text-[10px] text-grappler-600 mt-2">
+              <p className="text-center text-xs text-grappler-600 mt-2">
                 Roots Gains v{APP_VERSION}
               </p>
             </div>

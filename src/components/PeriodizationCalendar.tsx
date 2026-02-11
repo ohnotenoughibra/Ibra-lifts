@@ -212,7 +212,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                 </div>
                 {/* Volume bar */}
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] text-grappler-500 w-6">Vol</span>
+                  <span className="text-xs text-grappler-500 w-6">Vol</span>
                   <div className="flex-1 h-2 bg-grappler-900 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -227,7 +227,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                 </div>
                 {/* Intensity bar */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-grappler-500 w-6">Int</span>
+                  <span className="text-xs text-grappler-500 w-6">Int</span>
                   <div className="flex-1 h-2 bg-grappler-900 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -276,12 +276,12 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                     Week {week.weekNumber}
                   </span>
                   {week.isDeload && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-semibold uppercase tracking-wider bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">
                       Deload
                     </span>
                   )}
                   {isCurrentWeek && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-semibold uppercase tracking-wider bg-primary-500/20 text-primary-400 px-2 py-0.5 rounded-full">
                       Current
                     </span>
                   )}
@@ -322,14 +322,14 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                           Day {session.dayNumber}
                         </span>
                       </div>
-                      <p className="text-[11px] text-grappler-200 truncate">{session.name}</p>
-                      <p className="text-[10px] text-grappler-500 mt-0.5">
+                      <p className="text-xs text-grappler-200 truncate">{session.name}</p>
+                      <p className="text-xs text-grappler-500 mt-0.5">
                         {session.exercises.length} exercises
                       </p>
                       {completed && (
                         <div className="flex items-center gap-1 mt-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                          <span className="text-[10px] text-green-400">Done</span>
+                          <span className="text-xs text-green-400">Done</span>
                         </div>
                       )}
                     </motion.button>
@@ -448,7 +448,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">{ex.sets}</p>
-                          <p className="text-[10px] text-grappler-500">Sets</p>
+                          <p className="text-xs text-grappler-500">Sets</p>
                         </div>
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">
@@ -456,11 +456,11 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                               ? ex.prescription.targetReps
                               : `${ex.prescription.minReps}-${ex.prescription.maxReps}`}
                           </p>
-                          <p className="text-[10px] text-grappler-500">Reps</p>
+                          <p className="text-xs text-grappler-500">Reps</p>
                         </div>
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">{ex.prescription.rpe}</p>
-                          <p className="text-[10px] text-grappler-500">RPE</p>
+                          <p className="text-xs text-grappler-500">RPE</p>
                         </div>
                       </div>
                       {ex.prescription.tempo && (

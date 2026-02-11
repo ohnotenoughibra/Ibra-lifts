@@ -108,7 +108,7 @@ function BMIScaleBar({ bmi }: { bmi: number }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-500">
         <span>18.5</span>
         <span>25</span>
         <span>30</span>
@@ -160,7 +160,7 @@ function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-500">
         {sex === 'male' ? (
           <>
             <span>6%</span>
@@ -672,7 +672,7 @@ export default function BodyWeightTracker() {
                         {cat.label}
                       </span>
                     </div>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {cat.range}</p>
+                    <p className="text-xs text-grappler-500 mt-0.5">Range: {cat.range}</p>
                     <BMIScaleBar bmi={displayBMI} />
                   </div>
                 );
@@ -694,7 +694,7 @@ export default function BodyWeightTracker() {
                         {bfCat.label}
                       </span>
                     </div>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
+                    <p className="text-xs text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
                     <BodyFatScaleBar bf={latestBF} sex={sex} />
                   </div>
                 );
@@ -706,7 +706,7 @@ export default function BodyWeightTracker() {
 
           {/* BMI description (de-emphasized for athletes) */}
           {(latestSavedBMI || bmi) && (
-            <p className="text-[10px] text-grappler-500 leading-relaxed">
+            <p className="text-xs text-grappler-500 leading-relaxed">
               {getBMICategory(latestSavedBMI || bmi!).description}
               {' '}BMI is less reliable for muscular athletes — body fat % is more meaningful.
             </p>
@@ -731,9 +731,9 @@ export default function BodyWeightTracker() {
                   <span className="text-xs font-medium">Energy Availability</span>
                   <span className="text-sm font-bold">{Math.round(ea.ea)} kcal/kg FFM</span>
                 </div>
-                <p className="text-[10px] mt-0.5 opacity-80">{ea.message}</p>
+                <p className="text-xs mt-0.5 opacity-80">{ea.message}</p>
                 {ea.status === 'critical' && (
-                  <p className="text-[10px] mt-1 flex items-center gap-1">
+                  <p className="text-xs mt-1 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" />
                     RED-S risk: Do not restrict further
                   </p>
@@ -782,7 +782,7 @@ export default function BodyWeightTracker() {
                 <div className="space-y-3 pt-1">
                   {/* BMI Benchmarks */}
                   <div>
-                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">BMI Classification (WHO)</p>
+                    <p className="text-xs font-semibold text-grappler-300 mb-1.5">BMI Classification (WHO)</p>
                     <div className="space-y-1">
                       {[
                         { range: '< 16', label: 'Severe Underweight', color: 'bg-red-400' },
@@ -799,7 +799,7 @@ export default function BodyWeightTracker() {
                           <div
                             key={row.label}
                             className={cn(
-                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              'flex items-center gap-2 px-2 py-1 rounded text-xs',
                               isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
                             )}
                           >
@@ -810,19 +810,19 @@ export default function BodyWeightTracker() {
                             <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
                               {row.label}
                             </span>
-                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                            {isActive && <span className="ml-auto text-primary-400 text-xs font-bold">YOU</span>}
                           </div>
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-grappler-600 mt-1.5 leading-relaxed">
                       BMI can overestimate body fat in muscular athletes. Use alongside body fat % for a complete picture.
                     </p>
                   </div>
 
                   {/* Body Fat Benchmarks */}
                   <div className="border-t border-grappler-700/50 pt-2">
-                    <p className="text-[11px] font-semibold text-grappler-300 mb-1.5">
+                    <p className="text-xs font-semibold text-grappler-300 mb-1.5">
                       Body Fat % Classification (ACE) — {sex === 'male' ? 'Male' : 'Female'}
                     </p>
                     <div className="space-y-1">
@@ -847,7 +847,7 @@ export default function BodyWeightTracker() {
                           <div
                             key={row.label}
                             className={cn(
-                              'flex items-center gap-2 px-2 py-1 rounded text-[11px]',
+                              'flex items-center gap-2 px-2 py-1 rounded text-xs',
                               isActive ? 'bg-grappler-700/60 ring-1 ring-primary-500/30' : ''
                             )}
                           >
@@ -858,12 +858,12 @@ export default function BodyWeightTracker() {
                             <span className={isActive ? 'text-grappler-100 font-medium' : 'text-grappler-400'}>
                               {row.label}
                             </span>
-                            {isActive && <span className="ml-auto text-primary-400 text-[10px] font-bold">YOU</span>}
+                            {isActive && <span className="ml-auto text-primary-400 text-xs font-bold">YOU</span>}
                           </div>
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-grappler-600 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-grappler-600 mt-1.5 leading-relaxed">
                       {sex === 'male'
                         ? 'Essential fat is the minimum needed for physiological function. Sustained levels below 6% are not recommended.'
                         : 'Women need higher essential fat for hormonal health. Below 14% can disrupt menstrual function and bone density.'}
@@ -976,7 +976,7 @@ export default function BodyWeightTracker() {
                         <p className="text-xs text-grappler-400 mb-2">Measurements (for body fat calculation)</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Waist (cm)</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Waist (cm)</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -987,7 +987,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Neck (cm)</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Neck (cm)</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -999,7 +999,7 @@ export default function BodyWeightTracker() {
                           </div>
                           {sex === 'female' && (
                             <div className="col-span-2">
-                              <label className="text-[11px] text-grappler-500 mb-0.5 block">Hip (cm)</label>
+                              <label className="text-xs text-grappler-500 mb-0.5 block">Hip (cm)</label>
                               <input
                                 type="number"
                                 inputMode="decimal"
@@ -1021,7 +1021,7 @@ export default function BodyWeightTracker() {
                           <span className={cn('text-xs font-medium', getBodyFatCategory(autoCalcBF, sex).color)}>
                             {getBodyFatCategory(autoCalcBF, sex).label}
                           </span>
-                          <span className="text-[10px] text-grappler-600 ml-auto">Navy method</span>
+                          <span className="text-xs text-grappler-600 ml-auto">Navy method</span>
                         </div>
                       )}
 
@@ -1030,7 +1030,7 @@ export default function BodyWeightTracker() {
                         <p className="text-xs text-grappler-500">Or enter manually</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Body Fat %</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">Body Fat %</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -1044,7 +1044,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] text-grappler-500 mb-0.5 block">BMI</label>
+                            <label className="text-xs text-grappler-500 mb-0.5 block">BMI</label>
                             <input
                               type="number"
                               inputMode="decimal"
@@ -1059,12 +1059,12 @@ export default function BodyWeightTracker() {
                           </div>
                         </div>
                         {useManualBF && formBodyFat && (
-                          <p className="text-[11px] text-grappler-500">
+                          <p className="text-xs text-grappler-500">
                             Using your manual body fat value. Clear the field to use Navy method calculation.
                           </p>
                         )}
                         {useManualBMI && formBMI && (
-                          <p className="text-[11px] text-grappler-500">
+                          <p className="text-xs text-grappler-500">
                             Using your manual BMI value. Clear the field to auto-calculate from weight & height.
                           </p>
                         )}
@@ -1206,12 +1206,12 @@ export default function BodyWeightTracker() {
                       {entry.weight} {entry.unit}
                     </p>
                     {comp?.bmi && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
                         BMI {comp.bmi}
                       </span>
                     )}
                     {comp?.bodyFatPercent != null && (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
                         {comp.bodyFatPercent}% BF
                       </span>
                     )}

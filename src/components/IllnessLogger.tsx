@@ -604,7 +604,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                     day: 'numeric',
                                   })}
                                 </p>
-                                <p className="text-[10px] text-grappler-500">
+                                <p className="text-xs text-grappler-500">
                                   {ci.symptoms.length} symptom{ci.symptoms.length !== 1 ? 's' : ''}{' '}
                                   &middot; {ci.severity}
                                 </p>
@@ -718,13 +718,13 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                   {illness.symptoms.slice(0, 4).map((s) => (
                                     <span
                                       key={s}
-                                      className="px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded text-[10px]"
+                                      className="px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded text-xs"
                                     >
                                       {getSymptomLabel(s)}
                                     </span>
                                   ))}
                                   {illness.symptoms.length > 4 && (
-                                    <span className="px-1.5 py-0.5 text-grappler-500 text-[10px]">
+                                    <span className="px-1.5 py-0.5 text-grappler-500 text-xs">
                                       +{illness.symptoms.length - 4} more
                                     </span>
                                   )}

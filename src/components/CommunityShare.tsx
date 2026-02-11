@@ -257,7 +257,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   <div key={stat.label} className="text-center bg-grappler-900/50 rounded-lg p-2">
                     <stat.icon className={cn('w-4 h-4 mx-auto mb-1', stat.color)} />
                     <p className="text-sm font-bold text-grappler-100">{stat.value}</p>
-                    <p className="text-[9px] text-grappler-500">{stat.label}</p>
+                    <p className="text-xs text-grappler-500">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -277,11 +277,11 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               )}
 
               <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
-                <span className="text-[10px] text-grappler-500">
+                <span className="text-xs text-grappler-500">
                   {formatNumber(gamificationStats.totalPoints)} XP
                   {currentMesocycle ? ` | ${currentMesocycle.name}` : ''}
                 </span>
-                <span className="text-[10px] text-grappler-600">Roots Gains</span>
+                <span className="text-xs text-grappler-600">Roots Gains</span>
               </div>
             </div>
 
@@ -420,7 +420,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                       <div>
                         <p className="font-medium text-grappler-100 text-sm">{ub.badge.name}</p>
                         <p className="text-xs text-grappler-400">{ub.badge.description}</p>
-                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-500 mt-0.5">
                           +{ub.badge.points} XP | {getRelativeTime(ub.earnedAt)}
                         </p>
                       </div>

@@ -552,12 +552,12 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                           {exercise.name}
                         </h3>
                         {exercise.grapplerFriendly && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent-500/20 text-accent-400">
+                          <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-accent-500/20 text-accent-400">
                             GRAPPLER
                           </span>
                         )}
                       </div>
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-500/20 text-primary-400 border border-primary-500/30 capitalize">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-primary-500/20 text-primary-400 border border-primary-500/30 capitalize">
                         {exercise.category.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -592,7 +592,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                       {exercise.primaryMuscles.map((muscle) => (
                         <span
                           key={muscle}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-grappler-700 text-grappler-300"
+                          className="px-2 py-0.5 rounded-full text-xs font-medium bg-grappler-700 text-grappler-300"
                         >
                           {formatMuscle(muscle)}
                         </span>
@@ -606,7 +606,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                       {exercise.equipmentRequired.map((eq) => (
                         <span
                           key={eq}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-grappler-700/60 text-grappler-400"
+                          className="px-2 py-0.5 rounded-full text-xs font-medium bg-grappler-700/60 text-grappler-400"
                         >
                           {eq.replace(/_/g, ' ')}
                         </span>
@@ -616,13 +616,13 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
 
                   {/* Strength / Aesthetic badges */}
                   <div className="flex items-center gap-3 mt-2 pt-2 border-t border-grappler-700/50">
-                    <span className="text-[10px] text-grappler-400">
+                    <span className="text-xs text-grappler-400">
                       Strength: <span className="text-grappler-200 font-medium">{exercise.strengthValue}/10</span>
                     </span>
-                    <span className="text-[10px] text-grappler-400">
+                    <span className="text-xs text-grappler-400">
                       Aesthetic: <span className="text-grappler-200 font-medium">{exercise.aestheticValue}/10</span>
                     </span>
-                    <span className="text-[10px] text-grappler-400 capitalize">
+                    <span className="text-xs text-grappler-400 capitalize">
                       {exercise.movementPattern}
                     </span>
                   </div>

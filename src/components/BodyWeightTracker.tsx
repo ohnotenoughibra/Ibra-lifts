@@ -47,7 +47,8 @@ function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string
 }
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog, bodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user } = useAppStore();
+  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user } = useAppStore();
+  const bodyComposition = rawBodyComposition || [];
   const [showAddForm, setShowAddForm] = useState(false);
   const [showComposition, setShowComposition] = useState(false);
   // Form fields
@@ -65,7 +66,7 @@ export default function BodyWeightTracker() {
   const heightCm = user?.heightCm || 0;
   const sex = user?.sex || 'male';
 
-  const sortedLog = [...bodyWeightLog].sort(
+  const sortedLog = [...(bodyWeightLog || [])].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 

@@ -72,7 +72,7 @@ export default function PerformanceReadiness() {
     const weeksAtPlateau = 0; // would need analyzeWeightTrend
 
     // Recovery
-    const whoopRecovery = latestWhoopData?.recoveryScore;
+    const whoopRecovery = latestWhoopData?.recoveryScore ?? undefined;
     const todaySleepLog = quickLogs.find(
       l => l.type === 'sleep' && new Date(l.timestamp).toISOString().split('T')[0] === today
     );

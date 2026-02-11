@@ -1981,6 +1981,29 @@ export default function ActiveWorkout() {
                 </p>
               </div>
             )}
+            {/* Form Video + Swap for next exercise — shown during rest after last set */}
+            {lastCompletedExerciseIndex !== null && !allExercisesDone && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.videoUrl && (
+                  <a
+                    href={activeWorkout.session.exercises[currentExerciseIndex].exercise.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">Form Video</span>
+                  </a>
+                )}
+                <button
+                  onClick={() => setShowSwapModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
+                >
+                  <Shuffle className="w-3.5 h-3.5" />
+                  <span className="text-xs font-medium">Swap Exercise</span>
+                </button>
+              </div>
+            )}
             {allExercisesDone && (
               <div className="mt-6 text-center">
                 <p className="text-sm font-medium text-green-400">

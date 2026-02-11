@@ -875,10 +875,13 @@ export interface BodyCompositionEntry {
   date: Date;
   weight: number;
   bodyFatPercent?: number;
+  bmi?: number;
   unit: WeightUnit;
   chest?: number;     // cm
   arms?: number;      // cm
   waist?: number;     // cm
+  neck?: number;      // cm
+  hip?: number;       // cm
   legs?: number;      // cm
   notes?: string;
 }

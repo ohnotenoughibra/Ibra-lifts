@@ -356,10 +356,18 @@ export default function WorkoutHistory() {
 
   if (workoutLogs.length === 0) {
     return (
-      <div className="text-center py-16">
-        <Dumbbell className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-grappler-300 mb-2">No Workouts Yet</h3>
-        <p className="text-sm text-grappler-500">Complete your first workout to see your history here.</p>
+      <div className="text-center py-12 px-4">
+        <div className="w-14 h-14 rounded-2xl bg-primary-500/15 flex items-center justify-center mx-auto mb-4">
+          <Dumbbell className="w-7 h-7 text-primary-400" />
+        </div>
+        <h3 className="text-lg font-bold text-grappler-200 mb-1">Your history starts here</h3>
+        <p className="text-sm text-grappler-400 max-w-xs mx-auto">
+          After your first workout you'll see volume trends, PRs, and strength progression over time.
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-grappler-500">
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary-500 inline-block" /> 3 workouts = volume trends</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 5 workouts = PR tracking</span>
+        </div>
       </div>
     );
   }

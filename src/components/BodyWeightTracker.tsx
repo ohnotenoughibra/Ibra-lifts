@@ -1107,12 +1107,12 @@ export default function BodyWeightTracker() {
             <LineChart data={chartData}>
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 domain={['auto', 'auto']}
@@ -1156,12 +1156,12 @@ export default function BodyWeightTracker() {
             <LineChart data={bfChartData}>
               <XAxis
                 dataKey="date"
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 domain={['auto', 'auto']}
@@ -1239,9 +1239,12 @@ export default function BodyWeightTracker() {
       )}
 
       {sortedLog.length === 0 && !showAddForm && (
-        <p className="text-sm text-grappler-500 text-center py-6">
-          No body weight entries yet. Tap &quot;Log&quot; to start tracking.
-        </p>
+        <div className="text-center py-8">
+          <p className="text-sm font-medium text-grappler-300">Start tracking your weight</p>
+          <p className="text-xs text-grappler-500 mt-1 max-w-[260px] mx-auto">
+            Log 2+ entries to see trends. Weekly weigh-ins are enough to track progress during a bulk or cut.
+          </p>
+        </div>
       )}
     </div>
   );

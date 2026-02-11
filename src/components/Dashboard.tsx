@@ -14,6 +14,7 @@ import {
   Flame,
   Star,
   Zap,
+  Compass,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
@@ -32,6 +33,7 @@ import WorkoutView from './WorkoutView';
 import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
 import HomeTab from './HomeTab';
+import ExploreTab from './ExploreTab';
 import ProgressAndHistoryTab from './ProgressTab';
 
 // Overlay components — lazy-loaded (only when opened)
@@ -455,6 +457,16 @@ export default function Dashboard({
               <WorkoutView onOpenBuilder={() => setOverlayView('builder')} />
             </motion.div>
           )}
+          {activeTab === 'explore' && (
+            <motion.div
+              key="explore"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <ExploreTab onNavigate={setOverlayView} />
+            </motion.div>
+          )}
           {activeTab === 'progress' && (
             <motion.div
               key="progress"
@@ -493,6 +505,7 @@ export default function Dashboard({
           {[
             { id: 'home', icon: Dumbbell, label: 'Home' },
             { id: 'program', icon: Calendar, label: 'Program' },
+            { id: 'explore', icon: Compass, label: 'Explore' },
             { id: 'progress', icon: BarChart3, label: 'Progress' },
             { id: 'profile', icon: User, label: 'Profile' },
           ].map((tab) => (

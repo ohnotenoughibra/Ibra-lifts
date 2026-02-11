@@ -1944,16 +1944,19 @@ export default function ActiveWorkout() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-30 bg-grappler-900/95 flex flex-col items-center justify-center"
           >
-            <p className="text-grappler-400 mb-4">Rest Time</p>
+            <p className="text-sm font-medium text-grappler-400 mb-2 uppercase tracking-wider">Rest Time</p>
             <motion.div
               key={restTimer}
-              initial={{ scale: 1.2 }}
+              initial={{ scale: 1.15 }}
               animate={{ scale: 1 }}
-              className="text-6xl font-bold text-primary-400 mb-6"
+              className="text-8xl font-black text-primary-400 mb-2 tabular-nums"
             >
               {formatRestTime(restTimer)}
             </motion.div>
-            <button onClick={skipRest} className="btn btn-secondary btn-md">
+            <p className="text-xs text-grappler-500 mb-6">
+              {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} prescribed
+            </p>
+            <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
               Skip Rest
             </button>
 
@@ -2238,39 +2241,49 @@ export default function ActiveWorkout() {
               </div>
             )}
 
-            <p className="text-sm text-grappler-400 mt-2">
-              {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps @ RPE {currentExercise.prescription.rpe}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-grappler-300">
+                {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-primary-500/15 text-sm font-semibold text-primary-400">
+                RPE {currentExercise.prescription.rpe}
+              </span>
               {currentExercise.prescription.percentageOf1RM && (
-                <span className="ml-2 text-primary-400">~{currentExercise.prescription.percentageOf1RM}% 1RM</span>
+                <span className="text-sm text-primary-400">~{currentExercise.prescription.percentageOf1RM}% 1RM</span>
               )}
               {currentExercise.prescription.tempo && (
-                <span className="ml-2">Tempo: {currentExercise.prescription.tempo}</span>
+                <span className="text-sm text-grappler-400">Tempo: {currentExercise.prescription.tempo}</span>
               )}
-            </p>
+            </div>
             <p className="text-xs text-grappler-500 mt-1">
               Rest: {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} between sets
             </p>
 
             {/* RPE-based weight suggestion */}
             {rpeSuggestion && (
-              <div className="mt-2 px-3 py-2 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+              <div className="mt-3 px-4 py-3 bg-primary-500/10 border border-primary-500/30 rounded-xl">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-primary-400 font-medium flex items-center gap-1">
-                    <Lightbulb className="w-3 h-3" />
-                    Suggested: {rpeSuggestion.suggested} {weightUnit}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                      <Lightbulb className="w-4 h-4 text-primary-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-primary-300">{rpeSuggestion.suggested} {weightUnit}</p>
+                      <p className="text-xs text-grappler-500">suggested weight</p>
+                    </div>
+                  </div>
                   <button
                     onClick={() => {
                       setExactValue('weight', rpeSuggestion.suggested);
                     }}
-                    className="text-xs text-primary-400 bg-primary-500/20 px-2 py-0.5 rounded-full hover:bg-primary-500/30 transition-colors"
+                    className="text-sm font-medium text-primary-400 bg-primary-500/20 px-3 py-1.5 rounded-lg hover:bg-primary-500/30 transition-colors"
                   >
                     Use
                   </button>
                 </div>
-                <p className="text-xs text-grappler-500 mt-0.5">
-                  Based on {rpeSuggestion.lastWeight}{weightUnit} @ RPE {rpeSuggestion.lastRPE} last time
-                  {rpeSuggestion.targetRPE !== rpeSuggestion.lastRPE && ` → target RPE ${rpeSuggestion.targetRPE}`}
+                <p className="text-xs text-grappler-400 mt-2">
+                  Last session: {rpeSuggestion.lastWeight}{weightUnit} @ RPE {rpeSuggestion.lastRPE}
+                  {rpeSuggestion.targetRPE !== rpeSuggestion.lastRPE && ` — adjusted to RPE ${rpeSuggestion.targetRPE}`}
                 </p>
               </div>
             )}
@@ -2409,15 +2422,15 @@ export default function ActiveWorkout() {
           </div>
 
           {/* Set Indicator */}
-          <div className="flex justify-center gap-2 mb-6">
+          <div className="flex justify-center gap-2.5 mb-6">
             {currentLog.sets.map((set, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentSetIndex(i)}
                 className={cn(
-                  'w-10 h-10 rounded-lg font-medium transition-all',
+                  'w-11 h-11 rounded-xl font-semibold text-sm transition-all active:scale-95',
                   i === currentSetIndex
-                    ? 'bg-primary-500 text-white'
+                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
                     : set.completed
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-grappler-700 text-grappler-400'
@@ -2477,9 +2490,9 @@ export default function ActiveWorkout() {
               <div className="flex items-center justify-between mt-2">
                 <button
                   onClick={() => updateSetValue('weight', -weightIncrement)}
-                  className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
+                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                 >
-                  <Minus className="w-5 h-5 text-grappler-300" />
+                  <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
                 <input
                   type="number"
@@ -2489,7 +2502,7 @@ export default function ActiveWorkout() {
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
                   className={cn(
-                    'w-24 text-center text-3xl font-bold bg-transparent focus:outline-none placeholder:text-grappler-600',
+                    'w-28 text-center text-4xl font-black bg-transparent focus:outline-none placeholder:text-grappler-600',
                     prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
                       ? 'text-yellow-300'
                       : 'text-grappler-50'
@@ -2497,9 +2510,9 @@ export default function ActiveWorkout() {
                 />
                 <button
                   onClick={() => updateSetValue('weight', weightIncrement)}
-                  className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
+                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                 >
-                  <Plus className="w-5 h-5 text-grappler-300" />
+                  <Plus className="w-6 h-6 text-grappler-300" />
                 </button>
               </div>
             </div>
@@ -2518,7 +2531,7 @@ export default function ActiveWorkout() {
                     ? 'text-yellow-400'
                     : 'text-grappler-400'
                 )}>{isTimeBased ? 'Seconds' : 'Reps'}</label>
-                <span className="text-xs text-grappler-500">
+                <span className="text-sm font-medium text-grappler-400">
                   Target: {isTimeBased
                     ? `${currentExercise.prescription.targetReps}s`
                     : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}`
@@ -2528,9 +2541,9 @@ export default function ActiveWorkout() {
               <div className="flex items-center justify-between mt-2">
                 <button
                   onClick={() => updateSetValue('reps', -1)}
-                  className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
+                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                 >
-                  <Minus className="w-5 h-5 text-grappler-300" />
+                  <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
                 <input
                   type="number"
@@ -2540,7 +2553,7 @@ export default function ActiveWorkout() {
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
                   className={cn(
-                    'w-24 text-center text-3xl font-bold bg-transparent focus:outline-none placeholder:text-grappler-600',
+                    'w-28 text-center text-4xl font-black bg-transparent focus:outline-none placeholder:text-grappler-600',
                     prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
                       ? 'text-yellow-300'
                       : 'text-grappler-50'
@@ -2548,9 +2561,9 @@ export default function ActiveWorkout() {
                 />
                 <button
                   onClick={() => updateSetValue('reps', 1)}
-                  className="w-12 h-12 rounded-lg bg-grappler-700 flex items-center justify-center"
+                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                 >
-                  <Plus className="w-5 h-5 text-grappler-300" />
+                  <Plus className="w-6 h-6 text-grappler-300" />
                 </button>
               </div>
             </div>
@@ -2586,17 +2599,17 @@ export default function ActiveWorkout() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="flex items-center justify-center gap-2 mt-3">
                 {[6, 7, 8, 9, 10].map((rpe) => (
                   <button
                     key={rpe}
                     onClick={() => setExactValue('rpe', rpe)}
                     className={cn(
-                      'w-12 h-12 rounded-lg font-bold transition-all',
+                      'w-14 h-14 rounded-xl text-lg font-bold transition-all active:scale-95',
                       currentSet.rpe === rpe
-                        ? rpe >= 9 ? 'bg-red-500 text-white' :
-                          rpe >= 7 ? 'bg-yellow-500 text-white' :
-                          'bg-green-500 text-white'
+                        ? rpe >= 9 ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' :
+                          rpe >= 7 ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/30' :
+                          'bg-green-500 text-white shadow-lg shadow-green-500/30'
                         : 'bg-grappler-700 text-grappler-400'
                     )}
                   >
@@ -2604,6 +2617,11 @@ export default function ActiveWorkout() {
                   </button>
                 ))}
               </div>
+              {currentExercise.prescription.rpe && (
+                <p className="text-xs text-grappler-500 text-center mt-2">
+                  Target RPE {currentExercise.prescription.rpe} = {10 - currentExercise.prescription.rpe} reps in reserve
+                </p>
+              )}
             </div>
           </div>
 

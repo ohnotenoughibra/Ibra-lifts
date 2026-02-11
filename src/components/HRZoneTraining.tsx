@@ -653,7 +653,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                   <BarChart data={zoneBarData} layout="vertical">
                     <XAxis
                       type="number"
-                      tick={{ fill: '#6b7280', fontSize: 10 }}
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
                       domain={[0, maxHR]}

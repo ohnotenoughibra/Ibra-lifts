@@ -525,9 +525,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const intraFuel = useMemo(() => {
     if (trainingDuration < 60) return null;
     const sessionType = todayTraining[0]?.type || 'other';
-    const isInCut = user?.goalFocus === 'weight_loss';
+    const isInCut = combatNutritionProfile?.nutritionGoal === 'fight_prep' || combatNutritionProfile?.nutritionGoal === 'move_down';
     return getIntraTrainingFuel(trainingDuration, sessionType, !!isInCut, bodyWeightKg);
-  }, [trainingDuration, todayTraining, user?.goalFocus, bodyWeightKg]);
+  }, [trainingDuration, todayTraining, combatNutritionProfile?.nutritionGoal, bodyWeightKg]);
 
   // ── UI State ──
   const [showContextual, setShowContextual] = useState(true);

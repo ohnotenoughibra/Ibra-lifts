@@ -84,6 +84,7 @@ const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <O
 const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
 const CycleTracking = dynamic(() => import('./CycleTracking'), { loading: () => <OverlaySkeleton /> });
 const FatigueOverlay = dynamic(() => import('./FatigueOverlay'), { loading: () => <OverlaySkeleton /> });
+const FightCampNutrition = dynamic(() => import('./FightCampNutrition'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -362,6 +363,7 @@ export default function Dashboard({
   if (overlayView === 'illness') return <IllnessLogger onClose={() => setOverlayView(null)} />;
   if (overlayView === 'cycle_tracking') return <CycleTracking onClose={() => setOverlayView(null)} />;
   if (overlayView === 'fatigue') return <FatigueOverlay onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'fight_camp') return <FightCampNutrition onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

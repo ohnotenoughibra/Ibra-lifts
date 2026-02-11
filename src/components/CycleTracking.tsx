@@ -88,7 +88,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             </div>
             <h1 className="font-bold text-grappler-50 text-lg">Cycle Tracking</h1>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-sm p-1"><X className="w-5 h-5 text-grappler-400" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm p-1"><X className="w-5 h-5 text-grappler-400" /></button>
         </div>
       </header>
 
@@ -252,10 +252,10 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
               <p className="text-xs text-grappler-300 mb-1">{fmt(perfWindows.peakWindow.start)} – {fmt(perfWindows.peakWindow.end)}</p>
               <p className="text-xs text-grappler-500">{perfWindows.peakWindow.description}</p>
             </div>
-            <div className="bg-amber-500/10 border border-amber-500/25 rounded-lg p-3">
+            <div className="bg-sky-500/10 border border-sky-500/25 rounded-lg p-3">
               <div className="flex items-center gap-1.5 mb-1">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-semibold text-amber-400">Caution Window</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-sky-400" />
+                <span className="text-xs font-semibold text-sky-400">Caution Window</span>
               </div>
               <p className="text-xs text-grappler-300 mb-1">{fmt(perfWindows.cautionWindow.start)} – {fmt(perfWindows.cautionWindow.end)}</p>
               <p className="text-xs text-grappler-500">{perfWindows.cautionWindow.description}</p>

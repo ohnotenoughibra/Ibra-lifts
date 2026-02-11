@@ -51,8 +51,8 @@ const recommendationConfig: Record<
   },
   decrease: {
     label: 'Reduce',
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/20',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
     icon: TrendingDown,
   },
   swap: {
@@ -153,7 +153,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={onClose} className="btn btn-secondary btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
@@ -188,7 +188,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onClose} className="btn btn-secondary btn-sm">
+        <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
@@ -319,7 +319,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
                     selectedProfile.jointPainFrequency > 0.3
                       ? 'text-red-400'
                       : selectedProfile.jointPainFrequency > 0.1
-                      ? 'text-orange-400'
+                      ? 'text-blue-400'
                       : 'text-green-400'
                   }`}
                 >
@@ -476,7 +476,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
                           +{profile.strengthGainRate.toFixed(1)}%/wk
                         </span>
                         {profile.jointPainFrequency > 0.1 && (
-                          <span className="flex items-center gap-1 text-orange-400">
+                          <span className="flex items-center gap-1 text-blue-400">
                             <AlertTriangle className="w-3 h-3" />
                             Pain: {(profile.jointPainFrequency * 100).toFixed(0)}%
                           </span>

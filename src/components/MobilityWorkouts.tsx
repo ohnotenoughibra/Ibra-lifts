@@ -226,7 +226,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       >
         {/* Timer Header */}
         <div className="p-4 flex items-center justify-between border-b border-grappler-800">
-          <button
+          <button aria-label="Go back"
             onClick={() => {
               setTimerActive(false);
               setTimerPaused(false);

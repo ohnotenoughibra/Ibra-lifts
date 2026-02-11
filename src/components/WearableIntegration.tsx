@@ -94,7 +94,7 @@ function recoveryLabel(score: number): string {
 
 function strainColor(strain: number): string {
   if (strain >= 18) return 'text-red-400';
-  if (strain >= 14) return 'text-orange-400';
+  if (strain >= 14) return 'text-blue-400';
   if (strain >= 10) return 'text-yellow-400';
   return 'text-blue-400';
 }
@@ -1270,7 +1270,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
               <ChevronLeft className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">
@@ -1360,7 +1360,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       <span className={cn(
                         "px-1.5 py-0.5 rounded text-xs font-medium",
                         session.type.includes('bjj') ? 'bg-blue-500/20 text-blue-300' :
-                        session.type === 'wrestling' ? 'bg-orange-500/20 text-orange-300' :
+                        session.type === 'wrestling' ? 'bg-blue-500/20 text-blue-300' :
                         session.type === 'mma' ? 'bg-red-500/20 text-red-300' :
                         'bg-purple-500/20 text-purple-300'
                       )}>
@@ -1580,7 +1580,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   {today.sleepNeededHours != null && today.sleepHours != null && (
                     <span className={cn(
                       'text-xs font-semibold px-2 py-0.5 rounded-full',
-                      today.sleepHours >= today.sleepNeededHours ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400',
+                      today.sleepHours >= today.sleepNeededHours ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400',
                     )}>
                       {today.sleepHours >= today.sleepNeededHours ? '+' : ''}{(today.sleepHours - today.sleepNeededHours).toFixed(1)}h
                     </span>

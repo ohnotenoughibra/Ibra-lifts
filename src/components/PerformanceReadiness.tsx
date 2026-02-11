@@ -29,14 +29,14 @@ const COMPONENT_LABELS: Record<string, string> = {
 function getScoreColor(score: number): string {
   if (score >= 80) return 'text-green-400';
   if (score >= 60) return 'text-yellow-400';
-  if (score >= 40) return 'text-orange-400';
+  if (score >= 40) return 'text-blue-400';
   return 'text-red-400';
 }
 
 function getScoreBg(score: number): string {
   if (score >= 80) return 'bg-green-500';
   if (score >= 60) return 'bg-yellow-500';
-  if (score >= 40) return 'bg-orange-500';
+  if (score >= 40) return 'bg-blue-500';
   return 'bg-red-500';
 }
 

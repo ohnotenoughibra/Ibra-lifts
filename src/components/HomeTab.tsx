@@ -41,7 +41,6 @@ import { cn, formatNumber } from '@/lib/utils';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
-import { getEffectiveTier } from '@/lib/subscription';
 import { useSession } from 'next-auth/react';
 import CardErrorBoundary from './CardErrorBoundary';
 import { generateQuickWorkout } from '@/lib/workout-generator';
@@ -49,13 +48,11 @@ import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
 import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
-import { buildPerformanceProfiles, findStrongestLifts, findWeakLinks } from '@/lib/performance-model';
-import { generateVariableReward, analyzeStreak, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
-import { calculateFatigueDebt, getSmartDeloadRecommendation, getFatigueInsights } from '@/lib/smart-deload';
-import { buildCycleProfile, getPhaseTrainingAdjustments, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
+import { buildPerformanceProfiles } from '@/lib/performance-model';
+import { generateVariableReward, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
+import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-deload';
+import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
 import type { CycleLog } from '@/lib/female-athlete';
-import { getWeeklyNutritionScore, getHydrationTarget, getNutritionInsights } from '@/lib/nutrition-coaching';
-import { toMonetizationTier, shouldShowUpgradePrompt } from '@/lib/monetization-engine';
 import { detectFightCampPhase } from '@/lib/fight-camp-engine';
 import PerformanceReadiness from './PerformanceReadiness';
 import type { OverlayView } from './dashboard-types';
@@ -93,7 +90,7 @@ function ReadinessCard() {
     peak: 'text-green-400 bg-green-500/10 border-green-500/30',
     good: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
     moderate: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-    low: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+    low: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
     critical: 'text-red-400 bg-red-500/10 border-red-500/30',
   };
 
@@ -241,7 +238,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     trainingSessions, latestWhoopData, meals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    subscription,
   } = useAppStore();
   const { data: session } = useSession();
   const wearableHistory = useAppStore(s => s.wearableHistory);
@@ -251,8 +247,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const quickLogs = useAppStore(s => s.quickLogs);
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
-  const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
-  const isFreeUser = effectiveTier === 'free';
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
@@ -308,19 +302,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     return buildPerformanceProfiles(workoutLogs);
   }, [workoutLogs]);
 
-  const strongestLifts = useMemo(() => {
-    return findStrongestLifts(workoutLogs, 3);
-  }, [workoutLogs]);
-
-  const weakLinks = useMemo(() => {
-    return findWeakLinks(workoutLogs);
-  }, [workoutLogs]);
-
   // ─── Engagement Engine ───
-  const streakAnalysis = useMemo(() => {
-    return analyzeStreak(workoutLogs, gamificationStats, user?.sessionsPerWeek || 3);
-  }, [workoutLogs, gamificationStats, user?.sessionsPerWeek]);
-
   const disengagement = useMemo(() => {
     return detectDisengagement(workoutLogs, user);
   }, [workoutLogs, user]);
@@ -344,10 +326,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
   }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
 
-  const fatigueInsight = useMemo(() => {
-    return getFatigueInsights(fatigueDebt, workoutLogs, wearableHistory);
-  }, [fatigueDebt, workoutLogs, wearableHistory]);
-
   // ─── Female Athlete Intelligence ───
   const showCycle = shouldShowCycleFeatures(user);
   // cycleLogs now comes from store (added above)
@@ -360,38 +338,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     if (!cycleProfile) return null;
     return getCycleInsights(cycleProfile, workoutLogs);
   }, [cycleProfile, workoutLogs]);
-
-  const phaseAdjustments = useMemo(() => {
-    if (!cycleProfile) return null;
-    return getPhaseTrainingAdjustments(cycleProfile.currentPhase);
-  }, [cycleProfile]);
-
-  // ─── Nutrition Coaching ───
-  const hasWorkoutToday = workoutLogs.some(l => new Date(l.date).toDateString() === new Date().toDateString());
-
-  const weeklyNutrition = useMemo(() => {
-    if (meals.length === 0 || macroTargets.calories === 0) return null;
-    return getWeeklyNutritionScore(meals, macroTargets, waterLog);
-  }, [meals, macroTargets, waterLog]);
-
-  const nutritionInsights = useMemo(() => {
-    if (meals.length === 0) return null;
-    return getNutritionInsights(user, meals, macroTargets, workoutLogs, waterLog);
-  }, [user, meals, macroTargets, workoutLogs, waterLog]);
-
-  const hydration = useMemo(() => {
-    const todayWaterGlasses = waterLog[new Date().toISOString().split('T')[0]] || 0;
-    const todayWaterMl = todayWaterGlasses * 250; // waterLog stores glasses (250ml each)
-    return getHydrationTarget(user, todayWaterMl, hasWorkoutToday);
-  }, [user, waterLog, hasWorkoutToday]);
-
-  // ─── Monetization ───
-  const monetizationTier = toMonetizationTier(effectiveTier);
-
-  const upgradePrompt = useMemo(() => {
-    if (monetizationTier === 'elite') return null;
-    return shouldShowUpgradePrompt(workoutLogs, gamificationStats, monetizationTier);
-  }, [workoutLogs, gamificationStats, monetizationTier]);
 
   // ─── Today's Summary Data ───
   const today = new Date();
@@ -652,7 +598,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     const daysSick = getIllnessDurationDays(activeIllness);
     feedCards.push(
       <motion.div key="illness" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-rose-500/20 to-orange-500/10 border border-rose-500/30 rounded-xl p-3.5">
+        className="bg-gradient-to-r from-rose-500/20 to-blue-500/10 border border-rose-500/30 rounded-xl p-3.5">
         <div className="flex items-start gap-3">
           <Thermometer className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
@@ -685,7 +631,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   if (nextCompetition && nextCompetition.daysUntil <= 60 && feedCards.length < 4) {
     feedCards.push(
       <motion.div key="competition" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-yellow-500/15 to-orange-500/10 border border-yellow-500/30 rounded-xl p-3.5">
+        className="bg-gradient-to-r from-yellow-500/15 to-blue-500/10 border border-yellow-500/30 rounded-xl p-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0" />
@@ -716,11 +662,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     const phaseColors: Record<string, string> = {
       base_camp: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
       intensification: 'from-purple-500/15 to-violet-500/10 border-purple-500/30',
-      peak_week: 'from-orange-500/20 to-amber-500/10 border-orange-500/30',
+      peak_week: 'from-blue-500/20 to-sky-500/10 border-blue-500/30',
       acute_reduction: 'from-red-500/20 to-rose-500/10 border-red-500/30',
       water_cut: 'from-red-500/25 to-rose-500/15 border-red-500/40',
       rehydration: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/30',
-      competition_day: 'from-yellow-500/20 to-amber-500/10 border-yellow-500/30',
+      competition_day: 'from-yellow-500/20 to-sky-500/10 border-yellow-500/30',
       recovery: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
       off_season: 'from-grappler-600/20 to-grappler-700/10 border-grappler-600/30',
     };
@@ -754,11 +700,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   // 4. Training load warning (combat athletes)
   if (trainingLoadWarning && feedCards.length < 4) {
     feedCards.push(
-      <div key="training-load" className="flex items-start gap-3 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5">
-        <Shield className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+      <div key="training-load" className="flex items-start gap-3 bg-gradient-to-r from-sky-500/20 to-blue-500/10 border border-sky-500/30 rounded-xl p-3.5">
+        <Shield className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
         <div>
-          <h3 className="font-bold text-amber-300 text-sm">Training Load</h3>
-          <p className="text-xs text-amber-400/80 mt-1">{trainingLoadWarning}</p>
+          <h3 className="font-bold text-sky-300 text-sm">Training Load</h3>
+          <p className="text-xs text-sky-400/80 mt-1">{trainingLoadWarning}</p>
         </div>
       </div>
     );
@@ -767,13 +713,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   // 5. Smart Deload (replaces crude deload check)
   if (deloadRec.needed && feedCards.length < 4) {
     const urgencyColors = {
-      optional: 'from-yellow-500/15 to-amber-500/10 border-yellow-500/30',
-      recommended: 'from-orange-500/20 to-red-500/10 border-orange-500/30',
+      optional: 'from-yellow-500/15 to-sky-500/10 border-yellow-500/30',
+      recommended: 'from-blue-500/20 to-red-500/10 border-blue-500/30',
       critical: 'from-red-500/20 to-rose-500/10 border-red-500/30',
     };
     const urgencyIcon = {
       optional: 'text-yellow-400',
-      recommended: 'text-orange-400',
+      recommended: 'text-blue-400',
       critical: 'text-red-400',
     };
     feedCards.push(
@@ -995,7 +941,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   'bg-blue-500/10 border-blue-500/30': variableReward.rarity === 'common',
                   'bg-purple-500/10 border-purple-500/30': variableReward.rarity === 'uncommon',
                   'bg-yellow-500/10 border-yellow-500/30': variableReward.rarity === 'rare',
-                  'bg-gradient-to-r from-orange-500/15 to-pink-500/15 border-orange-500/30': variableReward.rarity === 'epic',
+                  'bg-gradient-to-r from-blue-500/15 to-pink-500/15 border-blue-500/30': variableReward.rarity === 'epic',
                 })}
               >
                 <div className="flex items-center justify-between">
@@ -1004,7 +950,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                       'text-blue-400': variableReward.rarity === 'common',
                       'text-purple-400': variableReward.rarity === 'uncommon',
                       'text-yellow-400': variableReward.rarity === 'rare',
-                      'text-orange-400': variableReward.rarity === 'epic',
+                      'text-blue-400': variableReward.rarity === 'epic',
                     })} />
                     <div>
                       <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>
@@ -1017,7 +963,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             )}
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-orange-400" />
+                <Flame className="w-4 h-4 text-blue-400" />
                 <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
               </div>
               <div className="flex items-center gap-2">
@@ -1043,15 +989,15 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         const levelBg: Record<string, string> = {
           peak: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
           good: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
-          moderate: 'from-yellow-500/15 to-orange-500/10 border-yellow-500/30',
-          low: 'from-orange-500/15 to-red-500/10 border-orange-500/30',
+          moderate: 'from-yellow-500/15 to-blue-500/10 border-yellow-500/30',
+          low: 'from-blue-500/15 to-red-500/10 border-blue-500/30',
           critical: 'from-red-500/15 to-rose-500/10 border-red-500/30',
         };
         const levelIcon: Record<string, string> = {
           peak: 'text-green-400',
           good: 'text-blue-400',
           moderate: 'text-yellow-400',
-          low: 'text-orange-400',
+          low: 'text-blue-400',
           critical: 'text-red-400',
         };
         const bg = levelBg[directive.readinessLevel] || levelBg.moderate;
@@ -1068,7 +1014,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     </span>
                   )}
                   {directive.isDeload && (
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Deload</span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Deload</span>
                   )}
                 </div>
                 <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>
@@ -1441,7 +1387,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
               {synthesis.trends.volume !== 'stable' && (
                 <span className={cn('text-xs font-medium flex items-center gap-1',
-                  synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-orange-400'
+                  synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-blue-400'
                 )}>
                   <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
                   Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
@@ -1449,7 +1395,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               )}
               {synthesis.trends.prs !== 'stable' && (
                 <span className={cn('text-xs font-medium flex items-center gap-1',
-                  synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-orange-400'
+                  synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-blue-400'
                 )}>
                   <Star className="w-3 h-3" />
                   PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
@@ -1490,8 +1436,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 rounded-xl bg-amber-500/20">
-                  <SkipForward className="w-5 h-5 text-amber-400" />
+                <div className="p-2.5 rounded-xl bg-sky-500/20">
+                  <SkipForward className="w-5 h-5 text-sky-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-grappler-100">Skip Session?</h3>
@@ -1507,7 +1453,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 {([
                   { reason: 'schedule_conflict' as SkipReason, label: 'Schedule conflict', icon: Calendar, color: 'text-blue-400 bg-blue-500/10' },
                   { reason: 'fatigue' as SkipReason, label: 'Too tired / poor sleep', icon: Moon, color: 'text-purple-400 bg-purple-500/10' },
-                  { reason: 'soreness' as SkipReason, label: 'Still sore', icon: Activity, color: 'text-orange-400 bg-orange-500/10' },
+                  { reason: 'soreness' as SkipReason, label: 'Still sore', icon: Activity, color: 'text-blue-400 bg-blue-500/10' },
                   { reason: 'illness' as SkipReason, label: 'Feeling sick', icon: Thermometer, color: 'text-rose-400 bg-rose-500/10' },
                   { reason: 'mental_health' as SkipReason, label: 'Mental health day', icon: Brain, color: 'text-emerald-400 bg-emerald-500/10' },
                   { reason: 'travel' as SkipReason, label: 'Traveling / no gym', icon: Target, color: 'text-cyan-400 bg-cyan-500/10' },

@@ -215,7 +215,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           {stats && (
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: 'Avg Cal', value: `${stats.avg.calories}`, icon: Flame, color: 'text-orange-400', diff: stats.calDiff },
+                { label: 'Avg Cal', value: `${stats.avg.calories}`, icon: Flame, color: 'text-blue-400', diff: stats.calDiff },
                 { label: 'Avg Pro', value: `${stats.avg.protein}g`, icon: Beef, color: 'text-red-400', diff: stats.proteinDiff },
                 { label: 'Avg Carbs', value: `${stats.avg.carbs}g`, icon: Wheat, color: 'text-blue-400' },
                 { label: 'Avg Fat', value: `${stats.avg.fat}g`, icon: Droplet, color: 'text-yellow-400' },
@@ -272,7 +272,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
               className={cn(
                 'flex-1 py-1.5 text-xs font-medium rounded-md transition-all',
                 activeChart === 'calories'
-                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                   : 'bg-grappler-900/40 text-grappler-500'
               )}
             >

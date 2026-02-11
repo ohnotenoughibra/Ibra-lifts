@@ -118,7 +118,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
         <div className="min-h-screen px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-3 mb-8">
-            <button onClick={onClose} className="btn btn-secondary btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
@@ -157,7 +157,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
       <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
         <div className="min-h-screen px-4 py-6">
           <div className="flex items-center gap-3 mb-8">
-            <button onClick={onClose} className="btn btn-secondary btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
@@ -185,7 +185,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
       <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={onClose} className="btn btn-secondary btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
@@ -336,7 +336,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
               {summary.areasToImprove.length > 0 && (
                 <motion.div variants={itemVariants} className="card p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-orange-400" />
+                    <AlertTriangle className="w-5 h-5 text-blue-400" />
                     <h3 className="font-bold text-grappler-50">
                       Areas to Improve
                     </h3>
@@ -344,8 +344,8 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
                   <ul className="space-y-2">
                     {summary.areasToImprove.map((area, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <div className="mt-0.5 w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                          <AlertTriangle className="w-3 h-3 text-orange-400" />
+                        <div className="mt-0.5 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-3 h-3 text-blue-400" />
                         </div>
                         <span className="text-sm text-grappler-200">
                           {area}

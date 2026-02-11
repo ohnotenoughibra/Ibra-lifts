@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roots Gains — Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #1e1e2e;
+    --text: #e2e2f0;
+    --muted: #8888a0;
+    --accent: #6c5ce7;
+    --accent2: #00cec9;
+    --red: #ff6b6b;
+    --green: #00b894;
+    --gold: #fdcb6e;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── Slide System ── */
+  .slide {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(108,92,231,.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .slide-number {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    opacity: .5;
+  }
+
+  .inner {
+    max-width: 960px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: clamp(42px, 6vw, 72px); font-weight: 900; line-height: 1.05; letter-spacing: -2px; }
+  h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.15; letter-spacing: -1px; margin-bottom: 24px; }
+  h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  p  { font-size: 18px; line-height: 1.6; color: var(--muted); }
+  .big-p { font-size: clamp(20px, 2.5vw, 26px); line-height: 1.5; }
+
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .gold { color: var(--gold); }
+  .white { color: #fff; }
+
+  .tag {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+  }
+  .tag-accent { background: rgba(108,92,231,.15); color: var(--accent); border: 1px solid rgba(108,92,231,.3); }
+  .tag-green  { background: rgba(0,184,148,.12); color: var(--green); border: 1px solid rgba(0,184,148,.25); }
+  .tag-red    { background: rgba(255,107,107,.12); color: var(--red); border: 1px solid rgba(255,107,107,.25); }
+  .tag-gold   { background: rgba(253,203,110,.12); color: var(--gold); border: 1px solid rgba(253,203,110,.25); }
+
+  /* ── Cards & Grids ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+
+  .card-glow {
+    background: var(--card);
+    border: 1px solid rgba(108,92,231,.3);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 0 40px rgba(108,92,231,.06);
+  }
+
+  .stat-card {
+    text-align: center;
+    padding: 32px 20px;
+  }
+  .stat-card .number {
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-card .label {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ── Lists ── */
+  ul { list-style: none; }
+  ul li {
+    padding: 10px 0;
+    font-size: 17px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: var(--text);
+  }
+  ul li::before {
+    content: '>';
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .check-list li::before { content: '\2713'; color: var(--green); }
+  .x-list li::before { content: '\2717'; color: var(--red); }
+
+  /* ── Dividers ── */
+  .divider {
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 3px;
+    margin: 24px 0;
+  }
+
+  /* ── Pricing Table ── */
+  .price-card {
+    border-radius: 16px;
+    padding: 36px 28px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .price-card.featured {
+    border-color: var(--accent);
+    box-shadow: 0 0 60px rgba(108,92,231,.12);
+    position: relative;
+  }
+  .price-card.featured::after {
+    content: 'RECOMMENDED';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 100px;
+    letter-spacing: 1px;
+  }
+  .price { font-size: 42px; font-weight: 900; }
+  .price span { font-size: 16px; font-weight: 500; color: var(--muted); }
+
+  /* ── Revenue Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+  th, td {
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+  td { color: var(--text); }
+  tr:last-child td { border-bottom: none; font-weight: 700; }
+  .right { text-align: right; }
+
+  /* ── Timeline ── */
+  .timeline-item {
+    display: flex;
+    gap: 20px;
+    padding: 20px 0;
+  }
+  .timeline-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .slide { padding: 40px 20px; }
+    h1 { font-size: 36px; }
+    h2 { font-size: 28px; }
+  }
+
+  /* ── Separator between slides ── */
+  .slide + .slide { border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- SLIDE 1 — TITLE -->
+<!-- ============================================ -->
+<section class="slide" style="min-height:100vh;">
+  <div class="inner" style="text-align:center;">
+    <span class="tag tag-accent">Pitch Deck 2026</span>
+    <h1 style="margin-bottom:24px;">
+      <span class="accent">Roots</span> Gains
+    </h1>
+    <p class="big-p" style="max-width:600px;margin:0 auto 40px;">
+      Science-backed strength training built for martial artists.<br>
+      A new revenue stream for our gym.
+    </p>
+    <div class="grid-3" style="max-width:560px;margin:0 auto;">
+      <div class="card stat-card">
+        <div class="number accent">172</div>
+        <div class="label">Exercises</div>
+      </div>
+      <div class="card stat-card">
+        <div class="number accent2">56</div>
+        <div class="label">Badges</div>
+      </div>
+      <div class="card stat-card">
+        <div class="number green">100%</div>
+        <div class="label">Offline</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">01</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 2 — THE PROBLEM -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-red">The Problem</span>
+    <h2>Our members want to get stronger.<br>But they don't know <span class="red">how</span>.</h2>
+    <div class="divider"></div>
+    <div class="grid-2" style="margin-top:20px;">
+      <div>
+        <ul class="x-list">
+          <li>Generic fitness apps don't account for sparring fatigue</li>
+          <li>Members overtrain before class and underperform on the mat</li>
+          <li>No programming adjusts around BJJ, Muay Thai, or wrestling schedules</li>
+          <li>Injuries from lifting lead to missed mat time</li>
+        </ul>
+      </div>
+      <div class="card-glow" style="display:flex;flex-direction:column;justify-content:center;">
+        <h3 style="color:var(--red);">The result?</h3>
+        <p style="font-size:16px;">
+          Members either skip strength work entirely, follow cookie-cutter programs that
+          wreck their recovery, or pay $150+/mo for a separate strength coach.
+        </p>
+        <p style="font-size:16px;margin-top:12px;">
+          <strong class="white">We're leaving money on the table and members undertrained.</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">02</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 3 — THE SOLUTION -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-green">The Solution</span>
+    <h2>An app that programs strength training <span class="accent2">around</span> martial arts.</h2>
+    <div class="divider"></div>
+    <p class="big-p" style="margin-bottom:32px;">
+      Roots Gains auto-generates periodized lifting programs that
+      reduce volume on hard sparring days, peak for competitions,
+      and adjust in real-time based on recovery data.
+    </p>
+    <div class="grid-3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#127947;</div>
+        <h3>Combat-Aware</h3>
+        <p style="font-size:14px;">Auto-reduces lifting on heavy sparring days. Never walk onto the mat pre-fatigued again.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#129504;</div>
+        <h3>Science-Backed</h3>
+        <p style="font-size:14px;">Daily Undulating Periodization (DUP) rotates strength, hypertrophy, and power for optimal gains without burnout.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#9889;</div>
+        <h3>Auto-Regulated</h3>
+        <p style="font-size:14px;">Whoop integration reads your recovery and adjusts today's workout intensity automatically.</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">03</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 4 — KEY FEATURES -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-accent">Key Features</span>
+    <h2>Everything a martial artist needs. <span class="accent">Nothing they don't.</span></h2>
+    <div class="divider"></div>
+    <div class="grid-2" style="margin-top:12px;">
+      <div class="card">
+        <h3 class="accent">Smart Programming</h3>
+        <ul>
+          <li>DUP periodization (strength / hypertrophy / power rotation)</li>
+          <li>Auto-deload when recovery drops</li>
+          <li>Wave loading with 3-5% weekly progression</li>
+          <li>Training splits: Full Body, Upper/Lower, PPL, Grappler Hybrid</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="accent2">Live Workout Tracking</h3>
+        <ul>
+          <li>Pre-workout readiness check-in (sleep, stress, soreness)</li>
+          <li>Per-set weight, reps, RPE logging</li>
+          <li>Rest timer with next-exercise preview</li>
+          <li>Post-workout summary with AI feedback</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="green">Recovery Intelligence</h3>
+        <ul>
+          <li>Whoop auto-sync (HRV, sleep, strain, recovery)</li>
+          <li>Composite readiness score (0-100)</li>
+          <li>Injury tracking with return-to-training protocols</li>
+          <li>Illness logging with symptom-based training advice</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="gold">Gamification</h3>
+        <ul>
+          <li>56 unlockable badges (strength, consistency, volume, combat)</li>
+          <li>XP system with 50 levels (Novice to Legendary Grappler)</li>
+          <li>Weekly challenges with streak shields</li>
+          <li>Shareable PR cards for the group chat</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">04</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 5 — COMBAT SPORT SPECIFIC -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-red">Built for Fighters</span>
+    <h2>Not another generic fitness app.</h2>
+    <div class="divider"></div>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <ul>
+          <li><strong class="white">Grappling/striking session tracking</strong> — BJJ, Muay Thai, MMA, wrestling, judo all supported with intensity + submission stats</li>
+          <li><strong class="white">Dual-training day awareness</strong> — lifted and sparred same day? The app knows and adjusts tomorrow</li>
+          <li><strong class="white">Competition prep module</strong> — peaking blocks, tapering, weight cut planning for fight week</li>
+          <li><strong class="white">Grip strength tracking</strong> — dead hang times, dynamometer scores, directly relevant to grappling</li>
+          <li><strong class="white">Posterior chain emphasis</strong> — deadlifts, rows, pull-ups prioritized for grappling performance</li>
+          <li><strong class="white">172 exercises</strong> with grappling-specific flags and form videos</li>
+        </ul>
+      </div>
+      <div class="card-glow" style="display:flex;flex-direction:column;justify-content:center;gap:16px;">
+        <h3>Supported Combat Sports</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <span class="tag tag-accent" style="margin:0;">BJJ Gi</span>
+          <span class="tag tag-accent" style="margin:0;">No-Gi</span>
+          <span class="tag tag-accent" style="margin:0;">MMA</span>
+          <span class="tag tag-accent" style="margin:0;">Muay Thai</span>
+          <span class="tag tag-accent" style="margin:0;">Boxing</span>
+          <span class="tag tag-accent" style="margin:0;">Wrestling</span>
+          <span class="tag tag-accent" style="margin:0;">Judo</span>
+          <span class="tag tag-accent" style="margin:0;">Kickboxing</span>
+          <span class="tag tag-accent" style="margin:0;">Sambo</span>
+          <span class="tag tag-accent" style="margin:0;">Karate</span>
+        </div>
+        <p style="font-size:14px;margin-top:8px;">
+          Whoop auto-imports combat sessions by sport type. Every sparring round is factored into your lifting recovery.
+        </p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">05</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 6 — REVENUE MODEL -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-gold">Revenue Model</span>
+    <h2>A recurring revenue stream <span class="gold">we own</span>.</h2>
+    <div class="divider"></div>
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="price-card">
+        <h3 style="color:var(--muted);">Free</h3>
+        <div class="price white" style="margin:16px 0;">$0</div>
+        <p style="font-size:14px;margin-bottom:20px;">Gets members in the door</p>
+        <ul class="check-list" style="text-align:left;">
+          <li style="font-size:14px;">Workout logging</li>
+          <li style="font-size:14px;">Basic programming (2 programs)</li>
+          <li style="font-size:14px;">Streaks, XP, and badges</li>
+          <li style="font-size:14px;">Combat session tracking</li>
+          <li style="font-size:14px;">Offline PWA support</li>
+        </ul>
+      </div>
+      <div class="price-card featured">
+        <h3 class="accent">Pro</h3>
+        <div class="price accent" style="margin:16px 0;">$9.99<span>/mo</span></div>
+        <p style="font-size:14px;margin-bottom:20px;">or $79.99/year (33% savings)</p>
+        <ul class="check-list" style="text-align:left;">
+          <li style="font-size:14px;">Unlimited programs</li>
+          <li style="font-size:14px;">AI Coach + weekly summaries</li>
+          <li style="font-size:14px;">Injury return-to-training</li>
+          <li style="font-size:14px;">Nutrition coaching</li>
+          <li style="font-size:14px;">Mobility routines</li>
+          <li style="font-size:14px;">Custom exercises</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <h3 class="accent2">Elite</h3>
+        <div class="price accent2" style="margin:16px 0;">$19.99<span>/mo</span></div>
+        <p style="font-size:14px;margin-bottom:20px;">For the serious competitor</p>
+        <ul class="check-list" style="text-align:left;">
+          <li style="font-size:14px;">Whoop / Garmin / Oura sync</li>
+          <li style="font-size:14px;">Competition prep module</li>
+          <li style="font-size:14px;">Female athlete cycle tracking</li>
+          <li style="font-size:14px;">Caloric periodization</li>
+          <li style="font-size:14px;">Fatigue debt tracking</li>
+          <li style="font-size:14px;">Grip strength module</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">06</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 7 — REVENUE PROJECTIONS -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-green">The Numbers</span>
+    <h2>Conservative revenue projections.</h2>
+    <div class="divider"></div>
+    <p style="margin-bottom:24px;">Based on our current membership and conservative conversion rates.</p>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Members</th>
+            <th>Pro (20%)</th>
+            <th>Elite (5%)</th>
+            <th class="right">Monthly Revenue</th>
+            <th class="right">Annual Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="white">100 members</td>
+            <td>100</td>
+            <td>20</td>
+            <td>5</td>
+            <td class="right green">$300</td>
+            <td class="right green">$3,600</td>
+          </tr>
+          <tr>
+            <td class="white">250 members</td>
+            <td>250</td>
+            <td>50</td>
+            <td>13</td>
+            <td class="right green">$760</td>
+            <td class="right green">$9,100</td>
+          </tr>
+          <tr>
+            <td class="white">500 members</td>
+            <td>500</td>
+            <td>100</td>
+            <td>25</td>
+            <td class="right green">$1,500</td>
+            <td class="right green">$18,000</td>
+          </tr>
+          <tr style="background:rgba(108,92,231,.06);">
+            <td class="accent" style="font-weight:800;">1,000 members</td>
+            <td class="accent">1,000</td>
+            <td class="accent">200</td>
+            <td class="accent">50</td>
+            <td class="right accent" style="font-size:18px;">$3,000</td>
+            <td class="right accent" style="font-size:18px;">$36,000</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px;margin-top:16px;opacity:.6;">
+      * Assumes 20% Pro conversion ($9.99/mo) and 5% Elite conversion ($19.99/mo). Industry average for fitness app conversion is 15-25%.
+    </p>
+  </div>
+  <span class="slide-number">07</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 8 — WHY US / MOAT -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-accent">Why This Wins</span>
+    <h2>No one else is doing this.</h2>
+    <div class="divider"></div>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <h3 class="white" style="margin-bottom:16px;">Competitors miss the mark</h3>
+        <ul class="x-list">
+          <li><strong>Strong / Hevy / JEFIT</strong> — generic lifting apps, zero combat sport awareness</li>
+          <li><strong>Juggernaut AI</strong> — powerlifting focus, $35/mo, no martial arts integration</li>
+          <li><strong>Personal trainers</strong> — $100-200/mo, not scalable, no wearable sync</li>
+          <li><strong>YouTube programs</strong> — static, no auto-regulation, no progress tracking</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="white" style="margin-bottom:16px;">Our advantages</h3>
+        <ul class="check-list">
+          <li><strong>Built-in audience</strong> — our members are the market</li>
+          <li><strong>Combat sport native</strong> — every feature designed around mat time</li>
+          <li><strong>Whoop integration</strong> — real recovery data, not guessing</li>
+          <li><strong>Gym-branded</strong> — our logo, our community, our app</li>
+          <li><strong>Works offline</strong> — no WiFi at the gym? No problem</li>
+          <li><strong>Free tier is generous</strong> — low friction to adopt</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">08</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 9 — MEMBER JOURNEY -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-accent">Member Journey</span>
+    <h2>From signup to <span class="accent">paying subscriber</span>.</h2>
+    <div class="divider"></div>
+    <div style="margin-top:12px;">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--green);"></div>
+        <div>
+          <h3 class="white">Day 1 — Onboard in 2 minutes</h3>
+          <p style="font-size:15px;">Member enters age, experience, equipment, training days, and goals. App generates their first mesocycle instantly.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent);"></div>
+        <div>
+          <h3 class="white">Week 1 — Hook with free features</h3>
+          <p style="font-size:15px;">Workout logging, streaks, XP, and badges create daily engagement. Members share PRs in the gym group chat.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent2);"></div>
+        <div>
+          <h3 class="white">Week 2 — 14-day Pro trial triggers</h3>
+          <p style="font-size:15px;">After 3 completed workouts, the free Pro trial unlocks. Members experience AI coaching, injury tracking, and nutrition guidance.</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--gold);"></div>
+        <div>
+          <h3 class="white">Week 3+ — Conversion</h3>
+          <p style="font-size:15px;">Trial ends, soft paywall appears. By now members rely on their training data, streaks, and weekly coach summaries. Conversion feels natural, not forced.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">09</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 10 — RETENTION & ENGAGEMENT -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-green">Retention Engine</span>
+    <h2>Built to keep members <span class="green">coming back</span>.</h2>
+    <div class="divider"></div>
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#128293;</div>
+        <h3>Streaks</h3>
+        <p style="font-size:14px;">Up to 365-day streak tracking with auto-shields. Breaking a streak hurts — members show up.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#127942;</div>
+        <h3>Badges & Levels</h3>
+        <p style="font-size:14px;">56 badges across 5 categories. 50 levels from Novice to Legendary Grappler. Social proof drives competition.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#127919;</div>
+        <h3>Weekly Challenges</h3>
+        <p style="font-size:14px;">3 auto-generated goals per week with bonus XP. Members who finish all 3 earn elite rewards.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#128172;</div>
+        <h3>Community Sharing</h3>
+        <p style="font-size:14px;">One-tap shareable PR cards, workout summaries, and badge unlocks for WhatsApp and Discord.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#129302;</div>
+        <h3>AI Coach</h3>
+        <p style="font-size:14px;">Weekly personalized summaries: what went well, what to improve, and what's recommended next.</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px;margin-bottom:12px;">&#128200;</div>
+        <h3>Progress Visibility</h3>
+        <p style="font-size:14px;">1RM trends, volume charts, and body comp tracking. Members see their gains — and want more.</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">10</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 11 — ROLLOUT PLAN -->
+<!-- ============================================ -->
+<section class="slide">
+  <div class="inner">
+    <span class="tag tag-accent">Rollout Plan</span>
+    <h2>Simple 3-phase launch.</h2>
+    <div class="divider"></div>
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="card-glow">
+        <span class="tag tag-green" style="font-size:11px;">Phase 1</span>
+        <h3 class="white">Soft Launch</h3>
+        <p style="font-size:14px;">Roll out free tier to 20-30 core members. Collect feedback, fix pain points, build early adoption and testimonials.</p>
+        <p style="font-size:13px;color:var(--accent);margin-top:12px;font-weight:600;">Weeks 1-4</p>
+      </div>
+      <div class="card-glow">
+        <span class="tag tag-accent" style="font-size:11px;">Phase 2</span>
+        <h3 class="white">Full Gym Launch</h3>
+        <p style="font-size:14px;">Announce to all members. QR code on gym wall, mention in classes. Push free tier adoption. Pro trial auto-triggers.</p>
+        <p style="font-size:13px;color:var(--accent);margin-top:12px;font-weight:600;">Weeks 5-8</p>
+      </div>
+      <div class="card-glow">
+        <span class="tag tag-gold" style="font-size:11px;">Phase 3</span>
+        <h3 class="white">Scale & Partner</h3>
+        <p style="font-size:14px;">Offer to partner gyms as a white-label tool. Revenue share model. Each gym brings their own members into the ecosystem.</p>
+        <p style="font-size:13px;color:var(--accent);margin-top:12px;font-weight:600;">Month 3+</p>
+      </div>
+    </div>
+  </div>
+  <span class="slide-number">11</span>
+</section>
+
+<!-- ============================================ -->
+<!-- SLIDE 12 — THE ASK -->
+<!-- ============================================ -->
+<section class="slide" style="text-align:center;">
+  <div class="inner">
+    <span class="tag tag-accent">The Ask</span>
+    <h2>Let's make this our gym's <span class="accent">competitive advantage</span>.</h2>
+    <div class="divider" style="margin:24px auto;"></div>
+    <p class="big-p" style="max-width:640px;margin:0 auto 40px;">
+      The app is built. The features are live. The only thing missing is putting it in our members' hands.
+    </p>
+    <div class="grid-3" style="max-width:700px;margin:0 auto 40px;">
+      <div class="card stat-card">
+        <div class="number green">$0</div>
+        <div class="label">Upfront Cost</div>
+      </div>
+      <div class="card stat-card">
+        <div class="number accent">PWA</div>
+        <div class="label">No App Store Needed</div>
+      </div>
+      <div class="card stat-card">
+        <div class="number gold">Day 1</div>
+        <div class="label">Ready to Launch</div>
+      </div>
+    </div>
+    <div class="card-glow" style="max-width:640px;margin:0 auto;padding:36px;">
+      <h3 class="white" style="font-size:22px;margin-bottom:16px;">What I'm proposing:</h3>
+      <ul style="text-align:left;">
+        <li>Adopt Roots Gains as our gym's official strength training tool</li>
+        <li>Roll out free tier to all members starting this month</li>
+        <li>Subscription revenue goes back into the gym</li>
+        <li>Members get stronger, stay longer, and tell their friends</li>
+      </ul>
+    </div>
+    <p style="margin-top:48px;font-size:14px;opacity:.4;">
+      Roots Gains &mdash; Strength training that respects your mat time.
+    </p>
+  </div>
+  <span class="slide-number">12</span>
+</section>
+
+</body>
+</html>

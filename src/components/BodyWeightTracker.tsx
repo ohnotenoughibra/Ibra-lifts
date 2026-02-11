@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, Calculator } from 'lucide-react';
+import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -47,15 +47,20 @@ function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string
 }
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog, addBodyWeight, deleteBodyWeight, user } = useAppStore();
+  const { bodyWeightLog, bodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showBFCalculator, setShowBFCalculator] = useState(false);
+  const [showComposition, setShowComposition] = useState(false);
+  // Form fields
   const [newWeight, setNewWeight] = useState('');
   const [newNotes, setNewNotes] = useState('');
-  const [waistCm, setWaistCm] = useState('');
-  const [neckCm, setNeckCm] = useState('');
-  const [hipCm, setHipCm] = useState('');
-  const [calculatedBF, setCalculatedBF] = useState<number | null>(null);
+  const [formWaist, setFormWaist] = useState('');
+  const [formNeck, setFormNeck] = useState('');
+  const [formHip, setFormHip] = useState('');
+  const [formBodyFat, setFormBodyFat] = useState('');
+  const [formBMI, setFormBMI] = useState('');
+  const [useManualBF, setUseManualBF] = useState(false);
+  const [useManualBMI, setUseManualBMI] = useState(false);
+
   const weightUnit = user?.weightUnit || 'lbs';
   const heightCm = user?.heightCm || 0;
   const sex = user?.sex || 'male';
@@ -77,7 +82,7 @@ export default function BodyWeightTracker() {
     ? Math.round(sortedLog.reduce((sum, e) => sum + e.weight, 0) / sortedLog.length * 10) / 10
     : null;
 
-  // BMI calculation
+  // BMI from latest weight
   const bmi = useMemo(() => {
     if (!latestWeight || !heightCm) return null;
     const weightKg = weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight;
@@ -86,23 +91,84 @@ export default function BodyWeightTracker() {
 
   const bmiCategory = bmi ? getBMICategory(bmi) : null;
 
-  const handleCalculateBF = () => {
-    const w = parseFloat(waistCm);
-    const n = parseFloat(neckCm);
-    const h = hipCm ? parseFloat(hipCm) : undefined;
-    if (!w || !n || !heightCm) return;
-    const bf = estimateBodyFat(w, n, heightCm, sex, h);
-    setCalculatedBF(bf);
+  // Latest saved body composition entry
+  const sortedComposition = [...bodyComposition].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  const latestComp = sortedComposition.length > 0 ? sortedComposition[sortedComposition.length - 1] : null;
+  const latestBF = latestComp?.bodyFatPercent ?? null;
+  const latestSavedBMI = latestComp?.bmi ?? null;
+
+  // Auto-calculate BF from form measurements
+  const autoCalcBF = useMemo(() => {
+    const w = parseFloat(formWaist);
+    const n = parseFloat(formNeck);
+    const h = formHip ? parseFloat(formHip) : undefined;
+    if (!w || !n || !heightCm) return null;
+    return estimateBodyFat(w, n, heightCm, sex, h);
+  }, [formWaist, formNeck, formHip, heightCm, sex]);
+
+  // Auto-calculate BMI from form weight
+  const autoCalcBMI = useMemo(() => {
+    const w = parseFloat(newWeight);
+    if (!w || !heightCm) return null;
+    const weightKg = weightUnit === 'lbs' ? w * 0.453592 : w;
+    return calculateBMI(weightKg, heightCm);
+  }, [newWeight, heightCm, weightUnit]);
+
+  const effectiveBF = useManualBF ? (parseFloat(formBodyFat) || null) : autoCalcBF;
+  const effectiveBMI = useManualBMI ? (parseFloat(formBMI) || null) : autoCalcBMI;
+
+  const resetForm = () => {
+    setNewWeight('');
+    setNewNotes('');
+    setFormWaist('');
+    setFormNeck('');
+    setFormHip('');
+    setFormBodyFat('');
+    setFormBMI('');
+    setUseManualBF(false);
+    setUseManualBMI(false);
+    setShowComposition(false);
   };
 
   const handleAdd = () => {
     const w = parseFloat(newWeight);
     if (isNaN(w) || w <= 0) return;
     addBodyWeight(w, newNotes || undefined);
-    setNewWeight('');
-    setNewNotes('');
+
+    // Save body composition if any composition data was entered
+    const waist = parseFloat(formWaist) || undefined;
+    const neck = parseFloat(formNeck) || undefined;
+    const hip = parseFloat(formHip) || undefined;
+    const bf = effectiveBF ?? undefined;
+    const bmiVal = effectiveBMI ?? undefined;
+
+    if (waist || neck || hip || bf || bmiVal) {
+      addBodyComposition({
+        date: new Date(),
+        weight: w,
+        unit: weightUnit,
+        bodyFatPercent: bf,
+        bmi: bmiVal,
+        waist,
+        neck,
+        hip,
+        notes: newNotes || undefined,
+      });
+    }
+
+    resetForm();
     setShowAddForm(false);
   };
+
+  // Body fat chart data
+  const bfChartData = sortedComposition
+    .filter(e => e.bodyFatPercent != null)
+    .map(entry => ({
+      date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      bf: entry.bodyFatPercent,
+    }));
 
   return (
     <div className="space-y-4">
@@ -160,110 +226,54 @@ export default function BodyWeightTracker() {
       {/* BMI & Body Fat Section */}
       {latestWeight && (
         <div className="bg-grappler-800/30 rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-grappler-300 uppercase tracking-wide flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5 text-primary-400" />
-              Body Composition
-            </h4>
-            <button
-              onClick={() => setShowBFCalculator(!showBFCalculator)}
-              className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors"
-            >
-              <Calculator className="w-3 h-3" />
-              {showBFCalculator ? 'Hide' : 'Body Fat Calc'}
-            </button>
-          </div>
+          <h4 className="text-xs font-semibold text-grappler-300 uppercase tracking-wide flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-primary-400" />
+            Body Composition
+          </h4>
 
-          {/* BMI display */}
-          {bmi ? (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-                <p className="text-xs text-grappler-500 mb-0.5">BMI</p>
+          <div className="flex items-center gap-3">
+            {/* BMI display */}
+            <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
+              <p className="text-xs text-grappler-500 mb-0.5">BMI</p>
+              {(latestSavedBMI || bmi) ? (
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-grappler-50">{bmi}</span>
-                  <span className={cn('text-xs font-medium', bmiCategory?.color)}>{bmiCategory?.label}</span>
+                  <span className="text-lg font-bold text-grappler-50">{latestSavedBMI || bmi}</span>
+                  <span className={cn('text-xs font-medium', getBMICategory(latestSavedBMI || bmi!).color)}>
+                    {getBMICategory(latestSavedBMI || bmi!).label}
+                  </span>
                 </div>
-              </div>
-              {calculatedBF !== null && (
-                <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-                  <p className="text-xs text-grappler-500 mb-0.5">Body Fat</p>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-bold text-grappler-50">{calculatedBF}%</span>
-                    <span className={cn('text-xs font-medium', getBodyFatCategory(calculatedBF, sex).color)}>
-                      {getBodyFatCategory(calculatedBF, sex).label}
-                    </span>
-                  </div>
-                </div>
+              ) : (
+                <p className="text-xs text-grappler-500">Set height in settings</p>
               )}
             </div>
-          ) : (
-            <p className="text-xs text-grappler-500">
-              Add your height in settings to see BMI
-            </p>
-          )}
 
-          {/* Body Fat Calculator (Navy Method) */}
-          <AnimatePresence>
-            {showBFCalculator && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="bg-grappler-700/30 rounded-lg p-3 space-y-2">
-                  <p className="text-xs text-grappler-400">Navy Method Estimate</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] text-grappler-500 mb-0.5 block">Waist (cm)</label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={waistCm}
-                        onChange={(e) => setWaistCm(e.target.value)}
-                        placeholder="84"
-                        className="input text-sm py-1.5"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-grappler-500 mb-0.5 block">Neck (cm)</label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={neckCm}
-                        onChange={(e) => setNeckCm(e.target.value)}
-                        placeholder="38"
-                        className="input text-sm py-1.5"
-                      />
-                    </div>
-                    {sex === 'female' && (
-                      <div className="col-span-2">
-                        <label className="text-[11px] text-grappler-500 mb-0.5 block">Hip (cm)</label>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          value={hipCm}
-                          onChange={(e) => setHipCm(e.target.value)}
-                          placeholder="96"
-                          className="input text-sm py-1.5"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleCalculateBF}
-                    disabled={!waistCm || !neckCm || !heightCm}
-                    className="btn btn-primary btn-sm w-full"
-                  >
-                    Calculate
-                  </button>
-                  {!heightCm && (
-                    <p className="text-[11px] text-yellow-400">Add your height in settings first</p>
-                  )}
+            {/* Body Fat display */}
+            <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
+              <p className="text-xs text-grappler-500 mb-0.5">Body Fat</p>
+              {latestBF != null ? (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-grappler-50">{latestBF}%</span>
+                  <span className={cn('text-xs font-medium', getBodyFatCategory(latestBF, sex).color)}>
+                    {getBodyFatCategory(latestBF, sex).label}
+                  </span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ) : (
+                <p className="text-xs text-grappler-500">Log measurements below</p>
+              )}
+            </div>
+          </div>
+
+          {/* Latest measurements */}
+          {latestComp && (latestComp.waist || latestComp.neck) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-grappler-400">
+              {latestComp.waist && <span>Waist: {latestComp.waist} cm</span>}
+              {latestComp.neck && <span>Neck: {latestComp.neck} cm</span>}
+              {latestComp.hip && <span>Hip: {latestComp.hip} cm</span>}
+              <span className="text-grappler-600">
+                {new Date(latestComp.date).toLocaleDateString()}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -277,6 +287,7 @@ export default function BodyWeightTracker() {
             className="overflow-hidden"
           >
             <div className="bg-grappler-800/50 rounded-xl p-4 space-y-3">
+              {/* Weight */}
               <div>
                 <label className="text-xs text-grappler-400 mb-1 block">Weight ({weightUnit})</label>
                 <input
@@ -289,6 +300,145 @@ export default function BodyWeightTracker() {
                   autoFocus
                 />
               </div>
+
+              {/* Auto-calculated BMI preview */}
+              {autoCalcBMI && !useManualBMI && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-grappler-700/40">
+                  <span className="text-xs text-grappler-400">BMI:</span>
+                  <span className="text-sm font-bold text-grappler-100">{autoCalcBMI}</span>
+                  <span className={cn('text-xs font-medium', getBMICategory(autoCalcBMI).color)}>
+                    {getBMICategory(autoCalcBMI).label}
+                  </span>
+                </div>
+              )}
+
+              {/* Body Composition toggle */}
+              <button
+                type="button"
+                onClick={() => setShowComposition(!showComposition)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-grappler-700/30 hover:bg-grappler-700/50 transition-colors"
+              >
+                <span className="text-xs font-medium text-grappler-300">Body Composition (optional)</span>
+                {showComposition ? (
+                  <ChevronUp className="w-4 h-4 text-grappler-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-grappler-400" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showComposition && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="space-y-3 pt-1">
+                      {/* Measurements for Navy method */}
+                      <div>
+                        <p className="text-xs text-grappler-400 mb-2">Measurements (for body fat calculation)</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Waist (cm)</label>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={formWaist}
+                              onChange={(e) => setFormWaist(e.target.value)}
+                              placeholder="84"
+                              className="input text-sm py-1.5"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Neck (cm)</label>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={formNeck}
+                              onChange={(e) => setFormNeck(e.target.value)}
+                              placeholder="38"
+                              className="input text-sm py-1.5"
+                            />
+                          </div>
+                          {sex === 'female' && (
+                            <div className="col-span-2">
+                              <label className="text-[11px] text-grappler-500 mb-0.5 block">Hip (cm)</label>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                value={formHip}
+                                onChange={(e) => setFormHip(e.target.value)}
+                                placeholder="96"
+                                className="input text-sm py-1.5"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Auto-calculated BF preview */}
+                      {autoCalcBF != null && !useManualBF && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-grappler-700/40">
+                          <span className="text-xs text-grappler-400">Estimated BF:</span>
+                          <span className="text-sm font-bold text-grappler-100">{autoCalcBF}%</span>
+                          <span className={cn('text-xs font-medium', getBodyFatCategory(autoCalcBF, sex).color)}>
+                            {getBodyFatCategory(autoCalcBF, sex).label}
+                          </span>
+                          <span className="text-[10px] text-grappler-600 ml-auto">Navy method</span>
+                        </div>
+                      )}
+
+                      {/* Manual overrides */}
+                      <div className="border-t border-grappler-700/50 pt-3 space-y-2">
+                        <p className="text-xs text-grappler-500">Or enter manually</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] text-grappler-500 mb-0.5 block">Body Fat %</label>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={formBodyFat}
+                              onChange={(e) => {
+                                setFormBodyFat(e.target.value);
+                                setUseManualBF(e.target.value.length > 0);
+                              }}
+                              placeholder={autoCalcBF != null ? String(autoCalcBF) : '15'}
+                              className="input text-sm py-1.5"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-grappler-500 mb-0.5 block">BMI</label>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={formBMI}
+                              onChange={(e) => {
+                                setFormBMI(e.target.value);
+                                setUseManualBMI(e.target.value.length > 0);
+                              }}
+                              placeholder={autoCalcBMI != null ? String(autoCalcBMI) : '24'}
+                              className="input text-sm py-1.5"
+                            />
+                          </div>
+                        </div>
+                        {useManualBF && formBodyFat && (
+                          <p className="text-[11px] text-grappler-500">
+                            Using your manual body fat value. Clear the field to use Navy method calculation.
+                          </p>
+                        )}
+                        {useManualBMI && formBMI && (
+                          <p className="text-[11px] text-grappler-500">
+                            Using your manual BMI value. Clear the field to auto-calculate from weight & height.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Notes */}
               <div>
                 <label className="text-xs text-grappler-400 mb-1 block">Notes (optional)</label>
                 <input
@@ -299,8 +449,10 @@ export default function BodyWeightTracker() {
                   className="input"
                 />
               </div>
+
+              {/* Buttons */}
               <div className="flex gap-2">
-                <button onClick={() => setShowAddForm(false)} className="btn btn-secondary btn-sm flex-1">
+                <button onClick={() => { setShowAddForm(false); resetForm(); }} className="btn btn-secondary btn-sm flex-1">
                   Cancel
                 </button>
                 <button onClick={handleAdd} className="btn btn-primary btn-sm flex-1">
@@ -312,7 +464,7 @@ export default function BodyWeightTracker() {
         )}
       </AnimatePresence>
 
-      {/* Chart */}
+      {/* Weight Chart */}
       {chartData.length >= 2 && (
         <div className="bg-grappler-800/30 rounded-xl p-4">
           <ResponsiveContainer width="100%" height={180}>
@@ -360,29 +512,93 @@ export default function BodyWeightTracker() {
         </div>
       )}
 
+      {/* Body Fat Trend Chart */}
+      {bfChartData.length >= 2 && (
+        <div className="bg-grappler-800/30 rounded-xl p-4">
+          <p className="text-xs text-grappler-400 mb-2 uppercase tracking-wide">Body Fat % Trend</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <LineChart data={bfChartData}>
+              <XAxis
+                dataKey="date"
+                tick={{ fill: '#6b7280', fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: '#6b7280', fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                domain={['auto', 'auto']}
+                width={40}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1a1a2e',
+                  border: '1px solid #374151',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+                labelStyle={{ color: '#9ca3af' }}
+                formatter={(value: number) => [`${value}%`, 'Body Fat']}
+              />
+              <Line
+                type="monotone"
+                dataKey="bf"
+                stroke="#00b894"
+                strokeWidth={2}
+                dot={{ fill: '#00b894', r: 3 }}
+                activeDot={{ r: 5, fill: '#55efc4' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {/* Recent entries */}
       {sortedLog.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs text-grappler-400 uppercase tracking-wide">Recent Entries</p>
-          {[...sortedLog].reverse().slice(0, 5).map(entry => (
-            <div key={entry.id} className="flex items-center justify-between py-2 border-b border-grappler-800 last:border-0">
-              <div>
-                <p className="text-sm text-grappler-200 font-medium">
-                  {entry.weight} {entry.unit}
-                </p>
-                <p className="text-xs text-grappler-500">
-                  {new Date(entry.date).toLocaleDateString()}
-                  {entry.notes && ` — ${entry.notes}`}
-                </p>
+          {[...sortedLog].reverse().slice(0, 5).map(entry => {
+            // Find matching composition entry for same date
+            const entryDate = new Date(entry.date).toDateString();
+            const comp = sortedComposition.find(c => new Date(c.date).toDateString() === entryDate);
+            return (
+              <div key={entry.id} className="flex items-center justify-between py-2 border-b border-grappler-800 last:border-0">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-grappler-200 font-medium">
+                      {entry.weight} {entry.unit}
+                    </p>
+                    {comp?.bmi && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                        BMI {comp.bmi}
+                      </span>
+                    )}
+                    {comp?.bodyFatPercent != null && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">
+                        {comp.bodyFatPercent}% BF
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-grappler-500">
+                    {new Date(entry.date).toLocaleDateString()}
+                    {comp?.waist && ` · W: ${comp.waist}cm`}
+                    {comp?.neck && ` · N: ${comp.neck}cm`}
+                    {entry.notes && ` — ${entry.notes}`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    deleteBodyWeight(entry.id);
+                    if (comp) deleteBodyComposition(comp.id);
+                  }}
+                  className="p-1.5 rounded hover:bg-grappler-700 text-grappler-500 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => deleteBodyWeight(entry.id)}
-                className="p-1.5 rounded hover:bg-grappler-700 text-grappler-500 hover:text-red-400 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

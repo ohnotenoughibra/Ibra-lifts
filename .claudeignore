@@ -1,0 +1,43 @@
+# Package manager lock files (huge, not useful for context)
+package-lock.json
+
+# Build / generated output
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Large data files - read only when specifically needed
+src/lib/exercises.ts
+src/lib/knowledge.ts
+
+# Documentation / plans (not needed for most code tasks)
+NUTRITION_AUDIT_AND_REDESIGN.md
+LAUNCH_AUDIT.md
+IMPLEMENTATION_PLAN.md
+pitch-deck.html
+
+# Images and binary assets
+public/*.png
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+
+# Supabase migrations (read only when needed)
+supabase/
+
+# Config files that rarely change
+sentry.client.config.ts
+sentry.edge.config.ts
+sentry.server.config.ts
+postcss.config.js
+tailwind.config.ts
+vitest.config.ts

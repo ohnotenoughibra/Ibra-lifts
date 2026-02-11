@@ -63,7 +63,7 @@ const nextConfig = {
       ],
     },
     {
-      source: '/:path(icon-.*\\.png|favicon\\.ico|manifest\\.json|og-image\\.png)',
+      source: '/:path(icon-.*\\.png|favicon.*\\.png|apple-touch-icon\\.png|manifest\\.json|og-image\\.png)',
       headers: [
         {
           key: 'Cache-Control',

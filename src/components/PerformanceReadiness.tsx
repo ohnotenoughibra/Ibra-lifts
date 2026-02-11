@@ -8,6 +8,7 @@ import { useAppStore } from '@/lib/store';
 import { calculateReadiness, type ReadinessScore } from '@/lib/nudge-engine';
 import { calculateAdherence } from '@/lib/diet-coach';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
+import { useSession } from 'next-auth/react';
 
 const COMPONENT_ICONS: Record<string, React.ReactNode> = {
   nutrition: <Activity className="w-3.5 h-3.5" />,
@@ -42,10 +43,11 @@ function getScoreBg(score: number): string {
 export default function PerformanceReadiness() {
   const {
     meals, macroTargets, waterLog, bodyWeightLog, latestWhoopData,
-    activeDietPhase, quickLogs, subscription, user,
+    activeDietPhase, quickLogs, subscription,
   } = useAppStore();
+  const { data: session } = useSession();
 
-  const effectiveTier = getEffectiveTier(subscription, user?.email);
+  const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const hasFullAccess = hasFeatureAccess('performance-readiness', effectiveTier);
 
   const readiness = useMemo((): ReadinessScore => {

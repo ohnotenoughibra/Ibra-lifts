@@ -67,6 +67,7 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
+import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
@@ -673,8 +674,30 @@ export const useAppStore = create<AppState>()(
 
       // Competition actions
       addCompetition: (event) => {
-        const { competitions } = get();
-        set({ competitions: [...competitions, { ...event, id: uuidv4() }] });
+        const { competitions, user, bodyWeightLog } = get();
+        const compId = uuidv4();
+        const newComp = { ...event, id: compId };
+        set({ competitions: [...competitions, newComp] });
+
+        // Auto-create fight camp plan for combat athletes
+        if (user?.trainingIdentity === 'combat' && newComp.isActive) {
+          const daysOut = Math.ceil((new Date(newComp.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          if (daysOut > 0 && daysOut <= 70) {
+            const latestW = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+            const bwKg = latestW
+              ? (latestW.unit === 'lbs' ? latestW.weight / 2.205 : latestW.weight)
+              : (user.bodyWeightKg || 80);
+            const sex = (user.sex || 'male') as 'male' | 'female';
+            const phase = detectFightCampPhase(daysOut, false, newComp.type === 'bjj_tournament' || newComp.type === 'wrestling_meet');
+            const timeline = generateFightCampTimeline(newComp, bwKg, sex);
+            get().createFightCampPlan({
+              competitionId: compId,
+              currentPhase: phase,
+              phases: timeline,
+              isActive: true,
+            });
+          }
+        }
       },
 
       deleteCompetition: (id) => {

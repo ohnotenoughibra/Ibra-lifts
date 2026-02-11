@@ -260,9 +260,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     return generateDailyDirective({
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
-      macroTargets, waterLog, injuryLog, quickLogs,
+      macroTargets, waterLog, injuryLog, quickLogs, competitions,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {
@@ -279,6 +279,31 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       lastCompletedWorkout.log, workoutLogs, latestWhoopData
     );
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  // ─── Post-workout nutrition nudge ───
+  const postWorkoutNutritionNudge = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    const log = lastCompletedWorkout.log;
+    const duration = log.duration || 0;
+    const todayStr = new Date().toDateString();
+    const todayMealsCount = (meals || []).filter(m => new Date(m.date).toDateString() === todayStr).length;
+    const hour = new Date().getHours();
+
+    // Determine what to eat based on session context
+    if (duration >= 90) {
+      return {
+        text: `${duration}min session — eat within 30min: 40g protein + fast carbs (rice, banana, dates)`,
+        urgent: true,
+      };
+    }
+    if (duration >= 45) {
+      if (todayMealsCount === 0 && hour < 14) {
+        return { text: 'You trained fasted — prioritize protein + carbs within the next hour', urgent: true };
+      }
+      return { text: 'Post-workout window: 30-40g protein + carbs to kickstart recovery', urgent: false };
+    }
+    return null;
+  }, [lastCompletedWorkout, meals]);
 
   // ─── Progressive disclosure: feature unlocking based on age of account ───
   const accountAgeDays = useMemo(() => {
@@ -971,6 +996,28 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <p className="text-xs text-grappler-300 leading-relaxed">{postWorkoutCoaching}</p>
               </div>
             )}
+            {postWorkoutNutritionNudge && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className={cn(
+                  'mt-2 flex items-start gap-2 rounded-lg px-3 py-2',
+                  postWorkoutNutritionNudge.urgent
+                    ? 'bg-orange-500/15 border border-orange-500/30'
+                    : 'bg-green-500/10 border border-green-500/20'
+                )}
+              >
+                <Apple className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5',
+                  postWorkoutNutritionNudge.urgent ? 'text-orange-400' : 'text-green-400'
+                )} />
+                <p className={cn('text-xs leading-relaxed',
+                  postWorkoutNutritionNudge.urgent ? 'text-orange-300' : 'text-green-300'
+                )}>
+                  {postWorkoutNutritionNudge.text}
+                </p>
+              </motion.div>
+            )}
             {sessionContext && sessionContext.contextLines.length > 0 && (
               <div className="mt-2 space-y-1">
                 {sessionContext.contextLines.slice(0, 2).map((line, i) => (
@@ -1064,6 +1111,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   )}
                   {directive.isDeload && (
                     <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Deload</span>
+                  )}
+                  {directive.fightCampTag && (
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">
+                      {directive.fightCampTag}
+                    </span>
                   )}
                 </div>
                 <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>

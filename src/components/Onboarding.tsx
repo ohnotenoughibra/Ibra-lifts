@@ -341,7 +341,7 @@ function Step0_Disclaimer({
   return (
     <div className="space-y-5">
       <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Shield className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-xl font-bold text-grappler-50">Before we begin</h2>
@@ -447,7 +447,7 @@ function Step1_WhoAreYou({
 
   const colorMap: Record<string, { border: string; bg: string; text: string }> = {
     red: { border: 'border-red-500', bg: 'bg-red-500/10', text: 'text-red-400' },
-    orange: { border: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+    orange: { border: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
     purple: { border: 'border-purple-500', bg: 'bg-purple-500/10', text: 'text-purple-400' },
     yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
     green: { border: 'border-green-500', bg: 'bg-green-500/10', text: 'text-green-400' },
@@ -1172,7 +1172,7 @@ function Step3_BaselineLifts({
               onChange={(e) => setLift(key, Number(e.target.value))}
               placeholder={String(defaultVal)}
               className="flex-1 bg-grappler-700/50 rounded-lg px-3 py-2 text-grappler-100 text-sm
-                border border-grappler-600/50 focus:border-primary-500 focus:outline-none"
+                border border-grappler-600/50 focus-visible:border-primary-500 focus-visible:outline-none"
             />
             <span className="text-xs text-grappler-500 w-8">{weightUnit}</span>
           </div>

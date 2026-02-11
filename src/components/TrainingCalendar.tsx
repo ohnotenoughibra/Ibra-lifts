@@ -374,11 +374,11 @@ export default function TrainingCalendar() {
                           <div className={cn(
                             'w-8 h-8 rounded-lg flex items-center justify-center',
                             session.category === 'grappling' ? 'bg-blue-500/20' :
-                            session.category === 'striking' ? 'bg-orange-500/20' :
+                            session.category === 'striking' ? 'bg-blue-500/20' :
                             'bg-purple-500/20'
                           )}>
                             {session.category === 'grappling' ? <Target className="w-4 h-4 text-blue-400" /> :
-                             session.category === 'striking' ? <Zap className="w-4 h-4 text-orange-400" /> :
+                             session.category === 'striking' ? <Zap className="w-4 h-4 text-blue-400" /> :
                              <TrendingUp className="w-4 h-4 text-purple-400" />}
                           </div>
                           <div>
@@ -481,8 +481,8 @@ export default function TrainingCalendar() {
                     }}
                     className="w-full flex items-center gap-3 p-3 bg-grappler-700/50 hover:bg-grappler-700 rounded-xl transition-colors"
                   >
-                    <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-orange-400" />
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-blue-400" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-white">Striking</p>

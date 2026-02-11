@@ -175,10 +175,10 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
           className="w-full max-w-lg bg-grappler-900 border border-grappler-700 rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
         >
           {/* Header */}
-          <div className="p-5 bg-gradient-to-b from-amber-500/10 to-transparent border-b border-grappler-800">
+          <div className="p-5 bg-gradient-to-b from-sky-500/10 to-transparent border-b border-grappler-800">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-sky-400" />
               </div>
               <div className="flex-1">
                 <h2 className="font-bold text-grappler-50 text-lg">Sync Conflict Detected</h2>

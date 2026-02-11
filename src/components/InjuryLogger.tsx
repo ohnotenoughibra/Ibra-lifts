@@ -186,7 +186,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
   const getRiskColor = (level: RiskLevel) => {
     switch (level) {
       case 'critical': return 'text-red-400 bg-red-500/20 border-red-500/50';
-      case 'high': return 'text-orange-400 bg-orange-500/20 border-orange-500/50';
+      case 'high': return 'text-blue-400 bg-blue-500/20 border-blue-500/50';
       case 'moderate': return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/50';
       case 'low': return 'text-green-400 bg-green-500/20 border-green-500/50';
     }
@@ -277,7 +277,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
               <ChevronLeft className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">
@@ -829,7 +829,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                         'h-full rounded-full transition-all duration-500',
                         timeline.percentHealed >= 85 ? 'bg-green-500' :
                         timeline.percentHealed >= 50 ? 'bg-yellow-500' :
-                        'bg-orange-500'
+                        'bg-blue-500'
                       )}
                       style={{ width: `${Math.min(100, timeline.percentHealed)}%` }}
                     />

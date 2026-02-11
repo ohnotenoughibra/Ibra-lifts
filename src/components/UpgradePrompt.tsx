@@ -42,8 +42,8 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   // ── Banner variant ──
   if (variant === 'banner') {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-        <Crown className="w-5 h-5 text-amber-400 shrink-0" />
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-sky-500/10 to-blue-500/10 border border-sky-500/20">
+        <Crown className="w-5 h-5 text-sky-400 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-grappler-100 truncate">
             {featureName} is a Pro feature
@@ -51,7 +51,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         </div>
         <button
           onClick={onDismiss}
-          className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-semibold hover:bg-amber-500/30 transition-colors"
+          className="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-semibold hover:bg-sky-500/30 transition-colors"
         >
           Upgrade
         </button>
@@ -201,7 +201,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   ) : (
     <button
       disabled
-      className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-sm opacity-50 flex items-center justify-center gap-2"
+      className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 text-white font-semibold text-sm opacity-50 flex items-center justify-center gap-2"
     >
       <Zap className="w-4 h-4" />
       Coming soon
@@ -212,8 +212,8 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   if (variant === 'inline') {
     return (
       <div className="rounded-2xl bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700/50 p-5 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-3">
-          <Crown className="w-6 h-6 text-amber-400" />
+        <div className="w-12 h-12 rounded-2xl bg-sky-500/20 flex items-center justify-center mx-auto mb-3">
+          <Crown className="w-6 h-6 text-sky-400" />
         </div>
         <h3 className="text-lg font-bold text-grappler-50 mb-1">{featureName}</h3>
         <p className="text-sm text-grappler-400 mb-4">{featureDescription}</p>
@@ -255,8 +255,8 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           )}
 
           <div className="text-center mb-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-3">
-              <Crown className="w-8 h-8 text-amber-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
+              <Crown className="w-8 h-8 text-sky-400" />
             </div>
             <h2 className="text-xl font-bold text-grappler-50">Unlock {featureName}</h2>
             <p className="text-sm text-grappler-400 mt-1">{featureDescription}</p>

@@ -142,7 +142,7 @@ const GUIDE_STEPS: GuideStepDef[] = [
       'Badges for milestones',
     ],
     tip: 'You get 2 streak shields per week — they auto-protect your streak if you miss a day.',
-    color: 'text-orange-400 bg-orange-500/20',
+    color: 'text-blue-400 bg-blue-500/20',
   },
 ];
 

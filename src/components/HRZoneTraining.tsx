@@ -458,7 +458,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button
+          <button aria-label="Go back"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-grappler-800 transition-colors"
           >
@@ -694,7 +694,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
               {/* Grappling-specific tips */}
               <div className="bg-grappler-800 rounded-xl p-4 space-y-3">
                 <h3 className="font-semibold text-grappler-50 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-blue-400" />
                   Grappling Conditioning Guide
                 </h3>
                 <div className="space-y-2">
@@ -785,11 +785,11 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             </p>
                           </div>
                           {item.strain !== undefined && (
-                            <div className="text-center bg-orange-500/15 rounded-md px-2 py-1">
-                              <p className="text-xs font-bold text-orange-400">
+                            <div className="text-center bg-blue-500/15 rounded-md px-2 py-1">
+                              <p className="text-xs font-bold text-blue-400">
                                 {item.strain.toFixed(1)}
                               </p>
-                              <p className="text-xs text-orange-400/70">strain</p>
+                              <p className="text-xs text-blue-400/70">strain</p>
                             </div>
                           )}
                         </div>
@@ -1046,7 +1046,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {entry.strain !== undefined && (
-                              <span className="text-xs font-mono text-orange-400 bg-orange-500/15 px-1.5 py-0.5 rounded">
+                              <span className="text-xs font-mono text-blue-400 bg-blue-500/15 px-1.5 py-0.5 rounded">
                                 {entry.strain.toFixed(1)} strain
                               </span>
                             )}

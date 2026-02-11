@@ -30,11 +30,11 @@ function calculateBMI(weightKg: number, heightCm: number): number {
  */
 function getBMICategory(bmi: number): { label: string; color: string; range: string; description: string } {
   if (bmi < 16) return { label: 'Severe Underweight', color: 'text-red-400', range: '< 16', description: 'Significantly below healthy range. Consult a healthcare provider.' };
-  if (bmi < 17) return { label: 'Moderate Underweight', color: 'text-orange-400', range: '16–16.9', description: 'Below healthy range. May indicate insufficient nutrition.' };
+  if (bmi < 17) return { label: 'Moderate Underweight', color: 'text-blue-400', range: '16–16.9', description: 'Below healthy range. May indicate insufficient nutrition.' };
   if (bmi < 18.5) return { label: 'Mild Underweight', color: 'text-yellow-400', range: '17–18.4', description: 'Slightly below normal. Monitor intake and energy levels.' };
   if (bmi < 25) return { label: 'Normal', color: 'text-green-400', range: '18.5–24.9', description: 'Healthy weight range associated with lowest health risks.' };
   if (bmi < 30) return { label: 'Overweight', color: 'text-yellow-400', range: '25–29.9', description: 'Above normal range. For athletes, check body fat % — muscle mass can skew BMI.' };
-  if (bmi < 35) return { label: 'Obese Class I', color: 'text-orange-400', range: '30–34.9', description: 'Moderate obesity. Elevated risk for metabolic conditions.' };
+  if (bmi < 35) return { label: 'Obese Class I', color: 'text-blue-400', range: '30–34.9', description: 'Moderate obesity. Elevated risk for metabolic conditions.' };
   if (bmi < 40) return { label: 'Obese Class II', color: 'text-red-400', range: '35–39.9', description: 'Severe obesity. Significantly elevated health risks.' };
   return { label: 'Obese Class III', color: 'text-red-500', range: '≥ 40', description: 'Very severe obesity. Medical consultation strongly recommended.' };
 }
@@ -61,13 +61,13 @@ function getBodyFatCategory(bf: number, sex: 'male' | 'female'): { label: string
     if (bf < 14) return { label: 'Athletic', color: 'text-green-400', range: '6–13%' };
     if (bf < 18) return { label: 'Fit', color: 'text-blue-400', range: '14–17%' };
     if (bf < 25) return { label: 'Average', color: 'text-yellow-400', range: '18–24%' };
-    return { label: 'Above Average', color: 'text-orange-400', range: '25%+' };
+    return { label: 'Above Average', color: 'text-blue-400', range: '25%+' };
   } else {
     if (bf < 14) return { label: 'Essential', color: 'text-red-400', range: '10–13%' };
     if (bf < 21) return { label: 'Athletic', color: 'text-green-400', range: '14–20%' };
     if (bf < 25) return { label: 'Fit', color: 'text-blue-400', range: '21–24%' };
     if (bf < 32) return { label: 'Average', color: 'text-yellow-400', range: '25–31%' };
-    return { label: 'Above Average', color: 'text-orange-400', range: '32%+' };
+    return { label: 'Above Average', color: 'text-blue-400', range: '32%+' };
   }
 }
 
@@ -76,7 +76,7 @@ const BMI_SCALE_SEGMENTS = [
   { label: 'UW', max: 18.5, color: 'bg-yellow-400' },
   { label: 'Normal', max: 25, color: 'bg-green-400' },
   { label: 'OW', max: 30, color: 'bg-yellow-500' },
-  { label: 'OB I', max: 35, color: 'bg-orange-400' },
+  { label: 'OB I', max: 35, color: 'bg-blue-400' },
   { label: 'OB II', max: 40, color: 'bg-red-400' },
   { label: 'OB III', max: 50, color: 'bg-red-600' },
 ];
@@ -127,14 +127,14 @@ function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
         { label: 'Athletic', max: 14, color: 'bg-green-400' },
         { label: 'Fit', max: 18, color: 'bg-blue-400' },
         { label: 'Avg', max: 25, color: 'bg-yellow-400' },
-        { label: 'Above', max: 40, color: 'bg-orange-400' },
+        { label: 'Above', max: 40, color: 'bg-blue-400' },
       ]
     : [
         { label: 'Ess', max: 14, color: 'bg-red-400' },
         { label: 'Athletic', max: 21, color: 'bg-green-400' },
         { label: 'Fit', max: 25, color: 'bg-blue-400' },
         { label: 'Avg', max: 32, color: 'bg-yellow-400' },
-        { label: 'Above', max: 45, color: 'bg-orange-400' },
+        { label: 'Above', max: 45, color: 'bg-blue-400' },
       ];
   const minBF = sex === 'male' ? 2 : 8;
   const maxBF = sex === 'male' ? 40 : 45;
@@ -421,7 +421,7 @@ const SUGGESTION_ICONS = {
 
 const SUGGESTION_STYLES = {
   info: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', iconColor: 'text-blue-400' },
-  warning: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', iconColor: 'text-amber-400' },
+  warning: { border: 'border-sky-500/20', bg: 'bg-sky-500/5', iconColor: 'text-sky-400' },
   success: { border: 'border-green-500/20', bg: 'bg-green-500/5', iconColor: 'text-green-400' },
 };
 
@@ -722,7 +722,7 @@ export default function BodyWeightTracker() {
               leanMass,
             );
             const color = ea.status === 'critical' ? 'text-red-400 border-red-500/30 bg-red-500/10'
-              : ea.status === 'low' ? 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+              : ea.status === 'low' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10'
               : ea.status === 'caution' ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
               : 'text-green-400 border-green-500/30 bg-green-500/10';
             return (
@@ -786,11 +786,11 @@ export default function BodyWeightTracker() {
                     <div className="space-y-1">
                       {[
                         { range: '< 16', label: 'Severe Underweight', color: 'bg-red-400' },
-                        { range: '16–16.9', label: 'Moderate Underweight', color: 'bg-orange-400' },
+                        { range: '16–16.9', label: 'Moderate Underweight', color: 'bg-blue-400' },
                         { range: '17–18.4', label: 'Mild Underweight', color: 'bg-yellow-400' },
                         { range: '18.5–24.9', label: 'Normal', color: 'bg-green-400' },
                         { range: '25–29.9', label: 'Overweight', color: 'bg-yellow-500' },
-                        { range: '30–34.9', label: 'Obese Class I', color: 'bg-orange-400' },
+                        { range: '30–34.9', label: 'Obese Class I', color: 'bg-blue-400' },
                         { range: '35–39.9', label: 'Obese Class II', color: 'bg-red-400' },
                         { range: '≥ 40', label: 'Obese Class III', color: 'bg-red-600' },
                       ].map(row => {
@@ -832,14 +832,14 @@ export default function BodyWeightTracker() {
                             { range: '6–13%', label: 'Athletic', color: 'bg-green-400' },
                             { range: '14–17%', label: 'Fit', color: 'bg-blue-400' },
                             { range: '18–24%', label: 'Average', color: 'bg-yellow-400' },
-                            { range: '25%+', label: 'Above Average', color: 'bg-orange-400' },
+                            { range: '25%+', label: 'Above Average', color: 'bg-blue-400' },
                           ]
                         : [
                             { range: '10–13%', label: 'Essential', color: 'bg-red-400' },
                             { range: '14–20%', label: 'Athletic', color: 'bg-green-400' },
                             { range: '21–24%', label: 'Fit', color: 'bg-blue-400' },
                             { range: '25–31%', label: 'Average', color: 'bg-yellow-400' },
-                            { range: '32%+', label: 'Above Average', color: 'bg-orange-400' },
+                            { range: '32%+', label: 'Above Average', color: 'bg-blue-400' },
                           ]
                       ).map(row => {
                         const isActive = latestBF != null && row.label === getBodyFatCategory(latestBF, sex).label;
@@ -880,7 +880,7 @@ export default function BodyWeightTracker() {
       {healthSuggestions.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-grappler-300 uppercase tracking-wide flex items-center gap-1.5">
-            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+            <Lightbulb className="w-3.5 h-3.5 text-sky-400" />
             Suggestions
           </h4>
           {healthSuggestions.map((suggestion, i) => {

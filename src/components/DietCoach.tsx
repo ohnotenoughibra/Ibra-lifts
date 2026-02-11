@@ -345,7 +345,7 @@ export default function DietCoach() {
         </div>
         <div className="flex items-center gap-2">
           {checkInDue && activeDietPhase && (
-            <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-400 rounded-full">
+            <span className="px-2 py-0.5 text-xs font-medium bg-sky-500/20 text-sky-400 rounded-full">
               Check-in due
             </span>
           )}
@@ -398,7 +398,7 @@ export default function DietCoach() {
                         type="number"
                         value={formWeight}
                         onChange={(e) => setFormWeight(e.target.value)}
-                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
                         placeholder="80"
                         min="30"
                         max="250"
@@ -415,7 +415,7 @@ export default function DietCoach() {
                         type="number"
                         value={formHeight}
                         onChange={(e) => setFormHeight(e.target.value)}
-                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus:outline-none focus:border-violet-500/50"
+                        className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
                         placeholder="175"
                         min="120"
                         max="230"
@@ -574,7 +574,7 @@ export default function DietCoach() {
                   {energyAvailability && activeDietPhase.goal === 'cut' && (
                     <div className={`p-2.5 rounded-lg border ${
                       energyAvailability.status === 'critical' ? 'bg-red-500/10 border-red-500/30' :
-                      energyAvailability.status === 'low' ? 'bg-orange-500/10 border-orange-500/30' :
+                      energyAvailability.status === 'low' ? 'bg-blue-500/10 border-blue-500/30' :
                       energyAvailability.status === 'caution' ? 'bg-yellow-500/10 border-yellow-500/30' :
                       'bg-green-500/10 border-green-500/30'
                     }`}>
@@ -582,7 +582,7 @@ export default function DietCoach() {
                         <p className="text-xs text-grappler-400">Energy Availability</p>
                         <span className={`text-xs font-medium ${
                           energyAvailability.status === 'critical' ? 'text-red-400' :
-                          energyAvailability.status === 'low' ? 'text-orange-400' :
+                          energyAvailability.status === 'low' ? 'text-blue-400' :
                           energyAvailability.status === 'caution' ? 'text-yellow-400' :
                           'text-green-400'
                         }`}>
@@ -601,11 +601,11 @@ export default function DietCoach() {
 
                   {/* Fight Camp Phase (combat athletes) */}
                   {isCombatAthlete && fightCampPhase && nearestCompetition && (
-                    <div className="p-2.5 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                    <div className="p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Flame className="w-3.5 h-3.5 text-orange-400" />
-                          <p className="text-xs font-medium text-orange-300">
+                          <Flame className="w-3.5 h-3.5 text-blue-400" />
+                          <p className="text-xs font-medium text-blue-300">
                             {fightCampPhase.replace(/_/g, ' ')}
                           </p>
                         </div>
@@ -700,7 +700,7 @@ export default function DietCoach() {
                         {weightTrend.current} {unitLabel}
                       </p>
                       {weightTrend.weeksAtPlateau >= 2 && (
-                        <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-sky-400 mt-1 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
                           Plateau detected ({weightTrend.weeksAtPlateau} weeks)
                         </p>
@@ -714,7 +714,7 @@ export default function DietCoach() {
                       <p className="text-xs text-grappler-500">7-Day Logging</p>
                       <span className={`text-xs font-medium ${
                         adherence >= 80 ? 'text-green-400' :
-                        adherence >= 60 ? 'text-amber-400' :
+                        adherence >= 60 ? 'text-sky-400' :
                         'text-red-400'
                       }`}>
                         {adherence}% adherence
@@ -726,7 +726,7 @@ export default function DietCoach() {
                         animate={{ width: `${adherence}%` }}
                         className={`h-full rounded-full ${
                           adherence >= 80 ? 'bg-green-500' :
-                          adherence >= 60 ? 'bg-amber-500' :
+                          adherence >= 60 ? 'bg-sky-500' :
                           'bg-red-500'
                         }`}
                       />
@@ -740,11 +740,11 @@ export default function DietCoach() {
 
                   {/* Phase recommendation */}
                   {(phaseStatus.shouldTakeBreak || phaseStatus.shouldTransition) && (
-                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <div className="p-2.5 bg-sky-500/10 border border-sky-500/20 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-sky-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-xs text-amber-300">{phaseStatus.suggestion}</p>
+                          <p className="text-xs text-sky-300">{phaseStatus.suggestion}</p>
                           {phaseStatus.shouldTransition && phaseStatus.nextGoal && (
                             <button
                               onClick={() => {
@@ -767,7 +767,7 @@ export default function DietCoach() {
                                   isActive: true,
                                 });
                               }}
-                              className="mt-2 flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                              className="mt-2 flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 transition-colors"
                             >
                               Switch to {GOAL_CONFIG[phaseStatus.nextGoal].label} <ArrowRight className="w-3 h-3" />
                             </button>
@@ -810,7 +810,7 @@ export default function DietCoach() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-grappler-400">Logging adherence</span>
-                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-amber-400'}`}>
+                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-sky-400'}`}>
                             {adherence}%
                           </span>
                         </div>
@@ -857,7 +857,7 @@ export default function DietCoach() {
                               </p>
                             )}
                             {preview.alert && (
-                              <p className="text-xs text-amber-400 mt-1">{preview.alert}</p>
+                              <p className="text-xs text-sky-400 mt-1">{preview.alert}</p>
                             )}
                           </div>
                         );
@@ -963,7 +963,7 @@ export default function DietCoach() {
                                             },
                                           })
                                         }
-                                        className="bg-grappler-800/60 border border-grappler-700/30 rounded px-2 py-0.5 text-xs text-grappler-200 focus:outline-none focus:border-violet-500/50"
+                                        className="bg-grappler-800/60 border border-grappler-700/30 rounded px-2 py-0.5 text-xs text-grappler-200 focus-visible:outline-none focus-visible:border-violet-500/50"
                                       />
                                     </div>
                                   )}
@@ -1377,7 +1377,7 @@ function DietHistorySection({
                                   step="0.1"
                                   value={editForm.endWeightKg}
                                   onChange={e => setEditForm(f => ({ ...f, endWeightKg: e.target.value }))}
-                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
                                 <span className="text-xs text-grappler-500">{unitLabel}</span>
                               </div>
@@ -1387,7 +1387,7 @@ function DietHistorySection({
                                   type="number"
                                   value={editForm.calories}
                                   onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
-                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-violet-500/50"
+                                  className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
                                 <span className="text-xs text-grappler-500">kcal</span>
                               </div>
@@ -1415,7 +1415,7 @@ function DietHistorySection({
                         <span>{formatDate(phase.startDate)} – {formatDate(phase.endDate)}</span>
                         <span>{phase.weeksCompleted} wk{phase.weeksCompleted !== 1 ? 's' : ''}</span>
                         {avgAdherence !== null && (
-                          <span className={avgAdherence >= 70 ? 'text-green-400' : 'text-amber-400'}>
+                          <span className={avgAdherence >= 70 ? 'text-green-400' : 'text-sky-400'}>
                             {avgAdherence}% adherence
                           </span>
                         )}

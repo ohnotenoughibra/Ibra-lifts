@@ -40,6 +40,7 @@ import {
   GripExerciseLog,
   ACTIVITY_CATEGORY_MAP,
   DietPhase,
+  CompletedDietPhase,
   WeeklyCheckIn,
   MealReminderSettings,
   WeeklyChallenge,
@@ -139,6 +140,7 @@ interface AppState {
 
   // Diet coaching
   activeDietPhase: DietPhase | null;
+  dietPhaseHistory: CompletedDietPhase[];
   weeklyCheckIns: WeeklyCheckIn[];
 
   // Meal reminders
@@ -450,6 +452,7 @@ export const useAppStore = create<AppState>()(
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
       waterLog: {},
       activeDietPhase: null,
+      dietPhaseHistory: [],
       weeklyCheckIns: [],
       mealReminders: {
         enabled: false,
@@ -2438,7 +2441,34 @@ export const useAppStore = create<AppState>()(
       },
 
       endDietPhase: () => {
-        set({ activeDietPhase: null });
+        const { activeDietPhase, dietPhaseHistory, bodyWeightLog } = get();
+        if (activeDietPhase) {
+          // Calculate end weight from latest body weight entry
+          const latestEntry = bodyWeightLog.length > 0
+            ? bodyWeightLog[bodyWeightLog.length - 1]
+            : null;
+          const endWeightKg = latestEntry
+            ? (latestEntry.unit === 'lbs' ? latestEntry.weight * 0.453592 : latestEntry.weight)
+            : activeDietPhase.startWeightKg;
+
+          const completed: CompletedDietPhase = {
+            id: activeDietPhase.id,
+            goal: activeDietPhase.goal,
+            startDate: activeDietPhase.startDate,
+            endDate: new Date().toISOString().split('T')[0],
+            startWeightKg: activeDietPhase.startWeightKg,
+            endWeightKg: Math.round(endWeightKg * 10) / 10,
+            weeksCompleted: activeDietPhase.weeksCompleted,
+            finalMacros: activeDietPhase.currentMacros,
+            totalWeightChangeKg: Math.round((endWeightKg - activeDietPhase.startWeightKg) * 10) / 10,
+          };
+          set({
+            activeDietPhase: null,
+            dietPhaseHistory: [...dietPhaseHistory, completed],
+          });
+        } else {
+          set({ activeDietPhase: null });
+        }
       },
 
       addWeeklyCheckIn: (checkIn) => {
@@ -2637,6 +2667,7 @@ export const useAppStore = create<AppState>()(
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
           waterLog: {},
           activeDietPhase: null,
+          dietPhaseHistory: [],
           weeklyCheckIns: [],
           mealReminders: {
             enabled: false,
@@ -2758,6 +2789,7 @@ export const useAppStore = create<AppState>()(
           }
           if (!state.mesocycleQueue) state.mesocycleQueue = [];
           if (!state.weeklyCheckIns) state.weeklyCheckIns = [];
+          if (!state.dietPhaseHistory) state.dietPhaseHistory = [];
           if (!state.waterLog || typeof state.waterLog !== 'object') state.waterLog = {};
           if (!state.macroTargets) state.macroTargets = { calories: 0, protein: 0, carbs: 0, fat: 0 };
           if (!state.mealReminders) state.mealReminders = { enabled: false, enabledMeals: { breakfast: true, lunch: true, dinner: true }, reminderTimes: { breakfast: '08:00', lunch: '12:00', dinner: '18:00' } };
@@ -2798,6 +2830,7 @@ export const useAppStore = create<AppState>()(
         macroTargets: state.macroTargets,
         waterLog: state.waterLog,
         activeDietPhase: state.activeDietPhase,
+        dietPhaseHistory: state.dietPhaseHistory,
         weeklyCheckIns: state.weeklyCheckIns,
         mealReminders: state.mealReminders,
         bodyComposition: state.bodyComposition,

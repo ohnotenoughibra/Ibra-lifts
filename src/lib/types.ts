@@ -934,6 +934,18 @@ export interface DietPhase {
   isActive: boolean;
 }
 
+export interface CompletedDietPhase {
+  id: string;
+  goal: DietGoal;
+  startDate: string;           // ISO date string
+  endDate: string;             // ISO date string
+  startWeightKg: number;
+  endWeightKg: number;
+  weeksCompleted: number;
+  finalMacros: MacroTargets;
+  totalWeightChangeKg: number; // negative = lost, positive = gained
+}
+
 export interface WeeklyCheckIn {
   id: string;
   phaseId: string;

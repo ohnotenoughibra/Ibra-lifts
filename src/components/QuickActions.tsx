@@ -784,6 +784,55 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       </AnimatePresence>
 
       <div className="p-4 space-y-4">
+        {/* Smart Contextual Prompts */}
+        {!activeLog && (() => {
+          const hour = new Date().getHours();
+          const prompts: { text: string; action: QuickLogType; icon: string; color: string }[] = [];
+
+          // Morning: weight check
+          if (hour < 12 && !todayWeight) {
+            prompts.push({ text: 'Log morning weight (fasted)', action: 'weight', icon: 'scale', color: 'text-purple-400' });
+          }
+
+          // After training: post-workout meal
+          if (todayTraining.length > 0 && todayMeals.length === 0) {
+            prompts.push({ text: 'Log your post-workout meal', action: 'food', icon: 'food', color: 'text-orange-400' });
+          } else if (todayTraining.length > 0 && todayCals < 500) {
+            prompts.push({ text: 'You trained today — fuel up!', action: 'food', icon: 'food', color: 'text-orange-400' });
+          }
+
+          // Low water
+          if (todayWater < 1500 && hour >= 14) {
+            prompts.push({ text: 'Water intake is low — drink up', action: 'water', icon: 'water', color: 'text-blue-400' });
+          }
+
+          // Evening: no sleep logged
+          if (hour >= 20 && !todayLogs.find(l => l.type === 'sleep')) {
+            prompts.push({ text: 'Log last night\'s sleep', action: 'sleep', icon: 'sleep', color: 'text-indigo-400' });
+          }
+
+          if (prompts.length === 0) return null;
+
+          return (
+            <div className="space-y-1.5">
+              {prompts.slice(0, 2).map((p, i) => (
+                <motion.button
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  onClick={() => setActiveLog(p.action)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-grappler-800/50 border border-grappler-700/50 hover:border-grappler-600 transition-colors"
+                >
+                  <Sparkles className={cn('w-3.5 h-3.5', p.color)} />
+                  <span className="text-xs text-grappler-300">{p.text}</span>
+                  <TrendingUp className="w-3 h-3 text-grappler-600 ml-auto" />
+                </motion.button>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Quick Action Grid */}
         {!activeLog && (
           <motion.div

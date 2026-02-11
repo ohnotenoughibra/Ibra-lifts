@@ -31,6 +31,11 @@ import {
   Bell,
   BellOff,
   Clock,
+  RefreshCw,
+  History,
+  Share2,
+  Copy,
+  Trophy,
 } from 'lucide-react';
 
 const GOAL_CONFIG: Record<DietGoal, { label: string; description: string; color: string; icon: React.ReactNode }> = {
@@ -58,6 +63,7 @@ export default function DietCoach() {
   const {
     user,
     activeDietPhase,
+    dietPhaseHistory,
     weeklyCheckIns,
     bodyWeightLog,
     meals,
@@ -82,6 +88,9 @@ export default function DietCoach() {
   const [selectedGoal, setSelectedGoal] = useState<DietGoal>('cut');
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
+  const [showSwitchGoal, setShowSwitchGoal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   // Setup form state — pre-fill from user profile / weight log
   const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -165,6 +174,35 @@ export default function DietCoach() {
 
     setShowSetup(false);
     setSetupStep('info');
+  };
+
+  // Handle switching goal on active phase
+  const handleSwitchGoal = (newGoal: DietGoal) => {
+    if (activeDietPhase && newGoal === activeDietPhase.goal) {
+      setShowSwitchGoal(false);
+      return;
+    }
+    const newMacros = calculateMacros({
+      bodyWeightKg,
+      heightCm,
+      age,
+      sex: formSex,
+      goal: newGoal,
+      activityMultiplier,
+    });
+    const rate = getTargetRate(newGoal, bodyWeightKg, formSex);
+
+    endDietPhase();
+    startDietPhase({
+      goal: newGoal,
+      startDate: new Date().toISOString().split('T')[0],
+      startWeightKg: bodyWeightKg,
+      targetRatePerWeek: rate,
+      currentMacros: newMacros,
+      weeksCompleted: 0,
+      isActive: true,
+    });
+    setShowSwitchGoal(false);
   };
 
   // Handle weekly check-in
@@ -463,6 +501,64 @@ export default function DietCoach() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Switch Goal */}
+                  {!showSwitchGoal ? (
+                    <button
+                      onClick={() => setShowSwitchGoal(true)}
+                      className="w-full py-2 px-3 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl text-xs text-grappler-300 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-violet-400" />
+                      Switch Goal
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-grappler-800/60 rounded-xl space-y-2 border border-violet-500/20">
+                      <p className="text-xs font-medium text-violet-300">Switch to a new goal</p>
+                      <div className="space-y-1.5">
+                        {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
+                          const config = GOAL_CONFIG[goal];
+                          const isCurrent = activeDietPhase?.goal === goal;
+                          const previewMacros = calculateMacros({ bodyWeightKg, heightCm, age, sex: formSex, goal, activityMultiplier });
+                          return (
+                            <button
+                              key={goal}
+                              onClick={() => handleSwitchGoal(goal)}
+                              className={`w-full p-2.5 rounded-lg text-left transition-all flex items-center justify-between ${
+                                isCurrent
+                                  ? 'bg-violet-500/20 border border-violet-500/40'
+                                  : 'bg-grappler-800/40 border border-grappler-700/30 hover:border-violet-500/30'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {config.icon}
+                                <div>
+                                  <p className={`text-xs font-medium ${isCurrent ? config.color : 'text-grappler-200'}`}>
+                                    {config.label}
+                                    {isCurrent && <span className="text-[10px] text-grappler-500 ml-1.5">(current)</span>}
+                                  </p>
+                                  <p className="text-[10px] text-grappler-500">{config.description}</p>
+                                </div>
+                              </div>
+                              {!isCurrent && (
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-[10px] text-grappler-300">{previewMacros.calories} kcal</p>
+                                  <p className="text-[10px] text-grappler-500">
+                                    {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
+                                  </p>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button
+                        onClick={() => setShowSwitchGoal(false)}
+                        className="w-full py-1.5 text-[10px] text-grappler-500 hover:text-grappler-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
 
                   {/* Weight trend */}
                   {bodyWeightLog.length >= 3 && (
@@ -766,22 +862,316 @@ export default function DietCoach() {
                     )}
                   </AnimatePresence>
 
+                  {/* Diet History + Share */}
+                  <DietHistorySection
+                    dietPhaseHistory={dietPhaseHistory}
+                    weeklyCheckIns={weeklyCheckIns}
+                    activeDietPhase={activeDietPhase}
+                    showHistory={showHistory}
+                    setShowHistory={setShowHistory}
+                    copiedShare={copiedShare}
+                    setCopiedShare={setCopiedShare}
+                    unitLabel={unitLabel}
+                  />
+
                   {/* End phase */}
                   <button
                     onClick={() => {
                       endDietPhase();
                       setShowSetup(false);
+                      setShowSwitchGoal(false);
                     }}
-                    className="w-full text-[10px] text-grappler-600 hover:text-grappler-400 transition-colors py-1"
+                    className="w-full text-xs text-grappler-500 hover:text-red-400 transition-colors py-1.5"
                   >
                     End current phase
                   </button>
                 </div>
+              )}
+
+              {/* History shown even without active phase */}
+              {!activeDietPhase && !showSetup && dietPhaseHistory.length > 0 && (
+                <DietHistorySection
+                  dietPhaseHistory={dietPhaseHistory}
+                  weeklyCheckIns={weeklyCheckIns}
+                  activeDietPhase={null}
+                  showHistory={showHistory}
+                  setShowHistory={setShowHistory}
+                  copiedShare={copiedShare}
+                  setCopiedShare={setCopiedShare}
+                  unitLabel={unitLabel}
+                />
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// ─── Diet History & Share Section ───
+
+function DietHistorySection({
+  dietPhaseHistory,
+  weeklyCheckIns,
+  activeDietPhase,
+  showHistory,
+  setShowHistory,
+  copiedShare,
+  setCopiedShare,
+  unitLabel,
+}: {
+  dietPhaseHistory: import('@/lib/types').CompletedDietPhase[];
+  weeklyCheckIns: import('@/lib/types').WeeklyCheckIn[];
+  activeDietPhase: import('@/lib/types').DietPhase | null;
+  showHistory: boolean;
+  setShowHistory: (v: boolean) => void;
+  copiedShare: boolean;
+  setCopiedShare: (v: boolean) => void;
+  unitLabel: string;
+}) {
+  if (dietPhaseHistory.length === 0 && !activeDietPhase) return null;
+
+  const sortedHistory = [...dietPhaseHistory].sort(
+    (a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()
+  );
+
+  // Aggregate stats
+  const totalPhases = dietPhaseHistory.length;
+  const totalWeeks = dietPhaseHistory.reduce((s, p) => s + p.weeksCompleted, 0)
+    + (activeDietPhase?.weeksCompleted || 0);
+  const totalLost = dietPhaseHistory
+    .filter(p => p.totalWeightChangeKg < 0)
+    .reduce((s, p) => s + Math.abs(p.totalWeightChangeKg), 0);
+  const totalGained = dietPhaseHistory
+    .filter(p => p.totalWeightChangeKg > 0)
+    .reduce((s, p) => s + p.totalWeightChangeKg, 0);
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatWeight = (kg: number) => {
+    if (unitLabel === 'lbs') return `${Math.round(kg * 2.205 * 10) / 10} lbs`;
+    return `${Math.round(kg * 10) / 10} kg`;
+  };
+
+  const goalLabel = (goal: string) => {
+    switch (goal) {
+      case 'cut': return 'Fat Loss';
+      case 'bulk': return 'Muscle Gain';
+      default: return 'Maintain';
+    }
+  };
+
+  const goalColor = (goal: string) => {
+    switch (goal) {
+      case 'cut': return 'text-red-400';
+      case 'bulk': return 'text-green-400';
+      default: return 'text-blue-400';
+    }
+  };
+
+  const goalBg = (goal: string) => {
+    switch (goal) {
+      case 'cut': return 'bg-red-500/10 border-red-500/20';
+      case 'bulk': return 'bg-green-500/10 border-green-500/20';
+      default: return 'bg-blue-500/10 border-blue-500/20';
+    }
+  };
+
+  const handleShareProgress = async () => {
+    const lines = ['Roots Gains — Diet Progress', ''];
+
+    if (activeDietPhase) {
+      lines.push(`Current: ${goalLabel(activeDietPhase.goal)} (Week ${activeDietPhase.weeksCompleted + 1})`);
+      lines.push('');
+    }
+
+    if (totalPhases > 0) {
+      lines.push(`${totalPhases} phase${totalPhases > 1 ? 's' : ''} completed over ${totalWeeks} weeks`);
+      if (totalLost > 0) lines.push(`Total fat lost: ${formatWeight(totalLost)}`);
+      if (totalGained > 0) lines.push(`Total gained: ${formatWeight(totalGained)}`);
+      lines.push('');
+      lines.push('History:');
+      sortedHistory.slice(0, 5).forEach(p => {
+        const change = p.totalWeightChangeKg;
+        const sign = change > 0 ? '+' : '';
+        lines.push(`  ${goalLabel(p.goal)} · ${formatDate(p.startDate)}–${formatDate(p.endDate)} · ${p.weeksCompleted}wk · ${sign}${formatWeight(change)}`);
+      });
+    }
+
+    const text = lines.join('\n');
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Diet Progress', text });
+        return;
+      } catch {
+        // fallback to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2000);
+    } catch {
+      // silent fail
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* History toggle + Share */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex-1 py-2 px-3 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl text-xs text-grappler-300 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <History className="w-3.5 h-3.5 text-violet-400" />
+          History{totalPhases > 0 && ` (${totalPhases})`}
+        </button>
+        {(totalPhases > 0 || activeDietPhase) && (
+          <button
+            onClick={handleShareProgress}
+            className="py-2 px-3 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl text-xs text-grappler-300 transition-colors flex items-center gap-1.5"
+          >
+            {copiedShare ? (
+              <>
+                <Copy className="w-3.5 h-3.5 text-green-400" />
+                <span className="text-green-400">Copied</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-violet-400" />
+                Share
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {showHistory && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3">
+              {/* Summary stats card */}
+              {totalPhases > 0 && (
+                <div className="p-3 bg-gradient-to-br from-violet-500/10 to-grappler-800/40 rounded-xl border border-violet-500/20">
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <Trophy className="w-4 h-4 text-violet-400" />
+                    <p className="text-xs font-medium text-violet-300">Diet Journey</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-white">{totalPhases}</p>
+                      <p className="text-[10px] text-grappler-400">Phase{totalPhases !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-white">{totalWeeks}</p>
+                      <p className="text-[10px] text-grappler-400">Weeks</p>
+                    </div>
+                    <div className="text-center">
+                      {totalLost > 0 ? (
+                        <>
+                          <p className="text-lg font-bold text-red-400">-{formatWeight(totalLost)}</p>
+                          <p className="text-[10px] text-grappler-400">Lost</p>
+                        </>
+                      ) : totalGained > 0 ? (
+                        <>
+                          <p className="text-lg font-bold text-green-400">+{formatWeight(totalGained)}</p>
+                          <p className="text-[10px] text-grappler-400">Gained</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-lg font-bold text-blue-400">0</p>
+                          <p className="text-[10px] text-grappler-400">Net change</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Current phase in timeline */}
+              {activeDietPhase && (
+                <div className="relative pl-6">
+                  <div className="absolute left-2 top-0 bottom-0 w-0.5 bg-violet-500/40" />
+                  <div className="absolute left-[5px] top-2.5 w-2.5 h-2.5 rounded-full bg-violet-500 ring-2 ring-violet-500/30 animate-pulse" />
+                  <div className={`p-2.5 rounded-lg border ${goalBg(activeDietPhase.goal)}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className={`text-xs font-medium ${goalColor(activeDietPhase.goal)}`}>
+                          {goalLabel(activeDietPhase.goal)}
+                          <span className="text-[10px] text-grappler-500 ml-1.5">active</span>
+                        </p>
+                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                          Since {formatDate(activeDietPhase.startDate)} · Week {activeDietPhase.weeksCompleted + 1}
+                        </p>
+                      </div>
+                      <p className="text-xs text-grappler-300">{activeDietPhase.currentMacros.calories} kcal</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Past phases timeline */}
+              {sortedHistory.map((phase, i) => {
+                const checkInsForPhase = weeklyCheckIns.filter(c => c.phaseId === phase.id);
+                const avgAdherence = checkInsForPhase.length > 0
+                  ? Math.round(checkInsForPhase.reduce((s, c) => s + c.adherenceScore, 0) / checkInsForPhase.length)
+                  : null;
+                const change = phase.totalWeightChangeKg;
+                const sign = change > 0 ? '+' : '';
+
+                return (
+                  <div key={phase.id} className="relative pl-6">
+                    <div className={`absolute left-2 top-0 w-0.5 ${i < sortedHistory.length - 1 || activeDietPhase ? 'bottom-0' : 'h-3'} bg-grappler-700/40`} />
+                    <div className="absolute left-[5px] top-2.5 w-2.5 h-2.5 rounded-full bg-grappler-600 border border-grappler-500" />
+                    <div className="p-2.5 bg-grappler-800/40 rounded-lg border border-grappler-700/30">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className={`text-xs font-medium ${goalColor(phase.goal)}`}>
+                          {goalLabel(phase.goal)}
+                        </p>
+                        <span className={`text-xs font-bold ${change < 0 ? 'text-red-400' : change > 0 ? 'text-green-400' : 'text-blue-400'}`}>
+                          {sign}{formatWeight(change)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-grappler-500">
+                        <span>{formatDate(phase.startDate)} – {formatDate(phase.endDate)}</span>
+                        <span>{phase.weeksCompleted} wk{phase.weeksCompleted !== 1 ? 's' : ''}</span>
+                        {avgAdherence !== null && (
+                          <span className={avgAdherence >= 70 ? 'text-green-400' : 'text-amber-400'}>
+                            {avgAdherence}% adherence
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-grappler-500">
+                        <span>{formatWeight(phase.startWeightKg)} → {formatWeight(phase.endWeightKg)}</span>
+                        <span>·</span>
+                        <span>{phase.finalMacros.calories} kcal final</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {sortedHistory.length === 0 && !activeDietPhase && (
+                <p className="text-[10px] text-grappler-500 text-center py-2">
+                  No completed phases yet. Your diet history will appear here.
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

@@ -920,6 +920,194 @@ export interface CombatTrainingDay {
   timeOfDay?: CombatTimeOfDay; // For multiple sessions per day
 }
 
+// ── Combat Athlete Nutrition Profile ────────────────────────────────────────
+// Extended profile for nutrition engine — combat-specific fields are optional
+// and only used when trainingIdentity === 'combat'.
+
+export type WeighInType = 'same_day' | 'day_before' | '2hr_before' | 'tournament_morning';
+export type DietaryRestriction = 'halal' | 'kosher' | 'vegetarian' | 'vegan' | 'dairy_free' | 'gluten_free';
+export type MealPrepAbility = 'none' | 'basic' | 'advanced';
+export type CutExperience = 'none' | 'some' | 'experienced';
+export type MenstrualStatus = 'regular' | 'irregular' | 'amenorrheic' | 'not_applicable';
+export type NutritionGoal = 'fight_prep' | 'maintain_weight_class' | 'move_up' | 'move_down' | 'off_season_growth' | 'general_fitness';
+export type NutritionTimeframe = 'short_notice' | 'full_camp' | 'long_term';
+export type OccupationType = 'sedentary' | 'lightly_active' | 'active' | 'very_active';
+
+export interface CombatAthleteNutritionProfile {
+  // Competition (combat-specific — optional for non-combat users)
+  weightClassKg?: number;
+  walkAroundWeightKg?: number;
+  weighInType?: WeighInType;
+  rehydrationTimeHours?: number;       // hours between weigh-in and competition
+  isTestedAthlete?: boolean;           // affects supplement recommendations
+  competitionType?: 'single_fight' | 'tournament' | 'none';
+
+  // Dietary preferences (universal)
+  dietaryRestrictions?: DietaryRestriction[];
+  mealPrepAbility?: MealPrepAbility;
+
+  // History & safety (universal)
+  previousCutExperience?: CutExperience;
+  hasEatingDisorderHistory?: boolean;  // gates aggressive cut features
+  menstrualStatus?: MenstrualStatus;
+
+  // Goal (universal — NutritionGoal covers both combat and general paths)
+  nutritionGoal?: NutritionGoal;
+  timeframe?: NutritionTimeframe;
+
+  // Activity (universal — refines TDEE beyond training sessions)
+  occupation?: OccupationType;
+}
+
+// ── Weight Cut Types ───────────────────────────────────────────────────────
+
+export type WeightCutPhase =
+  | 'not_started'
+  | 'chronic_loss'      // 10-4 weeks: caloric deficit for fat loss
+  | 'acute_reduction'   // 7-2 days: low-residue, glycogen depletion, water loading
+  | 'water_cut'         // 24-2hrs: dehydration protocol
+  | 'rehydration'       // post weigh-in: fluid + glycogen recovery
+  | 'fight_ready'       // fully rehydrated, ready to compete
+  | 'completed';
+
+export type WeightCutSafetyLevel = 'safe' | 'caution' | 'danger' | 'critical';
+
+export interface WeightCutPlan {
+  id: string;
+  competitionId: string;
+  competitionDate: string;           // ISO date
+  targetWeightKg: number;
+  startWeightKg: number;
+  currentPhase: WeightCutPhase;
+  phaseStartDate: string;            // ISO date — when current phase began
+  weighInType: WeighInType;
+  rehydrationTimeHours: number;
+
+  // Phase-specific tracking
+  waterLoadStarted: boolean;
+  sodiumLoadStarted: boolean;
+  carbDepletionStarted: boolean;
+
+  // Safety
+  safetyLevel: WeightCutSafetyLevel;
+  safetyAlerts: string[];
+  maxWaterCutPercent: number;        // hard cap (default 6% BW)
+
+  // Daily logs during cut
+  dailyLogs: WeightCutDailyLog[];
+
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface WeightCutDailyLog {
+  date: string;                      // ISO date
+  morningWeight: number;             // kg, fasted post-void
+  eveningWeight?: number;
+  waterIntakeMl: number;
+  sodiumIntakeMg: number;
+  carbsG: number;
+  fiberG?: number;
+  saunaMinutes?: number;
+  hotBathMinutes?: number;
+  urineColor?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8; // 1=clear, 8=dark brown
+  restingHR?: number;
+  moodScore?: 1 | 2 | 3 | 4 | 5;
+  energyScore?: 1 | 2 | 3 | 4 | 5;
+  notes?: string;
+}
+
+// ── Fight Camp Nutrition Types ─────────────────────────────────────────────
+
+export type FightCampPhase =
+  | 'off_season'
+  | 'base_camp'          // 10-8 weeks out
+  | 'intensification'    // 8-4 weeks out
+  | 'fight_camp_peak'    // 4-2 weeks out
+  | 'fight_week'         // 7-2 days out
+  | 'weigh_in_day'
+  | 'fight_day'
+  | 'tournament_day'
+  | 'post_competition';
+
+export interface FightCampNutritionPlan {
+  id: string;
+  competitionId: string;
+  currentPhase: FightCampPhase;
+  phases: FightCampPhaseConfig[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface FightCampPhaseConfig {
+  phase: FightCampPhase;
+  startDate: string;
+  endDate: string;
+  calorieStrategy: string;           // e.g., '10-15% surplus', '20% deficit'
+  proteinGKg: { min: number; max: number };
+  carbsGKg: { min: number; max: number };
+  fatGKg: { min: number; max: number };
+  focus: string;
+  restrictions: string[];
+  warnings: string[];
+}
+
+// ── Supplement Tracking Types ──────────────────────────────────────────────
+
+export type SupplementTier = 'essential' | 'situational' | 'optional';
+
+export interface SupplementRecommendation {
+  id: string;
+  name: string;
+  tier: SupplementTier;
+  doseRange: string;                 // e.g., '3-5g/day'
+  timing: string;                    // e.g., 'anytime with meal'
+  frequency: string;                 // e.g., 'daily', 'training days only'
+  evidence: string;                  // key citation
+  combatNotes: string;               // combat-sport-specific advice
+  pauseBeforeWeighIn?: number;       // days to stop before weigh-in (e.g., creatine = 7)
+  bannedSubstanceRisk: boolean;      // WADA/USADA concern
+  contraindications?: string[];
+}
+
+// ── Energy Availability Types ──────────────────────────────────────────────
+
+export type EnergyAvailabilityStatus = 'adequate' | 'caution' | 'low' | 'critical';
+
+export interface EnergyAvailabilityResult {
+  ea: number;                        // kcal/kg FFM
+  status: EnergyAvailabilityStatus;
+  message: string;
+  leanMassKg: number;
+  exerciseCostKcal: number;
+}
+
+// ── Performance Readiness (Nutrition) Types ────────────────────────────────
+
+export interface NutritionReadiness {
+  score: number;                     // 0-100
+  level: 'ready' | 'needs_attention' | 'at_risk';
+  components: {
+    nutritionAdherence: number;      // 0-100
+    hydration: number;               // 0-100
+    weightStatus: number;            // 0-100
+    energyAvailability: number;      // 0-100
+  };
+  bottleneck: string;
+  actionItem: string;
+}
+
+// ── Electrolyte Types ──────────────────────────────────────────────────────
+
+export interface ElectrolyteNeeds {
+  fluidLossL: number;
+  replacementFluidL: number;
+  sodiumMg: number;
+  potassiumMg: number;
+  magnesiumMg: number;
+  timing: string;
+}
+
 // ── Diet Phase / Nutrition Coaching ─────────────────────────────────────────
 export type DietGoal = 'cut' | 'maintain' | 'bulk';
 

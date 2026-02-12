@@ -16,6 +16,7 @@ interface Tool {
   id: NonNullable<OverlayView>;
   label: string;
   desc: string;
+  keywords: string;
   icon: React.ElementType;
   color: string;
 }
@@ -29,52 +30,52 @@ const CATEGORIES: Category[] = [
   {
     title: 'Build',
     tools: [
-      { id: 'builder', label: 'Workout Builder', desc: 'Create custom sessions', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
-      { id: 'templates', label: 'Templates', desc: 'Save & reuse workouts', icon: Layers, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
-      { id: 'custom_exercise', label: 'Custom Exercise', desc: 'Add your own moves', icon: PlusSquare, color: 'from-violet-500/20 to-violet-500/5 text-violet-400' },
-      { id: 'block_suggestion', label: 'AI Program', desc: 'Auto-generate a block', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
-      { id: 'periodization', label: 'Periodization', desc: 'Plan training phases', icon: Calendar, color: 'from-teal-500/20 to-teal-500/5 text-teal-400' },
-      { id: 'overload', label: 'Progression', desc: 'Track overload strategy', icon: TrendingUp, color: 'from-green-500/20 to-green-500/5 text-green-400' },
+      { id: 'builder', label: 'Workout Builder', desc: 'Create custom sessions', keywords: 'create make design gym routine plan workout session custom build program training', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
+      { id: 'templates', label: 'Templates', desc: 'Save & reuse workouts', keywords: 'save reuse preset routine copy duplicate favorite bookmark', icon: Layers, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
+      { id: 'custom_exercise', label: 'Custom Exercise', desc: 'Add your own moves', keywords: 'create new exercise movement add custom machine cable dumbbell barbell', icon: PlusSquare, color: 'from-violet-500/20 to-violet-500/5 text-violet-400' },
+      { id: 'block_suggestion', label: 'AI Program', desc: 'Auto-generate a block', keywords: 'auto generate smart suggest recommend ai mesocycle block plan program', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
+      { id: 'periodization', label: 'Periodization', desc: 'Plan training phases', keywords: 'phase cycle calendar deload peak taper block mesocycle schedule week', icon: Calendar, color: 'from-teal-500/20 to-teal-500/5 text-teal-400' },
+      { id: 'overload', label: 'Progression', desc: 'Track overload strategy', keywords: 'progressive overload increase weight reps sets volume stronger gains', icon: TrendingUp, color: 'from-green-500/20 to-green-500/5 text-green-400' },
     ],
   },
   {
     title: 'Analyze',
     tools: [
-      { id: 'strength', label: 'Strength', desc: 'e1RM trends & PRs', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400' },
-      { id: 'profiler', label: 'Exercise Profiler', desc: 'Per-exercise deep dive', icon: Target, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
-      { id: 'volume_map', label: 'Volume Map', desc: 'Muscle group volume', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400' },
-      { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
+      { id: 'strength', label: 'Strength', desc: 'e1RM trends & PRs', keywords: 'pr personal record max strength chart graph trend lift heavy strong e1rm estimated', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400' },
+      { id: 'profiler', label: 'Exercise Profiler', desc: 'Per-exercise deep dive', keywords: 'history stats analytics individual exercise detail performance data sets reps', icon: Target, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
+      { id: 'volume_map', label: 'Volume Map', desc: 'Muscle group volume', keywords: 'muscle group heatmap chest back legs arms shoulders volume sets weekly body part', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400' },
+      { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
     ],
   },
   {
     title: 'Recover',
     tools: [
-      { id: 'recovery', label: 'Recovery', desc: 'Readiness check-in', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400' },
-      { id: 'recovery_coach', label: 'Recovery Coach', desc: 'Sleep & stress tips', icon: Moon, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
-      { id: 'hr_zones', label: 'HR Zones', desc: 'Heart rate training', icon: Activity, color: 'from-red-500/20 to-red-500/5 text-red-400' },
-      { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
-      { id: 'illness', label: 'Illness Log', desc: 'Log sick days', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
-      { id: 'fatigue', label: 'Fatigue', desc: 'Monitor fatigue levels', icon: Zap, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400' },
+      { id: 'recovery', label: 'Recovery', desc: 'Readiness check-in', keywords: 'rest day off readiness soreness sore tired recover how do i feel ready', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400' },
+      { id: 'recovery_coach', label: 'Recovery Coach', desc: 'Sleep & stress tips', keywords: 'sleep stress rest nap meditation relax nervous cns overtraining burnout advice tips', icon: Moon, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
+      { id: 'hr_zones', label: 'HR Zones', desc: 'Heart rate training', keywords: 'heart rate cardio aerobic anaerobic zone bpm pulse conditioning endurance vo2', icon: Activity, color: 'from-red-500/20 to-red-500/5 text-red-400' },
+      { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
+      { id: 'illness', label: 'Illness Log', desc: 'Log sick days', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
+      { id: 'fatigue', label: 'Fatigue', desc: 'Monitor fatigue levels', keywords: 'tired exhausted worn out energy low deload overtraining fatigue debt accumulated', icon: Zap, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400' },
     ],
   },
   {
     title: 'Fuel & Body',
     tools: [
-      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400' },
-      { id: 'fight_camp', label: 'Fight Camp Fuel', desc: 'Combat sport nutrition', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
-      { id: 'grip_strength', label: 'Grip Strength', desc: 'Grip training protocol', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400' },
-      { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400' },
+      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400' },
+      { id: 'fight_camp', label: 'Fight Camp Fuel', desc: 'Combat sport nutrition', keywords: 'mma boxing fight weigh in weight cut rehydrate refeed combat sport muay thai ufc diet food eat', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
+      { id: 'grip_strength', label: 'Grip Strength', desc: 'Grip training protocol', keywords: 'grip hand forearm wrist crush pinch hang deadlift farmer carry hold squeeze', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400' },
+      { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400' },
     ],
   },
   {
     title: 'Sport & Social',
     tools: [
-      { id: 'competition', label: 'Competition Prep', desc: 'Peak for your event', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400' },
-      { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tools', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
-      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400' },
-      { id: 'wearable', label: 'Wearables', desc: 'Connect your device', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400' },
-      { id: 'coach', label: 'Weekly Coach', desc: 'AI training feedback', icon: MessageSquare, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
-      { id: 'community_share', label: 'Share', desc: 'Share with friends', icon: Users, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
+      { id: 'competition', label: 'Competition Prep', desc: 'Peak for your event', keywords: 'meet competition event peak taper fight tournament game match powerlifting', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400' },
+      { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tools', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grapple training', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400' },
+      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400' },
+      { id: 'wearable', label: 'Wearables', desc: 'Connect your device', keywords: 'whoop apple watch garmin fitbit oura ring wearable device sync connect tracker', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400' },
+      { id: 'coach', label: 'Weekly Coach', desc: 'AI training feedback', keywords: 'coach advice tips feedback review summary weekly insight recommendation ai smart', icon: MessageSquare, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
+      { id: 'community_share', label: 'Share', desc: 'Share with friends', keywords: 'share export screenshot post social media friends community brag show results', icon: Users, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
     ],
   },
 ];
@@ -132,12 +133,15 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
 
   const filteredCategories = useMemo(() => {
     if (!search.trim()) return CATEGORIES;
-    const q = search.toLowerCase();
+    const q = search.toLowerCase().trim();
+    const words = q.split(/\s+/);
     return CATEGORIES.map(cat => ({
       ...cat,
-      tools: cat.tools.filter(t =>
-        t.label.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q)
-      ),
+      tools: cat.tools.filter(t => {
+        const haystack = `${t.label} ${t.desc} ${t.keywords}`.toLowerCase();
+        // Every search word must appear somewhere in label+desc+keywords
+        return words.every(w => haystack.includes(w));
+      }),
     })).filter(cat => cat.tools.length > 0);
   }, [search]);
 

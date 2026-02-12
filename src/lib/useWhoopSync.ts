@@ -4,6 +4,10 @@
 // Lightweight hook that syncs Whoop data on app load and periodically,
 // so the Home tab, ActiveWorkout, and RecoveryCoach always show fresh data
 // without requiring the user to open the Wearable overlay.
+//
+// Persistent connection: If localStorage tokens are missing (iOS PWA eviction,
+// phone restart, etc.), we restore from the server-side DB before giving up.
+// This ensures the Whoop connection survives app restarts permanently.
 
 import { useEffect, useRef } from 'react';
 import { useAppStore } from './store';
@@ -27,6 +31,38 @@ function getToken(key: string): string {
 function setToken(key: string, value: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(key, value);
+}
+
+/**
+ * Restore tokens from server DB when localStorage is empty.
+ * This is the key to surviving iOS PWA localStorage eviction,
+ * phone restarts, and browser cache clears.
+ */
+async function restoreTokensFromDb(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/whoop/tokens', { credentials: 'include' });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.tokens?.access_token) {
+      setToken(LS_KEYS.accessToken, data.tokens.access_token);
+      if (data.tokens.refresh_token) setToken(LS_KEYS.refreshToken, data.tokens.refresh_token);
+      if (data.tokens.expires_at) setToken(LS_KEYS.tokenExpires, data.tokens.expires_at);
+      return true;
+    }
+  } catch { /* DB unavailable — user likely not logged in */ }
+  return false;
+}
+
+/**
+ * Persist refreshed tokens back to the DB so they survive localStorage loss.
+ */
+function saveTokensToDb(accessToken: string, refreshToken: string, expiresAt: string) {
+  fetch('/api/whoop/tokens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, expires_at: expiresAt }),
+  }).catch(() => { /* best effort */ });
 }
 
 // Minimal transform: cycles → WearableData, matching WearableIntegration logic
@@ -200,8 +236,20 @@ export function useWhoopSync() {
   useEffect(() => {
     async function sync() {
       if (syncInFlight.current) return;
-      const accessToken = getToken(LS_KEYS.accessToken);
-      if (!accessToken) return; // Whoop not connected
+
+      let accessToken = getToken(LS_KEYS.accessToken);
+
+      // ── Persistent connection: restore from DB if localStorage is empty ──
+      // This handles iOS PWA localStorage eviction, phone restarts, cache clears.
+      // The DB always has the latest tokens (saved on every OAuth + refresh).
+      if (!accessToken) {
+        const restored = await restoreTokensFromDb();
+        if (restored) {
+          accessToken = getToken(LS_KEYS.accessToken);
+        }
+      }
+
+      if (!accessToken) return; // Whoop genuinely not connected
 
       // Skip if data is still fresh (use shorter threshold when strain is pending)
       const latestData = useAppStore.getState().latestWhoopData;
@@ -222,13 +270,18 @@ export function useWhoopSync() {
         if (!res.ok) { syncInFlight.current = false; return; }
         const data = await res.json();
 
-        // Update tokens if refreshed
+        // Update tokens if refreshed — persist to BOTH localStorage AND DB
         if (data.new_access_token) {
           setToken(LS_KEYS.accessToken, data.new_access_token);
           if (data.new_refresh_token) setToken(LS_KEYS.refreshToken, data.new_refresh_token);
-          if (data.new_expires_in) {
-            setToken(LS_KEYS.tokenExpires, String(Date.now() + data.new_expires_in * 1000));
-          }
+          const newExp = data.new_expires_in ? String(Date.now() + data.new_expires_in * 1000) : '';
+          if (newExp) setToken(LS_KEYS.tokenExpires, newExp);
+          // Persist to DB so next app open can restore even if localStorage is wiped
+          saveTokensToDb(
+            data.new_access_token,
+            data.new_refresh_token || refreshToken,
+            newExp
+          );
         }
 
         if (data.connected) {
@@ -242,6 +295,13 @@ export function useWhoopSync() {
             useAppStore.getState().setWhoopWorkouts(workouts);
           }
           setToken('whoop_last_fetch', String(Date.now()));
+        }
+
+        // If tokens are dead (Whoop revoked or refresh failed), clear stale localStorage
+        if (data.requiresReconnect) {
+          localStorage.removeItem(LS_KEYS.accessToken);
+          localStorage.removeItem(LS_KEYS.refreshToken);
+          localStorage.removeItem(LS_KEYS.tokenExpires);
         }
       } catch {
         // Silent fail — user can still manually refresh from Wearable overlay

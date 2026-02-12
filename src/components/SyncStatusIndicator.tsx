@@ -71,7 +71,8 @@ export default function SyncStatusIndicator({
       {/* Compact badge — tappable */}
       <button
         onClick={() => setShowDetail(true)}
-        className="flex items-center gap-1.5 bg-grappler-800/60 hover:bg-grappler-800 border border-grappler-700/50 rounded-full px-2.5 py-1 transition-colors"
+        className="flex items-center gap-1 bg-grappler-800/60 hover:bg-grappler-800 border border-grappler-700/50 rounded-full px-1.5 py-1 transition-colors"
+        title={lastSyncedAt ? getRelativeTime(lastSyncedAt) : config.label}
       >
         <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', config.dot)} />
         {syncStatus === 'syncing' ? (
@@ -81,9 +82,6 @@ export default function SyncStatusIndicator({
         ) : (
           <Cloud className="w-3 h-3 text-grappler-400" />
         )}
-        <span className="text-xs text-grappler-400 font-medium">
-          {lastSyncedAt ? getRelativeTime(lastSyncedAt) : config.label}
-        </span>
       </button>
 
       {/* Detail popup */}

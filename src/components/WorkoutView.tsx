@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { exportProgramPdf } from '@/lib/pdf-export';
+import { fireConfetti } from '@/lib/confetti';
 
 interface WorkoutViewProps {
   onOpenBuilder?: () => void;
@@ -75,7 +76,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
     return null; // All sessions completed
   }, [currentMesocycle, completedSessionIds]);
 
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(0);
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(nextUpSession?.weekIndex ?? 0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
   const [blockWeeks, setBlockWeeks] = useState(5);
@@ -94,6 +95,18 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
       setShowPeriodizationInfo(false);
     }
   }, []);
+
+  // Confetti on block completion
+  const confettiFiredRef = useRef(false);
+  useEffect(() => {
+    if (progressStats.percentage >= 100 && !confettiFiredRef.current) {
+      confettiFiredRef.current = true;
+      setTimeout(() => fireConfetti(), 300);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100, 50, 200]);
+      }
+    }
+  }, [progressStats.percentage]);
 
   // Auto-dismiss undo toast after 5 seconds
   useEffect(() => {
@@ -651,11 +664,16 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
         const typeBg = session.type === 'strength' ? 'from-red-500/20 to-red-900/10 border-red-500/30'
           : session.type === 'hypertrophy' ? 'from-purple-500/20 to-purple-900/10 border-purple-500/30'
           : 'from-blue-500/20 to-blue-900/10 border-blue-500/30';
+        const heroIntensity = session.type === 'strength' ? 'Heavy' : session.type === 'power' ? 'Explosive' : 'Moderate';
+        const heroIntensityColor = session.type === 'strength' ? 'text-red-400' : session.type === 'power' ? 'text-blue-400' : 'text-purple-400';
+        // Derive unique muscle groups from exercises
+        const muscleGroups = Array.from(new Set(session.exercises.flatMap(ex => ex.exercise.primaryMuscles || []).filter(Boolean)));
         return (
           <div className={cn('card p-5 bg-gradient-to-br border', typeBg)}>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-grappler-400">Next Up</span>
               <span className="text-xs text-grappler-500">Week {weekNumber}</span>
+              <span className={cn('text-[10px] font-semibold ml-auto', heroIntensityColor)}>{heroIntensity}</span>
             </div>
             <div className="flex items-center gap-3 mb-3">
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', typeColor)}>
@@ -669,6 +687,16 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
                 </div>
               </div>
             </div>
+            {/* Muscle groups targeted */}
+            {muscleGroups.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {muscleGroups.slice(0, 5).map(mg => (
+                  <span key={mg} className="text-[10px] px-2 py-0.5 rounded-full bg-grappler-800/80 text-grappler-400 capitalize">
+                    {mg.replace(/_/g, ' ')}
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {session.exercises.slice(0, 5).map((ex, i) => (
                 <span key={i} className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-300">
@@ -691,10 +719,17 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           </div>
         );
       })() : (
-        <div className="card p-5 text-center border border-green-500/30 bg-green-500/5">
-          <Check className="w-8 h-8 text-green-400 mx-auto mb-2" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="card p-5 text-center border border-green-500/30 bg-gradient-to-b from-green-500/10 to-green-500/[0.02]"
+        >
+          <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Check className="w-7 h-7 text-green-400" />
+          </div>
           <h3 className="font-bold text-grappler-100 text-lg mb-1">Block Complete!</h3>
-          <p className="text-sm text-grappler-400 mb-4">All {progressStats.total} sessions finished. Time for the next block.</p>
+          <p className="text-sm text-grappler-400 mb-1">All {progressStats.total} sessions finished.</p>
+          <p className="text-xs text-grappler-500 mb-4">Great work — time to level up with the next block.</p>
           <button
             onClick={() => setShowEmphasisPicker(true)}
             className="btn btn-primary btn-sm gap-2"
@@ -702,7 +737,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             <SlidersHorizontal className="w-4 h-4" />
             Generate Next Block
           </button>
-        </div>
+        </motion.div>
       )}
 
       {/* Full Program Toggle */}
@@ -712,6 +747,11 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
       >
         <span className="text-sm font-medium text-grappler-300">
           {showFullProgram ? 'Hide' : 'View'} Full Program
+          {!showFullProgram && (
+            <span className="text-xs text-grappler-500 ml-2">
+              {currentMesocycle.weeks.length} weeks · {progressStats.total} sessions
+            </span>
+          )}
         </span>
         <ChevronDown className={cn('w-4 h-4 text-grappler-400 transition-transform', showFullProgram && 'rotate-180')} />
       </button>
@@ -1476,7 +1516,10 @@ function WeekCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: weekIndex * 0.1 }}
-      className="card overflow-hidden"
+      className={cn(
+        'card overflow-hidden',
+        week.isDeload && 'border border-green-500/20 bg-green-500/[0.03]'
+      )}
     >
       {/* Week Header */}
       <button
@@ -1502,9 +1545,16 @@ function WeekCard({
                 </span>
               )}
             </h3>
-            <p className="text-sm text-grappler-400">
-              {week.sessions.filter(s => completedSessionIds.has(s.id)).length}/{week.sessions.length} sessions done
-            </p>
+            <div className="flex items-center gap-2 text-xs text-grappler-400">
+              <span>{week.sessions.filter(s => completedSessionIds.has(s.id)).length}/{week.sessions.length} sessions</span>
+              <span className="text-grappler-600">·</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                ~{week.sessions.reduce((sum, s) => sum + (s.estimatedDuration || 0), 0)}m
+              </span>
+              <span className="text-grappler-600">·</span>
+              <span>{week.sessions.reduce((sum, s) => sum + s.exercises.reduce((es, e) => es + (e.sets || 0), 0), 0)} sets</span>
+            </div>
           </div>
         </div>
         {isExpanded ? (
@@ -1529,6 +1579,9 @@ function WeekCard({
               const isSessionExpanded = expandedSession === session.id;
               const isCompleted = completedSessionIds.has(session.id);
 
+              const intensityLabel = session.type === 'strength' ? 'Heavy' : session.type === 'power' ? 'Explosive' : 'Moderate';
+              const intensityColor = session.type === 'strength' ? 'text-red-400 bg-red-500/10' : session.type === 'power' ? 'text-blue-400 bg-blue-500/10' : 'text-purple-400 bg-purple-500/10';
+
               return (
                 <div key={session.id} className={cn('bg-grappler-800/50 rounded-lg overflow-hidden', isCompleted && 'opacity-60')}>
                   {/* Session Header with inline Start */}
@@ -1546,7 +1599,12 @@ function WeekCard({
                         )}
                       </div>
                       <div className="text-left min-w-0">
-                        <h4 className="font-medium text-grappler-100 truncate">{session.name}{isCompleted ? ' (Done)' : ''}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-grappler-100 truncate">{session.name}{isCompleted ? ' (Done)' : ''}</h4>
+                          <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', intensityColor)}>
+                            {intensityLabel}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-grappler-400">
                           <span className="flex items-center gap-1">
                             <Dumbbell className="w-3 h-3" />
@@ -1557,6 +1615,13 @@ function WeekCard({
                             {session.estimatedDuration}m
                           </span>
                         </div>
+                        {/* Inline exercise preview */}
+                        {!isSessionExpanded && (
+                          <p className="text-[10px] text-grappler-500 mt-1 truncate">
+                            {session.exercises.slice(0, 3).map(ex => ex.exercise.name).join(' · ')}
+                            {session.exercises.length > 3 ? ` +${session.exercises.length - 3}` : ''}
+                          </p>
+                        )}
                       </div>
                     </button>
                     <button

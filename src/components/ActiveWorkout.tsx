@@ -1975,12 +1975,20 @@ export default function ActiveWorkout() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-30 bg-grappler-900/95 flex flex-col items-center justify-center"
           >
-            <p className="text-sm font-medium text-grappler-400 mb-2 uppercase tracking-wider">Rest Time</p>
+            <p className={cn(
+              'text-sm font-medium mb-2 uppercase tracking-wider transition-colors',
+              restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-400'
+            )}>
+              {restTimer <= 10 && restTimer > 0 ? 'Get Ready!' : 'Rest Time'}
+            </p>
             <motion.div
               key={restTimer}
               initial={{ scale: 1.15 }}
               animate={{ scale: 1 }}
-              className="text-8xl font-black text-primary-400 mb-2 tabular-nums"
+              className={cn(
+                'text-8xl font-black mb-2 tabular-nums transition-colors',
+                restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+              )}
             >
               {formatRestTime(restTimer)}
             </motion.div>

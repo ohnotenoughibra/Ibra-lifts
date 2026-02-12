@@ -27,6 +27,8 @@ import {
   Mail,
   Loader2,
   Trash2,
+  Check,
+  ShieldAlert,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
@@ -43,6 +45,22 @@ export default function ProfileSettings() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifySent, setVerifySent] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Edit form state
   const [editName, setEditName] = useState(user?.name || '');
@@ -95,9 +113,7 @@ export default function ProfileSettings() {
     }
   }, [session?.user?.email]);
 
-  const handleDeleteAccount = useCallback(async () => {
-    if (!confirm('Permanently delete your account and all cloud data? This cannot be undone.')) return;
-    if (!confirm('Are you really sure? Type OK in the next dialog to confirm.')) return;
+  const executeDeleteAccount = useCallback(async () => {
     setDeleteLoading(true);
     try {
       const res = await fetch('/api/auth/account', { method: 'DELETE' });
@@ -105,14 +121,27 @@ export default function ProfileSettings() {
         resetStore();
         signOut({ callbackUrl: '/' });
       } else {
-        alert('Failed to delete account. Please try again.');
+        setToast({ message: 'Failed to delete account. Please try again.', type: 'error' });
       }
     } catch {
-      alert('Something went wrong. Please try again.');
+      setToast({ message: 'Something went wrong. Please try again.', type: 'error' });
     } finally {
       setDeleteLoading(false);
     }
   }, [resetStore]);
+
+  const handleDeleteAccount = useCallback(() => {
+    setConfirmDialog({
+      title: 'Delete Account',
+      message: 'Permanently delete your account and all cloud data? This cannot be undone.',
+      confirmLabel: 'Delete Forever',
+      danger: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        executeDeleteAccount();
+      },
+    });
+  }, [executeDeleteAccount]);
 
   const startEditing = () => {
     setEditName(user?.name || '');
@@ -136,6 +165,7 @@ export default function ProfileSettings() {
 
   const saveEdits = () => {
     if (!user) return;
+    setSaving(true);
 
     // Detect if training-critical fields changed (these affect mesocycle programming)
     const trainingFieldsChanged =
@@ -184,18 +214,27 @@ export default function ProfileSettings() {
 
     setIsEditing(false);
 
-    // If critical training fields changed, offer to regenerate the mesocycle
-    if (trainingFieldsChanged || baselineChanged) {
-      setTimeout(() => {
-        if (confirm(
-          'You changed settings that affect your program. ' +
-          'Regenerate your mesocycle with the new settings?\n\n' +
-          'Your workout history will be preserved.'
-        )) {
-          generateNewMesocycle();
-        }
-      }, 100);
-    }
+    // Brief save animation then show toast
+    setTimeout(() => {
+      setSaving(false);
+      setToast({ message: 'Profile saved', type: 'success' });
+
+      // If critical training fields changed, offer to regenerate the mesocycle
+      if (trainingFieldsChanged || baselineChanged) {
+        setTimeout(() => {
+          setConfirmDialog({
+            title: 'Regenerate Program?',
+            message: 'You changed settings that affect your program. Regenerate your mesocycle with the new settings? Your workout history will be preserved.',
+            confirmLabel: 'Regenerate',
+            onConfirm: () => {
+              setConfirmDialog(null);
+              generateNewMesocycle();
+              setToast({ message: 'Program regenerated', type: 'success' });
+            },
+          });
+        }, 200);
+      }
+    }, 400);
   };
 
   return (
@@ -639,11 +678,15 @@ export default function ProfileSettings() {
         )} />
       </button>
 
+      <AnimatePresence>
       {showBadges && (
         <motion.div
+          key="badges-content"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="card p-4 space-y-4"
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+          className="card p-4 space-y-4 overflow-hidden"
         >
           <div>
             <h4 className="text-sm font-medium text-grappler-300 mb-3">Earned Badges</h4>
@@ -678,6 +721,7 @@ export default function ProfileSettings() {
           </div>
         </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Stats Summary */}
       <div className="card p-4">
@@ -697,9 +741,12 @@ export default function ProfileSettings() {
         </p>
         <button
           onClick={() => {
-            if (confirm('This will take you through the setup again. Your workouts and history will be preserved.')) {
-              restartOnboarding();
-            }
+            setConfirmDialog({
+              title: 'Reconfigure Training',
+              message: 'This will take you through the setup again. Your workouts and history will be preserved.',
+              confirmLabel: 'Reconfigure',
+              onConfirm: () => { setConfirmDialog(null); restartOnboarding(); },
+            });
           }}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500/10 text-primary-400 font-medium text-sm hover:bg-primary-500/20 transition-colors border border-primary-500/20"
         >
@@ -742,9 +789,12 @@ export default function ProfileSettings() {
 
             <button
               onClick={() => {
-                if (confirm('Sign out? Your local data will be kept, but cloud sync will stop until you sign back in.')) {
-                  signOut({ callbackUrl: '/' });
-                }
+                setConfirmDialog({
+                  title: 'Sign Out',
+                  message: 'Your local data will be kept, but cloud sync will stop until you sign back in.',
+                  confirmLabel: 'Sign Out',
+                  onConfirm: () => { setConfirmDialog(null); signOut({ callbackUrl: '/' }); },
+                });
               }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
             >
@@ -769,17 +819,25 @@ export default function ProfileSettings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="card p-4 border border-red-500/30 space-y-4">
+      <div className="card p-4 border border-red-500/20 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <ShieldAlert className="w-4 h-4 text-red-400" />
+          <h3 className="font-medium text-red-400 text-sm">Danger Zone</h3>
+        </div>
         <div>
-          <h3 className="font-medium text-red-400 mb-2">Reset Data</h3>
+          <h4 className="text-sm text-grappler-300 mb-1">Reset Data</h4>
           <p className="text-sm text-grappler-400 mb-3">
             This will erase all your progress, workouts, and achievements. Your account will remain.
           </p>
           <button
             onClick={() => {
-              if (confirm('Are you sure? This cannot be undone!')) {
-                resetStore();
-              }
+              setConfirmDialog({
+                title: 'Reset All Data',
+                message: 'This will erase all your progress, workouts, and achievements. This cannot be undone.',
+                confirmLabel: 'Reset Everything',
+                danger: true,
+                onConfirm: () => { setConfirmDialog(null); resetStore(); },
+              });
             }}
             className="btn btn-danger btn-sm gap-2"
           >
@@ -790,7 +848,7 @@ export default function ProfileSettings() {
 
         {isSignedIn && (
           <div className="pt-4 border-t border-red-500/20">
-            <h3 className="font-medium text-red-400 mb-2">Delete Account</h3>
+            <h4 className="text-sm text-grappler-300 mb-1">Delete Account</h4>
             <p className="text-sm text-grappler-400 mb-3">
               Permanently delete your account, cloud data, and all synced workouts. Local data will also be cleared.
             </p>
@@ -805,6 +863,100 @@ export default function ProfileSettings() {
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <motion.div
+            key="confirm-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setConfirmDialog(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-grappler-800 border border-grappler-700 shadow-2xl overflow-hidden"
+            >
+              <div className="p-5">
+                <h3 className={cn('text-base font-bold mb-1.5', confirmDialog.danger ? 'text-red-400' : 'text-grappler-100')}>
+                  {confirmDialog.title}
+                </h3>
+                <p className="text-sm text-grappler-400 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+              <div className="flex gap-2 px-5 pb-5">
+                <button
+                  onClick={() => setConfirmDialog(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-grappler-700 text-grappler-300 text-sm font-medium hover:bg-grappler-600 transition-colors active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDialog.onConfirm}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95',
+                    confirmDialog.danger
+                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                      : 'bg-primary-500 text-white hover:bg-primary-600'
+                  )}
+                >
+                  {confirmDialog.confirmLabel}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50"
+          >
+            <div className={cn(
+              'flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-sm font-medium',
+              toast.type === 'success'
+                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                : 'bg-red-500/20 text-red-300 border border-red-500/30'
+            )}>
+              {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              {toast.message}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Saving overlay */}
+      <AnimatePresence>
+        {saving && (
+          <motion.div
+            key="saving"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              className="flex items-center gap-3 bg-grappler-800 border border-grappler-700 rounded-2xl px-6 py-4 shadow-2xl"
+            >
+              <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
+              <span className="text-sm font-medium text-grappler-200">Saving...</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

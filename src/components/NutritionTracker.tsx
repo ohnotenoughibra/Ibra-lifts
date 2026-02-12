@@ -642,6 +642,47 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     return index;
   }, [meals]);
 
+  // Day-of-week meal patterns: detect meals eaten on the same weekday 2+ times
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+  type DayPattern = { dayCount: number; mealType?: string; lastUsed: number };
+  const dayOfWeekPatterns = useMemo(() => {
+    // Map: "mealname_lowercase" → Map<dayOfWeek(0-6), { dayCount, mealType, lastUsed }>
+    const patterns = new Map<string, Map<number, DayPattern>>();
+    meals.forEach(m => {
+      const key = m.name.toLowerCase().trim();
+      const d = new Date(m.date);
+      const dow = d.getDay(); // 0=Sun..6=Sat
+      const ts = d.getTime();
+
+      if (!patterns.has(key)) patterns.set(key, new Map());
+      const dayMap = patterns.get(key)!;
+      const existing = dayMap.get(dow);
+      dayMap.set(dow, {
+        dayCount: (existing?.dayCount || 0) + 1,
+        mealType: m.mealType,
+        lastUsed: Math.max(ts, existing?.lastUsed || 0),
+      });
+    });
+    return patterns;
+  }, [meals]);
+
+  // Get pattern matches for a specific day of week (default: today)
+  const todayDow = new Date().getDay();
+  const todayPatternMeals = useMemo(() => {
+    const results: Array<HistoryFood & { dayCount: number; dayName: string }> = [];
+    dayOfWeekPatterns.forEach((dayMap, mealKey) => {
+      const pattern = dayMap.get(todayDow);
+      if (pattern && pattern.dayCount >= 2) {
+        const historyEntry = mealHistoryIndex.get(mealKey);
+        if (historyEntry) {
+          results.push({ ...historyEntry, dayCount: pattern.dayCount, dayName: DAY_NAMES[todayDow] });
+        }
+      }
+    });
+    // Sort by pattern strength (dayCount) then recency
+    return results.sort((a, b) => b.dayCount - a.dayCount || b.lastUsed - a.lastUsed);
+  }, [dayOfWeekPatterns, todayDow, mealHistoryIndex]);
+
   // Top 8 most-frequent foods (recency-boosted)
   const favoriteFoods = useMemo(() => {
     const now = Date.now();
@@ -657,16 +698,31 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   }, [mealHistoryIndex]);
 
   // Autocomplete suggestions based on current input
+  // Day-of-week pattern meals are boosted to the top when they match the query
   const autocompleteSuggestions = useMemo(() => {
     const q = formName.toLowerCase().trim();
     if (q.length < 2) return [];
 
-    // 1. Search meal history first (frequency-weighted)
+    // Build a set of today's pattern meal keys for boosting
+    const patternKeys = new Set(todayPatternMeals.map(p => p.name.toLowerCase()));
+
+    // 1. Search meal history first (frequency-weighted, pattern-boosted)
     const historyMatches = Array.from(mealHistoryIndex.values())
       .filter(f => f.name.toLowerCase().includes(q))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => {
+        // Pattern meals for today sort first
+        const aPattern = patternKeys.has(a.name.toLowerCase()) ? 100 : 0;
+        const bPattern = patternKeys.has(b.name.toLowerCase()) ? 100 : 0;
+        return (bPattern + b.count) - (aPattern + a.count);
+      })
       .slice(0, 4)
-      .map(f => ({ ...f, source: 'history' as const }));
+      .map(f => ({
+        ...f,
+        source: 'history' as const,
+        dayPattern: patternKeys.has(f.name.toLowerCase())
+          ? `Every ${DAY_NAMES[todayDow]}`
+          : undefined,
+      }));
 
     // 2. Search FOOD_DB (only add items not already in history)
     const historyNames = new Set(historyMatches.map(h => h.name.toLowerCase()));
@@ -674,10 +730,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       .filter(f => f.keywords.some(kw => kw.includes(q) || q.includes(kw)))
       .filter(f => !historyNames.has(f.name.toLowerCase()))
       .slice(0, 3)
-      .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const }));
+      .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const, dayPattern: undefined as string | undefined }));
 
     return [...historyMatches, ...dbMatches].slice(0, 6);
-  }, [formName, mealHistoryIndex]);
+  }, [formName, mealHistoryIndex, todayPatternMeals, todayDow]);
 
   const selectAutocomplete = useCallback((item: { name: string; portion?: string; calories: number; protein: number; carbs: number; fat: number }) => {
     setFormName(item.name);
@@ -815,7 +871,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   // ── Smart meal suggestions based on remaining macros ──
   // Combines user's meal history + FOOD_DB, scored by how well they fill macro gaps
-  type SuggestionItem = { name: string; calories: number; protein: number; carbs: number; fat: number; fromHistory: boolean };
+  // Day-of-week patterns get a significant boost so habitual meals surface first
+  type SuggestionItem = { name: string; calories: number; protein: number; carbs: number; fat: number; fromHistory: boolean; dayPattern?: string };
   const mealSuggestions = useMemo((): SuggestionItem[] => {
     const targets = contextualNutrition.adjustedTargets;
     const remaining = {
@@ -828,13 +885,21 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     // Don't suggest if already over targets
     if (remaining.calories <= 50) return [];
 
+    // Build pattern lookup for today's day-of-week
+    const patternBonus = new Map<string, number>();
+    todayPatternMeals.forEach(p => patternBonus.set(p.name.toLowerCase(), p.dayCount));
+
     // Determine what's most needed
     const proteinRatio = totals.protein / Math.max(targets.protein, 1);
     const carbsRatio = totals.carbs / Math.max(targets.carbs, 1);
     const fatRatio = totals.fat / Math.max(targets.fat, 1);
 
-    const scoreFood = (f: { calories: number; protein: number; carbs: number; fat: number }, historyBonus: number) => {
+    const scoreFood = (f: { name: string; calories: number; protein: number; carbs: number; fat: number }, historyBonus: number) => {
       let score = historyBonus;
+      // Day-of-week pattern bonus: +40 base + 10 per repeat (e.g. eaten 3 Wednesdays = +70)
+      const dayCount = patternBonus.get(f.name.toLowerCase()) || 0;
+      if (dayCount >= 2) score += 40 + dayCount * 10;
+
       if (proteinRatio < carbsRatio && proteinRatio < fatRatio) {
         score += f.protein * 3;
       } else if (carbsRatio < fatRatio) {
@@ -849,13 +914,20 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       return score;
     };
 
-    // Score history items (boosted by frequency)
+    // Score history items (boosted by frequency + day-of-week pattern)
     const historyScored = Array.from(mealHistoryIndex.values())
       .filter(f => f.calories <= remaining.calories + 50 && f.calories > 0)
-      .map(f => ({
-        item: { name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, fromHistory: true } as SuggestionItem,
-        score: scoreFood(f, 20 + Math.min(f.count * 5, 30)), // history bonus: 20 base + 5 per use (max 30)
-      }));
+      .map(f => {
+        const dayCount = patternBonus.get(f.name.toLowerCase()) || 0;
+        return {
+          item: {
+            name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+            fromHistory: true,
+            dayPattern: dayCount >= 2 ? `${DAY_NAMES[todayDow]} regular` : undefined,
+          } as SuggestionItem,
+          score: scoreFood(f, 20 + Math.min(f.count * 5, 30)),
+        };
+      });
 
     // Score DB items
     const historyNames = new Set(historyScored.map(h => h.item.name.toLowerCase()));
@@ -870,7 +942,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5)
       .map(s => s.item);
-  }, [totals, contextualNutrition.adjustedTargets, mealHistoryIndex]);
+  }, [totals, contextualNutrition.adjustedTargets, mealHistoryIndex, todayPatternMeals, todayDow]);
 
   const handleSuggestionTap = (food: SuggestionItem) => {
     addMeal({
@@ -1481,15 +1553,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   onClick={() => handleSuggestionTap(food)}
                   className={cn(
                     "flex-shrink-0 p-2.5 rounded-xl transition-colors text-left min-w-[140px]",
-                    food.fromHistory
-                      ? "bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30"
-                      : "bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50"
+                    food.dayPattern
+                      ? "bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
+                      : food.fromHistory
+                        ? "bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30"
+                        : "bg-grappler-800/60 hover:bg-grappler-700/60 border border-grappler-700/50"
                   )}
                 >
                   <div className="flex items-center gap-1">
-                    {food.fromHistory && <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />}
+                    {food.dayPattern ? (
+                      <CalendarDays className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                    ) : food.fromHistory ? (
+                      <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
+                    ) : null}
                     <p className="text-xs font-medium text-grappler-100 truncate">{food.name}</p>
                   </div>
+                  {food.dayPattern && (
+                    <p className="text-[10px] text-amber-400/80 mt-0.5">{food.dayPattern}</p>
+                  )}
                   <p className="text-xs text-grappler-400 mt-1">
                     {food.calories} kcal &middot; {food.protein}g P
                   </p>
@@ -1497,7 +1578,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               ))}
             </div>
             <p className="text-xs text-grappler-600 mt-2">
-              Based on your remaining macros {mealSuggestions.some(s => s.fromHistory) ? '& your history' : ''} &middot; Tap to log
+              Based on your remaining macros{mealSuggestions.some(s => s.dayPattern) ? ', your weekly patterns' : ''}{mealSuggestions.some(s => s.fromHistory && !s.dayPattern) ? ' & history' : ''} &middot; Tap to log
             </p>
           </motion.div>
         )}
@@ -1906,17 +1987,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                               className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-grappler-700/60 transition-colors text-left border-b border-grappler-700/40 last:border-b-0"
                             >
                               <span className="text-sm flex-shrink-0">
-                                {item.source === 'history' ? (
+                                {item.dayPattern ? (
+                                  <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
+                                ) : item.source === 'history' ? (
                                   <Clock className="w-3.5 h-3.5 text-sky-400" />
                                 ) : (
                                   <Apple className="w-3.5 h-3.5 text-grappler-500" />
                                 )}
                               </span>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-grappler-100 truncate">{item.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-medium text-grappler-100 truncate">{item.name}</p>
+                                  {item.dayPattern && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 flex-shrink-0">{item.dayPattern}</span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-grappler-500">
                                   {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
-                                  {item.source === 'history' && item.count > 1 && (
+                                  {item.source === 'history' && item.count > 1 && !item.dayPattern && (
                                     <span className="text-sky-400/70 ml-1">· logged {item.count}x</span>
                                   )}
                                 </p>

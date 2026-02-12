@@ -37,6 +37,7 @@ import {
   RefreshCw,
   CheckCircle,
   Watch,
+  Scale,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -654,6 +655,35 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   // 2. Meal reminder
   if (feedCards.length < 4) {
     feedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
+  }
+
+  // 2b. Weekly body weight reminder (when diet coach active)
+  const activeDietPhase = useAppStore(s => s.activeDietPhase);
+  const lastBWEntry = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+  const daysSinceLastBW = lastBWEntry
+    ? Math.floor((Date.now() - new Date(lastBWEntry.date).getTime()) / (1000 * 60 * 60 * 24))
+    : Infinity;
+  if (activeDietPhase?.isActive && daysSinceLastBW >= 7 && feedCards.length < 4) {
+    feedCards.push(
+      <motion.div key="bw-reminder" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-amber-500/15 to-yellow-500/10 border border-amber-500/30 rounded-xl p-3.5">
+        <div className="flex items-start gap-3">
+          <Scale className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-amber-300 text-sm">Log Your Weight</h3>
+            <p className="text-xs text-grappler-400 mt-1">
+              {daysSinceLastBW === Infinity
+                ? 'No weight logged yet — your diet coach needs this to track progress.'
+                : `Last logged ${daysSinceLastBW} days ago. Weekly weigh-ins keep your diet coach accurate.`}
+            </p>
+            <button onClick={() => onNavigate('nutrition' as any)}
+              className="mt-2 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-medium rounded-lg transition-colors">
+              Log Weight
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
   }
 
   // 3. Fight camp phase detection

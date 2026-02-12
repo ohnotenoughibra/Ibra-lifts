@@ -92,6 +92,9 @@ export default function ActiveWorkout() {
   const [lastCompletedExerciseIndex, setLastCompletedExerciseIndex] = useState<number | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
+  const [whoopFollowed, setWhoopFollowed] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const preWhoopSnapshot = useRef<{ session: any; exerciseLogs: any } | null>(null);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
   const [showGrapplingQ, setShowGrapplingQ] = useState(true);
   const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
@@ -975,7 +978,14 @@ export default function ActiveWorkout() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
+                          if (activeWorkout) {
+                            preWhoopSnapshot.current = {
+                              session: activeWorkout.session,
+                              exerciseLogs: activeWorkout.exerciseLogs,
+                            };
+                          }
                           applyWhoopAdjustment();
+                          setWhoopFollowed(true);
                           setWhoopApplied(true);
                         }}
                         className={cn(
@@ -1003,15 +1013,36 @@ export default function ActiveWorkout() {
               {/* Whoop Applied Confirmation */}
               {whoopApplied && latestWhoopData && (
                 <div className={cn(
-                  'rounded-lg px-3 py-2 mb-4 flex items-center gap-2 text-xs',
+                  'rounded-lg px-3 py-2 mb-4 flex items-center justify-between text-xs',
                   whoopReadiness?.recommendation === 'reduce'
                     ? 'bg-red-500/10 text-red-300'
                     : whoopReadiness?.recommendation === 'increase'
                       ? 'bg-green-500/10 text-green-300'
                       : 'bg-grappler-800/50 text-grappler-300'
                 )}>
-                  <Activity className="w-3.5 h-3.5" />
-                  Recovery {latestWhoopData.recoveryScore}% &middot; Strain {latestWhoopData.strain?.toFixed(1)} &middot; {latestWhoopData.caloriesBurned} kcal
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5" />
+                    Recovery {latestWhoopData.recoveryScore}% &middot; Strain {latestWhoopData.strain?.toFixed(1)} &middot; {latestWhoopData.caloriesBurned} kcal
+                  </div>
+                  <button
+                    onClick={() => {
+                      // If Whoop adjustment was applied, restore original workout
+                      if (whoopFollowed && preWhoopSnapshot.current && activeWorkout) {
+                        useAppStore.setState({
+                          activeWorkout: {
+                            ...activeWorkout,
+                            session: preWhoopSnapshot.current.session,
+                            exerciseLogs: preWhoopSnapshot.current.exerciseLogs,
+                          },
+                        });
+                      }
+                      setWhoopFollowed(false);
+                      setWhoopApplied(false);
+                    }}
+                    className="text-grappler-400 hover:text-grappler-200 underline underline-offset-2 ml-2 flex-shrink-0"
+                  >
+                    Change
+                  </button>
                 </div>
               )}
 

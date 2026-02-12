@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
@@ -10,6 +10,7 @@ import {
   Users, MessageSquare, Search, Clock, Pin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hapticMedium } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 
 interface Tool {
@@ -102,20 +103,22 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => readJson(STORAGE_KEY_PINNED, []));
 
-  // Persist to localStorage
-  useEffect(() => { localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recentIds)); }, [recentIds]);
+  // Persist pinned to localStorage via effect (pinning doesn't unmount)
   useEffect(() => { localStorage.setItem(STORAGE_KEY_PINNED, JSON.stringify(pinnedIds)); }, [pinnedIds]);
 
   const handleNavigate = useCallback((id: NonNullable<OverlayView>) => {
-    // Track recently used
+    // Persist recent synchronously — onNavigate unmounts this component
+    // before a useEffect would fire
     setRecentIds(prev => {
-      const filtered = prev.filter(r => r !== id);
-      return [id, ...filtered].slice(0, MAX_RECENT);
+      const next = [id, ...prev.filter(r => r !== id)].slice(0, MAX_RECENT);
+      localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(next));
+      return next;
     });
     onNavigate(id);
   }, [onNavigate]);
 
   const togglePin = useCallback((id: string) => {
+    hapticMedium();
     setPinnedIds(prev =>
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id].slice(0, 6)
     );
@@ -234,19 +237,49 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   );
 }
 
+const LONG_PRESS_MS = 500;
+
 function ToolButton({ tool, onNavigate, isPinned, onTogglePin }: {
   tool: Tool;
   onNavigate: (id: NonNullable<OverlayView>) => void;
   isPinned: boolean;
   onTogglePin: (id: string) => void;
 }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  }, []);
+
+  const startPress = useCallback(() => {
+    didLongPress.current = false;
+    timerRef.current = setTimeout(() => {
+      didLongPress.current = true;
+      onTogglePin(tool.id);
+    }, LONG_PRESS_MS);
+  }, [onTogglePin, tool.id]);
+
+  const endPress = useCallback(() => {
+    clearTimer();
+  }, [clearTimer]);
+
+  // Clean up on unmount
+  useEffect(() => clearTimer, [clearTimer]);
+
   return (
     <button
-      onClick={() => onNavigate(tool.id)}
+      onClick={() => { if (!didLongPress.current) onNavigate(tool.id); }}
+      // Desktop: right-click to pin
       onContextMenu={(e) => { e.preventDefault(); onTogglePin(tool.id); }}
+      // Mobile: long-press to pin
+      onTouchStart={startPress}
+      onTouchEnd={endPress}
+      onTouchCancel={endPress}
+      onTouchMove={endPress}
       className={cn(
         'relative flex flex-col items-center justify-center gap-1 p-4 sm:p-3 rounded-xl bg-gradient-to-b border border-grappler-800/50 min-h-[5.5rem]',
-        'hover:border-grappler-700 active:scale-95 transition-all',
+        'hover:border-grappler-700 active:scale-95 transition-all select-none',
         tool.color
       )}
     >

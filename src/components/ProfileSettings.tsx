@@ -33,6 +33,8 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
+import { useToast } from './Toast';
+import { hapticMedium, hapticHeavy } from '@/lib/haptics';
 
 export default function ProfileSettings() {
   const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
@@ -46,7 +48,7 @@ export default function ProfileSettings() {
   const [verifySent, setVerifySent] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { showToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -54,13 +56,6 @@ export default function ProfileSettings() {
     danger?: boolean;
     onConfirm: () => void;
   } | null>(null);
-
-  // Auto-dismiss toast
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
 
   // Edit form state
   const [editName, setEditName] = useState(user?.name || '');
@@ -109,12 +104,12 @@ export default function ProfileSettings() {
       if (res.ok && data.emailSent) {
         setVerifySent(true);
       } else if (res.ok && !data.emailSent) {
-        setToast({ message: 'Email service not configured. Contact support.', type: 'error' });
+        showToast('Email service not configured. Contact support.', 'error');
       } else {
-        setToast({ message: data.error || 'Failed to send verification email.', type: 'error' });
+        showToast(data.error || 'Failed to send verification email.', 'error');
       }
     } catch {
-      setToast({ message: 'Network error. Please try again.', type: 'error' });
+      showToast('Network error. Please try again.', 'error');
     } finally {
       setVerifyLoading(false);
     }
@@ -128,16 +123,17 @@ export default function ProfileSettings() {
         resetStore();
         signOut({ callbackUrl: '/' });
       } else {
-        setToast({ message: 'Failed to delete account. Please try again.', type: 'error' });
+        showToast('Failed to delete account. Please try again.', 'error');
       }
     } catch {
-      setToast({ message: 'Something went wrong. Please try again.', type: 'error' });
+      showToast('Something went wrong. Please try again.', 'error');
     } finally {
       setDeleteLoading(false);
     }
   }, [resetStore]);
 
   const handleDeleteAccount = useCallback(() => {
+    hapticHeavy();
     setConfirmDialog({
       title: 'Delete Account',
       message: 'Permanently delete your account and all cloud data? This cannot be undone.',
@@ -172,6 +168,7 @@ export default function ProfileSettings() {
 
   const saveEdits = () => {
     if (!user) return;
+    hapticMedium();
     setSaving(true);
 
     // Detect if training-critical fields changed (these affect mesocycle programming)
@@ -224,7 +221,7 @@ export default function ProfileSettings() {
     // Brief save animation then show toast
     setTimeout(() => {
       setSaving(false);
-      setToast({ message: 'Profile saved', type: 'success' });
+      showToast('Profile saved');
 
       // If critical training fields changed, offer to regenerate the mesocycle
       if (trainingFieldsChanged || baselineChanged) {
@@ -236,7 +233,7 @@ export default function ProfileSettings() {
             onConfirm: () => {
               setConfirmDialog(null);
               generateNewMesocycle();
-              setToast({ message: 'Program regenerated', type: 'success' });
+              showToast('Program regenerated');
             },
           });
         }, 200);
@@ -916,29 +913,6 @@ export default function ProfileSettings() {
                 </button>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            key="toast"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50"
-          >
-            <div className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-sm font-medium',
-              toast.type === 'success'
-                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                : 'bg-red-500/20 text-red-300 border border-red-500/30'
-            )}>
-              {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-              {toast.message}
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

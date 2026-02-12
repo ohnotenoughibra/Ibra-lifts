@@ -29,15 +29,17 @@ import {
   Trash2,
   Check,
   ShieldAlert,
+  Palette,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
+import type { ColorTheme } from '@/lib/types';
 import { useToast } from './Toast';
-import { hapticMedium, hapticHeavy } from '@/lib/haptics';
+import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle } = useAppStore();
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme } = useAppStore();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'kg';
@@ -288,6 +290,55 @@ export default function ProfileSettings() {
           </div>
         </div>
       </motion.div>
+
+      {/* Color Theme Picker */}
+      <div className="card overflow-hidden">
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Palette className="w-4 h-4 text-grappler-400" />
+            <h3 className="font-medium text-grappler-200 text-sm">Color Theme</h3>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {([
+              { id: 'steel' as ColorTheme, label: 'Steel', colors: ['#3b82f6', '#06b6d4'] },
+              { id: 'rose' as ColorTheme, label: 'Rose', colors: ['#ec4899', '#f43f5e'] },
+              { id: 'emerald' as ColorTheme, label: 'Emerald', colors: ['#10b981', '#22c55e'] },
+              { id: 'amber' as ColorTheme, label: 'Amber', colors: ['#f59e0b', '#f97316'] },
+            ]).map(theme => {
+              const isActive = (colorTheme || 'steel') === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => { hapticLight(); setColorTheme(theme.id); }}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all active:scale-95',
+                    isActive
+                      ? 'border-primary-500/60 bg-primary-500/10'
+                      : 'border-grappler-700/50 bg-grappler-800/40 hover:border-grappler-600'
+                  )}
+                >
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ background: theme.colors[0] }} />
+                    <div className="w-4 h-4 rounded-full" style={{ background: theme.colors[1] }} />
+                  </div>
+                  <span className={cn(
+                    'text-[10px] font-medium',
+                    isActive ? 'text-primary-400' : 'text-grappler-400'
+                  )}>
+                    {theme.label}
+                  </span>
+                  {isActive && (
+                    <div className="absolute top-1 right-1">
+                      <Check className="w-3 h-3 text-primary-400" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-grappler-500 mt-2">Works with both dark and light mode</p>
+        </div>
+      </div>
 
       {/* Profile Settings — Editable */}
       <div className="card overflow-hidden">

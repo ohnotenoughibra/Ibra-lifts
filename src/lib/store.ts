@@ -27,6 +27,7 @@ import {
   CustomExercise,
   SessionTemplate,
   ThemeMode,
+  ColorTheme,
   HRSession,
   TrainingSession,
   MealEntry,
@@ -138,6 +139,7 @@ interface AppState {
 
   // Theme
   themeMode: ThemeMode;
+  colorTheme: ColorTheme;
 
   // Nutrition
   meals: MealEntry[];
@@ -331,6 +333,7 @@ interface AppState {
 
   // Theme actions
   setThemeMode: (mode: ThemeMode) => void;
+  setColorTheme: (theme: ColorTheme) => void;
 
   // Nutrition actions
   addMeal: (meal: Omit<MealEntry, 'id'>) => void;
@@ -488,6 +491,7 @@ export const useAppStore = create<AppState>()(
       hrSessions: [],
       trainingSessions: [],
       themeMode: 'dark' as ThemeMode,
+      colorTheme: 'steel' as ColorTheme,
       meals: [],
       macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
       waterLog: {},
@@ -2550,6 +2554,7 @@ export const useAppStore = create<AppState>()(
 
       // Theme actions
       setThemeMode: (mode) => set({ themeMode: mode }),
+      setColorTheme: (theme) => set({ colorTheme: theme }),
 
       // Nutrition actions
       addMeal: (meal) => {
@@ -2838,6 +2843,7 @@ export const useAppStore = create<AppState>()(
           hrSessions: [],
           trainingSessions: [],
           themeMode: 'dark' as ThemeMode,
+          colorTheme: 'steel' as ColorTheme,
           meals: [],
           macroTargets: { calories: 2500, protein: 200, carbs: 280, fat: 80 },
           waterLog: {},
@@ -3009,6 +3015,7 @@ export const useAppStore = create<AppState>()(
         hrSessions: state.hrSessions,
         trainingSessions: state.trainingSessions,
         themeMode: state.themeMode,
+        colorTheme: state.colorTheme,
         meals: state.meals,
         macroTargets: state.macroTargets,
         waterLog: state.waterLog,

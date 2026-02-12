@@ -705,6 +705,7 @@ export interface HRSession {
 
 // Theme
 export type ThemeMode = 'dark' | 'light';
+export type ColorTheme = 'steel' | 'rose' | 'emerald' | 'amber';
 
 // Training Session Tracking (unified system for all activity types)
 // Activity Categories - broad groupings of training types

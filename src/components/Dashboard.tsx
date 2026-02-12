@@ -15,6 +15,7 @@ import {
   Star,
   Zap,
   Compass,
+  Target,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
@@ -410,13 +411,14 @@ export default function Dashboard({
                 <p className="text-xs text-grappler-400">
                   Lv.{gamificationStats.level} {getLevelTitle(gamificationStats.level)}
                 </p>
-                <div className="w-12 h-1 bg-grappler-700 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
-                  <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }} />
+                <div className="w-20 h-1.5 bg-grappler-700 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
+                  <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" style={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }} />
                 </div>
+                <span className="text-[10px] text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} XP</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <SyncStatusIndicator
               syncStatus={syncStatus}
               lastSyncedAt={lastSyncedAt}
@@ -425,18 +427,37 @@ export default function Dashboard({
               onForceSync={onForceSync || (() => {})}
             />
             <ThemeToggle />
+            {/* Weekly Challenge mini-badge */}
+            {gamificationStats.weeklyChallenge && (() => {
+              const goals = gamificationStats.weeklyChallenge.goals;
+              const completed = goals.filter(g => g.current >= g.target).length;
+              return (
+                <div className="flex items-center gap-1 bg-grappler-800 px-2 py-1.5 rounded-full" title={`Weekly: ${completed}/${goals.length} goals done`}>
+                  <Target className="w-3.5 h-3.5 text-accent-400" />
+                  <span className="text-xs font-semibold text-grappler-200">{completed}/{goals.length}</span>
+                </div>
+              );
+            })()}
             <div className={cn(
-              'flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors',
-              streakAtRisk
-                ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
-                : 'bg-grappler-800'
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-full transition-colors',
+              gamificationStats.currentStreak >= 7
+                ? 'bg-orange-500/20 border border-orange-500/30'
+                : streakAtRisk
+                  ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
+                  : 'bg-grappler-800'
             )}>
-              <Flame className={cn('w-4 h-4', streakAtRisk ? 'text-blue-400' : 'text-blue-500')} />
-              <span className={cn('text-sm font-medium', streakAtRisk ? 'text-blue-300' : 'text-grappler-200')}>
+              <Flame className={cn(
+                'w-4 h-4',
+                gamificationStats.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-blue-500'
+              )} />
+              <span className={cn(
+                'text-sm font-medium',
+                gamificationStats.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-200'
+              )}>
                 {gamificationStats.currentStreak}
               </span>
             </div>
-            <div className="flex items-center gap-1 bg-grappler-800 px-3 py-1.5 rounded-full">
+            <div className="flex items-center gap-1 bg-grappler-800 px-2.5 py-1.5 rounded-full">
               <Star className="w-4 h-4 text-yellow-500" />
               <span className="text-sm font-medium text-grappler-200">
                 {formatNumber(gamificationStats.totalPoints)}

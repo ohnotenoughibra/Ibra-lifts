@@ -33,7 +33,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek } from '@/lib/types';
+import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { exportProgramPdf } from '@/lib/pdf-export';
 
@@ -245,21 +245,160 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
     handleGenerateWithMigrationCheck(weeks, sessionMinutes || undefined, sessionsPerWeek);
   };
 
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardGoal, setWizardGoal] = useState<GoalFocus>('balanced');
+  const [wizardDays, setWizardDays] = useState<SessionsPerWeek>(3);
+
   if (!currentMesocycle) {
+    const goalOptions: { value: GoalFocus; label: string; desc: string; icon: typeof Zap }[] = [
+      { value: 'strength', label: 'Get Stronger', desc: 'Heavy compounds, low reps, long rest', icon: Zap },
+      { value: 'hypertrophy', label: 'Build Muscle', desc: 'Moderate weight, higher volume, pump focus', icon: Heart },
+      { value: 'balanced', label: 'Both', desc: 'Undulating periodization — best of both worlds', icon: Flame },
+    ];
+
+    const dayOptions: SessionsPerWeek[] = [2, 3, 4, 5, 6];
+    const dayLabels: Record<number, string> = {
+      2: 'Full Body', 3: 'Full Body', 4: 'Upper / Lower',
+      5: 'Push / Pull / Legs', 6: 'Push / Pull / Legs',
+    };
+
+    const handleWizardGenerate = () => {
+      // Apply wizard goal + sessions to user before generating
+      const state = useAppStore.getState();
+      if (state.user) {
+        state.setUser({ ...state.user, sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
+      }
+      generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
+    };
+
     return (
-      <div className="text-center py-12">
-        <Dumbbell className="w-16 h-16 text-grappler-600 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-grappler-200 mb-2">No Active Program</h2>
-        <p className="text-grappler-400 mb-6">Generate a new mesocycle to get started</p>
-        <div className="space-y-3 max-w-sm mx-auto">
-          <button onClick={() => setShowEmphasisPicker(true)} className="btn btn-primary btn-md w-full gap-2">
-            <SlidersHorizontal className="w-4 h-4" />
-            Customize & Generate
-          </button>
-          <button onClick={() => generateNewMesocycle()} className="btn btn-secondary btn-sm w-full">
-            Quick Generate (Default)
-          </button>
+      <div className="space-y-6">
+        {/* Step indicators */}
+        <div className="flex items-center justify-center gap-2">
+          {['Goal', 'Schedule', 'Generate'].map((label, i) => (
+            <div key={label} className="flex items-center gap-2">
+              <button
+                onClick={() => i < wizardStep && setWizardStep(i)}
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all',
+                  wizardStep === i ? 'bg-primary-500 text-white' :
+                  wizardStep > i ? 'bg-green-500 text-white' :
+                  'bg-grappler-700 text-grappler-400'
+                )}
+              >
+                {wizardStep > i ? <Check className="w-4 h-4" /> : i + 1}
+              </button>
+              {i < 2 && <div className={cn('w-8 h-0.5 rounded', wizardStep > i ? 'bg-green-500' : 'bg-grappler-700')} />}
+            </div>
+          ))}
         </div>
+
+        <AnimatePresence mode="wait">
+          {/* Step 1: Goal */}
+          {wizardStep === 0 && (
+            <motion.div key="goal" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">What&apos;s your goal?</h2>
+              <p className="text-sm text-grappler-400 text-center mb-6">This shapes your rep ranges, rest times, and volume</p>
+              <div className="space-y-3 max-w-sm mx-auto">
+                {goalOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setWizardGoal(opt.value); setWizardStep(1); }}
+                    className={cn(
+                      'w-full card p-4 flex items-center gap-4 text-left transition-all border',
+                      wizardGoal === opt.value ? 'border-primary-500 bg-primary-500/10' : 'border-transparent hover:bg-grappler-700/50'
+                    )}
+                  >
+                    <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <opt.icon className="w-6 h-6 text-primary-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-grappler-100">{opt.label}</p>
+                      <p className="text-xs text-grappler-400 mt-0.5">{opt.desc}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-grappler-500 ml-auto flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 2: Schedule */}
+          {wizardStep === 1 && (
+            <motion.div key="schedule" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">How many days per week?</h2>
+              <p className="text-sm text-grappler-400 text-center mb-6">We&apos;ll pick the best split for your schedule</p>
+              <div className="flex justify-center gap-3 mb-4">
+                {dayOptions.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setWizardDays(d)}
+                    className={cn(
+                      'w-14 h-14 rounded-xl flex flex-col items-center justify-center transition-all border font-bold text-lg',
+                      wizardDays === d
+                        ? 'bg-primary-500 text-white border-primary-400'
+                        : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
+                    )}
+                  >
+                    {d}
+                    <span className="text-[10px] font-normal opacity-70">days</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-center text-sm text-grappler-400 mb-6">
+                Recommended split: <span className="text-primary-400 font-medium">{dayLabels[wizardDays]}</span>
+              </p>
+              <div className="flex justify-center gap-3">
+                <button onClick={() => setWizardStep(0)} className="btn btn-ghost btn-sm">Back</button>
+                <button onClick={() => setWizardStep(2)} className="btn btn-primary btn-md gap-2">
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 3: Confirm + Advanced */}
+          {wizardStep === 2 && (
+            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">Ready to go</h2>
+              <p className="text-sm text-grappler-400 text-center mb-6">Here&apos;s what we&apos;ll build for you</p>
+              <div className="card p-4 max-w-sm mx-auto mb-6 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-grappler-400">Goal</span>
+                  <span className="text-grappler-100 font-medium capitalize">{wizardGoal}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-grappler-400">Days / Week</span>
+                  <span className="text-grappler-100 font-medium">{wizardDays}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-grappler-400">Block Length</span>
+                  <span className="text-grappler-100 font-medium">{blockWeeks} weeks</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-grappler-400">Split</span>
+                  <span className="text-grappler-100 font-medium">{dayLabels[wizardDays]}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
+                <button onClick={handleWizardGenerate} className="btn btn-primary btn-md w-full gap-2 font-semibold">
+                  <Play className="w-4 h-4" />
+                  Generate Program
+                </button>
+                <button
+                  onClick={() => setShowEmphasisPicker(true)}
+                  className="btn btn-ghost btn-sm gap-2 text-grappler-400"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Advanced: Customize Muscle Priorities
+                </button>
+                <button onClick={() => setWizardStep(1)} className="btn btn-ghost btn-sm text-grappler-500">Back</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {showEmphasisPicker && (
             <MuscleEmphasisPicker
@@ -1039,13 +1178,21 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
         const bestSet = found.sets
           .filter(s => s.completed)
           .reduce((best, s) => (s.weight > best.weight ? s : best), found.sets[0]);
-        return { weight: bestSet.weight, reps: bestSet.reps, date: new Date(log.date) };
+        return { weight: bestSet.weight, reps: bestSet.reps, rpe: bestSet.rpe || 0, date: new Date(log.date) };
       }
     }
     return null;
   };
 
   const lastPerf = getAltHistory(ex.exerciseId);
+
+  // Suggest next weight based on last RPE
+  const suggestedWeight = lastPerf && lastPerf.weight > 0 ? (() => {
+    const step = weightUnit === 'kg' ? 2.5 : 5;
+    if (lastPerf.rpe <= 6) return lastPerf.weight + step * 2;
+    if (lastPerf.rpe <= 8) return lastPerf.weight + step;
+    return lastPerf.weight;
+  })() : null;
 
   return (
     <div className="bg-grappler-700/50 rounded-lg overflow-hidden">
@@ -1057,9 +1204,16 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
               {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
             </p>
             {lastPerf && lastPerf.weight > 0 && (
-              <p className="text-xs text-grappler-500 mt-0.5">
-                Last: {lastPerf.weight} {weightUnit} x {lastPerf.reps} &middot; {lastPerf.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <p className="text-xs text-grappler-500">
+                  Last: {lastPerf.weight} {weightUnit} x {lastPerf.reps}
+                </p>
+                {suggestedWeight !== null && suggestedWeight !== lastPerf.weight && (
+                  <span className="text-xs font-medium text-primary-400">
+                    Try {suggestedWeight} {weightUnit}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">

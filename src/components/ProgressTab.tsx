@@ -457,6 +457,97 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
 
 // ─── Progress + History Tab ───
 
+// ─── Block Performance Card ───
+
+function BlockPerformanceCard() {
+  const { currentMesocycle, workoutLogs, mesocycleHistory } = useAppStore();
+  const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
+
+  if (!currentMesocycle) return null;
+
+  const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+  const totalSessions = currentMesocycle.weeks.reduce((s, w) => s + w.sessions.length, 0);
+  const completed = currentLogs.length;
+  const percentage = totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0;
+
+  const totalVolume = currentLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+  const avgRPE = currentLogs.length > 0
+    ? Math.round((currentLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / currentLogs.length) * 10) / 10
+    : 0;
+  const prs = currentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+
+  // Compare vs previous block
+  const prevMeso = mesocycleHistory.length > 0 ? mesocycleHistory[mesocycleHistory.length - 1] : null;
+  const prevLogs = prevMeso ? workoutLogs.filter(l => l.mesocycleId === prevMeso.id) : [];
+  const prevVolume = prevLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+  const volumeDelta = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : null;
+
+  // Pace calculation
+  const startDate = currentLogs.length > 0
+    ? new Date(Math.min(...currentLogs.map(l => new Date(l.date).getTime())))
+    : null;
+  const weeksElapsed = startDate
+    ? Math.max(1, Math.round((Date.now() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+    : 1;
+  const totalWeeks = currentMesocycle.weeks.length;
+  const expectedCompletion = Math.round((weeksElapsed / totalWeeks) * totalSessions);
+  const paceStatus = completed >= expectedCompletion ? (completed > expectedCompletion + 1 ? 'ahead' : 'on_track') : 'behind';
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2">
+          <Target className="w-3.5 h-3.5" />
+          Current Block
+        </h3>
+        <span className={cn(
+          'text-xs font-semibold px-2 py-0.5 rounded-full',
+          paceStatus === 'ahead' ? 'bg-green-500/20 text-green-400' :
+          paceStatus === 'on_track' ? 'bg-primary-500/20 text-primary-400' :
+          'bg-yellow-500/20 text-yellow-400'
+        )}>
+          {paceStatus === 'ahead' ? 'Ahead' : paceStatus === 'on_track' ? 'On Track' : 'Behind'}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-3">
+        <div className="flex justify-between text-xs text-grappler-400 mb-1">
+          <span>{completed}/{totalSessions} sessions</span>
+          <span>{percentage}%</span>
+        </div>
+        <div className="w-full h-2 bg-grappler-700 rounded-full overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', percentage >= 100 ? 'bg-green-400' : 'bg-primary-500')}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="text-center">
+          <p className="text-lg font-bold text-grappler-100">{formatNumber(totalVolume)}</p>
+          <p className="text-xs text-grappler-500">Volume ({weightUnit})</p>
+          {volumeDelta !== null && (
+            <p className={cn('text-xs font-medium', volumeDelta >= 0 ? 'text-green-400' : 'text-red-400')}>
+              {volumeDelta >= 0 ? '+' : ''}{volumeDelta}% vs last
+            </p>
+          )}
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-bold text-grappler-100">{avgRPE || '—'}</p>
+          <p className="text-xs text-grappler-500">Avg RPE</p>
+        </div>
+        <div className="text-center">
+          <p className="text-lg font-bold text-yellow-400">{prs}</p>
+          <p className="text-xs text-grappler-500">PRs</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
   const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore();
@@ -631,7 +722,10 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {/* Content */}
       {view === 'charts' && (
         <div className="space-y-4">
-          {/* Engagement hooks first — challenges, streak, trends */}
+          {/* Current block performance — bridges program and progress */}
+          <BlockPerformanceCard />
+
+          {/* Engagement hooks — challenges, streak, trends */}
           <WeeklyChallengeCard gamificationStats={gamificationStats} />
           <StreakHeatmap workoutLogs={workoutLogs} />
           <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />

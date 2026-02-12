@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -22,12 +22,14 @@ import {
   Clock,
   Award,
   Star,
+  Share2,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import { isCurrentWeek, badges as allBadges } from '@/lib/gamification';
 import { calculate1RM } from '@/lib/workout-generator';
+import { generateWorkoutShareCard } from '@/lib/share-card';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
@@ -47,6 +49,23 @@ const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), {
 // ─── Widget Cards ───
 
 function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
+  const [editingGoal, setEditingGoal] = useState<string | null>(null);
+  const [goalInput, setGoalInput] = useState('');
+  const [goals, setGoals] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      return JSON.parse(localStorage.getItem('roots-lift-goals') || '{}');
+    } catch { return {}; }
+  });
+
+  const saveGoal = (exerciseId: string, target: number) => {
+    const updated = { ...goals, [exerciseId]: target };
+    setGoals(updated);
+    localStorage.setItem('roots-lift-goals', JSON.stringify(updated));
+    setEditingGoal(null);
+    setGoalInput('');
+  };
+
   const trends = useMemo(() => {
     const exerciseFreq: Record<string, number> = {};
     for (const log of workoutLogs) {
@@ -96,23 +115,77 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
       <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-accent-400" />
         Estimated 1RM
+        <span className="text-[9px] text-grappler-600 ml-auto">Tap to set goal</span>
       </h3>
       <div className="grid grid-cols-2 gap-3">
         {trends.map((lift) => {
           const diff = lift.current - lift.previous;
           const isUp = diff > 0;
+          const goal = goals[lift.exerciseId];
+          const goalPct = goal && goal > 0 ? Math.min(100, Math.round((lift.current / goal) * 100)) : null;
+          const goalReached = goal && lift.current >= goal;
+
           return (
-            <div key={lift.exerciseId} className="flex items-center justify-between bg-grappler-800/50 rounded-lg px-3 py-2">
-              <div>
-                <p className="text-xs text-grappler-400 capitalize">{lift.name}</p>
-                <p className="text-sm font-bold text-grappler-100">{lift.current} {weightUnit}</p>
+            <button
+              key={lift.exerciseId}
+              onClick={() => {
+                if (editingGoal === lift.exerciseId) {
+                  setEditingGoal(null);
+                } else {
+                  setEditingGoal(lift.exerciseId);
+                  setGoalInput(goal ? String(goal) : String(Math.round(lift.current * 1.1)));
+                }
+              }}
+              className="text-left bg-grappler-800/50 rounded-lg px-3 py-2 hover:bg-grappler-800/70 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-grappler-400 capitalize">{lift.name}</p>
+                  <p className="text-sm font-bold text-grappler-100">{lift.current} {weightUnit}</p>
+                </div>
+                {diff !== 0 && (
+                  <span className={cn('text-xs font-medium', isUp ? 'text-green-400' : 'text-red-400')}>
+                    {isUp ? '+' : ''}{diff}
+                  </span>
+                )}
               </div>
-              {diff !== 0 && (
-                <span className={cn('text-xs font-medium', isUp ? 'text-green-400' : 'text-red-400')}>
-                  {isUp ? '+' : ''}{diff}
-                </span>
+
+              {/* Goal progress bar */}
+              {goal && !goalReached && goalPct !== null && (
+                <div className="mt-1.5">
+                  <div className="flex justify-between text-[9px] text-grappler-500 mb-0.5">
+                    <span>Goal: {goal} {weightUnit}</span>
+                    <span>{goalPct}%</span>
+                  </div>
+                  <div className="w-full h-1 bg-grappler-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-accent-500 rounded-full transition-all" style={{ width: `${goalPct}%` }} />
+                  </div>
+                </div>
               )}
-            </div>
+              {goalReached && (
+                <p className="text-[9px] text-green-400 font-semibold mt-1">Goal reached!</p>
+              )}
+
+              {/* Inline goal editor */}
+              {editingGoal === lift.exerciseId && (
+                <div className="mt-2 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="number"
+                    value={goalInput}
+                    onChange={e => setGoalInput(e.target.value)}
+                    className="w-20 bg-grappler-700 text-grappler-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    placeholder={weightUnit}
+                    autoFocus
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); const v = parseInt(goalInput); if (v > 0) saveGoal(lift.exerciseId, v); }}
+                    className="text-[10px] bg-primary-500 text-white px-2 py-1 rounded font-medium"
+                  >
+                    Set
+                  </button>
+                </div>
+              )}
+            </button>
           );
         })}
       </div>
@@ -630,6 +703,14 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
     return { total, consistency: Math.round(consistencyScore), strength: Math.round(strengthScore), volume: Math.round(volumeScore), recovery: Math.round(recoveryScore), engagement: Math.round(engagementScore) };
   }, [workoutLogs, gamificationStats]);
 
+  // Animated ring fill on mount
+  const [animatedValue, setAnimatedValue] = useState(0);
+  useEffect(() => {
+    if (!score) return;
+    const timer = setTimeout(() => setAnimatedValue(score.total), 100);
+    return () => clearTimeout(timer);
+  }, [score]);
+
   if (!score) return null;
 
   const getGrade = (s: number) => s >= 90 ? 'A+' : s >= 80 ? 'A' : s >= 70 ? 'B+' : s >= 60 ? 'B' : s >= 50 ? 'C' : s >= 40 ? 'D' : 'F';
@@ -637,22 +718,29 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
   const getRingColor = (s: number) => s >= 80 ? '#22c55e' : s >= 60 ? '#0ea5e9' : s >= 40 ? '#eab308' : '#ef4444';
 
   const circumference = 2 * Math.PI * 42;
-  const strokeDash = (score.total / 100) * circumference;
+  const strokeDash = (animatedValue / 100) * circumference;
 
   return (
     <div className="card p-4">
       <div className="flex items-center gap-4">
-        {/* Score Ring */}
+        {/* Score Ring — animates from 0 to actual value */}
         <div className="relative w-24 h-24 flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" strokeWidth="8" />
             <circle cx="50" cy="50" r="42" fill="none" stroke={getRingColor(score.total)}
               strokeWidth="8" strokeLinecap="round"
               strokeDasharray={`${strokeDash} ${circumference}`}
-              className="transition-all duration-1000" />
+              style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-2xl font-black', getColor(score.total))}>{score.total}</span>
+            <motion.span
+              className={cn('text-2xl font-black', getColor(score.total))}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
+            >
+              {score.total}
+            </motion.span>
             <span className="text-[10px] text-grappler-500 font-medium">{getGrade(score.total)}</span>
           </div>
         </div>
@@ -820,6 +908,7 @@ function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog
 function SessionRecapCard() {
   const lastCompleted = useAppStore(s => s.lastCompletedWorkout);
   const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+  const [sharing, setSharing] = useState(false);
 
   if (!lastCompleted) return null;
 
@@ -830,6 +919,33 @@ function SessionRecapCard() {
 
   const { log, points, hadPR, newBadges, newStreak } = lastCompleted;
   const prCount = log.exercises.filter(e => e.personalRecord).length;
+
+  const handleShareImage = async () => {
+    setSharing(true);
+    try {
+      const blob = await generateWorkoutShareCard({
+        exercises: log.exercises.length,
+        volume: log.totalVolume,
+        duration: log.duration,
+        prs: prCount,
+        streak: newStreak,
+        xp: points,
+        weightUnit,
+      });
+      if (!blob) return;
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        const file = new File([blob], 'workout-recap.png', { type: 'image/png' });
+        await navigator.share({ files: [file], title: 'Workout Complete — Roots Gains' });
+      } else {
+        // Fallback: download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'workout-recap.png'; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* user cancelled share */ }
+    setSharing(false);
+  };
 
   return (
     <motion.div
@@ -848,9 +964,19 @@ function SessionRecapCard() {
               <p className="text-[10px] text-grappler-400">{Math.round(hoursAgo * 60) < 60 ? `${Math.round(hoursAgo * 60)}m ago` : `${Math.round(hoursAgo)}h ago`}</p>
             </div>
           </div>
-          <span className="text-xs font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
-            +{points} XP
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShareImage}
+              disabled={sharing}
+              className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors disabled:opacity-50"
+              title="Share as image"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-xs font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+              +{points} XP
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2 mb-3">
@@ -990,9 +1116,42 @@ function BlockPerformanceCard() {
   );
 }
 
+// Skeleton placeholder for overview cards
+function OverviewSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="card p-4 flex items-center gap-4">
+        <div className="w-24 h-24 rounded-full bg-grappler-800" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 w-28 bg-grappler-800 rounded" />
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="h-1.5 w-16 bg-grappler-800 rounded" />
+              <div className="flex-1 h-1.5 bg-grappler-800 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="card p-4 space-y-3">
+        <div className="h-3 w-20 bg-grappler-800 rounded" />
+        <div className="h-2 w-full bg-grappler-800 rounded" />
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-12 bg-grappler-800 rounded-lg" />)}
+        </div>
+      </div>
+      <div className="card p-4 space-y-2">
+        <div className="h-3 w-24 bg-grappler-800 rounded" />
+        {[1, 2, 3].map(i => <div key={i} className="h-10 bg-grappler-800 rounded-lg" />)}
+      </div>
+    </div>
+  );
+}
+
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
   const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore();
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
   const [showExport, setShowExport] = useState(false);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
@@ -1162,7 +1321,8 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       </AnimatePresence>
 
       {/* Content */}
-      {view === 'charts' && (
+      {view === 'charts' && !hydrated && <OverviewSkeleton />}
+      {view === 'charts' && hydrated && (
         <div className="space-y-4">
           {/* Post-workout session recap (visible for 2h after workout) */}
           <SessionRecapCard />

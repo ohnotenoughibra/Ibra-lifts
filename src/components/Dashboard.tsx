@@ -549,7 +549,7 @@ export default function Dashboard({
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => { setActiveTab(tab.id as TabType); window.scrollTo(0, 0); }}
               aria-label={tab.label}
               aria-selected={activeTab === tab.id}
               role="tab"

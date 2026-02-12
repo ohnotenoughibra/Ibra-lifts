@@ -36,8 +36,10 @@ import {
   SkipForward,
   RefreshCw,
   CheckCircle,
+  Watch,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
@@ -235,7 +237,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions,
-    trainingSessions, latestWhoopData, meals,
+    trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
   } = useAppStore();
@@ -1389,6 +1391,28 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             </div>
           </div>
+        )}
+
+        {/* Wearable connection CTA — show when user has feature access but no data */}
+        {recoveryScore == null && (() => {
+          const tier = getEffectiveTier(subscription, session?.user?.email);
+          return hasFeatureAccess('wearable-integration', tier);
+        })() && (
+          <button
+            onClick={() => onNavigate('wearable')}
+            className="w-full rounded-xl p-2.5 mb-2.5 border border-purple-500/30 bg-purple-500/10 flex items-center justify-between hover:bg-purple-500/15 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Watch className="w-4 h-4 text-purple-400" />
+              <div className="text-left">
+                <span className="text-xs font-medium text-grappler-200">Wearable not connected</span>
+                <p className="text-xs text-grappler-500">Connect Whoop for recovery, sleep & strain</p>
+              </div>
+            </div>
+            <span className="text-xs font-medium text-purple-400 px-2 py-1 rounded-lg bg-purple-500/20">
+              Connect
+            </span>
+          </button>
         )}
 
         {showReadiness && <ReadinessCard />}

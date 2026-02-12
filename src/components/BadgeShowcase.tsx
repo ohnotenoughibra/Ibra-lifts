@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { badges as allBadges, getBadgesByCategory } from '@/lib/gamification';
-import { ArrowLeft, Trophy, Lock } from 'lucide-react';
+import { ArrowLeft, Trophy, Lock, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BadgeCategory } from '@/lib/types';
 
@@ -104,7 +104,12 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.02 }}
-              onClick={() => setSelectedBadge(selectedBadge === badge.id ? null : badge.id)}
+              onClick={() => {
+                setSelectedBadge(selectedBadge === badge.id ? null : badge.id);
+                if (badge.earned && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  navigator.vibrate(30);
+                }
+              }}
               className={cn(
                 'relative flex flex-col items-center p-3 rounded-xl border transition-all text-center',
                 badge.earned
@@ -177,6 +182,23 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
                         </span>
                       )}
                     </div>
+                    {badge.earned && (
+                      <button
+                        onClick={async () => {
+                          const text = `${badge.icon} I earned the "${badge.name}" badge!\n${badge.description}\n\n— Roots Gains`;
+                          try {
+                            if (typeof navigator !== 'undefined' && navigator.share) {
+                              await navigator.share({ text });
+                            } else {
+                              await (navigator as Navigator).clipboard.writeText(text);
+                            }
+                          } catch { /* user cancelled or clipboard unavailable */ }
+                        }}
+                        className="mt-2 flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                      >
+                        <Share2 className="w-3 h-3" /> Share
+                      </button>
+                    )}
                     {!badge.earned && (
                       <p className="text-xs text-grappler-600 mt-1 italic">
                         Requirement: {badge.requirement.replace(/_/g, ' ')}

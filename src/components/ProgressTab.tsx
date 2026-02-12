@@ -14,11 +14,20 @@ import {
   History,
   Scaling,
   MoreHorizontal,
+  Trophy,
+  Zap,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
+  Clock,
+  Award,
+  Star,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
-import { isCurrentWeek } from '@/lib/gamification';
+import { isCurrentWeek, badges as allBadges } from '@/lib/gamification';
+import { calculate1RM } from '@/lib/workout-generator';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
@@ -112,16 +121,29 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
 }
 
 function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLogs: WorkoutLog[]; bodyWeightLog: { date: Date | string; weight: number }[]; weightUnit: string }) {
+  const activeDietPhase = useAppStore(s => s.activeDietPhase);
+  const phase = activeDietPhase?.isActive ? activeDietPhase.goal : null; // 'cut' | 'maintain' | 'bulk' | null
+
   const data = useMemo(() => {
     if (bodyWeightLog.length < 2 && workoutLogs.length < 2) return null;
+    const eightWeeksAgo = Date.now() - 56 * 24 * 60 * 60 * 1000;
     const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
-    const recentWeights = bodyWeightLog
-      .filter(e => new Date(e.date).getTime() > fourWeeksAgo)
+
+    // Get all recent weights (8 weeks for extended trendline)
+    const allRecentWeights = bodyWeightLog
+      .filter(e => new Date(e.date).getTime() > eightWeeksAgo)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // 4-week window weights for delta
+    const recentWeights = allRecentWeights.filter(e => new Date(e.date).getTime() > fourWeeksAgo);
     let weightDelta: number | null = null;
     if (recentWeights.length >= 2) {
       weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
     }
+
+    // Weight sparkline over 8 weeks
+    const weightTrend = allRecentWeights.map(w => w.weight);
+
     const recentLogs = workoutLogs
       .filter(l => new Date(l.date).getTime() > fourWeeksAgo)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -133,27 +155,104 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
       volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
     }
     if (weightDelta === null && volumeDelta === null) return null;
-    return { weightDelta, volumeDelta, latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null };
+    return {
+      weightDelta,
+      volumeDelta,
+      latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null,
+      weightTrend,
+    };
   }, [workoutLogs, bodyWeightLog]);
 
   if (!data) return null;
 
+  // Phase-aware interpretation
+  const getInterpretation = () => {
+    if (data.weightDelta === null || data.volumeDelta === null) return 'Tracking trends — keep logging to see patterns.';
+
+    if (phase === 'cut') {
+      if (data.weightDelta < 0 && data.volumeDelta >= 0)
+        return 'Weight dropping while maintaining volume — cut is on track!';
+      if (data.weightDelta < 0 && data.volumeDelta < 0)
+        return 'Losing volume on the cut — consider slowing the deficit.';
+      if (data.weightDelta >= 0)
+        return 'Weight not dropping — may need to tighten calories or increase activity.';
+    }
+
+    if (phase === 'bulk') {
+      if (data.weightDelta > 0 && data.volumeDelta > 0)
+        return 'Weight and volume both climbing — lean bulk is working!';
+      if (data.weightDelta > 0 && data.volumeDelta <= 0)
+        return 'Gaining weight but volume stalled — push harder in the gym.';
+      if (data.weightDelta <= 0)
+        return 'Weight not climbing — you may need a bigger surplus.';
+    }
+
+    if (phase === 'maintain') {
+      if (Math.abs(data.weightDelta) <= 0.5 && data.volumeDelta >= 0)
+        return 'Weight stable, volume maintained — perfect maintenance phase.';
+      if (Math.abs(data.weightDelta) > 1)
+        return 'Weight drifting more than expected — check calorie intake.';
+    }
+
+    // No phase set — default interpretations
+    if (data.weightDelta <= 0 && data.volumeDelta > 0) return 'Losing weight while lifting more — solid recomp!';
+    if (data.weightDelta > 0 && data.volumeDelta > 0) return 'Weight and volume both up — lean bulk territory.';
+    if (data.weightDelta < 0 && data.volumeDelta < 0) return 'Both trending down — make sure you\'re fueling enough.';
+    return 'Tracking trends — keep logging to see patterns.';
+  };
+
+  // Mini SVG sparkline for weight trend
+  const WeightSparkline = () => {
+    if (data.weightTrend.length < 2) return null;
+    const pts = data.weightTrend;
+    const min = Math.min(...pts);
+    const max = Math.max(...pts);
+    const range = max - min || 1;
+    const w = 100;
+    const h = 24;
+    const points = pts.map((v, i) =>
+      `${(i / (pts.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`
+    ).join(' ');
+    return (
+      <svg width={w} height={h} className="mt-1">
+        <polyline fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      </svg>
+    );
+  };
+
   return (
     <div className="card p-4">
-      <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-        <Scaling className="w-4 h-4 text-purple-400" />
-        Body Recomp (4 weeks)
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+          <Scaling className="w-4 h-4 text-purple-400" />
+          Body Recomp
+        </h3>
+        {phase && (
+          <span className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase',
+            phase === 'cut' ? 'bg-red-500/15 text-red-400' :
+            phase === 'bulk' ? 'bg-blue-500/15 text-blue-400' :
+            'bg-green-500/15 text-green-400'
+          )}>
+            {phase}
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {data.latestWeight !== null && (
           <div className="bg-grappler-800/50 rounded-lg px-3 py-2">
             <p className="text-xs text-grappler-400">Weight</p>
             <p className="text-sm font-bold text-grappler-100">{data.latestWeight} {weightUnit}</p>
             {data.weightDelta !== null && (
-              <p className={cn('text-xs font-medium', data.weightDelta > 0 ? 'text-sky-400' : data.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500')}>
+              <p className={cn('text-xs font-medium',
+                phase === 'cut' ? (data.weightDelta < 0 ? 'text-green-400' : 'text-red-400') :
+                phase === 'bulk' ? (data.weightDelta > 0 ? 'text-green-400' : 'text-yellow-400') :
+                data.weightDelta > 0 ? 'text-sky-400' : data.weightDelta < 0 ? 'text-blue-400' : 'text-grappler-500'
+              )}>
                 {data.weightDelta > 0 ? '+' : ''}{data.weightDelta} {weightUnit}
               </p>
             )}
+            <WeightSparkline />
           </div>
         )}
         {data.volumeDelta !== null && (
@@ -166,17 +265,7 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
           </div>
         )}
       </div>
-      {data.weightDelta !== null && data.volumeDelta !== null && (
-        <p className="text-xs text-grappler-500 mt-2">
-          {data.weightDelta <= 0 && data.volumeDelta > 0
-            ? 'Losing weight while lifting more — solid recomp!'
-            : data.weightDelta > 0 && data.volumeDelta > 0
-            ? 'Weight and volume both up — lean bulk territory.'
-            : data.weightDelta < 0 && data.volumeDelta < 0
-            ? 'Both trending down — make sure you\'re fueling enough.'
-            : 'Tracking trends — keep logging to see patterns.'}
-        </p>
-      )}
+      <p className="text-xs text-grappler-500 mt-2">{getInterpretation()}</p>
     </div>
   );
 }
@@ -455,6 +544,359 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   );
 }
 
+// ─── Performance Score (0-100) ───
+
+function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: WorkoutLog[]; gamificationStats: GamificationStats }) {
+  const score = useMemo(() => {
+    if (workoutLogs.length < 3) return null;
+
+    const now = Date.now();
+    const fourWeeksAgo = now - 28 * 24 * 60 * 60 * 1000;
+    const recentLogs = workoutLogs.filter(l => new Date(l.date).getTime() > fourWeeksAgo);
+    if (recentLogs.length === 0) return null;
+
+    // Consistency (30%): sessions per week vs expected (4 ideal)
+    const weeksInRange = Math.max(1, Math.round((now - Math.min(...recentLogs.map(l => new Date(l.date).getTime()))) / (7 * 24 * 60 * 60 * 1000)));
+    const sessionsPerWeek = recentLogs.length / weeksInRange;
+    const consistencyScore = Math.min(100, (sessionsPerWeek / 4) * 100);
+
+    // Strength trend (25%): are lifts going up?
+    let strengthScore = 50; // neutral default
+    const exerciseData: Record<string, { date: number; e1rm: number }[]> = {};
+    recentLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        if (!exerciseData[ex.exerciseId]) exerciseData[ex.exerciseId] = [];
+        const maxE1rm = ex.sets.reduce((max, set) => {
+          if (!set.completed || set.weight === 0) return max;
+          const e1rm = calculate1RM(set.weight, set.reps);
+          return e1rm > max ? e1rm : max;
+        }, 0);
+        if (maxE1rm > 0) {
+          exerciseData[ex.exerciseId].push({ date: new Date(log.date).getTime(), e1rm: maxE1rm });
+        }
+      });
+    });
+    const trends: number[] = [];
+    Object.values(exerciseData).forEach(data => {
+      if (data.length >= 2) {
+        const sorted = [...data].sort((a, b) => a.date - b.date);
+        const first = sorted[0].e1rm;
+        const last = sorted[sorted.length - 1].e1rm;
+        if (first > 0) trends.push(((last - first) / first) * 100);
+      }
+    });
+    if (trends.length > 0) {
+      const avgTrend = trends.reduce((s, t) => s + t, 0) / trends.length;
+      strengthScore = Math.min(100, Math.max(0, 50 + avgTrend * 5)); // +5% e1rm = +25 pts
+    }
+
+    // Volume progression (20%): is total volume trending up?
+    let volumeScore = 50;
+    if (recentLogs.length >= 4) {
+      const half = Math.floor(recentLogs.length / 2);
+      const sorted = [...recentLogs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const firstHalf = sorted.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
+      const secondHalf = sorted.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (sorted.length - half);
+      if (firstHalf > 0) {
+        const pct = ((secondHalf - firstHalf) / firstHalf) * 100;
+        volumeScore = Math.min(100, Math.max(0, 50 + pct * 3));
+      }
+    }
+
+    // Recovery / RPE (15%): avg RPE between 7-8.5 is ideal
+    let recoveryScore = 50;
+    const rpeLogs = recentLogs.filter(l => l.overallRPE > 0);
+    if (rpeLogs.length > 0) {
+      const avgRPE = rpeLogs.reduce((s, l) => s + l.overallRPE, 0) / rpeLogs.length;
+      // RPE 7.5 = 100, drops off sharply outside 6.5-9
+      recoveryScore = Math.max(0, Math.min(100, 100 - Math.abs(avgRPE - 7.5) * 30));
+    }
+
+    // Engagement (10%): streak, badges, challenges
+    const engagementScore = Math.min(100,
+      (gamificationStats.currentStreak >= 7 ? 40 : gamificationStats.currentStreak * 5) +
+      Math.min(30, gamificationStats.badges.length * 3) +
+      (gamificationStats.challengesCompleted * 10)
+    );
+
+    const total = Math.round(
+      consistencyScore * 0.30 +
+      strengthScore * 0.25 +
+      volumeScore * 0.20 +
+      recoveryScore * 0.15 +
+      engagementScore * 0.10
+    );
+
+    return { total, consistency: Math.round(consistencyScore), strength: Math.round(strengthScore), volume: Math.round(volumeScore), recovery: Math.round(recoveryScore), engagement: Math.round(engagementScore) };
+  }, [workoutLogs, gamificationStats]);
+
+  if (!score) return null;
+
+  const getGrade = (s: number) => s >= 90 ? 'A+' : s >= 80 ? 'A' : s >= 70 ? 'B+' : s >= 60 ? 'B' : s >= 50 ? 'C' : s >= 40 ? 'D' : 'F';
+  const getColor = (s: number) => s >= 80 ? 'text-green-400' : s >= 60 ? 'text-primary-400' : s >= 40 ? 'text-yellow-400' : 'text-red-400';
+  const getRingColor = (s: number) => s >= 80 ? '#22c55e' : s >= 60 ? '#0ea5e9' : s >= 40 ? '#eab308' : '#ef4444';
+
+  const circumference = 2 * Math.PI * 42;
+  const strokeDash = (score.total / 100) * circumference;
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center gap-4">
+        {/* Score Ring */}
+        <div className="relative w-24 h-24 flex-shrink-0">
+          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" strokeWidth="8" />
+            <circle cx="50" cy="50" r="42" fill="none" stroke={getRingColor(score.total)}
+              strokeWidth="8" strokeLinecap="round"
+              strokeDasharray={`${strokeDash} ${circumference}`}
+              className="transition-all duration-1000" />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={cn('text-2xl font-black', getColor(score.total))}>{score.total}</span>
+            <span className="text-[10px] text-grappler-500 font-medium">{getGrade(score.total)}</span>
+          </div>
+        </div>
+
+        {/* Breakdown */}
+        <div className="flex-1 space-y-1.5">
+          <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-2">Performance Score</h3>
+          {[
+            { label: 'Consistency', value: score.consistency, weight: '30%' },
+            { label: 'Strength', value: score.strength, weight: '25%' },
+            { label: 'Volume', value: score.volume, weight: '20%' },
+            { label: 'Recovery', value: score.recovery, weight: '15%' },
+            { label: 'Engagement', value: score.engagement, weight: '10%' },
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-2">
+              <span className="text-[10px] text-grappler-500 w-16">{item.label}</span>
+              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${item.value}%`, backgroundColor: getRingColor(item.value) }} />
+              </div>
+              <span className="text-[10px] text-grappler-400 w-7 text-right">{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Training Timeline ───
+
+function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
+  const { mesocycleHistory, currentMesocycle } = useAppStore();
+
+  const blocks = useMemo(() => {
+    const allBlocks = [
+      ...mesocycleHistory.map(m => ({ ...m, isCurrent: false })),
+      ...(currentMesocycle ? [{ ...currentMesocycle, isCurrent: true }] : []),
+    ];
+
+    return allBlocks.map(meso => {
+      const logs = workoutLogs.filter(l => l.mesocycleId === meso.id);
+      const totalVol = logs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+      const totalSessions = meso.weeks.reduce((s, w) => s + w.sessions.length, 0);
+      const completed = logs.length;
+      const prs = logs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+      const avgRPE = logs.length > 0
+        ? Math.round((logs.reduce((s, l) => s + (l.overallRPE || 0), 0) / logs.length) * 10) / 10
+        : 0;
+
+      return {
+        id: meso.id,
+        name: meso.name,
+        goal: meso.goalFocus,
+        weeks: meso.weeks.length,
+        totalSessions,
+        completed,
+        volume: totalVol,
+        prs,
+        avgRPE,
+        isCurrent: meso.isCurrent,
+        isDeload: meso.weeks.some(w => w.isDeload),
+      };
+    });
+  }, [mesocycleHistory, currentMesocycle, workoutLogs]);
+
+  if (blocks.length < 1) return null;
+
+  // Calculate block-over-block comparison for latest vs previous
+  const comparison = blocks.length >= 2 ? (() => {
+    const current = blocks[blocks.length - 1];
+    const prev = blocks[blocks.length - 2];
+    const volumeDelta = prev.volume > 0 ? Math.round(((current.volume - prev.volume) / prev.volume) * 100) : null;
+    const prDelta = current.prs - prev.prs;
+    const rpeDelta = prev.avgRPE > 0 ? Math.round((current.avgRPE - prev.avgRPE) * 10) / 10 : null;
+    return { volumeDelta, prDelta, rpeDelta };
+  })() : null;
+
+  const maxVol = Math.max(...blocks.map(b => b.volume), 1);
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <Clock className="w-3.5 h-3.5" />
+        Training Journey
+      </h3>
+
+      {/* Timeline visualization */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {blocks.map((block, i) => (
+          <div key={block.id} className="flex flex-col items-center flex-shrink-0" style={{ minWidth: '72px' }}>
+            {/* Volume bar */}
+            <div className="w-full h-20 flex items-end justify-center mb-1">
+              <div
+                className={cn(
+                  'w-10 rounded-t-md transition-all',
+                  block.isCurrent ? 'bg-gradient-to-t from-primary-600 to-primary-400' : 'bg-grappler-600'
+                )}
+                style={{ height: `${Math.max(8, (block.volume / maxVol) * 100)}%` }}
+                title={`${formatNumber(block.volume)} ${weightUnit}`}
+              />
+            </div>
+            {/* Label */}
+            <p className={cn('text-[10px] font-medium text-center truncate w-full', block.isCurrent ? 'text-primary-400' : 'text-grappler-400')}>
+              {block.isCurrent ? 'Current' : `Block ${i + 1}`}
+            </p>
+            <p className="text-[9px] text-grappler-600 text-center">{block.weeks}wk · {block.completed}s</p>
+            {block.prs > 0 && (
+              <span className="text-[9px] text-yellow-400 font-medium">{block.prs} PR{block.prs > 1 ? 's' : ''}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Block comparison */}
+      {comparison && (
+        <div className="mt-3 pt-3 border-t border-grappler-800 grid grid-cols-3 gap-2">
+          {comparison.volumeDelta !== null && (
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                {comparison.volumeDelta >= 0
+                  ? <ArrowUpRight className="w-3 h-3 text-green-400" />
+                  : <ArrowDownRight className="w-3 h-3 text-red-400" />}
+                <span className={cn('text-xs font-bold', comparison.volumeDelta >= 0 ? 'text-green-400' : 'text-red-400')}>
+                  {comparison.volumeDelta >= 0 ? '+' : ''}{comparison.volumeDelta}%
+                </span>
+              </div>
+              <p className="text-[9px] text-grappler-500">Volume</p>
+            </div>
+          )}
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1">
+              {comparison.prDelta > 0
+                ? <ArrowUpRight className="w-3 h-3 text-yellow-400" />
+                : comparison.prDelta < 0
+                ? <ArrowDownRight className="w-3 h-3 text-red-400" />
+                : <Minus className="w-3 h-3 text-grappler-500" />}
+              <span className={cn('text-xs font-bold', comparison.prDelta > 0 ? 'text-yellow-400' : comparison.prDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                {comparison.prDelta > 0 ? '+' : ''}{comparison.prDelta} PRs
+              </span>
+            </div>
+            <p className="text-[9px] text-grappler-500">vs Last Block</p>
+          </div>
+          {comparison.rpeDelta !== null && (
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                {comparison.rpeDelta <= 0
+                  ? <ArrowDownRight className="w-3 h-3 text-green-400" />
+                  : <ArrowUpRight className="w-3 h-3 text-yellow-400" />}
+                <span className={cn('text-xs font-bold', comparison.rpeDelta <= 0 ? 'text-green-400' : 'text-yellow-400')}>
+                  {comparison.rpeDelta > 0 ? '+' : ''}{comparison.rpeDelta}
+                </span>
+              </div>
+              <p className="text-[9px] text-grappler-500">Avg RPE</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Session Recap Card (Post-Workout) ───
+
+function SessionRecapCard() {
+  const lastCompleted = useAppStore(s => s.lastCompletedWorkout);
+  const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+
+  if (!lastCompleted) return null;
+
+  // Show for 2 hours after completion
+  const completedAt = new Date(lastCompleted.log.date).getTime();
+  const hoursAgo = (Date.now() - completedAt) / (1000 * 60 * 60);
+  if (hoursAgo > 2) return null;
+
+  const { log, points, hadPR, newBadges, newStreak } = lastCompleted;
+  const prCount = log.exercises.filter(e => e.personalRecord).length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card overflow-hidden"
+    >
+      <div className="bg-gradient-to-r from-green-600/20 via-primary-600/20 to-purple-600/20 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-green-300">Session Complete</h3>
+              <p className="text-[10px] text-grappler-400">{Math.round(hoursAgo * 60) < 60 ? `${Math.round(hoursAgo * 60)}m ago` : `${Math.round(hoursAgo)}h ago`}</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+            +{points} XP
+          </span>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+            <p className="text-sm font-bold text-grappler-100">{log.exercises.length}</p>
+            <p className="text-[9px] text-grappler-500">Exercises</p>
+          </div>
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+            <p className="text-sm font-bold text-grappler-100">{formatNumber(log.totalVolume)}</p>
+            <p className="text-[9px] text-grappler-500">Vol ({weightUnit})</p>
+          </div>
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+            <p className="text-sm font-bold text-grappler-100">{log.duration}m</p>
+            <p className="text-[9px] text-grappler-500">Duration</p>
+          </div>
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+            <p className="text-sm font-bold text-grappler-100">{newStreak}</p>
+            <p className="text-[9px] text-grappler-500">Streak</p>
+          </div>
+        </div>
+
+        {/* PR highlight */}
+        {hadPR && prCount > 0 && (
+          <div className="flex items-center gap-2 bg-yellow-500/10 rounded-lg px-3 py-2 mb-2">
+            <Star className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs font-semibold text-yellow-300">{prCount} Personal Record{prCount > 1 ? 's' : ''} Crushed!</span>
+          </div>
+        )}
+
+        {/* Badges earned */}
+        {newBadges && newBadges.length > 0 && (
+          <div className="space-y-1.5">
+            {newBadges.map(badge => (
+              <div key={badge.id} className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2">
+                <span className="text-base">{badge.icon}</span>
+                <span className="text-xs font-semibold text-purple-300">{badge.name}</span>
+                <span className="text-[10px] text-purple-400 ml-auto">+{badge.points}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Progress + History Tab ───
 
 // ─── Block Performance Card ───
@@ -722,12 +1164,22 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {/* Content */}
       {view === 'charts' && (
         <div className="space-y-4">
+          {/* Post-workout session recap (visible for 2h after workout) */}
+          <SessionRecapCard />
+
+          {/* Performance Score — single-number emotional read */}
+          <PerformanceScore workoutLogs={workoutLogs} gamificationStats={gamificationStats} />
+
           {/* Current block performance — bridges program and progress */}
           <BlockPerformanceCard />
 
           {/* Engagement hooks — challenges, streak, trends */}
           <WeeklyChallengeCard gamificationStats={gamificationStats} />
           <StreakHeatmap workoutLogs={workoutLogs} />
+
+          {/* Training timeline — block-over-block journey */}
+          <TrainingTimeline workoutLogs={workoutLogs} weightUnit={weightUnit} />
+
           <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
           <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
 

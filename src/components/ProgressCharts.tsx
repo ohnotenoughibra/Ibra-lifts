@@ -18,7 +18,10 @@ import {
   ResponsiveContainer,
   Legend,
   Area,
-  AreaChart
+  AreaChart,
+  ReferenceDot,
+  ReferenceArea,
+  ReferenceLine,
 } from 'recharts';
 import {
   TrendingUp,
@@ -317,6 +320,63 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     { id: 'recovery', label: 'Recovery', icon: Heart },
   ];
 
+  // PR annotations for strength chart — mark where personal records were hit
+  const prAnnotations = useMemo(() => {
+    const annotations: { exerciseName: string; date: string; estimated1RM: number }[] = [];
+    workoutLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        if (ex.personalRecord) {
+          const maxE1rm = ex.sets.reduce((max, set) => {
+            if (!set.completed || set.weight === 0) return max;
+            const e1rm = calculate1RM(set.weight, set.reps);
+            return e1rm > max ? e1rm : max;
+          }, 0);
+          if (maxE1rm > 0) {
+            annotations.push({ exerciseName: ex.exerciseName, date: formatDate(log.date), estimated1RM: maxE1rm });
+          }
+        }
+      });
+    });
+    return annotations;
+  }, [workoutLogs]);
+
+  // Deload week annotations for volume chart — mark which weeks are deloads
+  const deloadWeeks = useMemo(() => {
+    const deloads: string[] = [];
+    const allMesos = [...mesocycleHistory, ...(currentMesocycle ? [currentMesocycle] : [])];
+    allMesos.forEach(meso => {
+      meso.weeks.forEach((week, wi) => {
+        if (week.isDeload) {
+          // Estimate the week number in the global timeline
+          const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
+          if (mesoLogs.length > 0) {
+            const mesoStart = Math.min(...mesoLogs.map(l => new Date(l.date).getTime()));
+            const deloadDate = new Date(mesoStart + wi * 7 * 24 * 60 * 60 * 1000);
+            const d = new Date(Date.UTC(deloadDate.getFullYear(), deloadDate.getMonth(), deloadDate.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+            deloads.push(`Week ${weekNum}`);
+          }
+        }
+      });
+    });
+    return deloads;
+  }, [mesocycleHistory, currentMesocycle, workoutLogs]);
+
+  // Missed sessions for frequency chart — weeks where sessions < expected
+  const missedWeeks = useMemo(() => {
+    if (!currentMesocycle) return [];
+    const sessionsPerWeek = currentMesocycle.weeks.length > 0
+      ? currentMesocycle.weeks[0].sessions.length
+      : 0;
+    if (sessionsPerWeek === 0) return [];
+    return volumeData
+      .filter(d => d.workouts < sessionsPerWeek)
+      .map(d => d.week);
+  }, [volumeData, currentMesocycle]);
+
   // Build insight cards with sparkline data
   const insightCards = useMemo(() => {
     const cards: { id: string; title: string; value: string; delta: string; deltaType: 'up' | 'down' | 'flat'; sparkData: number[]; color: string; chartView: ChartView }[] = [];
@@ -585,6 +645,19 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                         dot={{ fill: COLORS[i % COLORS.length] }}
                       />
                     ))}
+                    {/* PR annotations */}
+                    {prAnnotations.slice(0, 8).map((pr, i) => (
+                      <ReferenceDot
+                        key={`pr-${i}`}
+                        x={pr.date}
+                        y={pr.estimated1RM}
+                        r={5}
+                        fill="#eab308"
+                        stroke="#facc15"
+                        strokeWidth={2}
+                        label={{ value: 'PR', fontSize: 9, fill: '#facc15', position: 'top' }}
+                      />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -622,6 +695,17 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       stroke="#0ea5e9"
                       fill="url(#volumeGradient)"
                     />
+                    {/* Deload week annotations */}
+                    {deloadWeeks.map((week, i) => (
+                      <ReferenceLine
+                        key={`deload-${i}`}
+                        x={week}
+                        stroke="#8b5cf6"
+                        strokeDasharray="4 4"
+                        strokeWidth={1}
+                        label={{ value: 'Deload', fontSize: 9, fill: '#a78bfa', position: 'insideTopRight' }}
+                      />
+                    ))}
                     <defs>
                       <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
@@ -700,6 +784,17 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       }}
                     />
                     <Bar dataKey="workouts" fill="#d946ef" radius={[4, 4, 0, 0]} />
+                    {/* Missed session indicators */}
+                    {missedWeeks.map((week, i) => (
+                      <ReferenceLine
+                        key={`missed-${i}`}
+                        x={week}
+                        stroke="#ef4444"
+                        strokeDasharray="3 3"
+                        strokeWidth={1}
+                        label={{ value: 'Low', fontSize: 9, fill: '#f87171', position: 'insideTopRight' }}
+                      />
+                    ))}
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -86,6 +86,7 @@ const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => 
 const CycleTracking = dynamic(() => import('./CycleTracking'), { loading: () => <OverlaySkeleton /> });
 const FatigueOverlay = dynamic(() => import('./FatigueOverlay'), { loading: () => <OverlaySkeleton /> });
 const FightCampNutrition = dynamic(() => import('./FightCampNutrition'), { loading: () => <OverlaySkeleton /> });
+const BadgeShowcase = dynamic(() => import('./BadgeShowcase'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -375,6 +376,7 @@ export default function Dashboard({
   if (overlayView === 'cycle_tracking') return <CycleTracking onClose={() => setOverlayView(null)} />;
   if (overlayView === 'fatigue') return <FatigueOverlay onClose={() => setOverlayView(null)} />;
   if (overlayView === 'fight_camp') return <FightCampNutrition onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'badge_showcase') return <BadgeShowcase onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {
@@ -457,12 +459,16 @@ export default function Dashboard({
                 {gamificationStats.currentStreak}
               </span>
             </div>
-            <div className="flex items-center gap-1 bg-grappler-800 px-2.5 py-1.5 rounded-full">
+            <button
+              onClick={() => setOverlayView('badge_showcase')}
+              className="flex items-center gap-1 bg-grappler-800 px-2.5 py-1.5 rounded-full hover:bg-grappler-700 transition-colors"
+              title="View badges"
+            >
               <Star className="w-4 h-4 text-yellow-500" />
               <span className="text-sm font-medium text-grappler-200">
                 {formatNumber(gamificationStats.totalPoints)}
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </header>

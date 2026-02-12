@@ -121,6 +121,10 @@ export function generateWeeklySynthesis(opts: {
 
   // ─── Build narrative ───
   const hasData = thisWorkouts > 0;
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
+  const isMidWeek = dayOfWeek <= 3; // Sun–Wed: week is still early/mid
+  const daysLeft = 6 - dayOfWeek; // days remaining (Sat = end of week)
+
   const narrative = hasData
     ? buildNarrative({
         workouts: thisWorkouts,
@@ -134,6 +138,9 @@ export function generateWeeklySynthesis(opts: {
         weightUnit,
         user,
         stalledExercises: findStalledExercises(thisWeekLogs, lastWeekLogs),
+        isMidWeek,
+        daysLeft,
+        lastWorkouts,
       })
     : 'Start logging workouts this week to get your personalized coaching summary.';
 
@@ -170,30 +177,48 @@ function buildNarrative(data: {
   weightUnit: WeightUnit;
   user: UserProfile | null;
   stalledExercises: string[];
+  isMidWeek: boolean;
+  daysLeft: number;
+  lastWorkouts: number;
 }): string {
   const parts: string[] = [];
+  const midWeek = data.isMidWeek;
+  const soFar = midWeek ? ' so far' : '';
 
-  // Opening — training summary
+  // Opening — training summary with mid-week awareness
   const volDelta = data.lastVolume > 0
     ? Math.round(((data.totalVolume - data.lastVolume) / data.lastVolume) * 100)
     : 0;
 
   if (data.prs > 0) {
     parts.push(
-      `You trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''} this week and hit ${data.prs} PR${data.prs !== 1 ? 's' : ''}.`
+      `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week and hit ${data.prs} PR${data.prs !== 1 ? 's' : ''}.`
     );
   } else {
     parts.push(
-      `You trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''} this week.`
+      `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week.`
     );
   }
 
-  // Volume context
+  // Mid-week: remind user the week isn't over
+  if (midWeek && data.daysLeft >= 2) {
+    parts.push(`Still ${data.daysLeft} days left to build on that.`);
+  }
+
+  // Volume context — only compare to last week if week is mostly done
   if (data.lastVolume > 0 && Math.abs(volDelta) > 5) {
-    if (volDelta > 0) {
-      parts.push(`Volume is up ${volDelta}% from last week — progressive overload working.`);
+    if (midWeek) {
+      // Mid-week: don't compare partial to full week — that's unfair
+      if (volDelta > 0) {
+        parts.push(`Volume is already up ${volDelta}% and still climbing.`);
+      }
+      // Skip negative volume commentary mid-week — incomplete data
     } else {
-      parts.push(`Volume dipped ${Math.abs(volDelta)}% from last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
+      if (volDelta > 0) {
+        parts.push(`Volume is up ${volDelta}% from last week — progressive overload working.`);
+      } else {
+        parts.push(`Volume dipped ${Math.abs(volDelta)}% from last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
+      }
     }
   }
 
@@ -202,13 +227,21 @@ function buildNarrative(data: {
     if (data.avgReadiness >= 67) {
       parts.push(`Recovery averaged ${data.avgReadiness}% — excellent base for progression.`);
     } else if (data.avgReadiness < 40) {
-      parts.push(`Recovery averaged only ${data.avgReadiness}% — consider an extra rest day or lighter sessions next week.`);
+      parts.push(
+        midWeek
+          ? `Recovery averaging ${data.avgReadiness}% — prioritize sleep and nutrition the rest of this week.`
+          : `Recovery averaged only ${data.avgReadiness}% — consider an extra rest day or lighter sessions next week.`
+      );
     }
   }
 
   // RPE context
   if (data.avgRPE >= 9.0) {
-    parts.push(`Average RPE was ${data.avgRPE} — you're pushing close to your limit. Watch for fatigue signals.`);
+    parts.push(
+      midWeek
+        ? `Average RPE is ${data.avgRPE} — you're pushing hard. Listen to your body for the remaining sessions.`
+        : `Average RPE was ${data.avgRPE} — you're pushing close to your limit. Watch for fatigue signals.`
+    );
   } else if (data.avgRPE <= 6.5 && data.workouts >= 3) {
     parts.push(`Average RPE was only ${data.avgRPE} — you might have room to increase intensity.`);
   }
@@ -217,13 +250,22 @@ function buildNarrative(data: {
   if (data.proteinAdherence !== null && data.proteinTarget > 0) {
     if (data.proteinAdherence >= 85) {
       parts.push(`Protein adherence: ${data.proteinAdherence}% — fueling your gains.`);
-    } else if (data.proteinAdherence < 60) {
+    } else if (midWeek) {
+      // Mid-week: encouraging tone, not judgmental
       parts.push(
-        `Protein adherence was ${data.proteinAdherence}% (target: ${data.proteinTarget}g/day). ` +
-        `This may limit recovery and strength gains — try adding a post-workout shake.`
+        data.proteinAdherence < 60
+          ? `Protein adherence is at ${data.proteinAdherence}% — there's still time to tighten it up this week. Aim for ${data.proteinTarget}g today.`
+          : `Protein adherence: ${data.proteinAdherence}% — almost there, keep pushing for 85%+.`
       );
     } else {
-      parts.push(`Protein adherence: ${data.proteinAdherence}% — close, aim for 85%+ next week.`);
+      if (data.proteinAdherence < 60) {
+        parts.push(
+          `Protein adherence was ${data.proteinAdherence}% (target: ${data.proteinTarget}g/day). ` +
+          `This may limit recovery and strength gains — try adding a post-workout shake.`
+        );
+      } else {
+        parts.push(`Protein adherence: ${data.proteinAdherence}% — close, aim for 85%+ next week.`);
+      }
     }
   }
 

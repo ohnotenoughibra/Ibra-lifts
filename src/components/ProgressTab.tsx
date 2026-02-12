@@ -13,6 +13,7 @@ import {
   FileJson,
   History,
   Scaling,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
@@ -527,10 +528,10 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {/* Sub-navigation */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
         {[
-          { id: 'charts', label: 'Progress' },
-          { id: 'log', label: 'Workouts' },
+          { id: 'charts', label: 'Overview' },
+          { id: 'log', label: 'History' },
           { id: 'calendar', label: 'Calendar' },
-          { id: 'weight', label: 'Body Weight' },
+          { id: 'weight', label: 'Body' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -545,14 +546,14 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
             {tab.label}
           </button>
         ))}
-        {/* Export/Import button */}
+        {/* Export/Import overflow menu */}
         <button
           onClick={() => setShowExport(!showExport)}
           className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200 flex-shrink-0"
           title="Export / Import Data"
           aria-label="Export or import data"
         >
-          <Download className="w-4 h-4" />
+          <MoreHorizontal className="w-4 h-4" />
         </button>
       </div>
 
@@ -630,21 +631,14 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {/* Content */}
       {view === 'charts' && (
         <div className="space-y-4">
-          <ProgressCharts onViewReport={onViewReport} />
+          {/* Engagement hooks first — challenges, streak, trends */}
+          <WeeklyChallengeCard gamificationStats={gamificationStats} />
+          <StreakHeatmap workoutLogs={workoutLogs} />
+          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
 
-          {/* Insights & Trends */}
-          <div className="pt-2">
-            <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <TrendingUp className="w-3.5 h-3.5" />
-              Insights & Trends
-            </h3>
-            <div className="space-y-4">
-              <WeeklyChallengeCard gamificationStats={gamificationStats} />
-              <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
-              <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
-              <StreakHeatmap workoutLogs={workoutLogs} />
-            </div>
-          </div>
+          {/* Deep-dive charts */}
+          <ProgressCharts onViewReport={onViewReport} />
         </div>
       )}
       {view === 'log' && <WorkoutHistory />}

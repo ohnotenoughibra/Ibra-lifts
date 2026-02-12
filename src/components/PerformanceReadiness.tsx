@@ -51,8 +51,11 @@ export default function PerformanceReadiness() {
   const hasFullAccess = hasFeatureAccess('performance-readiness', effectiveTier);
 
   const readiness = useMemo((): ReadinessScore => {
+    const now = new Date();
+    const hourOfDay = now.getHours();
+
     // Calculate today's intake
-    const today = new Date().toISOString().split('T')[0];
+    const today = now.toISOString().split('T')[0];
     const todayMeals = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === today);
     const caloriesLogged = todayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
     const proteinLogged = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
@@ -64,10 +67,24 @@ export default function PerformanceReadiness() {
       ? Math.min(100, (proteinLogged / macroTargets.protein) * 100)
       : 0;
 
+    // Yesterday's data for morning carry-forward
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayMeals = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr);
+    const yesterdayCals = yesterdayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
+    const yesterdayPro = yesterdayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+    const yesterdayCalorieAdherence = macroTargets.calories > 0
+      ? Math.min(100, (yesterdayCals / macroTargets.calories) * 100) : undefined;
+    const yesterdayProteinAdherence = macroTargets.protein > 0
+      ? Math.min(100, (yesterdayPro / macroTargets.protein) * 100) : undefined;
+
     // Water tracking
     const todayWater = waterLog[today] || 0;
     const waterTarget = 10; // ~10 glasses default
     const waterRatio = Math.min(1, todayWater / waterTarget);
+    const yesterdayWater = waterLog[yesterdayStr] || 0;
+    const yesterdayWaterRatio = Math.min(1, yesterdayWater / waterTarget);
 
     // Weight trend
     const onWeightTarget = !activeDietPhase || true; // simplified
@@ -89,6 +106,10 @@ export default function PerformanceReadiness() {
       weeksAtPlateau,
       whoopRecovery,
       sleepHours,
+      hourOfDay,
+      yesterdayCalorieAdherence,
+      yesterdayProteinAdherence,
+      yesterdayWaterRatio: yesterdayWaterRatio || undefined,
     });
   }, [meals, macroTargets, waterLog, latestWhoopData, activeDietPhase, quickLogs]);
 
@@ -111,9 +132,19 @@ export default function PerformanceReadiness() {
         <div className="flex-1">
           <p className="text-sm font-medium text-grappler-100">Performance Readiness</p>
           <p className="text-xs text-grappler-400">
-            {readiness.level === 'ready' ? 'Looking good — ready to perform' :
-             readiness.level === 'needs_attention' ? 'Some areas need attention' :
-             'At risk — take action'}
+            {(() => {
+              const hour = new Date().getHours();
+              const isEarlyMorning = hour < 10;
+              const todayStr = new Date().toISOString().split('T')[0];
+              const noDataYet = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === todayStr).length === 0
+                && !(waterLog[todayStr]);
+              if (isEarlyMorning && noDataYet) {
+                return 'Morning check-in — log meals & water to update';
+              }
+              return readiness.level === 'ready' ? 'Looking good — ready to perform' :
+                readiness.level === 'needs_attention' ? 'Some areas need attention' :
+                'At risk — take action';
+            })()}
           </p>
           <p className="text-xs text-grappler-600 mt-0.5">
             nutrition + hydration + sleep + weight

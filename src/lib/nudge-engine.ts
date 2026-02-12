@@ -338,17 +338,45 @@ interface ReadinessContext {
   sleepHours?: number;
   // Energy
   energyAvailability?: number; // kcal/kg FFM
+  // Time context
+  hourOfDay?: number;          // 0-23, for morning-aware scoring
+  yesterdayCalorieAdherence?: number; // carry-forward from yesterday
+  yesterdayProteinAdherence?: number;
+  yesterdayWaterRatio?: number;
 }
 
 /**
  * Calculate composite performance readiness score.
+ *
+ * Morning-aware: Before 10am with no meals/water logged, we use yesterday's
+ * data or neutral defaults instead of showing alarming 0s. Readiness means
+ * "ready to train" — not "how much have you eaten today at 7am."
  */
 export function calculateReadiness(ctx: ReadinessContext): ReadinessScore {
+  const hour = ctx.hourOfDay ?? new Date().getHours();
+  const isEarlyMorning = hour < 10;
+  const nothingLoggedYet = ctx.mealsLoggedToday === 0 && ctx.waterRatio === 0;
+
   // Nutrition: weighted avg of calorie and protein adherence
-  const nutritionScore = Math.min(100, (ctx.calorieAdherence * 0.4 + ctx.proteinAdherence * 0.4 + (ctx.mealsLoggedToday >= 3 ? 20 : ctx.mealsLoggedToday * 7)));
+  let nutritionScore: number;
+  if (isEarlyMorning && nothingLoggedYet) {
+    // Morning: use yesterday's adherence if available, else neutral
+    const yestCal = ctx.yesterdayCalorieAdherence ?? 60;
+    const yestPro = ctx.yesterdayProteinAdherence ?? 60;
+    nutritionScore = Math.min(100, (yestCal * 0.4 + yestPro * 0.4 + 20));
+  } else {
+    nutritionScore = Math.min(100, (ctx.calorieAdherence * 0.4 + ctx.proteinAdherence * 0.4 + (ctx.mealsLoggedToday >= 3 ? 20 : ctx.mealsLoggedToday * 7)));
+  }
 
   // Hydration: water ratio scaled to 100
-  const hydrationScore = Math.min(100, Math.round(ctx.waterRatio * 100));
+  let hydrationScore: number;
+  if (isEarlyMorning && ctx.waterRatio === 0) {
+    // Morning: use yesterday's hydration or neutral
+    const yestWater = ctx.yesterdayWaterRatio ?? 0.6;
+    hydrationScore = Math.min(100, Math.round(yestWater * 100));
+  } else {
+    hydrationScore = Math.min(100, Math.round(ctx.waterRatio * 100));
+  }
 
   // Weight: on target + not plateauing
   let weightScore = ctx.onWeightTarget ? 90 : 50;
@@ -391,17 +419,19 @@ export function calculateReadiness(ctx: ReadinessContext): ReadinessScore {
   const lowestKey = (Object.keys(components) as (keyof typeof components)[])
     .reduce((a, b) => components[a] < components[b] ? a : b);
 
+  const isMorningNoData = isEarlyMorning && nothingLoggedYet;
+
   const bottleneckMessages: Record<string, string> = {
-    nutrition: 'Nutrition tracking needs attention',
-    hydration: 'Hydration is behind target',
+    nutrition: isMorningNoData ? 'Start your day with a solid meal' : 'Nutrition tracking needs attention',
+    hydration: isMorningNoData ? 'Hydrate when you\'re ready' : 'Hydration is behind target',
     weight: 'Weight management is off track',
     recovery: 'Recovery quality is low',
     energy: 'Energy availability is concerning',
   };
 
   const actionMessages: Record<string, string> = {
-    nutrition: 'Log your meals consistently and hit your protein target',
-    hydration: 'Drink more water throughout the day',
+    nutrition: isMorningNoData ? 'Log breakfast to start tracking today\'s intake' : 'Log your meals consistently and hit your protein target',
+    hydration: isMorningNoData ? 'Have a glass of water to kick things off' : 'Drink more water throughout the day',
     weight: 'Review your weekly check-in and adjust macros',
     recovery: 'Prioritize 7-8 hours of sleep tonight',
     energy: 'Increase caloric intake or reduce training volume',

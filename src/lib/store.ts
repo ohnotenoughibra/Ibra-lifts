@@ -563,6 +563,7 @@ export const useAppStore = create<AppState>()(
             isOnboarded: false,
             onboardingData: {
               ...onboardingData,
+              step: 1,
               name: user.name,
               age: user.age,
               heightCm: user.heightCm,
@@ -591,7 +592,7 @@ export const useAppStore = create<AppState>()(
           id: authUserId || uuidv4(),
           email: '', // Will be populated from session
           name: onboardingData.name,
-          age: onboardingData.age,
+          age: onboardingData.age || 25,
           bodyWeightKg: onboardingData.bodyWeightKg,
           heightCm: onboardingData.heightCm,
           sex: onboardingData.sex,
@@ -615,15 +616,16 @@ export const useAppStore = create<AppState>()(
           updatedAt: new Date()
         };
 
-        // Create baseline lifts
+        // Create baseline lifts — auto-estimate from body weight if not provided
+        const bw = onboardingData.bodyWeightKg || 70;
         const baselineLifts: BaselineLifts = {
           id: uuidv4(),
           userId: user.id,
-          squat: onboardingData.baselineLifts.squat || null,
-          deadlift: onboardingData.baselineLifts.deadlift || null,
-          benchPress: onboardingData.baselineLifts.benchPress || null,
-          overheadPress: onboardingData.baselineLifts.overheadPress || null,
-          barbellRow: onboardingData.baselineLifts.barbellRow || null,
+          squat: onboardingData.baselineLifts.squat || Math.round(bw * 0.5),
+          deadlift: onboardingData.baselineLifts.deadlift || Math.round(bw * 0.6),
+          benchPress: onboardingData.baselineLifts.benchPress || Math.round(bw * 0.4),
+          overheadPress: onboardingData.baselineLifts.overheadPress || Math.round(bw * 0.3),
+          barbellRow: onboardingData.baselineLifts.barbellRow || Math.round(bw * 0.4),
           pullUp: onboardingData.baselineLifts.pullUp || null,
           createdAt: new Date(),
           updatedAt: new Date()

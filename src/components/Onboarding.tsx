@@ -17,64 +17,17 @@ import {
   Sparkles,
   Eye,
   Trophy,
-  Smartphone,
-  Share,
-  MoreVertical,
-  X,
 } from 'lucide-react';
-import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, CombatTimeOfDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Plus, Check } from 'lucide-react';
+import { CalendarDays, Check } from 'lucide-react';
 
-const TOTAL_STEPS = 5;
-
-/** Detect if user is on a mobile browser (not already installed as PWA) */
-function useIsMobileBrowser() {
-  const [state, setState] = useState<{ isMobile: boolean; isIOS: boolean; isPWA: boolean }>({
-    isMobile: false,
-    isIOS: false,
-    isPWA: false,
-  });
-
-  useEffect(() => {
-    const ua = navigator.userAgent;
-    const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-    const isIOS = /iPhone|iPad|iPod/i.test(ua);
-    const isPWA =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    setState({ isMobile, isIOS, isPWA });
-  }, []);
-
-  return state;
-}
+const TOTAL_STEPS = 4;
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
   const currentStep = onboardingData.step || 1;
   const setCurrentStep = (step: number) => updateOnboardingData({ step });
-  const { isMobile, isIOS, isPWA } = useIsMobileBrowser();
-  const [showInstallGuide, setShowInstallGuide] = useState(false);
-  const [installDismissed, setInstallDismissed] = useState(false);
-
-  // Show install guide on mobile browsers (not PWA) on step 1
-  useEffect(() => {
-    if (isMobile && !isPWA && currentStep === 1 && !installDismissed) {
-      const dismissed = localStorage.getItem('roots-onboard-install-dismissed');
-      if (!dismissed) {
-        const timer = setTimeout(() => setShowInstallGuide(true), 800);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setShowInstallGuide(false);
-    }
-  }, [isMobile, isPWA, currentStep, installDismissed]);
-
-  const dismissInstallGuide = () => {
-    setShowInstallGuide(false);
-    setInstallDismissed(true);
-    localStorage.setItem('roots-onboard-install-dismissed', '1');
-  };
 
   // Apply smart defaults for deferred fields on mount
   useEffect(() => {
@@ -107,16 +60,14 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        // Disclaimer acceptance
-        return !!onboardingData.disclaimerAccepted;
-      case 2:
-        // Identity + combat sport + goal + name + age + bodyweight + sex + experience
+        // Identity + combat sport + goal
         if (!onboardingData.trainingIdentity) return false;
         if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
         if (!onboardingData.goalFocus) return false;
+        return true;
+      case 2:
+        // Name + bodyweight + sex
         if (onboardingData.name.length < 2) return false;
-        if (!onboardingData.age || onboardingData.age < 14) return false;
-        if (onboardingData.age <= 15 && !onboardingData.parentalConsent) return false;
         if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
         if (!onboardingData.sex) return false;
         return true;
@@ -124,10 +75,8 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
         // Sessions/week + lifting days
         return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
       case 4:
-        // Baseline lifts — optional, always passable
-        return true;
-      case 5:
-        return true;
+        // Disclaimer acceptance
+        return !!onboardingData.disclaimerAccepted;
       default:
         return true;
     }
@@ -135,130 +84,6 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh px-4 py-8">
-      {/* Add to Home Screen prompt for mobile browsers */}
-      <AnimatePresence>
-        {showInstallGuide && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="max-w-lg mx-auto mb-6"
-          >
-            <div className="relative overflow-hidden rounded-2xl border border-primary-500/30 bg-gradient-to-br from-grappler-800 via-grappler-800 to-primary-900/40">
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary-500/15 rounded-full blur-2xl" />
-              <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-accent-500/10 rounded-full blur-xl" />
-              <div className="relative p-5">
-                <button
-                  onClick={dismissInstallGuide}
-                  className="absolute top-3 right-3 p-1 text-grappler-500 hover:text-grappler-300 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-                    <Smartphone className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-grappler-50 text-base">Get the full experience</h3>
-                    <p className="text-xs text-grappler-400">Add to your home screen for instant access</p>
-                  </div>
-                </div>
-                <div className="bg-grappler-900/60 rounded-xl p-4 space-y-3">
-                  {isIOS ? (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-primary-400">1</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-grappler-200">Tap</span>
-                          <div className="w-7 h-7 bg-grappler-700 rounded-md flex items-center justify-center">
-                            <Share className="w-4 h-4 text-primary-400" />
-                          </div>
-                          <span className="text-sm text-grappler-200">Share in Safari</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-primary-400">2</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-grappler-200">Scroll down, tap</span>
-                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
-                            Add to Home Screen
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-green-400">3</span>
-                        </div>
-                        <span className="text-sm text-grappler-200">Open from home screen — works offline!</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-primary-400">1</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-grappler-200">Tap</span>
-                          <div className="w-7 h-7 bg-grappler-700 rounded-md flex items-center justify-center">
-                            <MoreVertical className="w-4 h-4 text-primary-400" />
-                          </div>
-                          <span className="text-sm text-grappler-200">menu in Chrome</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-primary-400">2</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-grappler-200">Tap</span>
-                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
-                            Install app
-                          </span>
-                          <span className="text-sm text-grappler-200">or</span>
-                          <span className="text-xs font-medium text-primary-300 bg-primary-500/15 px-2 py-0.5 rounded-md">
-                            Add to Home Screen
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-green-400">3</span>
-                        </div>
-                        <span className="text-sm text-grappler-200">Launch like a native app — works offline!</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-center justify-center gap-4 mt-4">
-                  {[
-                    { label: 'Offline', icon: '📶' },
-                    { label: 'Fast', icon: '⚡' },
-                    { label: 'Full screen', icon: '📱' },
-                  ].map((b) => (
-                    <div key={b.label} className="flex items-center gap-1.5">
-                      <span className="text-sm">{b.icon}</span>
-                      <span className="text-xs text-grappler-400">{b.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={dismissInstallGuide}
-                  className="w-full text-center text-xs text-grappler-500 hover:text-grappler-300 mt-3 transition-colors"
-                >
-                  I'll do this later
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Progress bar */}
       <div className="max-w-lg mx-auto mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -287,19 +112,16 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
             className="card p-6"
           >
             {currentStep === 1 && (
-              <Step0_Disclaimer data={onboardingData} update={updateOnboardingData} />
+              <Step1_Identity data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 2 && (
-              <Step1_WhoAreYou data={onboardingData} update={updateOnboardingData} />
+              <Step2_QuickStats data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 3 && (
-              <Step2_HowYouTrain data={onboardingData} update={updateOnboardingData} />
+              <Step3_Schedule data={onboardingData} update={updateOnboardingData} />
             )}
             {currentStep === 4 && (
-              <Step3_BaselineLifts data={onboardingData} update={updateOnboardingData} />
-            )}
-            {currentStep === 5 && (
-              <Step4_Ready data={onboardingData} />
+              <Step4_Ready data={onboardingData} update={updateOnboardingData} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -331,74 +153,8 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   );
 }
 
-// ─── Step 0: Disclaimer & Health Acknowledgment ─────────────────────────────
-function Step0_Disclaimer({
-  data,
-  update,
-}: {
-  data: OnboardingData;
-  update: (data: Partial<OnboardingData>) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Shield className="w-7 h-7 text-white" />
-        </div>
-        <h2 className="text-xl font-bold text-grappler-50">Before we begin</h2>
-        <p className="text-grappler-400 text-sm">Please read and acknowledge</p>
-      </div>
-
-      <div className="bg-grappler-800/60 rounded-xl p-4 space-y-3 text-sm text-grappler-300 leading-relaxed">
-        <p>
-          Rootsler Gains provides general fitness programming based on exercise science principles.
-          It is <span className="font-semibold text-grappler-100">not a substitute for professional medical advice</span>,
-          diagnosis, or treatment.
-        </p>
-        <p>
-          Consult a physician before starting any exercise program, especially if you have pre-existing
-          health conditions, injuries, or have been inactive for an extended period.
-        </p>
-        <p>
-          By proceeding, you acknowledge that you exercise <span className="font-semibold text-grappler-100">at your own risk</span> and
-          that Rootsler Gains is not liable for injuries sustained during training.
-        </p>
-        <p className="text-xs text-grappler-500">
-          You must be at least 14 years old to use this app. Users aged 14-15 require parental consent.
-        </p>
-      </div>
-
-      <button
-        onClick={() => update({ disclaimerAccepted: !data.disclaimerAccepted })}
-        className={cn(
-          'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',
-          data.disclaimerAccepted
-            ? 'border-green-500 bg-green-500/10'
-            : 'border-grappler-700 hover:border-grappler-600'
-        )}
-      >
-        <div className={cn(
-          'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all',
-          data.disclaimerAccepted
-            ? 'border-green-500 bg-green-500'
-            : 'border-grappler-600'
-        )}>
-          {data.disclaimerAccepted && (
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </div>
-        <span className="text-sm text-grappler-200">
-          I understand and accept these terms
-        </span>
-      </button>
-    </div>
-  );
-}
-
-// ─── Step 1: Who Are You? (Identity + Goal + Name + Sex + Experience) ────────
-function Step1_WhoAreYou({
+// ─── Step 1: What Brings You Here? (Identity + Combat Sport + Goal) ─────────
+function Step1_Identity({
   data,
   update,
 }: {
@@ -461,8 +217,8 @@ function Step1_WhoAreYou({
         <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Target className="w-7 h-7 text-white" />
         </div>
-        <h2 className="text-xl font-bold text-grappler-50">Let&apos;s get started</h2>
-        <p className="text-grappler-400 text-sm">Tell us about yourself</p>
+        <h2 className="text-xl font-bold text-grappler-50">What brings you here?</h2>
+        <p className="text-grappler-400 text-sm">Pick your path and goal</p>
       </div>
 
       {/* Identity selection */}
@@ -587,213 +343,132 @@ function Step1_WhoAreYou({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Name + Sex + Experience — compact row layout */}
-      <AnimatePresence>
-        {data.trainingIdentity && data.goalFocus && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden space-y-4"
-          >
-            {/* Name */}
-            <div>
-              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Name</label>
-              <input
-                type="text"
-                value={data.name}
-                onChange={(e) => update({ name: e.target.value })}
-                placeholder="Your name"
-                className="input"
-                autoFocus
-              />
-            </div>
-
-            {/* Age + Bodyweight — side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Age</label>
-                <input
-                  type="number"
-                  value={data.age || ''}
-                  onChange={(e) => update({ age: parseInt(e.target.value) || 0 })}
-                  placeholder="25"
-                  min={14}
-                  max={100}
-                  className="input"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
-                    Body weight
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
-                    className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
-                  >
-                    {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
-                  </button>
-                </div>
-                <input
-                  type="number"
-                  value={
-                    data.bodyWeightKg
-                      ? data.weightUnit === 'kg'
-                        ? Math.round(data.bodyWeightKg)
-                        : Math.round(data.bodyWeightKg * 2.205)
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value) || 0;
-                    const kg = data.weightUnit === 'kg' ? val : val / 2.205;
-                    update({ bodyWeightKg: kg > 0 ? Math.round(kg * 10) / 10 : undefined });
-                  }}
-                  placeholder={data.weightUnit === 'kg' ? '75' : '165'}
-                  min={1}
-                  className="input"
-                />
-              </div>
-            </div>
-
-            {/* Age gate warning */}
-            {data.age > 0 && data.age < 14 && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                <p className="text-xs text-red-400 font-medium">You must be at least 14 years old to use this app.</p>
-              </div>
-            )}
-            {data.age >= 14 && data.age <= 15 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <p className="text-xs text-yellow-400 mb-2">Users aged 14-15 require parental or guardian consent.</p>
-                <button
-                  onClick={() => update({ parentalConsent: !data.parentalConsent })}
-                  className="flex items-center gap-2"
-                >
-                  <div className={cn(
-                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
-                    data.parentalConsent
-                      ? 'border-green-500 bg-green-500'
-                      : 'border-grappler-500'
-                  )}>
-                    {data.parentalConsent && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-xs text-grappler-300">I have parental/guardian consent</span>
-                </button>
-              </div>
-            )}
-
-            {/* Sex */}
-            <div>
-              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Biological sex</label>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  { value: 'male' as BiologicalSex, label: 'Male' },
-                  { value: 'female' as BiologicalSex, label: 'Female' },
-                ]).map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => update({ sex: opt.value })}
-                    className={cn(
-                      'py-2.5 rounded-lg text-center transition-all border-2',
-                      data.sex === opt.value
-                        ? 'bg-primary-500/10 border-primary-500 text-white'
-                        : 'bg-grappler-700 border-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    <p className="text-sm font-medium">{opt.label}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Experience */}
-            <div>
-              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Lifting experience</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: 'beginner' as ExperienceLevel, label: 'Beginner', desc: '<1 yr' },
-                  { value: 'intermediate' as ExperienceLevel, label: 'Intermediate', desc: '1-3 yr' },
-                  { value: 'advanced' as ExperienceLevel, label: 'Advanced', desc: '3+ yr' },
-                ]).map((level) => (
-                  <button
-                    key={level.value}
-                    onClick={() => update({ experienceLevel: level.value })}
-                    className={cn(
-                      'py-2 rounded-lg text-center transition-all',
-                      data.experienceLevel === level.value
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    <p className="text-xs font-medium">{level.label}</p>
-                    <p className="text-xs opacity-70">{level.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Program Style — lets the user choose how sessions are structured */}
-            <div>
-              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Program style</label>
-              <div className="space-y-2">
-                {([
-                  {
-                    value: 'linear' as const,
-                    label: 'Repeating',
-                    desc: 'Same session structure each day — simple, great for building habits',
-                    rec: data.experienceLevel === 'beginner',
-                  },
-                  {
-                    value: 'undulating' as const,
-                    label: 'Varied (DUP)',
-                    desc: 'Different focus each day (strength, volume, power) — keeps it fresh',
-                    rec: data.experienceLevel === 'intermediate',
-                  },
-                  {
-                    value: 'block' as const,
-                    label: 'Block',
-                    desc: 'Entire weeks focus on one quality, then rotate — structured peaks',
-                    rec: data.experienceLevel === 'advanced',
-                  },
-                ]).map((style) => (
-                  <button
-                    key={style.value}
-                    onClick={() => update({ periodizationStyle: style.value })}
-                    className={cn(
-                      'w-full p-3 rounded-lg text-left transition-all border',
-                      (data.periodizationStyle ?? (data.experienceLevel === 'beginner' ? 'linear' : data.experienceLevel === 'advanced' ? 'block' : 'undulating')) === style.value
-                        ? 'bg-primary-500/20 border-primary-500 text-white'
-                        : 'bg-grappler-700 border-grappler-600 text-grappler-400'
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{style.label}</p>
-                      {style.rec && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/30 text-primary-300">Recommended</span>
-                      )}
-                    </div>
-                    <p className="text-xs opacity-70 mt-0.5">{style.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
-// ─── Step 2: How You Train (Week Planner) ────────────────────────────────────
+// ─── Step 2: Quick Stats (Name + Weight + Sex + Experience) ─────────────────
+function Step2_QuickStats({
+  data,
+  update,
+}: {
+  data: OnboardingData;
+  update: (data: Partial<OnboardingData>) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-2">
+        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Dumbbell className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-grappler-50">Quick stats</h2>
+        <p className="text-grappler-400 text-sm">Used to calculate your starting weights</p>
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Name</label>
+        <input
+          type="text"
+          value={data.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="Your name"
+          className="input"
+          autoFocus
+          autoComplete="given-name"
+        />
+      </div>
+
+      {/* Bodyweight */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
+            Body weight
+          </label>
+          <button
+            type="button"
+            onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
+            className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+          >
+            {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
+          </button>
+        </div>
+        <input
+          type="number"
+          value={
+            data.bodyWeightKg
+              ? data.weightUnit === 'kg'
+                ? Math.round(data.bodyWeightKg)
+                : Math.round(data.bodyWeightKg * 2.205)
+              : ''
+          }
+          onChange={(e) => {
+            const val = parseFloat(e.target.value) || 0;
+            const kg = data.weightUnit === 'kg' ? val : val / 2.205;
+            update({ bodyWeightKg: kg > 0 ? Math.round(kg * 10) / 10 : undefined });
+          }}
+          placeholder={data.weightUnit === 'kg' ? '75' : '165'}
+          min={1}
+          className="input"
+          inputMode="decimal"
+        />
+      </div>
+
+      {/* Sex */}
+      <div>
+        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Biological sex</label>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { value: 'male' as BiologicalSex, label: 'Male' },
+            { value: 'female' as BiologicalSex, label: 'Female' },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => update({ sex: opt.value })}
+              className={cn(
+                'py-2.5 rounded-lg text-center transition-all border-2',
+                data.sex === opt.value
+                  ? 'bg-primary-500/10 border-primary-500 text-white'
+                  : 'bg-grappler-700 border-grappler-700 text-grappler-400'
+              )}
+            >
+              <p className="text-sm font-medium">{opt.label}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Experience */}
+      <div>
+        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Lifting experience</label>
+        <div className="grid grid-cols-3 gap-2">
+          {([
+            { value: 'beginner' as ExperienceLevel, label: 'Beginner', desc: '<1 yr' },
+            { value: 'intermediate' as ExperienceLevel, label: 'Intermediate', desc: '1-3 yr' },
+            { value: 'advanced' as ExperienceLevel, label: 'Advanced', desc: '3+ yr' },
+          ]).map((level) => (
+            <button
+              key={level.value}
+              onClick={() => update({ experienceLevel: level.value })}
+              className={cn(
+                'py-2 rounded-lg text-center transition-all',
+                data.experienceLevel === level.value
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-grappler-700 text-grappler-400'
+              )}
+            >
+              <p className="text-xs font-medium">{level.label}</p>
+              <p className="text-xs opacity-70">{level.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: When Do You Train? (Simplified Schedule) ───────────────────────
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const TIME_LABELS: Record<CombatTimeOfDay, string> = { morning: 'AM', afternoon: 'PM', evening: 'Eve' };
-const TIME_OPTIONS: CombatTimeOfDay[] = ['morning', 'afternoon', 'evening'];
 
 function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingIdentity): number[] {
   switch (sessionsPerWeek) {
@@ -833,7 +508,7 @@ function getRecommendedCombatDays(combatSport: CombatSport | undefined): CombatT
   ];
 }
 
-function Step2_HowYouTrain({
+function Step3_Schedule({
   data,
   update,
 }: {
@@ -843,7 +518,6 @@ function Step2_HowYouTrain({
   const isCombat = data.trainingIdentity === 'combat';
   const liftDays = data.trainingDays || [];
   const combatDays = data.combatTrainingDays || [];
-  const [editingDay, setEditingDay] = useState<number | null>(null);
 
   // Auto-prefill on mount / when sessions change
   const prevSessionsRef = useRef(data.sessionsPerWeek);
@@ -865,52 +539,20 @@ function Step2_HowYouTrain({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.sessionsPerWeek]);
 
-  // --- Lift helpers ---
   const toggleLift = (day: number) => {
     const current = [...liftDays];
     const idx = current.indexOf(day);
     if (idx >= 0) {
       current.splice(idx, 1);
     } else {
-      if (current.length >= data.sessionsPerWeek) return; // at limit
+      if (current.length >= data.sessionsPerWeek) return;
       current.push(day);
     }
     current.sort((a, b) => a - b);
     update({ trainingDays: current });
   };
 
-  // --- Combat helpers ---
   const combatSessionsForDay = (day: number) => combatDays.filter((s) => s.day === day);
-
-  const addCombatSession = (day: number) => {
-    const updated = [...combatDays, { day, intensity: 'moderate' as const, timeOfDay: 'afternoon' as CombatTimeOfDay }];
-    update({ combatTrainingDays: updated });
-  };
-
-  const removeCombatSession = (day: number, sessionIdx: number) => {
-    // sessionIdx is the index among sessions for this day
-    let count = 0;
-    const updated = combatDays.filter((s) => {
-      if (s.day === day) {
-        if (count === sessionIdx) { count++; return false; }
-        count++;
-      }
-      return true;
-    });
-    update({ combatTrainingDays: updated });
-  };
-
-  const updateCombatTime = (day: number, sessionIdx: number, time: CombatTimeOfDay) => {
-    let count = 0;
-    const updated = combatDays.map((s) => {
-      if (s.day === day) {
-        if (count === sessionIdx) { count++; return { ...s, timeOfDay: time }; }
-        count++;
-      }
-      return s;
-    });
-    update({ combatTrainingDays: updated });
-  };
 
   const getSplitLabel = () => {
     if (data.sessionsPerWeek <= 3) return 'Full body each session';
@@ -924,8 +566,8 @@ function Step2_HowYouTrain({
         <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <CalendarDays className="w-7 h-7 text-white" />
         </div>
-        <h2 className="text-xl font-bold text-grappler-50">Your week</h2>
-        <p className="text-grappler-400 text-sm">Tap a day to edit — you can change this anytime</p>
+        <h2 className="text-xl font-bold text-grappler-50">When do you train?</h2>
+        <p className="text-grappler-400 text-sm">Tap days to toggle — you can change this anytime</p>
       </div>
 
       {/* Sessions per week */}
@@ -953,32 +595,29 @@ function Step2_HowYouTrain({
         <p className="text-xs text-grappler-500 mt-1.5 text-center">{getSplitLabel()}</p>
       </div>
 
-      {/* ── Week grid ── */}
+      {/* Week grid — simplified: tap to toggle lift days */}
       <div>
         <div className="grid grid-cols-7 gap-1">
           {DAY_NAMES.map((name, dayIdx) => {
             const hasLift = liftDays.includes(dayIdx);
             const dayCombat = combatSessionsForDay(dayIdx);
             const hasCombat = dayCombat.length > 0;
-            const isEditing = editingDay === dayIdx;
             const isRest = !hasLift && !hasCombat;
 
             return (
               <button
                 key={dayIdx}
-                onClick={() => setEditingDay(isEditing ? null : dayIdx)}
+                onClick={() => toggleLift(dayIdx)}
                 className={cn(
                   'rounded-lg text-center transition-all py-2 min-h-[60px] flex flex-col items-center justify-start gap-1 border-2',
-                  isEditing
-                    ? 'border-primary-400 bg-grappler-750'
-                    : 'border-transparent',
-                  isRest && !isEditing && 'bg-grappler-800/50',
-                  !isRest && !isEditing && 'bg-grappler-700'
+                  hasLift ? 'border-primary-500/50 bg-primary-500/10' : 'border-transparent',
+                  isRest && !hasLift && 'bg-grappler-800/50',
+                  !isRest && !hasLift && 'bg-grappler-700'
                 )}
               >
                 <span className={cn(
                   'text-xs font-medium',
-                  isEditing ? 'text-primary-300' : 'text-grappler-400'
+                  hasLift ? 'text-primary-300' : 'text-grappler-400'
                 )}>{name}</span>
                 <div className="flex flex-col gap-0.5 items-center">
                   {hasLift && (
@@ -1005,194 +644,29 @@ function Step2_HowYouTrain({
           {isCombat && (
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-1.5 rounded-full bg-red-400" />
-              <span className="text-xs text-grappler-500">Combat</span>
+              <span className="text-xs text-grappler-500">Combat (auto-scheduled)</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Day editor panel ── */}
-      <AnimatePresence mode="wait">
-        {editingDay !== null && (
-          <motion.div
-            key={editingDay}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-grappler-800 rounded-xl p-4 border border-grappler-700 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-grappler-100">{DAY_NAMES[editingDay]}</p>
-                <button
-                  onClick={() => setEditingDay(null)}
-                  className="text-grappler-500 hover:text-grappler-300 p-1"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Lift toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-1.5 rounded-full bg-primary-400" />
-                  <span className="text-xs text-grappler-300">Lift</span>
-                </div>
-                <button
-                  onClick={() => toggleLift(editingDay)}
-                  className={cn(
-                    'relative w-10 h-6 rounded-full transition-colors',
-                    liftDays.includes(editingDay) ? 'bg-primary-500' : 'bg-grappler-600'
-                  )}
-                >
-                  <div className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                    liftDays.includes(editingDay) ? 'translate-x-5' : 'translate-x-1'
-                  )} />
-                </button>
-              </div>
-              {liftDays.includes(editingDay) && liftDays.length > data.sessionsPerWeek && (
-                <p className="text-xs text-yellow-400/80">
-                  You have more lift days than your target — remove one or increase days/week
-                </p>
-              )}
-
-              {/* Combat sessions (combat users only) */}
-              {isCombat && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-1.5 rounded-full bg-red-400" />
-                    <span className="text-xs text-grappler-300">Combat</span>
-                  </div>
-
-                  {combatSessionsForDay(editingDay).map((session, si) => (
-                    <div key={si} className="flex items-center gap-2 pl-7">
-                      {/* Time of day pills */}
-                      <div className="flex gap-1">
-                        {TIME_OPTIONS.map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => updateCombatTime(editingDay, si, t)}
-                            className={cn(
-                              'px-2 py-1 rounded text-xs font-medium transition-all',
-                              session.timeOfDay === t
-                                ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                                : 'bg-grappler-700 text-grappler-400'
-                            )}
-                          >
-                            {TIME_LABELS[t]}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => removeCombatSession(editingDay, si)}
-                        className="ml-auto text-grappler-500 hover:text-red-400 p-1"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={() => addCombatSession(editingDay)}
-                    className="flex items-center gap-1.5 text-xs text-grappler-400 hover:text-red-300 pl-7 transition-colors"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add combat session
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isCombat && (
+        <p className="text-xs text-grappler-500 text-center">
+          Combat sessions are auto-optimized around your lifts. Fine-tune in Settings.
+        </p>
+      )}
     </div>
   );
 }
 
-// ─── Step 3: Baseline Lifts (Optional) ──────────────────────────────────────
-function Step3_BaselineLifts({
+// ─── Step 4: You're Ready (Summary + Disclaimer) ────────────────────────────
+function Step4_Ready({
   data,
   update,
 }: {
   data: OnboardingData;
-  update: (d: Partial<OnboardingData>) => void;
+  update: (data: Partial<OnboardingData>) => void;
 }) {
-  const weightUnit = data.weightUnit || 'kg';
-  const bw = data.bodyWeightKg || 70;
-  // Conservative bodyweight-based defaults for complete beginners
-  const defaults = {
-    squat: Math.round(bw * (weightUnit === 'kg' ? 0.5 : 0.5 * 2.205)),
-    benchPress: Math.round(bw * (weightUnit === 'kg' ? 0.4 : 0.4 * 2.205)),
-    deadlift: Math.round(bw * (weightUnit === 'kg' ? 0.6 : 0.6 * 2.205)),
-    overheadPress: Math.round(bw * (weightUnit === 'kg' ? 0.3 : 0.3 * 2.205)),
-    barbellRow: Math.round(bw * (weightUnit === 'kg' ? 0.4 : 0.4 * 2.205)),
-  };
-
-  const lifts: { key: string; label: string; defaultVal: number }[] = [
-    { key: 'squat', label: 'Squat', defaultVal: defaults.squat },
-    { key: 'benchPress', label: 'Bench Press', defaultVal: defaults.benchPress },
-    { key: 'deadlift', label: 'Deadlift', defaultVal: defaults.deadlift },
-    { key: 'overheadPress', label: 'Overhead Press', defaultVal: defaults.overheadPress },
-    { key: 'barbellRow', label: 'Barbell Row', defaultVal: defaults.barbellRow },
-  ];
-
-  const baselineLifts = (data as any).baselineLifts || {};
-
-  const setLift = (key: string, value: number) => {
-    update({ baselineLifts: { ...baselineLifts, [key]: value } } as any);
-  };
-
-  const skipAll = () => {
-    const auto: Record<string, number> = {};
-    for (const l of lifts) auto[l.key] = l.defaultVal;
-    update({ baselineLifts: auto } as any);
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Dumbbell className="w-7 h-7 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-grappler-50">Estimate Your Lifts</h2>
-        <p className="text-sm text-grappler-400 mt-2">
-          Enter your working weights (approximate is fine). This helps us prescribe the right starting loads.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        {lifts.map(({ key, label, defaultVal }) => (
-          <div key={key} className="flex items-center gap-3 bg-grappler-800/40 rounded-xl p-3">
-            <label className="text-sm text-grappler-300 w-28 flex-shrink-0">{label}</label>
-            <input
-              type="number"
-              min={0}
-              value={baselineLifts[key] ?? ''}
-              onChange={(e) => setLift(key, Number(e.target.value))}
-              placeholder={String(defaultVal)}
-              className="flex-1 bg-grappler-700/50 rounded-lg px-3 py-2 text-grappler-100 text-sm
-                border border-grappler-600/50 focus-visible:border-primary-500 focus-visible:outline-none"
-            />
-            <span className="text-xs text-grappler-500 w-8">{weightUnit}</span>
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={skipAll}
-        className="w-full py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50
-          text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
-      >
-        I&apos;m new — auto-estimate from bodyweight
-      </button>
-    </div>
-  );
-}
-
-// ─── Step 4: Ready ───────────────────────────────────────────────────────────
-function Step4_Ready({ data }: { data: OnboardingData }) {
   const getIdentityLabel = () => {
     if (data.trainingIdentity === 'combat') {
       const sportLabels: Record<string, string> = {
@@ -1232,14 +706,10 @@ function Step4_Ready({ data }: { data: OnboardingData }) {
   };
 
   const weekCount = data.mesoCycleWeeks || 5;
-  const dayLabels = (data.trainingDays || []).map(d => {
-    const names: Record<string, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
-    return names[d] || d;
-  });
 
   return (
     <div className="space-y-6">
-      {/* Hero "Built For You" reveal */}
+      {/* Hero reveal */}
       <div className="text-center">
         <motion.div
           initial={{ scale: 0, rotate: -20 }}
@@ -1297,25 +767,6 @@ function Step4_Ready({ data }: { data: OnboardingData }) {
           </div>
         </div>
 
-        {/* Training days */}
-        {dayLabels.length > 0 && (
-          <div className="flex items-center justify-center gap-1.5 mb-3">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <div
-                key={d}
-                className={cn(
-                  'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium',
-                  dayLabels.includes(d)
-                    ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
-                    : 'bg-grappler-800/40 text-grappler-600'
-                )}
-              >
-                {d.charAt(0)}
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
             <p className="text-sm font-bold text-grappler-100">{getSplitLabel()}</p>
@@ -1328,7 +779,7 @@ function Step4_Ready({ data }: { data: OnboardingData }) {
         </div>
       </motion.div>
 
-      {/* What makes it yours */}
+      {/* Feature highlights */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1357,14 +808,45 @@ function Step4_Ready({ data }: { data: OnboardingData }) {
         ))}
       </motion.div>
 
-      <motion.p
+      {/* Disclaimer — inline acceptance */}
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.1 }}
-        className="text-xs text-grappler-600 text-center"
       >
-        Customize everything in Settings anytime
-      </motion.p>
+        <div className="bg-grappler-800/40 rounded-xl p-3 mb-3">
+          <p className="text-xs text-grappler-400 leading-relaxed">
+            This app provides general fitness programming — not medical advice.
+            Consult a physician before starting any exercise program.
+            You exercise <span className="text-grappler-300">at your own risk</span>.
+          </p>
+        </div>
+        <button
+          onClick={() => update({ disclaimerAccepted: !data.disclaimerAccepted })}
+          className={cn(
+            'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',
+            data.disclaimerAccepted
+              ? 'border-green-500 bg-green-500/10'
+              : 'border-grappler-700 hover:border-grappler-600'
+          )}
+        >
+          <div className={cn(
+            'w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all',
+            data.disclaimerAccepted
+              ? 'border-green-500 bg-green-500'
+              : 'border-grappler-600'
+          )}>
+            {data.disclaimerAccepted && (
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+          <span className="text-sm text-grappler-200">
+            I understand and accept — let&apos;s train
+          </span>
+        </button>
+      </motion.div>
     </div>
   );
 }

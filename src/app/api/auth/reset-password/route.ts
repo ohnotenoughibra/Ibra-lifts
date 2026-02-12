@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'Roots Gains <noreply@resend.dev>',
+        from: process.env.RESEND_FROM_EMAIL || 'Roots Gains <onboarding@resend.dev>',
         to: trimmedEmail,
         subject: 'Reset your Roots Gains password',
         html: `

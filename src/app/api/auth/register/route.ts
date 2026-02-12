@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     // Send verification email in the background (non-blocking)
     const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@rootsgains.com';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Roots Gains <onboarding@resend.dev>';
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     if (resendKey) {

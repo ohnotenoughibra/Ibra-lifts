@@ -23,6 +23,7 @@ export default function Home() {
   const { data: session, status: sessionStatus } = useSession();
   const authUserId = session?.user?.id;
   const isOnboarded = useAppStore((state) => state.isOnboarded);
+  const workoutLogCount = useAppStore((state) => state.workoutLogs.length);
   const setOnline = useAppStore((state) => state.setOnline);
   const setAuthUserId = useAppStore((state) => state.setAuthUserId);
 
@@ -138,9 +139,10 @@ export default function Home() {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Show install banner if user hasn't dismissed it
+      // Show install banner after first workout, if not dismissed
       const dismissed = localStorage.getItem('roots-install-dismissed');
-      if (!dismissed) {
+      const { workoutLogs } = useAppStore.getState();
+      if (!dismissed && workoutLogs.length >= 1) {
         setShowInstallBanner(true);
       }
     };
@@ -156,16 +158,16 @@ export default function Home() {
       return;
     }
     setNotifPermission(Notification.permission);
-    // Show notification prompt after onboarding, if not yet asked
+    // Show notification prompt after 3rd workout, if not yet asked
     if (Notification.permission === 'default') {
       const asked = localStorage.getItem('roots-notif-asked');
-      if (!asked && isOnboarded) {
+      if (!asked && isOnboarded && workoutLogCount >= 3) {
         // Delay showing notification banner
-        const timer = setTimeout(() => setShowNotifBanner(true), 5000);
+        const timer = setTimeout(() => setShowNotifBanner(true), 3000);
         return () => clearTimeout(timer);
       }
     }
-  }, [isOnboarded]);
+  }, [isOnboarded, workoutLogCount]);
 
   // Note: isLoading is managed by the hydration+session effect above
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -23,6 +23,10 @@ import {
   Activity,
   X,
   Pencil,
+  AlertTriangle,
+  Mail,
+  Loader2,
+  Trash2,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
@@ -35,6 +39,10 @@ export default function ProfileSettings() {
   const weightUnit = user?.weightUnit || 'kg';
   const [showBadges, setShowBadges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifySent, setVerifySent] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Edit form state
   const [editName, setEditName] = useState(user?.name || '');
@@ -57,6 +65,54 @@ export default function ProfileSettings() {
   const progress = levelProgress(gamificationStats.totalPoints);
   const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
   const earnedBadgeIds = new Set(gamificationStats.badges.map(b => b.badgeId));
+
+  // Check email verification status when signed in
+  useEffect(() => {
+    if (isSignedIn && session?.user?.email) {
+      fetch('/api/auth/verify-email')
+        .then(res => res.json())
+        .then(data => {
+          if (typeof data.verified === 'boolean') setEmailVerified(data.verified);
+        })
+        .catch(() => {});
+    }
+  }, [isSignedIn, session?.user?.email]);
+
+  const handleResendVerification = useCallback(async () => {
+    setVerifyLoading(true);
+    setVerifySent(false);
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session?.user?.email }),
+      });
+      if (res.ok) setVerifySent(true);
+    } catch {
+      // silently fail
+    } finally {
+      setVerifyLoading(false);
+    }
+  }, [session?.user?.email]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (!confirm('Permanently delete your account and all cloud data? This cannot be undone.')) return;
+    if (!confirm('Are you really sure? Type OK in the next dialog to confirm.')) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch('/api/auth/account', { method: 'DELETE' });
+      if (res.ok) {
+        resetStore();
+        signOut({ callbackUrl: '/' });
+      } else {
+        alert('Failed to delete account. Please try again.');
+      }
+    } catch {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [resetStore]);
 
   const startEditing = () => {
     setEditName(user?.name || '');
@@ -657,8 +713,36 @@ export default function ProfileSettings() {
               <div className="w-2 h-2 rounded-full bg-green-400" />
               Cloud sync active — {session.user?.email}
             </div>
+
+            {/* Email verification nag */}
+            {emailVerified === false && (
+              <div className="flex items-start gap-2 rounded-xl bg-yellow-500/10 border border-yellow-500/30 p-3">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-yellow-300 font-medium">Email not verified</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">Verify to ensure you can recover your account.</p>
+                  {verifySent ? (
+                    <p className="text-xs text-green-400 mt-2">Verification email sent! Check your inbox.</p>
+                  ) : (
+                    <button
+                      onClick={handleResendVerification}
+                      disabled={verifyLoading}
+                      className="mt-2 flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors"
+                    >
+                      {verifyLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                      {verifyLoading ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => { signOut({ callbackUrl: '/' }); }}
+              onClick={() => {
+                if (confirm('Sign out? Your local data will be kept, but cloud sync will stop until you sign back in.')) {
+                  signOut({ callbackUrl: '/' });
+                }
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
             >
               <DoorOpen className="w-4 h-4" />
@@ -682,22 +766,41 @@ export default function ProfileSettings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="card p-4 border border-red-500/30">
-        <h3 className="font-medium text-red-400 mb-2">Reset Data</h3>
-        <p className="text-sm text-grappler-400 mb-4">
-          This will erase all your progress, workouts, and achievements. Your account will remain.
-        </p>
-        <button
-          onClick={() => {
-            if (confirm('Are you sure? This cannot be undone!')) {
-              resetStore();
-            }
-          }}
-          className="btn btn-danger btn-sm gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          Reset All Data
-        </button>
+      <div className="card p-4 border border-red-500/30 space-y-4">
+        <div>
+          <h3 className="font-medium text-red-400 mb-2">Reset Data</h3>
+          <p className="text-sm text-grappler-400 mb-3">
+            This will erase all your progress, workouts, and achievements. Your account will remain.
+          </p>
+          <button
+            onClick={() => {
+              if (confirm('Are you sure? This cannot be undone!')) {
+                resetStore();
+              }
+            }}
+            className="btn btn-danger btn-sm gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Reset All Data
+          </button>
+        </div>
+
+        {isSignedIn && (
+          <div className="pt-4 border-t border-red-500/20">
+            <h3 className="font-medium text-red-400 mb-2">Delete Account</h3>
+            <p className="text-sm text-grappler-400 mb-3">
+              Permanently delete your account, cloud data, and all synced workouts. Local data will also be cleared.
+            </p>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              className="btn btn-danger btn-sm gap-2"
+            >
+              {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {deleteLoading ? 'Deleting...' : 'Delete Account'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -199,7 +199,7 @@ export default function ProfileSettings() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Profile Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -230,18 +230,18 @@ export default function ProfileSettings() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-grappler-800/50 rounded-lg p-3">
-            <p className="text-xl font-bold text-grappler-50">{gamificationStats.totalWorkouts}</p>
-            <p className="text-xs text-grappler-400">Workouts</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-grappler-800/50 rounded-lg p-2.5">
+            <p className="text-lg font-bold text-grappler-50">{gamificationStats.totalWorkouts}</p>
+            <p className="text-[11px] text-grappler-400">Workouts</p>
           </div>
-          <div className="bg-grappler-800/50 rounded-lg p-3">
-            <p className="text-xl font-bold text-grappler-50">{gamificationStats.personalRecords}</p>
-            <p className="text-xs text-grappler-400">PRs</p>
+          <div className="bg-grappler-800/50 rounded-lg p-2.5">
+            <p className="text-lg font-bold text-grappler-50">{gamificationStats.personalRecords}</p>
+            <p className="text-[11px] text-grappler-400">PRs</p>
           </div>
-          <div className="bg-grappler-800/50 rounded-lg p-3">
-            <p className="text-xl font-bold text-grappler-50">{gamificationStats.badges.length}</p>
-            <p className="text-xs text-grappler-400">Badges</p>
+          <div className="bg-grappler-800/50 rounded-lg p-2.5">
+            <p className="text-lg font-bold text-grappler-50">{gamificationStats.badges.length}</p>
+            <p className="text-[11px] text-grappler-400">Badges</p>
           </div>
         </div>
       </motion.div>
@@ -310,6 +310,7 @@ export default function ProfileSettings() {
                   <label className="block text-xs text-grappler-400 mb-1">Age</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={editAge || ''}
                     onChange={(e) => setEditAge(parseInt(e.target.value) || 0)}
                     className="input w-full"
@@ -320,6 +321,7 @@ export default function ProfileSettings() {
                   <label className="block text-xs text-grappler-400 mb-1">Body Weight ({editUnit})</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={
                       editBodyWeight
                         ? editUnit === 'kg'
@@ -343,6 +345,7 @@ export default function ProfileSettings() {
                 <label className="block text-xs text-grappler-400 mb-1">Height (cm)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={editHeight || ''}
                   onChange={(e) => setEditHeight(parseInt(e.target.value) || 0)}
                   className="input w-full"
@@ -397,7 +400,7 @@ export default function ProfileSettings() {
                       key={lvl}
                       onClick={() => setEditExperience(lvl)}
                       className={cn(
-                        'py-2 rounded-lg text-xs font-medium transition-all capitalize',
+                        'py-2.5 rounded-lg text-xs font-medium transition-all capitalize active:scale-95',
                         editExperience === lvl ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
                       )}
                     >
@@ -426,7 +429,7 @@ export default function ProfileSettings() {
                         setEditAvailableEquipment(profile?.equipment || []);
                       }}
                       className={cn(
-                        'py-2 rounded-lg text-xs font-medium transition-all',
+                        'py-2.5 rounded-lg text-xs font-medium transition-all active:scale-95',
                         editEquipment === eq.value ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
                       )}
                     >
@@ -548,8 +551,8 @@ export default function ProfileSettings() {
             <h3 className="font-medium text-grappler-200">Training Schedule</h3>
             <p className="text-xs text-grappler-500 mt-1">Tap days you plan to lift</p>
           </div>
-          <div className="p-4 flex gap-2 justify-between">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
+          <div className="p-4 flex gap-1.5 justify-between">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => {
               const selected = user.trainingDays?.includes(i) ?? false;
               return (
                 <button
@@ -562,7 +565,7 @@ export default function ProfileSettings() {
                     setUser({ ...user, trainingDays: next, updatedAt: new Date() });
                   }}
                   className={cn(
-                    'w-10 h-10 rounded-full text-xs font-medium transition-all',
+                    'w-9 h-9 rounded-full text-[11px] font-medium transition-all active:scale-95',
                     selected
                       ? 'bg-primary-500 text-white'
                       : 'bg-grappler-800 text-grappler-500 hover:text-grappler-300'
@@ -645,7 +648,7 @@ export default function ProfileSettings() {
           <div>
             <h4 className="text-sm font-medium text-grappler-300 mb-3">Earned Badges</h4>
             {gamificationStats.badges.length > 0 ? (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {gamificationStats.badges.map((userBadge) => (
                   <div key={userBadge.id} className="text-center">
                     <div className="w-14 h-14 bg-grappler-700 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl">
@@ -662,7 +665,7 @@ export default function ProfileSettings() {
           </div>
           <div>
             <h4 className="text-sm font-medium text-grappler-300 mb-3">Available Badges</h4>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {badges.filter(b => !earnedBadgeIds.has(b.id)).slice(0, 8).map((badge) => (
                 <div key={badge.id} className="text-center opacity-50">
                   <div className="w-14 h-14 bg-grappler-800 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">

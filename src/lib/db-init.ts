@@ -34,5 +34,21 @@ export async function ensureAuthTables(): Promise<void> {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  // Add columns for email verification and account lockout (idempotent)
+  await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`;
+
   authTablesReady = true;
 }

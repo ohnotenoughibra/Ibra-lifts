@@ -1190,7 +1190,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         >
           <button
             onClick={() => startWorkout(nextWorkout)}
-            className="w-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl p-5 text-left active:scale-[0.98] transition-transform"
+            className={cn(
+              "w-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl p-5 text-left active:scale-[0.98] transition-transform",
+              workoutLogs.length === 0 && "ring-2 ring-primary-400/60 ring-offset-2 ring-offset-grappler-900 animate-pulse"
+            )}
           >
             <div className="flex items-center justify-between">
               <div>

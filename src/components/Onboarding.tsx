@@ -51,7 +51,8 @@ function useIsMobileBrowser() {
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
-  const [currentStep, setCurrentStep] = useState(1);
+  const currentStep = onboardingData.step || 1;
+  const setCurrentStep = (step: number) => updateOnboardingData({ step });
   const { isMobile, isIOS, isPWA } = useIsMobileBrowser();
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [installDismissed, setInstallDismissed] = useState(false);

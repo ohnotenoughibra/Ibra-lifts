@@ -6,9 +6,10 @@ import { Sun, Moon } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export default function ThemeToggle() {
-  const { themeMode, setThemeMode } = useAppStore();
+  const { themeMode, setThemeMode, colorTheme } = useAppStore();
 
   useEffect(() => {
+    // Apply dark/light mode
     if (themeMode === 'light') {
       document.body.classList.add('light-mode');
       document.documentElement.classList.remove('dark');
@@ -18,7 +19,14 @@ export default function ThemeToggle() {
       document.documentElement.classList.add('dark');
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0f172a');
     }
-  }, [themeMode]);
+
+    // Apply color theme
+    if (colorTheme && colorTheme !== 'steel') {
+      document.documentElement.setAttribute('data-theme', colorTheme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [themeMode, colorTheme]);
 
   return (
     <button

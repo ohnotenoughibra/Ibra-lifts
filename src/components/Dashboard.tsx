@@ -399,28 +399,27 @@ export default function Dashboard({
   }
 
   return (
-    <div className="min-h-screen bg-grappler-900 bg-mesh pb-20">
+    <div className="min-h-screen bg-grappler-900 bg-mesh pb-16 overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center">
-              <Dumbbell className="w-5 h-5 text-white" />
+        <div className="px-3 py-3 flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0 flex-shrink">
+            <div className="w-8 h-8 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+              <Dumbbell className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h1 className="font-bold text-grappler-50">Roots Gains</h1>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-grappler-400">
-                  Lv.{gamificationStats.level} {getLevelTitle(gamificationStats.level)}
+            <div className="min-w-0">
+              <h1 className="font-bold text-sm text-grappler-50 truncate">Roots Gains</h1>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-grappler-400 whitespace-nowrap">
+                  Lv.{gamificationStats.level}
                 </p>
-                <div className="w-20 h-1.5 bg-grappler-700 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
+                <div className="w-14 h-1 bg-grappler-700 rounded-full overflow-hidden flex-shrink-0" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
                   <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" style={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }} />
                 </div>
-                <span className="text-[10px] text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} XP</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <SyncStatusIndicator
               syncStatus={syncStatus}
               lastSyncedAt={lastSyncedAt}
@@ -434,14 +433,14 @@ export default function Dashboard({
               const goals = gamificationStats.weeklyChallenge.goals;
               const completed = goals.filter(g => g.current >= g.target).length;
               return (
-                <div className="flex items-center gap-1 bg-grappler-800 px-2 py-1.5 rounded-full" title={`Weekly: ${completed}/${goals.length} goals done`}>
-                  <Target className="w-3.5 h-3.5 text-accent-400" />
-                  <span className="text-xs font-semibold text-grappler-200">{completed}/{goals.length}</span>
+                <div className="flex items-center gap-0.5 bg-grappler-800 px-1.5 py-1 rounded-full" title={`Weekly: ${completed}/${goals.length} goals done`}>
+                  <Target className="w-3 h-3 text-accent-400" />
+                  <span className="text-[10px] font-semibold text-grappler-200">{completed}/{goals.length}</span>
                 </div>
               );
             })()}
             <div className={cn(
-              'flex items-center gap-1 px-2.5 py-1.5 rounded-full transition-colors',
+              'flex items-center gap-0.5 px-1.5 py-1 rounded-full transition-colors',
               gamificationStats.currentStreak >= 7
                 ? 'bg-orange-500/20 border border-orange-500/30'
                 : streakAtRisk
@@ -449,11 +448,11 @@ export default function Dashboard({
                   : 'bg-grappler-800'
             )}>
               <Flame className={cn(
-                'w-4 h-4',
+                'w-3.5 h-3.5',
                 gamificationStats.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-blue-500'
               )} />
               <span className={cn(
-                'text-sm font-medium',
+                'text-xs font-medium',
                 gamificationStats.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-200'
               )}>
                 {gamificationStats.currentStreak}
@@ -461,11 +460,11 @@ export default function Dashboard({
             </div>
             <button
               onClick={() => setOverlayView('badge_showcase')}
-              className="flex items-center gap-1 bg-grappler-800 px-2.5 py-1.5 rounded-full hover:bg-grappler-700 transition-colors"
+              className="flex items-center gap-0.5 bg-grappler-800 px-1.5 py-1 rounded-full hover:bg-grappler-700 transition-colors"
               title="View badges"
             >
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-grappler-200">
+              <Star className="w-3.5 h-3.5 text-yellow-500" />
+              <span className="text-xs font-medium text-grappler-200">
                 {formatNumber(gamificationStats.totalPoints)}
               </span>
             </button>
@@ -474,7 +473,7 @@ export default function Dashboard({
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-6">
+      <main className="px-4 pt-4 pb-2">
         <AnimatePresence mode="popLayout">
           {activeTab === 'home' && (
             <motion.div

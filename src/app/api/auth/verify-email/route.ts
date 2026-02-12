@@ -76,10 +76,10 @@ export async function POST(request: Request) {
     // Send verification email via Resend
     const resendKey = process.env.RESEND_API_KEY;
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@rootsgains.com';
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     if (resendKey) {
-      await fetch('https://api.resend.com/emails', {
+      const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,6 +98,12 @@ export async function POST(request: Request) {
           `,
         }),
       });
+      if (!resendRes.ok) {
+        const errBody = await resendRes.text().catch(() => '');
+        console.error(`[verify-email] Resend API error ${resendRes.status}: ${errBody}`);
+      }
+    } else {
+      console.warn('[verify-email] RESEND_API_KEY not set — no email sent');
     }
 
     // In dev, return token for testing

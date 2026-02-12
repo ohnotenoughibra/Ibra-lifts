@@ -286,6 +286,56 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
       }
     }
 
+    // Auto-deload suggestion — RPE creeping up over last 3 sessions
+    if (workoutLogs.length >= 3) {
+      const last3 = [...workoutLogs]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3);
+      const rpes = last3.filter(l => l.overallRPE > 0).map(l => l.overallRPE);
+      if (rpes.length >= 3 && rpes.every(r => r >= 8.5)) {
+        results.push({
+          type: 'negative',
+          message: `RPE has been 8.5+ for 3 sessions straight — consider a deload week to prevent overreaching.`
+        });
+      } else if (rpes.length >= 3 && rpes[0] > rpes[2] + 1) {
+        results.push({
+          type: 'neutral',
+          message: `RPE trending up (${rpes[2]} → ${rpes[0]}) — monitor fatigue and consider reducing intensity if it continues.`
+        });
+      }
+    }
+
+    // Plateau detection — flag exercises with <2% e1RM change over 3+ sessions
+    const exerciseTrends: Record<string, number[]> = {};
+    workoutLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        if (!exerciseTrends[ex.exerciseName]) exerciseTrends[ex.exerciseName] = [];
+        const maxE1rm = ex.sets.reduce((max, set) => {
+          if (!set.completed || set.weight === 0) return max;
+          const e1rm = calculate1RM(set.weight, set.reps);
+          return e1rm > max ? e1rm : max;
+        }, 0);
+        if (maxE1rm > 0) exerciseTrends[ex.exerciseName].push(maxE1rm);
+      });
+    });
+    const stalledExercises: string[] = [];
+    Object.entries(exerciseTrends).forEach(([name, e1rms]) => {
+      if (e1rms.length >= 4) {
+        const recent = e1rms.slice(-4);
+        const first = recent[0];
+        const last = recent[recent.length - 1];
+        const pctChange = first > 0 ? Math.abs(((last - first) / first) * 100) : 0;
+        if (pctChange < 2) stalledExercises.push(name);
+      }
+    });
+    if (stalledExercises.length > 0) {
+      const names = stalledExercises.slice(0, 2).join(' and ');
+      results.push({
+        type: 'neutral',
+        message: `${names} ${stalledExercises.length > 2 ? `(+${stalledExercises.length - 2} more)` : ''} plateaued — try a variation, rep range change, or extra set.`.replace(/  +/g, ' '),
+      });
+    }
+
     // Default insight — milestone-based encouragement
     if (results.length === 0) {
       const totalW = gamificationStats.totalWorkouts;

@@ -136,8 +136,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     return weeklyVolume;
   }, [workoutLogs]);
 
-  // Calculate muscle group distribution
+  // Calculate muscle group distribution (only when tab is active)
   const muscleDistribution = useMemo(() => {
+    if (activeView !== 'distribution') return [];
     const distribution: Record<string, number> = {};
 
     const muscleNameMap: Record<string, string> = {
@@ -164,9 +165,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     });
 
     return Object.entries(distribution).map(([name, value]) => ({ name, value }));
-  }, [workoutLogs]);
+  }, [workoutLogs, activeView]);
 
-  // Calculate recovery trend from wearable history
+  // Calculate recovery trend from wearable history (lazy — only for recovery tab + insights)
   const recoveryTrend = useMemo(() => {
     if (!wearableHistory || wearableHistory.length === 0) return [];
 
@@ -180,7 +181,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
         strain: w.strain ?? undefined,
         sleep: w.sleepHours != null ? Math.round(w.sleepHours * 10) / 10 : undefined,
       }));
-  }, [wearableHistory]);
+  }, [wearableHistory]); // Note: kept always computed since insights depend on it
 
   // Calculate insights
   const insights = useMemo(() => {

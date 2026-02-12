@@ -75,6 +75,7 @@ export default function ActiveWorkout() {
   const [showCheckInSection, setShowCheckInSection] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [swapShowAll, setSwapShowAll] = useState(false);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [addExerciseSearch, setAddExerciseSearch] = useState('');
   const [addExerciseFilter, setAddExerciseFilter] = useState<string>('all');
@@ -536,18 +537,26 @@ export default function ActiveWorkout() {
   // Get readiness for display
   const readiness = activeWorkout.preCheckIn ? calculateReadiness(activeWorkout.preCheckIn) : null;
 
+  // Resolve the actual equipment list from active profile for smart swap filtering
+  const profileEquipment = useMemo(() => {
+    const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile);
+    return preset?.equipment ?? user?.availableEquipment;
+  }, [activeEquipmentProfile, user?.availableEquipment]);
+
   // Get alternatives for current exercise (basic list kept for compatibility)
   const alternatives = user ? getAlternativesForExercise(
     currentExercise.exerciseId,
     user.equipment,
-    5
+    5,
+    profileEquipment
   ) : [];
 
   // Enhanced recommendations with scores and reasons
   const recommendations: ExerciseRecommendation[] = user ? getRecommendedAlternatives(
     currentExercise.exerciseId,
     user.equipment,
-    8
+    8,
+    profileEquipment
   ) : [];
 
   // Filtered exercises for Add Exercise modal
@@ -558,6 +567,13 @@ export default function ActiveWorkout() {
     return exerciseLibrary.filter(ex => {
       if (usedIds.has(ex.id)) return false;
       if (userEquipment && !ex.equipmentRequired.includes(userEquipment)) return false;
+      // Granular equipment check from active profile
+      if (profileEquipment && profileEquipment.length > 0) {
+        const eqTypes = ex.equipmentTypes || [];
+        if (eqTypes.length > 0 && !(eqTypes.length === 1 && eqTypes[0] === 'bodyweight')) {
+          if (!eqTypes.every(et => et === 'bodyweight' || profileEquipment.includes(et))) return false;
+        }
+      }
       if (addExerciseFilter !== 'all' && !ex.primaryMuscles.includes(addExerciseFilter as any)) return false;
       if (addExerciseSearch) {
         const q = addExerciseSearch.toLowerCase();
@@ -565,7 +581,7 @@ export default function ActiveWorkout() {
       }
       return true;
     });
-  }, [activeWorkout, user, addExerciseSearch, addExerciseFilter]);
+  }, [activeWorkout, user, addExerciseSearch, addExerciseFilter, profileEquipment]);
 
   // Get previous performance for an alternative exercise
   const getAltHistory = (exerciseId: string) => {
@@ -1527,7 +1543,8 @@ export default function ActiveWorkout() {
           const overviewRecs: ExerciseRecommendation[] = user ? getRecommendedAlternatives(
             targetEx.exerciseId,
             user.equipment,
-            8
+            8,
+            profileEquipment
           ) : [];
           const handleOverviewSwap = (newExerciseId: string, newExerciseName: string) => {
             swapExercise(overviewSwapIndex, newExerciseId, newExerciseName);
@@ -1553,9 +1570,16 @@ export default function ActiveWorkout() {
                 <p className="text-xs text-grappler-400 mb-1">
                   Replace <span className="text-grappler-200 font-medium">{targetEx.exercise.name}</span>
                 </p>
-                <p className="text-xs text-grappler-500 mb-4">
-                  Sorted by match score — how well each exercise replaces the current one
-                </p>
+                <div className="flex items-center gap-2 mb-4">
+                  <p className="text-xs text-grappler-500">
+                    Sorted by match score — how well each exercise replaces the current one
+                  </p>
+                  {activeEquipmentProfile !== 'gym' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 whitespace-nowrap flex-shrink-0">
+                      {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || activeEquipmentProfile}
+                    </span>
+                  )}
+                </div>
 
                 <div className="space-y-2">
                   {overviewRecs.length > 0 ? overviewRecs.map((rec) => (
@@ -1597,9 +1621,41 @@ export default function ActiveWorkout() {
                       </p>
                     </button>
                   )) : (
-                    <p className="text-sm text-grappler-400 text-center py-6">
-                      No alternatives available for your equipment setup
-                    </p>
+                    <div className="text-center py-6">
+                      <p className="text-sm text-grappler-400 mb-3">
+                        No alternatives match your {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || 'current'} equipment
+                      </p>
+                      {activeEquipmentProfile !== 'gym' && (() => {
+                        const allRecs = user ? getRecommendedAlternatives(targetEx.exerciseId, user.equipment, 8) : [];
+                        if (allRecs.length === 0) return null;
+                        return (
+                          <>
+                            <p className="text-xs text-yellow-400/70 mb-2">These require additional equipment:</p>
+                            <div className="space-y-2 text-left">
+                              {allRecs.map((rec) => (
+                                <button
+                                  key={rec.exercise.id}
+                                  onClick={() => handleOverviewSwap(rec.exercise.id, rec.exercise.name)}
+                                  className="w-full p-3 rounded-xl border border-yellow-500/30 hover:border-primary-500 text-left transition-all group"
+                                >
+                                  <div className="flex items-start justify-between mb-1">
+                                    <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
+                                      {rec.exercise.name}
+                                    </p>
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 flex-shrink-0 ml-2">
+                                      Needs equipment
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-grappler-500 mt-1">
+                                    {rec.exercise.primaryMuscles.join(', ')}
+                                  </p>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
 
@@ -1636,9 +1692,16 @@ export default function ActiveWorkout() {
               <p className="text-xs text-grappler-400 mb-1">
                 Replace <span className="text-grappler-200 font-medium">{currentExercise.exercise.name}</span>
               </p>
-              <p className="text-xs text-grappler-500 mb-4">
-                Sorted by match score — how well each exercise replaces the current one
-              </p>
+              <div className="flex items-center gap-2 mb-4">
+                <p className="text-xs text-grappler-500">
+                  Sorted by match score — how well each exercise replaces the current one
+                </p>
+                {activeEquipmentProfile !== 'gym' && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 whitespace-nowrap flex-shrink-0">
+                    {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || activeEquipmentProfile}
+                  </span>
+                )}
+              </div>
 
               <div className="space-y-2">
                 {recommendations.length > 0 ? recommendations.map((rec) => {
@@ -1699,14 +1762,50 @@ export default function ActiveWorkout() {
                     </button>
                   );
                 }) : (
-                  <p className="text-sm text-grappler-400 text-center py-6">
-                    No alternatives available for your equipment setup
-                  </p>
+                  <div className="text-center py-6">
+                    <p className="text-sm text-grappler-400 mb-3">
+                      No alternatives match your {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || 'current'} equipment
+                    </p>
+                    {activeEquipmentProfile !== 'gym' && (
+                      <button
+                        onClick={() => {
+                          // Temporarily show unfiltered results
+                          setSwapShowAll(true);
+                        }}
+                        className="text-xs text-primary-400 hover:text-primary-300 underline transition-colors"
+                      >
+                        Show all exercises (ignoring equipment)
+                      </button>
+                    )}
+                  </div>
                 )}
+                {/* Show-all unfiltered results when user clicks fallback */}
+                {recommendations.length === 0 && swapShowAll && (() => {
+                  const allRecs = user ? getRecommendedAlternatives(currentExercise.exerciseId, user.equipment, 8) : [];
+                  return allRecs.map((rec) => (
+                    <button
+                      key={rec.exercise.id}
+                      onClick={() => handleSwapExercise(rec.exercise.id, rec.exercise.name)}
+                      className="w-full p-3 rounded-xl border border-yellow-500/30 hover:border-primary-500 text-left transition-all group"
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
+                          {rec.exercise.name}
+                        </p>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 flex-shrink-0 ml-2">
+                          Needs equipment
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-500 mt-1">
+                        {rec.exercise.primaryMuscles.join(', ')}
+                      </p>
+                    </button>
+                  ));
+                })()}
               </div>
 
               <button
-                onClick={() => setShowSwapModal(false)}
+                onClick={() => { setShowSwapModal(false); setSwapShowAll(false); }}
                 className="btn btn-secondary btn-md w-full mt-4"
               >
                 Keep Current Exercise

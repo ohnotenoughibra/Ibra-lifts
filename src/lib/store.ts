@@ -162,6 +162,8 @@ interface AppState {
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
+  // Custom home gym equipment (user picks exactly what they own)
+  homeGymEquipment: EquipmentType[];
 
   // Competitions
   competitions: CompetitionEvent[];
@@ -360,6 +362,7 @@ interface AppState {
 
   // Equipment profile actions
   setActiveEquipmentProfile: (profile: EquipmentProfileName) => void;
+  setHomeGymEquipment: (equipment: EquipmentType[]) => void;
   getActiveEquipment: () => EquipmentType[];
 
   // Competition actions
@@ -507,6 +510,7 @@ export const useAppStore = create<AppState>()(
       bodyComposition: [],
       muscleEmphasis: null,
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
+      homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'] as EquipmentType[],
       competitions: [],
       weightCutPlans: [],
       combatNutritionProfile: null,
@@ -663,17 +667,37 @@ export const useAppStore = create<AppState>()(
       // Equipment profile actions
       setActiveEquipmentProfile: (profile) => {
         set({ activeEquipmentProfile: profile });
-        // Also update user's availableEquipment from profile
-        const { user } = get();
+        // Sync user.equipment tier AND user.availableEquipment from profile
+        const { user, homeGymEquipment } = get();
         if (user) {
-          const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile);
-          if (preset) {
-            set({ user: { ...user, availableEquipment: preset.equipment, updatedAt: new Date() } });
-          }
+          const equipmentTier: Equipment =
+            profile === 'gym' ? 'full_gym' :
+            profile === 'home' ? 'home_gym' : 'minimal';
+          // For home profile, use user's custom equipment list
+          const profileEquipment = profile === 'home'
+            ? homeGymEquipment
+            : DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile)?.equipment || [];
+          set({
+            user: {
+              ...user,
+              equipment: equipmentTier,
+              availableEquipment: profileEquipment,
+              updatedAt: new Date(),
+            }
+          });
+        }
+      },
+      setHomeGymEquipment: (equipment) => {
+        set({ homeGymEquipment: equipment });
+        // If currently on home profile, also sync user.availableEquipment
+        const { activeEquipmentProfile, user } = get();
+        if (activeEquipmentProfile === 'home' && user) {
+          set({ user: { ...user, availableEquipment: equipment, updatedAt: new Date() } });
         }
       },
       getActiveEquipment: () => {
-        const { user, activeEquipmentProfile } = get();
+        const { user, activeEquipmentProfile, homeGymEquipment } = get();
+        if (activeEquipmentProfile === 'home' && homeGymEquipment.length > 0) return homeGymEquipment;
         if (user?.availableEquipment?.length) return user.availableEquipment;
         const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile);
         return preset?.equipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment;
@@ -1506,18 +1530,23 @@ export const useAppStore = create<AppState>()(
       },
 
       adaptWorkoutToProfile: (profile) => {
-        const { activeWorkout, workoutLogs } = get();
+        const { activeWorkout, workoutLogs, homeGymEquipment } = get();
         if (!activeWorkout) return;
 
-        const preset = DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile);
-        if (!preset) return;
-        const profileEquipment = preset.equipment;
+        // For home profile use custom equipment, otherwise use preset
+        const profileEquipment = profile === 'home'
+          ? homeGymEquipment
+          : (DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === profile)?.equipment || []);
+        if (profileEquipment.length === 0) return;
 
-        // Update profile state
+        // Update profile state + sync user
+        const equipmentTier: Equipment =
+          profile === 'gym' ? 'full_gym' :
+          profile === 'home' ? 'home_gym' : 'minimal';
         set({ activeEquipmentProfile: profile });
         const { user } = get();
         if (user) {
-          set({ user: { ...user, availableEquipment: profileEquipment, updatedAt: new Date() } });
+          set({ user: { ...user, equipment: equipmentTier, availableEquipment: profileEquipment, updatedAt: new Date() } });
         }
 
         // Always adapt from the ORIGINAL base session — not the last adapted state.
@@ -2887,6 +2916,7 @@ export const useAppStore = create<AppState>()(
           fightCampPlans: [],
           activeSupplements: [],
           activeEquipmentProfile: 'gym' as const,
+          homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || [] as EquipmentType[],
           latestWhoopData: null,
           wearableHistory: [],
           whoopWorkouts: [],
@@ -3009,6 +3039,7 @@ export const useAppStore = create<AppState>()(
           if (!state.cycleLogs) state.cycleLogs = [];
           if (!state.muscleEmphasis) state.muscleEmphasis = null;
           if (!state.activeEquipmentProfile) state.activeEquipmentProfile = 'gym';
+          if (!state.homeGymEquipment) state.homeGymEquipment = ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'];
         }
         // Future: if (fromVersion < 3) { ... }
 
@@ -3055,6 +3086,7 @@ export const useAppStore = create<AppState>()(
         fightCampPlans: state.fightCampPlans,
         activeSupplements: state.activeSupplements,
         activeEquipmentProfile: state.activeEquipmentProfile,
+        homeGymEquipment: state.homeGymEquipment,
         lastSyncAt: state.lastSyncAt,
         subscription: state.subscription,
         notificationPreferences: state.notificationPreferences,

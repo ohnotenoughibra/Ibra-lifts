@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Apple from 'next-auth/providers/apple';
 
 /**
  * Edge-safe auth configuration.
@@ -25,6 +26,11 @@ export default {
       token: { url: 'https://oauth2.googleapis.com/token' },
       userinfo: { url: 'https://openidconnect.googleapis.com/v1/userinfo' },
     }),
+    // Apple Sign In (requires APPLE_CLIENT_ID and APPLE_CLIENT_SECRET env vars)
+    ...(process.env.APPLE_CLIENT_ID ? [Apple({
+      clientId: process.env.APPLE_CLIENT_ID,
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,
+    })] : []),
     // NOTE: Credentials provider is added in auth.ts (Node.js only)
     // because it requires @vercel/postgres + bcryptjs which aren't
     // available in the Edge runtime.
@@ -43,7 +49,8 @@ export default {
       const { pathname } = request.nextUrl;
       const isAuthPage = pathname.startsWith('/login') ||
                          pathname.startsWith('/register') ||
-                         pathname.startsWith('/reset-password');
+                         pathname.startsWith('/reset-password') ||
+                         pathname.startsWith('/verify-email');
       const isApi = pathname.startsWith('/api');
       const isPublicAsset = pathname.startsWith('/_next') ||
                             pathname.includes('.');

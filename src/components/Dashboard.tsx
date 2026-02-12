@@ -239,17 +239,19 @@ export default function Dashboard({
   const resolveSyncConflict = useAppStore(s => s.resolveSyncConflict);
   const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
   const ensureWeeklyChallenge = useAppStore(s => s.ensureWeeklyChallenge);
+  const lastCompletedWorkout = useAppStore(s => s.lastCompletedWorkout);
 
-  // Show new user guide on first visit (0 workouts)
+  // Show new user guide after first workout completion (not before)
   const [showNewUserGuide, setShowNewUserGuide] = useState(false);
   useEffect(() => {
-    if (user && gamificationStats.totalWorkouts === 0 && workoutLogs.length === 0) {
+    // Trigger when: first workout done, celebration dismissed, guide not yet shown
+    if (user && workoutLogs.length >= 1 && !lastCompletedWorkout) {
       const guideShown = localStorage.getItem('roots-guide-shown');
       if (!guideShown) {
         setShowNewUserGuide(true);
       }
     }
-  }, [user, gamificationStats.totalWorkouts, workoutLogs.length]);
+  }, [user, workoutLogs.length, lastCompletedWorkout]);
 
   const handleGuideComplete = () => {
     setShowNewUserGuide(false);

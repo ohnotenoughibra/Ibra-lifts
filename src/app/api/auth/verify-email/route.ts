@@ -78,37 +78,36 @@ export async function POST(request: Request) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@rootsgains.com';
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-    if (resendKey) {
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: email.toLowerCase().trim(),
-          subject: 'Verify your Roots Gains email',
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#111;color:#eee;border-radius:12px;">
-              <h2 style="margin:0 0 12px;color:#fff;">Verify your email</h2>
-              <p style="color:#999;font-size:14px;">Tap the button below to verify your email and enable cloud sync.</p>
-              <a href="${baseUrl}/verify-email?token=${token}" style="display:inline-block;margin:24px 0;padding:12px 32px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">
-                Verify Email
-              </a>
-              <p style="color:#666;font-size:12px;">This link expires in 24 hours. If you didn't create an account, ignore this email.</p>
-            </div>
-          `,
-        }),
-      });
-      if (!resendRes.ok) {
-        const errBody = await resendRes.text().catch(() => '');
-        console.error(`[verify-email] Resend API error ${resendRes.status}: ${errBody}`);
-      }
-    } else {
+    if (!resendKey) {
       console.warn('[verify-email] RESEND_API_KEY not set — no email sent');
+      // In dev, return token for testing but flag that no email was sent
+      return NextResponse.json({ success: true, token, emailSent: false, reason: 'Email service not configured' });
     }
 
-    // In dev, return token for testing
-    if (!resendKey) {
-      return NextResponse.json({ success: true, token });
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: email.toLowerCase().trim(),
+        subject: 'Verify your Roots Gains email',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#111;color:#eee;border-radius:12px;">
+            <h2 style="margin:0 0 12px;color:#fff;">Verify your email</h2>
+            <p style="color:#999;font-size:14px;">Tap the button below to verify your email and enable cloud sync.</p>
+            <a href="${baseUrl}/verify-email?token=${token}" style="display:inline-block;margin:24px 0;padding:12px 32px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">
+              Verify Email
+            </a>
+            <p style="color:#666;font-size:12px;">This link expires in 24 hours. If you didn't create an account, ignore this email.</p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!resendRes.ok) {
+      const errBody = await resendRes.text().catch(() => '');
+      console.error(`[verify-email] Resend API error ${resendRes.status}: ${errBody}`);
+      return NextResponse.json({ error: 'Failed to send email. Please try again later.' }, { status: 502 });
     }
 
     return NextResponse.json({ success: true, emailSent: true });

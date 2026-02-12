@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Color Theme Variables ──
+     Default = Steel (blue). Overridden via [data-theme] on <html>. */
   :root {
     --background: 248 250 252;
     --foreground: 15 23 42;
@@ -30,6 +32,157 @@
     --ring: 59 130 246;
 
     --radius: 0.75rem;
+
+    /* Steel primary (blue) */
+    --p-50:  239 246 255;
+    --p-100: 219 234 254;
+    --p-200: 191 219 254;
+    --p-300: 147 197 253;
+    --p-400: 96 165 250;
+    --p-500: 59 130 246;
+    --p-600: 37 99 235;
+    --p-700: 29 78 216;
+    --p-800: 30 64 175;
+    --p-900: 30 58 138;
+    --p-950: 23 37 84;
+
+    /* Steel accent (cyan) */
+    --a-50:  236 254 255;
+    --a-100: 207 250 254;
+    --a-200: 165 243 252;
+    --a-300: 103 232 249;
+    --a-400: 34 211 238;
+    --a-500: 6 182 212;
+    --a-600: 8 145 178;
+    --a-700: 14 116 144;
+    --a-800: 21 94 117;
+    --a-900: 22 78 99;
+    --a-950: 8 51 68;
+
+    /* Mesh gradient base colors (overridden per theme) */
+    --mesh-1: 59 130 246;
+    --mesh-2: 6 182 212;
+    --mesh-3: 99 102 241;
+  }
+
+  /* ── Rose theme ── */
+  [data-theme="rose"] {
+    --primary: 244 114 182;
+    --ring: 244 114 182;
+
+    --p-50:  253 242 248;
+    --p-100: 252 231 243;
+    --p-200: 251 207 232;
+    --p-300: 249 168 212;
+    --p-400: 244 114 182;
+    --p-500: 236 72 153;
+    --p-600: 219 39 119;
+    --p-700: 190 24 93;
+    --p-800: 157 23 77;
+    --p-900: 131 24 67;
+    --p-950: 80 7 36;
+
+    --a-50:  255 241 242;
+    --a-100: 255 228 230;
+    --a-200: 254 205 211;
+    --a-300: 253 164 175;
+    --a-400: 251 113 133;
+    --a-500: 244 63 94;
+    --a-600: 225 29 72;
+    --a-700: 190 18 60;
+    --a-800: 159 18 57;
+    --a-900: 136 19 55;
+    --a-950: 76 5 25;
+
+    --mesh-1: 236 72 153;
+    --mesh-2: 244 63 94;
+    --mesh-3: 168 85 247;
+  }
+
+  [data-theme="rose"] .dark {
+    --primary: 244 114 182;
+    --ring: 244 114 182;
+    --accent: 251 113 133;
+  }
+
+  /* ── Emerald theme ── */
+  [data-theme="emerald"] {
+    --primary: 16 185 129;
+    --ring: 16 185 129;
+
+    --p-50:  236 253 245;
+    --p-100: 209 250 229;
+    --p-200: 167 243 208;
+    --p-300: 110 231 183;
+    --p-400: 52 211 153;
+    --p-500: 16 185 129;
+    --p-600: 5 150 105;
+    --p-700: 4 120 87;
+    --p-800: 6 95 70;
+    --p-900: 6 78 59;
+    --p-950: 2 44 34;
+
+    --a-50:  240 253 244;
+    --a-100: 220 252 231;
+    --a-200: 187 247 208;
+    --a-300: 134 239 172;
+    --a-400: 74 222 128;
+    --a-500: 34 197 94;
+    --a-600: 22 163 74;
+    --a-700: 21 128 61;
+    --a-800: 22 101 52;
+    --a-900: 20 83 45;
+    --a-950: 5 46 22;
+
+    --mesh-1: 16 185 129;
+    --mesh-2: 34 197 94;
+    --mesh-3: 20 184 166;
+  }
+
+  [data-theme="emerald"] .dark {
+    --primary: 52 211 153;
+    --ring: 52 211 153;
+    --accent: 74 222 128;
+  }
+
+  /* ── Amber theme ── */
+  [data-theme="amber"] {
+    --primary: 245 158 11;
+    --ring: 245 158 11;
+
+    --p-50:  255 251 235;
+    --p-100: 254 243 199;
+    --p-200: 253 230 138;
+    --p-300: 252 211 77;
+    --p-400: 251 191 36;
+    --p-500: 245 158 11;
+    --p-600: 217 119 6;
+    --p-700: 180 83 9;
+    --p-800: 146 64 14;
+    --p-900: 120 53 15;
+    --p-950: 69 26 3;
+
+    --a-50:  255 247 237;
+    --a-100: 255 237 213;
+    --a-200: 254 215 170;
+    --a-300: 253 186 116;
+    --a-400: 251 146 60;
+    --a-500: 249 115 22;
+    --a-600: 234 88 12;
+    --a-700: 194 65 12;
+    --a-800: 154 52 18;
+    --a-900: 124 45 18;
+    --a-950: 67 20 7;
+
+    --mesh-1: 245 158 11;
+    --mesh-2: 249 115 22;
+    --mesh-3: 234 179 8;
+  }
+
+  [data-theme="amber"] .dark {
+    --primary: 251 191 36;
+    --ring: 251 191 36;
+    --accent: 251 146 60;
   }
 
   .dark {
@@ -388,24 +541,24 @@
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
   }
 
-  /* Gradient backgrounds */
+  /* Gradient backgrounds — uses theme-aware CSS variables */
   .bg-mesh {
     background-image:
-      radial-gradient(at 40% 20%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.06) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.04) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.05) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, rgb(var(--mesh-1) / 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgb(var(--mesh-2) / 0.06) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgb(var(--mesh-1) / 0.05) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgb(var(--mesh-3) / 0.04) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(var(--mesh-1) / 0.05) 0px, transparent 50%);
   }
 
   /* Light mode mesh is more subtle */
   body.light-mode .bg-mesh {
     background-image:
-      radial-gradient(at 40% 20%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.02) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.03) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, rgb(var(--mesh-1) / 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgb(var(--mesh-2) / 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, rgb(var(--mesh-1) / 0.03) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgb(var(--mesh-3) / 0.02) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgb(var(--mesh-1) / 0.03) 0px, transparent 50%);
   }
 
   /* Animation delays */

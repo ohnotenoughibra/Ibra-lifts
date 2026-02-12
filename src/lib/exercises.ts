@@ -3661,6 +3661,723 @@ export const exercises: Exercise[] = [
       'Control the arc — don\'t swing wildly',
       'Core stays braced throughout'
     ]
+  },
+
+  // ─── Bodyweight & Resistance Band exercises for Travel / Minimal profile ───
+
+  {
+    id: 'pike-push-up',
+    name: 'Pike Push-Up',
+    category: 'compound',
+    primaryMuscles: ['shoulders', 'triceps'],
+    secondaryMuscles: ['chest', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 6,
+    description: 'Inverted push-up with hips high that shifts the load to the shoulders. A bodyweight overhead press progression — great for hotel workouts.',
+    videoUrl: 'https://www.youtube.com/results?search_query=pike+push+up+proper+form+tutorial+short',
+    cues: [
+      'Start in downward dog — hands and feet on floor, hips high',
+      'Hands shoulder-width apart, fingers forward',
+      'Lower head toward floor between hands',
+      'Press back up to lockout',
+      'Keep core braced and legs straight'
+    ]
+  },
+  {
+    id: 'diamond-push-up',
+    name: 'Diamond Push-Up',
+    category: 'compound',
+    primaryMuscles: ['triceps', 'chest'],
+    secondaryMuscles: ['shoulders', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Push-up with hands forming a diamond shape under your chest. Heavily targets the triceps and inner chest — no equipment needed.',
+    videoUrl: 'https://www.youtube.com/results?search_query=diamond+push+up+proper+form+tutorial+short',
+    cues: [
+      'Place hands together under chest, index fingers and thumbs touching',
+      'Keep elbows tucked close to body',
+      'Lower chest to hands',
+      'Press up fully, squeezing triceps at top',
+      'Maintain a straight body line throughout'
+    ]
+  },
+  {
+    id: 'decline-push-up',
+    name: 'Decline Push-Up',
+    category: 'compound',
+    primaryMuscles: ['chest', 'shoulders'],
+    secondaryMuscles: ['triceps', 'core'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 6,
+    description: 'Push-up with feet elevated on a bed, chair, or bench. Shifts the load to the upper chest and shoulders — harder than standard push-ups.',
+    videoUrl: 'https://www.youtube.com/results?search_query=decline+push+up+feet+elevated+form+short',
+    cues: [
+      'Place feet on an elevated surface (bed, chair, box)',
+      'Hands slightly wider than shoulders on the floor',
+      'Lower chest to the ground',
+      'Press back up to full extension',
+      'Keep core tight — no sagging hips'
+    ]
+  },
+  {
+    id: 'hindu-push-up',
+    name: 'Hindu Push-Up',
+    category: 'compound',
+    primaryMuscles: ['chest', 'shoulders', 'triceps'],
+    secondaryMuscles: ['core', 'back'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Flowing push-up from downward dog through a scooping motion to upward dog. Used by wrestlers for centuries — trains the entire upper body and spine mobility.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hindu+push+up+form+tutorial+short',
+    cues: [
+      'Start in downward dog position',
+      'Swoop down — chest brushes the floor',
+      'Press through to upward dog, arching back',
+      'Push hips back up to start position',
+      'Smooth fluid motion, don\'t pause at bottom'
+    ]
+  },
+  {
+    id: 'bodyweight-squat',
+    name: 'Bodyweight Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'The fundamental squat movement with no weight. Use for high reps, warm-ups, or when no equipment is available. Add tempo or pauses to increase difficulty.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bodyweight+squat+proper+form+tutorial+short',
+    cues: [
+      'Feet shoulder-width apart, toes slightly out',
+      'Sit back and down as if into a chair',
+      'Knees track over toes',
+      'Chest stays tall, arms forward for balance',
+      'Drive through full foot to stand'
+    ]
+  },
+  {
+    id: 'bodyweight-lunge',
+    name: 'Bodyweight Lunge',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'calves'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Forward or reverse lunge with no weight. Trains single-leg strength and balance — essential for grapplers and combat athletes who need leg stability.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bodyweight+lunge+proper+form+tutorial+short',
+    cues: [
+      'Step forward into a lunge, both knees at 90°',
+      'Back knee nearly touches the floor',
+      'Front knee stays over ankle, not past toes',
+      'Push through front foot to return',
+      'Keep torso upright throughout'
+    ]
+  },
+  {
+    id: 'shrimp-squat',
+    name: 'Shrimp Squat',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'core', 'calves'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 8,
+    description: 'Single-leg squat where you grab your back foot behind you and lower to the ground. Extremely challenging — a true bodyweight leg strength test.',
+    videoUrl: 'https://www.youtube.com/results?search_query=shrimp+squat+tutorial+progression+short',
+    cues: [
+      'Stand on one leg, grab opposite foot behind you',
+      'Lower slowly until back knee touches the floor',
+      'Keep chest up and forward lean minimal',
+      'Drive through standing leg to rise',
+      'Use a chair for support if needed'
+    ]
+  },
+  {
+    id: 'single-leg-glute-bridge',
+    name: 'Single-Leg Glute Bridge',
+    category: 'compound',
+    primaryMuscles: ['glutes', 'hamstrings'],
+    secondaryMuscles: ['core'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 6,
+    description: 'Unilateral glute bridge — one leg extended, the other drives the hips up. Doubles the load on each glute compared to standard bridges. Great hotel room exercise.',
+    videoUrl: 'https://www.youtube.com/results?search_query=single+leg+glute+bridge+form+short',
+    cues: [
+      'Lie on back, one foot flat on floor, other leg extended',
+      'Drive hips up through the planted foot',
+      'Squeeze glute hard at the top',
+      'Lower slowly, don\'t let hips touch the floor between reps',
+      'Keep hips level — don\'t rotate'
+    ]
+  },
+  {
+    id: 'bodyweight-rdl',
+    name: 'Single-Leg Bodyweight RDL',
+    category: 'compound',
+    primaryMuscles: ['hamstrings', 'glutes'],
+    secondaryMuscles: ['core', 'back'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 5,
+    description: 'Single-leg Romanian deadlift with no weight. Trains balance, hamstring flexibility, and posterior chain — essential movement for injury-proof athletes.',
+    videoUrl: 'https://www.youtube.com/results?search_query=single+leg+bodyweight+rdl+form+short',
+    cues: [
+      'Stand on one leg with soft knee',
+      'Hinge at the hip, reaching hand toward floor',
+      'Back leg extends behind you as counterbalance',
+      'Keep hips square — don\'t open up',
+      'Return to standing by squeezing glute'
+    ]
+  },
+  {
+    id: 'superman-hold',
+    name: 'Superman Hold',
+    category: 'isolation',
+    primaryMuscles: ['back', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'shoulders', 'core'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'Lie face down and lift arms and legs off the floor. Trains the entire posterior chain isometrically — great for spinal erector endurance and posture.',
+    videoUrl: 'https://www.youtube.com/results?search_query=superman+hold+exercise+form+short',
+    cues: [
+      'Lie face down, arms extended overhead',
+      'Lift arms, chest, and legs off the floor simultaneously',
+      'Squeeze glutes and lower back hard',
+      'Hold for prescribed time',
+      'Lower under control'
+    ],
+    measurementType: 'time'
+  },
+  {
+    id: 'bird-dog',
+    name: 'Bird Dog',
+    category: 'isolation',
+    primaryMuscles: ['core', 'glutes'],
+    secondaryMuscles: ['back', 'shoulders'],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 4,
+    description: 'From all-fours, extend opposite arm and leg while bracing the core. Anti-rotation and anti-extension exercise — great for spine health and grappling stability.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bird+dog+exercise+proper+form+short',
+    cues: [
+      'Start on hands and knees, wrists under shoulders',
+      'Extend right arm forward and left leg back simultaneously',
+      'Keep hips level — don\'t rotate',
+      'Hold briefly, then return to start',
+      'Alternate sides each rep'
+    ]
+  },
+  {
+    id: 'hollow-body-hold',
+    name: 'Hollow Body Hold',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['quadriceps', 'shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Lie on back, lift arms overhead and legs off floor, press lower back into ground. The gymnastics core hold — trains deep core stability for guard retention and body tension.',
+    videoUrl: 'https://www.youtube.com/results?search_query=hollow+body+hold+form+tutorial+short',
+    cues: [
+      'Lie face up, arms overhead, legs straight',
+      'Press lower back firmly into the floor',
+      'Lift shoulders and legs a few inches off ground',
+      'Hold the "banana" shape without arching',
+      'Breathe steadily — don\'t hold breath'
+    ],
+    measurementType: 'time'
+  },
+  {
+    id: 'mountain-climber',
+    name: 'Mountain Climbers',
+    category: 'compound',
+    primaryMuscles: ['core', 'quadriceps'],
+    secondaryMuscles: ['shoulders', 'glutes', 'hamstrings'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'From plank position, rapidly alternate driving knees to chest. Trains conditioning, core stability, and hip flexor speed — simulates scrambling in combat sports.',
+    videoUrl: 'https://www.youtube.com/results?search_query=mountain+climbers+exercise+form+short',
+    cues: [
+      'Start in push-up position, shoulders over wrists',
+      'Drive one knee toward chest',
+      'Quickly switch legs in a running motion',
+      'Keep hips low and core braced',
+      'Control the pace — speed up as you warm up'
+    ],
+    measurementType: 'time'
+  },
+  {
+    id: 'bear-crawl',
+    name: 'Bear Crawl',
+    category: 'compound',
+    primaryMuscles: ['shoulders', 'core'],
+    secondaryMuscles: ['quadriceps', 'triceps', 'chest'],
+    movementPattern: 'carry',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 5,
+    description: 'Crawl forward on hands and feet with knees hovering off the ground. A fundamental grappling movement that builds shoulder endurance, core stability, and full-body conditioning.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bear+crawl+exercise+form+short',
+    cues: [
+      'Hands under shoulders, knees under hips, hovering 1 inch off floor',
+      'Move opposite hand and foot forward together',
+      'Keep hips low and back flat',
+      'Small controlled steps — don\'t rush',
+      'Breathe steadily throughout'
+    ],
+    measurementType: 'distance'
+  },
+  {
+    id: 'sprawl',
+    name: 'Sprawl',
+    category: 'grappling_specific',
+    primaryMuscles: ['core', 'glutes', 'quadriceps'],
+    secondaryMuscles: ['shoulders', 'hamstrings', 'chest'],
+    movementPattern: 'explosive',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 6,
+    description: 'Explosive hip-back and chest-down takedown defense. Trains the exact sprawl pattern used in wrestling and MMA — conditions the entire body while building fight-specific power.',
+    videoUrl: 'https://www.youtube.com/results?search_query=sprawl+drill+exercise+form+short',
+    cues: [
+      'Start standing in fighting stance',
+      'Kick both legs back explosively while dropping hips',
+      'Chest hits the floor, hips heavy',
+      'Pop back up to standing immediately',
+      'Speed and explosiveness over everything'
+    ]
+  },
+  {
+    id: 'technical-stand-up',
+    name: 'Technical Stand-Up',
+    category: 'grappling_specific',
+    primaryMuscles: ['core', 'glutes'],
+    secondaryMuscles: ['quadriceps', 'shoulders', 'hamstrings'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 5,
+    description: 'Stand up from the ground using the BJJ technical stand-up. One hand posts, hips lift, leg threads through. Trains a fundamental grappling movement and builds hip mobility.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bjj+technical+stand+up+drill+short',
+    cues: [
+      'Sit on the ground, one hand posted behind you',
+      'Kick front leg forward, drive hips up off hand',
+      'Thread back leg through to standing',
+      'Keep eyes forward, free hand protecting face',
+      'Alternate posting hand each rep'
+    ]
+  },
+  {
+    id: 'wrestler-bridge',
+    name: 'Wrestler Bridge',
+    category: 'grappling_specific',
+    primaryMuscles: ['core', 'back'],
+    secondaryMuscles: ['glutes', 'hamstrings', 'traps'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 7,
+    description: 'Bridge onto your head and feet, arching the entire posterior chain. Builds neck strength and spine mobility critical for grappling and wrestling defense.',
+    videoUrl: 'https://www.youtube.com/results?search_query=wrestler+bridge+exercise+form+short',
+    cues: [
+      'Lie on back, feet flat, hands by ears',
+      'Bridge up onto head and feet',
+      'Rock forward and backward on the head gently',
+      'Build up hold time gradually',
+      'STOP if any neck pain — build strength slowly'
+    ],
+    measurementType: 'time'
+  },
+  {
+    id: 'wall-sit',
+    name: 'Wall Sit',
+    category: 'isolation',
+    primaryMuscles: ['quadriceps'],
+    secondaryMuscles: ['glutes', 'core', 'calves'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 4,
+    strengthValue: 5,
+    description: 'Sit against a wall with thighs parallel to the floor. Isometric quad endurance — builds the mental toughness and leg endurance needed for combat sports.',
+    videoUrl: 'https://www.youtube.com/results?search_query=wall+sit+proper+form+short',
+    cues: [
+      'Back flat against wall, slide down to 90° knee angle',
+      'Thighs parallel to floor, shins vertical',
+      'Arms can hang at sides or cross chest',
+      'Press entire back into the wall',
+      'Hold for time — embrace the burn'
+    ],
+    measurementType: 'time'
+  },
+  {
+    id: 'calf-raise-bodyweight',
+    name: 'Bodyweight Calf Raise',
+    category: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'Stand on the edge of a step or flat floor and raise up onto toes. Single-leg for progression. Simple but essential — calves need high volume.',
+    videoUrl: 'https://www.youtube.com/results?search_query=bodyweight+calf+raise+form+short',
+    cues: [
+      'Stand on edge of step or flat on floor',
+      'Rise up onto toes as high as possible',
+      'Pause at the top, squeeze calves',
+      'Lower slowly past parallel if on a step',
+      'Go single-leg for more difficulty'
+    ]
+  },
+
+  // ─── Resistance Band exercises for Travel / Minimal ───
+
+  {
+    id: 'band-row',
+    name: 'Resistance Band Row',
+    category: 'compound',
+    primaryMuscles: ['back', 'biceps'],
+    secondaryMuscles: ['shoulders', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Anchor a band at chest height (door handle, pillar) and row toward your body. The best travel-friendly back exercise — replicates cable rows without any equipment.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+row+form+short',
+    cues: [
+      'Anchor band at chest height',
+      'Step back until band is taut with arms extended',
+      'Pull band to rib cage, squeezing shoulder blades',
+      'Control the return — don\'t let band snap back',
+      'Keep elbows close to body'
+    ]
+  },
+  {
+    id: 'band-pull-apart',
+    name: 'Band Pull-Apart',
+    category: 'isolation',
+    primaryMuscles: ['shoulders', 'back'],
+    secondaryMuscles: ['traps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'Hold band at arm\'s length and pull it apart to stretch across your chest. Trains rear delts and rhomboids — essential for shoulder health and posture.',
+    videoUrl: 'https://www.youtube.com/results?search_query=band+pull+apart+form+tutorial+short',
+    cues: [
+      'Hold band with both hands at shoulder width, arms straight',
+      'Pull hands apart stretching band across chest',
+      'Squeeze shoulder blades together at end range',
+      'Return slowly to start',
+      'Keep arms straight throughout — only shoulder blades move'
+    ]
+  },
+  {
+    id: 'band-face-pull',
+    name: 'Band Face Pull',
+    category: 'compound',
+    primaryMuscles: ['shoulders', 'back'],
+    secondaryMuscles: ['traps', 'biceps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Anchor band at face height and pull toward your face with external rotation. The king of shoulder health exercises — prevents posture problems from all that pressing.',
+    videoUrl: 'https://www.youtube.com/results?search_query=band+face+pull+form+tutorial+short',
+    cues: [
+      'Anchor band at face height',
+      'Pull toward face, elbows high and wide',
+      'Externally rotate hands — finish with thumbs pointing back',
+      'Squeeze rear delts hard at end',
+      'Control the return'
+    ]
+  },
+  {
+    id: 'band-overhead-press',
+    name: 'Band Overhead Press',
+    category: 'compound',
+    primaryMuscles: ['shoulders', 'triceps'],
+    secondaryMuscles: ['core', 'traps'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Stand on band and press overhead. Replaces the barbell/dumbbell overhead press for travel — increasing difficulty as the band stretches at the top.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+overhead+press+form+short',
+    cues: [
+      'Stand on band, grip at shoulder height',
+      'Press straight overhead to full lockout',
+      'Keep core braced — don\'t lean back',
+      'Lower under control to shoulders',
+      'Narrow stance = more resistance'
+    ]
+  },
+  {
+    id: 'band-lateral-raise',
+    name: 'Band Lateral Raise',
+    category: 'isolation',
+    primaryMuscles: ['shoulders'],
+    secondaryMuscles: ['traps'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 8,
+    strengthValue: 3,
+    description: 'Stand on band and raise arms to the sides. Targets the lateral deltoid for shoulder width — the band\'s resistance curve makes the top harder, exactly where you want it.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+lateral+raise+form+short',
+    cues: [
+      'Stand on band, handles at sides',
+      'Raise arms out to the sides to shoulder height',
+      'Slight bend in elbows, lead with elbows not hands',
+      'Pause briefly at the top',
+      'Lower under control'
+    ]
+  },
+  {
+    id: 'band-bicep-curl',
+    name: 'Band Bicep Curl',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Stand on band and curl handles up. Perfectly replicates dumbbell curls for travel — increasing tension at the peak contraction where biceps are strongest.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+bicep+curl+form+short',
+    cues: [
+      'Stand on band, palms facing forward',
+      'Curl handles toward shoulders',
+      'Keep elbows pinned to your sides',
+      'Squeeze biceps hard at the top',
+      'Lower slowly — fight the band on the way down'
+    ]
+  },
+  {
+    id: 'band-tricep-pushdown',
+    name: 'Band Tricep Pushdown',
+    category: 'isolation',
+    primaryMuscles: ['triceps'],
+    secondaryMuscles: [],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Anchor band overhead (door frame, pull-up bar) and push down. Replicates the cable tricep pushdown — the most popular arm isolation movement, now travel-friendly.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+tricep+pushdown+form+short',
+    cues: [
+      'Anchor band high (top of door frame)',
+      'Grip band at chest height, elbows at sides',
+      'Push down until arms are fully extended',
+      'Squeeze triceps hard at the bottom',
+      'Return slowly — don\'t let band pull you up'
+    ]
+  },
+  {
+    id: 'band-pull-through',
+    name: 'Band Pull-Through',
+    category: 'compound',
+    primaryMuscles: ['glutes', 'hamstrings'],
+    secondaryMuscles: ['core', 'back'],
+    movementPattern: 'hinge',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 5,
+    description: 'Anchor band low behind you, hinge at hips, then drive hips forward pulling the band through your legs. The travel-friendly hip hinge — loads the posterior chain without a barbell.',
+    videoUrl: 'https://www.youtube.com/results?search_query=band+pull+through+exercise+form+short',
+    cues: [
+      'Anchor band low behind you, straddle it',
+      'Grip band between legs with both hands',
+      'Hinge at hips — push butt back',
+      'Drive hips forward to standing, squeezing glutes',
+      'Keep arms straight — hips do the work'
+    ]
+  },
+  {
+    id: 'band-pallof-press',
+    name: 'Band Pallof Press',
+    category: 'isolation',
+    primaryMuscles: ['core'],
+    secondaryMuscles: ['shoulders', 'glutes'],
+    movementPattern: 'rotation',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 6,
+    description: 'Anchor band at chest height to your side and press it straight out. Anti-rotation core work — the band tries to twist you and your core fights it. Essential for grapplers.',
+    videoUrl: 'https://www.youtube.com/results?search_query=band+pallof+press+form+tutorial+short',
+    cues: [
+      'Anchor band at chest height to your side',
+      'Hold band at chest, step away for tension',
+      'Press band straight out in front of you',
+      'Resist the rotation — core stays square',
+      'Hold extended position, then return to chest'
+    ]
+  },
+  {
+    id: 'band-chest-fly',
+    name: 'Band Chest Fly',
+    category: 'isolation',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['shoulders'],
+    movementPattern: 'push',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 7,
+    strengthValue: 4,
+    description: 'Anchor band behind you at chest height, step forward, and bring hands together in a fly motion. Hits the chest adduction that push-ups miss.',
+    videoUrl: 'https://www.youtube.com/results?search_query=resistance+band+chest+fly+form+short',
+    cues: [
+      'Anchor band behind you at chest height',
+      'Arms out to sides with slight elbow bend',
+      'Bring hands together in front of chest',
+      'Squeeze chest at the center',
+      'Return slowly to start'
+    ]
+  },
+  {
+    id: 'band-lateral-walk',
+    name: 'Band Lateral Walk',
+    category: 'isolation',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['quadriceps', 'core'],
+    movementPattern: 'squat',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['resistance_band'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 4,
+    description: 'Band around ankles or knees, walk sideways in a half-squat. Targets the glute medius — the often-neglected muscle that prevents knee cave and hip instability.',
+    videoUrl: 'https://www.youtube.com/results?search_query=band+lateral+walk+exercise+form+short',
+    cues: [
+      'Band around ankles or just above knees',
+      'Half squat position, feet hip-width',
+      'Step sideways, maintaining tension',
+      'Don\'t let feet come too close together',
+      'Stay low the entire time'
+    ],
+    measurementType: 'distance'
+  },
+  {
+    id: 'inverted-row-table',
+    name: 'Inverted Row (Table/Chair)',
+    category: 'compound',
+    primaryMuscles: ['back', 'biceps'],
+    secondaryMuscles: ['shoulders', 'core', 'forearms'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 6,
+    description: 'Lie under a sturdy table or between two chairs and pull your chest up. The bodyweight equivalent of a barbell row — essential when you have zero equipment.',
+    videoUrl: 'https://www.youtube.com/results?search_query=inverted+row+table+bodyweight+form+short',
+    cues: [
+      'Lie under a sturdy table, grip the edge',
+      'Body straight from head to heels',
+      'Pull chest up to the table edge',
+      'Squeeze shoulder blades at the top',
+      'Lower under control'
+    ]
+  },
+  {
+    id: 'towel-pull-up',
+    name: 'Towel Pull-Up (Door Frame)',
+    category: 'compound',
+    primaryMuscles: ['back', 'biceps', 'forearms'],
+    secondaryMuscles: ['shoulders', 'core'],
+    movementPattern: 'pull',
+    equipmentRequired: ['full_gym', 'home_gym', 'minimal'],
+    equipmentTypes: ['bodyweight'] as EquipmentType[],
+    grapplerFriendly: true,
+    aestheticValue: 6,
+    strengthValue: 7,
+    description: 'Drape a towel over a sturdy door or beam and pull yourself up gripping the towel. Brutal grip strength workout — the towel thickness forces forearm engagement that grapplers need.',
+    videoUrl: 'https://www.youtube.com/results?search_query=towel+pull+up+grip+training+short',
+    cues: [
+      'Drape towel over sturdy overhead structure',
+      'Grip both ends of the towel tightly',
+      'Pull yourself up, chin above hands',
+      'Lower slowly for maximum grip engagement',
+      'Use thick towel for more grip challenge'
+    ]
   }
 ];
 
@@ -3709,21 +4426,29 @@ const RELATED_PATTERNS: Record<string, string[]> = {
 };
 
 // Get alternative exercises that target the same primary muscles
-export function getAlternativesForExercise(exerciseId: string, equipment: Equipment, limit: number = 8): Exercise[] {
+export function getAlternativesForExercise(exerciseId: string, equipment: Equipment, limit: number = 8, availableEquipment?: EquipmentType[]): Exercise[] {
   const exercise = exercises.find(e => e.id === exerciseId);
   if (!exercise) return [];
 
   const allMuscles = [...exercise.primaryMuscles, ...exercise.secondaryMuscles];
 
   return exercises
-    .filter(e =>
-      e.id !== exerciseId &&
-      e.equipmentRequired.includes(equipment) &&
+    .filter(e => {
+      if (e.id === exerciseId) return false;
+      if (!e.equipmentRequired.includes(equipment)) return false;
+      // Granular equipment check: if availableEquipment is provided, exercise must
+      // only need equipment the user actually has (bodyweight always passes)
+      if (availableEquipment && availableEquipment.length > 0) {
+        const eqTypes = e.equipmentTypes || [];
+        if (eqTypes.length > 0 && !(eqTypes.length === 1 && eqTypes[0] === 'bodyweight')) {
+          if (!eqTypes.every(et => et === 'bodyweight' || availableEquipment.includes(et))) return false;
+        }
+      }
       // Match on primary-to-primary OR primary-to-secondary overlap
-      (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m)) ||
+      return (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m)) ||
        e.primaryMuscles.some(m => exercise.secondaryMuscles.includes(m)) ||
-       e.secondaryMuscles.some(m => exercise.primaryMuscles.includes(m)))
-    )
+       e.secondaryMuscles.some(m => exercise.primaryMuscles.includes(m)));
+    })
     .sort((a, b) => {
       // Score by primary overlap first
       const aPrimary = a.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
@@ -3754,7 +4479,8 @@ export interface ExerciseRecommendation {
 export function getRecommendedAlternatives(
   exerciseId: string,
   equipment: Equipment,
-  limit: number = 12
+  limit: number = 12,
+  availableEquipment?: EquipmentType[]
 ): ExerciseRecommendation[] {
   const exercise = exercises.find(e => e.id === exerciseId);
   if (!exercise) return [];
@@ -3766,6 +4492,14 @@ export function getRecommendedAlternatives(
     .filter(e => {
       if (e.id === exerciseId) return false;
       if (!e.equipmentRequired.includes(equipment)) return false;
+      // Granular equipment check: if availableEquipment is provided, exercise must
+      // only need equipment the user actually has (bodyweight always passes)
+      if (availableEquipment && availableEquipment.length > 0) {
+        const eqTypes = e.equipmentTypes || [];
+        if (eqTypes.length > 0 && !(eqTypes.length === 1 && eqTypes[0] === 'bodyweight')) {
+          if (!eqTypes.every(et => et === 'bodyweight' || availableEquipment.includes(et))) return false;
+        }
+      }
 
       // Primary-to-primary overlap (strongest match)
       if (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))) return true;

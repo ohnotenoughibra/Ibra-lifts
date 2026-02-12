@@ -38,6 +38,7 @@ import {
   CheckCircle,
   Watch,
   Scale,
+  X,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -258,6 +259,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
+  const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Daily Directive — single mission for today ───
@@ -407,6 +409,15 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     new Date(m.date).toDateString() === todayStr
   );
   const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+
+  // Yesterday's data for comparison
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toDateString();
+  const yesterdayWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === yesterdayStr);
+  const yesterdayVolume = yesterdayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
+  const yesterdayProtein = meals.filter(m => new Date(m.date).toDateString() === yesterdayStr).reduce((sum, m) => sum + (m.protein || 0), 0);
+
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;
   const sleepHours = latestWhoopData?.sleepHours;
@@ -1526,6 +1537,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <TrendingUp className="w-4 h-4 text-green-400" />
               <span className="text-lg font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
               <span className="text-xs text-grappler-500">Volume ({weightUnit})</span>
+              {yesterdayVolume > 0 && (() => {
+                const todayVol = todayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
+                const diff = todayVol - yesterdayVolume;
+                if (diff === 0) return null;
+                return <span className={cn('text-[10px]', diff > 0 ? 'text-green-500' : 'text-red-400')}>{diff > 0 ? '+' : ''}{formatNumber(diff)} vs yday</span>;
+              })()}
             </button>
           )}
           <button
@@ -1535,6 +1552,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
             <span className="text-xs text-grappler-500">Lifting</span>
+            {yesterdayWorkouts.length > 0 && todayWorkouts.length !== yesterdayWorkouts.length && (
+              <span className={cn('text-[10px]', todayWorkouts.length > yesterdayWorkouts.length ? 'text-green-500' : 'text-grappler-600')}>
+                {todayWorkouts.length > yesterdayWorkouts.length ? '+' : ''}{todayWorkouts.length - yesterdayWorkouts.length} vs yday
+              </span>
+            )}
           </button>
           <button
             onClick={() => onNavigate('nutrition')}
@@ -1548,16 +1570,39 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 {Math.round((todayProtein / macroTargets.protein) * 100)}% of goal
               </span>
             )}
+            {yesterdayProtein > 0 && todayProtein !== yesterdayProtein && (
+              <span className={cn('text-[10px]', todayProtein > yesterdayProtein ? 'text-green-500' : 'text-red-400')}>
+                {todayProtein > yesterdayProtein ? '+' : ''}{todayProtein - yesterdayProtein}g vs yday
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      {/* ─── Contextual Feed (max 4, priority-ranked) ─── */}
-      {feedCards.length > 0 ? (
-        <div className="space-y-3">
-          {feedCards}
-        </div>
-      ) : workoutLogs.length > 0 && (
+      {/* ─── Contextual Feed (max 4, priority-ranked, dismissible) ─── */}
+      {(() => {
+        const visibleCards = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
+        return visibleCards.length > 0 ? (
+          <div className="space-y-3">
+            {visibleCards.map(card => {
+              const key = (card as React.ReactElement).key as string;
+              return (
+                <div key={key} className="relative">
+                  {card}
+                  <button
+                    onClick={() => setDismissedCards(prev => { const next = new Set(Array.from(prev)); next.add(key); return next; })}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-grappler-900/60 text-grappler-600 hover:text-grappler-300 transition-colors z-10"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : null;
+      })()}
+      {feedCards.length === 0 && workoutLogs.length > 0 && (
         <div className="flex items-center gap-3 card p-3">
           <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           <p className="text-xs text-grappler-400">All clear — nothing needs your attention right now.</p>

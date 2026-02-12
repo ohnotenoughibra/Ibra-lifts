@@ -90,6 +90,7 @@ export default function ActiveWorkout() {
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
   const [overviewSwapIndex, setOverviewSwapIndex] = useState<number | null>(null);
   const [lastCompletedExerciseIndex, setLastCompletedExerciseIndex] = useState<number | null>(null);
+  const [undoInfo, setUndoInfo] = useState<{ exerciseIndex: number; setIndex: number; previousSets: SetLog[]; previousPR: boolean; previousE1RM: number } | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [whoopFollowed, setWhoopFollowed] = useState(false);
@@ -284,6 +285,15 @@ export default function ActiveWorkout() {
   };
 
   const completeSet = () => {
+    // Save undo info before modifying
+    setUndoInfo({
+      exerciseIndex: currentExerciseIndex,
+      setIndex: currentSetIndex,
+      previousSets: currentLog.sets.map(s => ({ ...s })),
+      previousPR: currentLog.personalRecord || false,
+      previousE1RM: currentLog.estimated1RM || 0,
+    });
+
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = { ...newSets[currentSetIndex], completed: true };
 
@@ -450,6 +460,23 @@ export default function ActiveWorkout() {
     setLastCompletedExerciseIndex(null);
   };
 
+  const undoLastSet = () => {
+    if (!undoInfo) return;
+    updateExerciseLog(undoInfo.exerciseIndex, {
+      ...activeWorkout.exerciseLogs[undoInfo.exerciseIndex],
+      sets: undoInfo.previousSets,
+      personalRecord: undoInfo.previousPR,
+      estimated1RM: undoInfo.previousE1RM,
+    });
+    setCurrentExerciseIndex(undoInfo.exerciseIndex);
+    setCurrentSetIndex(undoInfo.setIndex);
+    setIsResting(false);
+    setRestEndTime(null);
+    setLastCompletedExerciseIndex(null);
+    setWeightSuggestion(null);
+    setUndoInfo(null);
+  };
+
   const addExtraSet = (exerciseIdx: number) => {
     const exerciseLog = activeWorkout.exerciseLogs[exerciseIdx];
     const lastSet = exerciseLog.sets[exerciseLog.sets.length - 1];
@@ -500,6 +527,11 @@ export default function ActiveWorkout() {
     (log, i) => i !== currentExerciseIndex && log.sets.some(s => !s.completed)
   );
   const isWorkoutComplete = allExercisesDone;
+
+  // Total volume completed so far (for rest overlay display)
+  const totalVolumeCompleted = activeWorkout.exerciseLogs.reduce((sum, log) =>
+    sum + log.sets.filter(s => s.completed).reduce((s, set) => s + set.weight * set.reps, 0), 0
+  );
 
   // Get readiness for display
   const readiness = activeWorkout.preCheckIn ? calculateReadiness(activeWorkout.preCheckIn) : null;
@@ -574,6 +606,19 @@ export default function ActiveWorkout() {
   };
 
   const previousPerformance = getExerciseHistory(currentExercise.exerciseId);
+
+  // Per-set history from last session for inline display
+  const previousSetHistory = useMemo(() => {
+    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const sorted = [...allLogs].reverse();
+    for (const log of sorted) {
+      const ex = log.exercises.find(e => e.exerciseId === currentLog.exerciseId);
+      if (ex && ex.sets.length > 0) {
+        return ex.sets.filter(s => s.completed).map(s => ({ weight: s.weight, reps: s.reps }));
+      }
+    }
+    return null;
+  }, [currentLog.exerciseId]);
 
   // Get full history for an exercise (last 5 sessions)
   const getExerciseFullHistory = (exerciseId: string) => {
@@ -1976,28 +2021,65 @@ export default function ActiveWorkout() {
             className="fixed inset-0 z-30 bg-grappler-900/95 flex flex-col items-center justify-center"
           >
             <p className={cn(
-              'text-sm font-medium mb-2 uppercase tracking-wider transition-colors',
+              'text-sm font-medium mb-4 uppercase tracking-wider transition-colors',
               restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-400'
             )}>
               {restTimer <= 10 && restTimer > 0 ? 'Get Ready!' : 'Rest Time'}
             </p>
-            <motion.div
-              key={restTimer}
-              initial={{ scale: 1.15 }}
-              animate={{ scale: 1 }}
-              className={cn(
-                'text-8xl font-black mb-2 tabular-nums transition-colors',
-                restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+            {/* Circular ring timer */}
+            <div className="relative w-52 h-52 mb-4">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 208 208">
+                <circle cx="104" cy="104" r="96" fill="none" stroke="rgba(100,116,139,0.15)" strokeWidth="8" />
+                <circle
+                  cx="104" cy="104" r="96" fill="none"
+                  strokeWidth="8" strokeLinecap="round"
+                  className={cn(
+                    'transition-colors',
+                    restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
+                  )}
+                  strokeDasharray={2 * Math.PI * 96}
+                  strokeDashoffset={2 * Math.PI * 96 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <motion.div
+                  key={restTimer}
+                  initial={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  className={cn(
+                    'text-5xl font-black tabular-nums transition-colors',
+                    restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+                  )}
+                >
+                  {formatRestTime(restTimer)}
+                </motion.div>
+                <p className="text-xs text-grappler-500 mt-1">
+                  of {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')}
+                </p>
+              </div>
+            </div>
+            {/* Volume tracker during rest */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-lg font-bold text-grappler-200">{totalVolumeCompleted.toLocaleString()}</p>
+                <p className="text-xs text-grappler-500">Volume ({weightUnit})</p>
+              </div>
+              <div className="w-px h-8 bg-grappler-700" />
+              <div className="text-center">
+                <p className="text-lg font-bold text-grappler-200">{completedSets}/{totalSets}</p>
+                <p className="text-xs text-grappler-500">Sets</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
+                Skip Rest
+              </button>
+              {undoInfo && (
+                <button onClick={undoLastSet} className="btn btn-secondary btn-lg px-4" title="Undo last set">
+                  <RotateCcw className="w-5 h-5" />
+                </button>
               )}
-            >
-              {formatRestTime(restTimer)}
-            </motion.div>
-            <p className="text-xs text-grappler-500 mb-6">
-              {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} prescribed
-            </p>
-            <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
-              Skip Rest
-            </button>
+            </div>
 
             {/* What's next during rest */}
             {!isLastSet && (
@@ -2461,7 +2543,7 @@ export default function ActiveWorkout() {
           </div>
 
           {/* Set Indicator */}
-          <div className="flex justify-center gap-2.5 mb-6">
+          <div className="flex justify-center gap-2.5 mb-2">
             {currentLog.sets.map((set, i) => (
               <button
                 key={i}
@@ -2479,6 +2561,16 @@ export default function ActiveWorkout() {
               </button>
             ))}
           </div>
+          {/* Per-set history from last session */}
+          {previousSetHistory && previousSetHistory.length > 0 ? (
+            <p className="text-center text-xs text-grappler-500 mb-6">
+              Last: {previousSetHistory.slice(0, currentLog.sets.length).map((s, i) => (
+                <span key={i} className={cn(i === currentSetIndex && 'text-grappler-300 font-medium')}>
+                  {i > 0 && ' · '}{s.weight}×{s.reps}
+                </span>
+              ))}
+            </p>
+          ) : <div className="mb-4" />}
 
           {/* PR Detection Banner */}
           <AnimatePresence>
@@ -2685,6 +2777,16 @@ export default function ActiveWorkout() {
               </>
             )}
           </button>
+          {/* Undo last set */}
+          {undoInfo && !isResting && (
+            <button
+              onClick={undoLastSet}
+              className="btn btn-secondary w-full mt-2 gap-2 text-sm"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Undo Last Set
+            </button>
+          )}
         </motion.div>
 
         {/* Cues */}

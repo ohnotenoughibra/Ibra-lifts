@@ -658,7 +658,11 @@ export default function ProfileSettings() {
               Cloud sync active — {session.user?.email}
             </div>
             <button
-              onClick={() => { signOut({ callbackUrl: '/' }); }}
+              onClick={() => {
+                if (confirm('Sign out? Your local data will be kept, but cloud sync will stop until you sign back in.')) {
+                  signOut({ callbackUrl: '/' });
+                }
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
             >
               <DoorOpen className="w-4 h-4" />

@@ -950,18 +950,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         }
         useAppStore.getState().setWhoopWorkouts(whoopWkts);
 
-        // Auto-sync Whoop body weight to body weight log
-        const bodyData = transformWhoopBody(data);
-        if (bodyData?.weightKg) {
-          const weightUnit = useAppStore.getState().user?.weightUnit || 'lbs';
-          const weight = weightUnit === 'kg' ? bodyData.weightKg : Math.round(bodyData.weightKg * 2.20462 * 10) / 10;
-          const bwLog = useAppStore.getState().bodyWeightLog;
-          const today = new Date().toDateString();
-          const alreadyLogged = bwLog.some(e => new Date(e.date).toDateString() === today && e.notes === 'Whoop sync');
-          if (!alreadyLogged) {
-            useAppStore.getState().addBodyWeight(weight, 'Whoop sync');
-          }
-        }
+        // Body weight from Whoop is intentionally NOT synced to body weight log.
+        // Users should rely on their own manual body weight entries for accuracy.
 
         // Auto-import combat sport workouts as grappling sessions + HR sessions
         if (whoopWkts.length > 0) {

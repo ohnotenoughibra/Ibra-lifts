@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -46,7 +46,15 @@ export default function WorkoutHistory() {
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'all'>('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'volume' | 'rpe'>('date');
+  const [showEditTooltip, setShowEditTooltip] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  // First-visit tooltip for edit discoverability
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('historyEditTooltipSeen') && workoutLogs.length > 0) {
+      setShowEditTooltip(true);
+    }
+  }, [workoutLogs.length]);
 
   // Dynamic workout types based on actual user data
   const availableTypes = useMemo(() => {
@@ -557,6 +565,26 @@ export default function WorkoutHistory() {
         <p className="text-xs text-grappler-500">{filteredLogs.length} workout{filteredLogs.length !== 1 ? 's' : ''} found</p>
       </div>
 
+      {/* First-visit edit tooltip */}
+      {showEditTooltip && filteredLogs.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-3 flex items-center justify-between border border-primary-500/30 bg-primary-500/5"
+        >
+          <div className="flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-primary-400 flex-shrink-0" />
+            <p className="text-xs text-grappler-300">Tap any workout to view details, or tap the edit icon to make corrections</p>
+          </div>
+          <button
+            onClick={() => { setShowEditTooltip(false); if (typeof window !== 'undefined') localStorage.setItem('historyEditTooltipSeen', 'true'); }}
+            className="p-1 text-grappler-500 hover:text-grappler-300 flex-shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      )}
+
       {filteredLogs.map((log) => {
         const isExpanded = expandedLogId === log.id;
 
@@ -567,44 +595,54 @@ export default function WorkoutHistory() {
             className="card overflow-hidden"
           >
             {/* Header - always visible */}
-            <button
-              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-              className="w-full p-4 text-left flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-10 h-10 bg-grappler-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Dumbbell className="w-5 h-5 text-primary-400" />
+            <div className="flex items-stretch">
+              <button
+                onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                className="flex-1 p-4 text-left flex items-center justify-between min-w-0"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-grappler-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Dumbbell className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-grappler-100 text-sm truncate">
+                      {log.exercises.length} exercises
+                    </p>
+                    <p className="text-xs text-grappler-500">{formatDate(log.date)}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-medium text-grappler-100 text-sm truncate">
-                    {log.exercises.length} exercises
-                  </p>
-                  <p className="text-xs text-grappler-500">{formatDate(log.date)}</p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-grappler-200">
-                    {formatNumber(Math.round(log.totalVolume))} {weightUnit}
-                  </p>
-                  <p className="text-xs text-grappler-500">{log.duration} min</p>
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-grappler-200">
+                      {formatNumber(Math.round(log.totalVolume))} {weightUnit}
+                    </p>
+                    <p className="text-xs text-grappler-500">{log.duration} min</p>
+                  </div>
+                  <div className={cn(
+                    'px-2 py-0.5 rounded text-xs font-medium',
+                    log.overallRPE >= 9 ? 'bg-red-500/20 text-red-400' :
+                    log.overallRPE >= 7 ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-green-500/20 text-green-400'
+                  )}>
+                    RPE {log.overallRPE}
+                  </div>
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4 text-grappler-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-grappler-500" />
+                  )}
                 </div>
-                <div className={cn(
-                  'px-2 py-0.5 rounded text-xs font-medium',
-                  log.overallRPE >= 9 ? 'bg-red-500/20 text-red-400' :
-                  log.overallRPE >= 7 ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-green-500/20 text-green-400'
-                )}>
-                  RPE {log.overallRPE}
-                </div>
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-grappler-500" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-grappler-500" />
-                )}
-              </div>
-            </button>
+              </button>
+              {/* Edit shortcut icon */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setExpandedLogId(log.id); startEditing(log.id); }}
+                className="px-3 flex items-center text-grappler-600 hover:text-grappler-300 hover:bg-grappler-800/50 transition-colors border-l border-grappler-800"
+                title="Edit workout"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Expanded details */}
             <AnimatePresence>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
   LineChart,
@@ -18,7 +18,10 @@ import {
   ResponsiveContainer,
   Legend,
   Area,
-  AreaChart
+  AreaChart,
+  ReferenceDot,
+  ReferenceArea,
+  ReferenceLine,
 } from 'recharts';
 import {
   TrendingUp,
@@ -317,6 +320,156 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     { id: 'recovery', label: 'Recovery', icon: Heart },
   ];
 
+  // PR annotations for strength chart — mark where personal records were hit
+  const prAnnotations = useMemo(() => {
+    const annotations: { exerciseName: string; date: string; estimated1RM: number }[] = [];
+    workoutLogs.forEach(log => {
+      log.exercises.forEach(ex => {
+        if (ex.personalRecord) {
+          const maxE1rm = ex.sets.reduce((max, set) => {
+            if (!set.completed || set.weight === 0) return max;
+            const e1rm = calculate1RM(set.weight, set.reps);
+            return e1rm > max ? e1rm : max;
+          }, 0);
+          if (maxE1rm > 0) {
+            annotations.push({ exerciseName: ex.exerciseName, date: formatDate(log.date), estimated1RM: maxE1rm });
+          }
+        }
+      });
+    });
+    return annotations;
+  }, [workoutLogs]);
+
+  // Deload week annotations for volume chart — mark which weeks are deloads
+  const deloadWeeks = useMemo(() => {
+    const deloads: string[] = [];
+    const allMesos = [...mesocycleHistory, ...(currentMesocycle ? [currentMesocycle] : [])];
+    allMesos.forEach(meso => {
+      meso.weeks.forEach((week, wi) => {
+        if (week.isDeload) {
+          // Estimate the week number in the global timeline
+          const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
+          if (mesoLogs.length > 0) {
+            const mesoStart = Math.min(...mesoLogs.map(l => new Date(l.date).getTime()));
+            const deloadDate = new Date(mesoStart + wi * 7 * 24 * 60 * 60 * 1000);
+            const d = new Date(Date.UTC(deloadDate.getFullYear(), deloadDate.getMonth(), deloadDate.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+            deloads.push(`Week ${weekNum}`);
+          }
+        }
+      });
+    });
+    return deloads;
+  }, [mesocycleHistory, currentMesocycle, workoutLogs]);
+
+  // Missed sessions for frequency chart — weeks where sessions < expected
+  const missedWeeks = useMemo(() => {
+    if (!currentMesocycle) return [];
+    const sessionsPerWeek = currentMesocycle.weeks.length > 0
+      ? currentMesocycle.weeks[0].sessions.length
+      : 0;
+    if (sessionsPerWeek === 0) return [];
+    return volumeData
+      .filter(d => d.workouts < sessionsPerWeek)
+      .map(d => d.week);
+  }, [volumeData, currentMesocycle]);
+
+  // Build insight cards with sparkline data
+  const insightCards = useMemo(() => {
+    const cards: { id: string; title: string; value: string; delta: string; deltaType: 'up' | 'down' | 'flat'; sparkData: number[]; color: string; chartView: ChartView }[] = [];
+
+    // Top exercises by frequency — strength sparklines
+    const exerciseFreq: Record<string, number> = {};
+    workoutLogs.forEach(log => log.exercises.forEach(ex => {
+      exerciseFreq[ex.exerciseName] = (exerciseFreq[ex.exerciseName] || 0) + 1;
+    }));
+    const topExercises = Object.entries(exerciseFreq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name]) => name);
+
+    topExercises.forEach((name, i) => {
+      const data = strengthData[name];
+      if (!data || data.length < 2) return;
+      const points = data.slice(-8).map(d => d.estimated1RM);
+      const first = points[0];
+      const last = points[points.length - 1];
+      const diff = last - first;
+      const pct = first > 0 ? Math.round((diff / first) * 100) : 0;
+      cards.push({
+        id: `strength-${i}`,
+        title: name,
+        value: `${Math.round(last)} ${weightUnit}`,
+        delta: `${diff >= 0 ? '+' : ''}${Math.round(diff)} ${weightUnit} (${pct >= 0 ? '+' : ''}${pct}%)`,
+        deltaType: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat',
+        sparkData: points,
+        color: COLORS[i % COLORS.length],
+        chartView: 'strength',
+      });
+    });
+
+    // Volume trend card
+    if (volumeData.length >= 2) {
+      const recent = volumeData.slice(-6);
+      const vols = recent.map(d => d.volume);
+      const lastV = vols[vols.length - 1];
+      const prevV = vols[vols.length - 2];
+      const diff = lastV - prevV;
+      const pct = prevV > 0 ? Math.round((diff / prevV) * 100) : 0;
+      cards.push({
+        id: 'volume',
+        title: 'Weekly Volume',
+        value: `${formatNumber(lastV)} ${weightUnit}`,
+        delta: `${pct >= 0 ? '+' : ''}${pct}% vs last week`,
+        deltaType: pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat',
+        sparkData: vols,
+        color: '#0ea5e9',
+        chartView: 'volume',
+      });
+    }
+
+    // Frequency card
+    if (volumeData.length >= 2) {
+      const recent = volumeData.slice(-6);
+      const counts = recent.map(d => d.workouts);
+      const lastC = counts[counts.length - 1];
+      const prevC = counts.length >= 2 ? counts[counts.length - 2] : lastC;
+      cards.push({
+        id: 'frequency',
+        title: 'Sessions This Week',
+        value: `${lastC} workouts`,
+        delta: lastC > prevC ? `Up from ${prevC} last week` : lastC < prevC ? `Down from ${prevC} last week` : 'Same as last week',
+        deltaType: lastC > prevC ? 'up' : lastC < prevC ? 'down' : 'flat',
+        sparkData: counts,
+        color: '#d946ef',
+        chartView: 'frequency',
+      });
+    }
+
+    return cards;
+  }, [strengthData, volumeData, workoutLogs, weightUnit]);
+
+  const [showCharts, setShowCharts] = useState(false);
+
+  // SVG Sparkline component
+  const Sparkline = ({ data, color, width = 80, height = 28 }: { data: number[]; color: string; width?: number; height?: number }) => {
+    if (data.length < 2) return null;
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+    const points = data.map((v, i) =>
+      `${(i / (data.length - 1)) * width},${height - ((v - min) / range) * (height - 4) - 2}`
+    ).join(' ');
+    return (
+      <svg width={width} height={height} className="flex-shrink-0">
+        <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      </svg>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -367,6 +520,36 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
         </div>
       )}
 
+      {/* Insight Cards with Sparklines */}
+      {insightCards.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="w-3.5 h-3.5" />
+            Key Trends
+          </h3>
+          {insightCards.map((card) => (
+            <button
+              key={card.id}
+              onClick={() => { setActiveView(card.chartView); setShowCharts(true); }}
+              className="w-full card p-4 flex items-center gap-3 text-left hover:bg-grappler-700/30 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-grappler-400 mb-0.5">{card.title}</p>
+                <p className="text-sm font-bold text-grappler-100">{card.value}</p>
+                <p className={cn(
+                  'text-xs font-medium mt-0.5',
+                  card.deltaType === 'up' ? 'text-green-400' : card.deltaType === 'down' ? 'text-red-400' : 'text-grappler-500'
+                )}>
+                  {card.delta}
+                </p>
+              </div>
+              <Sparkline data={card.sparkData} color={card.color} />
+              <ChevronRight className="w-4 h-4 text-grappler-500 flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Insights */}
       <div className="space-y-2">
         {insights.map((insight, i) => (
@@ -394,24 +577,41 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
         ))}
       </div>
 
-      {/* Chart Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveView(tab.id as ChartView)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
-              activeView === tab.id
-                ? 'bg-primary-500 text-white'
-                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
-            )}
+      {/* Charts Toggle */}
+      <button
+        onClick={() => setShowCharts(!showCharts)}
+        className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
+      >
+        <span className="text-sm font-medium text-grappler-300">{showCharts ? 'Hide' : 'View'} Detailed Charts</span>
+        <ChevronRight className={cn('w-4 h-4 text-grappler-400 transition-transform', showCharts && 'rotate-90')} />
+      </button>
+
+      {/* Chart Tabs + Charts (collapsible) */}
+      <AnimatePresence>
+        {showCharts && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden space-y-4"
           >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveView(tab.id as ChartView)}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
+                    activeView === tab.id
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+                  )}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
       {/* Charts */}
       <div className="card p-4">
@@ -443,6 +643,19 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                         stroke={COLORS[i % COLORS.length]}
                         strokeWidth={2}
                         dot={{ fill: COLORS[i % COLORS.length] }}
+                      />
+                    ))}
+                    {/* PR annotations */}
+                    {prAnnotations.slice(0, 8).map((pr, i) => (
+                      <ReferenceDot
+                        key={`pr-${i}`}
+                        x={pr.date}
+                        y={pr.estimated1RM}
+                        r={5}
+                        fill="#eab308"
+                        stroke="#facc15"
+                        strokeWidth={2}
+                        label={{ value: 'PR', fontSize: 9, fill: '#facc15', position: 'top' }}
                       />
                     ))}
                   </LineChart>
@@ -482,6 +695,17 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       stroke="#0ea5e9"
                       fill="url(#volumeGradient)"
                     />
+                    {/* Deload week annotations */}
+                    {deloadWeeks.map((week, i) => (
+                      <ReferenceLine
+                        key={`deload-${i}`}
+                        x={week}
+                        stroke="#8b5cf6"
+                        strokeDasharray="4 4"
+                        strokeWidth={1}
+                        label={{ value: 'Deload', fontSize: 9, fill: '#a78bfa', position: 'insideTopRight' }}
+                      />
+                    ))}
                     <defs>
                       <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
@@ -560,6 +784,17 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       }}
                     />
                     <Bar dataKey="workouts" fill="#d946ef" radius={[4, 4, 0, 0]} />
+                    {/* Missed session indicators */}
+                    {missedWeeks.map((week, i) => (
+                      <ReferenceLine
+                        key={`missed-${i}`}
+                        x={week}
+                        stroke="#ef4444"
+                        strokeDasharray="3 3"
+                        strokeWidth={1}
+                        label={{ value: 'Low', fontSize: 9, fill: '#f87171', position: 'insideTopRight' }}
+                      />
+                    ))}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -700,6 +935,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
           </div>
         </div>
       )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

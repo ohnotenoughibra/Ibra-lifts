@@ -48,6 +48,7 @@ import { shouldDeload } from '@/lib/auto-adjust';
 import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import CardErrorBoundary from './CardErrorBoundary';
+import { useToast } from './Toast';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
@@ -244,7 +245,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
+    deleteSkip, undoValidateBlock,
   } = useAppStore();
+  const { showToast } = useToast();
   const { data: session } = useSession();
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
   const wearableHistory = useAppStore(s => s.wearableHistory);
@@ -624,12 +627,24 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     const activeMesocycle = state.currentMesocycle;
     if (!activeMesocycle) return;
 
+    const validatedId = activeMesocycle.id;
     const currentLogCount = state.getCurrentMesocycleLogCount();
     if (currentLogCount > 0) {
       setPreviousMesocycleId(activeMesocycle.id);
       setShowMigrateDialog(true);
     } else {
       completeMesocycle();
+      showToast('Block validated', 'success', {
+        label: 'Undo',
+        onClick: () => {
+          const restored = undoValidateBlock(validatedId);
+          if (restored) {
+            showToast('Block restored', 'success');
+          } else {
+            showToast('Could not undo — block not found', 'error');
+          }
+        },
+      });
     }
     setShowValidateConfirm(false);
   };
@@ -645,6 +660,20 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           migrateWorkoutLogsToMesocycle(oldMesocycleId, newMesocycle.id);
         }
       }, 0);
+    }
+
+    if (oldMesocycleId) {
+      showToast('Block validated', 'success', {
+        label: 'Undo',
+        onClick: () => {
+          const restored = undoValidateBlock(oldMesocycleId);
+          if (restored) {
+            showToast('Block restored', 'success');
+          } else {
+            showToast('Could not undo — block not found', 'error');
+          }
+        },
+      });
     }
 
     setShowMigrateDialog(false);
@@ -1718,7 +1747,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   <button
                     key={reason}
                     onClick={() => {
-                      skipWorkout({
+                      const skipId = skipWorkout({
                         date: new Date().toISOString().split('T')[0],
                         scheduledSessionId: nextWorkout.id,
                         reason,
@@ -1728,6 +1757,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                       if (reason === 'illness') {
                         onNavigate('illness');
                       }
+                      showToast('Session skipped', 'info', {
+                        label: 'Undo',
+                        onClick: () => {
+                          deleteSkip(skipId);
+                          showToast('Skip undone', 'success');
+                        },
+                      });
                     }}
                     className="w-full flex items-center gap-3 p-3 bg-grappler-800/60 hover:bg-grappler-700/60 rounded-xl transition-colors"
                   >

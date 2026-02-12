@@ -105,9 +105,16 @@ export default function ProfileSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: session?.user?.email }),
       });
-      if (res.ok) setVerifySent(true);
+      const data = await res.json();
+      if (res.ok && data.emailSent) {
+        setVerifySent(true);
+      } else if (res.ok && !data.emailSent) {
+        setToast({ message: 'Email service not configured. Contact support.', type: 'error' });
+      } else {
+        setToast({ message: data.error || 'Failed to send verification email.', type: 'error' });
+      }
     } catch {
-      // silently fail
+      setToast({ message: 'Network error. Please try again.', type: 'error' });
     } finally {
       setVerifyLoading(false);
     }

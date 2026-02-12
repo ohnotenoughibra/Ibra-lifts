@@ -2750,7 +2750,7 @@ export default function ActiveWorkout() {
               </div>
               {currentExercise.prescription.rpe && (
                 <p className="text-xs text-grappler-500 text-center mt-2">
-                  Target RPE {currentExercise.prescription.rpe} = {10 - currentExercise.prescription.rpe} reps in reserve
+                  Target RPE {currentExercise.prescription.rpe} = {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps in reserve
                 </p>
               )}
             </div>

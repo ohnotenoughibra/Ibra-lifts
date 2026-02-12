@@ -231,6 +231,7 @@ interface AppState {
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block') => void;
   completeMesocycle: () => void;
+  undoValidateBlock: (mesocycleId: string) => boolean;
   deleteMesocycle: (mesocycleId: string) => void;
   addToMesocycleQueue: (block: Omit<PlannedMesocycle, 'id' | 'createdAt'>) => void;
   updateMesocycleInQueue: (id: string, updates: Partial<Omit<PlannedMesocycle, 'id' | 'createdAt'>>) => void;
@@ -311,7 +312,7 @@ interface AppState {
   getActiveIllness: () => IllnessLog | null;
 
   // Workout skip actions
-  skipWorkout: (skip: Omit<WorkoutSkip, 'id'>) => void;
+  skipWorkout: (skip: Omit<WorkoutSkip, 'id'>) => string;
   deleteSkip: (skipId: string) => void;
 
   // Custom exercise actions
@@ -1003,6 +1004,27 @@ export const useAppStore = create<AppState>()(
           get().generateNewMesocycle();
         }
         get().checkAndAwardBadges();
+      },
+
+      undoValidateBlock: (mesocycleId) => {
+        const { mesocycleHistory, currentMesocycle, gamificationStats } = get();
+        const restored = mesocycleHistory.find(m => m.id === mesocycleId);
+        if (!restored) return false;
+
+        // Remove from history, restore as current, delete the auto-generated new mesocycle
+        const newHistory = mesocycleHistory.filter(m => m.id !== mesocycleId);
+
+        // If a new mesocycle was auto-generated after validation, remove it
+        // The current one was generated right after — delete it
+        set({
+          mesocycleHistory: newHistory,
+          currentMesocycle: { ...restored, status: 'active' as const },
+          gamificationStats: {
+            ...gamificationStats,
+            totalPoints: Math.max(0, gamificationStats.totalPoints - 200),
+          },
+        });
+        return true;
       },
 
       deleteMesocycle: (mesocycleId) => {
@@ -2368,7 +2390,9 @@ export const useAppStore = create<AppState>()(
       // Workout skip actions
       skipWorkout: (skip) => {
         const { workoutSkips } = get();
-        set({ workoutSkips: [...workoutSkips, { ...skip, id: uuidv4() }] });
+        const id = uuidv4();
+        set({ workoutSkips: [...workoutSkips, { ...skip, id }] });
+        return id;
       },
 
       deleteSkip: (skipId) => {

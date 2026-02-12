@@ -7,14 +7,20 @@ import { cn } from '@/lib/utils';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   message: string;
   type: ToastType;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (message: string, type?: ToastType, action?: ToastAction) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -25,7 +31,7 @@ export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
     // Fallback — component outside provider (shouldn't happen, but safe)
-    return { showToast: () => {} };
+    return { showToast: (() => {}) as ToastContextValue['showToast'] };
   }
   return ctx;
 }
@@ -48,14 +54,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timersRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
-  const showToast = useCallback((message: string, type: ToastType = 'success') => {
+  const showToast = useCallback((message: string, type: ToastType = 'success', action?: ToastAction) => {
     const id = ++toastIdCounter;
-    setToasts(prev => [...prev.slice(-2), { id, message, type }]); // Keep max 3
+    setToasts(prev => [...prev.slice(-2), { id, message, type, action }]); // Keep max 3
 
+    const duration = action ? 5000 : 3000; // Longer timeout for undo toasts
     const timer = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
       timersRef.current.delete(id);
-    }, 3000);
+    }, duration);
     timersRef.current.set(id, timer);
   }, []);
 
@@ -94,12 +101,32 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                     'flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-sm font-medium border backdrop-blur-sm',
                     STYLE_MAP[toast.type]
                   )}
-                  onClick={() =>
-                    setToasts(prev => prev.filter(t => t.id !== toast.id))
-                  }
+                  onClick={() => {
+                    if (!toast.action) {
+                      setToasts(prev => prev.filter(t => t.id !== toast.id));
+                    }
+                  }}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   {toast.message}
+                  {toast.action && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toast.action!.onClick();
+                        setToasts(prev => prev.filter(t => t.id !== toast.id));
+                        // Clear the auto-dismiss timer
+                        const timer = timersRef.current.get(toast.id);
+                        if (timer) {
+                          clearTimeout(timer);
+                          timersRef.current.delete(toast.id);
+                        }
+                      }}
+                      className="ml-1 px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-xs font-bold uppercase tracking-wide transition-colors"
+                    >
+                      {toast.action.label}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );

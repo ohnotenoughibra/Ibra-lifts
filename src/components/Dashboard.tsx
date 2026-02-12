@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,17 +25,21 @@ import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamificat
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import UpgradePrompt from './UpgradePrompt';
 import ThemeToggle from './ThemeToggle';
+import { ToastProvider } from './Toast';
+import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
+import { hapticLight } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
 import type { SyncStatus } from '@/lib/useDbSync';
 
-// Core tabs
-import WorkoutView from './WorkoutView';
+// Core tabs — lazy loaded for smaller initial bundle
+const HomeTab = dynamic(() => import('./HomeTab'), { loading: () => <HomeTabSkeleton /> });
+const WorkoutView = dynamic(() => import('./WorkoutView'), { loading: () => <ProgramTabSkeleton /> });
+const ExploreTab = dynamic(() => import('./ExploreTab'), { loading: () => <ExploreTabSkeleton /> });
+const ProgressAndHistoryTab = dynamic(() => import('./ProgressTab'), { loading: () => <ProgressTabSkeleton /> });
+// These are lightweight enough to keep eager
 import ProfileSettings from './ProfileSettings';
 import ActiveWorkout from './ActiveWorkout';
-import HomeTab from './HomeTab';
-import ExploreTab from './ExploreTab';
-import ProgressAndHistoryTab from './ProgressTab';
 
 // Overlay components — lazy-loaded (only when opened)
 function OverlaySkeleton() {
@@ -186,6 +190,14 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
   );
 }
 
+const TABS = [
+  { id: 'home', icon: Dumbbell, label: 'Home' },
+  { id: 'program', icon: Calendar, label: 'Program' },
+  { id: 'explore', icon: Compass, label: 'Explore' },
+  { id: 'progress', icon: BarChart3, label: 'Progress' },
+  { id: 'profile', icon: User, label: 'Profile' },
+] as const;
+
 interface DashboardProps {
   syncStatus?: SyncStatus;
   lastSyncedAt?: Date | null;
@@ -242,6 +254,39 @@ export default function Dashboard({
   const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
   const ensureWeeklyChallenge = useAppStore(s => s.ensureWeeklyChallenge);
   const lastCompletedWorkout = useAppStore(s => s.lastCompletedWorkout);
+
+  // Tab switch with haptic feedback
+  const switchTab = useCallback((id: TabType) => {
+    hapticLight();
+    setActiveTab(id);
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Keyboard navigation for tab bar (Left/Right arrows)
+  const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const tabIds = TABS.map(t => t.id);
+    const currentIdx = tabIds.indexOf(activeTab);
+    let nextIdx = -1;
+
+    if (e.key === 'ArrowRight') {
+      nextIdx = (currentIdx + 1) % tabIds.length;
+    } else if (e.key === 'ArrowLeft') {
+      nextIdx = (currentIdx - 1 + tabIds.length) % tabIds.length;
+    } else if (e.key === 'Home') {
+      nextIdx = 0;
+    } else if (e.key === 'End') {
+      nextIdx = tabIds.length - 1;
+    }
+
+    if (nextIdx >= 0) {
+      e.preventDefault();
+      const nextTabId = tabIds[nextIdx] as TabType;
+      switchTab(nextTabId);
+      // Focus the newly active tab button
+      const nextBtn = (e.currentTarget as HTMLElement).querySelector(`[data-tab-id="${nextTabId}"]`) as HTMLElement;
+      nextBtn?.focus();
+    }
+  }, [activeTab, switchTab]);
 
   // Show new user guide after first workout completion (not before)
   const [showNewUserGuide, setShowNewUserGuide] = useState(false);
@@ -399,6 +444,7 @@ export default function Dashboard({
   }
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-grappler-900 bg-mesh pb-16 overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
@@ -537,24 +583,25 @@ export default function Dashboard({
         <Plus className="w-6 h-6" />
       </button>
 
-      {/* Bottom Navigation — 4 tabs */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom">
+      {/* Bottom Navigation — 5 tabs */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
+        role="tablist"
+        aria-label="Main navigation"
+        onKeyDown={handleTabKeyDown}
+      >
         <div className="flex items-center justify-around py-2">
-          {[
-            { id: 'home', icon: Dumbbell, label: 'Home' },
-            { id: 'program', icon: Calendar, label: 'Program' },
-            { id: 'explore', icon: Compass, label: 'Explore' },
-            { id: 'progress', icon: BarChart3, label: 'Progress' },
-            { id: 'profile', icon: User, label: 'Profile' },
-          ].map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id as TabType); window.scrollTo(0, 0); }}
+              onClick={() => switchTab(tab.id as TabType)}
               aria-label={tab.label}
               aria-selected={activeTab === tab.id}
               role="tab"
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all',
+                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -682,5 +729,6 @@ export default function Dashboard({
         )}
       </AnimatePresence>
     </div>
+    </ToastProvider>
   );
 }

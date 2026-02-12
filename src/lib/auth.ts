@@ -130,8 +130,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if ((account?.provider === 'google' || account?.provider === 'apple') && user.email) {
         const email = user.email.toLowerCase().trim();
 
-        // Retry DB operations up to 2 times (handles Vercel Postgres cold starts)
-        for (let attempt = 0; attempt < 2; attempt++) {
+        // Retry DB operations up to 3 times (handles Vercel Postgres cold starts)
+        for (let attempt = 0; attempt < 3; attempt++) {
           try {
             await ensureAuthTables();
 
@@ -154,12 +154,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Success — break out of retry loop
             break;
           } catch (error) {
-            console.error(`[auth] Google sign-in DB error (attempt ${attempt + 1}):`, error);
-            if (attempt === 0) {
-              // Wait briefly before retry (DB cold start)
-              await new Promise(r => setTimeout(r, 1000));
+            console.error(`[auth] OAuth sign-in DB error (attempt ${attempt + 1}/3):`, error);
+            if (attempt < 2) {
+              // Exponential backoff: 500ms, then 1500ms
+              await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
             }
-            // On final failure, still allow sign-in — user gets Google's profile ID
+            // On final failure, still allow sign-in — user gets provider's profile ID
             // and DB user will be created on next successful sign-in
           }
         }

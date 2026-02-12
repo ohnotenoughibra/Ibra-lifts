@@ -39,7 +39,7 @@ import { useToast } from './Toast';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme } = useAppStore();
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment } = useAppStore();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'kg';
@@ -517,10 +517,14 @@ export default function ProfileSettings() {
                       key={eq.value}
                       onClick={() => {
                         setEditEquipment(eq.value);
-                        const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
-                          p.name === (eq.value === 'full_gym' ? 'gym' : eq.value === 'home_gym' ? 'home' : 'travel')
-                        );
-                        setEditAvailableEquipment(profile?.equipment || []);
+                        if (eq.value === 'home_gym') {
+                          setEditAvailableEquipment(homeGymEquipment);
+                        } else {
+                          const profile = DEFAULT_EQUIPMENT_PROFILES.find(p =>
+                            p.name === (eq.value === 'full_gym' ? 'gym' : 'travel')
+                          );
+                          setEditAvailableEquipment(profile?.equipment || []);
+                        }
                       }}
                       className={cn(
                         'py-2.5 rounded-lg text-xs font-medium transition-all active:scale-95',
@@ -532,6 +536,57 @@ export default function ProfileSettings() {
                   ))}
                 </div>
               </div>
+
+              {/* Home Gym Equipment Picker — shown when Home is selected */}
+              {editEquipment === 'home_gym' && (
+                <div>
+                  <label className="block text-xs text-grappler-400 mb-2">What equipment do you have at home?</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {([
+                      { type: 'barbell' as EquipmentType, label: 'Barbell' },
+                      { type: 'dumbbell' as EquipmentType, label: 'Dumbbells' },
+                      { type: 'kettlebell' as EquipmentType, label: 'Kettlebells' },
+                      { type: 'bench' as EquipmentType, label: 'Bench' },
+                      { type: 'pull_up_bar' as EquipmentType, label: 'Pull-Up Bar' },
+                      { type: 'resistance_band' as EquipmentType, label: 'Resistance Bands' },
+                      { type: 'dip_station' as EquipmentType, label: 'Dip Station' },
+                      { type: 'cable' as EquipmentType, label: 'Cable Machine' },
+                      { type: 'machine' as EquipmentType, label: 'Machines' },
+                      { type: 'ez_bar' as EquipmentType, label: 'EZ Curl Bar' },
+                      { type: 'ab_wheel' as EquipmentType, label: 'Ab Wheel' },
+                      { type: 'medicine_ball' as EquipmentType, label: 'Medicine Ball' },
+                      { type: 'box' as EquipmentType, label: 'Plyo Box' },
+                    ]).map(({ type, label }) => {
+                      const isSelected = editAvailableEquipment.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => {
+                            const updated = isSelected
+                              ? editAvailableEquipment.filter(e => e !== type)
+                              : [...editAvailableEquipment, type];
+                            // Always include bodyweight
+                            if (!updated.includes('bodyweight')) updated.push('bodyweight');
+                            setEditAvailableEquipment(updated);
+                            setHomeGymEquipment(updated);
+                          }}
+                          className={cn(
+                            'py-2 px-3 rounded-lg text-xs font-medium transition-all active:scale-95 text-left',
+                            isSelected
+                              ? 'bg-primary-500/20 text-primary-300 border border-primary-500/40'
+                              : 'bg-grappler-800 text-grappler-500 border border-grappler-700'
+                          )}
+                        >
+                          {isSelected ? '✓ ' : ''}{label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-grappler-600 mt-1.5">
+                    Bodyweight exercises are always included. Tap to toggle.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

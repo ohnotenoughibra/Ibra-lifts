@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { getReadinessSummary } from '@/lib/performance-engine';
@@ -47,6 +47,7 @@ import { shouldDeload } from '@/lib/auto-adjust';
 import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import CardErrorBoundary from './CardErrorBoundary';
+import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
@@ -283,6 +284,27 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       lastCompletedWorkout.log, workoutLogs, latestWhoopData
     );
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  // ─── Confetti + Haptic on PR / badge unlock ───
+  const confettiFired = useRef(false);
+  useEffect(() => {
+    if (!lastCompletedWorkout || confettiFired.current) return;
+    const hasPR = lastCompletedWorkout.hadPR;
+    const hasBadge = lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0;
+    if (hasPR || hasBadge) {
+      confettiFired.current = true;
+      // Slight delay for the card to render first
+      setTimeout(() => fireConfetti(), 300);
+      // Haptic feedback
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(hasPR ? [100, 50, 100] : [80]);
+      }
+    }
+  }, [lastCompletedWorkout]);
+  // Reset confetti flag when workout summary is dismissed
+  useEffect(() => {
+    if (!lastCompletedWorkout) confettiFired.current = false;
+  }, [lastCompletedWorkout]);
 
   // ─── Post-workout nutrition nudge ───
   const postWorkoutNutritionNudge = useMemo(() => {

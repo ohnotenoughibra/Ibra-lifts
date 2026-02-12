@@ -23,14 +23,14 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
-      className={`relative w-14 h-7 rounded-full transition-colors flex items-center p-1 ${
+      className={`relative w-10 h-6 rounded-full transition-colors flex items-center p-0.5 ${
         themeMode === 'dark' ? 'bg-grappler-700' : 'bg-gray-300'
       }`}
       aria-label="Toggle theme"
     >
       <motion.div
         className="w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center"
-        animate={{ x: themeMode === 'dark' ? 0 : 24 }}
+        animate={{ x: themeMode === 'dark' ? 0 : 16 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       >
         {themeMode === 'dark' ? (

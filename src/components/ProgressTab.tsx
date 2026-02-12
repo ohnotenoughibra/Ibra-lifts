@@ -979,20 +979,20 @@ function SessionRecapCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+        <div className="grid grid-cols-4 gap-1.5 mb-3">
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{log.exercises.length}</p>
             <p className="text-[9px] text-grappler-500">Exercises</p>
           </div>
-          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{formatNumber(log.totalVolume)}</p>
             <p className="text-[9px] text-grappler-500">Vol ({weightUnit})</p>
           </div>
-          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{log.duration}m</p>
             <p className="text-[9px] text-grappler-500">Duration</p>
           </div>
-          <div className="text-center bg-grappler-800/40 rounded-lg py-2">
+          <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{newStreak}</p>
             <p className="text-[9px] text-grappler-500">Streak</p>
           </div>

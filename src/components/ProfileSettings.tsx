@@ -698,37 +698,89 @@ export default function ProfileSettings() {
         </div>
       </div>
 
-      {/* Training Day Schedule */}
+      {/* Training Day Schedule — unified lifting + combat + rest */}
       {user && (
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-grappler-700">
             <h3 className="font-medium text-grappler-200">Training Schedule</h3>
-            <p className="text-xs text-grappler-500 mt-1">Tap days you plan to lift</p>
+            <p className="text-xs text-grappler-500 mt-1">Tap to toggle lifting (green) · Long-press for combat (purple)</p>
           </div>
-          <div className="p-4 flex gap-1.5 justify-between">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => {
-              const selected = user.trainingDays?.includes(i) ?? false;
+          <div className="p-4">
+            <div className="flex gap-1.5 justify-between">
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => {
+                const isLift = user.trainingDays?.includes(i) ?? false;
+                const combatDays = user.combatTrainingDays || [];
+                const hasCombat = combatDays.some(d => d.day === i);
+                const isBoth = isLift && hasCombat;
+                const isRest = !isLift && !hasCombat;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => {
+                      const current = user.trainingDays || [];
+                      const next = isLift
+                        ? current.filter(d => d !== i)
+                        : [...current, i].sort();
+                      setUser({ ...user, trainingDays: next, updatedAt: new Date() });
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      const current = user.combatTrainingDays || [];
+                      const next = hasCombat
+                        ? current.filter(d => d.day !== i)
+                        : [...current, { day: i, intensity: 'moderate' as const }];
+                      setUser({ ...user, combatTrainingDays: next, updatedAt: new Date() });
+                    }}
+                    className={cn(
+                      'w-9 h-9 rounded-full text-[11px] font-medium transition-all active:scale-95',
+                      isBoth
+                        ? 'bg-gradient-to-br from-green-500 to-purple-500 text-white'
+                        : isLift
+                        ? 'bg-green-500 text-white'
+                        : hasCombat
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-grappler-800 text-grappler-500 hover:text-grappler-300'
+                    )}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-3 mt-3">
+              <div className="flex items-center gap-1 text-xs text-grappler-500">
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                <span>Lift</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-grappler-500">
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                <span>Combat</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-grappler-500">
+                <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-green-500 to-purple-500" />
+                <span>Both</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-grappler-500">
+                <div className="w-2.5 h-2.5 rounded-full bg-grappler-800 border border-grappler-600" />
+                <span>Rest</span>
+              </div>
+            </div>
+            {/* Rest day count */}
+            {(() => {
+              const liftCount = user.trainingDays?.length || 0;
+              const combatCount = new Set((user.combatTrainingDays || []).map(d => d.day)).size;
+              const allActiveDays = new Set([
+                ...(user.trainingDays || []),
+                ...(user.combatTrainingDays || []).map(d => d.day),
+              ]);
+              const restCount = 7 - allActiveDays.size;
               return (
-                <button
-                  key={day}
-                  onClick={() => {
-                    const current = user.trainingDays || [];
-                    const next = selected
-                      ? current.filter(d => d !== i)
-                      : [...current, i].sort();
-                    setUser({ ...user, trainingDays: next, updatedAt: new Date() });
-                  }}
-                  className={cn(
-                    'w-9 h-9 rounded-full text-[11px] font-medium transition-all active:scale-95',
-                    selected
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-grappler-800 text-grappler-500 hover:text-grappler-300'
-                  )}
-                >
-                  {day}
-                </button>
+                <p className="text-xs text-grappler-500 text-center mt-2">
+                  {liftCount} lift · {combatCount} combat · {restCount} rest
+                </p>
               );
-            })}
+            })()}
           </div>
         </div>
       )}

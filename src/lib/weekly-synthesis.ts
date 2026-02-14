@@ -27,6 +27,8 @@ export interface WeeklySynthesisData {
     proteinAdherence: number | null; // percentage of days hitting target
     avgRPE: number;
     totalVolume: number;
+    combatSessions: number;
+    combatMinutes: number;
   };
   /** Trend compared to last week */
   trends: {
@@ -47,7 +49,7 @@ export function generateWeeklySynthesis(opts: {
   macroTargets: MacroTargets;
   weightUnit: WeightUnit;
 }): WeeklySynthesisData {
-  const { user, workoutLogs, wearableHistory, meals, macroTargets, weightUnit } = opts;
+  const { user, workoutLogs, trainingSessions, wearableHistory, meals, macroTargets, weightUnit } = opts;
 
   const now = new Date();
   const startOfThisWeek = new Date(now);
@@ -57,7 +59,7 @@ export function generateWeeklySynthesis(opts: {
   const startOfLastWeek = new Date(startOfThisWeek);
   startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
 
-  // ─── This week's data ───
+  // ─── This week's lifting data ───
   const thisWeekLogs = workoutLogs.filter(l => {
     const d = new Date(l.date);
     return d >= startOfThisWeek && d <= now;
@@ -67,6 +69,20 @@ export function generateWeeklySynthesis(opts: {
     const d = new Date(l.date);
     return d >= startOfLastWeek && d < startOfThisWeek;
   });
+
+  // ─── This week's combat/training sessions ───
+  const thisWeekCombat = trainingSessions.filter(s => {
+    const d = new Date(s.date);
+    return d >= startOfThisWeek && d <= now;
+  });
+  const lastWeekCombat = trainingSessions.filter(s => {
+    const d = new Date(s.date);
+    return d >= startOfLastWeek && d < startOfThisWeek;
+  });
+  const combatSessions = thisWeekCombat.length;
+  const combatMinutes = thisWeekCombat.reduce((s, c) => s + (c.duration || 0), 0);
+  const lastCombatSessions = lastWeekCombat.length;
+  const lastCombatMinutes = lastWeekCombat.reduce((s, c) => s + (c.duration || 0), 0);
 
   const thisWorkouts = thisWeekLogs.length;
   const lastWorkouts = lastWeekLogs.length;
@@ -120,7 +136,7 @@ export function generateWeeklySynthesis(opts: {
     : thisWorkouts < lastWorkouts ? 'down' as const : 'stable' as const;
 
   // ─── Build narrative ───
-  const hasData = thisWorkouts > 0;
+  const hasData = thisWorkouts > 0 || combatSessions > 0;
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ... 6=Sat
   const isMidWeek = dayOfWeek <= 3; // Sun–Wed: week is still early/mid
   const daysLeft = 6 - dayOfWeek; // days remaining (Sat = end of week)
@@ -141,8 +157,12 @@ export function generateWeeklySynthesis(opts: {
         isMidWeek,
         daysLeft,
         lastWorkouts,
+        combatSessions,
+        combatMinutes,
+        lastCombatSessions,
+        lastCombatMinutes,
       })
-    : 'Start logging workouts this week to get your personalized coaching summary.';
+    : 'Start logging workouts or training sessions this week to get your personalized coaching summary.';
 
   return {
     narrative,
@@ -153,6 +173,8 @@ export function generateWeeklySynthesis(opts: {
       proteinAdherence,
       avgRPE,
       totalVolume: thisVolume,
+      combatSessions,
+      combatMinutes,
     },
     trends: {
       volume: volumeTrend,
@@ -180,24 +202,52 @@ function buildNarrative(data: {
   isMidWeek: boolean;
   daysLeft: number;
   lastWorkouts: number;
+  combatSessions: number;
+  combatMinutes: number;
+  lastCombatSessions: number;
+  lastCombatMinutes: number;
 }): string {
   const parts: string[] = [];
   const midWeek = data.isMidWeek;
   const soFar = midWeek ? ' so far' : '';
 
-  // Opening — training summary with mid-week awareness
+  // Opening — combined training summary (lifting + combat)
   const volDelta = data.lastVolume > 0
     ? Math.round(((data.totalVolume - data.lastVolume) / data.lastVolume) * 100)
     : 0;
 
-  if (data.prs > 0) {
+  const hasCombat = data.combatSessions > 0;
+  const hasLifting = data.workouts > 0;
+
+  if (hasLifting && hasCombat) {
+    // Combined summary
+    const combatLabel = data.combatMinutes > 0 ? ` and ${data.combatSessions} mat session${data.combatSessions !== 1 ? 's' : ''} (${data.combatMinutes}min)` : ` and ${data.combatSessions} mat session${data.combatSessions !== 1 ? 's' : ''}`;
+    if (data.prs > 0) {
+      parts.push(
+        `You've lifted ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${combatLabel}${soFar} this week, hitting ${data.prs} PR${data.prs !== 1 ? 's' : ''}.`
+      );
+    } else {
+      parts.push(
+        `You've lifted ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${combatLabel}${soFar} this week.`
+      );
+    }
+  } else if (hasCombat && !hasLifting) {
+    // Combat only
+    const minLabel = data.combatMinutes > 0 ? ` totaling ${data.combatMinutes}min on the mats` : '';
     parts.push(
-      `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week and hit ${data.prs} PR${data.prs !== 1 ? 's' : ''}.`
+      `You've had ${data.combatSessions} training session${data.combatSessions !== 1 ? 's' : ''}${minLabel}${soFar} this week.`
     );
   } else {
-    parts.push(
-      `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week.`
-    );
+    // Lifting only (original behavior)
+    if (data.prs > 0) {
+      parts.push(
+        `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week and hit ${data.prs} PR${data.prs !== 1 ? 's' : ''}.`
+      );
+    } else {
+      parts.push(
+        `You've trained ${data.workouts} time${data.workouts !== 1 ? 's' : ''}${soFar} this week.`
+      );
+    }
   }
 
   // Mid-week: remind user the week isn't over
@@ -273,6 +323,29 @@ function buildNarrative(data: {
   if (data.stalledExercises.length > 0) {
     const names = data.stalledExercises.slice(0, 2).join(' and ');
     parts.push(`${names} may be plateauing — consider adjusting rep range or adding volume next block.`);
+  }
+
+  // Combat training insights
+  if (data.combatSessions > 0) {
+    // Compare to last week
+    if (data.lastCombatSessions > 0) {
+      const matDelta = data.combatMinutes - data.lastCombatMinutes;
+      if (matDelta > 30) {
+        parts.push(`Mat time is up ${matDelta}min from last week — make sure your lifting doesn't interfere with recovery.`);
+      } else if (matDelta < -30 && !midWeek) {
+        parts.push(`Mat time dropped ${Math.abs(matDelta)}min from last week.`);
+      }
+    }
+
+    // Overtraining warning: heavy lifting + heavy combat
+    if (data.workouts >= 4 && data.combatSessions >= 3) {
+      parts.push(`${data.workouts} lifts + ${data.combatSessions} mat sessions is a high training load — watch for accumulated fatigue.`);
+    }
+
+    // Combat-specific intensity advice
+    if (data.combatMinutes >= 300 && data.avgRPE >= 8.0) {
+      parts.push(`High mat volume (${data.combatMinutes}min) combined with heavy lifting RPE — consider a lighter lift day next week.`);
+    }
   }
 
   return parts.join(' ');

@@ -51,7 +51,7 @@ import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout } from '@/lib/workout-generator';
-import { levelProgress, pointsToNextLevel } from '@/lib/gamification';
+import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
 import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
@@ -64,6 +64,55 @@ import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib
 import PerformanceReadiness from './PerformanceReadiness';
 import type { OverlayView } from './dashboard-types';
 
+// ─── Factor explainer data ───
+const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
+  sleep: {
+    icon: '😴',
+    what: 'Hours, deep sleep & REM quality. Sleep <6h = 4× injury risk.',
+    action: 'Aim for 7-9h tonight. No screens 30min before bed.',
+  },
+  nutrition: {
+    icon: '🥩',
+    what: 'Protein intake, calorie adherence & meal frequency.',
+    action: 'Hit 1.6-2.2g/kg protein spread across 4+ meals today.',
+  },
+  stress: {
+    icon: '🧠',
+    what: 'Psychosocial stress impairs recovery by ~20%.',
+    action: 'Try 5min box breathing or a 20min walk.',
+  },
+  recovery: {
+    icon: '💚',
+    what: 'Wearable recovery score — your autonomic nervous system state.',
+    action: 'Low recovery = technique/skill day, not max effort.',
+  },
+  injury: {
+    icon: '🩹',
+    what: 'Active injuries and their severity.',
+    action: 'Follow return-to-training protocol. Avoid aggravating movements.',
+  },
+  training_load: {
+    icon: '📊',
+    what: 'Sessions per week + consecutive training days. Sweet spot is 4-6/week.',
+    action: 'Take a rest day — overtraining kills gains faster than undertraining.',
+  },
+  hydration: {
+    icon: '💧',
+    what: 'Daily water intake. Dehydration cuts strength 2-3% per 1% body mass lost.',
+    action: 'Drink at least half your bodyweight (lbs) in ounces of water.',
+  },
+  age: {
+    icon: '⏳',
+    what: 'Recovery capacity decreases with age — 40+ needs 20-40% more rest.',
+    action: 'Add an extra rest day or extend sleep by 30min.',
+  },
+  hrv: {
+    icon: '❤️',
+    what: 'Heart rate variability vs your personal baseline. Below = sympathetic stress.',
+    action: 'Reduce intensity today. Your nervous system needs recovery.',
+  },
+};
+
 function ReadinessCard() {
   const user = useAppStore(s => s.user);
   const workoutLogs = useAppStore(s => s.workoutLogs);
@@ -75,6 +124,7 @@ function ReadinessCard() {
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
+  const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
 
   const summary = useMemo(() => {
     return getReadinessSummary({
@@ -109,32 +159,90 @@ function ReadinessCard() {
     critical: 'Rest Recommended',
   };
 
+  const getBarColor = (score: number) => {
+    if (score >= 70) return 'bg-green-400';
+    if (score >= 50) return 'bg-yellow-400';
+    if (score >= 30) return 'bg-orange-400';
+    return 'bg-red-400';
+  };
+
+  const getBarBg = (score: number) => {
+    if (score >= 70) return 'bg-green-500/15';
+    if (score >= 50) return 'bg-yellow-500/15';
+    if (score >= 30) return 'bg-orange-500/15';
+    return 'bg-red-500/15';
+  };
+
   return (
     <div className={cn('p-3 border-b', levelColors[summary.level] || levelColors.moderate)}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4" />
           <span className="text-xs font-medium">Readiness</span>
+          <span className="text-xs opacity-60">{levelLabels[summary.level]}</span>
         </div>
         <span className="text-lg font-bold">{summary.score}/100</span>
       </div>
-      <p className="text-xs opacity-80 mb-2">{levelLabels[summary.level]}</p>
-      {summary.topFactors.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {summary.topFactors.map(f => (
-            <span key={f.label} className="text-xs bg-black/20 px-1.5 py-0.5 rounded">
-              {f.label}: {f.score}/100
-            </span>
-          ))}
-        </div>
-      )}
-      {summary.topRecommendation && (
-        <p className="text-xs opacity-70 mt-1.5">{summary.topRecommendation}</p>
-      )}
+
+      {/* Factor bars — tap any to expand */}
+      <div className="space-y-1.5 mt-2">
+        {summary.allFactors.map(f => {
+          const explainer = factorExplainers[f.source];
+          const isExpanded = expandedFactor === f.source;
+
+          return (
+            <div key={f.source}>
+              <button
+                onClick={() => setExpandedFactor(isExpanded ? null : f.source)}
+                className="w-full group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs w-[80px] text-left truncate text-grappler-300 group-hover:text-grappler-100 transition-colors">
+                    {f.label}
+                  </span>
+                  <div className={cn('flex-1 h-2 rounded-full overflow-hidden', getBarBg(f.score))}>
+                    <div
+                      className={cn('h-full rounded-full transition-all duration-500', getBarColor(f.score))}
+                      style={{ width: `${Math.max(3, f.score)}%` }}
+                    />
+                  </div>
+                  <span className={cn(
+                    'text-xs font-mono w-7 text-right',
+                    f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
+                  )}>
+                    {f.score}
+                  </span>
+                </div>
+              </button>
+
+              {/* Expanded explainer */}
+              <AnimatePresence>
+                {isExpanded && explainer && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-[80px] pl-2 mt-1 mb-1 border-l-2 border-grappler-700 space-y-0.5">
+                      {f.detail && (
+                        <p className="text-[10px] text-grappler-400">{f.detail}</p>
+                      )}
+                      <p className="text-[10px] text-grappler-500">{explainer.icon} {explainer.what}</p>
+                      <p className="text-[10px] text-primary-400 font-medium">{explainer.action}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Auto-adjustment notice */}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-xs mt-1 opacity-60">
+        <p className="text-xs mt-2 opacity-60">
           Auto-adjusting: volume {Math.round(summary.volumeModifier * 100)}%, intensity {Math.round(summary.intensityModifier * 100)}%
-          <span className="opacity-70"> — based on readiness score</span>
         </p>
       )}
     </div>
@@ -245,7 +353,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock,
+    deleteSkip, undoValidateBlock, awardSmartRest,
   } = useAppStore();
   const { showToast } = useToast();
   const { data: session } = useSession();
@@ -312,6 +420,28 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   useEffect(() => {
     if (!lastCompletedWorkout) confettiFired.current = false;
   }, [lastCompletedWorkout]);
+
+  // ─── Smart Rest XP — reward resting when readiness is low ───
+  const smartRestAwarded = useRef(false);
+  useEffect(() => {
+    if (smartRestAwarded.current) return;
+    const isRestDay = directive.todayType === 'rest' || directive.todayType === 'recovery';
+    const readinessLow = directive.readinessLevel === 'low' || directive.readinessLevel === 'critical';
+    const todayDate = new Date().toDateString();
+    const noWorkoutToday = workoutLogs.filter(l => new Date(l.date).toDateString() === todayDate).length === 0;
+
+    if (isRestDay && readinessLow && noWorkoutToday) {
+      // Award after brief delay so UI is settled
+      const timer = setTimeout(() => {
+        const result = awardSmartRest();
+        if (result.awarded) {
+          smartRestAwarded.current = true;
+          showToast(`Smart Rest: +${result.points} XP — recovery is training`, 'success');
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [directive.todayType, directive.readinessLevel, workoutLogs, awardSmartRest, showToast]);
 
   // ─── Post-workout nutrition nudge ───
   const postWorkoutNutritionNudge = useMemo(() => {
@@ -1201,6 +1331,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 {directive.fightCampTag && (
                   <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
                 )}
+                {(directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Smart Rest +{pointRewards.smartRest} XP</span>
+                )}
               </div>
               <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
               <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
@@ -1238,6 +1371,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   <Moon className="w-4 h-4 text-indigo-400" />
                   {directive.fightCampTag && (
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
+                  )}
+                  {(directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') && (
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Smart Rest +{pointRewards.smartRest} XP</span>
                   )}
                 </div>
                 <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>

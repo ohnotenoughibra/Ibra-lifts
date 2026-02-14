@@ -1802,20 +1802,27 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Coaching</span>
           </div>
           <p className="text-sm text-grappler-300 leading-relaxed">{synthesis.narrative}</p>
-          <div className="grid grid-cols-4 gap-2 mt-3 text-center">
-            <div>
-              <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
-              <p className="text-xs text-grappler-500">Sessions</p>
-              <p className="text-xs text-grappler-600">last 7d</p>
-            </div>
+          <div className={cn('grid gap-2 mt-3 text-center', synthesis.stats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
+            {synthesis.stats.workouts > 0 && (
+              <div>
+                <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
+                <p className="text-xs text-grappler-500">Lifts</p>
+              </div>
+            )}
+            {synthesis.stats.combatSessions > 0 && (
+              <div>
+                <p className="text-lg font-bold text-purple-400">{synthesis.stats.combatSessions}</p>
+                <p className="text-xs text-grappler-500">Mat</p>
+                {synthesis.stats.combatMinutes > 0 && <p className="text-xs text-grappler-600">{synthesis.stats.combatMinutes}m</p>}
+              </div>
+            )}
             <div>
               <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
               <p className="text-xs text-grappler-500">PRs</p>
-              <p className="text-xs text-grappler-600">new bests</p>
             </div>
             <div>
               <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
-              <p className="text-xs text-grappler-500">Avg RPE</p>
+              <p className="text-xs text-grappler-500">RPE</p>
             </div>
             <div>
               <p className="text-lg font-bold text-grappler-100">

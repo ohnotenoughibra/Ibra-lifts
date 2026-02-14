@@ -228,6 +228,34 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     todayType = 'rest';
   }
 
+  // ─── Next scheduled activity (for "coming up next" context) ───
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const shortDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let nextLiftDayLabel: string | null = null;
+  let nextCombatDayLabel: string | null = null;
+
+  // Find next scheduled lift day (looking ahead up to 7 days)
+  if (userTrainingDays.length > 0 && (todayType === 'rest' || todayType === 'combat' || todayType === 'recovery')) {
+    for (let offset = 1; offset <= 7; offset++) {
+      const checkDow = (todayDow + offset) % 7;
+      if (userTrainingDays.includes(checkDow)) {
+        nextLiftDayLabel = offset === 1 ? 'tomorrow' : shortDayNames[checkDow];
+        break;
+      }
+    }
+  }
+
+  // Find next scheduled combat day
+  if (userCombatDays.length > 0 && (todayType === 'rest' || todayType === 'lift' || todayType === 'recovery')) {
+    for (let offset = 1; offset <= 7; offset++) {
+      const checkDow = (todayDow + offset) % 7;
+      if (userCombatDays.some(d => d.day === checkDow)) {
+        nextCombatDayLabel = offset === 1 ? 'tomorrow' : shortDayNames[checkDow];
+        break;
+      }
+    }
+  }
+
   // ─── Session label ───
   let sessionLabel: string | null = null;
   if (nextWorkoutInfo && currentMesocycle) {
@@ -276,9 +304,11 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   } else if (todayType === 'lift' && shouldTrain && nextSession) {
     actions.push(`${nextSession.exercises.length} exercises, ~${nextSession.estimatedDuration}min session`);
   } else if (todayType === 'combat') {
-    const combatLabel = todayCombatSessions.map(s => `${s.type} · ${s.duration}min`).join(', ');
+    const combatLabel = todayCombatSessions.map(s => `${s.type}${s.duration > 0 ? ` · ${s.duration}min` : ''}`).join(', ');
     actions.push(combatLabel);
-    if (nextSession) {
+    if (nextSession && nextLiftDayLabel) {
+      actions.push(`Next lift ${nextLiftDayLabel}: ${nextSession.name}`);
+    } else if (nextSession) {
       actions.push(`Next lift: ${nextSession.name}`);
     }
   } else if (todayType === 'recovery' && todayPerformance) {
@@ -286,13 +316,31 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     if (todayPerformance.topExercise) {
       actions.push(`Top lift: ${todayPerformance.topExercise}`);
     }
-    actions.push('Focus on recovery — stretch, hydrate, eat well');
+    if (nextLiftDayLabel && nextSession) {
+      actions.push(`Next lift ${nextLiftDayLabel}: ${nextSession.name}`);
+    } else if (nextCombatDayLabel) {
+      actions.push(`Next on the mats: ${nextCombatDayLabel}`);
+    } else {
+      actions.push('Focus on recovery — stretch, hydrate, eat well');
+    }
   } else if (todayType === 'recovery') {
     actions.push('Focus on recovery — stretch, hydrate, eat well');
+    if (nextLiftDayLabel && nextSession) {
+      actions.push(`Next lift ${nextLiftDayLabel}: ${nextSession.name}`);
+    } else if (nextCombatDayLabel) {
+      actions.push(`Next on the mats: ${nextCombatDayLabel}`);
+    }
   } else if (todayType === 'rest') {
     actions.push('Fuel up, stretch, and let adaptation happen');
-    if (nextSession) {
+    if (nextSession && nextLiftDayLabel) {
+      actions.push(`Next lift ${nextLiftDayLabel}: ${nextSession.name}`);
+    } else if (nextSession) {
       actions.push(`Next up: ${nextSession.name}`);
+    }
+    if (nextCombatDayLabel && !nextLiftDayLabel) {
+      actions.push(`Back on the mats: ${nextCombatDayLabel}`);
+    } else if (nextCombatDayLabel) {
+      actions.push(`Mats: ${nextCombatDayLabel}`);
     }
   } else if (!nextSession && currentMesocycle) {
     actions.push('Generate your next training block');

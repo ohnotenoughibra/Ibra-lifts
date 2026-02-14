@@ -269,6 +269,7 @@ interface AppState {
   recalculateGamificationStats: () => void;
   recalculatePRs: () => void;
   awardPoints: (points: number, reason: string) => void;
+  awardSmartRest: () => { awarded: boolean; points: number };
   ensureWeeklyChallenge: () => void;
   checkAndAwardBadges: () => void;
 
@@ -465,6 +466,8 @@ const initialGamificationStats: GamificationStats = {
   dualTrainingDays: 0,
   challengesCompleted: 0,
   lastActiveDate: null,
+  smartRestDays: 0,
+  lastSmartRestDate: null,
 };
 
 export const useAppStore = create<AppState>()(
@@ -2085,6 +2088,31 @@ export const useAppStore = create<AppState>()(
             level: calculateLevel(newTotal)
           }
         });
+      },
+
+      awardSmartRest: () => {
+        const { gamificationStats } = get();
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Already awarded today
+        if (gamificationStats.lastSmartRestDate === todayStr) {
+          return { awarded: false, points: 0 };
+        }
+
+        const pts = pointRewards.smartRest;
+        const newTotal = gamificationStats.totalPoints + pts;
+
+        set({
+          gamificationStats: {
+            ...gamificationStats,
+            totalPoints: newTotal,
+            level: calculateLevel(newTotal),
+            smartRestDays: (gamificationStats.smartRestDays || 0) + 1,
+            lastSmartRestDate: todayStr,
+          }
+        });
+
+        return { awarded: true, points: pts };
       },
 
       checkAndAwardBadges: () => {

@@ -602,6 +602,7 @@ export const pointRewards = {
   weeklyBonusAll: 150,      // Bonus for completing all 3 goals
   comebackBonus: 100,       // First workout back after 7+ day absence
   trainingSession: 30,      // Logging a training session
+  smartRest: 25,            // Resting when readiness is low/critical
 };
 
 // Calculate level from total points

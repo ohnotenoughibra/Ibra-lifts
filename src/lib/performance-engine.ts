@@ -595,6 +595,7 @@ export function getReadinessSummary(opts: Parameters<typeof calculateReadiness>[
   score: number;
   level: ReadinessLevel;
   topFactors: { label: string; score: number }[];
+  allFactors: { source: string; label: string; score: number; detail?: string }[];
   volumeModifier: number;
   intensityModifier: number;
   topRecommendation: string | null;
@@ -612,6 +613,9 @@ export function getReadinessSummary(opts: Parameters<typeof calculateReadiness>[
       .sort((a, b) => a.score - b.score)
       .slice(0, 3)
       .map(f => ({ label: f.label, score: f.score })),
+    allFactors: available
+      .sort((a, b) => a.score - b.score)
+      .map(f => ({ source: f.source, label: f.label, score: f.score, detail: f.detail })),
     volumeModifier: readiness.volumeModifier,
     intensityModifier: readiness.intensityModifier,
     topRecommendation: readiness.recommendations[0] ?? null,

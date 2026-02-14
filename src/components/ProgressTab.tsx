@@ -536,7 +536,8 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     if (day.hasLifting && day.hasSession) return 'bg-gradient-to-br from-green-500 to-blue-500';
     if (day.hasLifting) return 'bg-green-500';
     if (day.hasSession) return 'bg-blue-500';
-    return 'bg-grappler-700/40';
+    // Past days with no activity = rest day (amber)
+    return 'bg-amber-500/40';
   };
 
   const getDayTitle = (day: DayData) => {
@@ -544,6 +545,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     if (day.hasLifting && day.hasSession) return `${dateStr} — lifting + training`;
     if (day.hasLifting) return `${dateStr} — lifting`;
     if (day.hasSession) return `${dateStr} — training`;
+    if (!day.isFuture) return `${dateStr} — rest day`;
     return dateStr;
   };
 
@@ -591,27 +593,22 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
       </div>
       <div className="flex items-center justify-between mt-2">
         <span className="text-xs text-grappler-500">{weeks * 7} days</span>
-        {includeOtherSessions ? (
-          <div className="flex items-center gap-2 text-xs text-grappler-500">
-            <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-              <span>Lifting</span>
-            </div>
+        <div className="flex items-center gap-2 text-xs text-grappler-500">
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+            <span>Lifting</span>
+          </div>
+          {includeOtherSessions && (
             <div className="flex items-center gap-1">
               <div className="w-2.5 h-2.5 rounded-sm bg-blue-500" />
               <span>Training</span>
             </div>
+          )}
+          <div className="flex items-center gap-1">
+            <div className="w-2.5 h-2.5 rounded-sm bg-amber-500/40" />
+            <span>Rest</span>
           </div>
-        ) : (
-          <div className="flex items-center gap-1 text-xs text-grappler-500">
-            <span>Less</span>
-            <div className="w-2.5 h-2.5 rounded-sm bg-grappler-700/40" />
-            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/40" />
-            <div className="w-2.5 h-2.5 rounded-sm bg-green-500/70" />
-            <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
-            <span>More</span>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

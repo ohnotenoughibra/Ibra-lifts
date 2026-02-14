@@ -1291,6 +1291,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
             </div>
           )}
+          <div className="flex items-center justify-center mt-2">
+            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
+          </div>
         </motion.div>
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') && nextWorkout ? (
@@ -1336,6 +1339,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             </div>
             <Play className="w-4 h-4 text-grappler-500" />
           </button>
+          <div className="flex items-center justify-center">
+            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
+          </div>
         </motion.div>
 
       ) : directive.todayType === 'combat' ? (
@@ -1409,6 +1415,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <Play className="w-4 h-4 text-grappler-500" />
             </button>
           )}
+          <div className="flex items-center justify-center">
+            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
+          </div>
         </motion.div>
 
       ) : nextWorkout ? (

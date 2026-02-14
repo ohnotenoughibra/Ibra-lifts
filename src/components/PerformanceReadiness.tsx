@@ -1,12 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Droplets, Scale, Moon, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { calculateReadiness, type ReadinessScore } from '@/lib/nudge-engine';
-import { calculateAdherence } from '@/lib/diet-coach';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import { useSession } from 'next-auth/react';
 
@@ -26,6 +25,29 @@ const COMPONENT_LABELS: Record<string, string> = {
   energy: 'Energy',
 };
 
+const COMPONENT_EXPLAINERS: Record<string, { what: string; action: string }> = {
+  nutrition: {
+    what: 'Calorie & protein adherence today. Under-fuelling cuts strength and recovery.',
+    action: 'Hit your protein target across 3-4 meals. Log everything.',
+  },
+  hydration: {
+    what: 'Water intake vs your daily target. 2% dehydration = measurable strength loss.',
+    action: 'Drink a glass now. Aim for 8-10 glasses spread through the day.',
+  },
+  weight: {
+    what: 'Body weight trend relative to your goal. Plateau detection included.',
+    action: 'Weigh in consistently (morning, fasted). One reading per week minimum.',
+  },
+  recovery: {
+    what: 'Sleep quality and wearable recovery data. Poor sleep = 4× injury risk.',
+    action: 'Aim for 7-9h tonight. Log sleep if no wearable connected.',
+  },
+  energy: {
+    what: 'Energy availability — are you eating enough to fuel training and recovery?',
+    action: 'Don\'t cut calories too aggressively. Minimum 30 kcal/kg lean mass.',
+  },
+};
+
 function getScoreColor(score: number): string {
   if (score >= 80) return 'text-green-400';
   if (score >= 60) return 'text-yellow-400';
@@ -40,12 +62,21 @@ function getScoreBg(score: number): string {
   return 'bg-red-500';
 }
 
+function getScoreDot(score: number): string {
+  if (score >= 80) return 'bg-green-400';
+  if (score >= 60) return 'bg-yellow-400';
+  if (score >= 40) return 'bg-blue-400';
+  return 'bg-red-400';
+}
+
 export default function PerformanceReadiness() {
   const {
     meals, macroTargets, waterLog, bodyWeightLog, latestWhoopData,
     activeDietPhase, quickLogs, subscription,
   } = useAppStore();
   const { data: session } = useSession();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
 
   const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const hasFullAccess = hasFeatureAccess('performance-readiness', effectiveTier);
@@ -113,94 +144,149 @@ export default function PerformanceReadiness() {
     });
   }, [meals, macroTargets, waterLog, latestWhoopData, activeDietPhase, quickLogs]);
 
+  const levelLabel =
+    readiness.level === 'ready' ? 'Ready' :
+    readiness.level === 'needs_attention' ? 'Attention' : 'At Risk';
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card p-3"
-    >
-      {/* Score header */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className={cn(
-          'w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black',
-          readiness.level === 'ready' ? 'bg-green-500/20 text-green-400' :
-          readiness.level === 'needs_attention' ? 'bg-yellow-500/20 text-yellow-400' :
-          'bg-red-500/20 text-red-400'
-        )}>
-          {readiness.score}
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-grappler-100">Performance Readiness</p>
-          <p className="text-xs text-grappler-400">
-            {(() => {
-              const hour = new Date().getHours();
-              const isEarlyMorning = hour < 10;
-              const todayStr = new Date().toISOString().split('T')[0];
-              const noDataYet = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === todayStr).length === 0
-                && !(waterLog[todayStr]);
-              if (isEarlyMorning && noDataYet) {
-                return 'Morning check-in — log meals & water to update';
-              }
-              return readiness.level === 'ready' ? 'Looking good — ready to perform' :
-                readiness.level === 'needs_attention' ? 'Some areas need attention' :
-                'At risk — take action';
-            })()}
-          </p>
-          <p className="text-xs text-grappler-600 mt-0.5">
-            nutrition + hydration + sleep + weight
-          </p>
-        </div>
-        <TrendingUp className={cn('w-5 h-5', getScoreColor(readiness.score))} />
-      </div>
-
-      {/* Component bars — Pro feature */}
-      {hasFullAccess ? (
-        <div className="space-y-1.5">
-          {(Object.keys(readiness.components) as (keyof typeof readiness.components)[]).map((key) => {
-            const value = readiness.components[key];
-            return (
-              <div key={key} className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 w-20 text-grappler-400">
-                  {COMPONENT_ICONS[key]}
-                  <span className="text-xs">{COMPONENT_LABELS[key]}</span>
-                </div>
-                <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${value}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className={cn('h-full rounded-full', getScoreBg(value))}
-                  />
-                </div>
-                <span className={cn('text-xs font-medium w-7 text-right', getScoreColor(value))}>
-                  {value}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="mt-1 p-2 bg-grappler-800/30 rounded-lg border border-grappler-700/50">
-          <p className="text-xs text-grappler-500 text-center">
-            Upgrade to Pro for component breakdown and action items
-          </p>
-        </div>
-      )}
-
-      {/* Bottleneck + action */}
-      {hasFullAccess && readiness.level !== 'ready' && (
-        <div className="mt-2.5 p-2 bg-grappler-800/40 rounded-lg">
-          <div className="flex items-start gap-1.5">
-            <AlertTriangle className={cn('w-3.5 h-3.5 mt-0.5 flex-shrink-0',
-              readiness.level === 'at_risk' ? 'text-red-400' : 'text-yellow-400'
-            )} />
-            <div>
-              <p className="text-xs text-grappler-300 font-medium">{readiness.bottleneck}</p>
-              <p className="text-xs text-grappler-500">{readiness.actionItem}</p>
-            </div>
+    <div className="card overflow-hidden">
+      <div className="px-3 pt-3 pb-1">
+        {/* Header — tappable to toggle details */}
+        <button
+          onClick={() => { setDetailsOpen(v => !v); if (detailsOpen) setExpandedFactor(null); }}
+          className="w-full flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-grappler-400" />
+            <span className="text-sm font-semibold text-grappler-100">Performance Score</span>
+            <span className={cn(
+              'text-xs font-medium px-1.5 py-0.5 rounded-full bg-grappler-700/60',
+              getScoreColor(readiness.score)
+            )}>
+              {levelLabel}
+            </span>
           </div>
-        </div>
-      )}
-    </motion.div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className={cn('w-2 h-2 rounded-full', getScoreDot(readiness.score))} />
+              <span className={cn('text-lg font-bold', getScoreColor(readiness.score))}>{readiness.score}</span>
+              <span className="text-xs text-grappler-500 font-medium">/100</span>
+            </div>
+            <span className="text-xs text-grappler-600 group-hover:text-grappler-400 transition-colors ml-1">
+              {detailsOpen ? '▴' : '▾'}
+            </span>
+          </div>
+        </button>
+
+        {/* Subline — always visible */}
+        <p className="text-[10px] text-grappler-500 mt-1 ml-6">
+          {(() => {
+            const hour = new Date().getHours();
+            const isEarlyMorning = hour < 10;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const noDataYet = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === todayStr).length === 0
+              && !(waterLog[todayStr]);
+            if (isEarlyMorning && noDataYet) {
+              return 'Morning check-in — log meals & water to update';
+            }
+            return readiness.level === 'ready' ? 'Looking good — ready to perform' :
+              readiness.level === 'needs_attention' ? 'Some areas need attention' :
+              'At risk — take action';
+          })()}
+        </p>
+
+        {/* Collapsible factor details */}
+        <AnimatePresence>
+          {detailsOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              {hasFullAccess ? (
+                <div className="space-y-1 pt-3 pb-1">
+                  {(Object.keys(readiness.components) as (keyof typeof readiness.components)[]).map((key) => {
+                    const value = readiness.components[key];
+                    const explainer = COMPONENT_EXPLAINERS[key];
+                    const isExpanded = expandedFactor === key;
+
+                    return (
+                      <div key={key}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setExpandedFactor(isExpanded ? null : key); }}
+                          className="w-full group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1.5 w-20 text-left text-grappler-400 group-hover:text-grappler-200 transition-colors">
+                              {COMPONENT_ICONS[key]}
+                              <span className="text-[11px] truncate">{COMPONENT_LABELS[key]}</span>
+                            </span>
+                            <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.max(3, value)}%` }}
+                                transition={{ duration: 0.6, ease: 'easeOut' }}
+                                className={cn('h-full rounded-full', getScoreBg(value))}
+                              />
+                            </div>
+                            <span className={cn(
+                              'text-[11px] font-mono w-6 text-right',
+                              getScoreColor(value)
+                            )}>
+                              {value}
+                            </span>
+                          </div>
+                        </button>
+
+                        {/* Per-factor explainer */}
+                        <AnimatePresence>
+                          {isExpanded && explainer && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="ml-20 pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
+                                <p className="text-[10px] text-grappler-500">{explainer.what}</p>
+                                <p className="text-[10px] text-primary-400">{explainer.action}</p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 p-2 bg-grappler-800/30 rounded-lg border border-grappler-700/50">
+                  <p className="text-xs text-grappler-500 text-center">
+                    Upgrade to Pro for component breakdown and action items
+                  </p>
+                </div>
+              )}
+
+              {/* Bottleneck + action */}
+              {hasFullAccess && readiness.level !== 'ready' && (
+                <div className="mt-2 mb-1 p-2 bg-grappler-800/40 rounded-lg">
+                  <div className="flex items-start gap-1.5">
+                    <AlertTriangle className={cn('w-3.5 h-3.5 mt-0.5 flex-shrink-0',
+                      readiness.level === 'at_risk' ? 'text-red-400' : 'text-yellow-400'
+                    )} />
+                    <div>
+                      <p className="text-xs text-grappler-300 font-medium">{readiness.bottleneck}</p>
+                      <p className="text-xs text-grappler-500">{readiness.actionItem}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

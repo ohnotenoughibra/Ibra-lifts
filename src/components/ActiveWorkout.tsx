@@ -46,6 +46,7 @@ import { getSuggestedWeight } from '@/lib/auto-adjust';
 import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
+import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function ActiveWorkout() {
   const {
@@ -90,6 +91,7 @@ export default function ActiveWorkout() {
   const [showRPEInfo, setShowRPEInfo] = useState(false);
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
   const [overviewSwapIndex, setOverviewSwapIndex] = useState<number | null>(null);
+  const [formCheckExercise, setFormCheckExercise] = useState<{ name: string; videoUrl?: string } | null>(null);
   const [lastCompletedExerciseIndex, setLastCompletedExerciseIndex] = useState<number | null>(null);
   const [undoInfo, setUndoInfo] = useState<{ exerciseIndex: number; setIndex: number; previousSets: SetLog[]; previousPR: boolean; previousE1RM: number } | null>(null);
 
@@ -1349,13 +1351,22 @@ export default function ActiveWorkout() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setOverviewSwapIndex(i)}
-                          className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors flex-shrink-0 ml-2"
-                          title="Swap exercise"
-                        >
-                          <Shuffle className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => setFormCheckExercise({ name: ex.exercise.name, videoUrl: ex.exercise.videoUrl })}
+                            className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors"
+                            title="Check form"
+                          >
+                            <Video className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setOverviewSwapIndex(i)}
+                            className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors"
+                            title="Swap exercise"
+                          >
+                            <Shuffle className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                       {prevPerf && (
                         <div className="mt-2 ml-11 flex items-center gap-1">
@@ -1534,6 +1545,15 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Inline Exercise Feedback is rendered in the main content area below */}
+
+      {/* Form Check Video Modal (from exercise plan overview) */}
+      {formCheckExercise && (
+        <YouTubeEmbed
+          exerciseName={formCheckExercise.name}
+          videoUrl={formCheckExercise.videoUrl}
+          onClose={() => setFormCheckExercise(null)}
+        />
+      )}
 
       {/* Overview Exercise Swap Modal — swap before starting workout */}
       <AnimatePresence>

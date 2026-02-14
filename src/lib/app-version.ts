@@ -8,7 +8,7 @@
 
 // ── Version Constants ─────────────────────────────────────────────────────
 
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.1.0';
 export const APP_VERSION_KEY = 'roots-gains-version';
 export const UPGRADE_DISMISSED_KEY = 'roots-gains-upgrade-dismissed';
 
@@ -22,6 +22,20 @@ export interface VersionInfo {
 
 // Version history — newest first
 export const VERSION_HISTORY: VersionInfo[] = [
+  {
+    version: '2.1.0',
+    releasedAt: '2026-02-14',
+    highlights: [
+      'Fatigue Intelligence — sRPE-weighted ACWR, nervous system metrics, CNS strain',
+      'VO2 Max Trends — estimated VO2 max from Whoop resting HR in Progress tab',
+      'Day-aware missions — Today\'s card matches your weekly schedule (lift/combat/rest)',
+      'Post-session recap — volume, sets, RPE, and top lift shown after you train',
+      'Combo day control — skip BJJ or lifting individually with context',
+      'Rest day heatmap — amber circles for rest days in Training Streaks',
+      'Exercise preview — see your first 3 exercises before starting',
+    ],
+    breakingChanges: false,
+  },
   {
     version: '2.0.0',
     releasedAt: '2026-02-10',

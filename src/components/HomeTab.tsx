@@ -1206,7 +1206,60 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       </AnimatePresence>
 
       {/* ─── TODAY'S MISSION — unified directive + action card ─── */}
-      {(directive.todayType === 'rest' || directive.todayType === 'recovery') && !nextWorkout ? (
+      {directive.todayPerformance && directive.todayType === 'recovery' ? (
+        /* POST-SESSION: Already lifted today — show performance recap */
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Check className="w-4 h-4 text-green-400" />
+                <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
+              </div>
+              <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
+              <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
+            </div>
+            <div className="text-right flex-shrink-0 ml-3">
+              <p className="text-2xl font-black text-green-400">{directive.readinessScore}</p>
+              <p className="text-[10px] text-grappler-500">Readiness</p>
+            </div>
+          </div>
+          {/* Performance metrics grid */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
+              <p className="text-lg font-black text-grappler-100">{formatNumber(directive.todayPerformance.totalVolume)}</p>
+              <p className="text-[10px] text-grappler-500 uppercase">{weightUnit} volume</p>
+            </div>
+            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
+              <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.totalSets}</p>
+              <p className="text-[10px] text-grappler-500 uppercase">Sets</p>
+            </div>
+            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
+              <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.avgRPE > 0 ? directive.todayPerformance.avgRPE : '—'}</p>
+              <p className="text-[10px] text-grappler-500 uppercase">Avg RPE</p>
+            </div>
+          </div>
+          {directive.todayPerformance.topExercise && (
+            <div className="flex items-center gap-2 bg-grappler-800/40 rounded-lg px-3 py-2 mb-3">
+              <Trophy className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <p className="text-xs text-grappler-300">Top lift: <span className="font-semibold text-grappler-100">{directive.todayPerformance.topExercise}</span> · {formatNumber(directive.todayPerformance.topExerciseVolume)} {weightUnit}</p>
+            </div>
+          )}
+          {directive.actions.length > 0 && (
+            <div className="space-y-1.5">
+              {directive.actions.map((a, i) => (
+                <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
+              ))}
+            </div>
+          )}
+          {mesocycleProgress && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
+              <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+            </div>
+          )}
+        </motion.div>
+
+      ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') && !nextWorkout ? (
         /* Pure rest / recovery — no pending lift */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-grappler-700 bg-gradient-to-br from-grappler-800 to-grappler-900 p-5">
           <div className="flex items-start justify-between mb-3">
@@ -1285,8 +1338,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </button>
         </motion.div>
 
-      ) : directive.todayType === 'combat' && nextWorkout ? (
-        /* Combat day with pending lift available */
+      ) : directive.todayType === 'combat' ? (
+        /* Combat day — with optional pending lift */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           <div className="rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-500 p-5">
             <div className="flex items-start justify-between mb-2">
@@ -1306,9 +1359,34 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <p className="text-[10px] text-white/40">Readiness</p>
               </div>
             </div>
-            {directive.actions.length > 0 && (
+            {directive.todayCombatSessions.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {directive.todayCombatSessions.map((s, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                    <Shield className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+                    <p className="text-xs text-white/80 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''} · {s.intensity}</p>
+                    <button
+                      onClick={() => {
+                        skipWorkout({
+                          date: new Date().toISOString().split('T')[0],
+                          scheduledSessionId: `combat-${i}`,
+                          reason: 'schedule_conflict' as SkipReason,
+                          rescheduled: false,
+                        });
+                        showToast(`Skipped ${s.type}`, 'info');
+                      }}
+                      className="text-white/40 hover:text-white/70 transition-colors"
+                      title="Skip this session"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {directive.actions.filter(a => !a.includes(directive.todayCombatSessions[0]?.type || '§')).length > 0 && (
               <div className="mt-2 space-y-1">
-                {directive.actions.map((a, i) => (
+                {directive.actions.filter(a => !a.includes(directive.todayCombatSessions[0]?.type || '§')).map((a, i) => (
                   <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-white/40 flex-shrink-0 mt-0.5" /><p className="text-xs text-white/70">{a}</p></div>
                 ))}
               </div>
@@ -1320,15 +1398,17 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             )}
           </div>
-          {/* Secondary lift CTA */}
-          <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
-            <Dumbbell className="w-5 h-5 text-primary-400" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-grappler-400">Also want to lift?</p>
-              <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name} · {nextWorkout.exercises.length} exercises</p>
-            </div>
-            <Play className="w-4 h-4 text-grappler-500" />
-          </button>
+          {/* Secondary lift CTA only if there's a pending lift */}
+          {nextWorkout && (
+            <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
+              <Dumbbell className="w-5 h-5 text-primary-400" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-grappler-400">Also want to lift?</p>
+                <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name} · {nextWorkout.exercises.length} exercises</p>
+              </div>
+              <Play className="w-4 h-4 text-grappler-500" />
+            </button>
+          )}
         </motion.div>
 
       ) : nextWorkout ? (
@@ -1389,19 +1469,36 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             </div>
           </button>
-          {/* Combat callout when both */}
+          {/* Combat callout when both — each session skippable individually */}
           {directive.todayType === 'both' && directive.todayCombatSessions.length > 0 && (
-            <div className="flex items-center gap-2 px-2">
-              <Shield className="w-3.5 h-3.5 text-purple-400" />
-              <p className="text-xs text-grappler-400">
-                Also today: {directive.todayCombatSessions.map(s => `${s.type} (${s.duration}min)`).join(', ')}
-              </p>
+            <div className="space-y-1.5 px-1">
+              {directive.todayCombatSessions.map((s, i) => (
+                <div key={i} className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                  <Shield className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                  <p className="text-xs text-grappler-300 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''} · {s.intensity}</p>
+                  <button
+                    onClick={() => {
+                      skipWorkout({
+                        date: new Date().toISOString().split('T')[0],
+                        scheduledSessionId: `combat-${i}`,
+                        reason: 'schedule_conflict' as SkipReason,
+                        rescheduled: false,
+                      });
+                      showToast(`Skipped ${s.type}`, 'info');
+                    }}
+                    className="text-grappler-500 hover:text-grappler-300 transition-colors"
+                    title="Skip this session"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           <div className="flex items-center justify-center gap-4">
             <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
             <span className="text-grappler-700">·</span>
-            <button onClick={() => setShowSkipDialog(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip</button>
+            <button onClick={() => setShowSkipDialog(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip Lift</button>
             <span className="text-grappler-700">·</span>
             <button onClick={() => setShowValidateConfirm(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"><CheckCircle className="w-3.5 h-3.5" />Validate Block</button>
           </div>
@@ -1789,6 +1886,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   { reason: 'schedule_conflict' as SkipReason, label: 'Schedule conflict', icon: Calendar, color: 'text-blue-400 bg-blue-500/10' },
                   { reason: 'fatigue' as SkipReason, label: 'Too tired / poor sleep', icon: Moon, color: 'text-purple-400 bg-purple-500/10' },
                   { reason: 'soreness' as SkipReason, label: 'Still sore', icon: Activity, color: 'text-blue-400 bg-blue-500/10' },
+                  { reason: 'injury' as SkipReason, label: 'Injured', icon: AlertTriangle, color: 'text-amber-400 bg-amber-500/10' },
                   { reason: 'illness' as SkipReason, label: 'Feeling sick', icon: Thermometer, color: 'text-rose-400 bg-rose-500/10' },
                   { reason: 'mental_health' as SkipReason, label: 'Mental health day', icon: Brain, color: 'text-emerald-400 bg-emerald-500/10' },
                   { reason: 'travel' as SkipReason, label: 'Traveling / no gym', icon: Target, color: 'text-cyan-400 bg-cyan-500/10' },
@@ -1805,6 +1903,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                       setShowSkipDialog(false);
                       if (reason === 'illness') {
                         onNavigate('illness');
+                      } else if (reason === 'injury') {
+                        onNavigate('injury');
                       }
                       showToast('Session skipped', 'info', {
                         label: 'Undo',

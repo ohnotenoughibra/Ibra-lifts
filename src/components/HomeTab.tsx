@@ -1831,42 +1831,44 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               {/* ReadinessCard integrated */}
               <ReadinessCard />
 
-              {/* Activity row — compact, inside the same card */}
-              <div className="grid grid-cols-3 gap-px bg-grappler-700/30">
+              {/* Activity row — inline horizontal with icon · value · label */}
+              <div className="flex items-center gap-1 px-3 py-2.5 border-t border-grappler-700/30">
                 {user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness' ? (
                   <button
                     onClick={() => onNavigate('grappling')}
-                    className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-grappler-800/60 transition-colors"
                   >
-                    <Shield className="w-3.5 h-3.5 text-lime-400" />
-                    <span className="text-base font-bold text-grappler-100">{todayTraining.length}</span>
-                    <span className="text-[10px] text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Mat' : 'Training'}</span>
+                    <Shield className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-sm font-bold text-grappler-100">{todayTraining.length}</span>
+                    <span className="text-xs text-grappler-500">{user?.trainingIdentity === 'combat' ? 'mat' : 'sessions'}</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
-                    className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-grappler-800/60 transition-colors"
                   >
                     <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-base font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
-                    <span className="text-[10px] text-grappler-500">Vol ({weightUnit})</span>
+                    <span className="text-sm font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
+                    <span className="text-xs text-grappler-500">{weightUnit}</span>
                   </button>
                 )}
+                <span className="text-grappler-700">·</span>
                 <button
                   onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
-                  className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-grappler-800/60 transition-colors"
                 >
                   <Dumbbell className="w-3.5 h-3.5 text-primary-400" />
-                  <span className="text-base font-bold text-grappler-100">{todayWorkouts.length}</span>
-                  <span className="text-[10px] text-grappler-500">Lifts</span>
+                  <span className="text-sm font-bold text-grappler-100">{todayWorkouts.length}</span>
+                  <span className="text-xs text-grappler-500">{todayWorkouts.length === 1 ? 'lift' : 'lifts'}</span>
                 </button>
+                <span className="text-grappler-700">·</span>
                 <button
                   onClick={() => onNavigate('nutrition')}
-                  className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-grappler-800/60 transition-colors"
                 >
                   <Apple className="w-3.5 h-3.5 text-red-400" />
-                  <span className="text-base font-bold text-grappler-100">{todayProtein}g</span>
-                  <span className="text-[10px] text-grappler-500">Protein{macroTargets.protein > 0 ? ` (${Math.round((todayProtein / macroTargets.protein) * 100)}%)` : ''}</span>
+                  <span className="text-sm font-bold text-grappler-100">{todayProtein}g</span>
+                  <span className="text-xs text-grappler-500">protein{macroTargets.protein > 0 ? ` ${Math.round((todayProtein / macroTargets.protein) * 100)}%` : ''}</span>
                 </button>
               </div>
             </div>

@@ -30,8 +30,13 @@ import {
   Check,
   ShieldAlert,
   Palette,
+  Info,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
 import type { ColorTheme } from '@/lib/types';
@@ -974,6 +979,9 @@ export default function ProfileSettings() {
         )}
       </div>
 
+      {/* About / Version */}
+      <VersionFooter />
+
       {/* Confirm Dialog */}
       <AnimatePresence>
         {confirmDialog && (
@@ -1070,6 +1078,67 @@ function StatRow({ icon: Icon, label, value }: { icon: any; label: string; value
         <span className="text-sm text-grappler-400">{label}</span>
       </div>
       <span className="font-medium text-grappler-200">{value}</span>
+    </div>
+  );
+}
+
+function VersionFooter() {
+  const [showChangelog, setShowChangelog] = useState(false);
+  const currentRelease = VERSION_HISTORY[0];
+
+  return (
+    <div className="space-y-2">
+      {/* Version row */}
+      <button
+        onClick={() => setShowChangelog(!showChangelog)}
+        className="w-full card p-4 flex items-center justify-between hover:bg-grappler-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Info className="w-5 h-5 text-grappler-400" />
+          <div className="text-left">
+            <span className="text-sm text-grappler-300">Roots Gains</span>
+            <span className="text-xs text-grappler-500 ml-2">v{APP_VERSION}</span>
+          </div>
+        </div>
+        {showChangelog ? (
+          <ChevronUp className="w-4 h-4 text-grappler-500" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-grappler-500" />
+        )}
+      </button>
+
+      {/* Expandable changelog */}
+      <AnimatePresence>
+        {showChangelog && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="card p-4 space-y-4">
+              {VERSION_HISTORY.map((ver) => (
+                <div key={ver.version} className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-400" />
+                    <span className="text-xs font-mono font-bold text-primary-400">v{ver.version}</span>
+                    <span className="text-xs text-grappler-500">{ver.releasedAt}</span>
+                  </div>
+                  <ul className="space-y-1 pl-5">
+                    {ver.highlights.map((h, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-grappler-400">
+                        <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0 mt-0.5" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -32,15 +32,10 @@ export default function VersionUpgradePopup() {
       setMigrationRan(true);
     }
 
-    // Only show popup for breaking changes or major version bumps.
-    // Non-breaking updates (patches, new features) migrate silently.
+    // Show popup for all upgrades so users see what's new
     if (isUpgrade() && !isFirstInstall() && !isUpgradeDismissed()) {
-      if (breaking) {
-        const timer = setTimeout(() => setShow(true), 500);
-        return () => clearTimeout(timer);
-      }
-      // Non-breaking: silently dismiss so user isn't interrupted
-      dismissUpgrade();
+      const timer = setTimeout(() => setShow(true), 500);
+      return () => clearTimeout(timer);
     }
   }, [breaking]);
 
@@ -81,7 +76,7 @@ export default function VersionUpgradePopup() {
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-grappler-50">New Version Available</h2>
+                    <h2 className="text-lg font-black text-grappler-50">What&apos;s New</h2>
                     <p className="text-sm text-grappler-400">
                       v{previousVersion} → v{APP_VERSION}
                     </p>
@@ -111,38 +106,40 @@ export default function VersionUpgradePopup() {
                 </div>
               )}
 
-              {/* Backup recommendation */}
-              <div className="flex items-start gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-                <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-blue-300">Back up your data</p>
-                  <p className="text-xs text-blue-400/80 mt-0.5">
-                    We recommend downloading a backup before using the new version, just in case.
-                  </p>
-                  <button
-                    onClick={handleBackup}
-                    disabled={backedUp}
-                    className={cn(
-                      'mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                      backedUp
-                        ? 'bg-green-500/20 text-green-300'
-                        : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                    )}
-                  >
-                    {backedUp ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        Backup downloaded
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-3.5 h-3.5" />
-                        Download Backup
-                      </>
-                    )}
-                  </button>
+              {/* Backup recommendation — only for breaking changes */}
+              {breaking && (
+                <div className="flex items-start gap-3 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+                  <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-300">Back up your data</p>
+                    <p className="text-xs text-blue-400/80 mt-0.5">
+                      We recommend downloading a backup before using the new version, just in case.
+                    </p>
+                    <button
+                      onClick={handleBackup}
+                      disabled={backedUp}
+                      className={cn(
+                        'mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                        backedUp
+                          ? 'bg-green-500/20 text-green-300'
+                          : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                      )}
+                    >
+                      {backedUp ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          Backup downloaded
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          Download Backup
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Migration status */}
               {migrationRan && (

@@ -31,12 +31,14 @@ import {
   Undo2,
   ChevronRight,
   MoreHorizontal,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MesocycleWeek, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import { exportProgramPdf } from '@/lib/pdf-export';
 import { fireConfetti } from '@/lib/confetti';
+import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 interface WorkoutViewProps {
   onOpenBuilder?: () => void;
@@ -87,6 +89,7 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
   const [templateName, setTemplateName] = useState('');
   const [showFullProgram, setShowFullProgram] = useState(false);
   const [showPeriodizationInfo, setShowPeriodizationInfo] = useState(true);
+  const [formCheckExercise, setFormCheckExercise] = useState<{ name: string; videoUrl?: string } | null>(null);
   const [undoToast, setUndoToast] = useState<{ oldExerciseId: string; oldExerciseName: string; newExerciseName: string; weekIndex: number; sessionId: string; exerciseIndex: number } | null>(null);
 
   // Check localStorage for dismissed periodization info
@@ -699,9 +702,15 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
             )}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {session.exercises.slice(0, 5).map((ex, i) => (
-                <span key={i} className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-300">
+                <button
+                  key={i}
+                  onClick={() => setFormCheckExercise({ name: ex.exercise.name, videoUrl: ex.exercise.videoUrl })}
+                  className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-300 hover:bg-primary-500/20 hover:text-primary-300 transition-colors flex items-center gap-1"
+                  title="Check form"
+                >
+                  <Video className="w-3 h-3 opacity-50" />
                   {ex.exercise.name}
-                </span>
+                </button>
               ))}
               {session.exercises.length > 5 && (
                 <span className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-500">
@@ -808,6 +817,15 @@ export default function WorkoutView({ onOpenBuilder }: WorkoutViewProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Form Check Video Modal (from hero card / preview) */}
+      {formCheckExercise && (
+        <YouTubeEmbed
+          exerciseName={formCheckExercise.name}
+          videoUrl={formCheckExercise.videoUrl}
+          onClose={() => setFormCheckExercise(null)}
+        />
+      )}
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>
@@ -1202,6 +1220,7 @@ interface ExerciseCardProps {
 
 function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment }: ExerciseCardProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [showFormVideo, setShowFormVideo] = useState(false);
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
 
@@ -1267,6 +1286,13 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                 </p>
               )}
             </div>
+            <button
+              onClick={() => setShowFormVideo(true)}
+              className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
+              title="Check form"
+            >
+              <Video className="w-3.5 h-3.5" />
+            </button>
             <button
               onClick={() => setShowAlternatives(!showAlternatives)}
               className={cn(
@@ -1370,6 +1396,15 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Form Check Video Modal */}
+      {showFormVideo && (
+        <YouTubeEmbed
+          exerciseName={ex.exercise.name}
+          videoUrl={ex.exercise.videoUrl}
+          onClose={() => setShowFormVideo(false)}
+        />
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, TrendingDown, TrendingUp, Battery, BatteryLow, BatteryCharging,
   AlertTriangle, CheckCircle, ChevronDown, Activity, Zap,
+  Heart, Brain, Moon, Flame, Timer, Shield,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
@@ -14,6 +15,8 @@ import {
 import type {
   FatigueDebt, DeloadProtocol, DeloadRecommendation, PostDeloadPrediction, FatigueInsight,
 } from '@/lib/smart-deload';
+import { calculateAllFatigueMetrics } from '@/lib/fatigue-metrics';
+import type { FatigueMetricsData } from '@/lib/fatigue-metrics';
 
 interface FatigueOverlayProps { onClose: () => void }
 
@@ -49,8 +52,30 @@ const TIMING_LABELS: Record<string, string> = {
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
+function getACWRColor(status: string): string {
+  if (status === 'optimal') return '#34d399';
+  if (status === 'high') return '#fbbf24';
+  if (status === 'very_high') return '#ef4444';
+  if (status === 'low') return '#60a5fa';
+  return '#94a3b8';
+}
+
+function getNSColor(score: number): string {
+  if (score < 30) return '#34d399';
+  if (score < 55) return '#fbbf24';
+  if (score < 75) return '#f97316';
+  return '#ef4444';
+}
+
+function getNSLabel(score: number): string {
+  if (score < 30) return 'Low';
+  if (score < 55) return 'Moderate';
+  if (score < 75) return 'High';
+  return 'Critical';
+}
+
 export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
-  const { workoutLogs, wearableHistory, trainingSessions, currentMesocycle } = useAppStore();
+  const { workoutLogs, wearableHistory, whoopWorkouts, trainingSessions, currentMesocycle } = useAppStore();
   const [protocolsExpanded, setProtocolsExpanded] = useState(false);
 
   const hasEnoughData = useMemo(() => {
@@ -86,6 +111,11 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
   );
 
   const allProtocols = useMemo<DeloadProtocol[]>(() => getDeloadProtocols(), []);
+
+  const metrics = useMemo<FatigueMetricsData>(
+    () => calculateAllFatigueMetrics(workoutLogs, wearableHistory, whoopWorkouts, trainingSessions),
+    [workoutLogs, wearableHistory, whoopWorkouts, trainingSessions],
+  );
 
   const debtColor = useMemo(() => getDebtColor(fatigueDebt.currentDebt), [fatigueDebt.currentDebt]);
   const colors = GAUGE_COLORS[debtColor];
@@ -181,6 +211,249 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 </div>
               </motion.div>
             )}
+
+            {/* ── Training Load Intelligence ── */}
+            <motion.div {...fadeUp} transition={{ delay: 0.12 }} className="bg-grappler-800 rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-orange-400" />
+                <h2 className="text-sm font-semibold text-grappler-200">Training Load</h2>
+              </div>
+
+              {/* ACWR */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
+                  <p className="text-[11px] text-grappler-500 mb-0.5">Acute (7d)</p>
+                  <p className="text-base font-bold text-grappler-100">
+                    {metrics.acwr.acute > 1000 ? `${(metrics.acwr.acute / 1000).toFixed(1)}k` : metrics.acwr.acute}
+                  </p>
+                  <p className="text-[10px] text-grappler-500">sRPE</p>
+                </div>
+                <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
+                  <p className="text-[11px] text-grappler-500 mb-0.5">Chronic (28d)</p>
+                  <p className="text-base font-bold text-grappler-100">
+                    {metrics.acwr.chronic > 1000 ? `${(metrics.acwr.chronic / 1000).toFixed(1)}k` : metrics.acwr.chronic}
+                  </p>
+                  <p className="text-[10px] text-grappler-500">sRPE/wk</p>
+                </div>
+                <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
+                  <p className="text-[11px] text-grappler-500 mb-0.5">A:C Ratio</p>
+                  <p className="text-base font-bold" style={{ color: getACWRColor(metrics.acwr.status) }}>
+                    {metrics.acwr.ratio.toFixed(2)}
+                  </p>
+                  <p className="text-[10px] capitalize" style={{ color: getACWRColor(metrics.acwr.status) }}>
+                    {metrics.acwr.status === 'no_data' ? '—' : metrics.acwr.status}
+                  </p>
+                </div>
+              </div>
+
+              {/* ACWR optimal zone bar */}
+              {metrics.acwr.status !== 'no_data' && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] text-grappler-500">
+                    <span>Low</span>
+                    <span className="text-emerald-400">Optimal 0.8-1.3</span>
+                    <span>High risk</span>
+                  </div>
+                  <div className="relative h-2 bg-grappler-700 rounded-full overflow-hidden">
+                    <div className="absolute h-full bg-emerald-500/20 rounded-full" style={{ left: '32%', width: '20%' }} />
+                    <div
+                      className="absolute top-0 h-full w-1.5 rounded-full"
+                      style={{
+                        backgroundColor: getACWRColor(metrics.acwr.status),
+                        left: `${Math.min(Math.max((metrics.acwr.ratio / 2.5) * 100, 1), 99)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 28-Day Intensity Heatmap */}
+              {metrics.heatmap.length > 0 && (
+                <div>
+                  <p className="text-xs text-grappler-400 mb-2">28-Day Intensity</p>
+                  <div className="grid grid-cols-7 gap-1">
+                    {metrics.heatmap.map((day) => {
+                      const bg = day.intensity === 0
+                        ? 'bg-grappler-700/40'
+                        : day.intensity < 30 ? 'bg-emerald-500/30'
+                        : day.intensity < 60 ? 'bg-yellow-500/40'
+                        : day.intensity < 85 ? 'bg-orange-500/50'
+                        : 'bg-red-500/60';
+                      return (
+                        <div key={day.date} className={`aspect-square rounded-sm ${bg}`} title={`${day.date}: ${day.intensity}% (${day.sessions} sessions)`} />
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-grappler-500">Rest</span>
+                    {['bg-grappler-700/40', 'bg-emerald-500/30', 'bg-yellow-500/40', 'bg-orange-500/50', 'bg-red-500/60'].map((c, i) => (
+                      <div key={i} className={`w-2.5 h-2.5 rounded-sm ${c}`} />
+                    ))}
+                    <span className="text-[10px] text-grappler-500">Max</span>
+                  </div>
+                </div>
+              )}
+
+              {/* High-Intensity Minutes + Zone Distribution + Mat Time */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-grappler-900/60 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[11px] text-grappler-400">High-Intensity</span>
+                  </div>
+                  <span className="text-xl font-bold text-grappler-100">{metrics.highIntensityMinutes}</span>
+                  <span className="text-xs text-grappler-500 ml-1">min</span>
+                  <p className="text-[10px] text-grappler-500 mt-0.5">Z4+Z5 this week</p>
+                </div>
+                <div className="bg-grappler-900/60 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Shield className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-[11px] text-grappler-400">Mat Time</span>
+                  </div>
+                  <span className="text-xl font-bold text-grappler-100">{metrics.matTimeMinutes}</span>
+                  <span className="text-xs text-grappler-500 ml-1">min</span>
+                  <p className="text-[10px] text-grappler-500 mt-0.5">{metrics.matSessionCount} session{metrics.matSessionCount !== 1 ? 's' : ''} this week</p>
+                </div>
+              </div>
+
+              {/* Zone Distribution Bar */}
+              {metrics.zones.some(z => z.minutes > 0) && (
+                <div>
+                  <p className="text-xs text-grappler-400 mb-1.5">Zone Distribution</p>
+                  <div className="flex h-3 rounded-full overflow-hidden">
+                    {metrics.zones.filter(z => z.pct > 0).map(z => (
+                      <div key={z.zone} style={{ width: `${z.pct}%`, backgroundColor: z.color }} title={`${z.label}: ${z.minutes}min (${z.pct}%)`} />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    {metrics.zones.filter(z => z.pct > 0).map(z => (
+                      <div key={z.zone} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: z.color }} />
+                        <span className="text-[10px] text-grappler-400">Z{z.zone} {z.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
+            {/* ── Nervous System Status ── */}
+            <motion.div {...fadeUp} transition={{ delay: 0.14 }} className="bg-grappler-800 rounded-xl p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-purple-400" />
+                <h2 className="text-sm font-semibold text-grappler-200">Nervous System Status</h2>
+              </div>
+
+              {/* RHR Trend */}
+              <div className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-xs text-grappler-300">Resting HR</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {metrics.nervousSystem.rhrTrend.current != null ? (
+                    <>
+                      <span className="text-sm font-semibold text-grappler-100">{metrics.nervousSystem.rhrTrend.current} bpm</span>
+                      <span className={`text-xs font-medium flex items-center gap-0.5 ${
+                        metrics.nervousSystem.rhrTrend.delta > 2 ? 'text-red-400' : metrics.nervousSystem.rhrTrend.delta < -1 ? 'text-green-400' : 'text-grappler-400'
+                      }`}>
+                        {metrics.nervousSystem.rhrTrend.delta > 0 ? (
+                          <><TrendingUp className="w-3 h-3" />+{metrics.nervousSystem.rhrTrend.delta}</>
+                        ) : metrics.nervousSystem.rhrTrend.delta < 0 ? (
+                          <><TrendingDown className="w-3 h-3" />{metrics.nervousSystem.rhrTrend.delta}</>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-grappler-500">No data</span>
+                  )}
+                </div>
+              </div>
+
+              {/* HRV Deviation */}
+              <div className="flex items-center justify-between py-1.5 border-t border-grappler-700/50">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="text-xs text-grappler-300">HRV Deviation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {metrics.nervousSystem.hrvDeviation.current != null ? (
+                    <>
+                      <span className="text-sm font-semibold text-grappler-100">{metrics.nervousSystem.hrvDeviation.current} ms</span>
+                      <span className={`text-xs font-medium ${
+                        metrics.nervousSystem.hrvDeviation.deviationPct < -10 ? 'text-red-400' : metrics.nervousSystem.hrvDeviation.deviationPct > 10 ? 'text-green-400' : 'text-grappler-400'
+                      }`}>
+                        {metrics.nervousSystem.hrvDeviation.deviationPct > 0 ? '+' : ''}{metrics.nervousSystem.hrvDeviation.deviationPct}%
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-grappler-500">No data</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sympathetic Load */}
+              <div className="py-1.5 border-t border-grappler-700/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-3.5 h-3.5 text-orange-400" />
+                    <span className="text-xs text-grappler-300">Sympathetic Load</span>
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: getNSColor(metrics.nervousSystem.sympatheticLoad) }}>
+                    {metrics.nervousSystem.sympatheticLoad}/100 · {getNSLabel(metrics.nervousSystem.sympatheticLoad)}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${metrics.nervousSystem.sympatheticLoad}%`,
+                    backgroundColor: getNSColor(metrics.nervousSystem.sympatheticLoad),
+                  }} />
+                </div>
+              </div>
+
+              {/* CNS Strain */}
+              <div className="py-1.5 border-t border-grappler-700/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                    <span className="text-xs text-grappler-300">CNS Strain</span>
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: getNSColor(metrics.nervousSystem.cnsStrain) }}>
+                    {metrics.nervousSystem.cnsStrain}/100 · {getNSLabel(metrics.nervousSystem.cnsStrain)}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${metrics.nervousSystem.cnsStrain}%`,
+                    backgroundColor: getNSColor(metrics.nervousSystem.cnsStrain),
+                  }} />
+                </div>
+              </div>
+
+              {/* Sleep Consistency */}
+              <div className="flex items-center justify-between py-1.5 border-t border-grappler-700/50">
+                <div className="flex items-center gap-2">
+                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="text-xs text-grappler-300">Sleep Consistency</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-grappler-100">
+                    {metrics.nervousSystem.sleepConsistency.score > 0 ? `${metrics.nervousSystem.sleepConsistency.score}/100` : '—'}
+                  </span>
+                  {metrics.nervousSystem.sleepConsistency.score > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full capitalize ${
+                      metrics.nervousSystem.sleepConsistency.status === 'consistent' ? 'bg-green-500/20 text-green-400'
+                      : metrics.nervousSystem.sleepConsistency.status === 'moderate' ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {metrics.nervousSystem.sleepConsistency.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
 
             {/* Primary Contributors */}
             {fatigueDebt.primaryContributors.length > 0 && (

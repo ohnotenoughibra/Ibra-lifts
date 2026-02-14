@@ -929,8 +929,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       fat: targets.fat - totals.fat,
     };
 
-    // Don't suggest if already over targets
-    if (remaining.calories <= 50) return [];
+    // Don't suggest if already hit targets (check all macros, not just calories)
+    const hasAnyGap = remaining.calories >= 30 || remaining.protein >= 5 || remaining.carbs >= 10 || remaining.fat >= 5;
+    if (!hasAnyGap) return [];
 
     // Build pattern lookup for today's day-of-week
     const patternBonus = new Map<string, number>();
@@ -1019,16 +1020,18 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       fat: Math.max(targets.fat - totals.fat, 0),
     };
 
-    if (remaining.calories < 100) return [];
+    // Need at least some macro gap (any macro, not just calories)
+    const hasGap = remaining.calories >= 50 || remaining.protein >= 5 || remaining.carbs >= 10 || remaining.fat >= 5;
+    if (!hasGap) return [];
 
     // Build a pool: history (priority) + FOOD_DB
     type PoolItem = { name: string; calories: number; protein: number; carbs: number; fat: number; priority: number };
     const pool: PoolItem[] = [
       ...Array.from(mealHistoryIndex.values())
-        .filter(f => f.calories > 50 && f.calories < remaining.calories)
+        .filter(f => f.calories > 0 && f.calories <= remaining.calories + 80)
         .map(f => ({ name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, priority: 10 + Math.min(f.count * 2, 20) })),
       ...FOOD_DB
-        .filter(f => f.calories > 50 && f.calories < remaining.calories)
+        .filter(f => f.calories > 0 && f.calories <= remaining.calories + 80)
         .map(f => ({ name: f.name, calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat, priority: 0 })),
     ];
 
@@ -1036,7 +1039,93 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     const filledTypes = new Set(todayMeals.map(m => m.mealType));
     const remainingSlots: MealType[] = (['breakfast', 'lunch', 'snack', 'dinner'] as MealType[])
       .filter(t => !filledTypes.has(t));
-    if (remainingSlots.length === 0) return [];
+
+    // ─── All slots filled: "closing snack" mode ───
+    // Suggest 1-3 snacks that best fill the remaining macro gap
+    if (remainingSlots.length === 0) {
+      const plan: PlannedMeal[] = [];
+      const usedNames = new Set<string>();
+      let budgetLeft = { ...remaining };
+
+      // Score each food by how well it fills the specific macro gap
+      const scoreFoodForGap = (f: PoolItem, budget: typeof remaining) => {
+        let score = f.priority;
+
+        // Reward foods that match the macro gap profile
+        // If we need 40g fat, 10g protein, 50g carbs — a fat-heavy food scores high
+        const totalNeed = Math.max(1, budget.protein + budget.carbs + budget.fat);
+        const proteinNeed = budget.protein / totalNeed;
+        const carbsNeed = budget.carbs / totalNeed;
+        const fatNeed = budget.fat / totalNeed;
+
+        const totalMacros = Math.max(1, f.protein + f.carbs + f.fat);
+        const proteinRatio = f.protein / totalMacros;
+        const carbsRatio = f.carbs / totalMacros;
+        const fatRatio = f.fat / totalMacros;
+
+        // Reward similarity between food macro profile and remaining gap profile
+        const profileMatch = 1 - (
+          Math.abs(proteinRatio - proteinNeed) +
+          Math.abs(carbsRatio - carbsNeed) +
+          Math.abs(fatRatio - fatNeed)
+        ) / 2; // normalize to 0-1
+        score += profileMatch * 150;
+
+        // Reward not overshooting any individual macro
+        if (f.protein <= budget.protein + 5) score += 30;
+        else score -= (f.protein - budget.protein) * 3;
+
+        if (f.carbs <= budget.carbs + 10) score += 20;
+        else score -= (f.carbs - budget.carbs) * 2;
+
+        if (f.fat <= budget.fat + 5) score += 20;
+        else score -= (f.fat - budget.fat) * 3;
+
+        // Reward calorie fit (don't overshoot)
+        if (f.calories <= budget.calories + 30) score += 40;
+        else score -= (f.calories - budget.calories) * 0.5;
+
+        // Penalize tiny items when gap is large
+        if (budget.calories > 200 && f.calories < 80) score -= 30;
+
+        return score;
+      };
+
+      // Pick up to 3 snacks
+      const maxSnacks = budgetLeft.calories > 400 ? 3 : budgetLeft.calories > 150 ? 2 : 1;
+
+      for (let i = 0; i < maxSnacks; i++) {
+        const candidates = pool
+          .filter(f => !usedNames.has(f.name) && f.calories <= budgetLeft.calories + 80)
+          .map(f => ({ food: f, score: scoreFoodForGap(f, budgetLeft) }))
+          .sort((a, b) => b.score - a.score);
+
+        if (candidates.length === 0) break;
+
+        const pick = candidates[0].food;
+        plan.push({
+          mealType: 'snack',
+          name: pick.name,
+          calories: pick.calories,
+          protein: pick.protein,
+          carbs: pick.carbs,
+          fat: pick.fat,
+        });
+        usedNames.add(pick.name);
+        budgetLeft.calories = Math.max(0, budgetLeft.calories - pick.calories);
+        budgetLeft.protein = Math.max(0, budgetLeft.protein - pick.protein);
+        budgetLeft.carbs = Math.max(0, budgetLeft.carbs - pick.carbs);
+        budgetLeft.fat = Math.max(0, budgetLeft.fat - pick.fat);
+
+        // Stop if we've essentially closed the gap
+        if (budgetLeft.calories < 30 && budgetLeft.protein < 3) break;
+      }
+
+      return plan;
+    }
+
+    // ─── Normal mode: fill remaining meal slots ───
+    if (remaining.calories < 100) return [];
 
     // Distribute remaining cals across slots
     const calPerSlot = remaining.calories / remainingSlots.length;
@@ -1652,7 +1741,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           const remPro = contextualNutrition.adjustedTargets.protein - totals.protein;
           const remCarbs = contextualNutrition.adjustedTargets.carbs - totals.carbs;
           const remFat = contextualNutrition.adjustedTargets.fat - totals.fat;
-          if (remCal <= 100) return null;
+          // Show when there's any meaningful macro gap (not just calories)
+          const hasGap = remCal >= 50 || remPro >= 5 || remCarbs >= 10 || remFat >= 5;
+          if (!hasGap) return null;
           return (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -1716,7 +1807,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     {dailyMealPlan.length > 0 ? (
                       <div className="p-4 space-y-2">
                         <p className="text-xs text-grappler-500">
-                          Eat these to close the gap — {Math.round(remPro)}g protein &amp; {Math.round(remCal)} kcal to go:
+                          {dailyMealPlan.every(m => m.mealType === 'snack') && dailyMealPlan.length <= 2
+                            ? `Have ${dailyMealPlan.length === 1 ? 'this snack' : 'these snacks'} to close the gap:`
+                            : `Eat these to hit your remaining ${Math.round(remPro)}g protein & ${Math.round(remCal)} kcal:`}
                         </p>
                         {dailyMealPlan.map((meal) => (
                           <div
@@ -1760,9 +1853,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-xs text-grappler-500 p-4">
-                        Not enough macro gap left to suggest a full plan.
-                      </p>
+                      <div className="p-4 text-xs text-grappler-500">
+                        <p>No great matches found for your remaining macros.</p>
+                        <p className="mt-1 text-grappler-400">
+                          Remaining: {Math.round(Math.max(0, remPro))}g P · {Math.round(Math.max(0, remCarbs))}g C · {Math.round(Math.max(0, remFat))}g F
+                        </p>
+                      </div>
                     )}
                   </motion.div>
                 )}

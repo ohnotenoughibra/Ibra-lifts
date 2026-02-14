@@ -39,6 +39,7 @@ import {
 import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getExerciseById } from '@/lib/exercises';
+import { calculateVO2MaxEstimate } from '@/lib/fatigue-metrics';
 
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency' | 'recovery';
 
@@ -185,6 +186,14 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
         sleep: w.sleepHours != null ? Math.round(w.sleepHours * 10) / 10 : undefined,
       }));
   }, [wearableHistory]); // Note: kept always computed since insights depend on it
+
+  // VO2 max estimation trend
+  const vo2maxData = useMemo(() => {
+    if (!wearableHistory || wearableHistory.length === 0) return null;
+    const estimate = calculateVO2MaxEstimate(wearableHistory);
+    if (!estimate.value || estimate.trend.length === 0) return null;
+    return estimate;
+  }, [wearableHistory]);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -944,6 +953,63 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+
+                {/* VO2 Max Trend */}
+                {vo2maxData && vo2maxData.trend.length >= 2 && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-grappler-400">Est. VO2 Max Trend</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-grappler-100">{vo2maxData.value} ml/kg/min</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          vo2maxData.classification === 'Elite' || vo2maxData.classification === 'Excellent'
+                            ? 'bg-green-500/20 text-green-400'
+                            : vo2maxData.classification === 'Good'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : vo2maxData.classification === 'Average'
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {vo2maxData.classification}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-44">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={vo2maxData.trend}>
+                          <defs>
+                            <linearGradient id="vo2gradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                          <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
+                          <YAxis stroke="#14b8a6" fontSize={11} domain={['dataMin - 2', 'dataMax + 2']} />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1e293b',
+                              border: '1px solid #334155',
+                              borderRadius: '8px',
+                            }}
+                            formatter={(value: number) => [`${value} ml/kg/min`, 'VO2 Max']}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="vo2max"
+                            name="VO2 Max"
+                            stroke="#14b8a6"
+                            strokeWidth={2}
+                            fill="url(#vo2gradient)"
+                            dot={{ fill: '#14b8a6', r: 3 }}
+                            connectNulls
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="text-[10px] text-grappler-600 mt-1">Estimated from resting HR via Uth-Sorensen formula. Track over weeks for meaningful trends.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">

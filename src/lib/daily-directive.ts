@@ -20,6 +20,7 @@ import type {
   WorkoutSession,
   ReadinessLevel,
   CompetitionEvent,
+  CombatTrainingDay,
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
@@ -62,6 +63,22 @@ export interface DailyDirective {
   todayType: TodayType;
   /** Today's combat/training sessions */
   todayCombatSessions: TodayCombatSession[];
+  /** Is today a scheduled lifting day per user.trainingDays */
+  isScheduledLiftDay: boolean;
+  /** Scheduled combat sessions for today (from the weekly plan, not logged) */
+  scheduledCombatToday: CombatTrainingDay[];
+  /** Today's completed workout performance (when user already trained) */
+  todayPerformance: TodayPerformance | null;
+}
+
+export interface TodayPerformance {
+  totalVolume: number;
+  totalSets: number;
+  exerciseCount: number;
+  avgRPE: number;
+  duration: number; // minutes
+  topExercise: string | null;
+  topExerciseVolume: number;
 }
 
 interface DirectiveInput {
@@ -126,9 +143,9 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
   // ─── Today's workouts already done ───
   const todayWorkouts = workoutLogs.filter(l => new Date(l.date).toDateString() === todayStr);
-  const alreadyTrainedToday = todayWorkouts.length > 0;
+  const alreadyLiftedToday = todayWorkouts.length > 0;
 
-  // ─── Today's combat/training sessions ───
+  // ─── Today's logged combat/training sessions ───
   const todayCombat = trainingSessions.filter(s =>
     new Date(s.date).toDateString() === todayStr
   );
@@ -138,15 +155,64 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     duration: s.duration,
     intensity: s.actualIntensity || s.plannedIntensity,
   }));
-  const hasCombatToday = todayCombatSessions.length > 0;
+  const hasLoggedCombatToday = todayCombatSessions.length > 0;
+
+  // ─── Day-of-week schedule awareness ───
+  const todayDow = new Date().getDay(); // 0=Sun..6=Sat
+  const userTrainingDays = user?.trainingDays || [];
+  const userCombatDays = user?.combatTrainingDays || [];
+  const isScheduledLiftDay = userTrainingDays.length > 0
+    ? userTrainingDays.includes(todayDow)
+    : true; // if no schedule set, assume any day is fine
+  const scheduledCombatToday = userCombatDays.filter(d => d.day === todayDow);
+  const hasScheduledCombat = scheduledCombatToday.length > 0;
+  // Combine: either logged combat exists OR it's a scheduled combat day
+  const hasCombatToday = hasLoggedCombatToday || hasScheduledCombat;
+  // Build combat session display from schedule if nothing logged yet
+  if (!hasLoggedCombatToday && hasScheduledCombat) {
+    scheduledCombatToday.forEach(d => {
+      todayCombatSessions.push({
+        type: d.label || formatActivityType(d.intensity + ' session'),
+        category: 'combat',
+        duration: 0, // unknown until logged
+        intensity: d.intensity,
+      });
+    });
+  }
+
+  // ─── Today's performance (post-session metrics) ───
+  let todayPerformance: TodayPerformance | null = null;
+  if (alreadyLiftedToday && todayWorkouts.length > 0) {
+    const totalVolume = todayWorkouts.reduce((s, l) => s + (l.totalVolume || 0), 0);
+    const totalSets = todayWorkouts.reduce((s, l) => s + (l.exercises?.reduce((es, e) => es + (e.sets?.length || 0), 0) || 0), 0);
+    const exerciseCount = todayWorkouts.reduce((s, l) => s + (l.exercises?.length || 0), 0);
+    const rpeValues = todayWorkouts.filter(l => l.overallRPE).map(l => l.overallRPE);
+    const avgRPE = rpeValues.length > 0 ? +(rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length).toFixed(1) : 0;
+    const duration = todayWorkouts.reduce((s, l) => s + (l.duration || 0), 0);
+
+    // Find top exercise by volume
+    let topExercise: string | null = null;
+    let topExerciseVolume = 0;
+    todayWorkouts.forEach(l => {
+      (l.exercises || []).forEach(e => {
+        const vol = (e.sets || []).reduce((sv, set) => sv + (set.weight || 0) * (set.reps || 0), 0);
+        if (vol > topExerciseVolume) {
+          topExerciseVolume = vol;
+          topExercise = e.exerciseName || null;
+        }
+      });
+    });
+
+    todayPerformance = { totalVolume, totalSets, exerciseCount, avgRPE, duration, topExercise, topExerciseVolume };
+  }
 
   // ─── Determine today type ───
   const isCritical = readiness.overall < 30;
-  const isLow = readiness.overall < 45;
-  const shouldTrain = !isCritical && !alreadyTrainedToday && nextSession !== null;
+  // shouldTrain: must be a scheduled lift day, not already lifted, have a pending session, and not critical
+  const shouldTrain = !isCritical && !alreadyLiftedToday && nextSession !== null && isScheduledLiftDay;
 
   let todayType: TodayType;
-  if (alreadyTrainedToday && !hasCombatToday) {
+  if (alreadyLiftedToday && !hasCombatToday) {
     todayType = 'recovery';
   } else if (isCritical) {
     todayType = 'rest';
@@ -156,6 +222,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     todayType = 'lift';
   } else if (hasCombatToday) {
     todayType = 'combat';
+  } else if (!isScheduledLiftDay && !hasCombatToday) {
+    todayType = 'rest';
   } else {
     todayType = 'rest';
   }
@@ -170,7 +238,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   let headline: string;
   switch (todayType) {
     case 'recovery':
-      headline = 'Recovery Mode';
+      headline = alreadyLiftedToday ? 'Session Complete' : 'Recovery Mode';
       break;
     case 'rest':
       headline = 'Rest & Recover';
@@ -213,6 +281,12 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     if (nextSession) {
       actions.push(`Next lift: ${nextSession.name}`);
     }
+  } else if (todayType === 'recovery' && todayPerformance) {
+    actions.push(`${todayPerformance.exerciseCount} exercises · ${todayPerformance.totalSets} sets${todayPerformance.avgRPE > 0 ? ` · RPE ${todayPerformance.avgRPE}` : ''}`);
+    if (todayPerformance.topExercise) {
+      actions.push(`Top lift: ${todayPerformance.topExercise}`);
+    }
+    actions.push('Focus on recovery — stretch, hydrate, eat well');
   } else if (todayType === 'recovery') {
     actions.push('Focus on recovery — stretch, hydrate, eat well');
   } else if (todayType === 'rest') {
@@ -284,6 +358,9 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     fightCampTag,
     todayType,
     todayCombatSessions,
+    isScheduledLiftDay,
+    scheduledCombatToday,
+    todayPerformance,
   };
 }
 

@@ -1189,7 +1189,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   // ─── Momentum data ───
   const currentStreak = gamificationStats.currentStreak || 0;
   const weekTarget = (user?.trainingDays?.length || 3) + ((user?.combatTrainingDays || []).length);
-  const weekDone = periodSummaries.thisWeek.trainingDays;
+  const weekDone = periodSummaries.thisWeek.workouts + periodSummaries.thisWeek.sessions;
   const weekRemaining = Math.max(0, weekTarget - weekDone);
   const nextBadgeDistance = useMemo(() => {
     // Simple heuristic: how many more sessions to potential badge

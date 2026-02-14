@@ -27,6 +27,7 @@ import {
   Area
 } from 'recharts';
 import { useAppStore } from '@/lib/store';
+import { calculateEnhancedACWR } from '@/lib/fatigue-metrics';
 
 interface RecoveryDashboardProps {
   onClose: () => void;
@@ -65,7 +66,7 @@ function formatSessionDate(date: Date | string): string {
 }
 
 export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
-  const { workoutLogs, bodyWeightLog } = useAppStore();
+  const { workoutLogs, bodyWeightLog, trainingSessions } = useAppStore();
   const [selectedTab, setSelectedTab] = useState<'overview' | 'trends'>('overview');
 
   // Sort logs by date descending
@@ -103,34 +104,18 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
       }));
   }, [logsWithCheckIn]);
 
-  // Training load calculations
+  // Training load calculations (sRPE-weighted ACWR)
   const trainingLoad = useMemo(() => {
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const twentyEightDaysAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
-
-    const last7DaysLogs = sortedLogs.filter(
-      log => new Date(log.date).getTime() >= sevenDaysAgo.getTime()
-    );
-    const last28DaysLogs = sortedLogs.filter(
-      log => new Date(log.date).getTime() >= twentyEightDaysAgo.getTime()
-    );
-
-    const acuteLoad = last7DaysLogs.reduce((sum, log) => sum + (log.totalVolume || 0), 0);
-    const chronicTotalVolume = last28DaysLogs.reduce((sum, log) => sum + (log.totalVolume || 0), 0);
-    const chronicLoad = chronicTotalVolume / 4; // average weekly volume over 4 weeks
-
-    const ratio = chronicLoad > 0 ? acuteLoad / chronicLoad : 0;
-
+    const acwr = calculateEnhancedACWR(workoutLogs, trainingSessions);
     return {
-      acute: acuteLoad,
-      chronic: chronicLoad,
-      ratio: Math.round(ratio * 100) / 100,
-      isOptimal: ratio >= 0.8 && ratio <= 1.3,
-      isTooHigh: ratio > 1.3,
-      isTooLow: ratio < 0.8 && ratio > 0,
+      acute: acwr.acute,
+      chronic: acwr.chronic,
+      ratio: acwr.ratio,
+      isOptimal: acwr.status === 'optimal',
+      isTooHigh: acwr.status === 'high' || acwr.status === 'very_high',
+      isTooLow: acwr.status === 'low',
     };
-  }, [sortedLogs]);
+  }, [workoutLogs, trainingSessions]);
 
   // Compute composite recovery score (0-100)
   const recoveryScore = useMemo(() => {

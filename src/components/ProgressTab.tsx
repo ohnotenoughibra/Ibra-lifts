@@ -616,7 +616,33 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
 
 // ─── Performance Score (0-100) ───
 
+const PERF_FACTOR_EXPLAINERS: Record<string, { what: string; action: string }> = {
+  Consistency: {
+    what: 'Sessions per week vs target (4 ideal). Regularity matters more than intensity.',
+    action: 'Show up 4× per week minimum. A mediocre session beats a skipped one.',
+  },
+  Strength: {
+    what: 'Estimated 1RM trends across your lifts over the past 4 weeks.',
+    action: 'Focus on progressive overload — add weight or reps each session.',
+  },
+  Volume: {
+    what: 'Total training volume trend (sets × reps × weight). Volume drives hypertrophy.',
+    action: 'Aim to increase total volume 5-10% per week during accumulation phases.',
+  },
+  Recovery: {
+    what: 'Average RPE sweet spot. 7-8.5 means you\'re training hard enough without burning out.',
+    action: 'Log RPE honestly after each session. Consistently >9 = back off.',
+  },
+  Engagement: {
+    what: 'Streaks, badges earned, and challenges completed. Staying engaged = long-term gains.',
+    action: 'Keep your streak alive and tackle the next challenge.',
+  },
+};
+
 function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: WorkoutLog[]; gamificationStats: GamificationStats }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
+
   const score = useMemo(() => {
     if (workoutLogs.length < 3) return null;
 
@@ -712,16 +738,29 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
 
   const getGrade = (s: number) => s >= 90 ? 'A+' : s >= 80 ? 'A' : s >= 70 ? 'B+' : s >= 60 ? 'B' : s >= 50 ? 'C' : s >= 40 ? 'D' : 'F';
   const getColor = (s: number) => s >= 80 ? 'text-green-400' : s >= 60 ? 'text-primary-400' : s >= 40 ? 'text-yellow-400' : 'text-red-400';
+  const getBarColor = (s: number) => s >= 80 ? 'bg-green-500' : s >= 60 ? 'bg-primary-500' : s >= 40 ? 'bg-yellow-500' : 'bg-red-500';
   const getRingColor = (s: number) => s >= 80 ? '#22c55e' : s >= 60 ? '#0ea5e9' : s >= 40 ? '#eab308' : '#ef4444';
 
   const circumference = 2 * Math.PI * 42;
   const strokeDash = (animatedValue / 100) * circumference;
 
+  const factors = [
+    { label: 'Consistency', value: score.consistency, weight: '30%' },
+    { label: 'Strength', value: score.strength, weight: '25%' },
+    { label: 'Volume', value: score.volume, weight: '20%' },
+    { label: 'Recovery', value: score.recovery, weight: '15%' },
+    { label: 'Engagement', value: score.engagement, weight: '10%' },
+  ];
+
   return (
-    <div className="card p-4">
-      <div className="flex items-center gap-4">
-        {/* Score Ring — animates from 0 to actual value */}
-        <div className="relative w-24 h-24 flex-shrink-0">
+    <div className="card overflow-hidden">
+      {/* Header — tappable to toggle breakdown */}
+      <button
+        onClick={() => { setDetailsOpen(v => !v); if (detailsOpen) setExpandedFactor(null); }}
+        className="w-full p-4 flex items-center gap-4 group"
+      >
+        {/* Score Ring */}
+        <div className="relative w-16 h-16 flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" strokeWidth="8" />
             <circle cx="50" cy="50" r="42" fill="none" stroke={getRingColor(score.total)}
@@ -731,38 +770,101 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <motion.span
-              className={cn('text-2xl font-black', getColor(score.total))}
+              className={cn('text-lg font-black', getColor(score.total))}
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
             >
               {score.total}
             </motion.span>
-            <span className="text-[10px] text-grappler-500 font-medium">{getGrade(score.total)}</span>
+            <span className="text-[9px] text-grappler-500 font-medium">{getGrade(score.total)}</span>
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="flex-1 space-y-1.5">
-          <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-2">Performance Score</h3>
-          {[
-            { label: 'Consistency', value: score.consistency, weight: '30%' },
-            { label: 'Strength', value: score.strength, weight: '25%' },
-            { label: 'Volume', value: score.volume, weight: '20%' },
-            { label: 'Recovery', value: score.recovery, weight: '15%' },
-            { label: 'Engagement', value: score.engagement, weight: '10%' },
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span className="text-[10px] text-grappler-500 w-16">{item.label}</span>
-              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${item.value}%`, backgroundColor: getRingColor(item.value) }} />
-              </div>
-              <span className="text-[10px] text-grappler-400 w-7 text-right">{item.value}</span>
-            </div>
-          ))}
+        {/* Title + summary */}
+        <div className="flex-1 text-left">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-grappler-100">Performance Score</span>
+            <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full bg-grappler-700/60', getColor(score.total))}>
+              {getGrade(score.total)}
+            </span>
+          </div>
+          <p className="text-[10px] text-grappler-500 mt-0.5">
+            {score.total >= 80 ? 'Crushing it — keep the momentum' :
+             score.total >= 60 ? 'Solid progress — room to improve' :
+             score.total >= 40 ? 'Getting there — stay consistent' :
+             'Time to refocus — check the breakdown'}
+          </p>
         </div>
-      </div>
+
+        <span className="text-xs text-grappler-600 group-hover:text-grappler-400 transition-colors">
+          {detailsOpen ? '▴' : '▾'}
+        </span>
+      </button>
+
+      {/* Collapsible factor breakdown */}
+      <AnimatePresence>
+        {detailsOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-1 px-4 pb-3">
+              {factors.map(item => {
+                const explainer = PERF_FACTOR_EXPLAINERS[item.label];
+                const isExpanded = expandedFactor === item.label;
+
+                return (
+                  <div key={item.label}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setExpandedFactor(isExpanded ? null : item.label); }}
+                      className="w-full group/factor"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] w-[72px] text-left truncate text-grappler-400 group-hover/factor:text-grappler-200 transition-colors">
+                          {item.label}
+                        </span>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(3, item.value)}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className={cn('h-full rounded-full', getBarColor(item.value))}
+                          />
+                        </div>
+                        <span className={cn('text-[11px] font-mono w-6 text-right', getColor(item.value))}>
+                          {item.value}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Per-factor explainer */}
+                    <AnimatePresence>
+                      {isExpanded && explainer && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="ml-[72px] pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
+                            <p className="text-[10px] text-grappler-500">{explainer.what}</p>
+                            <p className="text-[10px] text-primary-400">{explainer.action}</p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

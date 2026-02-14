@@ -1443,12 +1443,15 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       ) : directive.todayType === 'combat' ? (
         /* Combat day — with optional pending lift */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          <div className="rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-500 p-5">
+          {(() => {
+            const allCombatLogged = directive.todayCombatSessions.length > 0 && directive.todayCombatSessions.every(s => s.logged);
+            return (
+          <div className={`rounded-2xl p-5 ${allCombatLogged ? 'bg-gradient-to-r from-green-600/80 to-emerald-500/80 border border-green-500/30' : 'bg-gradient-to-r from-purple-600 to-indigo-500'}`}>
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-4 h-4 text-white/80" />
-                  <span className="text-xs text-white/60 font-bold uppercase tracking-wide">Mat Day</span>
+                  {allCombatLogged ? <Check className="w-4 h-4 text-white/80" /> : <Shield className="w-4 h-4 text-white/80" />}
+                  <span className="text-xs text-white/60 font-bold uppercase tracking-wide">{allCombatLogged ? 'Session Complete' : 'Mat Day'}</span>
                   {directive.fightCampTag && (
                     <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-white/80">{directive.fightCampTag}</span>
                   )}
@@ -1457,7 +1460,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
               </div>
               <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
-                <p className="text-2xl font-black text-white/90 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
+                <p className={`text-2xl font-black group-hover:opacity-80 transition-opacity ${allCombatLogged ? 'text-white' : 'text-white/90'}`}>{directive.readinessScore}</p>
                 <p className="text-[10px] text-white/40">Readiness ▾</p>
               </button>
             </div>
@@ -1465,8 +1468,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <div className="mt-2 space-y-1.5">
                 {directive.todayCombatSessions.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-                    <Shield className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />
+                    {s.logged ? <Check className="w-3.5 h-3.5 text-green-300 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />}
                     <p className="text-xs text-white/80 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''} · {s.intensity}</p>
+                    {!s.logged && (
                     <button
                       onClick={() => {
                         skipWorkout({
@@ -1482,6 +1486,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1500,6 +1505,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
             )}
           </div>
+            );
+          })()}
           {/* Secondary lift CTA only if there's a pending lift */}
           {nextWorkout && (
             <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
@@ -1583,8 +1590,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <div className="space-y-1.5 px-1">
               {directive.todayCombatSessions.map((s, i) => (
                 <div key={i} className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                  <Shield className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                  {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
                   <p className="text-xs text-grappler-300 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''} · {s.intensity}</p>
+                  {!s.logged && (
                   <button
                     onClick={() => {
                       skipWorkout({
@@ -1600,6 +1608,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
+                  )}
                 </div>
               ))}
             </div>

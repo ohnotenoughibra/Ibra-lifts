@@ -321,7 +321,7 @@ function estimateLocally(input: string): { name: string; calories: number; prote
   if (matched.length === 0) return null;
 
   // Sum macros from all matched items
-  const totals = matched.reduce(
+  const raw = matched.reduce(
     (acc, f) => ({
       calories: acc.calories + f.calories,
       protein: acc.protein + f.protein,
@@ -332,7 +332,7 @@ function estimateLocally(input: string): { name: string; calories: number; prote
   );
 
   const name = matched.map(f => f.name).join(' + ');
-  return { name, ...totals };
+  return { name, calories: Math.round(raw.calories), protein: +raw.protein.toFixed(1), carbs: +raw.carbs.toFixed(1), fat: +raw.fat.toFixed(1) };
 }
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
@@ -886,7 +886,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   );
 
   const totals = useMemo(() => {
-    return todayMeals.reduce(
+    const raw = todayMeals.reduce(
       (acc, m) => ({
         calories: acc.calories + m.calories,
         protein: acc.protein + m.protein,
@@ -895,6 +895,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
+    return {
+      calories: Math.round(raw.calories),
+      protein: +raw.protein.toFixed(1),
+      carbs: +raw.carbs.toFixed(1),
+      fat: +raw.fat.toFixed(1),
+    };
   }, [todayMeals]);
 
   const mealsByType = useMemo(() => {
@@ -1724,7 +1730,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     <p className="text-[10px] text-amber-400/80 mt-0.5">{food.dayPattern}</p>
                   )}
                   <p className="text-xs text-grappler-400 mt-1">
-                    {food.calories} kcal &middot; {food.protein}g P
+                    {Math.round(food.calories)} kcal &middot; {+food.protein.toFixed(1)}g P
                   </p>
                 </button>
               ))}
@@ -1825,7 +1831,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium text-grappler-100 truncate">{meal.name}</p>
                               <p className="text-xs text-grappler-500">
-                                {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
+                                {Math.round(meal.calories)} kcal · {+meal.protein.toFixed(1)}g P · {+meal.carbs.toFixed(1)}g C · {+meal.fat.toFixed(1)}g F
                               </p>
                             </div>
                             <button
@@ -2122,7 +2128,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                             className="flex-shrink-0 px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-colors text-left"
                           >
                             <p className="text-xs font-medium text-grappler-100 truncate max-w-[120px]">{food.name}</p>
-                            <p className="text-xs text-grappler-500">{food.calories} kcal · {food.protein}g P</p>
+                            <p className="text-xs text-grappler-500">{Math.round(food.calories)} kcal · {+food.protein.toFixed(1)}g P</p>
                           </button>
                         ))}
                       </div>
@@ -2202,7 +2208,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                   )}
                                 </div>
                                 <p className="text-xs text-grappler-500">
-                                  {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
+                                  {Math.round(item.calories)} kcal · {+item.protein.toFixed(1)}g P · {+item.carbs.toFixed(1)}g C · {+item.fat.toFixed(1)}g F
                                   {item.source === 'history' && item.count > 1 && !item.dayPattern && (
                                     <span className="text-sky-400/70 ml-1">· logged {item.count}x</span>
                                   )}
@@ -2231,10 +2237,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           <p className="text-sm font-semibold text-grappler-100">{instantLogItem.name}</p>
                           <p className="text-xs text-grappler-500 mt-0.5">{instantLogItem.source}</p>
                           <div className="flex gap-3 mt-1.5">
-                            <span className="text-xs font-medium text-blue-400">{instantLogItem.calories} kcal</span>
-                            <span className="text-xs font-medium text-red-400">{instantLogItem.protein}g P</span>
-                            <span className="text-xs font-medium text-sky-400">{instantLogItem.carbs}g C</span>
-                            <span className="text-xs font-medium text-yellow-400">{instantLogItem.fat}g F</span>
+                            <span className="text-xs font-medium text-blue-400">{Math.round(instantLogItem.calories)} kcal</span>
+                            <span className="text-xs font-medium text-red-400">{+instantLogItem.protein.toFixed(1)}g P</span>
+                            <span className="text-xs font-medium text-sky-400">{+instantLogItem.carbs.toFixed(1)}g C</span>
+                            <span className="text-xs font-medium text-yellow-400">{+instantLogItem.fat.toFixed(1)}g F</span>
                           </div>
                         </div>
                         <div className="flex gap-1.5 flex-shrink-0">
@@ -2548,16 +2554,16 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 </p>
                                 <div className="flex gap-3 mt-0.5 text-xs">
                                   <span className="text-blue-400">
-                                    {meal.calories} kcal
+                                    {Math.round(meal.calories)} kcal
                                   </span>
                                   <span className="text-red-400">
-                                    {meal.protein}g P
+                                    {+meal.protein.toFixed(1)}g P
                                   </span>
                                   <span className="text-blue-400">
-                                    {meal.carbs}g C
+                                    {+meal.carbs.toFixed(1)}g C
                                   </span>
                                   <span className="text-yellow-400">
-                                    {meal.fat}g F
+                                    {+meal.fat.toFixed(1)}g F
                                   </span>
                                 </div>
                               </div>
@@ -2638,7 +2644,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {contextualNutrition.adjustedTargets.calories} kcal
                 </p>
                 <p className="text-xs text-grappler-400 mt-0.5">
-                  {Math.max(contextualNutrition.adjustedTargets.calories - totals.calories, 0)} left
+                  {Math.max(Math.round(contextualNutrition.adjustedTargets.calories - totals.calories), 0)} left
                 </p>
               </div>
               <div>
@@ -2649,7 +2655,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {contextualNutrition.adjustedTargets.protein}g Pro
                 </p>
                 <p className="text-xs text-grappler-400 mt-0.5">
-                  {Math.max(contextualNutrition.adjustedTargets.protein - totals.protein, 0)}g left
+                  {+Math.max(contextualNutrition.adjustedTargets.protein - totals.protein, 0).toFixed(1)}g left
                 </p>
               </div>
               <div>
@@ -2660,7 +2666,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {contextualNutrition.adjustedTargets.carbs}g Carbs
                 </p>
                 <p className="text-xs text-grappler-400 mt-0.5">
-                  {Math.max(contextualNutrition.adjustedTargets.carbs - totals.carbs, 0)}g left
+                  {+Math.max(contextualNutrition.adjustedTargets.carbs - totals.carbs, 0).toFixed(1)}g left
                 </p>
               </div>
               <div>
@@ -2671,7 +2677,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   / {contextualNutrition.adjustedTargets.fat}g Fat
                 </p>
                 <p className="text-xs text-grappler-400 mt-0.5">
-                  {Math.max(contextualNutrition.adjustedTargets.fat - totals.fat, 0)}g left
+                  {+Math.max(contextualNutrition.adjustedTargets.fat - totals.fat, 0).toFixed(1)}g left
                 </p>
               </div>
             </div>

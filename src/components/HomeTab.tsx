@@ -124,6 +124,7 @@ function ReadinessCard() {
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
 
   const summary = useMemo(() => {
@@ -143,108 +144,135 @@ function ReadinessCard() {
 
   if (!summary) return null;
 
-  const levelColors: Record<string, string> = {
-    peak: 'text-green-400 bg-green-500/10 border-green-500/30',
-    good: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-    moderate: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-    low: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-    critical: 'text-red-400 bg-red-500/10 border-red-500/30',
-  };
+  const scoreColor =
+    summary.level === 'peak' ? 'text-green-400' :
+    summary.level === 'good' ? 'text-blue-400' :
+    summary.level === 'moderate' ? 'text-yellow-400' :
+    summary.level === 'low' ? 'text-orange-400' : 'text-red-400';
+
+  const dotColor =
+    summary.level === 'peak' ? 'bg-green-400' :
+    summary.level === 'good' ? 'bg-blue-400' :
+    summary.level === 'moderate' ? 'bg-yellow-400' :
+    summary.level === 'low' ? 'bg-orange-400' : 'bg-red-400';
 
   const levelLabels: Record<string, string> = {
-    peak: 'Peak Readiness',
-    good: 'Good to Train',
-    moderate: 'Moderate — Adjust Load',
-    low: 'Low — Reduce Intensity',
-    critical: 'Rest Recommended',
+    peak: 'Peak',
+    good: 'Good',
+    moderate: 'Moderate',
+    low: 'Low',
+    critical: 'Rest Day',
   };
 
   const getBarColor = (score: number) => {
-    if (score >= 70) return 'bg-green-400';
-    if (score >= 50) return 'bg-yellow-400';
-    if (score >= 30) return 'bg-orange-400';
-    return 'bg-red-400';
-  };
-
-  const getBarBg = (score: number) => {
-    if (score >= 70) return 'bg-green-500/15';
-    if (score >= 50) return 'bg-yellow-500/15';
-    if (score >= 30) return 'bg-orange-500/15';
-    return 'bg-red-500/15';
+    if (score >= 70) return 'bg-green-500';
+    if (score >= 50) return 'bg-yellow-500';
+    if (score >= 30) return 'bg-orange-500';
+    return 'bg-red-500';
   };
 
   return (
-    <div className={cn('p-3 border-b', levelColors[summary.level] || levelColors.moderate)}>
-      <div className="flex items-center justify-between mb-1.5">
+    <div className="px-3 pt-3 pb-1">
+      {/* Header — always visible, tappable to toggle details */}
+      <button
+        onClick={() => { setDetailsOpen(v => !v); if (detailsOpen) setExpandedFactor(null); }}
+        className="w-full flex items-center justify-between group"
+      >
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4" />
-          <span className="text-xs font-medium">Readiness</span>
-          <span className="text-xs opacity-60">{levelLabels[summary.level]}</span>
+          <Zap className="w-4 h-4 text-grappler-400" />
+          <span className="text-sm font-semibold text-grappler-100">Readiness</span>
+          <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full bg-grappler-700/60', scoreColor)}>
+            {levelLabels[summary.level]}
+          </span>
         </div>
-        <span className="text-lg font-bold">{summary.score}/100</span>
-      </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className={cn('w-2 h-2 rounded-full', dotColor)} />
+            <span className={cn('text-lg font-bold', scoreColor)}>{summary.score}</span>
+            <span className="text-xs text-grappler-500 font-medium">/100</span>
+          </div>
+          <span className="text-xs text-grappler-600 group-hover:text-grappler-400 transition-colors ml-1">
+            {detailsOpen ? '▴' : '▾'}
+          </span>
+        </div>
+      </button>
 
-      {/* Factor bars — tap any to expand */}
-      <div className="space-y-1.5 mt-2">
-        {summary.allFactors.map(f => {
-          const explainer = factorExplainers[f.source];
-          const isExpanded = expandedFactor === f.source;
-
-          return (
-            <div key={f.source}>
-              <button
-                onClick={() => setExpandedFactor(isExpanded ? null : f.source)}
-                className="w-full group"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xs w-[80px] text-left truncate text-grappler-300 group-hover:text-grappler-100 transition-colors">
-                    {f.label}
-                  </span>
-                  <div className={cn('flex-1 h-2 rounded-full overflow-hidden', getBarBg(f.score))}>
-                    <div
-                      className={cn('h-full rounded-full transition-all duration-500', getBarColor(f.score))}
-                      style={{ width: `${Math.max(3, f.score)}%` }}
-                    />
-                  </div>
-                  <span className={cn(
-                    'text-xs font-mono w-7 text-right',
-                    f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
-                  )}>
-                    {f.score}
-                  </span>
-                </div>
-              </button>
-
-              {/* Expanded explainer */}
-              <AnimatePresence>
-                {isExpanded && explainer && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="ml-[80px] pl-2 mt-1 mb-1 border-l-2 border-grappler-700 space-y-0.5">
-                      {f.detail && (
-                        <p className="text-[10px] text-grappler-400">{f.detail}</p>
-                      )}
-                      <p className="text-[10px] text-grappler-500">{explainer.icon} {explainer.what}</p>
-                      <p className="text-[10px] text-primary-400 font-medium">{explainer.action}</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Auto-adjustment notice */}
+      {/* Auto-adjustment pill — always visible when active */}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-xs mt-2 opacity-60">
-          Auto-adjusting: volume {Math.round(summary.volumeModifier * 100)}%, intensity {Math.round(summary.intensityModifier * 100)}%
+        <p className="text-[10px] text-grappler-500 mt-1 ml-6">
+          Volume {Math.round(summary.volumeModifier * 100)}% · Intensity {Math.round(summary.intensityModifier * 100)}%
         </p>
       )}
+
+      {/* Collapsible factor details */}
+      <AnimatePresence>
+        {detailsOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-1 pt-3 pb-1">
+              {summary.allFactors.map(f => {
+                const explainer = factorExplainers[f.source];
+                const isExpanded = expandedFactor === f.source;
+
+                return (
+                  <div key={f.source}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setExpandedFactor(isExpanded ? null : f.source); }}
+                      className="w-full group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] w-[72px] text-left truncate text-grappler-400 group-hover:text-grappler-200 transition-colors">
+                          {f.label}
+                        </span>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(3, f.score)}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            className={cn('h-full rounded-full', getBarColor(f.score))}
+                          />
+                        </div>
+                        <span className={cn(
+                          'text-[11px] font-mono w-6 text-right',
+                          f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
+                        )}>
+                          {f.score}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Per-factor explainer */}
+                    <AnimatePresence>
+                      {isExpanded && explainer && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="ml-[72px] pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
+                            {f.detail && (
+                              <p className="text-[10px] text-grappler-300">{f.detail}</p>
+                            )}
+                            <p className="text-[10px] text-grappler-500">{explainer.what}</p>
+                            <p className="text-[10px] text-primary-400">{explainer.action}</p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -543,7 +571,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const todayMeals = meals.filter(m =>
     new Date(m.date).toDateString() === todayStr
   );
-  const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+  const todayProtein = +todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0).toFixed(1);
 
   // Yesterday's data for comparison
   const yesterday = new Date(today);

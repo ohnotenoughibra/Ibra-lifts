@@ -241,6 +241,32 @@ const FOOD_DB: FoodEntry[] = [
   // Snacks / sweets
   { keywords: ['haribo', 'goldb\u00e4ren', 'gummy bear', 'gummy bears', 'gummi'], name: 'Haribo Goldb\u00e4ren (100g)', calories: 343, protein: 7, carbs: 77, fat: 0 },
   { keywords: ['chocolate', 'chocolate bar'], name: 'Chocolate Bar (50g)', calories: 270, protein: 4, carbs: 30, fat: 15 },
+  // High-protein snacks
+  { keywords: ['beef jerky', 'jerky', 'biltong'], name: 'Beef Jerky (50g)', calories: 130, protein: 23, carbs: 3, fat: 3 },
+  { keywords: ['skyr'], name: 'Skyr (200g)', calories: 130, protein: 22, carbs: 8, fat: 0 },
+  { keywords: ['edamame'], name: 'Edamame (150g)', calories: 170, protein: 17, carbs: 8, fat: 8 },
+  { keywords: ['string cheese', 'cheese stick'], name: 'String Cheese (2 sticks)', calories: 160, protein: 14, carbs: 2, fat: 10 },
+  { keywords: ['turkey slices', 'deli turkey', 'putenbrust'], name: 'Turkey Slices (100g)', calories: 100, protein: 22, carbs: 1, fat: 1 },
+  { keywords: ['hard boiled egg', 'boiled egg', 'boiled eggs'], name: 'Hard Boiled Eggs (2)', calories: 156, protein: 12, carbs: 1, fat: 11 },
+  { keywords: ['tuna pouch', 'tuna packet'], name: 'Tuna Pouch (75g)', calories: 80, protein: 18, carbs: 0, fat: 1 },
+  { keywords: ['protein pudding', 'high protein pudding'], name: 'Protein Pudding', calories: 150, protein: 20, carbs: 12, fat: 3 },
+  { keywords: ['rice cake', 'rice cakes'], name: 'Rice Cakes (3)', calories: 105, protein: 2, carbs: 23, fat: 1 },
+  { keywords: ['rice cake pb', 'rice cake peanut butter'], name: 'Rice Cakes + PB (2)', calories: 200, protein: 7, carbs: 20, fat: 11 },
+  { keywords: ['trail mix'], name: 'Trail Mix (40g)', calories: 200, protein: 5, carbs: 18, fat: 13 },
+  { keywords: ['hummus', 'hummus and veggies'], name: 'Hummus + Veggies', calories: 180, protein: 6, carbs: 18, fat: 10 },
+  { keywords: ['protein cookie'], name: 'Protein Cookie', calories: 200, protein: 16, carbs: 20, fat: 8 },
+  { keywords: ['overnight oats'], name: 'Overnight Oats + Protein', calories: 380, protein: 30, carbs: 45, fat: 8 },
+  // Quick high-protein combos
+  { keywords: ['chicken rice', 'chicken and rice'], name: 'Chicken + Rice', calories: 475, protein: 57, carbs: 42, fat: 7 },
+  { keywords: ['salmon rice', 'salmon and rice'], name: 'Salmon + Rice', calories: 545, protein: 42, carbs: 42, fat: 23 },
+  { keywords: ['tuna rice', 'tuna and rice'], name: 'Tuna + Rice Bowl', calories: 375, protein: 44, carbs: 42, fat: 3 },
+  { keywords: ['eggs toast', 'eggs on toast'], name: 'Eggs on Toast (3 eggs)', calories: 434, protein: 26, carbs: 38, fat: 19 },
+  { keywords: ['protein oats', 'proats'], name: 'Protein Oats (oats + whey)', calories: 427, protein: 38, carbs: 57, fat: 6 },
+  { keywords: ['yogurt bowl', 'yogurt berries'], name: 'Greek Yogurt + Berries + Granola', calories: 320, protein: 24, carbs: 40, fat: 6 },
+  { keywords: ['chicken wrap', 'grilled chicken wrap'], name: 'Grilled Chicken Wrap', calories: 380, protein: 35, carbs: 32, fat: 12 },
+  { keywords: ['tuna sandwich', 'tuna sub'], name: 'Tuna Sandwich', calories: 400, protein: 35, carbs: 36, fat: 12 },
+  { keywords: ['protein smoothie'], name: 'Protein Smoothie (banana + whey + milk)', calories: 350, protein: 35, carbs: 40, fat: 6 },
+  { keywords: ['chipotle bowl', 'burrito bowl'], name: 'Burrito Bowl', calories: 550, protein: 40, carbs: 50, fat: 18 },
 ];
 
 /**
@@ -584,6 +610,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Instant log confirmation — shows a confirm card instead of filling form fields ──
+  const [instantLogItem, setInstantLogItem] = useState<{
+    name: string; calories: number; protein: number; carbs: number; fat: number;
+    source: string; portion?: string;
+  } | null>(null);
+
   // ── Portion scaling ──
   // Stores the "1x" base macros when a food is selected so user can scale
   const [baseServing, setBaseServing] = useState<{
@@ -763,7 +795,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   } | null>(null);
 
   // ── Local text-based estimation ──
-  const handleAIEstimate = () => {
+  // When instant=true, shows a one-tap confirmation card; otherwise fills form fields
+  const handleAIEstimate = (instant = true) => {
     const trimmed = formName.trim();
     if (!trimmed) return;
 
@@ -771,18 +804,27 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setAnalysisResult(null);
     setShowAutocomplete(false);
 
+    // Helper: either show instant card or fill form
+    const applyMatch = (item: { name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string }, source: string) => {
+      if (instant) {
+        setInstantLogItem({ ...item, source });
+        return;
+      }
+      setAnalysisResult({ ...item, confidence: 'high', notes: source });
+      setFormName(item.name);
+      if (item.portion) setFormPortion(item.portion);
+      setFormCalories(String(item.calories));
+      setFormProtein(String(item.protein));
+      setFormCarbs(String(item.carbs));
+      setFormFat(String(item.fat));
+      const portionText = item.portion || item.name;
+      setBaseServing({ calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, portion: item.portion, baseGrams: extractGrams(portionText) });
+    };
+
     // 1. Check meal history first (exact match)
     const historyMatch = mealHistoryIndex.get(trimmed.toLowerCase());
     if (historyMatch) {
-      setAnalysisResult({ ...historyMatch, confidence: 'high', notes: 'From your meal history' });
-      setFormName(historyMatch.name);
-      if (historyMatch.portion) setFormPortion(historyMatch.portion);
-      setFormCalories(String(historyMatch.calories));
-      setFormProtein(String(historyMatch.protein));
-      setFormCarbs(String(historyMatch.carbs));
-      setFormFat(String(historyMatch.fat));
-      const portionText = historyMatch.portion || historyMatch.name;
-      setBaseServing({ calories: historyMatch.calories, protein: historyMatch.protein, carbs: historyMatch.carbs, fat: historyMatch.fat, portion: historyMatch.portion, baseGrams: extractGrams(portionText) });
+      applyMatch(historyMatch, 'From your history');
       return;
     }
 
@@ -791,33 +833,38 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       .filter(f => f.name.toLowerCase().includes(trimmed.toLowerCase()))
       .sort((a, b) => b.count - a.count)[0];
     if (partialMatch) {
-      setAnalysisResult({ ...partialMatch, confidence: 'high', notes: 'From your meal history' });
-      setFormName(partialMatch.name);
-      if (partialMatch.portion) setFormPortion(partialMatch.portion);
-      setFormCalories(String(partialMatch.calories));
-      setFormProtein(String(partialMatch.protein));
-      setFormCarbs(String(partialMatch.carbs));
-      setFormFat(String(partialMatch.fat));
-      const portionText = partialMatch.portion || partialMatch.name;
-      setBaseServing({ calories: partialMatch.calories, protein: partialMatch.protein, carbs: partialMatch.carbs, fat: partialMatch.fat, portion: partialMatch.portion, baseGrams: extractGrams(portionText) });
+      applyMatch(partialMatch, 'From your history');
       return;
     }
 
     // 3. Fall back to local food database
     const local = estimateLocally(trimmed);
     if (local) {
-      setAnalysisResult({ ...local, confidence: 'medium', notes: 'Estimated from local database' });
-      setFormName(local.name);
-      setFormCalories(String(local.calories));
-      setFormProtein(String(local.protein));
-      setFormCarbs(String(local.carbs));
-      setFormFat(String(local.fat));
-      const grams = extractGrams(local.name);
-      setBaseServing({ calories: local.calories, protein: local.protein, carbs: local.carbs, fat: local.fat, baseGrams: grams });
+      applyMatch(local, 'Food database');
       return;
     }
 
+    setInstantLogItem(null);
     setAnalysisError('No match found. Try Quick presets or enter macros manually.');
+  };
+
+  // Instant log: confirm and add
+  const handleInstantLog = () => {
+    if (!instantLogItem) return;
+    const h = new Date().getHours();
+    const autoType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+    addMeal({
+      date: new Date(selectedDate + 'T12:00:00'),
+      mealType: formMealType || autoType,
+      name: instantLogItem.name,
+      calories: instantLogItem.calories,
+      protein: instantLogItem.protein,
+      carbs: instantLogItem.carbs,
+      fat: instantLogItem.fat,
+      portion: instantLogItem.portion,
+    });
+    setInstantLogItem(null);
+    setFormName('');
   };
 
   // ── Preset search ──
@@ -1040,6 +1087,22 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       carbs: meal.carbs,
       fat: meal.fat,
     });
+  };
+
+  // Log all planned meals at once
+  const handleLogAllPlanned = () => {
+    for (const meal of dailyMealPlan) {
+      addMeal({
+        date: new Date(selectedDate + 'T12:00:00'),
+        mealType: meal.mealType,
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+      });
+    }
+    setShowDayPlan(false);
   };
 
   // ── Handlers ──
@@ -1583,90 +1646,130 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </motion.div>
         )}
 
-        {/* ── Daily Meal Plan ── */}
-        {(contextualNutrition.adjustedTargets.calories - totals.calories) > 200 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.14 }}
-            className="card p-4"
-          >
-            <button
-              onClick={() => setShowDayPlan(!showDayPlan)}
-              className="w-full flex items-center justify-between"
+        {/* ── Fill My Macros ── */}
+        {(() => {
+          const remCal = contextualNutrition.adjustedTargets.calories - totals.calories;
+          const remPro = contextualNutrition.adjustedTargets.protein - totals.protein;
+          const remCarbs = contextualNutrition.adjustedTargets.carbs - totals.carbs;
+          const remFat = contextualNutrition.adjustedTargets.fat - totals.fat;
+          if (remCal <= 100) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="card overflow-hidden"
             >
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary-400" />
-                <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-                  Day Plan
-                </h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-grappler-500">
-                  {contextualNutrition.adjustedTargets.calories - totals.calories} kcal to go
-                </span>
-                {showDayPlan ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
-              </div>
-            </button>
+              {/* Header — always visible, tappable */}
+              <button
+                onClick={() => setShowDayPlan(!showDayPlan)}
+                className="w-full p-4 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-primary-400" />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-sm font-bold text-grappler-100">Fill My Macros</h2>
+                    <p className="text-xs text-grappler-500">
+                      {Math.round(remCal)} kcal · {Math.round(remPro)}g P · {Math.round(remCarbs)}g C · {Math.round(remFat)}g F left
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {!showDayPlan && (
+                    <span className="text-xs font-medium text-primary-400">Show plan</span>
+                  )}
+                  {showDayPlan ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
+                </div>
+              </button>
 
-            <AnimatePresence>
-              {showDayPlan && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  {dailyMealPlan.length > 0 ? (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs text-grappler-500">
-                        Suggested meals to hit your remaining {contextualNutrition.adjustedTargets.protein - totals.protein}g protein &amp; {contextualNutrition.adjustedTargets.calories - totals.calories} kcal:
-                      </p>
-                      {dailyMealPlan.map((meal) => (
-                        <div
-                          key={`${meal.mealType}-${meal.name}`}
-                          className="flex items-center gap-3 p-2.5 bg-grappler-800/40 rounded-lg"
-                        >
-                          <div className="flex items-center gap-1.5 min-w-[80px]">
-                            {MEAL_TYPE_ICONS[meal.mealType]}
-                            <span className="text-xs text-grappler-400 uppercase font-medium">
-                              {MEAL_TYPE_LABELS[meal.mealType]}
-                            </span>
+              {/* Remaining macro mini-bars */}
+              <div className="px-4 pb-3 grid grid-cols-4 gap-2">
+                {[
+                  { label: 'kcal', cur: totals.calories, target: contextualNutrition.adjustedTargets.calories, color: 'bg-blue-400' },
+                  { label: 'P', cur: totals.protein, target: contextualNutrition.adjustedTargets.protein, color: 'bg-red-400' },
+                  { label: 'C', cur: totals.carbs, target: contextualNutrition.adjustedTargets.carbs, color: 'bg-sky-400' },
+                  { label: 'F', cur: totals.fat, target: contextualNutrition.adjustedTargets.fat, color: 'bg-yellow-400' },
+                ].map(m => {
+                  const pct = Math.min(100, m.target > 0 ? (m.cur / m.target) * 100 : 0);
+                  return (
+                    <div key={m.label}>
+                      <div className="h-1.5 bg-grappler-700/60 rounded-full overflow-hidden">
+                        <div className={cn('h-full rounded-full transition-all', m.color)} style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-grappler-500 text-center mt-0.5">{m.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Expandable meal plan */}
+              <AnimatePresence>
+                {showDayPlan && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden border-t border-grappler-700/50"
+                  >
+                    {dailyMealPlan.length > 0 ? (
+                      <div className="p-4 space-y-2">
+                        <p className="text-xs text-grappler-500">
+                          Eat these to close the gap — {Math.round(remPro)}g protein &amp; {Math.round(remCal)} kcal to go:
+                        </p>
+                        {dailyMealPlan.map((meal) => (
+                          <div
+                            key={`${meal.mealType}-${meal.name}`}
+                            className="flex items-center gap-3 p-2.5 bg-grappler-800/40 rounded-lg"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-[72px]">
+                              {MEAL_TYPE_ICONS[meal.mealType]}
+                              <span className="text-xs text-grappler-400 uppercase font-medium">
+                                {MEAL_TYPE_LABELS[meal.mealType]}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-grappler-100 truncate">{meal.name}</p>
+                              <p className="text-xs text-grappler-500">
+                                {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handlePlanMealTap(meal)}
+                              className="px-2.5 py-1 text-xs font-medium bg-grappler-700/40 text-grappler-300 border border-grappler-600 rounded-lg hover:bg-grappler-700/60 transition-colors flex-shrink-0"
+                            >
+                              Log
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-grappler-100 truncate">{meal.name}</p>
-                            <p className="text-xs text-grappler-500">
-                              {meal.calories} kcal &middot; {meal.protein}g P &middot; {meal.carbs}g C &middot; {meal.fat}g F
-                            </p>
+                        ))}
+
+                        {/* Plan total + Log All */}
+                        <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
+                          <div className="text-xs text-grappler-500">
+                            <span className="font-medium text-grappler-300">Plan total: </span>
+                            {dailyMealPlan.reduce((s, m) => s + m.calories, 0)} kcal ·{' '}
+                            {dailyMealPlan.reduce((s, m) => s + m.protein, 0)}g P
                           </div>
                           <button
-                            onClick={() => handlePlanMealTap(meal)}
-                            className="px-2.5 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 border border-primary-500/40 rounded-lg hover:bg-primary-500/30 transition-colors flex-shrink-0"
+                            onClick={handleLogAllPlanned}
+                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-lg active:scale-95 transition-transform"
                           >
-                            Log
+                            Log All
                           </button>
                         </div>
-                      ))}
-                      <div className="flex justify-between text-xs text-grappler-500 pt-1 border-t border-grappler-800">
-                        <span>Plan total:</span>
-                        <span>
-                          {dailyMealPlan.reduce((s, m) => s + m.calories, 0)} kcal &middot;{' '}
-                          {dailyMealPlan.reduce((s, m) => s + m.protein, 0)}g P &middot;{' '}
-                          {dailyMealPlan.reduce((s, m) => s + m.carbs, 0)}g C &middot;{' '}
-                          {dailyMealPlan.reduce((s, m) => s + m.fat, 0)}g F
-                        </span>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-grappler-500 mt-3">
-                      Not enough remaining macros to suggest a plan.
-                    </p>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
+                    ) : (
+                      <p className="text-xs text-grappler-500 p-4">
+                        Not enough macro gap left to suggest a full plan.
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })()}
 
         {/* ── Water Tracker ── */}
         <motion.div
@@ -1950,7 +2053,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                           if (e.key === 'Enter' && formName.trim()) {
                             e.preventDefault();
                             setShowAutocomplete(false);
-                            handleAIEstimate();
+                            handleAIEstimate(true);
                           }
                           if (e.key === 'Escape') setShowAutocomplete(false);
                         }}
@@ -1960,7 +2063,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       />
                       <button
                         type="button"
-                        onClick={handleAIEstimate}
+                        onClick={() => handleAIEstimate(false)}
                         disabled={!formName.trim()}
                         className="btn btn-sm px-3 bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
                         title="Auto-fill macros from database"
@@ -2016,9 +2119,54 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                     </AnimatePresence>
 
                     <p className="text-xs text-grappler-600 mt-1">
-                      Type what you ate — suggestions from your history appear first
+                      Type what you ate and press Enter — instant match &amp; log
                     </p>
                   </div>
+
+                  {/* ── Instant log confirmation card ── */}
+                  {instantLogItem && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-green-500/10 border border-green-500/30 rounded-xl p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-grappler-100">{instantLogItem.name}</p>
+                          <p className="text-xs text-grappler-500 mt-0.5">{instantLogItem.source}</p>
+                          <div className="flex gap-3 mt-1.5">
+                            <span className="text-xs font-medium text-blue-400">{instantLogItem.calories} kcal</span>
+                            <span className="text-xs font-medium text-red-400">{instantLogItem.protein}g P</span>
+                            <span className="text-xs font-medium text-sky-400">{instantLogItem.carbs}g C</span>
+                            <span className="text-xs font-medium text-yellow-400">{instantLogItem.fat}g F</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              // Switch to manual edit mode with fields pre-filled
+                              setFormName(instantLogItem.name);
+                              setFormCalories(String(instantLogItem.calories));
+                              setFormProtein(String(instantLogItem.protein));
+                              setFormCarbs(String(instantLogItem.carbs));
+                              setFormFat(String(instantLogItem.fat));
+                              if (instantLogItem.portion) setFormPortion(instantLogItem.portion);
+                              setInstantLogItem(null);
+                            }}
+                            className="px-2 py-1.5 text-xs text-grappler-400 bg-grappler-700/40 rounded-lg hover:bg-grappler-700/60 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={handleInstantLog}
+                            className="px-3 py-1.5 text-xs font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 active:scale-95 transition-all"
+                          >
+                            Log it
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Portion size + scaling */}
                   <div>

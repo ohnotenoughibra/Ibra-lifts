@@ -32,6 +32,8 @@ export interface TodayCombatSession {
   category: string;
   duration: number;
   intensity: string;
+  /** Whether this session has already been logged (completed) vs scheduled */
+  logged: boolean;
 }
 
 export interface DailyDirective {
@@ -154,6 +156,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     category: s.category,
     duration: s.duration,
     intensity: s.actualIntensity || s.plannedIntensity,
+    logged: true,
   }));
   const hasLoggedCombatToday = todayCombatSessions.length > 0;
 
@@ -176,6 +179,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
         category: 'combat',
         duration: 0, // unknown until logged
         intensity: d.intensity,
+        logged: false,
       });
     });
   }
@@ -212,7 +216,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const shouldTrain = !isCritical && !alreadyLiftedToday && nextSession !== null && isScheduledLiftDay;
 
   let todayType: TodayType;
-  if (alreadyLiftedToday && !hasCombatToday) {
+  if (alreadyLiftedToday && (!hasCombatToday || hasLoggedCombatToday)) {
+    // Already lifted, and either no combat today or combat already logged → done for the day
     todayType = 'recovery';
   } else if (isCritical) {
     todayType = 'rest';

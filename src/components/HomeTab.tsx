@@ -263,6 +263,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
+  const [readinessExpanded, setReadinessExpanded] = useState(false);
+  const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Daily Directive — single mission for today ───
@@ -681,14 +683,18 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   };
 
   // ─── Contextual Feed: priority-ranked, max 4 cards ───
+  // ─── TIERED FEED SYSTEM ───
+  // Critical: non-dismissible, shown above mission card (illness, injury, deload-critical)
+  // Regular: dismissible, shown below mission card (everything else)
+  const criticalAlerts: React.ReactNode[] = [];
   const feedCards: React.ReactNode[] = [];
 
-  // 1. Illness banner (highest priority)
+  // 1. Illness banner → CRITICAL
   const activeIllness = getActiveIllness();
   if (activeIllness) {
     const illnessRec = getIllnessTrainingRecommendation(activeIllness);
     const daysSick = getIllnessDurationDays(activeIllness);
-    feedCards.push(
+    criticalAlerts.push(
       <motion.div key="illness" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-rose-500/20 to-blue-500/10 border border-rose-500/30 rounded-xl p-3.5">
         <div className="flex items-start gap-3">
@@ -714,12 +720,70 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 2. Meal reminder
+  // 2. Injury alerts → CRITICAL
+  if (injuryInsights.alerts.length > 0) {
+    criticalAlerts.push(
+      <div key="injury-alert" className="flex items-start gap-3 bg-gradient-to-r from-rose-500/15 to-red-500/10 border border-rose-500/30 rounded-xl p-3.5">
+        <Siren className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-bold text-rose-300 text-sm">Injury Alert</h3>
+          {injuryInsights.alerts.slice(0, 2).map((alert, i) => (
+            <p key={i} className="text-xs text-rose-400/80 mt-1">{alert}</p>
+          ))}
+          <button onClick={() => onNavigate('injury')}
+            className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
+            View Injuries
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Deload CRITICAL → CRITICAL tier; recommended/optional → regular feed
+  if (deloadRec.needed) {
+    const urgencyColors = {
+      optional: 'from-yellow-500/15 to-sky-500/10 border-yellow-500/30',
+      recommended: 'from-blue-500/20 to-red-500/10 border-blue-500/30',
+      critical: 'from-red-500/20 to-rose-500/10 border-red-500/30',
+    };
+    const urgencyIcon = {
+      optional: 'text-yellow-400',
+      recommended: 'text-blue-400',
+      critical: 'text-red-400',
+    };
+    const deloadCard = (
+      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[deloadRec.urgency])}>
+        <div className="flex items-start gap-3">
+          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[deloadRec.urgency])} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <h3 className={cn('font-bold text-sm', urgencyIcon[deloadRec.urgency])}>
+                {deloadRec.urgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
+              </h3>
+              <span className="text-xs text-grappler-500">Fatigue: {fatigueDebt.currentDebt}/100</span>
+            </div>
+            <p className="text-xs text-grappler-400 mt-1">{deloadRec.reason}</p>
+            <div className="mt-2 bg-black/20 rounded-lg px-2.5 py-1.5">
+              <p className="text-xs font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
+              <p className="text-xs text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+    if (deloadRec.urgency === 'critical') {
+      criticalAlerts.push(deloadCard);
+    } else {
+      feedCards.push(deloadCard);
+    }
+  }
+
+  // 4. Meal reminder → regular feed
   if (feedCards.length < 4) {
     feedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
   }
 
-  // 2b. Weekly body weight reminder (when diet coach active)
+  // 5. Body weight reminder → regular feed
   const activeDietPhase = useAppStore(s => s.activeDietPhase);
   const lastBWEntry = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
   const daysSinceLastBW = lastBWEntry
@@ -866,7 +930,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 4. Training load warning (combat athletes)
+  // Training load warning → regular feed
   if (trainingLoadWarning && feedCards.length < 4) {
     feedCards.push(
       <div key="training-load" className="flex items-start gap-3 bg-gradient-to-r from-sky-500/20 to-blue-500/10 border border-sky-500/30 rounded-xl p-3.5">
@@ -879,41 +943,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 5. Smart Deload (replaces crude deload check)
-  if (deloadRec.needed && feedCards.length < 4) {
-    const urgencyColors = {
-      optional: 'from-yellow-500/15 to-sky-500/10 border-yellow-500/30',
-      recommended: 'from-blue-500/20 to-red-500/10 border-blue-500/30',
-      critical: 'from-red-500/20 to-rose-500/10 border-red-500/30',
-    };
-    const urgencyIcon = {
-      optional: 'text-yellow-400',
-      recommended: 'text-blue-400',
-      critical: 'text-red-400',
-    };
-    feedCards.push(
-      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[deloadRec.urgency])}>
-        <div className="flex items-start gap-3">
-          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[deloadRec.urgency])} />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <h3 className={cn('font-bold text-sm', urgencyIcon[deloadRec.urgency])}>
-                {deloadRec.urgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
-              </h3>
-              <span className="text-xs text-grappler-500">Fatigue: {fatigueDebt.currentDebt}/100</span>
-            </div>
-            <p className="text-xs text-grappler-400 mt-1">{deloadRec.reason}</p>
-            <div className="mt-2 bg-black/20 rounded-lg px-2.5 py-1.5">
-              <p className="text-xs font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
-              <p className="text-xs text-grappler-500 mt-0.5">{deloadRec.protocol.description}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 6. Rest day tip
+  // Rest day tip → informational (bottom)
   if (restDayTip && feedCards.length < 4) {
     feedCards.push(
       <div key="rest-tip" className="flex items-start gap-3 card p-3.5">
@@ -958,26 +988,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 8. Injury alerts
-  if (injuryInsights.alerts.length > 0 && feedCards.length < 5) {
-    feedCards.push(
-      <div key="injury-alert" className="flex items-start gap-3 bg-gradient-to-r from-rose-500/15 to-red-500/10 border border-rose-500/30 rounded-xl p-3.5">
-        <Siren className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-bold text-rose-300 text-sm">Injury Alert</h3>
-          {injuryInsights.alerts.slice(0, 2).map((alert, i) => (
-            <p key={i} className="text-xs text-rose-400/80 mt-1">{alert}</p>
-          ))}
-          <button onClick={() => onNavigate('injury')}
-            className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
-            View Injuries
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // 9. Cycle phase card (female athletes)
+  // Cycle phase card (female athletes)
   if (cycleInsights && feedCards.length < 5) {
     feedCards.push(
       <div key="cycle-phase" className="bg-gradient-to-r from-pink-500/15 to-purple-500/10 border border-pink-500/30 rounded-xl p-3.5">
@@ -1017,189 +1028,110 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
+  // ─── Momentum data ───
+  const currentStreak = gamificationStats.currentStreak || 0;
+  const weekTarget = (user?.trainingDays?.length || 3) + ((user?.combatTrainingDays || []).length);
+  const weekDone = periodSummaries.thisWeek.trainingDays;
+  const weekRemaining = Math.max(0, weekTarget - weekDone);
+  const nextBadgeDistance = useMemo(() => {
+    // Simple heuristic: how many more sessions to potential badge
+    const totalSessions = workoutLogs.length + trainingSessions.length;
+    const milestones = [5, 10, 25, 50, 100, 150, 200, 300, 500];
+    const next = milestones.find(m => m > totalSessions);
+    return next ? next - totalSessions : null;
+  }, [workoutLogs.length, trainingSessions.length]);
+
   return (
-    <div className="space-y-4">
-      {/* ─── Post-Workout Summary (ephemeral) ─── */}
+    <div className="space-y-3">
+
+      {/* ─── CRITICAL ALERTS — non-dismissible, above everything ─── */}
+      {criticalAlerts.length > 0 && (
+        <div className="space-y-2">
+          {criticalAlerts.map(card => card)}
+        </div>
+      )}
+
+      {/* ─── Post-Workout Summary — compact card ─── */}
       <AnimatePresence>
         {lastCompletedWorkout && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/30 rounded-2xl p-5"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-gradient-to-r from-green-500/15 to-emerald-500/10 border border-green-500/30 rounded-xl p-3"
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-green-400" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-4 h-4 text-green-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-green-300 text-sm">Done!</h3>
+                  <span className="text-xs text-green-400/70">+{lastCompletedWorkout.points} XP</span>
+                  {lastCompletedWorkout.hadPR && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-medium">PR</span>
+                  )}
+                  {variableReward && variableReward.type !== 'none' && (
+                    <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
+                      'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
+                      'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
+                      'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
+                      'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
+                    })}>+{variableReward.bonusPoints}</span>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-bold text-green-300 text-sm">Workout Complete!</h3>
-                  <p className="text-xs text-green-400/70">+{lastCompletedWorkout.points} XP earned</p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span className="text-xs text-grappler-400">{lastCompletedWorkout.log.exercises.length} ex</span>
+                  <span className="text-xs text-grappler-400">{formatNumber(lastCompletedWorkout.log.totalVolume)} {weightUnit}</span>
+                  <span className="text-xs text-grappler-400">{lastCompletedWorkout.log.duration}m</span>
+                  <span className="text-xs text-grappler-500">Lv.{gamificationStats.level}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button onClick={handleShareWorkout}
                   className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
                   title="Share workout">
-                  {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
                 </button>
                 <button onClick={dismissWorkoutSummary}
-                  className="text-grappler-500 hover:text-grappler-300 text-xs px-2 py-1">
-                  Dismiss
+                  className="text-grappler-500 hover:text-grappler-300 p-1.5">
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.exercises.length}</p>
-                <p className="text-xs text-grappler-400">Exercises</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-grappler-100">{formatNumber(lastCompletedWorkout.log.totalVolume)}</p>
-                <p className="text-xs text-grappler-400">Vol ({weightUnit})</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-grappler-100">{lastCompletedWorkout.log.duration}m</p>
-                <p className="text-xs text-grappler-400">Duration</p>
-              </div>
-            </div>
-            {lastCompletedWorkout.hadPR && (
-              <div className="mt-3 flex items-center gap-2 bg-yellow-500/10 rounded-lg px-3 py-2">
-                <Star className="w-4 h-4 text-yellow-400" />
-                <span className="text-xs font-medium text-yellow-300">New Personal Record!</span>
-              </div>
-            )}
-            {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {lastCompletedWorkout.newBadges.map((badge) => (
-                  <motion.div key={badge.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2">
-                    <span className="text-lg">{badge.icon}</span>
-                    <div className="flex-1">
-                      <span className="text-xs font-medium text-purple-300">{badge.name}</span>
-                      <span className="text-xs text-purple-400/70 ml-2">+{badge.points} XP</span>
-                    </div>
-                    <Award className="w-4 h-4 text-purple-400" />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-            {postWorkoutCoaching && (
-              <div className="mt-3 flex items-start gap-2 bg-grappler-800/40 rounded-lg px-3 py-2">
-                <Brain className="w-3.5 h-3.5 text-primary-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-grappler-300 leading-relaxed">{postWorkoutCoaching}</p>
-              </div>
-            )}
-            {postWorkoutNutritionNudge && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className={cn(
-                  'mt-2 flex items-start gap-2 rounded-lg px-3 py-2',
-                  postWorkoutNutritionNudge.urgent
-                    ? 'bg-orange-500/15 border border-orange-500/30'
-                    : 'bg-green-500/10 border border-green-500/20'
+            {/* Coaching line + nutrition nudge — compact row */}
+            {(postWorkoutCoaching || postWorkoutNutritionNudge) && (
+              <div className="mt-2 pt-2 border-t border-green-500/20">
+                {postWorkoutCoaching && (
+                  <p className="text-xs text-grappler-400 leading-relaxed">{postWorkoutCoaching}</p>
                 )}
-              >
-                <Apple className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5',
-                  postWorkoutNutritionNudge.urgent ? 'text-orange-400' : 'text-green-400'
-                )} />
-                <p className={cn('text-xs leading-relaxed',
-                  postWorkoutNutritionNudge.urgent ? 'text-orange-300' : 'text-green-300'
-                )}>
-                  {postWorkoutNutritionNudge.text}
-                </p>
-              </motion.div>
+                {postWorkoutNutritionNudge && (
+                  <p className={cn('text-xs mt-1', postWorkoutNutritionNudge.urgent ? 'text-orange-400' : 'text-green-400')}>
+                    {postWorkoutNutritionNudge.text}
+                  </p>
+                )}
+              </div>
             )}
-            {sessionContext && sessionContext.contextLines.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {sessionContext.contextLines.slice(0, 2).map((line, i) => (
-                  <div key={i} className="flex items-start gap-2 px-3">
-                    <Sparkles className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-grappler-400">{line}</p>
-                  </div>
+            {/* Badges — inline chips */}
+            {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {lastCompletedWorkout.newBadges.map((badge) => (
+                  <span key={badge.id} className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300">
+                    {badge.icon} {badge.name}
+                  </span>
                 ))}
               </div>
             )}
-            {variableReward && variableReward.type !== 'none' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.8, duration: 0.4, ease: 'easeOut' }}
-                className={cn('mt-3 rounded-lg px-3 py-2.5 border', {
-                  'bg-blue-500/10 border-blue-500/30': variableReward.rarity === 'common',
-                  'bg-purple-500/10 border-purple-500/30': variableReward.rarity === 'uncommon',
-                  'bg-yellow-500/10 border-yellow-500/30': variableReward.rarity === 'rare',
-                  'bg-gradient-to-r from-blue-500/15 to-pink-500/15 border-blue-500/30': variableReward.rarity === 'epic',
-                })}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Award className={cn('w-4 h-4', {
-                      'text-blue-400': variableReward.rarity === 'common',
-                      'text-purple-400': variableReward.rarity === 'uncommon',
-                      'text-yellow-400': variableReward.rarity === 'rare',
-                      'text-cyan-400': variableReward.rarity === 'epic',
-                    })} />
-                    <div>
-                      <p className="text-xs font-bold text-grappler-100">{variableReward.title}</p>
-                      <p className="text-xs text-grappler-400">{variableReward.description}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-primary-400">+{variableReward.bonusPoints} XP</span>
-                </div>
-              </motion.div>
-            )}
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-grappler-300">{lastCompletedWorkout.newStreak} day streak</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-grappler-500">Lv.{gamificationStats.level}</span>
-                <div className="w-16 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-primary-400 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }}
-                    transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
-                  />
-                </div>
-                <span className="text-xs text-grappler-500">{pointsToNextLevel(gamificationStats.totalPoints)} to go</span>
-              </div>
-            </div>
-            {/* Post-workout sign-up prompt for guest users */}
+            {/* Guest sign-up — one line */}
             {!session && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2 }}
-                className="mt-4 bg-primary-500/10 border border-primary-500/30 rounded-xl p-3"
-              >
-                <p className="text-xs font-medium text-primary-300 mb-2">Save your progress to the cloud?</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => signIn('google', { callbackUrl: '/' })}
-                    className="flex-1 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-grappler-100 text-xs font-medium hover:bg-grappler-700 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Google
-                  </button>
-                  <Link
-                    href="/register"
-                    className="flex-1 py-2 rounded-lg bg-primary-500/20 text-primary-300 text-xs font-medium hover:bg-primary-500/30 transition-colors text-center"
-                  >
-                    Email
-                  </Link>
+              <div className="mt-2 pt-2 border-t border-green-500/20 flex items-center justify-between">
+                <p className="text-xs text-primary-400">Save your progress?</p>
+                <div className="flex gap-1.5">
+                  <button onClick={() => signIn('google', { callbackUrl: '/' })}
+                    className="px-2.5 py-1 text-xs font-medium bg-grappler-800 border border-grappler-700 text-grappler-100 rounded-lg">Google</button>
+                  <Link href="/register" className="px-2.5 py-1 text-xs font-medium bg-primary-500/20 text-primary-300 rounded-lg">Email</Link>
                 </div>
-              </motion.div>
+              </div>
             )}
           </motion.div>
         )}
@@ -1218,10 +1150,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
               <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
             </div>
-            <div className="text-right flex-shrink-0 ml-3">
-              <p className="text-2xl font-black text-green-400">{directive.readinessScore}</p>
-              <p className="text-[10px] text-grappler-500">Readiness</p>
-            </div>
+            <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
+              <p className="text-2xl font-black text-green-400 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
+              <p className="text-[10px] text-grappler-500">Readiness ▾</p>
+            </button>
           </div>
           {/* Performance metrics grid */}
           <div className="grid grid-cols-3 gap-2 mb-3">
@@ -1273,10 +1205,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
               <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
             </div>
-            <div className="text-right flex-shrink-0 ml-3">
-              <p className={cn('text-2xl font-black', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
-              <p className="text-[10px] text-grappler-500">Readiness</p>
-            </div>
+            <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
+              <p className={cn('text-2xl font-black group-hover:opacity-80 transition-opacity', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
+              <p className="text-[10px] text-grappler-500">Readiness ▾</p>
+            </button>
           </div>
           {directive.actions.length > 0 && (
             <div className="space-y-1.5">
@@ -1311,10 +1243,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
                 <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
               </div>
-              <div className="text-right flex-shrink-0 ml-3">
-                <p className={cn('text-2xl font-black', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
-                <p className="text-[10px] text-grappler-500">Readiness</p>
-              </div>
+              <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
+                <p className={cn('text-2xl font-black group-hover:opacity-80 transition-opacity', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
+                <p className="text-[10px] text-grappler-500">Readiness ▾</p>
+              </button>
             </div>
             {directive.actions.length > 0 && (
               <div className="space-y-1.5">
@@ -1360,10 +1292,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <h2 className="text-xl font-black text-white">{directive.headline}</h2>
                 <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
               </div>
-              <div className="text-right flex-shrink-0 ml-3">
-                <p className="text-2xl font-black text-white/90">{directive.readinessScore}</p>
-                <p className="text-[10px] text-white/40">Readiness</p>
-              </div>
+              <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
+                <p className="text-2xl font-black text-white/90 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
+                <p className="text-[10px] text-white/40">Readiness ▾</p>
+              </button>
             </div>
             {directive.todayCombatSessions.length > 0 && (
               <div className="mt-2 space-y-1.5">
@@ -1468,9 +1400,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 )}
               </div>
               <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
-                <div className="text-center">
-                  <p className="text-2xl font-black text-white/90">{directive.readinessScore}</p>
-                  <p className="text-[10px] text-white/40">Readiness</p>
+                <div
+                  className="text-center cursor-pointer group"
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReadinessExpanded(v => !v); }}
+                >
+                  <p className="text-2xl font-black text-white/90 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
+                  <p className="text-[10px] text-white/40">Readiness ▾</p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Play className="w-6 h-6 text-white" />
@@ -1631,6 +1567,61 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </motion.div>
       )}
 
+      {/* ─── Momentum Strip — streak, week progress, next milestone ─── */}
+      {(currentStreak > 0 || weekDone > 0) && (
+        <div className="flex items-center gap-2 px-1">
+          {/* Streak */}
+          {currentStreak > 0 && (
+            <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2.5 py-1.5">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-xs font-bold text-orange-300">{currentStreak}</span>
+              <span className="text-[10px] text-orange-400/60">streak</span>
+            </div>
+          )}
+          {/* Week progress */}
+          <div className="flex-1 flex items-center gap-2 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5">
+            <div className="flex gap-0.5">
+              {Array.from({ length: weekTarget }, (_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'w-2.5 h-2.5 rounded-full',
+                    i < weekDone ? 'bg-primary-400' : 'bg-grappler-700'
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] text-grappler-500">
+              {weekDone}/{weekTarget} this week
+              {weekRemaining > 0 && ` · ${weekRemaining} left`}
+            </span>
+          </div>
+          {/* Next milestone */}
+          {nextBadgeDistance != null && nextBadgeDistance <= 5 && (
+            <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5">
+              <Award className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-[10px] text-purple-300">{nextBadgeDistance} to go</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Readiness Breakdown — expandable from mission card tap ─── */}
+      <AnimatePresence>
+        {readinessExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="card overflow-hidden">
+              <ReadinessCard />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ─── Today at a Glance ─── */}
       <div className="card p-3.5">
         <div className="flex items-center justify-between mb-2.5">
@@ -1780,71 +1771,95 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
-      {/* ─── Weekly Synthesis — coaching narrative ─── */}
+      {/* ─── Weekly Synthesis — promoted Sun/Mon, collapsed rest of week ─── */}
       <CardErrorBoundary fallbackLabel="Weekly Coaching">
-      {showWeeklySynthesis && synthesis.hasData && (
-        <div className="card p-4">
-          <div className="flex items-center gap-2 mb-2.5">
-            <Brain className="w-4 h-4 text-primary-400" />
-            <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">Weekly Coaching</span>
-          </div>
-          <p className="text-sm text-grappler-300 leading-relaxed">{synthesis.narrative}</p>
-          <div className={cn('grid gap-2 mt-3 text-center', synthesis.stats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
-            {synthesis.stats.workouts > 0 && (
-              <div>
-                <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
-                <p className="text-xs text-grappler-500">Lifts</p>
+      {showWeeklySynthesis && synthesis.hasData && (() => {
+        const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon
+        const isPromoted = dayOfWeek === 0 || dayOfWeek === 1;
+        const isExpanded = isPromoted || weeklyCoachingExpanded;
+
+        return (
+          <div className={cn('card', isPromoted ? 'p-4 border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-grappler-900' : 'p-3')}>
+            <button
+              onClick={() => !isPromoted && setWeeklyCoachingExpanded(v => !v)}
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Brain className={cn('w-4 h-4', isPromoted ? 'text-primary-400' : 'text-grappler-500')} />
+                <span className={cn('text-xs font-semibold uppercase tracking-wide', isPromoted ? 'text-grappler-200' : 'text-grappler-400')}>
+                  Weekly Coaching
+                </span>
+                {isPromoted && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-500/15 text-primary-400 font-medium">New</span>
+                )}
               </div>
-            )}
-            {synthesis.stats.combatSessions > 0 && (
-              <div>
-                <p className="text-lg font-bold text-purple-400">{synthesis.stats.combatSessions}</p>
-                <p className="text-xs text-grappler-500">Mat</p>
-                {synthesis.stats.combatMinutes > 0 && <p className="text-xs text-grappler-600">{synthesis.stats.combatMinutes}m</p>}
-              </div>
-            )}
-            <div>
-              <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
-              <p className="text-xs text-grappler-500">PRs</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
-              <p className="text-xs text-grappler-500">RPE</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-grappler-100">
-                {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
+              {!isPromoted && (
+                <span className="text-xs text-grappler-600">{isExpanded ? '▴' : '▾'}</span>
+              )}
+            </button>
+            {!isExpanded && (
+              <p className="text-xs text-grappler-500 mt-1.5 truncate">
+                {synthesis.stats.workouts} lifts{synthesis.stats.combatSessions > 0 ? ` · ${synthesis.stats.combatSessions} mat` : ''} · {synthesis.stats.prs} PRs this week
               </p>
-              <p className="text-xs text-grappler-500">Protein</p>
-            </div>
+            )}
+            {isExpanded && (
+              <>
+                <p className={cn('text-sm text-grappler-300 leading-relaxed', isPromoted ? 'mt-2.5' : 'mt-2')}>{synthesis.narrative}</p>
+                <div className={cn('grid gap-2 mt-3 text-center', synthesis.stats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
+                  {synthesis.stats.workouts > 0 && (
+                    <div>
+                      <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
+                      <p className="text-xs text-grappler-500">Lifts</p>
+                    </div>
+                  )}
+                  {synthesis.stats.combatSessions > 0 && (
+                    <div>
+                      <p className="text-lg font-bold text-purple-400">{synthesis.stats.combatSessions}</p>
+                      <p className="text-xs text-grappler-500">Mat</p>
+                      {synthesis.stats.combatMinutes > 0 && <p className="text-xs text-grappler-600">{synthesis.stats.combatMinutes}m</p>}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
+                    <p className="text-xs text-grappler-500">PRs</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
+                    <p className="text-xs text-grappler-500">RPE</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-grappler-100">
+                      {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
+                    </p>
+                    <p className="text-xs text-grappler-500">Protein</p>
+                  </div>
+                </div>
+                {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
+                  <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
+                    {synthesis.trends.volume !== 'stable' && (
+                      <span className={cn('text-xs font-medium flex items-center gap-1',
+                        synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-blue-400'
+                      )}>
+                        <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
+                        Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
+                      </span>
+                    )}
+                    {synthesis.trends.prs !== 'stable' && (
+                      <span className={cn('text-xs font-medium flex items-center gap-1',
+                        synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-blue-400'
+                      )}>
+                        <Star className="w-3 h-3" />
+                        PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
-            <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
-              {synthesis.trends.volume !== 'stable' && (
-                <span className={cn('text-xs font-medium flex items-center gap-1',
-                  synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-blue-400'
-                )}>
-                  <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
-                  Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
-                </span>
-              )}
-              {synthesis.trends.prs !== 'stable' && (
-                <span className={cn('text-xs font-medium flex items-center gap-1',
-                  synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-blue-400'
-                )}>
-                  <Star className="w-3 h-3" />
-                  PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
+        );
+      })()}
       </CardErrorBoundary>
-
-
-
 
 
 

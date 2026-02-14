@@ -23,6 +23,7 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   AlertTriangle,
   CheckCircle2,
   ArrowRight,
@@ -795,108 +796,198 @@ export default function DietCoach() {
                     </div>
                   )}
 
-                  {/* Weekly check-in */}
+                  {/* Weekly check-in — prominent CTA */}
                   {checkInDue && !showCheckIn && (
                     <button
                       onClick={() => setShowCheckIn(true)}
-                      className="w-full py-2.5 px-4 bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 rounded-xl text-sm font-medium text-violet-300 transition-colors flex items-center justify-center gap-2"
+                      className="w-full p-4 bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 border border-violet-500/30 rounded-xl transition-all active:scale-[0.98] group"
                     >
-                      <Target className="w-4 h-4" />
-                      Weekly Check-in
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0 animate-pulse">
+                          <Target className="w-5 h-5 text-violet-400" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <p className="text-sm font-bold text-violet-200">Weekly Check-in</p>
+                          <p className="text-xs text-grappler-400 mt-0.5">
+                            Review your progress and adjust macros
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-violet-400 group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                     </button>
                   )}
 
-                  {/* Check-in flow */}
-                  {showCheckIn && (
-                    <div className="p-3 bg-grappler-800/60 rounded-xl space-y-3 border border-violet-500/20">
-                      <p className="text-xs font-medium text-violet-300">Weekly Check-in</p>
+                  {/* Check-in flow — full coaching card */}
+                  {showCheckIn && (() => {
+                    const preview = calculateWeeklyAdjustment({
+                      currentMacros: macroTargets,
+                      goal: activeDietPhase.goal,
+                      targetRatePerWeek: activeDietPhase.targetRatePerWeek,
+                      actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
+                      weeksAtPlateau: weightTrend.weeksAtPlateau,
+                      adherencePercent: adherence,
+                      sex: formSex,
+                      isIll,
+                    });
+                    const changeColor = weightTrend.weeklyChange < -0.1 ? 'text-red-400' :
+                      weightTrend.weeklyChange > 0.1 ? 'text-green-400' : 'text-blue-400';
+                    const adjColor = preview.adjustment === 'maintain' ? 'blue' :
+                      preview.adjustment === 'decrease' ? 'red' : 'green';
 
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-grappler-400">Trend weight</span>
-                          <span className="text-white font-medium">{weightTrend.current} {unitLabel}</span>
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-xl border border-violet-500/30 overflow-hidden"
+                      >
+                        {/* Header */}
+                        <div className="p-4 bg-gradient-to-r from-violet-500/15 to-purple-500/15 border-b border-violet-500/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Target className="w-4 h-4 text-violet-400" />
+                            <h3 className="text-sm font-bold text-violet-200">Weekly Check-in</h3>
+                          </div>
+                          <p className="text-xs text-grappler-400">
+                            {activeDietPhase.goal === 'cut' ? 'Cutting phase' :
+                             activeDietPhase.goal === 'bulk' ? 'Building phase' : 'Maintenance'} — Week {activeDietPhase.weeksCompleted + 1}
+                          </p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-grappler-400">Weekly change</span>
-                          <span className={`font-medium ${
-                            weightTrend.weeklyChange < -0.1 ? 'text-red-400' :
-                            weightTrend.weeklyChange > 0.1 ? 'text-green-400' :
-                            'text-blue-400'
-                          }`}>
-                            {weightTrend.weeklyChange > 0 ? '+' : ''}{weightTrend.weeklyChange} {unitLabel}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-grappler-400">Logging adherence</span>
-                          <span className={`font-medium ${adherence >= 70 ? 'text-green-400' : 'text-sky-400'}`}>
-                            {adherence}%
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Preview adjustment */}
-                      {(() => {
-                        const preview = calculateWeeklyAdjustment({
-                          currentMacros: macroTargets,
-                          goal: activeDietPhase.goal,
-                          targetRatePerWeek: activeDietPhase.targetRatePerWeek,
-                          actualWeeklyChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
-                          weeksAtPlateau: weightTrend.weeksAtPlateau,
-                          adherencePercent: adherence,
-                          sex: formSex,
-                          isIll,
-                        });
-                        return (
-                          <div className={`p-2.5 rounded-lg ${
+                        {/* Stats grid */}
+                        <div className="p-4 space-y-3">
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-grappler-800/60 rounded-lg p-2.5">
+                              <p className="text-lg font-bold text-white">{weightTrend.current}</p>
+                              <p className="text-[10px] text-grappler-500 uppercase">{unitLabel} trend</p>
+                            </div>
+                            <div className="bg-grappler-800/60 rounded-lg p-2.5">
+                              <p className={`text-lg font-bold ${changeColor}`}>
+                                {weightTrend.weeklyChange > 0 ? '+' : ''}{weightTrend.weeklyChange}
+                              </p>
+                              <p className="text-[10px] text-grappler-500 uppercase">{unitLabel}/wk</p>
+                            </div>
+                            <div className="bg-grappler-800/60 rounded-lg p-2.5">
+                              <p className={`text-lg font-bold ${adherence >= 70 ? 'text-green-400' : adherence >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                {adherence}%
+                              </p>
+                              <p className="text-[10px] text-grappler-500 uppercase">Logged</p>
+                            </div>
+                          </div>
+
+                          {/* Adherence bar */}
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-grappler-400">Logging consistency</span>
+                              <span className={adherence >= 70 ? 'text-green-400' : 'text-grappler-400'}>{adherence >= 70 ? 'Good' : adherence >= 50 ? 'Needs work' : 'Low'}</span>
+                            </div>
+                            <div className="h-1.5 bg-grappler-700/60 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${adherence >= 70 ? 'bg-green-400' : adherence >= 50 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                                style={{ width: `${Math.min(100, adherence)}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Adjustment decision card */}
+                          <div className={`p-3 rounded-xl ${
                             preview.adjustment === 'maintain' ? 'bg-blue-500/10 border border-blue-500/20' :
                             preview.adjustment === 'decrease' ? 'bg-red-500/10 border border-red-500/20' :
                             'bg-green-500/10 border border-green-500/20'
                           }`}>
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <CheckCircle2 className={`w-3.5 h-3.5 ${
-                                preview.adjustment === 'maintain' ? 'text-blue-400' :
-                                preview.adjustment === 'decrease' ? 'text-red-400' :
-                                'text-green-400'
-                              }`} />
-                              <p className={`text-xs font-medium ${
-                                preview.adjustment === 'maintain' ? 'text-blue-300' :
-                                preview.adjustment === 'decrease' ? 'text-red-300' :
-                                'text-green-300'
+                            <div className="flex items-start gap-2.5">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                preview.adjustment === 'maintain' ? 'bg-blue-500/20' :
+                                preview.adjustment === 'decrease' ? 'bg-red-500/20' :
+                                'bg-green-500/20'
                               }`}>
-                                {preview.adjustment === 'maintain' ? 'Macros stay the same' :
-                                 preview.adjustment === 'decrease' ? 'Reducing macros' :
-                                 'Increasing macros'}
-                              </p>
-                            </div>
-                            <p className="text-xs text-grappler-400">{preview.reason}</p>
-                            {preview.adjustment !== 'maintain' && (
-                              <p className="text-xs text-grappler-300 mt-1">
-                                New: {preview.newMacros.calories} kcal &middot; {preview.newMacros.protein}P / {preview.newMacros.carbs}C / {preview.newMacros.fat}F
-                              </p>
-                            )}
-                            {preview.alert && (
-                              <p className="text-xs text-sky-400 mt-1">{preview.alert}</p>
-                            )}
-                          </div>
-                        );
-                      })()}
+                                <CheckCircle2 className={`w-4 h-4 ${
+                                  preview.adjustment === 'maintain' ? 'text-blue-400' :
+                                  preview.adjustment === 'decrease' ? 'text-red-400' :
+                                  'text-green-400'
+                                }`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-semibold ${
+                                  preview.adjustment === 'maintain' ? 'text-blue-300' :
+                                  preview.adjustment === 'decrease' ? 'text-red-300' :
+                                  'text-green-300'
+                                }`}>
+                                  {preview.adjustment === 'maintain' ? 'Stay the course' :
+                                   preview.adjustment === 'decrease' ? 'Pulling back calories' :
+                                   'Fueling up'}
+                                </p>
+                                <p className="text-xs text-grappler-400 mt-0.5 leading-relaxed">{preview.reason}</p>
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowCheckIn(false)}
-                          className="flex-1 py-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors"
-                        >
-                          Skip
-                        </button>
-                        <button
-                          onClick={handleCheckIn}
-                          className="flex-1 py-2 bg-violet-500 hover:bg-violet-600 rounded-xl text-xs font-medium text-white transition-colors"
-                        >
-                          Apply Adjustment
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                                {/* Before → After macro comparison */}
+                                {preview.adjustment !== 'maintain' && (
+                                  <div className="mt-2 space-y-1">
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className="text-grappler-500 min-w-[40px]">Now:</span>
+                                      <span className="text-grappler-300">
+                                        {macroTargets.calories} kcal · {macroTargets.protein}P / {macroTargets.carbs}C / {macroTargets.fat}F
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <span className={`font-medium min-w-[40px] ${
+                                        preview.adjustment === 'decrease' ? 'text-red-400' : 'text-green-400'
+                                      }`}>New:</span>
+                                      <span className={`font-medium ${
+                                        preview.adjustment === 'decrease' ? 'text-red-300' : 'text-green-300'
+                                      }`}>
+                                        {preview.newMacros.calories} kcal · {preview.newMacros.protein}P / {preview.newMacros.carbs}C / {preview.newMacros.fat}F
+                                      </span>
+                                    </div>
+                                    {/* Delta chips */}
+                                    <div className="flex gap-1.5 mt-1 flex-wrap">
+                                      {(() => {
+                                        const deltas = [
+                                          { label: 'kcal', delta: preview.newMacros.calories - macroTargets.calories },
+                                          { label: 'P', delta: preview.newMacros.protein - macroTargets.protein },
+                                          { label: 'C', delta: preview.newMacros.carbs - macroTargets.carbs },
+                                          { label: 'F', delta: preview.newMacros.fat - macroTargets.fat },
+                                        ].filter(d => d.delta !== 0);
+                                        return deltas.map(d => (
+                                          <span key={d.label} className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                            d.delta > 0 ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'
+                                          }`}>
+                                            {d.delta > 0 ? '+' : ''}{d.delta} {d.label}
+                                          </span>
+                                        ));
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {preview.alert && (
+                                  <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                    <p className="text-xs text-amber-300 flex items-start gap-1.5">
+                                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                      {preview.alert}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => setShowCheckIn(false)}
+                              className="flex-1 py-2.5 text-xs font-medium text-grappler-400 hover:text-grappler-200 bg-grappler-800/40 hover:bg-grappler-800/60 rounded-xl transition-colors"
+                            >
+                              Skip this week
+                            </button>
+                            <button
+                              onClick={handleCheckIn}
+                              className="flex-1 py-2.5 bg-violet-500 hover:bg-violet-600 rounded-xl text-xs font-bold text-white transition-colors active:scale-[0.98]"
+                            >
+                              {preview.adjustment === 'maintain' ? 'Confirm' : 'Apply Changes'}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
 
                   {/* Meal Reminders */}
                   <button

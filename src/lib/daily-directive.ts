@@ -24,6 +24,15 @@ import type {
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
 
+export type TodayType = 'lift' | 'combat' | 'both' | 'rest' | 'recovery';
+
+export interface TodayCombatSession {
+  type: string;
+  category: string;
+  duration: number;
+  intensity: string;
+}
+
 export interface DailyDirective {
   /** One-line mission headline, e.g. "Upper Body Hypertrophy" or "Rest & Recover" */
   headline: string;
@@ -49,6 +58,10 @@ export interface DailyDirective {
   modifierText: string | null;
   /** Fight camp phase tag, e.g. "Intensification · 32d out" */
   fightCampTag: string | null;
+  /** What's actually happening today */
+  todayType: TodayType;
+  /** Today's combat/training sessions */
+  todayCombatSessions: TodayCombatSession[];
 }
 
 interface DirectiveInput {
@@ -115,10 +128,37 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const todayWorkouts = workoutLogs.filter(l => new Date(l.date).toDateString() === todayStr);
   const alreadyTrainedToday = todayWorkouts.length > 0;
 
-  // ─── Determine if should train ───
+  // ─── Today's combat/training sessions ───
+  const todayCombat = trainingSessions.filter(s =>
+    new Date(s.date).toDateString() === todayStr
+  );
+  const todayCombatSessions: TodayCombatSession[] = todayCombat.map(s => ({
+    type: formatActivityType(s.type),
+    category: s.category,
+    duration: s.duration,
+    intensity: s.actualIntensity || s.plannedIntensity,
+  }));
+  const hasCombatToday = todayCombatSessions.length > 0;
+
+  // ─── Determine today type ───
   const isCritical = readiness.overall < 30;
   const isLow = readiness.overall < 45;
   const shouldTrain = !isCritical && !alreadyTrainedToday && nextSession !== null;
+
+  let todayType: TodayType;
+  if (alreadyTrainedToday && !hasCombatToday) {
+    todayType = 'recovery';
+  } else if (isCritical) {
+    todayType = 'rest';
+  } else if (shouldTrain && hasCombatToday) {
+    todayType = 'both';
+  } else if (shouldTrain) {
+    todayType = 'lift';
+  } else if (hasCombatToday) {
+    todayType = 'combat';
+  } else {
+    todayType = 'rest';
+  }
 
   // ─── Session label ───
   let sessionLabel: string | null = null;
@@ -128,32 +168,58 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
   // ─── Build headline ───
   let headline: string;
-  if (alreadyTrainedToday) {
-    headline = 'Recovery Mode';
-  } else if (isCritical) {
-    headline = 'Rest Day';
-  } else if (!nextSession) {
-    headline = currentMesocycle ? 'Block Complete' : 'Ready to Start';
-  } else if (isDeload) {
-    headline = `Deload — ${nextSession.name}`;
-  } else {
-    headline = nextSession.name;
+  switch (todayType) {
+    case 'recovery':
+      headline = 'Recovery Mode';
+      break;
+    case 'rest':
+      headline = 'Rest & Recover';
+      break;
+    case 'combat':
+      headline = todayCombatSessions.length === 1
+        ? todayCombatSessions[0].type
+        : `${todayCombatSessions[0].type} + ${todayCombatSessions.length - 1} more`;
+      break;
+    case 'both':
+      headline = nextSession ? nextSession.name : 'Training Day';
+      break;
+    case 'lift':
+    default:
+      if (!nextSession) {
+        headline = currentMesocycle ? 'Block Complete' : 'Ready to Start';
+      } else if (isDeload) {
+        headline = `Deload — ${nextSession.name}`;
+      } else {
+        headline = nextSession.name;
+      }
+      break;
   }
 
   // ─── Build subline ───
-  const subline = buildSubline(readiness.overall, readiness.level, wearableData, alreadyTrainedToday, isDeload);
+  const subline = buildSubline(readiness.overall, readiness.level, wearableData, todayType, isDeload, todayCombatSessions);
 
   // ─── Build actions ───
   const actions: string[] = [];
 
-  if (shouldTrain && nextSession) {
-    const exerciseCount = nextSession.exercises.length;
-    const duration = nextSession.estimatedDuration;
-    actions.push(`${exerciseCount} exercises, ~${duration}min session`);
-  } else if (alreadyTrainedToday) {
+  if (todayType === 'both' && nextSession) {
+    actions.push(`${nextSession.exercises.length} exercises, ~${nextSession.estimatedDuration}min lift`);
+    const combatLabel = todayCombatSessions.map(s => `${s.type} (${s.duration}min)`).join(' + ');
+    actions.push(combatLabel);
+  } else if (todayType === 'lift' && shouldTrain && nextSession) {
+    actions.push(`${nextSession.exercises.length} exercises, ~${nextSession.estimatedDuration}min session`);
+  } else if (todayType === 'combat') {
+    const combatLabel = todayCombatSessions.map(s => `${s.type} · ${s.duration}min`).join(', ');
+    actions.push(combatLabel);
+    if (nextSession) {
+      actions.push(`Next lift: ${nextSession.name}`);
+    }
+  } else if (todayType === 'recovery') {
     actions.push('Focus on recovery — stretch, hydrate, eat well');
-  } else if (isCritical) {
-    actions.push('Rest today — your body needs recovery');
+  } else if (todayType === 'rest') {
+    actions.push('Fuel up, stretch, and let adaptation happen');
+    if (nextSession) {
+      actions.push(`Next up: ${nextSession.name}`);
+    }
   } else if (!nextSession && currentMesocycle) {
     actions.push('Generate your next training block');
   }
@@ -216,6 +282,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     proteinGap,
     modifierText,
     fightCampTag,
+    todayType,
+    todayCombatSessions,
   };
 }
 
@@ -244,10 +312,11 @@ function buildSubline(
   score: number,
   level: ReadinessLevel,
   wearable: WearableData | null,
-  alreadyTrained: boolean,
-  isDeload: boolean
+  todayType: TodayType,
+  isDeload: boolean,
+  combatSessions: TodayCombatSession[],
 ): string {
-  if (alreadyTrained) {
+  if (todayType === 'recovery') {
     return 'Great work today. Focus on nutrition and rest.';
   }
 
@@ -271,33 +340,50 @@ function buildSubline(
     else if (rec < 34) parts.push(`low recovery ${rec}%`);
   }
 
-  if (isDeload) {
-    return parts.length > 0
-      ? `${parts.join(' · ')} — deload week, keep it light`
-      : 'Deload week — lighter loads, focus on form';
+  const ctx = parts.length > 0 ? `${parts.join(' · ')} — ` : '';
+
+  if (todayType === 'rest') {
+    return `${ctx}Rest day — fuel up, stretch, let your body adapt`;
   }
 
-  // Level-based motivation
+  if (todayType === 'combat' && combatSessions.length > 0) {
+    const totalMin = combatSessions.reduce((s, c) => s + c.duration, 0);
+    return `${ctx}${totalMin}min on the mats — no lifting today`;
+  }
+
+  if (todayType === 'both' && combatSessions.length > 0) {
+    return `${ctx}Lifting + mat time today — manage your energy`;
+  }
+
+  if (isDeload) {
+    return `${ctx}Deload week — lighter loads, focus on form`;
+  }
+
+  // Level-based motivation for lift days
   switch (level) {
     case 'peak':
-      return parts.length > 0
-        ? `${parts.join(' · ')} — push hard today`
-        : 'Everything is aligned — make it count';
+      return `${ctx}${ctx ? 'push hard today' : 'Everything is aligned — make it count'}`;
     case 'good':
-      return parts.length > 0
-        ? `${parts.join(' · ')} — solid day ahead`
-        : 'Good shape today — train with intent';
+      return `${ctx}${ctx ? 'solid day ahead' : 'Good shape today — train with intent'}`;
     case 'moderate':
-      return parts.length > 0
-        ? `${parts.join(' · ')} — listen to your body`
-        : 'Moderate readiness — adjust if needed';
+      return `${ctx}${ctx ? 'listen to your body' : 'Moderate readiness — adjust if needed'}`;
     case 'low':
-      return parts.length > 0
-        ? `${parts.join(' · ')} — consider lighter session`
-        : 'Low readiness — reduce intensity today';
+      return `${ctx}${ctx ? 'consider lighter session' : 'Low readiness — reduce intensity today'}`;
     case 'critical':
       return 'Multiple recovery factors are low — rest is the best training today';
     default:
       return score >= 65 ? 'Ready to train' : 'Take it easy today';
   }
+}
+
+function formatActivityType(type: string): string {
+  const labels: Record<string, string> = {
+    bjj_gi: 'BJJ Gi', bjj_nogi: 'BJJ No-Gi', wrestling: 'Wrestling',
+    judo: 'Judo', sambo: 'Sambo', boxing: 'Boxing',
+    kickboxing: 'Kickboxing', muay_thai: 'Muay Thai', karate: 'Karate',
+    taekwondo: 'Taekwondo', mma: 'MMA', running: 'Running',
+    cycling: 'Cycling', swimming: 'Swimming', rowing: 'Rowing',
+    jump_rope: 'Jump Rope', elliptical: 'Elliptical',
+  };
+  return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }

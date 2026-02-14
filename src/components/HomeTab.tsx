@@ -1205,76 +1205,134 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
       </AnimatePresence>
 
-      {/* ─── Daily Directive — your single mission for today ─── */}
-      <CardErrorBoundary fallbackLabel="Daily Directive">
-      {(() => {
-        const levelBg: Record<string, string> = {
-          peak: 'from-green-500/15 to-emerald-500/10 border-green-500/30',
-          good: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30',
-          moderate: 'from-yellow-500/15 to-blue-500/10 border-yellow-500/30',
-          low: 'from-blue-500/15 to-red-500/10 border-blue-500/30',
-          critical: 'from-red-500/15 to-rose-500/10 border-red-500/30',
-        };
-        const levelIcon: Record<string, string> = {
-          peak: 'text-green-400',
-          good: 'text-blue-400',
-          moderate: 'text-yellow-400',
-          low: 'text-blue-400',
-          critical: 'text-red-400',
-        };
-        const bg = levelBg[directive.readinessLevel] || levelBg.moderate;
-        const ic = levelIcon[directive.readinessLevel] || levelIcon.moderate;
-        return (
-          <div className={cn('rounded-xl p-4 border bg-gradient-to-r', bg)}>
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex-1 min-w-0">
+      {/* ─── TODAY'S MISSION — unified directive + action card ─── */}
+      {(directive.todayType === 'rest' || directive.todayType === 'recovery') && !nextWorkout ? (
+        /* Pure rest / recovery — no pending lift */
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-grappler-700 bg-gradient-to-br from-grappler-800 to-grappler-900 p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Moon className="w-4 h-4 text-indigo-400" />
+                {directive.fightCampTag && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
+                )}
+              </div>
+              <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
+              <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
+            </div>
+            <div className="text-right flex-shrink-0 ml-3">
+              <p className={cn('text-2xl font-black', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
+              <p className="text-[10px] text-grappler-500">Readiness</p>
+            </div>
+          </div>
+          {directive.actions.length > 0 && (
+            <div className="space-y-1.5">
+              {directive.actions.map((a, i) => (
+                <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
+              ))}
+            </div>
+          )}
+          {mesocycleProgress && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-grappler-500 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
+              <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+            </div>
+          )}
+        </motion.div>
+
+      ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') && nextWorkout ? (
+        /* Rest/recovery day but there IS a pending lift — show rest card with subtle lift CTA */
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+          <div className="rounded-2xl border border-grappler-700 bg-gradient-to-br from-grappler-800 to-grappler-900 p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Zap className={cn('w-4 h-4', ic)} />
-                  {directive.sessionLabel && (
-                    <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">
-                      {directive.sessionLabel}
-                    </span>
-                  )}
-                  {directive.isDeload && (
-                    <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Deload</span>
-                  )}
+                  <Moon className="w-4 h-4 text-indigo-400" />
                   {directive.fightCampTag && (
-                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">
-                      {directive.fightCampTag}
-                    </span>
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
                   )}
                 </div>
-                <h2 className="text-lg font-black text-grappler-100 leading-tight">{directive.headline}</h2>
-                <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
+                <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
+                <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
               </div>
               <div className="text-right flex-shrink-0 ml-3">
-                <p className={cn('text-2xl font-black', ic)}>{directive.readinessScore}</p>
-                <p className="text-xs text-grappler-500">Readiness</p>
-                <p className="text-xs text-grappler-600 mt-0.5">
-                  {recoveryScore != null ? 'sleep + strain + nutrition' : 'training load + recovery'}
-                </p>
+                <p className={cn('text-2xl font-black', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
+                <p className="text-[10px] text-grappler-500">Readiness</p>
+              </div>
+            </div>
+            {directive.actions.length > 0 && (
+              <div className="space-y-1.5">
+                {directive.actions.map((a, i) => (
+                  <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
+                ))}
+              </div>
+            )}
+            {mesocycleProgress && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-grappler-500 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
+                <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+              </div>
+            )}
+          </div>
+          {/* Subtle lift CTA for rest days */}
+          <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
+            <Dumbbell className="w-5 h-5 text-grappler-500" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-grappler-400">Want to lift anyway?</p>
+              <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
+            </div>
+            <Play className="w-4 h-4 text-grappler-500" />
+          </button>
+        </motion.div>
+
+      ) : directive.todayType === 'combat' && nextWorkout ? (
+        /* Combat day with pending lift available */
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+          <div className="rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-500 p-5">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="w-4 h-4 text-white/80" />
+                  <span className="text-xs text-white/60 font-bold uppercase tracking-wide">Mat Day</span>
+                  {directive.fightCampTag && (
+                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-white/80">{directive.fightCampTag}</span>
+                  )}
+                </div>
+                <h2 className="text-xl font-black text-white">{directive.headline}</h2>
+                <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
+              </div>
+              <div className="text-right flex-shrink-0 ml-3">
+                <p className="text-2xl font-black text-white/90">{directive.readinessScore}</p>
+                <p className="text-[10px] text-white/40">Readiness</p>
               </div>
             </div>
             {directive.actions.length > 0 && (
               <div className="mt-2 space-y-1">
-                {directive.actions.map((action, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-grappler-300">{action}</p>
-                  </div>
+                {directive.actions.map((a, i) => (
+                  <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-white/40 flex-shrink-0 mt-0.5" /><p className="text-xs text-white/70">{a}</p></div>
                 ))}
               </div>
             )}
-            {directive.modifierText && (
-              <p className="text-xs text-grappler-500 mt-2 italic">{directive.modifierText}</p>
+            {mesocycleProgress && (
+              <div className="flex items-center gap-2 mt-3">
+                <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden"><div className="h-full bg-white/50 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
+                <span className="text-xs text-white/40">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+              </div>
             )}
           </div>
-        );
-      })()}
-      </CardErrorBoundary>
+          {/* Secondary lift CTA */}
+          <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
+            <Dumbbell className="w-5 h-5 text-primary-400" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-grappler-400">Also want to lift?</p>
+              <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name} · {nextWorkout.exercises.length} exercises</p>
+            </div>
+            <Play className="w-4 h-4 text-grappler-500" />
+          </button>
+        </motion.div>
 
-      {/* ─── HERO: Start Next Workout ─── */}
-      {nextWorkout ? (
+      ) : nextWorkout ? (
+        /* Lift day (or both) — enhanced hero with exercise preview */
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1283,67 +1341,69 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           <button
             onClick={() => startWorkout(nextWorkout)}
             className={cn(
-              "w-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl p-5 text-left active:scale-[0.98] transition-transform",
+              "w-full rounded-2xl p-5 text-left active:scale-[0.98] transition-transform bg-gradient-to-r",
+              directive.todayType === 'both' ? 'from-primary-500 via-purple-500 to-indigo-500' : 'from-primary-500 to-accent-500',
               workoutLogs.length === 0 && "ring-2 ring-primary-400/60 ring-offset-2 ring-offset-grappler-900 animate-pulse"
             )}
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
-                  {nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}${nextWorkoutInfo.isDeload ? ' · Deload' : ''}` : 'Next Workout'}
-                </p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
+                    {directive.sessionLabel || (nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}` : 'Next Workout')}
+                    {nextWorkoutInfo?.isDeload ? ' · Deload' : ''}
+                  </p>
+                  {directive.todayType === 'both' && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-white/80">+ Mat Time</span>
+                  )}
+                  {directive.fightCampTag && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-white/80">{directive.fightCampTag}</span>
+                  )}
+                </div>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
-                <div className="flex items-center gap-3 mt-2 text-sm text-white/80">
-                  <span className="flex items-center gap-1">
-                    <Dumbbell className="w-3.5 h-3.5" />
-                    {nextWorkout.exercises.length} exercises
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    ~{nextWorkout.estimatedDuration}m
-                  </span>
+                <p className="text-xs text-white/50 mt-1">{directive.subline}</p>
+                {/* Exercise preview */}
+                <p className="text-xs text-white/60 mt-2 leading-relaxed">
+                  {nextWorkout.exercises.slice(0, 3).map(e => e.exercise.name).join(' · ')}
+                  {nextWorkout.exercises.length > 3 && ` · +${nextWorkout.exercises.length - 3} more`}
+                </p>
+                <div className="flex items-center gap-3 mt-1.5 text-sm text-white/80">
+                  <span className="flex items-center gap-1"><Dumbbell className="w-3.5 h-3.5" />{nextWorkout.exercises.length} exercises</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />~{nextWorkout.estimatedDuration}m</span>
                 </div>
                 {mesocycleProgress && (
                   <div className="flex items-center gap-2 mt-2.5">
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-white/60 rounded-full"
-                        style={{ width: `${mesocycleProgress.percent}%` }}
-                      />
-                    </div>
+                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden"><div className="h-full bg-white/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
                     <span className="text-xs text-white/60">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
                   </div>
                 )}
               </div>
-              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                <Play className="w-7 h-7 text-white" />
+              <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
+                <div className="text-center">
+                  <p className="text-2xl font-black text-white/90">{directive.readinessScore}</p>
+                  <p className="text-[10px] text-white/40">Readiness</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Play className="w-6 h-6 text-white" />
+                </div>
               </div>
             </div>
           </button>
+          {/* Combat callout when both */}
+          {directive.todayType === 'both' && directive.todayCombatSessions.length > 0 && (
+            <div className="flex items-center gap-2 px-2">
+              <Shield className="w-3.5 h-3.5 text-purple-400" />
+              <p className="text-xs text-grappler-400">
+                Also today: {directive.todayCombatSessions.map(s => `${s.type} (${s.duration}min)`).join(', ')}
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={handleQuickWorkout}
-              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Quick 30m
-            </button>
+            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
             <span className="text-grappler-700">·</span>
-            <button
-              onClick={() => setShowSkipDialog(true)}
-              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
-            >
-              <SkipForward className="w-3.5 h-3.5" />
-              Skip
-            </button>
+            <button onClick={() => setShowSkipDialog(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip</button>
             <span className="text-grappler-700">·</span>
-            <button
-              onClick={() => setShowValidateConfirm(true)}
-              className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              Validate Block
-            </button>
+            <button onClick={() => setShowValidateConfirm(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"><CheckCircle className="w-3.5 h-3.5" />Validate Block</button>
           </div>
 
           {/* Validate block confirmation */}
@@ -1360,19 +1420,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     Complete current block{mesocycleQueue.length > 0 ? ` and start ${mesocycleQueue[0].name}?` : ' and generate next?'}
                   </p>
                   <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => setShowValidateConfirm(false)}
-                      className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleValidateBlock}
-                      className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      Validate
-                    </button>
+                    <button onClick={() => setShowValidateConfirm(false)} className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600">Cancel</button>
+                    <button onClick={handleValidateBlock} className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"><CheckCircle className="w-3.5 h-3.5" />Validate</button>
                   </div>
                 </div>
               </motion.div>

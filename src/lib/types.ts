@@ -314,6 +314,8 @@ export interface GamificationStats {
   dualTrainingDays: number;       // Days with both lifting + training
   challengesCompleted: number;    // Total weekly challenges completed
   lastActiveDate: string | null;  // ISO date string of last activity
+  smartRestDays: number;          // Total smart rest days (rested when readiness low)
+  lastSmartRestDate: string | null; // Prevents double-awarding same day
 }
 
 // Weekly Challenge system

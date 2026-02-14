@@ -543,7 +543,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const todayMeals = meals.filter(m =>
     new Date(m.date).toDateString() === todayStr
   );
-  const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+  const todayProtein = +todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0).toFixed(1);
 
   // Yesterday's data for comparison
   const yesterday = new Date(today);

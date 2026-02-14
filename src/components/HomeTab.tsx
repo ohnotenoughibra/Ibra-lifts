@@ -110,7 +110,7 @@ function ReadinessCard() {
   };
 
   return (
-    <div className={cn('rounded-xl p-3 mb-3 border', levelColors[summary.level] || levelColors.moderate)}>
+    <div className={cn('p-3 border-b', levelColors[summary.level] || levelColors.moderate)}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4" />
@@ -1697,70 +1697,57 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </button>
         )}
 
-        {showReadiness && <ReadinessCard />}
+        {/* ─── Unified Readiness + Activity ─── */}
+        {showReadiness && (() => {
+          return (
+            <div className="card overflow-hidden">
+              {/* ReadinessCard integrated */}
+              <ReadinessCard />
 
-        {/* Performance Readiness — nutrition-focused composite score */}
-        <PerformanceReadiness />
+              {/* Activity row — compact, inside the same card */}
+              <div className="grid grid-cols-3 gap-px bg-grappler-700/30">
+                {user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness' ? (
+                  <button
+                    onClick={() => onNavigate('grappling')}
+                    className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                  >
+                    <Shield className="w-3.5 h-3.5 text-lime-400" />
+                    <span className="text-base font-bold text-grappler-100">{todayTraining.length}</span>
+                    <span className="text-[10px] text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Mat' : 'Training'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
+                    className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-base font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
+                    <span className="text-[10px] text-grappler-500">Vol ({weightUnit})</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
+                  className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                >
+                  <Dumbbell className="w-3.5 h-3.5 text-primary-400" />
+                  <span className="text-base font-bold text-grappler-100">{todayWorkouts.length}</span>
+                  <span className="text-[10px] text-grappler-500">Lifts</span>
+                </button>
+                <button
+                  onClick={() => onNavigate('nutrition')}
+                  className="flex flex-col items-center gap-0.5 py-2.5 bg-grappler-900 hover:bg-grappler-800/80 transition-colors"
+                >
+                  <Apple className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-base font-bold text-grappler-100">{todayProtein}g</span>
+                  <span className="text-[10px] text-grappler-500">Protein{macroTargets.protein > 0 ? ` (${Math.round((todayProtein / macroTargets.protein) * 100)}%)` : ''}</span>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
-        {/* Activity row — adaptive to training identity */}
-        <div className="grid grid-cols-3 gap-2">
-          {user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness' ? (
-            <button
-              onClick={() => onNavigate('grappling')}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-            >
-              <Shield className="w-4 h-4 text-lime-400" />
-              <span className="text-lg font-bold text-grappler-100">{todayTraining.length}</span>
-              <span className="text-xs text-grappler-500">{user?.trainingIdentity === 'combat' ? 'Grappling' : 'Training'}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
-              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-            >
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-lg font-bold text-grappler-100">{formatNumber(todayWorkouts.reduce((s, l) => s + l.totalVolume, 0))}</span>
-              <span className="text-xs text-grappler-500">Volume ({weightUnit})</span>
-              {yesterdayVolume > 0 && (() => {
-                const todayVol = todayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
-                const diff = todayVol - yesterdayVolume;
-                if (diff === 0) return null;
-                return <span className={cn('text-[10px]', diff > 0 ? 'text-green-500' : 'text-red-400')}>{diff > 0 ? '+' : ''}{formatNumber(diff)} vs yday</span>;
-              })()}
-            </button>
-          )}
-          <button
-            onClick={() => currentMesocycle && nextWorkout ? startWorkout(nextWorkout) : onNavigate('builder')}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-          >
-            <Dumbbell className="w-4 h-4 text-primary-400" />
-            <span className="text-lg font-bold text-grappler-100">{todayWorkouts.length}</span>
-            <span className="text-xs text-grappler-500">Lifting</span>
-            {yesterdayWorkouts.length > 0 && todayWorkouts.length !== yesterdayWorkouts.length && (
-              <span className={cn('text-[10px]', todayWorkouts.length > yesterdayWorkouts.length ? 'text-green-500' : 'text-grappler-600')}>
-                {todayWorkouts.length > yesterdayWorkouts.length ? '+' : ''}{todayWorkouts.length - yesterdayWorkouts.length} vs yday
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => onNavigate('nutrition')}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors"
-          >
-            <Apple className="w-4 h-4 text-red-400" />
-            <span className="text-lg font-bold text-grappler-100">{todayProtein}g</span>
-            <span className="text-xs text-grappler-500">Protein</span>
-            {macroTargets.protein > 0 && (
-              <span className="text-xs text-grappler-600">
-                {Math.round((todayProtein / macroTargets.protein) * 100)}% of goal
-              </span>
-            )}
-            {yesterdayProtein > 0 && todayProtein !== yesterdayProtein && (
-              <span className={cn('text-[10px]', todayProtein > yesterdayProtein ? 'text-green-500' : 'text-red-400')}>
-                {todayProtein > yesterdayProtein ? '+' : ''}{todayProtein - yesterdayProtein}g vs yday
-              </span>
-            )}
-          </button>
-        </div>
+        {/* Performance Readiness — nutrition-focused (only when ReadinessCard hidden) */}
+        {!showReadiness && <PerformanceReadiness />}
       </div>
 
       {/* ─── Contextual Feed (max 4, priority-ranked, dismissible) ─── */}

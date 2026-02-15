@@ -38,6 +38,11 @@ export interface WeeklySynthesisData {
   };
   /** Whether there's enough data to show */
   hasData: boolean;
+  /** For insights engine — last week stats */
+  lastWeekVolume: number;
+  lastWorkouts: number;
+  stalledExercises: string[];
+  isMidWeek: boolean;
 }
 
 export function generateWeeklySynthesis(opts: {
@@ -164,6 +169,8 @@ export function generateWeeklySynthesis(opts: {
       })
     : 'Start logging workouts or training sessions this week to get your personalized coaching summary.';
 
+  const stalledExercises = findStalledExercises(thisWeekLogs, lastWeekLogs);
+
   return {
     narrative,
     stats: {
@@ -182,6 +189,10 @@ export function generateWeeklySynthesis(opts: {
       consistency: consistencyTrend,
     },
     hasData,
+    lastWeekVolume: lastVolume,
+    lastWorkouts,
+    stalledExercises,
+    isMidWeek,
   };
 }
 
@@ -390,6 +401,185 @@ function findStalledExercises(thisWeek: WorkoutLog[], lastWeek: WorkoutLog[]): s
  * Generate a contextual coaching line for the post-workout celebration modal.
  * This gives the user one meaningful insight about their just-completed session.
  */
+// ─── Structured Weekly Insights ─────────────────────────────────────────────
+
+export type InsightType = 'win' | 'trend' | 'warning' | 'nutrition' | 'combat' | 'one_thing';
+
+export interface WeeklyInsight {
+  type: InsightType;
+  icon: 'trophy' | 'trending' | 'alert' | 'target' | 'shield' | 'crosshair';
+  label: string;
+  text: string;
+  color: 'gold' | 'green' | 'red' | 'amber' | 'blue' | 'purple' | 'primary';
+}
+
+/**
+ * Generate structured insight chips for the weekly coaching card.
+ * Returns 3-4 prioritized insights — always ending with "One Thing" focus.
+ */
+export function generateWeeklyInsights(opts: {
+  stats: WeeklySynthesisData['stats'];
+  trends: WeeklySynthesisData['trends'];
+  lastWeekVolume: number;
+  lastWorkouts: number;
+  weightUnit: WeightUnit;
+  stalledExercises: string[];
+  isMidWeek: boolean;
+}): WeeklyInsight[] {
+  const { stats, trends, lastWeekVolume, lastWorkouts, weightUnit, stalledExercises, isMidWeek } = opts;
+  const insights: WeeklyInsight[] = [];
+
+  // ── Big Win (gold) — lead with the positive ──
+  if (stats.prs > 0) {
+    const prText = stats.prs >= 3
+      ? `${stats.prs} PRs this week — you're in a peak phase. Ride this wave.`
+      : stats.prs === 1
+        ? `PR hit this week. Small wins compound into big strength.`
+        : `${stats.prs} PRs this week — the program is working.`;
+    insights.push({ type: 'win', icon: 'trophy', label: 'Big Win', text: prText, color: 'gold' });
+  } else if (stats.workouts >= (lastWorkouts || 0) && stats.workouts >= 3) {
+    insights.push({ type: 'win', icon: 'trophy', label: 'Consistency', text: `${stats.workouts} sessions logged — showing up is the hardest part. You did it.`, color: 'gold' });
+  }
+
+  // ── Volume Trend ──
+  const volDelta = lastWeekVolume > 0
+    ? Math.round(((stats.totalVolume - lastWeekVolume) / lastWeekVolume) * 100)
+    : 0;
+
+  if (trends.volume === 'up' && volDelta > 0) {
+    insights.push({
+      type: 'trend', icon: 'trending', label: 'Volume',
+      text: isMidWeek
+        ? `Already +${volDelta}% volume vs last week and still climbing.`
+        : `+${volDelta}% volume vs last week — progressive overload locked in.`,
+      color: 'green',
+    });
+  } else if (trends.volume === 'down' && !isMidWeek && volDelta < 0) {
+    const fatigueNote = stats.avgRPE > 8.5 ? ' RPE is high — could be accumulated fatigue.' : '';
+    insights.push({
+      type: 'trend', icon: 'trending', label: 'Volume',
+      text: `${Math.abs(volDelta)}% less volume than last week.${fatigueNote}`,
+      color: 'red',
+    });
+  }
+
+  // ── RPE Warning ──
+  if (stats.avgRPE >= 9.0 && stats.workouts >= 2) {
+    insights.push({
+      type: 'warning', icon: 'alert', label: 'Intensity',
+      text: `Avg RPE ${stats.avgRPE} — you're grinding near your ceiling. ${isMidWeek ? 'Ease into the remaining sessions.' : 'Watch for fatigue signals next week.'}`,
+      color: 'amber',
+    });
+  } else if (stats.avgRPE > 0 && stats.avgRPE <= 6.5 && stats.workouts >= 3) {
+    insights.push({
+      type: 'trend', icon: 'trending', label: 'Intensity',
+      text: `Avg RPE ${stats.avgRPE} — there's room to push harder. Add weight or reps.`,
+      color: 'green',
+    });
+  }
+
+  // ── Stalled Exercises ──
+  if (stalledExercises.length > 0) {
+    const names = stalledExercises.slice(0, 2).join(' and ');
+    insights.push({
+      type: 'warning', icon: 'alert', label: 'Plateau',
+      text: `${names} stalled vs last week — try different rep range or add a back-off set.`,
+      color: 'amber',
+    });
+  }
+
+  // ── Nutrition ──
+  if (stats.proteinAdherence !== null) {
+    if (stats.proteinAdherence >= 85) {
+      insights.push({
+        type: 'nutrition', icon: 'target', label: 'Nutrition',
+        text: `Protein adherence ${stats.proteinAdherence}% — your recovery is fully fueled.`,
+        color: 'green',
+      });
+    } else if (stats.proteinAdherence < 60) {
+      insights.push({
+        type: 'nutrition', icon: 'target', label: 'Nutrition',
+        text: `Protein at ${stats.proteinAdherence}% — you're leaving recovery and gains on the table.`,
+        color: 'blue',
+      });
+    }
+  }
+
+  // ── Combat Load ──
+  if (stats.combatSessions > 0 && stats.workouts >= 4 && stats.combatSessions >= 3) {
+    insights.push({
+      type: 'combat', icon: 'shield', label: 'Training Load',
+      text: `${stats.workouts} lifts + ${stats.combatSessions} mat sessions — high total load. Monitor fatigue closely.`,
+      color: 'purple',
+    });
+  } else if (stats.combatSessions > 0 && stats.combatMinutes > 0) {
+    insights.push({
+      type: 'combat', icon: 'shield', label: 'Mat Time',
+      text: `${stats.combatMinutes}min across ${stats.combatSessions} session${stats.combatSessions !== 1 ? 's' : ''} on the mats.`,
+      color: 'purple',
+    });
+  }
+
+  // ── Recovery ──
+  if (stats.avgReadiness !== null) {
+    if (stats.avgReadiness < 40) {
+      insights.push({
+        type: 'warning', icon: 'alert', label: 'Recovery',
+        text: `Recovery averaging ${stats.avgReadiness}% — ${isMidWeek ? 'prioritize sleep and nutrition this week' : 'consider an extra rest day next week'}.`,
+        color: 'amber',
+      });
+    }
+  }
+
+  // ── One Thing (always last) — single actionable focus ──
+  const oneThing = pickOneThing(stats, trends, stalledExercises, isMidWeek);
+  insights.push({
+    type: 'one_thing', icon: 'crosshair', label: 'Your One Thing',
+    text: oneThing,
+    color: 'primary',
+  });
+
+  // Limit to 4 total (3 insights + One Thing)
+  if (insights.length > 4) {
+    const oneThingInsight = insights[insights.length - 1];
+    const topInsights = insights.slice(0, insights.length - 1).slice(0, 3);
+    return [...topInsights, oneThingInsight];
+  }
+
+  return insights;
+}
+
+function pickOneThing(
+  stats: WeeklySynthesisData['stats'],
+  trends: WeeklySynthesisData['trends'],
+  stalledExercises: string[],
+  isMidWeek: boolean,
+): string {
+  // Priority order: biggest limiting factor first
+  if (stats.proteinAdherence !== null && stats.proteinAdherence < 60) {
+    return `Hit your protein target 5 of 7 days next week. Everything else follows recovery.`;
+  }
+  if (stats.avgRPE >= 9.0 && stats.workouts >= 3) {
+    return `Leave 1-2 reps in the tank next week. RPE 7-8 builds more than RPE 10.`;
+  }
+  if (stalledExercises.length > 0) {
+    return `Switch ${stalledExercises[0]} to a different rep range next block. Variation breaks plateaus.`;
+  }
+  if (stats.avgReadiness !== null && stats.avgReadiness < 40) {
+    return `Add 30 min to your sleep this week. Recovery is the biggest untapped lever.`;
+  }
+  if (trends.volume === 'down' && !isMidWeek) {
+    return `Add one extra set per exercise next week to recover volume.`;
+  }
+  if (stats.proteinAdherence !== null && stats.proteinAdherence < 85) {
+    return `Push protein adherence from ${stats.proteinAdherence}% toward 85%+ next week.`;
+  }
+  if (stats.prs > 0) {
+    return `Keep doing exactly this. Don't change what's working.`;
+  }
+  return `Stay consistent. Show up, train with intent, recover hard.`;
+}
+
 export function generatePostWorkoutCoachingLine(
   log: WorkoutLog,
   previousLogs: WorkoutLog[],

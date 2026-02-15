@@ -34,6 +34,7 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Download,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
@@ -1019,6 +1020,26 @@ export default function ProfileSettings() {
                 </div>
               </div>
             )}
+
+            <button
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem('roots-gains-storage');
+                  if (!raw) return;
+                  const blob = new Blob([raw], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `roots-gains-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch { /* ignore */ }
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-grappler-700 text-grappler-200 font-medium text-sm hover:bg-grappler-600 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export Data Backup
+            </button>
 
             <button
               onClick={() => {

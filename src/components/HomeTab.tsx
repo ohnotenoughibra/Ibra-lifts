@@ -1840,126 +1840,140 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         {!showReadiness && <PerformanceReadiness />}
       </div>
 
-      {/* ─── Contextual Feed (max 4, priority-ranked, dismissible) ─── */}
+      {/* ─── INTEL FEED — priority-ranked compact chips ─── */}
       {(() => {
-        const visibleCards = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
-        return visibleCards.length > 0 ? (
-          <div className="space-y-3">
-            {visibleCards.map(card => {
-              const key = (card as React.ReactElement).key as string;
-              return (
-                <div key={key} className="relative">
-                  {card}
-                  <button
-                    onClick={() => setDismissedCards(prev => { const next = new Set(Array.from(prev)); next.add(key); return next; })}
-                    className="absolute top-2 right-2 p-1 rounded-full bg-grappler-900/60 text-grappler-600 hover:text-grappler-300 transition-colors z-10"
-                    aria-label="Dismiss"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+        // Build intel items ranked by signal strength
+        const intelItems: { key: string; priority: number; content: React.ReactNode }[] = [];
+
+        // P1: Weekly momentum — always shown (rendered above in its own section)
+
+        // P2: Top coaching insight (from weekly synthesis)
+        if (showWeeklySynthesis && weeklyInsights.length > 0) {
+          const topInsight = weeklyInsights[0];
+          const INTEL_COLORS: Record<string, string> = {
+            gold: 'border-l-yellow-400', green: 'border-l-green-400', red: 'border-l-red-400',
+            amber: 'border-l-amber-400', blue: 'border-l-blue-400', purple: 'border-l-purple-400',
+            primary: 'border-l-primary-400',
+          };
+          const INTEL_ICONS: Record<string, React.ReactNode> = {
+            trophy: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
+            trending: <TrendingUp className="w-3.5 h-3.5 text-green-400" />,
+            alert: <AlertTriangle className="w-3.5 h-3.5 text-red-400" />,
+            target: <Target className="w-3.5 h-3.5 text-primary-400" />,
+            shield: <Shield className="w-3.5 h-3.5 text-purple-400" />,
+            crosshair: <Crosshair className="w-3.5 h-3.5 text-blue-400" />,
+          };
+
+          intelItems.push({
+            key: 'coaching',
+            priority: topInsight.type === 'win' || topInsight.type === 'warning' ? 2 : 5,
+            content: (
+              <button
+                onClick={() => setWeeklyCoachingExpanded(v => v !== null ? !v : true)}
+                className={cn(
+                  'w-full card px-3 py-2.5 text-left border-l-2 flex items-start gap-2.5 hover:bg-grappler-800/40 transition-colors',
+                  INTEL_COLORS[topInsight.color] || 'border-l-primary-400',
+                )}
+              >
+                <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[topInsight.icon]}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-grappler-400">{topInsight.label}</span>
+                  <p className="text-xs text-grappler-300 mt-0.5 leading-snug">{topInsight.text}</p>
+                  {weeklyInsights.length > 1 && (
+                    <p className="text-[10px] text-grappler-600 mt-1">+{weeklyInsights.length - 1} more insights ▾</p>
+                  )}
                 </div>
-              );
-            })}
+              </button>
+            ),
+          });
+
+          // Expanded coaching — show all insights
+          if (weeklyCoachingExpanded) {
+            intelItems.push({
+              key: 'coaching-expanded',
+              priority: 2.5,
+              content: (
+                <CardErrorBoundary fallbackLabel="Weekly Coaching">
+                  <div className="card p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-primary-400" />
+                        <span className="text-xs font-semibold uppercase tracking-wide text-grappler-200">Weekly Coaching</span>
+                      </div>
+                      <button onClick={() => setWeeklyCoachingExpanded(false)} className="text-xs text-grappler-600">▴</button>
+                    </div>
+                    {weeklyInsights.slice(1).map((insight, i) => {
+                      const INSIGHT_BG: Record<string, string> = {
+                        gold: 'bg-yellow-500/8 border-yellow-500/20', green: 'bg-green-500/8 border-green-500/20',
+                        red: 'bg-red-500/8 border-red-500/20', amber: 'bg-amber-500/8 border-amber-500/20',
+                        blue: 'bg-blue-500/8 border-blue-500/20', purple: 'bg-purple-500/8 border-purple-500/20',
+                        primary: 'bg-primary-500/10 border-primary-500/25',
+                      };
+                      return (
+                        <div key={i} className={cn('rounded-xl px-3 py-2 border', INSIGHT_BG[insight.color] || INSIGHT_BG.primary)}>
+                          <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[insight.icon]}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-grappler-400">{insight.label}</span>
+                              <p className={cn('text-xs leading-relaxed mt-0.5', insight.type === 'one_thing' ? 'text-grappler-200 font-medium' : 'text-grappler-300')}>
+                                {insight.text}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardErrorBoundary>
+              ),
+            });
+          }
+        }
+
+        // P3: Narrative one-liner
+        if (narrative.hasData && workoutLogs.length >= 6 && narrative.highlights.length > 0) {
+          const topHighlight = narrative.highlights[0];
+          intelItems.push({
+            key: 'narrative',
+            priority: 6,
+            content: (
+              <div className="card px-3 py-2.5 border-l-2 border-l-emerald-400 flex items-center gap-2.5">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <p className="text-xs text-grappler-300">
+                  <span className="font-bold text-emerald-400">{topHighlight.stat || topHighlight.label}</span>{' '}
+                  {topHighlight.label || narrative.summary?.slice(0, 80)}
+                </p>
+              </div>
+            ),
+          });
+        }
+
+        // P4: Old feed cards (deload, meal reminder, etc.)
+        const visibleFeedCards = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
+        visibleFeedCards.forEach((card, i) => {
+          intelItems.push({
+            key: `feed-${(card as React.ReactElement).key || i}`,
+            priority: 4 + i * 0.1,
+            content: card,
+          });
+        });
+
+        // Sort by priority and take top 5
+        const sorted = intelItems.sort((a, b) => a.priority - b.priority).slice(0, 6);
+
+        return sorted.length > 0 ? (
+          <div className="space-y-1.5">
+            {sorted.map(item => (
+              <div key={item.key}>{item.content}</div>
+            ))}
+          </div>
+        ) : workoutLogs.length > 0 ? (
+          <div className="flex items-center gap-3 card p-3">
+            <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <p className="text-xs text-grappler-400">All clear — nothing needs your attention.</p>
           </div>
         ) : null;
       })()}
-      {feedCards.length === 0 && workoutLogs.length > 0 && (
-        <div className="flex items-center gap-3 card p-3">
-          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          <p className="text-xs text-grappler-400">All clear — nothing needs your attention right now.</p>
-        </div>
-      )}
-
-      {/* ─── Weekly Coaching — structured insight chips ─── */}
-      <CardErrorBoundary fallbackLabel="Weekly Coaching">
-      {showWeeklySynthesis && synthesis.hasData && weeklyInsights.length > 0 && (() => {
-        // Promote when there's a high-signal insight (win, warning) or Sun/Mon
-        const dayOfWeek = today.getDay();
-        const hasHighSignal = weeklyInsights.some(i => i.type === 'win' || i.type === 'warning');
-        const isPromoted = dayOfWeek === 0 || dayOfWeek === 1 || hasHighSignal;
-        const isExpanded = weeklyCoachingExpanded !== null ? weeklyCoachingExpanded : isPromoted;
-
-        const INSIGHT_ICONS: Record<string, React.ReactNode> = {
-          trophy: <Trophy className="w-3.5 h-3.5" />,
-          trending: <TrendingUp className="w-3.5 h-3.5" />,
-          alert: <AlertTriangle className="w-3.5 h-3.5" />,
-          target: <Target className="w-3.5 h-3.5" />,
-          shield: <Shield className="w-3.5 h-3.5" />,
-          crosshair: <Crosshair className="w-3.5 h-3.5" />,
-        };
-
-        const INSIGHT_COLORS: Record<string, { bg: string; border: string; label: string; icon: string }> = {
-          gold:    { bg: 'bg-yellow-500/8',  border: 'border-yellow-500/20', label: 'text-yellow-400', icon: 'text-yellow-400' },
-          green:   { bg: 'bg-green-500/8',   border: 'border-green-500/20',  label: 'text-green-400',  icon: 'text-green-400' },
-          red:     { bg: 'bg-red-500/8',     border: 'border-red-500/20',    label: 'text-red-400',    icon: 'text-red-400' },
-          amber:   { bg: 'bg-amber-500/8',   border: 'border-amber-500/20',  label: 'text-amber-400',  icon: 'text-amber-400' },
-          blue:    { bg: 'bg-blue-500/8',     border: 'border-blue-500/20',   label: 'text-blue-400',   icon: 'text-blue-400' },
-          purple:  { bg: 'bg-purple-500/8',   border: 'border-purple-500/20', label: 'text-purple-400', icon: 'text-purple-400' },
-          primary: { bg: 'bg-primary-500/10', border: 'border-primary-500/25', label: 'text-primary-400', icon: 'text-primary-400' },
-        };
-
-        return (
-          <div className="card p-3">
-            <button
-              onClick={() => setWeeklyCoachingExpanded(v => v !== null ? !v : !isPromoted)}
-              className="w-full flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2">
-                <Brain className={cn('w-4 h-4', isPromoted ? 'text-primary-400' : 'text-grappler-500')} />
-                <span className={cn('text-xs font-semibold uppercase tracking-wide', isPromoted ? 'text-grappler-200' : 'text-grappler-400')}>
-                  Weekly Coaching
-                </span>
-              </div>
-              <span className="text-xs text-grappler-600">{isExpanded ? '▴' : '▾'}</span>
-            </button>
-
-            {/* Collapsed: show one-liner from the top insight */}
-            {!isExpanded && (
-              <p className="text-xs text-grappler-500 mt-1.5 truncate">
-                {weeklyInsights[0]?.text || `${synthesis.stats.workouts} lifts · ${synthesis.stats.prs} PRs`}
-              </p>
-            )}
-
-            {/* Expanded: insight chips */}
-            {isExpanded && (
-              <div className="mt-3 space-y-2">
-                {weeklyInsights.map((insight, i) => {
-                  const colors = INSIGHT_COLORS[insight.color] || INSIGHT_COLORS.primary;
-                  const isOneThing = insight.type === 'one_thing';
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        'rounded-xl px-3 py-2.5 border',
-                        colors.bg, colors.border,
-                        isOneThing && 'mt-1'
-                      )}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <span className={cn('mt-0.5 flex-shrink-0', colors.icon)}>
-                          {INSIGHT_ICONS[insight.icon]}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', colors.label)}>
-                            {insight.label}
-                          </span>
-                          <p className={cn(
-                            'text-xs leading-relaxed mt-0.5',
-                            isOneThing ? 'text-grappler-200 font-medium' : 'text-grappler-300',
-                          )}>
-                            {insight.text}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-      </CardErrorBoundary>
 
 
 

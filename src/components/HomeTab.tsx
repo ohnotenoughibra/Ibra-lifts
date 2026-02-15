@@ -481,22 +481,27 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     });
   };
 
-  // ─── Confetti + Haptic on PR / badge unlock ───
+  // ─── Victory sequence: Confetti + Haptic ───
   const confettiFired = useRef(false);
   useEffect(() => {
     if (!lastCompletedWorkout || confettiFired.current) return;
     const hasPR = lastCompletedWorkout.hadPR;
     const hasBadge = lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0;
-    if (hasPR || hasBadge) {
+    const isSGrade = directive.todayPerformance?.grade === 'S';
+    const manyPRs = (directive.todayPerformance?.prs ?? 0) >= 3;
+    if (hasPR || hasBadge || isSGrade) {
       confettiFired.current = true;
-      // Slight delay for the card to render first
-      setTimeout(() => fireConfetti(), 300);
-      // Haptic feedback
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(hasPR ? [100, 50, 100] : [80]);
-      }
+      // Sync confetti with victory animation — elite gets delayed for dramatic reveal
+      const isElite = isSGrade || manyPRs;
+      setTimeout(() => fireConfetti(), isElite ? 1500 : 600);
+      // Haptic at grade stamp moment
+      setTimeout(() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          navigator.vibrate(hasPR ? [100, 50, 100] : [80]);
+        }
+      }, 500);
     }
-  }, [lastCompletedWorkout]);
+  }, [lastCompletedWorkout, directive.todayPerformance]);
   // Reset confetti flag when workout summary is dismissed
   useEffect(() => {
     if (!lastCompletedWorkout) confettiFired.current = false;
@@ -1276,49 +1281,96 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
 
       {/* ─── ZONE 2: THE DIRECTIVE — single adaptive card ─── */}
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
-        /* POST-SESSION: Unified verdict — grade, metrics, coaching, nutrition, forward look */
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5">
-          {/* Header: grade + verdict + XP + share */}
+        /* POST-SESSION: Victory sequence — grade stamp, staggered reveal */
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
+        >
+          {/* Header: "Session Complete" + XP — fades in */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="flex items-center gap-2 mb-1"
+          >
+            <Check className="w-4 h-4 text-green-400" />
+            <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
+            {lastCompletedWorkout && (
+              <span className="text-xs text-green-400/60">+{lastCompletedWorkout.points} XP</span>
+            )}
+            {variableReward && variableReward.type !== 'none' && (
+              <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
+                'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
+                'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
+                'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
+                'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
+              })}>+{variableReward.bonusPoints}</span>
+            )}
+          </motion.div>
+
+          {/* Grade stamp + verdict — grade stamps in from 3x scale */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Check className="w-4 h-4 text-green-400" />
-                <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
-                {lastCompletedWorkout && (
-                  <span className="text-xs text-green-400/60">+{lastCompletedWorkout.points} XP</span>
-                )}
-                {variableReward && variableReward.type !== 'none' && (
-                  <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
-                    'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
-                    'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
-                    'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
-                    'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
-                  })}>+{variableReward.bonusPoints}</span>
-                )}
+            <div className="flex items-center gap-3 mt-2 flex-1">
+              <div className="relative flex items-center justify-center" style={{ width: 48, height: 48 }}>
+                {/* Color burst behind grade */}
+                <motion.div
+                  initial={{ scale: 0, opacity: 0.6 }}
+                  animate={{ scale: 2.5, opacity: 0 }}
+                  transition={{ delay: 0.55, duration: 0.8, ease: 'easeOut' }}
+                  className={cn('absolute w-12 h-12 rounded-full',
+                    directive.todayPerformance.grade === 'S' ? 'bg-yellow-400/30' :
+                    directive.todayPerformance.grade === 'A' ? 'bg-green-400/25' :
+                    'bg-primary-400/20'
+                  )}
+                />
+                {/* Grade letter — stamps in */}
+                <motion.span
+                  initial={{ scale: 3, opacity: 0, rotate: -12 }}
+                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                  transition={{ delay: 0.5, type: 'spring', stiffness: 300, damping: 20 }}
+                  className={cn(
+                    'text-4xl font-black leading-none relative',
+                    directive.todayPerformance.grade === 'S' ? 'text-yellow-400' :
+                    directive.todayPerformance.grade === 'A' ? 'text-green-400' :
+                    directive.todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
+                  )}
+                >
+                  {directive.todayPerformance.grade}
+                </motion.span>
               </div>
-              {/* Grade letter + verdict */}
-              <div className="flex items-center gap-3 mt-2">
-                <span className={cn(
-                  'text-4xl font-black leading-none',
-                  directive.todayPerformance.grade === 'S' ? 'text-yellow-400' :
-                  directive.todayPerformance.grade === 'A' ? 'text-green-400' :
-                  directive.todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
-                )}>{directive.todayPerformance.grade}</span>
-                <p className="text-sm text-grappler-300 leading-snug flex-1">{directive.todayPerformance.verdict}</p>
-              </div>
+              <motion.p
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+                className="text-sm text-grappler-300 leading-snug flex-1"
+              >
+                {directive.todayPerformance.verdict}
+              </motion.p>
             </div>
             {lastCompletedWorkout && (
-              <button onClick={handleShareWorkout}
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.8 }}
+                onClick={handleShareWorkout}
                 className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors flex-shrink-0"
-                title="Share workout">
+                title="Share workout"
+              >
                 {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              </button>
+              </motion.button>
             )}
           </div>
 
-          {/* PR callout */}
+          {/* PR callout — flies in from left */}
           {directive.todayPerformance.prs > 0 && (
-            <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3">
+            <motion.div
+              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ delay: 1.0, type: 'spring', stiffness: 200, damping: 25 }}
+              className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3"
+            >
               <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
               <p className="text-xs text-yellow-300 font-medium">
                 {directive.todayPerformance.prs === 1
@@ -1326,22 +1378,33 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   : `${directive.todayPerformance.prs} PRs: ${directive.todayPerformance.prExercises.slice(0, 2).join(', ')}${directive.todayPerformance.prs > 2 ? ` +${directive.todayPerformance.prs - 2}` : ''}`
                 }
               </p>
-            </div>
+            </motion.div>
           )}
 
-          {/* Badges */}
+          {/* Badges — staggered fly-in */}
           {lastCompletedWorkout?.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
             <div className="flex gap-1.5 mb-3 flex-wrap">
-              {lastCompletedWorkout.newBadges.map((badge) => (
-                <span key={badge.id} className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300">
+              {lastCompletedWorkout.newBadges.map((badge, i) => (
+                <motion.span
+                  key={badge.id}
+                  initial={{ opacity: 0, y: 16, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 1.1 + i * 0.1, type: 'spring', stiffness: 250, damping: 20 }}
+                  className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300"
+                >
                   {badge.icon} {badge.name}
-                </span>
+                </motion.span>
               ))}
             </div>
           )}
 
-          {/* Performance metrics grid */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          {/* Performance metrics grid — fades in */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.3, duration: 0.4 }}
+            className="grid grid-cols-3 gap-2 mb-3"
+          >
             <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
               <p className="text-lg font-black text-grappler-100">{formatNumber(directive.todayPerformance.totalVolume)}</p>
               <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
@@ -1354,34 +1417,49 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.avgRPE > 0 ? directive.todayPerformance.avgRPE : '—'}</p>
               <p className="text-[10px] text-grappler-500 uppercase">RPE</p>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Nutrition nudge — inline */}
+          {/* Nutrition nudge */}
           {postWorkoutNutritionNudge && (
-            <div className={cn(
-              'flex items-center gap-2 rounded-lg px-3 py-2 mb-3',
-              postWorkoutNutritionNudge.urgent ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-green-500/8 border border-green-500/15'
-            )}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5, duration: 0.3 }}
+              className={cn(
+                'flex items-center gap-2 rounded-lg px-3 py-2 mb-3',
+                postWorkoutNutritionNudge.urgent ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-green-500/8 border border-green-500/15'
+              )}
+            >
               <Apple className="w-3.5 h-3.5 flex-shrink-0 text-green-400" />
               <p className={cn('text-xs', postWorkoutNutritionNudge.urgent ? 'text-orange-300' : 'text-green-400')}>
                 {postWorkoutNutritionNudge.text}
               </p>
-            </div>
+            </motion.div>
           )}
 
           {/* Forward look */}
           {directive.forwardLook && (
-            <div className="flex items-center gap-2 pt-2 border-t border-grappler-700/40">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.7, duration: 0.3 }}
+              className="flex items-center gap-2 pt-2 border-t border-grappler-700/40"
+            >
               <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
               <p className="text-[11px] text-grappler-500">{directive.forwardLook}</p>
-            </div>
+            </motion.div>
           )}
 
           {mesocycleProgress && (
-            <div className="flex items-center gap-2 mt-3">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.8, duration: 0.3 }}
+              className="flex items-center gap-2 mt-3"
+            >
               <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
               <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-            </div>
+            </motion.div>
           )}
         </motion.div>
 

@@ -64,6 +64,7 @@ import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib
 import PerformanceReadiness from './PerformanceReadiness';
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
+import WeeklyMomentum from './WeeklyMomentum';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
@@ -1156,37 +1157,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }
 
-  // 7. Weekly pulse
-  if (feedCards.length < 4 && periodSummaries.thisWeek.trainingDays > 0) {
-    feedCards.push(
-      <div key="weekly-pulse" className="card p-3.5">
-        <div className="flex items-center gap-2 mb-2">
-          <BarChart3 className="w-4 h-4 text-primary-400" />
-          <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide">This Week</span>
-        </div>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div>
-            <p className="text-lg font-bold text-primary-400">{periodSummaries.thisWeek.trainingDays}</p>
-            <p className="text-xs text-grappler-500">Days</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-grappler-100">{periodSummaries.thisWeek.workouts}</p>
-            <p className="text-xs text-grappler-500">Lifts</p>
-          </div>
-          {periodSummaries.thisWeek.sessions > 0 && (
-            <div>
-              <p className="text-lg font-bold text-blue-400">{periodSummaries.thisWeek.sessions}</p>
-              <p className="text-xs text-grappler-500">Training</p>
-            </div>
-          )}
-          <div>
-            <p className="text-lg font-bold text-yellow-400">{periodSummaries.thisWeek.prs}</p>
-            <p className="text-xs text-grappler-500">PRs</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // 7. Weekly pulse — now handled by WeeklyMomentum component below
 
   // Cycle phase card (female athletes)
   if (cycleInsights && feedCards.length < 5) {
@@ -1730,42 +1701,21 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         />
       )}
 
-      {/* ─── Momentum Strip — streak, week progress, next milestone ─── */}
-      <div className="flex items-center gap-2 px-1">
-        {/* Streak */}
-        {currentStreak > 0 && (
-          <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2.5 py-1.5">
-            <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-xs font-bold text-orange-300">{currentStreak}</span>
-            <span className="text-[10px] text-orange-400/60">streak</span>
-          </div>
-        )}
-        {/* Week progress */}
-        <div className="flex-1 flex items-center gap-2 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5">
-          <div className="flex gap-0.5">
-            {Array.from({ length: weekTarget }, (_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'w-2.5 h-2.5 rounded-full',
-                  i < weekDone ? 'bg-primary-400' : 'bg-grappler-700'
-                )}
-              />
-            ))}
-          </div>
-          <span className="text-[10px] text-grappler-500">
-            {weekDone}/{weekTarget} this week
-            {weekRemaining > 0 && ` · ${weekRemaining} left`}
-          </span>
-        </div>
-        {/* Next milestone */}
-        {nextBadgeDistance != null && nextBadgeDistance <= 5 && (
-          <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5">
-            <Award className="w-3.5 h-3.5 text-purple-400" />
-            <span className="text-[10px] text-purple-300">{nextBadgeDistance} to go</span>
-          </div>
-        )}
-      </div>
+      {/* ─── Weekly Momentum — 7-day rhythm bar, expandable scorecard ─── */}
+      <WeeklyMomentum
+        currentStreak={currentStreak}
+        weekDone={weekDone}
+        weekTarget={weekTarget}
+        liftDays={user?.trainingDays || []}
+        combatDays={user?.combatTrainingDays || []}
+        workoutLogs={workoutLogs}
+        trainingSessions={trainingSessions}
+        weekStats={synthesis.stats}
+        weekTrends={synthesis.trends}
+        lastWeekVolume={periodSummaries.lastWeek.volume}
+        weightUnit={weightUnit}
+        nextBadgeDistance={nextBadgeDistance}
+      />
 
       {/* ─── Readiness Breakdown — expandable from mission card tap ─── */}
       <AnimatePresence>

@@ -59,6 +59,9 @@ export default function RecoverPage() {
         body: JSON.stringify({ backupId }),
       });
       if (!res.ok) throw new Error('Restore failed');
+      // Clear localStorage so the app starts fresh and pulls from server
+      localStorage.removeItem('roots-gains-storage');
+      localStorage.removeItem('roots-gains-storage-backup');
       setBackupStatus('restored');
     } catch {
       setBackupStatus('error');
@@ -77,6 +80,9 @@ export default function RecoverPage() {
       const data = await res.json();
       setOldDbResult(data);
       if (res.ok && data.restoredToCurrentDb) {
+        // Clear localStorage so the app starts fresh and MUST pull from server
+        localStorage.removeItem('roots-gains-storage');
+        localStorage.removeItem('roots-gains-storage-backup');
         setOldDbStatus('done');
       } else {
         setOldDbStatus('error');

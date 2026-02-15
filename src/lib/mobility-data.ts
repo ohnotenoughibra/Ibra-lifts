@@ -12,6 +12,7 @@ export interface MobilityDrill {
   name: string;
   duration: number;       // seconds per side/set
   sets: number;
+  bilateral?: boolean;    // true (default) = has left/right sides, false = symmetric/no sides
   description: string;
   breathingCue?: string;
   combatBenefit: string;  // why this matters for combat athletes
@@ -55,6 +56,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Neck CARs (Controlled Articular Rotations)',
     duration: 30,
     sets: 2,
+    bilateral: false,
     description: 'Slow, full-range neck circles. Chin to chest → ear to shoulder → look up → other ear to shoulder. Keep shoulders still.',
     breathingCue: 'Breathe out during the tightest part of the rotation',
     combatBenefit: 'Reduces submission vulnerability, prevents neck cranks and can-openers from causing injury',
@@ -64,6 +66,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Prone Neck Extensions',
     duration: 20,
     sets: 3,
+    bilateral: false,
     description: 'Lie face down on bench with head off edge. Slowly lift head up against gravity, hold 2s, lower. Add light plate for progression.',
     combatBenefit: 'Builds neck endurance for defending chokes and maintaining posture in clinch',
     tags: ['neck', 'upper_back'],
@@ -92,6 +95,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Band Pull-Aparts',
     duration: 20,
     sets: 3,
+    bilateral: false,
     description: 'Hold resistance band at shoulder width, arms straight. Pull apart until band touches chest. Control the return.',
     combatBenefit: 'Bulletproofs rear delts for frame defense and underhooks',
     tags: ['shoulders', 'upper_back'],
@@ -109,6 +113,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Wall Slides',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Back flat against wall, arms in "goalpost" position. Slide arms up overhead while keeping contact with wall.',
     combatBenefit: 'Restores overhead mobility for takedown defense and Thai clinch entries',
     tags: ['shoulders', 'upper_back'],
@@ -127,6 +132,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Thoracic Spine Extensions on Foam Roller',
     duration: 45,
     sets: 2,
+    bilateral: false,
     description: 'Foam roller across upper back, hands behind head. Extend over the roller, pause 3s, then curl up. Move roller up/down spine.',
     breathingCue: 'Exhale as you extend, inhale as you curl',
     combatBenefit: 'Unlocks rotation for hooks and elbows, prevents hunched posture from guard play',
@@ -136,6 +142,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Cat-Cow',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'On all fours, alternate arching (cow) and rounding (cat) the spine. Move slowly through full range.',
     breathingCue: 'Inhale on arch (cow), exhale on round (cat)',
     combatBenefit: 'Spinal segmental mobility for bridging, shrimping, and scrambles',
@@ -165,6 +172,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Dead Hang',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Hang from pull-up bar with relaxed shoulders. Let gravity decompress the spine. Gently sway side to side.',
     combatBenefit: 'Decompresses lumbar spine, strengthens grip endurance for gi work',
     tags: ['lower_back', 'forearms', 'shoulders'],
@@ -192,6 +200,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Floor Angels',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Lie on back, arms at sides. Slide arms along floor overhead like a snow angel, keeping contact with ground.',
     breathingCue: 'Exhale as arms go overhead',
     combatBenefit: 'Counteracts forward posture from computer use and guard playing',
@@ -229,6 +238,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Rice Bucket Circles',
     duration: 60,
     sets: 2,
+    bilateral: false,
     description: 'Submerge hands in a bucket of rice. Make circles, open/close fists, and spread fingers against resistance.',
     combatBenefit: 'Builds tendon resilience for grip fighting and wrist locks defense',
     tags: ['forearms'],
@@ -247,6 +257,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: '90/90 Hip Switches',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Sit with both knees at 90°. Rotate both knees to the other side in a windshield-wiper motion. Sit tall.',
     breathingCue: 'Exhale during the transition',
     combatBenefit: 'Hip mobility for guard retention, butterfly guard, and hip escapes',
@@ -274,6 +285,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Cossack Squats',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Wide stance, shift weight to one leg and squat deep while straightening the other leg. Alternate sides.',
     combatBenefit: 'Lateral hip mobility for takedown defense, single-legs, and stance switches',
     tags: ['hips', 'hamstrings', 'glutes'],
@@ -291,6 +303,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Deep Squat Hold (Malasana)',
     duration: 60,
     sets: 2,
+    bilateral: false,
     description: 'Feet shoulder width or wider, squat all the way down. Elbows press knees open, palms together. Hold.',
     breathingCue: 'Breathe into the belly, relax the pelvic floor',
     combatBenefit: 'Resting squat position mirrors bottom of guard — essential for BJJ',
@@ -302,6 +315,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Glute Bridge with Hold',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Lie on back, feet flat. Drive hips up, squeeze glutes hard at top. Hold 5s, lower slowly.',
     combatBenefit: 'Activates glutes for bridging escapes, hip bumps, and explosive standup',
     tags: ['glutes', 'hips', 'lower_back'],
@@ -340,6 +354,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Romanian Deadlift Stretch (Bodyweight)',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Feet hip-width, soft knees. Hinge at hips, slide hands down shins until stretch is felt. Hold, then stand.',
     combatBenefit: 'Hamstring length for high kicks and prevents pulls during explosive movements',
     tags: ['hamstrings', 'lower_back'],
@@ -356,6 +371,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Seated Straddle Stretch',
     duration: 60,
     sets: 2,
+    bilateral: false,
     description: 'Sit with legs wide apart. Walk hands forward, keeping back flat. Go to center, then toward each foot.',
     breathingCue: 'Exhale to melt deeper each breath cycle',
     combatBenefit: 'Adductor and hamstring flexibility for wide guard and defensive grappling',
@@ -385,6 +401,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Dead Bug',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'Lie on back, arms up, knees at 90°. Extend opposite arm and leg while pressing lower back into floor.',
     breathingCue: 'Exhale as you extend, inhale to return',
     combatBenefit: 'Anti-extension core control for guard retention and body lock defense',
@@ -394,6 +411,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Prone Cobra',
     duration: 20,
     sets: 3,
+    bilateral: false,
     description: 'Lie face down, lift chest and arms off ground. Squeeze shoulder blades together, thumbs pointing up.',
     combatBenefit: 'Posterior chain activation for wrestling posture and preventing round-back',
     tags: ['core', 'upper_back'],
@@ -430,6 +448,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     name: 'Bear Crawl',
     duration: 30,
     sets: 3,
+    bilateral: false,
     description: 'On all fours, knees 1 inch off ground. Crawl forward with opposite hand/foot. Keep hips level, core braced.',
     combatBenefit: 'Primal movement pattern that builds shoulder stability and hip coordination for grappling',
     tags: ['full_body', 'shoulders', 'core', 'hips'],
@@ -507,15 +526,17 @@ export function getGeneralMobilityRoutine(): MobilityDrill[] {
  * Total estimated duration for a set of drills in minutes.
  */
 export function estimateDuration(drills: MobilityDrill[]): number {
-  const totalSeconds = drills.reduce((sum, d) => sum + (d.duration * d.sets * 2), 0); // *2 for both sides
+  const totalSeconds = drills.reduce((sum, d) => sum + drillSeconds(d), 0);
   return Math.ceil(totalSeconds / 60);
 }
 
 /**
- * Estimate seconds for a single drill (both sides).
+ * Estimate seconds for a single drill.
+ * Bilateral drills (left + right) get ×2, symmetric drills do not.
  */
 export function drillSeconds(d: MobilityDrill): number {
-  return d.duration * d.sets * 2;
+  const sides = d.bilateral !== false ? 2 : 1;
+  return d.duration * d.sets * sides;
 }
 
 /**

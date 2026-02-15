@@ -2,12 +2,21 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ChevronLeft, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
-import { getExerciseById } from '@/lib/exercises';
+import { getExerciseById, getExercisesByMuscle } from '@/lib/exercises';
 import { VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { cn } from '@/lib/utils';
 import type { MuscleGroup, WorkoutLog } from '@/lib/types';
+
+/** Pick 2-3 top exercises for a muscle, preferring compounds then isolation. */
+function getExerciseSuggestionsForMuscle(muscle: MuscleGroup): string[] {
+  const exercises = getExercisesByMuscle(muscle);
+  // Prefer exercises where this muscle is primary
+  const primary = exercises.filter(e => e.primaryMuscles.includes(muscle));
+  const sorted = primary.sort((a, b) => (b.strengthValue || 0) - (a.strengthValue || 0));
+  return sorted.slice(0, 3).map(e => e.name);
+}
 
 interface VolumeHeatMapProps {
   onClose: () => void;
@@ -351,6 +360,61 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
             </div>
           </motion.div>
 
+          {/* Gap Recommendations */}
+          {(() => {
+            const belowMev = muscleData.filter(d => d.zone === 'below_mev' || d.zone === 'untrained');
+            const aboveMrv = muscleData.filter(d => d.zone === 'above_mrv');
+            if (belowMev.length === 0 && aboveMrv.length === 0) return null;
+            return (
+              <motion.div variants={itemVariants} className="card p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-grappler-50">Fix Volume Gaps</h3>
+                </div>
+                <div className="space-y-3">
+                  {belowMev.map(d => {
+                    const setsNeeded = Math.ceil(d.landmarks.mev - d.sets);
+                    const suggestions = getExerciseSuggestionsForMuscle(d.muscle);
+                    return (
+                      <div key={d.muscle} className="bg-grappler-800/60 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-red-400" />
+                          <span className="text-sm font-medium text-grappler-100">{d.label}</span>
+                          <span className="text-xs text-red-400 ml-auto">
+                            +{setsNeeded} sets to MEV
+                          </span>
+                        </div>
+                        <p className="text-xs text-grappler-400">
+                          {d.sets === 0 ? 'No sets this week' : `Only ${d.sets} sets`} — need {d.landmarks.mev} minimum.{' '}
+                          {suggestions.length > 0 && (
+                            <>Add {suggestions.slice(0, 2).join(' or ')}.</>
+                          )}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {aboveMrv.map(d => {
+                    const setsOver = Math.ceil(d.sets - d.landmarks.mrv);
+                    return (
+                      <div key={d.muscle} className="bg-grappler-800/60 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-red-400" />
+                          <span className="text-sm font-medium text-grappler-100">{d.label}</span>
+                          <span className="text-xs text-red-400 ml-auto">
+                            {setsOver} sets over MRV
+                          </span>
+                        </div>
+                        <p className="text-xs text-grappler-400">
+                          {d.sets} sets exceeds your MRV of {d.landmarks.mrv}. Drop {setsOver} sets to avoid overreaching.
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            );
+          })()}
+
           {/* Mesocycle context */}
           {mesocycleInfo && (
             <motion.div variants={itemVariants} className="card p-4">
@@ -583,6 +647,14 @@ function MuscleVolumeBar({
                 Exceeding MRV by <span className="text-red-400 font-medium">{Math.ceil(sets - mrv)} sets</span>. Accumulated fatigue may outpace recovery. Consider reducing volume or taking a deload.
               </p>
             )}
+            {(zone === 'untrained' || zone === 'below_mev') && (() => {
+              const suggestions = getExerciseSuggestionsForMuscle(muscle);
+              return suggestions.length > 0 ? (
+                <p className="text-grappler-500 mt-1.5">
+                  Try adding: <span className="text-grappler-300">{suggestions.join(', ')}</span>
+                </p>
+              ) : null;
+            })()}
           </div>
         </motion.div>
       )}

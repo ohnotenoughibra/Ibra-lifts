@@ -378,6 +378,55 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     }
   }
 
+  // Soreness-aware training suggestions
+  const sorenessFactor = readiness.factors.find(f => f.source === 'soreness' && f.available);
+  if (sorenessFactor && sorenessFactor.score < 60 && (todayType === 'lift' || todayType === 'both')) {
+    // Parse which body areas are sore from the factor detail
+    const detail = sorenessFactor.detail || '';
+    const hasLegSoreness = /quad|hamstring|glute|calves|hip/i.test(detail);
+    const hasUpperSoreness = /shoulder|chest|bicep|tricep|upper.?back/i.test(detail);
+    const hasBackSoreness = /lower.?back|back/i.test(detail);
+
+    if (sorenessFactor.score < 30) {
+      actions.push('Heavy soreness — consider mobility work only today');
+    } else if (hasLegSoreness && nextSession?.name?.toLowerCase().includes('leg')) {
+      actions.push('Legs are sore — consider swapping to an upper body session');
+    } else if (hasUpperSoreness && (nextSession?.name?.toLowerCase().includes('upper') || nextSession?.name?.toLowerCase().includes('push'))) {
+      actions.push('Upper body sore — consider swapping to a lower body session');
+    } else if (hasBackSoreness) {
+      actions.push('Lower back is sore — go lighter on hinges and rows today');
+    }
+  }
+
+  // Soreness trend detection — check for chronic patterns
+  const sorenessLogs = quickLogs
+    .filter(l => l.type === 'soreness' && String(l.value) !== 'none')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 14);
+  if (sorenessLogs.length >= 5) {
+    // Count which areas appear most frequently
+    const areaCounts = new Map<string, number>();
+    for (const log of sorenessLogs) {
+      const entries = String(log.value).split(',');
+      for (const entry of entries) {
+        const [area, severity] = entry.split(':');
+        if (area && (severity === 'moderate' || severity === 'severe')) {
+          areaCounts.set(area.trim(), (areaCounts.get(area.trim()) || 0) + 1);
+        }
+      }
+    }
+    // If an area appears in 4+ of last 14 logs, flag it
+    const areaEntries = Array.from(areaCounts.entries());
+    for (let ai = 0; ai < areaEntries.length; ai++) {
+      const [area, count] = areaEntries[ai];
+      if (count >= 4 && actions.length < 4) {
+        const areaLabel = area.replace(/_/g, ' ');
+        actions.push(`${areaLabel} has been sore frequently — consider reducing volume for that area`);
+        break; // Only show one chronic alert
+      }
+    }
+  }
+
   // Sleep action based on readiness
   const sleepFactor = readiness.factors.find(f => f.source === 'sleep' && f.available);
   if (sleepFactor && sleepFactor.score < 50) {

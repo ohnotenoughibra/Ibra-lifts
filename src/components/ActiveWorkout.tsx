@@ -44,6 +44,7 @@ import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
 import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator';
+import { getActiveInjuryAdaptations } from '@/lib/injury-science';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
@@ -61,6 +62,10 @@ export default function ActiveWorkout() {
     calculatePersonalBaseline(wearableHistory),
     [wearableHistory]
   );
+  // Active injury adaptations — for per-exercise warnings
+  const injuryLog = useAppStore(s => s.injuryLog);
+  const injuryAdaptations = useMemo(() => getActiveInjuryAdaptations(injuryLog), [injuryLog]);
+  const hasActiveInjuries = injuryAdaptations.classifications.length > 0;
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [isResting, setIsResting] = useState(false);
@@ -1312,6 +1317,43 @@ export default function ActiveWorkout() {
                 )}
               </AnimatePresence>
 
+              {/* Injury Warning Banner */}
+              {hasActiveInjuries && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5 mb-4"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-4.5 h-4.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-amber-300">
+                        {injuryAdaptations.classifications.length === 1
+                          ? `Active injury: ${injuryAdaptations.classifications[0].bodyRegion.replace(/_/g, ' ')}`
+                          : `${injuryAdaptations.classifications.length} active injuries`
+                        }
+                      </h4>
+                      <p className="text-xs text-amber-400/80 mt-0.5">
+                        {injuryAdaptations.allAvoidExercises.length > 0
+                          ? `${injuryAdaptations.allAvoidExercises.length} exercises flagged — look for warning icons below`
+                          : 'Volume and intensity have been auto-adjusted'
+                        }
+                      </p>
+                      {injuryAdaptations.allModifiedExercises.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {injuryAdaptations.allModifiedExercises.slice(0, 3).map((mod, mi) => (
+                            <p key={mi} className="text-xs text-amber-400/70 flex items-start gap-1.5">
+                              <span className="text-amber-500 mt-px">-</span>
+                              <span><span className="text-amber-300 font-medium">{mod.exerciseId.replace(/-/g, ' ')}</span>: {mod.modification}</span>
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Exercise List */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide px-1">
@@ -1319,23 +1361,36 @@ export default function ActiveWorkout() {
                 </h3>
                 {activeWorkout.session.exercises.map((ex, i) => {
                   const prevPerf = getExerciseHistory(ex.exerciseId);
+                  const exIdLower = ex.exerciseId.toLowerCase();
+                  const isInjuryFlagged = hasActiveInjuries && injuryAdaptations.allAvoidExercises.some(
+                    avoidId => exIdLower.includes(avoidId.toLowerCase())
+                  );
+                  const injuryMod = hasActiveInjuries
+                    ? injuryAdaptations.allModifiedExercises.find(
+                        m => exIdLower.includes(m.exerciseId.toLowerCase())
+                      )
+                    : undefined;
                   return (
                     <motion.div
                       key={i}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="bg-grappler-800/60 rounded-xl p-4 border border-grappler-700/50"
+                      className={cn(
+                        'bg-grappler-800/60 rounded-xl p-4 border',
+                        isInjuryFlagged ? 'border-amber-500/40' : 'border-grappler-700/50'
+                      )}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <div className={cn(
                             'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0',
-                            activeWorkout.session.type === 'strength' && 'bg-red-500/20 text-red-400',
-                            activeWorkout.session.type === 'hypertrophy' && 'bg-purple-500/20 text-purple-400',
-                            activeWorkout.session.type === 'power' && 'bg-blue-500/20 text-blue-400',
+                            isInjuryFlagged ? 'bg-amber-500/20 text-amber-400' :
+                            activeWorkout.session.type === 'strength' ? 'bg-red-500/20 text-red-400' :
+                            activeWorkout.session.type === 'hypertrophy' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-blue-500/20 text-blue-400',
                           )}>
-                            {i + 1}
+                            {isInjuryFlagged ? <AlertTriangle className="w-4 h-4" /> : i + 1}
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-grappler-100">{ex.exercise.name}</p>
@@ -1349,6 +1404,13 @@ export default function ActiveWorkout() {
                               Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
                               {' '}| {ex.exercise.primaryMuscles.slice(0, 2).join(', ')}
                             </p>
+                            {/* Injury modification hint */}
+                            {injuryMod && (
+                              <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
+                                <Shield className="w-3 h-3 flex-shrink-0" />
+                                {injuryMod.modification}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
@@ -1361,8 +1423,13 @@ export default function ActiveWorkout() {
                           </button>
                           <button
                             onClick={() => setOverviewSwapIndex(i)}
-                            className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors"
-                            title="Swap exercise"
+                            className={cn(
+                              'p-2 rounded-lg transition-colors',
+                              isInjuryFlagged
+                                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                                : 'bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400'
+                            )}
+                            title={isInjuryFlagged ? 'Swap — flagged for injury' : 'Swap exercise'}
                           >
                             <Shuffle className="w-4 h-4" />
                           </button>

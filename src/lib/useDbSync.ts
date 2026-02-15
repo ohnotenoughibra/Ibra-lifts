@@ -189,6 +189,34 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       if (dbData) {
         applyRemoteData(dbData, isResync);
       }
+
+      // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
+      const storeAfterPull = useAppStore.getState();
+      const stillEmpty = !storeAfterPull.isOnboarded && !storeAfterPull.user;
+      if (stillEmpty && !isResync) {
+        try {
+          const recoverRes = await fetch('/api/sync/recover');
+          if (recoverRes.ok) {
+            const recovery = await recoverRes.json();
+            if (recovery.recovered && recovery.data) {
+              const fieldsToMerge: Record<string, unknown> = {};
+              for (const field of RESTORE_FIELDS) {
+                if (recovery.data[field] !== undefined) fieldsToMerge[field] = recovery.data[field];
+              }
+              if (recovery.data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = recovery.data.isOnboarded;
+              if (Object.keys(fieldsToMerge).length > 0) {
+                useAppStore.setState(fieldsToMerge);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[db-sync] Deep recovery successful:', recovery.stats);
+                }
+              }
+            }
+          }
+        } catch {
+          // Recovery endpoint not available — not critical
+        }
+      }
+
       setSyncStatus('success');
       setLastSyncedAt(new Date());
 

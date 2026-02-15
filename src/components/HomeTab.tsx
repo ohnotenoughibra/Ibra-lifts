@@ -69,6 +69,7 @@ import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
 import WeeklyMomentum from './WeeklyMomentum';
 import ReadinessRing from './ReadinessRing';
+import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
@@ -1250,6 +1251,22 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   return (
     <div className="space-y-3">
 
+      {/* ─── ZONE 1: STATUS BAR — ambient instrument panel ─── */}
+      <StatusBar
+        readinessScore={directive.readinessScore}
+        readinessLevel={directive.readinessLevel}
+        streak={currentStreak}
+        blockPosition={
+          mesocycleProgress && mesocycleProgress.completed >= mesocycleProgress.total
+            ? 'Block Complete'
+            : directive.isDeload
+              ? 'Deload'
+              : directive.sessionLabel
+        }
+        phaseTag={directive.fightCampTag}
+        onReadinessTap={() => setReadinessExpanded(v => !v)}
+      />
+
       {/* ─── CRITICAL ALERTS — non-dismissible, above everything ─── */}
       {criticalAlerts.length > 0 && (
         <div className="space-y-2">
@@ -1343,14 +1360,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
       </AnimatePresence>
 
-      {/* ─── Context Banner — strategic awareness ─── */}
-      {directive.contextBanner && (
-        <div className="flex items-center gap-2 px-2 py-1.5 bg-grappler-800/40 border border-grappler-700/30 rounded-lg">
-          <span className="text-[10px] text-grappler-400 leading-tight">{directive.contextBanner}</span>
-        </div>
-      )}
-
-      {/* ─── TODAY'S MISSION — unified directive + action card ─── */}
+      {/* ─── ZONE 2: THE DIRECTIVE — single adaptive card ─── */}
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
         /* POST-SESSION: Session Verdict — grade, PRs, forward look */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5">
@@ -1371,7 +1381,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <p className="text-sm text-grappler-300 leading-snug flex-1">{directive.todayPerformance.verdict}</p>
               </div>
             </div>
-            <ReadinessRing score={directive.readinessScore} onClick={() => setReadinessExpanded(v => !v)} />
           </div>
 
           {/* PR callout */}
@@ -1462,19 +1471,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             const allCombatLogged = directive.todayCombatSessions.length > 0 && directive.todayCombatSessions.every(s => s.logged);
             return (
           <div className={`rounded-2xl p-5 ${allCombatLogged ? 'bg-gradient-to-r from-green-600/80 to-emerald-500/80 border border-green-500/30' : 'bg-gradient-to-r from-purple-600 to-indigo-500'}`}>
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  {allCombatLogged ? <Check className="w-4 h-4 text-white/80" /> : <Shield className="w-4 h-4 text-white/80" />}
-                  <span className="text-xs text-white/60 font-bold uppercase tracking-wide">{allCombatLogged ? 'Session Complete' : 'Mat Day'}</span>
-                  {directive.fightCampTag && (
-                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-white/80">{directive.fightCampTag}</span>
-                  )}
-                </div>
-                <h2 className="text-xl font-black text-white">{directive.headline}</h2>
-                <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
+            <div className="mb-2">
+              <div className="flex items-center gap-2 mb-1">
+                {allCombatLogged ? <Check className="w-4 h-4 text-white/80" /> : <Shield className="w-4 h-4 text-white/80" />}
+                <span className="text-xs text-white/60 font-bold uppercase tracking-wide">{allCombatLogged ? 'Session Complete' : 'Mat Day'}</span>
               </div>
-              <ReadinessRing score={directive.readinessScore} mode="white" onClick={() => setReadinessExpanded(v => !v)} />
+              <h2 className="text-xl font-black text-white">{directive.headline}</h2>
+              <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
             </div>
             {directive.todayCombatSessions.length > 0 && (
               <div className="mt-2 space-y-1.5">
@@ -1562,20 +1565,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
-                    {directive.sessionLabel || (nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}` : 'Next Workout')}
-                    {nextWorkoutInfo?.isDeload ? ' · Deload' : ''}
-                  </p>
-                  {currentStreak >= 2 && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-orange-200 flex items-center gap-1">
-                      <Flame className="w-3 h-3" />{currentStreak}d
-                    </span>
-                  )}
                   {directive.todayType === 'both' && (
                     <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-white/80">+ Mat Time</span>
-                  )}
-                  {directive.fightCampTag && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-white/80">{directive.fightCampTag}</span>
                   )}
                 </div>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
@@ -1611,15 +1602,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 )}
               </div>
               <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
-                <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-                  <ReadinessRing
-                    score={directive.readinessScore}
-                    mode="white"
-                    onClick={() => setReadinessExpanded(v => !v)}
-                  />
-                </div>
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Play className="w-6 h-6 text-white" />
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Play className="w-7 h-7 text-white" />
                 </div>
               </div>
             </div>

@@ -25,7 +25,7 @@ import {
 } from '@/lib/mobility-data';
 
 interface SorenessCheckProps {
-  context: 'rest_day' | 'post_workout';
+  context: 'rest_day' | 'post_workout' | 'pre_workout';
   isCombatAthlete?: boolean;
   onDismiss: () => void;
   onLog: (areas: { area: SorenessArea; severity: SorenessSeverity }[]) => void;
@@ -221,13 +221,15 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           <div>
             <p className="text-sm font-bold text-grappler-100">Body Check-In</p>
             <p className="text-[10px] text-grappler-500 uppercase tracking-wide">
-              {context === 'rest_day' ? 'Recovery Day' : 'Post-Workout'}
+              {context === 'rest_day' ? 'Recovery Day' : context === 'post_workout' ? 'Post-Workout' : 'Pre-Workout'}
             </p>
           </div>
         </div>
         <p className="text-xs text-grappler-300 mb-3">
           {context === 'rest_day'
             ? 'Anything feeling sore or tight today? I\'ll build you a mobility session.'
+            : context === 'pre_workout'
+            ? 'Anything sore before training? Quick mobility work can prevent injury.'
             : 'How\'s your body feeling? Let me put together some recovery work.'}
         </p>
         <div className="flex gap-2">

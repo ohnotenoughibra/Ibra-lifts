@@ -431,7 +431,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
 
-  // ─── Soreness Check — show on rest days and after workout completion ───
+  // ─── Soreness Check — show daily on all day types ───
   const todayIso = new Date().toISOString().split('T')[0];
   const alreadyLoggedSorenessToday = useMemo(() => {
     return quickLogs.some(
@@ -439,10 +439,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     );
   }, [quickLogs, todayIso]);
 
-  const isRestOrRecovery = directive.todayType === 'rest' || directive.todayType === 'recovery';
-  const showSorenessCheck = !sorenessCheckDismissed && !alreadyLoggedSorenessToday && (
-    isRestOrRecovery || (directive.todayPerformance !== null && directive.todayType === 'recovery')
-  );
+  const showSorenessCheck = !sorenessCheckDismissed && !alreadyLoggedSorenessToday;
 
   const handleSorenessLog = (areas: { area: SorenessArea; severity: SorenessSeverity }[]) => {
     addQuickLog({
@@ -1770,10 +1767,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </motion.div>
       )}
 
-      {/* ─── Body Check-In — soreness & mobility on rest days / after workouts ─── */}
+      {/* ─── Body Check-In — soreness & mobility, shown daily ─── */}
       {showSorenessCheck && (
         <SorenessCheck
-          context={directive.todayPerformance ? 'post_workout' : 'rest_day'}
+          context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
           isCombatAthlete={user?.trainingIdentity === 'combat'}
           onDismiss={() => setSorenessCheckDismissed(true)}
           onLog={handleSorenessLog}

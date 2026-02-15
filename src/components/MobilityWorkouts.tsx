@@ -19,6 +19,10 @@ import {
 import { cn } from '@/lib/utils';
 import { getMobilityRoutines, generateActiveRecoverySession } from '@/lib/mobility';
 import { MobilityFocus, MobilityRoutine, MobilityExercise } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
+import SorenessCheck from './SorenessCheck';
+import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
+import { Sparkles } from 'lucide-react';
 
 interface MobilityWorkoutsProps {
   onClose: () => void;
@@ -65,6 +69,20 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
   const [selectedRoutine, setSelectedRoutine] = useState<MobilityRoutine | null>(null);
   const [showRecoverySession, setShowRecoverySession] = useState(false);
+  const [showSorenessFlow, setShowSorenessFlow] = useState(false);
+  const addQuickLog = useAppStore(s => s.addQuickLog);
+  const user = useAppStore(s => s.user);
+
+  const handleSorenessLog = useCallback((areas: { area: SorenessArea; severity: SorenessSeverity }[]) => {
+    addQuickLog({
+      type: 'soreness',
+      value: areas.length > 0 ? areas.map(a => `${a.area}:${a.severity}`).join(',') : 'none',
+      timestamp: new Date(),
+      notes: areas.length > 0
+        ? `Sore areas: ${areas.map(a => a.area.replace('_', ' ')).join(', ')}`
+        : 'Body check: feeling good',
+    });
+  }, [addQuickLog]);
 
   // Timer state
   const [timerActive, setTimerActive] = useState(false);
@@ -590,6 +608,36 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       </div>
 
       <div className="p-4 space-y-5">
+        {/* Soreness Check — quick entry to guided session */}
+        {showSorenessFlow ? (
+          <SorenessCheck
+            context="rest_day"
+            isCombatAthlete={user?.trainingIdentity === 'combat'}
+            onDismiss={() => setShowSorenessFlow(false)}
+            onLog={handleSorenessLog}
+          />
+        ) : (
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => setShowSorenessFlow(true)}
+            className="w-full card p-4 text-left bg-gradient-to-br from-violet-500/20 to-grappler-800 border border-violet-500/20"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-6 h-6 text-violet-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-grappler-50 mb-1">Something Sore?</h3>
+                <p className="text-sm text-grappler-400">
+                  Tell me what hurts and I&apos;ll build a timed mobility session for you.
+                </p>
+              </div>
+              <Play className="w-5 h-5 text-violet-400 flex-shrink-0 mt-1" />
+            </div>
+          </motion.button>
+        )}
+
         {/* Active Recovery Card */}
         <motion.button
           initial={{ opacity: 0, y: 10 }}

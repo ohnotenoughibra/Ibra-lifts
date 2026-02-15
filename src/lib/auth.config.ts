@@ -58,10 +58,10 @@ export default {
       // Allow public routes, API routes, and assets
       if (isAuthPage || isApi || isPublicAsset) return true;
 
-      // Allow the main app page without auth — the app works in guest
-      // mode using localStorage (Zustand persist). Auth is optional and
-      // enables cloud sync via Vercel Postgres when signed in.
-      if (pathname === '/') return true;
+      // Allow the main app page and debug/recovery pages without auth —
+      // the app works in guest mode using localStorage (Zustand persist).
+      // Auth is optional and enables cloud sync via Vercel Postgres when signed in.
+      if (pathname === '/' || pathname.startsWith('/debug')) return true;
 
       // Other routes still require auth
       if (!isLoggedIn) return false;

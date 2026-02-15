@@ -721,7 +721,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
     const endOfLastYear = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
 
-    const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness';
+    const includeOtherSessions = user?.trainingIdentity === 'combat' || user?.trainingIdentity === 'general_fitness'
+      || (user?.combatTrainingDays && user.combatTrainingDays.length > 0);
 
     const getStats = (fromDate: Date, toDate: Date) => {
       const filteredLogs = (workoutLogs || []).filter(l => {
@@ -761,7 +762,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       thisYear: getStats(startOfThisYear, now),
       lastYear: getStats(startOfLastYear, endOfLastYear),
     };
-  }, [workoutLogs, trainingSessions, user?.trainingIdentity]);
+  }, [workoutLogs, trainingSessions, user?.trainingIdentity, user?.combatTrainingDays]);
 
   const handleQuickWorkout = () => {
     if (!user) return;
@@ -1188,7 +1189,9 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
 
   // ─── Momentum data ───
   const currentStreak = gamificationStats.currentStreak || 0;
-  const weekTarget = (user?.trainingDays?.length || 3) + ((user?.combatTrainingDays || []).length);
+  const liftTarget = user?.trainingDays?.length || 3;
+  const combatTarget = user?.combatTrainingDays?.length || 0;
+  const weekTarget = liftTarget + combatTarget;
   const weekDone = periodSummaries.thisWeek.workouts + periodSummaries.thisWeek.sessions;
   const weekRemaining = Math.max(0, weekTarget - weekDone);
   const nextBadgeDistance = useMemo(() => {
@@ -1741,43 +1744,41 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       )}
 
       {/* ─── Momentum Strip — streak, week progress, next milestone ─── */}
-      {(currentStreak > 0 || weekDone > 0) && (
-        <div className="flex items-center gap-2 px-1">
-          {/* Streak */}
-          {currentStreak > 0 && (
-            <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2.5 py-1.5">
-              <Flame className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-xs font-bold text-orange-300">{currentStreak}</span>
-              <span className="text-[10px] text-orange-400/60">streak</span>
-            </div>
-          )}
-          {/* Week progress */}
-          <div className="flex-1 flex items-center gap-2 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5">
-            <div className="flex gap-0.5">
-              {Array.from({ length: weekTarget }, (_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'w-2.5 h-2.5 rounded-full',
-                    i < weekDone ? 'bg-primary-400' : 'bg-grappler-700'
-                  )}
-                />
-              ))}
-            </div>
-            <span className="text-[10px] text-grappler-500">
-              {weekDone}/{weekTarget} this week
-              {weekRemaining > 0 && ` · ${weekRemaining} left`}
-            </span>
+      <div className="flex items-center gap-2 px-1">
+        {/* Streak */}
+        {currentStreak > 0 && (
+          <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2.5 py-1.5">
+            <Flame className="w-3.5 h-3.5 text-orange-400" />
+            <span className="text-xs font-bold text-orange-300">{currentStreak}</span>
+            <span className="text-[10px] text-orange-400/60">streak</span>
           </div>
-          {/* Next milestone */}
-          {nextBadgeDistance != null && nextBadgeDistance <= 5 && (
-            <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5">
-              <Award className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-[10px] text-purple-300">{nextBadgeDistance} to go</span>
-            </div>
-          )}
+        )}
+        {/* Week progress */}
+        <div className="flex-1 flex items-center gap-2 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5">
+          <div className="flex gap-0.5">
+            {Array.from({ length: weekTarget }, (_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  i < weekDone ? 'bg-primary-400' : 'bg-grappler-700'
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-grappler-500">
+            {weekDone}/{weekTarget} this week
+            {weekRemaining > 0 && ` · ${weekRemaining} left`}
+          </span>
         </div>
-      )}
+        {/* Next milestone */}
+        {nextBadgeDistance != null && nextBadgeDistance <= 5 && (
+          <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5">
+            <Award className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-[10px] text-purple-300">{nextBadgeDistance} to go</span>
+          </div>
+        )}
+      </div>
 
       {/* ─── Readiness Breakdown — expandable from mission card tap ─── */}
       <AnimatePresence>

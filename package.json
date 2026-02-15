@@ -15,6 +15,7 @@
     "db:setup": "node scripts/setup-db.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "@paypal/react-paypal-js": "^8.9.2",
     "@sentry/nextjs": "^10.38.0",
     "@vercel/analytics": "^1.6.1",

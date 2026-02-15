@@ -95,6 +95,52 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── Backup: snapshot existing data before overwriting ──
+    // Keeps up to 7 days of hourly backups so data is always recoverable.
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_store_backups (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          data JSONB NOT NULL,
+          workout_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `;
+      // Only backup if: existing data exists, and we haven't backed up in the last hour
+      const { rows: existing } = await sql`
+        SELECT data FROM user_store WHERE user_id = ${userId}
+      `;
+      if (existing.length > 0 && existing[0].data) {
+        const existingData = existing[0].data as Record<string, unknown>;
+        const existingLogs = Array.isArray(existingData.workoutLogs) ? existingData.workoutLogs.length : 0;
+        const existingHasProfile = existingData.isOnboarded === true && existingData.user;
+        // Only backup if the existing data has something worth saving
+        if (existingLogs > 0 || existingHasProfile) {
+          const { rows: recentBackup } = await sql`
+            SELECT id FROM user_store_backups
+            WHERE user_id = ${userId} AND created_at > NOW() - INTERVAL '1 hour'
+            LIMIT 1
+          `;
+          if (recentBackup.length === 0) {
+            const existingJson = JSON.stringify(existing[0].data);
+            await sql`
+              INSERT INTO user_store_backups (user_id, data, workout_count)
+              VALUES (${userId}, ${existingJson}::jsonb, ${existingLogs})
+            `;
+            // Prune backups older than 7 days
+            await sql`
+              DELETE FROM user_store_backups
+              WHERE user_id = ${userId} AND created_at < NOW() - INTERVAL '7 days'
+            `;
+          }
+        }
+      }
+    } catch (backupErr) {
+      // Backup failure should never block the sync write
+      console.error('[sync] Backup failed (non-fatal):', backupErr);
+    }
+
     // Upsert data
     await sql`
       INSERT INTO user_store (user_id, data, updated_at)

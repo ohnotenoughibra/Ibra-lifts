@@ -293,12 +293,32 @@ export default function RecoverPage() {
 
             {oldDbStatus === 'done' && oldDbResult && (
               <div className="space-y-4">
-                <div className="bg-green-900/30 border border-green-500/30 rounded-xl p-4">
-                  <p className="text-green-400 font-bold text-sm mb-2">Data recovered and restored!</p>
-                  <pre className="text-xs text-grappler-300 whitespace-pre-wrap overflow-auto max-h-40">
-                    {JSON.stringify(oldDbResult.userStore || oldDbResult.tables, null, 2)}
-                  </pre>
+                <div className="bg-green-900/30 border border-green-500/30 rounded-xl p-4 space-y-2">
+                  <p className="text-green-400 font-bold text-sm">Data recovered and restored!</p>
+                  <p className="text-xs text-grappler-400">Restored {oldDbResult.restoredSizeKB as number || '?'} KB to server</p>
+                  {oldDbResult.userStore && typeof oldDbResult.userStore === 'object' ? (
+                    <div className="text-xs text-grappler-300 space-y-0.5">
+                      {(oldDbResult.userStore as Record<string, unknown>).hasUser ? (
+                        <p>&#10003; Profile: {String((oldDbResult.userStore as Record<string, unknown>).userName || '')}</p>
+                      ) : null}
+                      {Number((oldDbResult.userStore as Record<string, unknown>).workoutLogs) > 0 ? (
+                        <p>&#10003; {String((oldDbResult.userStore as Record<string, unknown>).workoutLogs)} workout logs</p>
+                      ) : null}
+                      {Number((oldDbResult.userStore as Record<string, unknown>).meals) > 0 ? (
+                        <p>&#10003; {String((oldDbResult.userStore as Record<string, unknown>).meals)} meals</p>
+                      ) : null}
+                      {(oldDbResult.userStore as Record<string, unknown>).hasBaselineLifts ? <p>&#10003; Baseline lifts</p> : null}
+                      {(oldDbResult.userStore as Record<string, unknown>).hasMesocycle ? <p>&#10003; Active training program</p> : null}
+                      {(oldDbResult.userStore as Record<string, unknown>).hasGamification ? (
+                        <p>&#10003; XP: {String((oldDbResult.userStore as Record<string, unknown>).gamificationXP)}, Level {String((oldDbResult.userStore as Record<string, unknown>).gamificationLevel)}, {String((oldDbResult.userStore as Record<string, unknown>).personalRecords)} PRs</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {oldDbResult.reconstructedFromTables ? (
+                    <p className="text-xs text-amber-400">Reconstructed from individual DB tables (no user_store blob found)</p>
+                  ) : null}
                 </div>
+                <p className="text-xs text-grappler-400 text-center">Open the app — all your data should load from the server on first sync.</p>
                 <button
                   onClick={() => window.location.href = '/'}
                   className="w-full py-4 rounded-xl bg-primary-500 text-white font-bold text-base"

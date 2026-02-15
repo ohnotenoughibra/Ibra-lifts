@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
   ChevronDown,
   ChevronUp,
   Clock,
+  Pause,
+  Play,
+  SkipForward,
   Sparkles,
   X,
 } from 'lucide-react';
@@ -14,12 +17,11 @@ import { cn } from '@/lib/utils';
 import {
   SORENESS_AREAS,
   getMobilityRecommendations,
-  getGeneralMobilityRoutine,
-  estimateDuration,
+  buildTimedPlan,
+  drillSeconds,
   type SorenessArea,
   type SorenessSeverity,
   type MobilityDrill,
-  type MobilityRecommendation,
 } from '@/lib/mobility-data';
 
 interface SorenessCheckProps {
@@ -35,14 +37,29 @@ const SEVERITY_CONFIG: { id: SorenessSeverity; label: string; color: string; bgC
   { id: 'severe',   label: 'Very painful',    color: 'text-red-400',     bgColor: 'bg-red-500/15',    borderColor: 'border-red-500/30' },
 ];
 
-type Phase = 'ask' | 'select' | 'results';
+const TIME_OPTIONS = [
+  { minutes: 5,  label: '5 min',  desc: 'Quick stretch' },
+  { minutes: 10, label: '10 min', desc: 'Solid session' },
+  { minutes: 15, label: '15 min', desc: 'Full mobility' },
+  { minutes: 20, label: '20+',    desc: 'Deep work' },
+];
+
+type Phase = 'ask' | 'select' | 'time' | 'session';
 
 export default function SorenessCheck({ context, isCombatAthlete = true, onDismiss, onLog }: SorenessCheckProps) {
   const [phase, setPhase] = useState<Phase>('ask');
   const [selectedAreas, setSelectedAreas] = useState<Map<SorenessArea, SorenessSeverity>>(new Map());
-  const [expandedDrill, setExpandedDrill] = useState<string | null>(null);
-  const [completedDrills, setCompletedDrills] = useState<Set<string>>(new Set());
-  const [expandedRec, setExpandedRec] = useState<string | null>(null);
+
+  // Session state
+  const [sessionPlan, setSessionPlan] = useState<MobilityDrill[]>([]);
+  const [currentDrillIndex, setCurrentDrillIndex] = useState(0);
+  const [currentSet, setCurrentSet] = useState(1);
+  const [currentSide, setCurrentSide] = useState<'left' | 'right'>('left');
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [completedDrills, setCompletedDrills] = useState<Set<number>>(new Set());
+  const [sessionDone, setSessionDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const toggleArea = useCallback((area: SorenessArea) => {
     setSelectedAreas(prev => {
@@ -64,41 +81,130 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     });
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const recommendations = useMemo(() => {
+    if (selectedAreas.size === 0) return [];
     const entries = Array.from(selectedAreas.entries()).map(([area, severity]) => ({ area, severity }));
-    onLog(entries);
-    setPhase('results');
-  }, [selectedAreas, onLog]);
+    return getMobilityRecommendations(entries, isCombatAthlete);
+  }, [selectedAreas, isCombatAthlete]);
 
   const handleNothingSore = useCallback(() => {
     onLog([]);
     onDismiss();
   }, [onLog, onDismiss]);
 
-  const recommendations = useMemo<MobilityRecommendation[]>(() => {
-    if (selectedAreas.size === 0) return [];
+  const handlePickTime = useCallback((minutes: number) => {
     const entries = Array.from(selectedAreas.entries()).map(([area, severity]) => ({ area, severity }));
-    return getMobilityRecommendations(entries, isCombatAthlete);
-  }, [selectedAreas, isCombatAthlete]);
+    onLog(entries);
+    const plan = buildTimedPlan(recommendations, minutes);
+    setSessionPlan(plan);
+    if (plan.length > 0) {
+      setCurrentDrillIndex(0);
+      setCurrentSet(1);
+      setCurrentSide('left');
+      setTimeLeft(plan[0].duration);
+      setIsRunning(false);
+      setCompletedDrills(new Set());
+      setSessionDone(false);
+      setPhase('session');
+    }
+  }, [selectedAreas, recommendations, onLog]);
 
-  const generalRoutine = useMemo(() => getGeneralMobilityRoutine(), []);
+  // ─── Timer logic ───
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setIsRunning(false);
+            // Haptic buzz
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              navigator.vibrate([100, 50, 100]);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRunning, timeLeft]);
 
-  const toggleDrillComplete = useCallback((name: string) => {
-    setCompletedDrills(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }, []);
+  const currentDrill = sessionPlan[currentDrillIndex] as MobilityDrill | undefined;
 
-  const allDrills = useMemo(() => {
-    return recommendations.flatMap(r => r.drills);
-  }, [recommendations]);
+  const advanceToNext = useCallback(() => {
+    if (!currentDrill) return;
+    const drill = currentDrill;
 
-  const totalDuration = useMemo(() => {
-    return allDrills.length > 0 ? estimateDuration(allDrills) : estimateDuration(generalRoutine);
-  }, [allDrills, generalRoutine]);
+    // Side 1 → Side 2
+    if (currentSide === 'left') {
+      setCurrentSide('right');
+      setTimeLeft(drill.duration);
+      setIsRunning(false);
+      return;
+    }
+
+    // Next set
+    if (currentSet < drill.sets) {
+      setCurrentSet(s => s + 1);
+      setCurrentSide('left');
+      setTimeLeft(drill.duration);
+      setIsRunning(false);
+      return;
+    }
+
+    // Mark drill done, move to next
+    setCompletedDrills(prev => new Set(prev).add(currentDrillIndex));
+    const nextIdx = currentDrillIndex + 1;
+    if (nextIdx < sessionPlan.length) {
+      setCurrentDrillIndex(nextIdx);
+      setCurrentSet(1);
+      setCurrentSide('left');
+      setTimeLeft(sessionPlan[nextIdx].duration);
+      setIsRunning(false);
+    } else {
+      setSessionDone(true);
+      setIsRunning(false);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([80, 40, 80, 40, 150]);
+      }
+    }
+  }, [currentDrill, currentSide, currentSet, currentDrillIndex, sessionPlan]);
+
+  // Auto-advance when timer hits 0
+  useEffect(() => {
+    if (timeLeft === 0 && phase === 'session' && !sessionDone && currentDrill) {
+      // Short pause then advance
+      const t = setTimeout(advanceToNext, 800);
+      return () => clearTimeout(t);
+    }
+  }, [timeLeft, phase, sessionDone, currentDrill, advanceToNext]);
+
+  const skipDrill = useCallback(() => {
+    setCompletedDrills(prev => new Set(prev).add(currentDrillIndex));
+    const nextIdx = currentDrillIndex + 1;
+    if (nextIdx < sessionPlan.length) {
+      setCurrentDrillIndex(nextIdx);
+      setCurrentSet(1);
+      setCurrentSide('left');
+      setTimeLeft(sessionPlan[nextIdx].duration);
+      setIsRunning(false);
+    } else {
+      setSessionDone(true);
+      setIsRunning(false);
+    }
+  }, [currentDrillIndex, sessionPlan]);
+
+  const totalSessionSeconds = useMemo(() => {
+    return sessionPlan.reduce((sum, d) => sum + drillSeconds(d), 0);
+  }, [sessionPlan]);
+
+  const completedSeconds = useMemo(() => {
+    return sessionPlan
+      .filter((_, i) => completedDrills.has(i))
+      .reduce((sum, d) => sum + drillSeconds(d), 0);
+  }, [sessionPlan, completedDrills]);
 
   // ─── Phase: Initial Ask ───
   if (phase === 'ask') {
@@ -121,8 +227,8 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
         </div>
         <p className="text-xs text-grappler-300 mb-3">
           {context === 'rest_day'
-            ? 'Anything feeling sore or tight today? I\'ll suggest targeted mobility work.'
-            : 'How\'s your body feeling? Let me suggest some recovery drills.'}
+            ? 'Anything feeling sore or tight today? I\'ll build you a mobility session.'
+            : 'How\'s your body feeling? Let me put together some recovery work.'}
         </p>
         <div className="flex gap-2">
           <button
@@ -142,7 +248,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     );
   }
 
-  // ─── Phase: Select Areas ───
+  // ─── Phase: Select Areas + Severity ───
   if (phase === 'select') {
     const upperAreas = SORENESS_AREAS.filter(a => a.group === 'upper');
     const coreAreas = SORENESS_AREAS.filter(a => a.group === 'core');
@@ -154,7 +260,6 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-violet-400" />
@@ -165,7 +270,6 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           </button>
         </div>
 
-        {/* Body region groups */}
         {[
           { label: 'Upper Body', areas: upperAreas },
           { label: 'Core & Spine', areas: coreAreas },
@@ -197,7 +301,6 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           </div>
         ))}
 
-        {/* Severity pickers for selected areas */}
         <AnimatePresence>
           {selectedAreas.size > 0 && (
             <motion.div
@@ -235,10 +338,10 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
               </div>
 
               <button
-                onClick={handleSubmit}
+                onClick={() => setPhase('time')}
                 className="w-full mt-3 py-2.5 rounded-xl bg-violet-500 text-white text-sm font-semibold active:scale-[0.97] transition-all"
               >
-                Show me recovery drills
+                Next
               </button>
             </motion.div>
           )}
@@ -247,166 +350,239 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     );
   }
 
-  // ─── Phase: Results ───
+  // ─── Phase: Time Picker ───
+  if (phase === 'time') {
+    const areaLabels = Array.from(selectedAreas.keys())
+      .map(a => SORENESS_AREAS.find(s => s.id === a)?.label)
+      .filter(Boolean);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-violet-400" />
+            <p className="text-sm font-bold text-grappler-100">How much time do you have?</p>
+          </div>
+          <button onClick={onDismiss} className="p-1 text-grappler-500 hover:text-grappler-300">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-xs text-grappler-400 mb-3">
+          Targeting: <span className="text-grappler-200">{areaLabels.join(', ')}</span>
+        </p>
+
+        <div className="grid grid-cols-2 gap-2">
+          {TIME_OPTIONS.map(opt => (
+            <button
+              key={opt.minutes}
+              onClick={() => handlePickTime(opt.minutes)}
+              className="py-3 rounded-xl bg-grappler-800/80 border border-grappler-700/50 hover:border-violet-500/40 active:scale-[0.96] transition-all text-center group"
+            >
+              <p className="text-lg font-black text-grappler-100 group-hover:text-violet-300 transition-colors">{opt.label}</p>
+              <p className="text-[10px] text-grappler-500">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={() => setPhase('select')}
+          className="w-full mt-2 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+        >
+          Back
+        </button>
+      </motion.div>
+    );
+  }
+
+  // ─── Phase: Active Session ───
+  if (sessionDone) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 text-center"
+      >
+        <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+          <Check className="w-6 h-6 text-green-400" />
+        </div>
+        <h3 className="text-lg font-black text-grappler-100 mb-1">Mobility Done!</h3>
+        <p className="text-xs text-grappler-400 mb-1">
+          {sessionPlan.length} drills &middot; {Math.ceil(totalSessionSeconds / 60)} min
+        </p>
+        <p className="text-xs text-green-400/80 mb-4">Your body will thank you tomorrow.</p>
+        <button
+          onClick={onDismiss}
+          className="px-6 py-2.5 rounded-xl bg-green-500/20 border border-green-500/30 text-sm font-semibold text-green-300 active:scale-[0.97] transition-all"
+        >
+          Done
+        </button>
+      </motion.div>
+    );
+  }
+
+  if (!currentDrill) return null;
+
+  const progress = totalSessionSeconds > 0
+    ? (completedSeconds / totalSessionSeconds) * 100
+    : 0;
+
+  const circumference = 2 * Math.PI * 44;
+  const timerProgress = currentDrill.duration > 0
+    ? ((currentDrill.duration - timeLeft) / currentDrill.duration) * circumference
+    : 0;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-violet-400" />
-          <p className="text-sm font-bold text-grappler-100">Your Recovery Plan</p>
+      {/* Session progress bar */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex-1 h-1 bg-grappler-700 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-violet-500 rounded-full"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[10px] text-grappler-500">
-            <Clock className="w-3 h-3" />{totalDuration}min
-          </span>
-          <button onClick={onDismiss} className="p-1 text-grappler-500 hover:text-grappler-300">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        <span className="text-[10px] text-grappler-500 font-medium">
+          {completedDrills.size}/{sessionPlan.length}
+        </span>
+        <button onClick={onDismiss} className="p-0.5 text-grappler-600 hover:text-grappler-300">
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
 
-      {/* Progress */}
-      {allDrills.length > 0 && (
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 h-1 bg-grappler-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-violet-500 rounded-full transition-all duration-300"
-              style={{ width: `${allDrills.length > 0 ? (completedDrills.size / allDrills.length) * 100 : 0}%` }}
+      {/* Current drill display */}
+      <div className="text-center mb-3">
+        <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1">
+          Set {currentSet}/{currentDrill.sets} &middot; {currentSide === 'left' ? 'Left side' : 'Right side'}
+        </p>
+        <h3 className="text-base font-black text-grappler-100 leading-tight">{currentDrill.name}</h3>
+      </div>
+
+      {/* Circular timer */}
+      <div className="flex justify-center mb-3">
+        <div className="relative w-28 h-28">
+          <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="rgb(55 65 81 / 0.4)" strokeWidth="4" />
+            <circle
+              cx="50" cy="50" r="44"
+              fill="none"
+              stroke={timeLeft === 0 ? '#22c55e' : '#8b5cf6'}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference - timerProgress}
+              className="transition-all duration-1000 ease-linear"
             />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={cn(
+              'text-3xl font-black tabular-nums',
+              timeLeft === 0 ? 'text-green-400' : 'text-grappler-100'
+            )}>
+              {timeLeft}
+            </span>
+            <span className="text-[10px] text-grappler-500">sec</span>
           </div>
-          <span className="text-[10px] text-grappler-500">{completedDrills.size}/{allDrills.length}</span>
         </div>
-      )}
-
-      {/* Recommendations by area */}
-      <div className="space-y-3">
-        {recommendations.map(rec => {
-          const areaInfo = SORENESS_AREAS.find(a => a.id === rec.area);
-          const severityCfg = SEVERITY_CONFIG.find(s => s.id === rec.severity);
-          const isExpanded = expandedRec === rec.area;
-
-          return (
-            <div key={rec.area}>
-              <button
-                onClick={() => setExpandedRec(isExpanded ? null : rec.area)}
-                className="w-full flex items-center gap-2 mb-1"
-              >
-                <span className={cn('text-xs font-semibold', severityCfg?.color || 'text-grappler-300')}>
-                  {areaInfo?.label}
-                </span>
-                <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full', severityCfg?.bgColor, severityCfg?.color)}>
-                  {severityCfg?.label}
-                </span>
-                <span className="flex-1" />
-                {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" /> : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />}
-              </button>
-
-              <AnimatePresence>
-                {isExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    {/* Severity-specific coaching tip */}
-                    <p className="text-[11px] text-grappler-400 mb-2 italic">{rec.tip}</p>
-
-                    {/* Drills */}
-                    <div className="space-y-1.5">
-                      {rec.drills.map(drill => (
-                        <DrillCard
-                          key={drill.name}
-                          drill={drill}
-                          isCompleted={completedDrills.has(drill.name)}
-                          isExpanded={expandedDrill === drill.name}
-                          onToggleComplete={() => toggleDrillComplete(drill.name)}
-                          onToggleExpand={() => setExpandedDrill(expandedDrill === drill.name ? null : drill.name)}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
       </div>
 
-      {/* Completion message */}
-      {allDrills.length > 0 && completedDrills.size === allDrills.length && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mt-3 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-center"
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-4 mb-3">
+        <button
+          onClick={skipDrill}
+          className="w-10 h-10 rounded-full bg-grappler-800 border border-grappler-700 flex items-center justify-center text-grappler-400 hover:text-grappler-200 active:scale-[0.93] transition-all"
+          title="Skip drill"
         >
-          <p className="text-xs font-semibold text-green-400">All drills complete! Great recovery work.</p>
-        </motion.div>
+          <SkipForward className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => {
+            if (timeLeft === 0) {
+              advanceToNext();
+            } else {
+              setIsRunning(r => !r);
+            }
+          }}
+          className={cn(
+            'w-14 h-14 rounded-full flex items-center justify-center active:scale-[0.93] transition-all',
+            timeLeft === 0
+              ? 'bg-green-500 text-white'
+              : isRunning
+                ? 'bg-violet-500/30 border-2 border-violet-500 text-violet-300'
+                : 'bg-violet-500 text-white'
+          )}
+        >
+          {timeLeft === 0 ? (
+            <Check className="w-6 h-6" />
+          ) : isRunning ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6 ml-0.5" />
+          )}
+        </button>
+        <div className="w-10 h-10" /> {/* Spacer for symmetry */}
+      </div>
+
+      {/* Drill instructions (expandable) */}
+      <DrillDetails drill={currentDrill} />
+
+      {/* Upcoming queue */}
+      {sessionPlan.length > 1 && (
+        <div className="mt-3 border-t border-grappler-700/30 pt-2">
+          <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1.5">Up next</p>
+          <div className="space-y-1">
+            {sessionPlan.slice(currentDrillIndex + 1, currentDrillIndex + 3).map((d, i) => (
+              <div key={d.name + i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-grappler-800/30">
+                <div className="w-4 h-4 rounded bg-grappler-700/50 flex items-center justify-center text-[9px] text-grappler-500 font-bold">
+                  {currentDrillIndex + i + 2}
+                </div>
+                <p className="text-[11px] text-grappler-400 flex-1 truncate">{d.name}</p>
+                <span className="text-[10px] text-grappler-600">{d.sets}&times;{d.duration}s</span>
+              </div>
+            ))}
+            {sessionPlan.length - currentDrillIndex - 1 > 2 && (
+              <p className="text-[10px] text-grappler-600 text-center">
+                +{sessionPlan.length - currentDrillIndex - 3} more
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </motion.div>
   );
 }
 
-// ─── Drill Card Sub-Component ───
+// ─── Drill Details Sub-Component ───
 
-function DrillCard({
-  drill,
-  isCompleted,
-  isExpanded,
-  onToggleComplete,
-  onToggleExpand,
-}: {
-  drill: MobilityDrill;
-  isCompleted: boolean;
-  isExpanded: boolean;
-  onToggleComplete: () => void;
-  onToggleExpand: () => void;
-}) {
+function DrillDetails({ drill }: { drill: MobilityDrill }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className={cn(
-      'rounded-lg border transition-colors',
-      isCompleted
-        ? 'bg-green-500/5 border-green-500/20'
-        : 'bg-grappler-800/40 border-grappler-700/30'
-    )}>
-      <div className="flex items-center gap-2 px-3 py-2">
-        <button
-          onClick={onToggleComplete}
-          className={cn(
-            'w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 transition-colors',
-            isCompleted
-              ? 'bg-green-500 text-white'
-              : 'bg-grappler-700/50 border border-grappler-600/50'
-          )}
-        >
-          {isCompleted && <Check className="w-3 h-3" />}
-        </button>
-        <button onClick={onToggleExpand} className="flex-1 text-left min-w-0">
-          <p className={cn('text-xs font-medium', isCompleted ? 'text-grappler-500 line-through' : 'text-grappler-200')}>
-            {drill.name}
-          </p>
-          <p className="text-[10px] text-grappler-500">
-            {drill.sets}×{drill.duration}s per side
-          </p>
-        </button>
-        <button onClick={onToggleExpand} className="flex-shrink-0 p-1 text-grappler-500">
-          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-      </div>
+    <div className="rounded-xl bg-grappler-800/40 border border-grappler-700/30">
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2"
+      >
+        <span className="text-[11px] text-grappler-400">How to do this</span>
+        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" /> : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />}
+      </button>
       <AnimatePresence>
-        {isExpanded && (
+        {expanded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-2.5 space-y-1.5 border-t border-grappler-700/20 pt-2">
+            <div className="px-3 pb-2.5 space-y-1.5">
               <p className="text-[11px] text-grappler-300 leading-relaxed">{drill.description}</p>
               {drill.breathingCue && (
                 <p className="text-[10px] text-blue-400/80 italic">Breathing: {drill.breathingCue}</p>

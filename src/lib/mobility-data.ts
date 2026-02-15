@@ -510,3 +510,48 @@ export function estimateDuration(drills: MobilityDrill[]): number {
   const totalSeconds = drills.reduce((sum, d) => sum + (d.duration * d.sets * 2), 0); // *2 for both sides
   return Math.ceil(totalSeconds / 60);
 }
+
+/**
+ * Estimate seconds for a single drill (both sides).
+ */
+export function drillSeconds(d: MobilityDrill): number {
+  return d.duration * d.sets * 2;
+}
+
+/**
+ * Build a time-constrained mobility plan from recommendations.
+ * Distributes time fairly across sore areas, picking the highest-value drills first.
+ */
+export function buildTimedPlan(
+  recommendations: MobilityRecommendation[],
+  timeBudgetMinutes: number,
+): MobilityDrill[] {
+  if (recommendations.length === 0) return [];
+
+  const budgetSeconds = timeBudgetMinutes * 60;
+  let remaining = budgetSeconds;
+  const plan: MobilityDrill[] = [];
+  const usedNames = new Set<string>();
+
+  // Round-robin across areas so each gets fair time
+  let maxRounds = 10; // safety cap
+  let added = true;
+  while (added && remaining > 0 && maxRounds-- > 0) {
+    added = false;
+    for (const rec of recommendations) {
+      for (const drill of rec.drills) {
+        if (usedNames.has(drill.name)) continue;
+        const cost = drillSeconds(drill);
+        if (cost <= remaining + 15) { // allow 15s overflow for last drill
+          plan.push(drill);
+          usedNames.add(drill.name);
+          remaining -= cost;
+          added = true;
+          break; // next area
+        }
+      }
+    }
+  }
+
+  return plan;
+}

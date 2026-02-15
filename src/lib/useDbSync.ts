@@ -91,9 +91,9 @@ function applyRemoteData(
       }
     }
 
-    // On re-sync with no conflict: if remote is newer, silently merge arrays
-    if (isResync && hasRemoteUniqueData && !hasLocalUniqueData) {
-      // Remote has new data we don't have — safe to merge
+    // Remote has data that local is missing (and local has nothing unique) —
+    // safe to take remote regardless of initial load or re-sync
+    if (hasRemoteUniqueData && !hasLocalUniqueData) {
       const merged = resolveConflicts(
         { workoutLogs: localLogs, lastSyncAt: store.lastSyncAt || 0 },
         dbData,
@@ -105,6 +105,33 @@ function applyRemoteData(
       if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
       if (Object.keys(fieldsToMerge).length > 0) {
         useAppStore.setState(fieldsToMerge);
+      }
+      return true;
+    }
+
+    // Local is "onboarded" but has no real data, while server has substantial data
+    // (e.g. after data recovery — local has profile shell but server has the full state)
+    const localMeals = Array.isArray(store.meals) ? store.meals.length : 0;
+    const remoteMeals = Array.isArray(dbData.meals) ? (dbData.meals as unknown[]).length : 0;
+    const localGamLevel = (store.gamificationStats as unknown as Record<string, unknown>)?.level || 0;
+    const remoteGamLevel = (dbData.gamificationStats as Record<string, unknown>)?.level || 0;
+    const remoteIsStrictlyRicher =
+      (remoteLogs.length > localLogs.length) ||
+      (remoteMeals > localMeals && remoteMeals > 0) ||
+      (Number(remoteGamLevel) > Number(localGamLevel));
+
+    if (remoteIsStrictlyRicher && !hasLocalUniqueData) {
+      // Server has more data than local in every dimension — take it all
+      const fieldsToMerge: Record<string, unknown> = {};
+      for (const field of RESTORE_FIELDS) {
+        if (dbData[field] !== undefined) fieldsToMerge[field] = dbData[field];
+      }
+      if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
+      if (Object.keys(fieldsToMerge).length > 0) {
+        useAppStore.setState(fieldsToMerge);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[db-sync] Server is strictly richer — restored all fields');
+        }
       }
       return true;
     }

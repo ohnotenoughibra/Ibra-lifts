@@ -1609,7 +1609,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   <button
                     onClick={() => {
                       setLiftOptionsExpanded(false);
-                      currentStreak >= 3 ? setSkipFrictionShown(true) : setShowSkipDialog(true);
+                      setShowSkipDialog(true);
                     }}
                     className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
                   >
@@ -1622,36 +1622,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   >
                     <CheckCircle className="w-3.5 h-3.5" />Finish Block
                   </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Skip friction — streak warning */}
-          <AnimatePresence>
-            {skipFrictionShown && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className={cn(
-                  'rounded-xl p-3 text-center border',
-                  currentStreak >= 7 ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'
-                )}>
-                  <p className="text-xs text-grappler-200 mb-2">
-                    {currentStreak >= 14
-                      ? `You've trained ${currentStreak} days straight. That's elite. Skipping resets everything.`
-                      : currentStreak >= 7
-                        ? `${currentStreak}-day streak. That took real discipline to build. Still skip?`
-                        : `You're ${currentStreak} days in. ${7 - currentStreak} more to a 7-day streak.`
-                    }
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <button onClick={() => { setSkipFrictionShown(false); setShowSkipDialog(true); }} className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600">Skip anyway</button>
-                    <button onClick={() => { setSkipFrictionShown(false); if (nextWorkout) startWorkout(nextWorkout); }} className="btn btn-sm bg-primary-600 text-white hover:bg-primary-500 gap-1.5"><Dumbbell className="w-3.5 h-3.5" />Let&apos;s train</button>
-                  </div>
                 </div>
               </motion.div>
             )}

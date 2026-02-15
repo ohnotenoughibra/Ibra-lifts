@@ -63,6 +63,7 @@ import type { CycleLog } from '@/lib/female-athlete';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
 import PerformanceReadiness from './PerformanceReadiness';
 import SorenessCheck from './SorenessCheck';
+import RestDayMissionCard from './RestDayMissionCard';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
@@ -616,9 +617,14 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const yesterdayVolume = yesterdayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
   const yesterdayProtein = meals.filter(m => new Date(m.date).toDateString() === yesterdayStr).reduce((sum, m) => sum + (m.protein || 0), 0);
 
+  const twoDaysAgo = new Date(today);
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const twoDaysAgoWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === twoDaysAgo.toDateString());
+
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;
   const sleepHours = latestWhoopData?.sleepHours;
+  const waterToday = waterLog[todayIso] || 0;
 
   const handleShareWorkout = async () => {
     if (!lastCompletedWorkout) return;
@@ -1387,96 +1393,32 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           )}
         </motion.div>
 
-      ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') && !nextWorkout ? (
-        /* Pure rest / recovery — no pending lift */
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-grappler-700 bg-gradient-to-br from-grappler-800 to-grappler-900 p-5">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Moon className="w-4 h-4 text-indigo-400" />
-                {directive.fightCampTag && (
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
-                )}
-                {(directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') && (
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Smart Rest +{pointRewards.smartRest} XP</span>
-                )}
-              </div>
-              <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
-              <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
-            </div>
-            <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
-              <p className={cn('text-2xl font-black group-hover:opacity-80 transition-opacity', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
-              <p className="text-[10px] text-grappler-500">Readiness ▾</p>
-            </button>
-          </div>
-          {directive.actions.length > 0 && (
-            <div className="space-y-1.5">
-              {directive.actions.map((a, i) => (
-                <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
-              ))}
-            </div>
-          )}
-          {mesocycleProgress && (
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-grappler-500 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
-              <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-center mt-2">
-            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-          </div>
-        </motion.div>
-
-      ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') && nextWorkout ? (
-        /* Rest/recovery day but there IS a pending lift — show rest card with subtle lift CTA */
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          <div className="rounded-2xl border border-grappler-700 bg-gradient-to-br from-grappler-800 to-grappler-900 p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Moon className="w-4 h-4 text-indigo-400" />
-                  {directive.fightCampTag && (
-                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">{directive.fightCampTag}</span>
-                  )}
-                  {(directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') && (
-                    <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Smart Rest +{pointRewards.smartRest} XP</span>
-                  )}
-                </div>
-                <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
-                <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
-              </div>
-              <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
-                <p className={cn('text-2xl font-black group-hover:opacity-80 transition-opacity', directive.readinessLevel === 'peak' ? 'text-green-400' : directive.readinessLevel === 'good' ? 'text-blue-400' : directive.readinessLevel === 'moderate' ? 'text-yellow-400' : directive.readinessLevel === 'low' ? 'text-blue-400' : directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-grappler-400')}>{directive.readinessScore}</p>
-                <p className="text-[10px] text-grappler-500">Readiness ▾</p>
-              </button>
-            </div>
-            {directive.actions.length > 0 && (
-              <div className="space-y-1.5">
-                {directive.actions.map((a, i) => (
-                  <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
-                ))}
-              </div>
-            )}
-            {mesocycleProgress && (
-              <div className="flex items-center gap-2 mt-3">
-                <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-grappler-500 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
-                <span className="text-xs text-grappler-500">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-              </div>
-            )}
-          </div>
-          {/* Subtle lift CTA for rest days */}
-          <button onClick={() => startWorkout(nextWorkout)} className="w-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 rounded-xl p-3 text-left transition-colors flex items-center gap-3">
-            <Dumbbell className="w-5 h-5 text-grappler-500" />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-grappler-400">Want to lift anyway?</p>
-              <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
-            </div>
-            <Play className="w-4 h-4 text-grappler-500" />
-          </button>
-          <div className="flex items-center justify-center">
-            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-          </div>
-        </motion.div>
+      ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (
+        /* Rest / recovery day — interactive Mission Control card */
+        <RestDayMissionCard
+          headline={directive.headline}
+          subline={directive.subline}
+          actions={directive.actions}
+          readinessScore={directive.readinessScore}
+          readinessLevel={directive.readinessLevel}
+          sessionLabel={directive.sessionLabel}
+          fightCampTag={directive.fightCampTag}
+          proteinGap={directive.proteinGap}
+          nextWorkout={nextWorkout}
+          todayProtein={todayProtein}
+          proteinTarget={macroTargets.protein}
+          waterToday={waterToday}
+          sleepHours={sleepHours ?? null}
+          alreadyLoggedSoreness={alreadyLoggedSorenessToday}
+          yesterdayWorkouts={yesterdayWorkouts}
+          twoDaysAgoWorkouts={twoDaysAgoWorkouts}
+          mesocycleProgress={mesocycleProgress}
+          weightUnit={weightUnit}
+          onNavigate={onNavigate}
+          onStartWorkout={startWorkout}
+          onQuickWorkout={handleQuickWorkout}
+          onReadinessToggle={() => setReadinessExpanded(v => !v)}
+        />
 
       ) : directive.todayType === 'combat' ? (
         /* Combat day — with optional pending lift */

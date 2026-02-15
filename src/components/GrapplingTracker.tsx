@@ -147,7 +147,7 @@ function isThisWeek(date: Date): boolean {
   const d = new Date(date);
   const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday-based
   startOfWeek.setHours(0, 0, 0, 0);
   return d >= startOfWeek;
 }

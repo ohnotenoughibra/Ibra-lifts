@@ -1185,7 +1185,7 @@ export interface OnboardingData {
 export type ReadinessLevel = 'peak' | 'good' | 'moderate' | 'low' | 'critical';
 
 export interface ReadinessFactor {
-  source: 'sleep' | 'nutrition' | 'stress' | 'recovery' | 'injury' | 'training_load' | 'hydration' | 'age' | 'hrv';
+  source: 'sleep' | 'nutrition' | 'stress' | 'recovery' | 'injury' | 'training_load' | 'hydration' | 'age' | 'hrv' | 'soreness';
   label: string;
   score: number;        // 0-100
   weight: number;       // importance 0-1 (redistributed if not tracked)

@@ -33,15 +33,16 @@ import type {
 
 // ── Factor Weights (default, redistributed if unavailable) ──────────────
 const DEFAULT_WEIGHTS: Record<ReadinessFactor['source'], number> = {
-  sleep:         0.22,
-  nutrition:     0.15,
-  stress:        0.12,
-  recovery:      0.15,  // wearable recovery score
-  injury:        0.10,
-  training_load: 0.12,
+  sleep:         0.20,
+  nutrition:     0.14,
+  stress:        0.11,
+  recovery:      0.14,  // wearable recovery score
+  injury:        0.09,
+  training_load: 0.11,
   hydration:     0.04,
   age:           0.05,
-  hrv:           0.05,
+  hrv:           0.04,
+  soreness:      0.08,
 };
 
 // ── Main Entry Point ────────────────────────────────────────────────────
@@ -87,6 +88,9 @@ export function calculateReadiness(opts: {
 
   // 9. HRV
   factors.push(assessHRV(opts.wearableData, opts.wearableHistory));
+
+  // 10. Soreness
+  factors.push(assessSoreness(opts.quickLogs));
 
   // Redistribute weights from unavailable factors to available ones
   const availableFactors = factors.filter(f => f.available);
@@ -527,6 +531,71 @@ function assessHRV(
   return base;
 }
 
+function assessSoreness(quickLogs: QuickLog[]): ReadinessFactor {
+  const base: ReadinessFactor = {
+    source: 'soreness',
+    label: 'Soreness',
+    score: 90,
+    weight: DEFAULT_WEIGHTS.soreness,
+    available: false,
+  };
+
+  // Find the most recent soreness log (from today or yesterday)
+  const sorenessLogs = quickLogs
+    .filter(l => l.type === 'soreness')
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  if (sorenessLogs.length === 0) return base;
+
+  // Only consider logs from the last 36 hours
+  const cutoff = Date.now() - 36 * 60 * 60 * 1000;
+  const recent = sorenessLogs.find(l => new Date(l.timestamp).getTime() >= cutoff);
+  if (!recent) return base;
+
+  base.available = true;
+  const value = String(recent.value);
+
+  if (value === 'none' || value === '') {
+    base.score = 100;
+    base.detail = 'No soreness reported';
+    return base;
+  }
+
+  // Parse "area:severity,area:severity" format
+  const entries = value.split(',').map(e => {
+    const [area, severity] = e.split(':');
+    return { area: area?.trim(), severity: severity?.trim() };
+  }).filter(e => e.area && e.severity);
+
+  if (entries.length === 0) {
+    base.score = 95;
+    base.detail = 'Minimal soreness';
+    return base;
+  }
+
+  const severeCount = entries.filter(e => e.severity === 'severe').length;
+  const moderateCount = entries.filter(e => e.severity === 'moderate').length;
+  const mildCount = entries.filter(e => e.severity === 'mild').length;
+
+  // Score: each severe area = -18pts, moderate = -10pts, mild = -4pts
+  let penalty = severeCount * 18 + moderateCount * 10 + mildCount * 4;
+  // Cap the penalty — you can't go below 10
+  penalty = Math.min(penalty, 90);
+  base.score = Math.max(10, 100 - penalty);
+
+  // Build detail string
+  const parts: string[] = [];
+  if (severeCount > 0) parts.push(`${severeCount} severe`);
+  if (moderateCount > 0) parts.push(`${moderateCount} moderate`);
+  if (mildCount > 0) parts.push(`${mildCount} mild`);
+  const areaNames = entries.slice(0, 3).map(e =>
+    e.area!.replace(/_/g, ' ')
+  );
+  base.detail = `${parts.join(', ')} soreness (${areaNames.join(', ')}${entries.length > 3 ? '...' : ''})`;
+
+  return base;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 function scoreToLevel(score: number): ReadinessLevel {
@@ -576,6 +645,10 @@ function getRecommendation(factor: ReadinessFactor): string | null {
       return 'Recovery takes longer with age — ensure adequate sleep and consider extra rest days.';
     case 'hrv':
       return 'HRV is below your baseline — your nervous system needs recovery. Reduce intensity today.';
+    case 'soreness':
+      return factor.score < 40
+        ? 'Multiple areas are severely sore — consider a full rest day or light mobility work only.'
+        : 'Significant soreness detected — consider swapping to a session that avoids sore muscle groups.';
   }
   return null;
 }

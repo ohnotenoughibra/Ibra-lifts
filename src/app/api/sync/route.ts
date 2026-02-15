@@ -74,6 +74,27 @@ export async function POST(request: Request) {
 
     const jsonData = JSON.stringify(data);
 
+    // ── Safety: refuse to overwrite rich data with empty/fresh data ──
+    // If incoming data has no workoutLogs and no user profile, but server
+    // already has real data, reject the write to prevent accidental data loss
+    // from a new device syncing blank state before pulling existing data.
+    const incomingLogs = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
+    const incomingHasProfile = data.isOnboarded === true && data.user;
+    if (incomingLogs === 0 && !incomingHasProfile) {
+      const { rows: existing } = await sql`
+        SELECT data FROM user_store WHERE user_id = ${userId}
+      `;
+      if (existing.length > 0 && existing[0].data) {
+        const serverData = existing[0].data as Record<string, unknown>;
+        const serverLogs = Array.isArray(serverData.workoutLogs) ? serverData.workoutLogs.length : 0;
+        const serverHasProfile = serverData.isOnboarded === true && serverData.user;
+        if (serverLogs > 0 || serverHasProfile) {
+          console.warn(`[sync] Blocked empty-data overwrite for user ${userId} (server has ${serverLogs} logs)`);
+          return NextResponse.json({ success: true, blocked: true });
+        }
+      }
+    }
+
     // Upsert data
     await sql`
       INSERT INTO user_store (user_id, data, updated_at)

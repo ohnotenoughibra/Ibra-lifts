@@ -232,6 +232,10 @@ export async function POST(request: Request) {
     }
 
     if (dataToRestore && Object.keys(dataToRestore).length > 0) {
+      // Stamp user.updatedAt to NOW so the sync logic treats this as the newest data
+      if (dataToRestore.user && typeof dataToRestore.user === 'object') {
+        dataToRestore.user = { ...(dataToRestore.user as Record<string, unknown>), updatedAt: new Date().toISOString() };
+      }
       const jsonData = JSON.stringify(dataToRestore);
       await sql`
         CREATE TABLE IF NOT EXISTS user_store (

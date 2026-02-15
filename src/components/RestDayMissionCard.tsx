@@ -11,6 +11,7 @@ import type { WorkoutSession, WorkoutLog, MuscleGroup } from '@/lib/types';
 import type { OverlayView } from './dashboard-types';
 import { pointRewards } from '@/lib/gamification';
 import { getExerciseById } from '@/lib/exercises';
+import ReadinessRing from './ReadinessRing';
 
 // ─── Types ───
 
@@ -37,6 +38,7 @@ interface RestDayMissionCardProps {
   onStartWorkout: (session: WorkoutSession) => void;
   onQuickWorkout: () => void;
   onReadinessToggle: () => void;
+  forwardLook: string | null;
 }
 
 // ─── Muscle display config ───
@@ -175,13 +177,6 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
   const recoveringCount = muscleStatus.filter(m => m.status === 'recovering').length;
   const yesterdayTotalSets = props.yesterdayWorkouts.reduce((s, l) => s + (l.exercises?.length || 0), 0);
 
-  // ─── Readiness color ───
-  const scoreColor =
-    props.readinessLevel === 'peak' ? 'text-green-400' :
-    props.readinessLevel === 'good' ? 'text-blue-400' :
-    props.readinessLevel === 'moderate' ? 'text-yellow-400' :
-    props.readinessLevel === 'low' ? 'text-blue-400' : 'text-red-400';
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -209,10 +204,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
               <h2 className="text-xl font-black text-grappler-100">{props.headline}</h2>
               <p className="text-xs text-grappler-400 mt-1">{props.subline}</p>
             </div>
-            <button onClick={props.onReadinessToggle} className="text-right flex-shrink-0 ml-3 group">
-              <p className={cn('text-2xl font-black group-hover:opacity-80 transition-opacity', scoreColor)}>{props.readinessScore}</p>
-              <p className="text-[10px] text-grappler-500">Readiness &#9662;</p>
-            </button>
+            <ReadinessRing score={props.readinessScore} onClick={props.onReadinessToggle} />
           </div>
         </div>
 
@@ -328,7 +320,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
                 transition={{ duration: 0.2 }}
               >
                 <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-2.5">
-                  Coming Up{props.sessionLabel ? ` · ${props.sessionLabel}` : ''}
+                  Next Lift{props.sessionLabel ? ` · ${props.sessionLabel}` : ''}
                 </p>
 
                 <div className="rounded-xl border border-grappler-700/40 bg-grappler-800/40 p-3 mb-3">
@@ -376,7 +368,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
 
         {/* Dot indicators + panel labels */}
         <div className="flex items-center justify-center gap-3 pb-3">
-          {(['Missions', 'Body Map', ...(props.nextWorkout ? ['Tomorrow'] : [])] as const).map((label, i) => (
+          {(['Missions', 'Body Map', ...(props.nextWorkout ? [`Next Lift`] : [])] as const).map((label, i) => (
             <button
               key={i}
               onClick={() => setActivePanel(i)}
@@ -395,6 +387,14 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
             </button>
           ))}
         </div>
+
+        {/* Forward look */}
+        {props.forwardLook && (
+          <div className="flex items-center gap-2 px-5 pb-2">
+            <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
+            <p className="text-[10px] text-grappler-500">{props.forwardLook}</p>
+          </div>
+        )}
 
         {/* Mesocycle progress */}
         {props.mesocycleProgress && (

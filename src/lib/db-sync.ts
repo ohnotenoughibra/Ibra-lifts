@@ -158,7 +158,11 @@ async function doSync(userId: string, data: Record<string, unknown>): Promise<vo
     body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
   });
   if (res.ok) {
-    if (process.env.NODE_ENV === 'development') {
+    const body = await res.json().catch(() => ({}));
+    if (body.blocked) {
+      console.warn(`[db-sync] Sync BLOCKED by server (${body.reason || 'safety guard'}) — ` +
+        `server score: ${body.serverScore}, incoming: ${body.incomingScore}`);
+    } else if (process.env.NODE_ENV === 'development') {
       console.log('[db-sync] Data synced to database');
     }
   }

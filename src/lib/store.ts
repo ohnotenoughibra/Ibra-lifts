@@ -2974,8 +2974,27 @@ export const useAppStore = create<AppState>()(
         getItem: (name: string) => {
           try {
             const item = localStorage.getItem(name);
-            return item ? JSON.parse(item) : null;
-          } catch {
+            if (!item) return null;
+            const parsed = JSON.parse(item);
+            // Save a backup key so we can recover from corruption
+            try { localStorage.setItem(name + '-backup', item); } catch { /* quota */ }
+            return parsed;
+          } catch (e) {
+            // localStorage is corrupted — try the backup key
+            console.error('[storage] Failed to parse localStorage, trying backup:', e);
+            try {
+              const backup = localStorage.getItem(name + '-backup');
+              if (backup) {
+                const parsed = JSON.parse(backup);
+                // Restore the main key from backup
+                try { localStorage.setItem(name, backup); } catch { /* quota */ }
+                console.log('[storage] Recovered from backup key');
+                return parsed;
+              }
+            } catch { /* backup also corrupted */ }
+            // Both corrupted — flag it so the sync pull can recover from server
+            console.error('[storage] localStorage corrupted and no backup — will recover from server');
+            try { localStorage.removeItem(name); } catch { /* ignore */ }
             return null;
           }
         },

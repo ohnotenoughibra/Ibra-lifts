@@ -416,7 +416,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
   const [readinessExpanded, setReadinessExpanded] = useState(false);
-  const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState(false);
+  const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
@@ -2095,7 +2095,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         const dayOfWeek = today.getDay();
         const hasHighSignal = weeklyInsights.some(i => i.type === 'win' || i.type === 'warning');
         const isPromoted = dayOfWeek === 0 || dayOfWeek === 1 || hasHighSignal;
-        const isExpanded = isPromoted || weeklyCoachingExpanded;
+        const isExpanded = weeklyCoachingExpanded !== null ? weeklyCoachingExpanded : isPromoted;
 
         const INSIGHT_ICONS: Record<string, React.ReactNode> = {
           trophy: <Trophy className="w-3.5 h-3.5" />,
@@ -2119,7 +2119,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         return (
           <div className="card p-3">
             <button
-              onClick={() => setWeeklyCoachingExpanded(v => !v)}
+              onClick={() => setWeeklyCoachingExpanded(v => v !== null ? !v : !isPromoted)}
               className="w-full flex items-center justify-between"
             >
               <div className="flex items-center gap-2">

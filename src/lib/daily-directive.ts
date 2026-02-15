@@ -71,7 +71,15 @@ export interface DailyDirective {
   scheduledCombatToday: CombatTrainingDay[];
   /** Today's completed workout performance (when user already trained) */
   todayPerformance: TodayPerformance | null;
+  /** Context banner — strategic awareness line above the card */
+  contextBanner: string | null;
+  /** Forward-looking momentum line — what's next */
+  forwardLook: string | null;
+  /** Progressive overload teaser for lift days */
+  overloadTeaser: string | null;
 }
+
+export type SessionGrade = 'S' | 'A' | 'B' | 'C';
 
 export interface TodayPerformance {
   totalVolume: number;
@@ -81,6 +89,14 @@ export interface TodayPerformance {
   duration: number; // minutes
   topExercise: string | null;
   topExerciseVolume: number;
+  /** Session quality grade (S/A/B/C) */
+  grade: SessionGrade;
+  /** One-sentence verdict for the session */
+  verdict: string;
+  /** Number of personal records set today */
+  prs: number;
+  /** PR exercise names */
+  prExercises: string[];
 }
 
 interface DirectiveInput {
@@ -207,7 +223,21 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
       });
     });
 
-    todayPerformance = { totalVolume, totalSets, exerciseCount, avgRPE, duration, topExercise, topExerciseVolume };
+    // PR detection
+    const prExercises: string[] = [];
+    todayWorkouts.forEach(l => {
+      (l.exercises || []).forEach(e => {
+        if (e.personalRecord) prExercises.push(e.exerciseName);
+      });
+    });
+
+    // Session grade
+    const grade = calculateSessionGrade(avgRPE, exerciseCount, totalSets, prExercises.length, duration);
+
+    // Verdict
+    const verdict = buildVerdict(grade, prExercises, avgRPE, totalSets);
+
+    todayPerformance = { totalVolume, totalSets, exerciseCount, avgRPE, duration, topExercise, topExerciseVolume, grade, verdict, prs: prExercises.length, prExercises };
   }
 
   // ─── Determine today type ───
@@ -445,6 +475,23 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     }
   }
 
+  // ─── Context banner — strategic awareness ───
+  const contextBanner = buildContextBanner({
+    todayType, sessionLabel, isDeload, fightCampTag, readinessScore: readiness.overall,
+    mesocycle: currentMesocycle, nextWorkoutInfo,
+    yesterdayRPE: getYesterdayRPE(workoutLogs),
+  });
+
+  // ─── Forward look — what's next ───
+  const forwardLook = buildForwardLook({
+    todayType, nextSession, nextLiftDayLabel, nextCombatDayLabel,
+  });
+
+  // ─── Progressive overload teaser (lift days) ───
+  const overloadTeaser = (todayType === 'lift' || todayType === 'both') && nextSession
+    ? buildOverloadTeaser(nextSession, workoutLogs)
+    : null;
+
   return {
     headline,
     subline,
@@ -463,6 +510,9 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     isScheduledLiftDay,
     scheduledCombatToday,
     todayPerformance,
+    contextBanner,
+    forwardLook,
+    overloadTeaser,
   };
 }
 
@@ -565,4 +615,190 @@ function formatActivityType(type: string): string {
     jump_rope: 'Jump Rope', elliptical: 'Elliptical',
   };
   return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Session Grade ──────────────────────────────────────────────────────────
+
+function calculateSessionGrade(
+  avgRPE: number,
+  exerciseCount: number,
+  totalSets: number,
+  prCount: number,
+  duration: number,
+): SessionGrade {
+  let score = 0;
+
+  // Volume completeness (did you do a real session?)
+  if (totalSets >= 15) score += 3;
+  else if (totalSets >= 10) score += 2;
+  else if (totalSets >= 5) score += 1;
+
+  // RPE sweet spot (7-9 is ideal for most training)
+  if (avgRPE >= 7 && avgRPE <= 9) score += 2;
+  else if (avgRPE >= 6 && avgRPE <= 9.5) score += 1;
+
+  // Exercise variety
+  if (exerciseCount >= 4) score += 1;
+
+  // PR bonus
+  if (prCount >= 2) score += 3;
+  else if (prCount === 1) score += 2;
+
+  // Duration (25-90min is reasonable)
+  if (duration >= 25 && duration <= 90) score += 1;
+
+  if (score >= 9) return 'S';
+  if (score >= 6) return 'A';
+  if (score >= 3) return 'B';
+  return 'C';
+}
+
+function buildVerdict(grade: SessionGrade, prExercises: string[], avgRPE: number, totalSets: number): string {
+  if (grade === 'S') {
+    if (prExercises.length > 0) return `Elite session — ${prExercises.length} PR${prExercises.length > 1 ? 's' : ''} and solid execution across the board.`;
+    return 'Everything clicked today. This is what peak training looks like.';
+  }
+  if (grade === 'A') {
+    if (prExercises.length > 0) return `Strong session with a ${prExercises[0]} PR. Keep this energy.`;
+    if (avgRPE >= 8) return 'You pushed hard and got the work done. Quality session.';
+    return 'Solid execution. Consistent sessions like this build champions.';
+  }
+  if (grade === 'B') {
+    if (avgRPE < 6.5) return 'Decent session but intensity was low. Push harder next time.';
+    if (totalSets < 10) return 'Short session — sometimes less is more. Recovery matters.';
+    return 'Good work showing up. Room to push harder next time.';
+  }
+  return 'You showed up — that counts. Some days are grinders.';
+}
+
+// ─── Context Banner ─────────────────────────────────────────────────────────
+
+function buildContextBanner(opts: {
+  todayType: TodayType;
+  sessionLabel: string | null;
+  isDeload: boolean;
+  fightCampTag: string | null;
+  readinessScore: number;
+  mesocycle: Mesocycle | null;
+  nextWorkoutInfo: { weekNumber: number; dayNumber: number; isDeload: boolean } | null;
+  yesterdayRPE: number | null;
+}): string | null {
+  const { todayType, sessionLabel, isDeload, fightCampTag, readinessScore, mesocycle, nextWorkoutInfo, yesterdayRPE } = opts;
+
+  // Fight camp takes priority
+  if (fightCampTag) return fightCampTag;
+
+  // Deload context
+  if (isDeload) return 'Deload week · 60-70% loads · Movement quality over intensity';
+
+  // Block position
+  if (mesocycle && nextWorkoutInfo) {
+    const totalWeeks = mesocycle.weeks.length;
+    const weekNum = nextWorkoutInfo.weekNumber;
+    const dayNum = nextWorkoutInfo.dayNumber;
+
+    if (todayType === 'lift' || todayType === 'both') {
+      // Identify peak/ramp weeks
+      const isLateBlock = weekNum >= totalWeeks - 1 && !isDeload;
+      const label = sessionLabel || `W${weekNum}/D${dayNum}`;
+      if (isLateBlock) return `${label} · ${mesocycle.name} · Final push week`;
+      return `${label} · Week ${weekNum} of ${totalWeeks}`;
+    }
+  }
+
+  // Rest/recovery context
+  if (todayType === 'recovery' && yesterdayRPE && yesterdayRPE >= 8.5) {
+    return `Recovery day · Yesterday's RPE ${yesterdayRPE} — you earned this`;
+  }
+  if (todayType === 'rest') {
+    if (readinessScore < 40) return 'Scheduled rest · Recovery score is low — prioritize sleep';
+    return 'Scheduled rest · Let adaptation happen';
+  }
+
+  // Combat day
+  if (todayType === 'combat') {
+    if (readinessScore >= 67) return `Mat day · Recovery ${readinessScore}% — go hard`;
+    if (readinessScore < 40) return `Mat day · Low recovery — dial back intensity`;
+    return 'Mat day';
+  }
+
+  return null;
+}
+
+function getYesterdayRPE(workoutLogs: WorkoutLog[]): number | null {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toDateString();
+  const yesterdayLogs = workoutLogs.filter(l => new Date(l.date).toDateString() === yesterdayStr);
+  if (yesterdayLogs.length === 0) return null;
+  const rpes = yesterdayLogs.filter(l => l.overallRPE > 0).map(l => l.overallRPE);
+  return rpes.length > 0 ? +(rpes.reduce((a, b) => a + b, 0) / rpes.length).toFixed(1) : null;
+}
+
+// ─── Forward Look ───────────────────────────────────────────────────────────
+
+function buildForwardLook(opts: {
+  todayType: TodayType;
+  nextSession: WorkoutSession | null;
+  nextLiftDayLabel: string | null;
+  nextCombatDayLabel: string | null;
+}): string | null {
+  const { todayType, nextSession, nextLiftDayLabel, nextCombatDayLabel } = opts;
+
+  if (todayType === 'recovery' || todayType === 'rest') {
+    const parts: string[] = [];
+    if (nextSession && nextLiftDayLabel) parts.push(`${nextSession.name} ${nextLiftDayLabel}`);
+    if (nextCombatDayLabel) parts.push(`Mats ${nextCombatDayLabel}`);
+    return parts.length > 0 ? `Next: ${parts.join(' · ')}` : null;
+  }
+
+  if (todayType === 'lift' || todayType === 'both') {
+    // After this session, what's next?
+    if (nextCombatDayLabel) return `After this: Mats ${nextCombatDayLabel}`;
+    return null; // Will show after completing
+  }
+
+  if (todayType === 'combat') {
+    if (nextSession && nextLiftDayLabel) return `Next lift: ${nextSession.name} ${nextLiftDayLabel}`;
+    return null;
+  }
+
+  return null;
+}
+
+// ─── Progressive Overload Teaser ────────────────────────────────────────────
+
+function buildOverloadTeaser(nextSession: WorkoutSession, workoutLogs: WorkoutLog[]): string | null {
+  // Find the first compound exercise in the session and compare to last performance
+  const compoundKeywords = ['squat', 'bench', 'deadlift', 'press', 'row', 'pull'];
+
+  for (const ex of nextSession.exercises) {
+    const name = ex.exercise.name.toLowerCase();
+    const isCompound = compoundKeywords.some(k => name.includes(k));
+    if (!isCompound) continue;
+
+    // Find most recent log of this exercise
+    for (let i = workoutLogs.length - 1; i >= 0; i--) {
+      const log = workoutLogs[i];
+      const matchedEx = log.exercises.find(e => e.exerciseId === ex.exerciseId);
+      if (matchedEx && matchedEx.sets && matchedEx.sets.length > 0) {
+        const lastBestSet = matchedEx.sets.reduce((best, set) =>
+          (set.weight || 0) > (best.weight || 0) ? set : best
+        , matchedEx.sets[0]);
+
+        if (lastBestSet.weight && lastBestSet.weight > 0) {
+          const targetWeight = ex.prescription.percentageOf1RM
+            ? Math.round(lastBestSet.weight * 1.025) // ~2.5% increase
+            : lastBestSet.weight;
+
+          if (targetWeight > lastBestSet.weight) {
+            return `↑ ${ex.exercise.name}: last ${lastBestSet.weight}×${lastBestSet.reps || '?'} → target ${targetWeight}`;
+          }
+          return `${ex.exercise.name}: match ${lastBestSet.weight}×${lastBestSet.reps || '?'} or beat it`;
+        }
+      }
+    }
+  }
+
+  return null;
 }

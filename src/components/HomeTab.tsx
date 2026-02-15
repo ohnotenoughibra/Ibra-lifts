@@ -39,6 +39,7 @@ import {
   Watch,
   Scale,
   X,
+  ChevronRight,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -53,7 +54,8 @@ import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
-import { generateWeeklySynthesis, generatePostWorkoutCoachingLine } from '@/lib/weekly-synthesis';
+import { generateWeeklySynthesis, generatePostWorkoutCoachingLine, generateWeeklyInsights } from '@/lib/weekly-synthesis';
+import type { WeeklyInsight } from '@/lib/weekly-synthesis';
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
 import { buildPerformanceProfiles } from '@/lib/performance-model';
 import { generateVariableReward, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
@@ -65,6 +67,7 @@ import PerformanceReadiness from './PerformanceReadiness';
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
 import WeeklyMomentum from './WeeklyMomentum';
+import ReadinessRing from './ReadinessRing';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
@@ -405,6 +408,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [skipFrictionShown, setSkipFrictionShown] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
@@ -432,6 +436,20 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   }, [user, workoutLogs, trainingSessions, wearableHistory, meals, macroTargets, weightUnit]);
 
   // ─── Post-workout coaching line ───
+  // ─── Weekly Insights — structured coaching chips ───
+  const weeklyInsights = useMemo(() => {
+    if (!synthesis.hasData) return [];
+    return generateWeeklyInsights({
+      stats: synthesis.stats,
+      trends: synthesis.trends,
+      lastWeekVolume: synthesis.lastWeekVolume,
+      lastWorkouts: synthesis.lastWorkouts,
+      weightUnit,
+      stalledExercises: synthesis.stalledExercises,
+      isMidWeek: synthesis.isMidWeek,
+    });
+  }, [synthesis, weightUnit]);
+
   const postWorkoutCoaching = useMemo(() => {
     if (!lastCompletedWorkout) return null;
     return generatePostWorkoutCoachingLine(
@@ -1310,29 +1328,55 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         )}
       </AnimatePresence>
 
+      {/* ─── Context Banner — strategic awareness ─── */}
+      {directive.contextBanner && (
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-grappler-800/40 border border-grappler-700/30 rounded-lg">
+          <span className="text-[10px] text-grappler-400 leading-tight">{directive.contextBanner}</span>
+        </div>
+      )}
+
       {/* ─── TODAY'S MISSION — unified directive + action card ─── */}
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
-        /* POST-SESSION: Already lifted today — show performance recap */
+        /* POST-SESSION: Session Verdict — grade, PRs, forward look */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5">
           <div className="flex items-start justify-between mb-3">
-            <div>
+            <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Check className="w-4 h-4 text-green-400" />
                 <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
               </div>
-              <h2 className="text-xl font-black text-grappler-100">{directive.headline}</h2>
-              <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
+              {/* Grade + Verdict */}
+              <div className="flex items-center gap-3 mt-2">
+                <span className={cn(
+                  'text-3xl font-black leading-none',
+                  directive.todayPerformance.grade === 'S' ? 'text-yellow-400' :
+                  directive.todayPerformance.grade === 'A' ? 'text-green-400' :
+                  directive.todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
+                )}>{directive.todayPerformance.grade}</span>
+                <p className="text-sm text-grappler-300 leading-snug flex-1">{directive.todayPerformance.verdict}</p>
+              </div>
             </div>
-            <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
-              <p className="text-2xl font-black text-green-400 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
-              <p className="text-[10px] text-grappler-500">Readiness ▾</p>
-            </button>
+            <ReadinessRing score={directive.readinessScore} onClick={() => setReadinessExpanded(v => !v)} />
           </div>
+
+          {/* PR callout */}
+          {directive.todayPerformance.prs > 0 && (
+            <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3">
+              <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <p className="text-xs text-yellow-300 font-medium">
+                {directive.todayPerformance.prs === 1
+                  ? `PR: ${directive.todayPerformance.prExercises[0]}`
+                  : `${directive.todayPerformance.prs} PRs: ${directive.todayPerformance.prExercises.slice(0, 2).join(', ')}${directive.todayPerformance.prs > 2 ? ` +${directive.todayPerformance.prs - 2}` : ''}`
+                }
+              </p>
+            </div>
+          )}
+
           {/* Performance metrics grid */}
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
               <p className="text-lg font-black text-grappler-100">{formatNumber(directive.todayPerformance.totalVolume)}</p>
-              <p className="text-[10px] text-grappler-500 uppercase">{weightUnit} volume</p>
+              <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
             </div>
             <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
               <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.totalSets}</p>
@@ -1340,22 +1384,26 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             </div>
             <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
               <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.avgRPE > 0 ? directive.todayPerformance.avgRPE : '—'}</p>
-              <p className="text-[10px] text-grappler-500 uppercase">Avg RPE</p>
+              <p className="text-[10px] text-grappler-500 uppercase">RPE</p>
             </div>
           </div>
+
+          {/* Top exercise */}
           {directive.todayPerformance.topExercise && (
             <div className="flex items-center gap-2 bg-grappler-800/40 rounded-lg px-3 py-2 mb-3">
-              <Trophy className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <Zap className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
               <p className="text-xs text-grappler-300">Top lift: <span className="font-semibold text-grappler-100">{directive.todayPerformance.topExercise}</span> · {formatNumber(directive.todayPerformance.topExerciseVolume)} {weightUnit}</p>
             </div>
           )}
-          {directive.actions.length > 0 && (
-            <div className="space-y-1.5">
-              {directive.actions.map((a, i) => (
-                <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-500 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-300">{a}</p></div>
-              ))}
+
+          {/* Forward look */}
+          {directive.forwardLook && (
+            <div className="flex items-center gap-2 pt-2 border-t border-grappler-700/40">
+              <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
+              <p className="text-[10px] text-grappler-500">{directive.forwardLook}</p>
             </div>
           )}
+
           {mesocycleProgress && (
             <div className="flex items-center gap-2 mt-3">
               <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
@@ -1410,15 +1458,15 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <h2 className="text-xl font-black text-white">{directive.headline}</h2>
                 <p className="text-xs text-white/60 mt-1">{directive.subline}</p>
               </div>
-              <button onClick={() => setReadinessExpanded(v => !v)} className="text-right flex-shrink-0 ml-3 group">
-                <p className={`text-2xl font-black group-hover:opacity-80 transition-opacity ${allCombatLogged ? 'text-white' : 'text-white/90'}`}>{directive.readinessScore}</p>
-                <p className="text-[10px] text-white/40">Readiness ▾</p>
-              </button>
+              <ReadinessRing score={directive.readinessScore} mode="white" onClick={() => setReadinessExpanded(v => !v)} />
             </div>
             {directive.todayCombatSessions.length > 0 && (
               <div className="mt-2 space-y-1.5">
                 {directive.todayCombatSessions.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                  <div key={i} className={cn(
+                    'flex items-center gap-2 rounded-lg px-3 py-2',
+                    s.logged ? 'bg-white/15' : 'bg-white/10'
+                  )}>
                     {s.logged ? <Check className="w-3.5 h-3.5 text-green-300 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-white/60 flex-shrink-0" />}
                     <p className="text-xs text-white/80 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''} · {s.intensity}</p>
                     {!s.logged && (
@@ -1447,6 +1495,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 {directive.actions.filter(a => !a.includes(directive.todayCombatSessions[0]?.type || '§')).map((a, i) => (
                   <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-white/40 flex-shrink-0 mt-0.5" /><p className="text-xs text-white/70">{a}</p></div>
                 ))}
+              </div>
+            )}
+            {directive.forwardLook && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
+                <ChevronRight className="w-3 h-3 text-white/30 flex-shrink-0" />
+                <p className="text-[10px] text-white/50">{directive.forwardLook}</p>
               </div>
             )}
             {mesocycleProgress && (
@@ -1510,6 +1564,10 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   {nextWorkout.exercises.slice(0, 3).map(e => e.exercise.name).join(' · ')}
                   {nextWorkout.exercises.length > 3 && ` · +${nextWorkout.exercises.length - 3} more`}
                 </p>
+                {/* Overload teaser */}
+                {directive.overloadTeaser && (
+                  <p className="text-[10px] text-white/50 mt-1 font-medium">{directive.overloadTeaser}</p>
+                )}
                 <div className="flex items-center gap-3 mt-1.5 text-sm text-white/80">
                   <span className="flex items-center gap-1"><Dumbbell className="w-3.5 h-3.5" />{nextWorkout.exercises.length} exercises</span>
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />~{nextWorkout.estimatedDuration}m</span>
@@ -1522,13 +1580,12 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 )}
               </div>
               <div className="flex flex-col items-center gap-2 flex-shrink-0 ml-3">
-                <div
-                  className="text-center cursor-pointer group"
-                  role="button"
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReadinessExpanded(v => !v); }}
-                >
-                  <p className="text-2xl font-black text-white/90 group-hover:opacity-80 transition-opacity">{directive.readinessScore}</p>
-                  <p className="text-[10px] text-white/40">Readiness ▾</p>
+                <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+                  <ReadinessRing
+                    score={directive.readinessScore}
+                    mode="white"
+                    onClick={() => setReadinessExpanded(v => !v)}
+                  />
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                   <Play className="w-6 h-6 text-white" />
@@ -1567,10 +1624,35 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           <div className="flex items-center justify-center gap-4">
             <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
             <span className="text-grappler-700">·</span>
-            <button onClick={() => setShowSkipDialog(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip Lift</button>
+            <button onClick={() => { currentStreak > 0 ? setSkipFrictionShown(true) : setShowSkipDialog(true); }} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip</button>
             <span className="text-grappler-700">·</span>
-            <button onClick={() => setShowValidateConfirm(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"><CheckCircle className="w-3.5 h-3.5" />Validate Block</button>
+            <button onClick={() => setShowValidateConfirm(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"><CheckCircle className="w-3.5 h-3.5" />Validate</button>
           </div>
+
+          {/* Skip friction — streak warning */}
+          <AnimatePresence>
+            {skipFrictionShown && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                  <p className="text-xs text-grappler-200 mb-2">
+                    {currentStreak >= 7
+                      ? `Skipping breaks your ${currentStreak}-day streak. That's hard to rebuild.`
+                      : `Skipping ends your ${currentStreak}-day streak. Still skip?`
+                    }
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={() => { setSkipFrictionShown(false); setShowSkipDialog(true); }} className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600">Skip anyway</button>
+                    <button onClick={() => { setSkipFrictionShown(false); if (nextWorkout) startWorkout(nextWorkout); }} className="btn btn-sm bg-primary-600 text-white hover:bg-primary-500 gap-1.5"><Dumbbell className="w-3.5 h-3.5" />Let&apos;s train</button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Validate block confirmation */}
           <AnimatePresence>
@@ -1920,17 +2002,38 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
-      {/* ─── Weekly Synthesis — promoted Sun/Mon, collapsed rest of week ─── */}
+      {/* ─── Weekly Coaching — structured insight chips ─── */}
       <CardErrorBoundary fallbackLabel="Weekly Coaching">
-      {showWeeklySynthesis && synthesis.hasData && (() => {
-        const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon
-        const isPromoted = dayOfWeek === 0 || dayOfWeek === 1;
+      {showWeeklySynthesis && synthesis.hasData && weeklyInsights.length > 0 && (() => {
+        // Promote when there's a high-signal insight (win, warning) or Sun/Mon
+        const dayOfWeek = today.getDay();
+        const hasHighSignal = weeklyInsights.some(i => i.type === 'win' || i.type === 'warning');
+        const isPromoted = dayOfWeek === 0 || dayOfWeek === 1 || hasHighSignal;
         const isExpanded = isPromoted || weeklyCoachingExpanded;
 
+        const INSIGHT_ICONS: Record<string, React.ReactNode> = {
+          trophy: <Trophy className="w-3.5 h-3.5" />,
+          trending: <TrendingUp className="w-3.5 h-3.5" />,
+          alert: <AlertTriangle className="w-3.5 h-3.5" />,
+          target: <Target className="w-3.5 h-3.5" />,
+          shield: <Shield className="w-3.5 h-3.5" />,
+          crosshair: <Crosshair className="w-3.5 h-3.5" />,
+        };
+
+        const INSIGHT_COLORS: Record<string, { bg: string; border: string; label: string; icon: string }> = {
+          gold:    { bg: 'bg-yellow-500/8',  border: 'border-yellow-500/20', label: 'text-yellow-400', icon: 'text-yellow-400' },
+          green:   { bg: 'bg-green-500/8',   border: 'border-green-500/20',  label: 'text-green-400',  icon: 'text-green-400' },
+          red:     { bg: 'bg-red-500/8',     border: 'border-red-500/20',    label: 'text-red-400',    icon: 'text-red-400' },
+          amber:   { bg: 'bg-amber-500/8',   border: 'border-amber-500/20',  label: 'text-amber-400',  icon: 'text-amber-400' },
+          blue:    { bg: 'bg-blue-500/8',     border: 'border-blue-500/20',   label: 'text-blue-400',   icon: 'text-blue-400' },
+          purple:  { bg: 'bg-purple-500/8',   border: 'border-purple-500/20', label: 'text-purple-400', icon: 'text-purple-400' },
+          primary: { bg: 'bg-primary-500/10', border: 'border-primary-500/25', label: 'text-primary-400', icon: 'text-primary-400' },
+        };
+
         return (
-          <div className={cn('card', isPromoted ? 'p-4 border-primary-500/30 bg-gradient-to-br from-primary-500/5 to-grappler-900' : 'p-3')}>
+          <div className="card p-3">
             <button
-              onClick={() => !isPromoted && setWeeklyCoachingExpanded(v => !v)}
+              onClick={() => setWeeklyCoachingExpanded(v => !v)}
               className="w-full flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
@@ -1938,72 +2041,52 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <span className={cn('text-xs font-semibold uppercase tracking-wide', isPromoted ? 'text-grappler-200' : 'text-grappler-400')}>
                   Weekly Coaching
                 </span>
-                {isPromoted && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-500/15 text-primary-400 font-medium">New</span>
-                )}
               </div>
-              {!isPromoted && (
-                <span className="text-xs text-grappler-600">{isExpanded ? '▴' : '▾'}</span>
-              )}
+              <span className="text-xs text-grappler-600">{isExpanded ? '▴' : '▾'}</span>
             </button>
+
+            {/* Collapsed: show one-liner from the top insight */}
             {!isExpanded && (
               <p className="text-xs text-grappler-500 mt-1.5 truncate">
-                {synthesis.stats.workouts} lifts{synthesis.stats.combatSessions > 0 ? ` · ${synthesis.stats.combatSessions} mat` : ''} · {synthesis.stats.prs} PRs this week
+                {weeklyInsights[0]?.text || `${synthesis.stats.workouts} lifts · ${synthesis.stats.prs} PRs`}
               </p>
             )}
+
+            {/* Expanded: insight chips */}
             {isExpanded && (
-              <>
-                <p className={cn('text-sm text-grappler-300 leading-relaxed', isPromoted ? 'mt-2.5' : 'mt-2')}>{synthesis.narrative}</p>
-                <div className={cn('grid gap-2 mt-3 text-center', synthesis.stats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
-                  {synthesis.stats.workouts > 0 && (
-                    <div>
-                      <p className="text-lg font-bold text-primary-400">{synthesis.stats.workouts}</p>
-                      <p className="text-xs text-grappler-500">Lifts</p>
+              <div className="mt-3 space-y-2">
+                {weeklyInsights.map((insight, i) => {
+                  const colors = INSIGHT_COLORS[insight.color] || INSIGHT_COLORS.primary;
+                  const isOneThing = insight.type === 'one_thing';
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        'rounded-xl px-3 py-2.5 border',
+                        colors.bg, colors.border,
+                        isOneThing && 'mt-1'
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span className={cn('mt-0.5 flex-shrink-0', colors.icon)}>
+                          {INSIGHT_ICONS[insight.icon]}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', colors.label)}>
+                            {insight.label}
+                          </span>
+                          <p className={cn(
+                            'text-xs leading-relaxed mt-0.5',
+                            isOneThing ? 'text-grappler-200 font-medium' : 'text-grappler-300',
+                          )}>
+                            {insight.text}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {synthesis.stats.combatSessions > 0 && (
-                    <div>
-                      <p className="text-lg font-bold text-purple-400">{synthesis.stats.combatSessions}</p>
-                      <p className="text-xs text-grappler-500">Mat</p>
-                      {synthesis.stats.combatMinutes > 0 && <p className="text-xs text-grappler-600">{synthesis.stats.combatMinutes}m</p>}
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-lg font-bold text-yellow-400">{synthesis.stats.prs}</p>
-                    <p className="text-xs text-grappler-500">PRs</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-grappler-100">{synthesis.stats.avgRPE || '—'}</p>
-                    <p className="text-xs text-grappler-500">RPE</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-grappler-100">
-                      {synthesis.stats.proteinAdherence !== null ? `${synthesis.stats.proteinAdherence}%` : '—'}
-                    </p>
-                    <p className="text-xs text-grappler-500">Protein</p>
-                  </div>
-                </div>
-                {(synthesis.trends.volume !== 'stable' || synthesis.trends.prs !== 'stable') && (
-                  <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-grappler-700/50">
-                    {synthesis.trends.volume !== 'stable' && (
-                      <span className={cn('text-xs font-medium flex items-center gap-1',
-                        synthesis.trends.volume === 'up' ? 'text-green-400' : 'text-blue-400'
-                      )}>
-                        <TrendingUp className={cn('w-3 h-3', synthesis.trends.volume === 'down' && 'rotate-180')} />
-                        Volume {synthesis.trends.volume === 'up' ? 'up' : 'down'}
-                      </span>
-                    )}
-                    {synthesis.trends.prs !== 'stable' && (
-                      <span className={cn('text-xs font-medium flex items-center gap-1',
-                        synthesis.trends.prs === 'up' ? 'text-green-400' : 'text-blue-400'
-                      )}>
-                        <Star className="w-3 h-3" />
-                        PRs {synthesis.trends.prs === 'up' ? 'up' : 'down'}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </>
+                  );
+                })}
+              </div>
             )}
           </div>
         );

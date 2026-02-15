@@ -74,29 +74,57 @@ export async function POST(request: Request) {
 
     const jsonData = JSON.stringify(data);
 
-    // ── Safety: refuse to overwrite rich data with empty/fresh data ──
-    // If incoming data has no workoutLogs and no user profile, but server
-    // already has real data, reject the write to prevent accidental data loss
-    // from a new device syncing blank state before pulling existing data.
-    const incomingLogs = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
-    const incomingHasProfile = data.isOnboarded === true && data.user;
-    if (incomingLogs === 0 && !incomingHasProfile) {
-      const { rows: existing } = await sql`
-        SELECT data FROM user_store WHERE user_id = ${userId}
-      `;
-      if (existing.length > 0 && existing[0].data) {
-        const serverData = existing[0].data as Record<string, unknown>;
-        const serverLogs = Array.isArray(serverData.workoutLogs) ? serverData.workoutLogs.length : 0;
-        const serverHasProfile = serverData.isOnboarded === true && serverData.user;
-        if (serverLogs > 0 || serverHasProfile) {
-          console.warn(`[sync] Blocked empty-data overwrite for user ${userId} (server has ${serverLogs} logs)`);
-          return NextResponse.json({ success: true, blocked: true });
-        }
+    // ── Safety: refuse to overwrite richer server data with poorer incoming data ──
+    // Computes a "richness score" for both sides. If the incoming data is
+    // significantly poorer than the server data, the write is blocked and a
+    // backup is forced. This catches empty-state pushes, partial hydrations,
+    // corrupted localStorage, and any other scenario where data would regress.
+    const { rows: existingRows } = await sql`
+      SELECT data FROM user_store WHERE user_id = ${userId}
+    `;
+    if (existingRows.length > 0 && existingRows[0].data) {
+      const serverData = existingRows[0].data as Record<string, unknown>;
+
+      const richness = (d: Record<string, unknown>) => {
+        let score = 0;
+        if (d.isOnboarded) score += 5;
+        if (d.user) score += 5;
+        if (d.baselineLifts) score += 3;
+        if (d.currentMesocycle) score += 3;
+        score += (Array.isArray(d.workoutLogs) ? d.workoutLogs.length : 0) * 2;
+        score += (Array.isArray(d.meals) ? d.meals.length : 0);
+        score += (Array.isArray(d.mesocycleHistory) ? d.mesocycleHistory.length : 0) * 2;
+        score += (Array.isArray(d.trainingSessions) ? d.trainingSessions.length : 0);
+        score += (Array.isArray(d.bodyWeightLog) ? d.bodyWeightLog.length : 0);
+        score += (Array.isArray(d.quickLogs) ? d.quickLogs.length : 0);
+        const gam = d.gamificationStats as Record<string, unknown> | undefined;
+        if (gam) score += (Number(gam.totalXP) || Number(gam.totalPoints) || 0) > 0 ? 5 : 0;
+        if (d.waterLog && typeof d.waterLog === 'object') score += Object.keys(d.waterLog).length;
+        return score;
+      };
+
+      const serverScore = richness(serverData);
+      const incomingScore = richness(data);
+
+      // Block if incoming data loses more than 30% of the server's richness
+      // (allows small fluctuations from normal edits but catches data wipes)
+      if (serverScore > 10 && incomingScore < serverScore * 0.7) {
+        console.warn(
+          `[sync] BLOCKED data regression for user ${userId}: ` +
+          `server score ${serverScore} → incoming score ${incomingScore}`
+        );
+        return NextResponse.json({
+          success: false,
+          blocked: true,
+          reason: 'data_regression',
+          serverScore,
+          incomingScore,
+        });
       }
     }
 
     // ── Backup: snapshot existing data before overwriting ──
-    // Keeps up to 7 days of hourly backups so data is always recoverable.
+    // Keeps up to 30 days of hourly backups so data is always recoverable.
     try {
       await sql`
         CREATE TABLE IF NOT EXISTS user_store_backups (
@@ -107,15 +135,11 @@ export async function POST(request: Request) {
           created_at TIMESTAMPTZ DEFAULT NOW()
         )
       `;
-      // Only backup if: existing data exists, and we haven't backed up in the last hour
-      const { rows: existing } = await sql`
-        SELECT data FROM user_store WHERE user_id = ${userId}
-      `;
-      if (existing.length > 0 && existing[0].data) {
-        const existingData = existing[0].data as Record<string, unknown>;
+      // Re-use the existing data we already fetched for the regression check
+      if (existingRows.length > 0 && existingRows[0].data) {
+        const existingData = existingRows[0].data as Record<string, unknown>;
         const existingLogs = Array.isArray(existingData.workoutLogs) ? existingData.workoutLogs.length : 0;
         const existingHasProfile = existingData.isOnboarded === true && existingData.user;
-        // Only backup if the existing data has something worth saving
         if (existingLogs > 0 || existingHasProfile) {
           const { rows: recentBackup } = await sql`
             SELECT id FROM user_store_backups
@@ -123,15 +147,15 @@ export async function POST(request: Request) {
             LIMIT 1
           `;
           if (recentBackup.length === 0) {
-            const existingJson = JSON.stringify(existing[0].data);
+            const existingJson = JSON.stringify(existingRows[0].data);
             await sql`
               INSERT INTO user_store_backups (user_id, data, workout_count)
               VALUES (${userId}, ${existingJson}::jsonb, ${existingLogs})
             `;
-            // Prune backups older than 7 days
+            // Prune backups older than 30 days
             await sql`
               DELETE FROM user_store_backups
-              WHERE user_id = ${userId} AND created_at < NOW() - INTERVAL '7 days'
+              WHERE user_id = ${userId} AND created_at < NOW() - INTERVAL '30 days'
             `;
           }
         }

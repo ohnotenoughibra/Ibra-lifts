@@ -77,6 +77,8 @@ export interface DailyDirective {
   forwardLook: string | null;
   /** Progressive overload teaser for lift days */
   overloadTeaser: string | null;
+  /** Training modification guidance when readiness is low */
+  trainingModification: string | null;
 }
 
 export type SessionGrade = 'S' | 'A' | 'B' | 'C';
@@ -492,6 +494,18 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     ? buildOverloadTeaser(nextSession, workoutLogs)
     : null;
 
+  // ─── Training modification for low readiness ───
+  let trainingModification: string | null = null;
+  if ((todayType === 'lift' || todayType === 'both') && readiness.overall < 55) {
+    if (readiness.overall < 30) {
+      trainingModification = 'Active recovery only — light mobility, no heavy lifts today';
+    } else if (readiness.overall < 40) {
+      trainingModification = 'Reduce to 2-3 sets per exercise, RPE 5-6 max. Skip isolation work.';
+    } else {
+      trainingModification = 'Keep RPE ≤7 today. Drop top sets by 10% and focus on technique.';
+    }
+  }
+
   return {
     headline,
     subline,
@@ -513,6 +527,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     contextBanner,
     forwardLook,
     overloadTeaser,
+    trainingModification,
   };
 }
 

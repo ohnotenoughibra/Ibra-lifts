@@ -1,168 +1,121 @@
-# ROOTS GAINS — 10,000x UPGRADE PLAN
+# NEXT PHASE — Explore Tab & Tool Intelligence Upgrades
 
-## Phase 1: Strong Foundation (Weeks 1-4)
-*Goal: Fix what's broken. Make the intelligence visible. Stop looking generic.*
-
-### 1.1 HomeTab Redesign — "Mission Control" Not "Feature Dump"
-- **Reduce HomeTab to 4-5 cards maximum** on initial load
-- Priority order: (1) Daily Mission card, (2) Next Workout CTA, (3) Readiness Score, (4) One contextual alert
-- Move everything else behind a "Deep Dive" expandable or into dedicated tabs
-- Kill the tools grid. Replace with 3 featured contextual actions that change based on what's relevant TODAY
-- The home screen should answer ONE question: "What should I do right now?"
-
-### 1.2 Surface the Intelligence — "Smart Labels"
-- Every dynamic number should explain WHY it changed
-- Nutrition targets: show "+200 kcal today — hard grappling scheduled" not just "2,400 kcal"
-- Readiness: show the top 2 factors dragging it down, not just a number
-- Workout volume: show "Reduced 1 set per exercise — low recovery detected" not just modified sets
-- This is the single biggest unlock. Your intelligence is invisible.
-
-### 1.3 Color & Visual Identity Overhaul
-- Replace sky blue primary with a darker, more aggressive palette
-- Options: Deep red + charcoal (fight energy), Black + acid green (Whoop-adjacent), Gunmetal + amber (military precision)
-- Kill the magenta accent — replace with a single high-contrast accent
-- Cards: replace glassmorphic translucency with solid, structured cards with subtle borders
-- Increase spacing between cards by 30-40%
-- Minimum text size: 12px (kill all text-[9px] and text-[10px] instances)
-
-### 1.4 Onboarding → First Value in 60 Seconds
-- After the identity questions, IMMEDIATELY show the generated mesocycle with a "Built for you" hero moment
-- Show: "Based on your profile as a [combat_athlete] training [4x/week] with [intermediate] experience, here's your first block"
-- Animate the mesocycle appearing, exercise by exercise
-- THEN show the home screen with the program already loaded
-- This is the "holy shit this is smart" moment that creates conversion
-
-### 1.5 Pricing Restructure
-- Free: Limited to 2 weeks of logging + basic workout tracking (create urgency)
-- Pro (€19.99/mo): Full training + nutrition + recovery + gamification
-- Elite (€39.99/mo): Everything + wearable integrations + fight camp + weight cut + AI coaching
-- Annual pricing: 40% discount (not 20-33%)
-- Position against coaching cost, not against other apps
+Based on the full Explore audit. 6 steps, ordered by impact/effort.
 
 ---
 
-## Phase 2: Premium Differentiation (Weeks 5-10)
-*Goal: Build features no competitor has. Make switching impossible.*
+## Step 1: Explore Tab UX Polish
+**Files:** `ExploreTab.tsx`
+**Effort:** ~1 hour
 
-### 2.1 "Fight IQ" — Branded Intelligence Layer
-- Give a name to the coaching engine. Not "contextual nutrition" — "Fight IQ" or "Atlas" or "Cortex"
-- Show the engine's reasoning: "Fight IQ adjusted your training today because..."
-- Create a dedicated "Fight IQ Insights" card that synthesizes training + nutrition + recovery into one narrative paragraph daily
-- This becomes the brand differentiator. No other app has a named intelligence engine.
-
-### 2.2 Performance Narrative — Not Charts, Stories
-- Replace raw progress charts with "Performance Story" screens
-- "In the last 90 days, you've added 15kg to your deadlift, improved your consistency from 62% to 84%, and your recovery scores have been trending up since you started sleeping 7+ hours. Your biggest opportunity: protein timing on training days."
-- This is what coaches do. Charts are what spreadsheets do.
-
-### 2.3 Camp Mode — Full-Screen Takeover
-- When a competition is <8 weeks out, the entire app transforms
-- Home screen becomes a countdown dashboard with phase-specific priorities
-- Nutrition section shows fight-camp-specific targets with clear phase labels
-- Weight tracking becomes prominent with cut trajectory visualization
-- This creates emotional lock-in — "I can't switch apps mid-camp"
-
-### 2.4 Accountability & Social Layer
-- Training crew feature (invite 2-5 people)
-- Shared weekly consistency view (not leaderboard — accountability board)
-- Coach mode: share read-only dashboard with a coach/trainer
-- Post-workout share cards (Instagram-ready with your brand on them)
-- This creates network lock-in — "my whole team uses this"
-
-### 2.5 Nutrition Intelligence Upgrade
-- API integration for food database (Nutritionix or Open Food Facts)
-- Show WHY your macro target changed today (the delta explanation)
-- Pre-built meal plans for fight camp phases (not just suggestions — full day plans)
-- Hydration tracking with smart reminders based on training schedule
-- Tournament-day fueling as a step-by-step guided experience, not a buried function
+1. **PRO badge** — Add a tiny "PRO" pill (top-right of card) on all 23 gated tools. Users currently tap → paywall → bounce. Show it upfront so they know.
+2. **"Suggested for you" row** — New top section before Pinned/Recent:
+   - Read `user.trainingIdentity` and `workoutLogs.length` from store
+   - Combat athlete → surface Grappling, Mobility, Competition Prep, Fight Camp Fuel
+   - General fitness → Strength, Volume Map, Progression, Recovery
+   - New user (0 workouts) → Workout Builder, AI Program, 1RM Calculator
+   - Show max 4 tools as highlighted cards with a "For You" header
+3. **Move Grip Strength** from "Fuel & Body" → "Build" (it's a training tool, not nutrition)
+4. **Category header icons** — Add a small icon + left color accent per category title for visual hierarchy
+5. **Pin onboarding** — Show a one-time dismissible hint below search: "Long-press any tool to pin it"
 
 ---
 
-## Phase 3: Category Leader (Weeks 11-20)
-*Goal: Become the undisputed platform for serious athletes. Not an app — a system.*
+## Step 2: Grappling Tracker — Technique Logging
+**Files:** `GrapplingTracker.tsx`, `types.ts`, new `src/lib/technique-data.ts`
+**Effort:** ~2-3 hours
 
-### 3.1 Training Load Management (ACWR)
-- Implement Acute:Chronic Workload Ratio tracking
-- Combine: lifting volume + combat training load + conditioning
-- Show "danger zone" when ACWR spikes >1.5 (injury risk)
-- This is what professional sports teams use. No consumer app does it well.
-
-### 3.2 Multi-Sport Periodization Calendar
-- Visual timeline showing: lifting blocks, fight camps, competitions, deload periods
-- Drag-and-drop block planning for 6-12 month horizons
-- Auto-adjusts nutrition phases to match training blocks
-- Export as PDF for coach review
-- This is the "annual plan" that elite athletes pay coaches thousands for
-
-### 3.3 Athlete Profile — "Your Athletic Identity"
-- Dedicated profile page showing lifetime stats, progression, achievements
-- Strength benchmarks vs population (e.g., "your deadlift is in the top 15% for your weight class")
-- Training age visualization ("847 days of training — here's your evolution")
-- Exportable athlete resume (for coaches, sponsors, or personal records)
-
-### 3.4 AI Coaching Layer (Real)
-- Weekly voice-note-style briefing: "Here's what I noticed this week..."
-- Pre-session briefing: "Today's session focuses on X. Based on your last session, watch for Y."
-- Post-session debrief: "You hit a PR on bench but your squat RPE was high — here's what that means for Thursday"
-- This justifies the premium price point alone
-
-### 3.5 Wearable Ecosystem Depth
-- Oura ring integration (sleep focus)
-- Garmin integration (conditioning + HR zones)
-- Apple Health / Google Fit as baseline
-- Combined "readiness score" that weights the best available data source
-- Wearable comparison view: "Your Whoop says X, your Oura says Y, here's what matters"
+1. **Technique database** — Create `technique-data.ts` with:
+   - Submissions: armbar, triangle, RNC, guillotine, kimura, americana, heel hook, kneebar, darce, anaconda, ezekiel, omoplata, gogoplata, calf slicer, wristlock
+   - Positions: mount, back mount, side control, half guard, closed guard, open guard, butterfly, de la riva, x-guard, turtle, north-south, knee on belly, standing
+   - Takedowns: single-leg, double-leg, ankle pick, body lock, arm drag, snap down, uchi-mata, osoto-gari, seoi-nage, fireman's carry
+   - Sweeps: scissor, hip bump, flower, pendulum, butterfly, x-guard, berimbolo
+   - Grouped by category with display labels
+2. **Session technique logging** — After logging a grappling session:
+   - Tag-based selector: "What did you work on?" with chips for techniques
+   - Separate sections: Drilled / Hit in sparring / Got caught by
+   - Quick-add with autocomplete search
+3. **Technique heatmap** — Show which techniques haven't been drilled recently
+   - "You haven't worked back takes in 3 weeks"
+   - Weekly distribution: positions drilled, submissions attempted
+4. **Sparring round logging** — Optional per-session:
+   - Number of rounds, round duration, intensity per round
+   - Quick "W/L/Draw" per round for competitive tracking
 
 ---
 
-## Competitive War Plan
+## Step 3: Strength Analysis — Accessory Suggestions
+**Files:** `StrengthAnalysis.tsx`, new `src/lib/sticking-point-data.ts`
+**Effort:** ~1-2 hours
 
-### vs MyFitnessPal
-- **Their strength:** Massive food database, brand recognition, social features
-- **Their weakness:** Generic. No training intelligence. No periodization. No sport-specific anything.
-- **How you win:** "MFP counts calories. We engineer performance." Position as the upgrade for anyone who's outgrown basic tracking. Never compete on food database size — integrate an API and move on. Win on INTELLIGENCE.
-
-### vs Whoop
-- **Their strength:** Best-in-class wearable, recovery scoring, sleep tracking
-- **Their weakness:** No training programming. No nutrition. Passive monitoring only.
-- **How you win:** "Whoop tells you how recovered you are. We tell you what to do about it." You INTEGRATE Whoop data and make it actionable. Whoop is an input to your system, not a competitor. Position as "the brain that uses Whoop as its nervous system."
-
-### vs Athlytic
-- **Their strength:** Apple Watch integration, readiness scoring
-- **Their weakness:** No programming, no nutrition, no combat sports
-- **How you win:** Depth. Athlytic is a dashboard. You're a coaching system. They show data, you prescribe action.
-
-### vs Nike Training Club
-- **Their strength:** Brand, video content, beautiful UI
-- **Their weakness:** Generic workouts, no periodization, no tracking, shutting down premium features
-- **How you win:** "NTC gives you workouts. We give you a PROGRAM." Periodization is something Nike literally cannot do at scale. Your DUP engine is a moat.
-
-### vs FightCamp
-- **Their strength:** Hardware (punching bag + trackers), boxing-specific content
-- **Their weakness:** Boxing only. No grappling. No strength. No nutrition.
-- **How you win:** "FightCamp is a boxing class. We're the system that manages your entire fight preparation." You cover striking + grappling + strength + nutrition + recovery + weight management. FightCamp covers one modality.
-
-### The Meta-Strategy
-Don't compete as "fitness app." Compete as "performance operating system for combat athletes." The category doesn't exist yet. Create it. When you own the category, you set the price.
+1. **Sticking point → accessory mapping** — Create data file:
+   - Squat bottom → pause squats, tempo squats, pin squats, front squats, goblet squats
+   - Squat mid-range → box squats, belt squats, SSB squats
+   - Squat lockout → rack pulls above knee, hip thrusts, reverse band squats
+   - Bench bottom → spoto press, larsen press, wide-grip bench, DB bench
+   - Bench mid-range → close-grip bench, tempo bench
+   - Bench lockout → board press, floor press, pin press, JM press, tricep dips
+   - Deadlift floor → deficit deadlifts, paused deadlifts, snatch-grip deads
+   - Deadlift lockout → rack pulls, block pulls, hip thrusts, Romanian DL
+   - OHP lockout → Z-press, pin press, push press
+   - Row strength → Kroc rows, chest-supported rows, seal rows
+   - Each accessory: name, description, why it helps, sets/reps recommendation
+2. **Form cues per sticking point** — Short coaching text:
+   - "Bottom squat weakness often means weak quads or poor ankle mobility"
+   - "Bench lockout failure suggests tricep weakness or loss of back tightness"
+3. **"Add to program" action** — Button to insert suggested accessory into the current mesocycle as an optional exercise
 
 ---
 
-## Features to Remove
-- Tools grid on HomeTab (replace with contextual actions)
-- Raw number scores without context labels
-- text-[9px] and text-[10px] throughout (unreadable)
-- Glassmorphic card styling (generic)
-- Loading screen rotating dumbbell animation (dated)
-- "Community Share" feature (half-baked, better to rebuild as crew feature later)
+## Step 4: Volume Map — Gap Recommendations
+**Files:** `VolumeHeatMap.tsx`
+**Effort:** ~1 hour
 
-## Features to Add (Priority Order)
-1. Intelligence surfacing ("why" labels on every dynamic number)
-2. Reduced HomeTab (4-5 cards max)
-3. Post-onboarding "built for you" moment
-4. Camp Mode full-screen takeover
-5. Performance narratives (stories not charts)
-6. Named intelligence engine branding
-7. Food database API integration
-8. Training crew / accountability
-9. ACWR training load management
-10. Multi-sport periodization calendar
+1. **Below MEV recommendations** — When a muscle is under-trained:
+   - Show text: "Shoulders: 4 sets this week (MEV: 8). Add lateral raises or face pulls"
+   - Map each muscle to 2-3 recommended exercises from the exercise database
+2. **Above MRV warnings** — When overreaching:
+   - Show text: "Back: 22 sets this week (MRV: 18). Consider dropping 4 sets"
+   - Suggest which exercises to reduce (lowest-priority ones first)
+3. **"Fix gaps" button** — Generates a quick 15-20 min accessory session targeting all muscles below MEV
+   - Uses exercise database to pick exercises
+   - Pre-fills sets/reps and adds to workout builder
+
+---
+
+## Step 5: Soreness → Readiness Score Integration
+**Files:** `performance-engine.ts` (readiness calculation), `daily-directive.ts`
+**Effort:** ~1-2 hours
+
+1. **Feed soreness into readiness** — Check today's soreness quickLog:
+   - No soreness logged or "none" → neutral (no impact)
+   - Mild soreness in 1-2 areas → -3 readiness points
+   - Moderate soreness → -6 points
+   - Severe soreness → -12 points
+   - Multiple severe areas → -15 points, flag as "needs rest"
+2. **Smart training suggestions** — In daily directive:
+   - Sore legs + leg day scheduled → "Consider swapping to upper body today"
+   - Sore shoulders + push day → "Swap OHP for landmine press or skip pressing"
+   - Multiple areas severe → suggest pure mobility/recovery day
+3. **Soreness trend detection** — Analyze last 14 days of soreness logs:
+   - Pattern: "Your lower back is sore after every Sunday" → surface as an insight
+   - Chronic area: "Shoulders have been sore 5 of last 7 days — consider reducing pressing volume"
+
+---
+
+## Step 6: Injury → Workout Warnings
+**Files:** `store.ts` (injury state access), `ActiveWorkout.tsx`, new `src/lib/injury-exercise-map.ts`
+**Effort:** ~2 hours
+
+1. **Body region → risky exercise mapping** — Create data file:
+   - Shoulder injury → flag: OHP, lateral raises, upright rows, bench press, dips
+   - Knee injury → flag: squats, lunges, leg extensions, jumping
+   - Lower back → flag: deadlifts, bent-over rows, good mornings
+   - Elbow → flag: skull crushers, preacher curls, dips
+   - Each flagged exercise has: risk level (caution/avoid), reason, suggested swap
+2. **Workout start warning** — When starting a workout with active injuries:
+   - Yellow banner: "You have an active right shoulder injury (moderate). 2 exercises in this session target that area."
+   - Per-exercise warning icon in the exercise list
+3. **In-session swap suggestions** — When reaching a flagged exercise:
+   - Show swap button: "This exercise may aggravate your shoulder. Try chest-supported rows instead?"
+   - One-tap swap that replaces the exercise for this session only

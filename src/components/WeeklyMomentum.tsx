@@ -226,12 +226,15 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
               })}
             </div>
 
-            {/* Score + pace */}
+            {/* Score + pace + days left */}
             <div className="flex flex-col items-end pl-2 border-l border-grappler-700/50 min-w-[44px]">
               <span className="text-xs font-bold text-grappler-100">{props.weekDone}/{props.weekTarget}</span>
               <span className={cn('text-[9px] font-medium', paceInfo.color)}>
                 {paceInfo.status === 'on_track' ? 'On pace' : paceInfo.status === 'ahead' ? '↑ Ahead' : '↓ Behind'}
               </span>
+              {todayMonIdx < 6 && (
+                <span className="text-[8px] text-grappler-600">{6 - todayMonIdx}d left</span>
+              )}
             </div>
           </div>
 

@@ -523,7 +523,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     }
   }, [directive.todayType, directive.readinessLevel, workoutLogs, awardSmartRest, showToast]);
 
-  // ─── Post-workout nutrition nudge ───
+  // ─── Post-workout nutrition nudge (sport-aware) ───
   const postWorkoutNutritionNudge = useMemo(() => {
     if (!lastCompletedWorkout) return null;
     const log = lastCompletedWorkout.log;
@@ -531,22 +531,35 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     const todayStr = new Date().toDateString();
     const todayMealsCount = (meals || []).filter(m => new Date(m.date).toDateString() === todayStr).length;
     const hour = new Date().getHours();
+    const isCombatAthlete = user?.trainingIdentity === 'combat';
 
-    // Determine what to eat based on session context
+    // Sport-aware nutrition guidance
     if (duration >= 90) {
       return {
-        text: `${duration}min session — eat within 30min: 40g protein + fast carbs (rice, banana, dates)`,
+        text: isCombatAthlete
+          ? `${duration}min session — rehydrate immediately. 40g protein + electrolytes + fast carbs within 30min.`
+          : `${duration}min session — eat within 30min: 40g protein + fast carbs (rice, banana, dates)`,
         urgent: true,
       };
     }
     if (duration >= 45) {
       if (todayMealsCount === 0 && hour < 14) {
-        return { text: 'You trained fasted — prioritize protein + carbs within the next hour', urgent: true };
+        return {
+          text: isCombatAthlete
+            ? 'Trained fasted — rehydrate first, then protein + carbs within the hour'
+            : 'You trained fasted — prioritize protein + carbs within the next hour',
+          urgent: true,
+        };
       }
-      return { text: 'Post-workout window: 30-40g protein + carbs to kickstart recovery', urgent: false };
+      return {
+        text: isCombatAthlete
+          ? 'Post-session: rehydrate (500ml+ water), 30g protein, electrolytes if you were sweating hard'
+          : 'Post-workout window: 30-40g protein + carbs to kickstart recovery',
+        urgent: false,
+      };
     }
     return null;
-  }, [lastCompletedWorkout, meals]);
+  }, [lastCompletedWorkout, meals, user?.trainingIdentity]);
 
   // ─── Progressive disclosure: feature unlocking based on age of account ───
   const accountAgeDays = useMemo(() => {
@@ -1553,6 +1566,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                     {directive.sessionLabel || (nextWorkoutInfo ? `Week ${nextWorkoutInfo.weekNumber}` : 'Next Workout')}
                     {nextWorkoutInfo?.isDeload ? ' · Deload' : ''}
                   </p>
+                  {currentStreak >= 2 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-orange-200 flex items-center gap-1">
+                      <Flame className="w-3 h-3" />{currentStreak}d
+                    </span>
+                  )}
                   {directive.todayType === 'both' && (
                     <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/15 text-white/80">+ Mat Time</span>
                   )}
@@ -1562,6 +1580,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 </div>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
                 <p className="text-xs text-white/50 mt-1">{directive.subline}</p>
+                {/* Training modification — low readiness guidance */}
+                {directive.trainingModification && (
+                  <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/20">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <p className="text-[11px] text-amber-200 font-medium">{directive.trainingModification}</p>
+                  </div>
+                )}
                 {/* Overload teaser — promoted above exercises */}
                 {directive.overloadTeaser && (
                   <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/15">
@@ -1651,7 +1676,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   <button
                     onClick={() => {
                       setLiftOptionsExpanded(false);
-                      currentStreak > 0 ? setSkipFrictionShown(true) : setShowSkipDialog(true);
+                      currentStreak >= 3 ? setSkipFrictionShown(true) : setShowSkipDialog(true);
                     }}
                     className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
                   >
@@ -1678,11 +1703,16 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                <div className={cn(
+                  'rounded-xl p-3 text-center border',
+                  currentStreak >= 7 ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'
+                )}>
                   <p className="text-xs text-grappler-200 mb-2">
-                    {currentStreak >= 7
-                      ? `Skipping breaks your ${currentStreak}-day streak. That's hard to rebuild.`
-                      : `Skipping ends your ${currentStreak}-day streak. Still skip?`
+                    {currentStreak >= 14
+                      ? `You've trained ${currentStreak} days straight. That's elite. Skipping resets everything.`
+                      : currentStreak >= 7
+                        ? `${currentStreak}-day streak. That took real discipline to build. Still skip?`
+                        : `You're ${currentStreak} days in. ${7 - currentStreak} more to a 7-day streak.`
                     }
                   </p>
                   <div className="flex items-center justify-center gap-2">
@@ -1911,8 +1941,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             <div className="flex items-center gap-2">
               <Watch className="w-4 h-4 text-purple-400" />
               <div className="text-left">
-                <span className="text-xs font-medium text-grappler-200">Wearable not connected</span>
-                <p className="text-xs text-grappler-500">Connect Whoop for recovery, sleep & strain</p>
+                <span className="text-xs font-medium text-grappler-200">Unlock smarter readiness scores</span>
+                <p className="text-xs text-grappler-500">Connect Whoop — auto-adjust volume from HRV & recovery</p>
               </div>
             </div>
             <span className="text-xs font-medium text-purple-400 px-2 py-1 rounded-lg bg-purple-500/20">
@@ -1921,12 +1951,28 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           </button>
         )}
 
-        {/* ─── Unified Readiness + Activity ─── */}
+        {/* ─── Readiness Summary + Activity ─── */}
         {showReadiness && (() => {
           return (
             <div className="card overflow-hidden">
-              {/* ReadinessCard integrated */}
-              <ReadinessCard />
+              {/* Compact readiness summary — tap to expand full breakdown */}
+              <button
+                onClick={() => setReadinessExpanded(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 hover:bg-grappler-800/40 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    'w-2 h-2 rounded-full',
+                    directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? 'bg-green-400' :
+                    directive.readinessLevel === 'moderate' ? 'bg-yellow-400' :
+                    directive.readinessLevel === 'low' ? 'bg-amber-500' : 'bg-red-500'
+                  )} />
+                  <span className="text-xs text-grappler-300">Readiness <span className="font-bold text-grappler-100">{directive.readinessScore}</span></span>
+                  {sleepHours != null && <span className="text-xs text-grappler-500">· {sleepHours.toFixed(1)}h sleep</span>}
+                  {recoveryScore != null && <span className="text-xs text-grappler-500">· HRV {recoveryScore}%</span>}
+                </div>
+                <span className="text-[10px] text-grappler-600">{readinessExpanded ? '▴' : '▾'}</span>
+              </button>
 
               {/* Activity row — inline horizontal with icon · value · label */}
               <div className="flex items-center gap-1 px-3 py-2.5 border-t border-grappler-700/30">

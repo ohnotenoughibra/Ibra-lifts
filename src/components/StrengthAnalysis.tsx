@@ -126,7 +126,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
     workoutLogs.forEach((log) => {
       const date = new Date(log.date);
       const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
+      weekStart.setDate(date.getDate() - ((date.getDay() + 6) % 7)); // Monday-based
       const weekKey = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
 
       const existing = weekMap.get(weekKey) || { rpeSum: 0, volumeSum: 0, count: 0 };

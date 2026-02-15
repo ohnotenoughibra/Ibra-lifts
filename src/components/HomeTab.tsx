@@ -708,7 +708,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const periodSummaries = useMemo(() => {
     const now = new Date();
     const startOfThisWeek = new Date(now);
-    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    startOfThisWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday-based
     startOfThisWeek.setHours(0, 0, 0, 0);
 
     const startOfLastWeek = new Date(startOfThisWeek);

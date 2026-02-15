@@ -189,6 +189,34 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       if (dbData) {
         applyRemoteData(dbData, isResync);
       }
+
+      // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
+      const storeAfterPull = useAppStore.getState();
+      const stillEmpty = !storeAfterPull.isOnboarded && !storeAfterPull.user;
+      if (stillEmpty && !isResync) {
+        try {
+          const recoverRes = await fetch('/api/sync/recover');
+          if (recoverRes.ok) {
+            const recovery = await recoverRes.json();
+            if (recovery.recovered && recovery.data) {
+              const fieldsToMerge: Record<string, unknown> = {};
+              for (const field of RESTORE_FIELDS) {
+                if (recovery.data[field] !== undefined) fieldsToMerge[field] = recovery.data[field];
+              }
+              if (recovery.data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = recovery.data.isOnboarded;
+              if (Object.keys(fieldsToMerge).length > 0) {
+                useAppStore.setState(fieldsToMerge);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[db-sync] Deep recovery successful:', recovery.stats);
+                }
+              }
+            }
+          }
+        } catch {
+          // Recovery endpoint not available — not critical
+        }
+      }
+
       setSyncStatus('success');
       setLastSyncedAt(new Date());
 
@@ -269,6 +297,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
+
+    // Safety: never push empty/fresh state that could overwrite real server data
+    const hasRealData = store.isOnboarded && store.user && (store.workoutLogs?.length > 0 || store.trainingSessions?.length > 0);
+    if (!hasRealData) {
+      return; // Don't push blank state — wait until user has real data
+    }
 
     // Create a fingerprint of the data to detect actual changes
     const syncData: Record<string, unknown> = {

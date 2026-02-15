@@ -55,6 +55,19 @@ export default function ProfileSettings() {
   const [verifySent, setVerifySent] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recoverStatus, setRecoverStatus] = useState<'idle' | 'scanning' | 'found' | 'restoring' | 'restored' | 'nothing' | 'error'>('idle');
+  const [recoverStats, setRecoverStats] = useState<{
+    workoutLogs?: number;
+    hasProfile?: boolean;
+    mesocycles?: number;
+    hasGamification?: boolean;
+    storeEmpty?: boolean;
+    storeUpdatedAt?: string | null;
+    hasMesocycle?: boolean;
+    mesocycleHistory?: number;
+    hasBaselineLifts?: boolean;
+    badges?: number;
+  } | null>(null);
   const { showToast } = useToast();
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
@@ -121,6 +134,59 @@ export default function ProfileSettings() {
       setVerifyLoading(false);
     }
   }, [session?.user?.email]);
+
+  const handleScanForData = useCallback(async () => {
+    setRecoverStatus('scanning');
+    setRecoverStats(null);
+    try {
+      const res = await fetch('/api/debug/my-data');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      const logs = data.workout_logs?.total_count || 0;
+      const hasProfile = !!data.profiles;
+      const hasMeso = data.mesocycles?.count > 0;
+      const hasGamification = !!data.gamification_stats;
+      const storeEmpty = !data.user_store || data.user_store.workoutLogsCount === 0;
+
+      if (logs > 0 || hasProfile || hasMeso || hasGamification) {
+        setRecoverStats({
+          workoutLogs: logs,
+          hasProfile,
+          mesocycles: data.mesocycles?.count || 0,
+          hasGamification,
+          storeEmpty,
+          storeUpdatedAt: data.user_store?.updated_at || null,
+        });
+        setRecoverStatus('found');
+      } else {
+        setRecoverStatus('nothing');
+      }
+    } catch {
+      setRecoverStatus('error');
+    }
+  }, []);
+
+  const handleRestoreData = useCallback(async () => {
+    setRecoverStatus('restoring');
+    try {
+      const res = await fetch('/api/debug/restore', { method: 'POST' });
+      if (!res.ok) throw new Error('Restore failed');
+      const result = await res.json();
+      if (result.restored) {
+        setRecoverStats(result.stats);
+        setRecoverStatus('restored');
+        showToast('Data restored! Refreshing...', 'success');
+        // Reload to pull the restored data into the app
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setRecoverStatus('nothing');
+        showToast(result.reason || 'No data to recover', 'error');
+      }
+    } catch {
+      setRecoverStatus('error');
+      showToast('Restore failed. Try again.', 'error');
+    }
+  }, [showToast]);
 
   const executeDeleteAccount = useCallback(async () => {
     setDeleteLoading(true);
@@ -984,6 +1050,97 @@ export default function ProfileSettings() {
           </>
         )}
       </div>
+
+      {/* Data Recovery */}
+      {isSignedIn && (
+        <div className="card p-4 border border-amber-500/20 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <RefreshCw className="w-4 h-4 text-amber-400" />
+            <h3 className="font-medium text-amber-400 text-sm">Data Recovery</h3>
+          </div>
+          <p className="text-sm text-grappler-400">
+            If your data disappeared, scan the database to check if your workouts, profile, and training programs are still saved in the individual tables.
+          </p>
+
+          {recoverStatus === 'idle' && (
+            <button
+              onClick={handleScanForData}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-600 text-white font-medium text-sm hover:bg-amber-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Scan Database for My Data
+            </button>
+          )}
+
+          {recoverStatus === 'scanning' && (
+            <div className="flex items-center justify-center gap-2 py-3 text-amber-300 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Scanning all tables...
+            </div>
+          )}
+
+          {recoverStatus === 'found' && recoverStats && (
+            <div className="space-y-3">
+              <div className="bg-grappler-900/50 rounded-xl p-3 space-y-1.5">
+                <p className="text-sm font-medium text-green-400">Data found in database:</p>
+                {recoverStats.hasProfile && <p className="text-xs text-grappler-300">&#10003; Profile saved</p>}
+                {(recoverStats.workoutLogs ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.workoutLogs} workout logs</p>}
+                {(recoverStats.mesocycles ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.mesocycles} training programs</p>}
+                {recoverStats.hasGamification && <p className="text-xs text-grappler-300">&#10003; Gamification stats (XP, streaks, badges)</p>}
+                {recoverStats.storeEmpty && (
+                  <p className="text-xs text-amber-400 mt-2">Your main sync store is empty — this data needs to be restored.</p>
+                )}
+                {!recoverStats.storeEmpty && recoverStats.storeUpdatedAt && (
+                  <p className="text-xs text-grappler-400 mt-2">Store last updated: {new Date(recoverStats.storeUpdatedAt).toLocaleString()}</p>
+                )}
+              </div>
+              <button
+                onClick={handleRestoreData}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 text-white font-medium text-sm hover:bg-green-700 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Restore My Data Now
+              </button>
+            </div>
+          )}
+
+          {recoverStatus === 'restoring' && (
+            <div className="flex items-center justify-center gap-2 py-3 text-green-300 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Restoring your data...
+            </div>
+          )}
+
+          {recoverStatus === 'restored' && (
+            <div className="flex items-center justify-center gap-2 py-3 text-green-400 text-sm">
+              <Check className="w-4 h-4" />
+              Data restored! Reloading app...
+            </div>
+          )}
+
+          {recoverStatus === 'nothing' && (
+            <div className="text-sm text-grappler-400 py-2">
+              <AlertTriangle className="w-4 h-4 inline mr-1 text-amber-400" />
+              No data found in individual tables. The data may have been fully deleted.
+            </div>
+          )}
+
+          {recoverStatus === 'error' && (
+            <div className="space-y-2">
+              <p className="text-sm text-red-400">
+                <AlertTriangle className="w-4 h-4 inline mr-1" />
+                Something went wrong. Check your connection and try again.
+              </p>
+              <button
+                onClick={() => setRecoverStatus('idle')}
+                className="text-sm text-amber-400 underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="card p-4 border border-red-500/20 space-y-4">

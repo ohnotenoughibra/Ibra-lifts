@@ -40,6 +40,7 @@ import {
   Scale,
   X,
   ChevronRight,
+  MoreHorizontal,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -409,6 +410,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [skipFrictionShown, setSkipFrictionShown] = useState(false);
+  const [liftOptionsExpanded, setLiftOptionsExpanded] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [showValidateConfirm, setShowValidateConfirm] = useState(false);
@@ -1560,15 +1562,18 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 </div>
                 <h2 className="text-xl font-black text-white mt-1">{nextWorkout.name}</h2>
                 <p className="text-xs text-white/50 mt-1">{directive.subline}</p>
+                {/* Overload teaser — promoted above exercises */}
+                {directive.overloadTeaser && (
+                  <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/15">
+                    <TrendingUp className="w-3.5 h-3.5 text-green-300 flex-shrink-0" />
+                    <p className="text-[11px] text-green-200 font-semibold">{directive.overloadTeaser}</p>
+                  </div>
+                )}
                 {/* Exercise preview */}
                 <p className="text-xs text-white/60 mt-2 leading-relaxed">
                   {nextWorkout.exercises.slice(0, 3).map(e => e.exercise.name).join(' · ')}
                   {nextWorkout.exercises.length > 3 && ` · +${nextWorkout.exercises.length - 3} more`}
                 </p>
-                {/* Overload teaser */}
-                {directive.overloadTeaser && (
-                  <p className="text-[10px] text-white/50 mt-1 font-medium">{directive.overloadTeaser}</p>
-                )}
                 <div className="flex items-center gap-3 mt-1.5 text-sm text-white/80">
                   <span className="flex items-center gap-1"><Dumbbell className="w-3.5 h-3.5" />{nextWorkout.exercises.length} exercises</span>
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />~{nextWorkout.estimatedDuration}m</span>
@@ -1622,13 +1627,47 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               ))}
             </div>
           )}
-          <div className="flex items-center justify-center gap-4">
+          {/* Secondary CTA: Quick 30m + collapsed options */}
+          <div className="flex items-center justify-center gap-3">
             <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-            <span className="text-grappler-700">·</span>
-            <button onClick={() => { currentStreak > 0 ? setSkipFrictionShown(true) : setShowSkipDialog(true); }} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><SkipForward className="w-3.5 h-3.5" />Skip</button>
-            <span className="text-grappler-700">·</span>
-            <button onClick={() => setShowValidateConfirm(true)} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-green-400 transition-colors"><CheckCircle className="w-3.5 h-3.5" />Validate</button>
+            <button
+              onClick={() => setLiftOptionsExpanded(v => !v)}
+              className="flex items-center gap-1 py-2 text-xs text-grappler-600 hover:text-grappler-400 transition-colors"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </button>
           </div>
+
+          {/* Collapsed options: Skip + Finish Block */}
+          <AnimatePresence>
+            {liftOptionsExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center justify-center gap-4 py-1">
+                  <button
+                    onClick={() => {
+                      setLiftOptionsExpanded(false);
+                      currentStreak > 0 ? setSkipFrictionShown(true) : setShowSkipDialog(true);
+                    }}
+                    className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />Skip Session
+                  </button>
+                  <span className="text-grappler-700">·</span>
+                  <button
+                    onClick={() => { setLiftOptionsExpanded(false); setShowValidateConfirm(true); }}
+                    className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-500 hover:text-green-400 transition-colors"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />Finish Block
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Skip friction — streak warning */}
           <AnimatePresence>
@@ -1655,7 +1694,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             )}
           </AnimatePresence>
 
-          {/* Validate block confirmation */}
+          {/* Finish block confirmation */}
           <AnimatePresence>
             {showValidateConfirm && (
               <motion.div
@@ -1670,7 +1709,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   </p>
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={() => setShowValidateConfirm(false)} className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600">Cancel</button>
-                    <button onClick={handleValidateBlock} className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"><CheckCircle className="w-3.5 h-3.5" />Validate</button>
+                    <button onClick={handleValidateBlock} className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"><CheckCircle className="w-3.5 h-3.5" />Finish</button>
                   </div>
                 </div>
               </motion.div>

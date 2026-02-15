@@ -63,6 +63,7 @@ import type { CycleLog } from '@/lib/female-athlete';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
 import PerformanceReadiness from './PerformanceReadiness';
 import SorenessCheck from './SorenessCheck';
+import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
 
@@ -112,6 +113,11 @@ const factorExplainers: Record<string, { icon: string; what: string; action: str
     icon: '❤️',
     what: 'Heart rate variability vs your personal baseline. Below = sympathetic stress.',
     action: 'Reduce intensity today. Your nervous system needs recovery.',
+  },
+  soreness: {
+    icon: '🦵',
+    what: 'Self-reported muscle soreness by body area and severity.',
+    action: 'Consider swapping to a session that avoids sore muscle groups.',
   },
 };
 
@@ -542,6 +548,11 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const performanceProfiles = useMemo(() => {
     return buildPerformanceProfiles(workoutLogs);
   }, [workoutLogs]);
+
+  // ─── Performance Narrative ───
+  const narrative = useMemo(() => {
+    return generatePerformanceNarrative({ workoutLogs, trainingSessions, user });
+  }, [workoutLogs, trainingSessions, user]);
 
   // ─── Engagement Engine ───
   const disengagement = useMemo(() => {
@@ -1950,6 +1961,42 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         {/* Performance Readiness — nutrition-focused (only when ReadinessCard hidden) */}
         {!showReadiness && <PerformanceReadiness />}
       </div>
+
+      {/* ─── Performance Narrative ─── */}
+      {narrative.hasData && workoutLogs.length >= 6 && (
+        <div className="card p-3.5">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-primary-400" />
+            <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide">Your Progress Story</h3>
+          </div>
+          <p className="text-sm text-grappler-300 leading-relaxed">{narrative.summary}</p>
+          {narrative.highlights.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              {narrative.highlights.map((h, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs',
+                    h.sentiment === 'positive' && 'bg-emerald-500/10 border border-emerald-500/20',
+                    h.sentiment === 'neutral' && 'bg-grappler-700/50 border border-grappler-600/30',
+                    h.sentiment === 'negative' && 'bg-red-500/10 border border-red-500/20',
+                  )}
+                >
+                  <span className={cn(
+                    'font-bold',
+                    h.sentiment === 'positive' && 'text-emerald-400',
+                    h.sentiment === 'neutral' && 'text-grappler-300',
+                    h.sentiment === 'negative' && 'text-red-400',
+                  )}>
+                    {h.stat}
+                  </span>
+                  <span className="text-grappler-400">{h.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── Contextual Feed (max 4, priority-ranked, dismissible) ─── */}
       {(() => {

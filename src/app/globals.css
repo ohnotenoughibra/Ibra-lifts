@@ -282,6 +282,21 @@
   /* Focus ring offset */
   body.light-mode .focus-visible\:ring-offset-grappler-900:focus-visible { --tw-ring-offset-color: #f8fafc; }
 
+  /* Gradient stops — remap dark grappler stops to light equivalents */
+  body.light-mode .from-grappler-800 { --tw-gradient-from: #ffffff; --tw-gradient-from-position: ; }
+  body.light-mode .from-grappler-800\/50 { --tw-gradient-from: rgba(255,255,255,0.8); --tw-gradient-from-position: ; }
+  body.light-mode .from-grappler-900 { --tw-gradient-from: #f8fafc; --tw-gradient-from-position: ; }
+  body.light-mode .via-grappler-800 { --tw-gradient-via: #ffffff; --tw-gradient-via-position: ; }
+  body.light-mode .via-grappler-900 { --tw-gradient-via: #f8fafc; --tw-gradient-via-position: ; }
+  body.light-mode .to-grappler-800 { --tw-gradient-to: #ffffff; --tw-gradient-to-position: ; }
+  body.light-mode .to-grappler-800\/40 { --tw-gradient-to: rgba(255,255,255,0.6); --tw-gradient-to-position: ; }
+  body.light-mode .to-grappler-850 { --tw-gradient-to: #f8fafc; --tw-gradient-to-position: ; }
+  body.light-mode .to-grappler-900 { --tw-gradient-to: #f8fafc; --tw-gradient-to-position: ; }
+  body.light-mode .to-grappler-700\/30 { --tw-gradient-to: rgba(226,232,240,0.3); --tw-gradient-to-position: ; }
+
+  /* Ring offset */
+  body.light-mode .ring-offset-grappler-900 { --tw-ring-offset-color: #f8fafc; }
+
   /* Placeholder */
   body.light-mode .placeholder-grappler-500::placeholder { color: #94a3b8; }
 

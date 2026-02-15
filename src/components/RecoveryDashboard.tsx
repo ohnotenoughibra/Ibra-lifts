@@ -65,6 +65,13 @@ function formatSessionDate(date: Date | string): string {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+function sleepLabel(v: number): string { return v >= 4 ? 'Good' : v >= 3 ? 'Fair' : 'Poor'; }
+function sorenessLabel(v: number): string { return v <= 2 ? 'Low' : v <= 3 ? 'Moderate' : 'High'; }
+function stressLabel(v: number): string { return v <= 2 ? 'Low' : v <= 3 ? 'Moderate' : 'High'; }
+function metricColor(good: boolean, mid: boolean): string {
+  return good ? 'text-green-400' : mid ? 'text-yellow-400' : 'text-red-400';
+}
+
 export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
   const { workoutLogs, bodyWeightLog, trainingSessions } = useAppStore();
   const [selectedTab, setSelectedTab] = useState<'overview' | 'trends'>('overview');
@@ -176,7 +183,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
     if (recoveryScore < 34) {
       recs.push({
         icon: AlertTriangle,
-        text: 'Consider a deload or active recovery day',
+        text: 'Your body needs rest. Take a recovery day \u2014 light stretching, walking, or mobility work.',
         severity: 'warning',
       });
     }
@@ -188,7 +195,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
       if (avgRecent < 3) {
         recs.push({
           icon: Moon,
-          text: 'Prioritize sleep - 7-9 hours minimum',
+          text: 'Sleep has been below average lately. Aim for 7\u20139 hours \u2014 it\u2019s the single biggest recovery factor.',
           severity: 'warning',
         });
       }
@@ -200,7 +207,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
       if (latestSoreness >= 4) {
         recs.push({
           icon: Thermometer,
-          text: 'Extra mobility work recommended',
+          text: 'Soreness is elevated. Add 10\u201315 min of foam rolling or stretching before your next session.',
           severity: 'warning',
         });
       }
@@ -210,7 +217,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
     if (trainingLoad.isTooHigh) {
       recs.push({
         icon: Activity,
-        text: 'Volume increased too fast - reduce by 20%',
+        text: 'Training volume spiked this week. Drop 1\u20132 sets per exercise to let your body adapt.',
         severity: 'warning',
       });
     }
@@ -218,7 +225,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
     if (recs.length === 0) {
       recs.push({
         icon: Check,
-        text: 'Recovery looks good - keep up the consistent work!',
+        text: 'Recovery looks solid. Stay consistent and trust the process.',
         severity: 'success',
       });
     }
@@ -236,10 +243,11 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
   const scoreColor = getScoreColor(recoveryScore);
   const scoreLabel = getScoreLabel(recoveryScore);
 
-  // SVG gauge parameters
-  const gaugeRadius = 70;
-  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
-  const gaugeFill = (recoveryScore / 100) * gaugeCircumference;
+  // Sparkline data for overview (last 5 points)
+  const sleepSparkData = useMemo(() => sleepTrendData.slice(-5), [sleepTrendData]);
+  const rpeSparkData = useMemo(() =>
+    sortedLogs.slice(0, 5).reverse().map(l => ({ rpe: l.overallRPE })),
+  [sortedLogs]);
 
   const hasData = workoutLogs.length > 0;
 
@@ -307,196 +315,199 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
 
           {selectedTab === 'overview' ? (
             <>
-              {/* Recovery Score Gauge */}
-              <motion.div variants={itemVariants} className="card p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Heart className="w-5 h-5 text-primary-400" />
-                  <h2 className="text-base font-semibold text-grappler-50">Recovery Score</h2>
-                </div>
-
-                <div className="flex flex-col items-center py-4">
-                  <div className="relative w-44 h-44">
-                    <svg
-                      className="w-full h-full -rotate-90"
-                      viewBox="0 0 160 160"
-                    >
-                      {/* Background ring */}
-                      <circle
-                        cx="80"
-                        cy="80"
-                        r={gaugeRadius}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeWidth="10"
+              {/* Readiness Hero — the one thing they need to know */}
+              <motion.div variants={itemVariants}>
+                <div className={`card p-4 border ${readiness.border}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-3.5 h-3.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: readiness.color, boxShadow: `0 0 12px ${readiness.color}40` }}
                       />
-                      {/* Score ring */}
-                      <motion.circle
-                        cx="80"
-                        cy="80"
-                        r={gaugeRadius}
-                        fill="none"
-                        stroke={scoreColor}
-                        strokeWidth="10"
-                        strokeLinecap="round"
-                        strokeDasharray={gaugeCircumference}
-                        initial={{ strokeDashoffset: gaugeCircumference }}
-                        animate={{ strokeDashoffset: gaugeCircumference - gaugeFill }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
-                      />
-                    </svg>
-                    {/* Center score text */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <motion.span
-                        className="text-4xl font-bold"
+                      <div>
+                        <p className="text-sm font-semibold text-grappler-50">{readiness.label}</p>
+                        <p className="text-[11px] text-grappler-400">Based on sleep, stress & training load</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <motion.p
+                        className="text-2xl font-bold"
                         style={{ color: scoreColor }}
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5, duration: 0.5 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
                       >
                         {recoveryScore}
-                      </motion.span>
-                      <span className="text-xs text-grappler-400 mt-1">{scoreLabel}</span>
+                      </motion.p>
+                      <p className="text-[10px] text-grappler-500 uppercase">{scoreLabel}</p>
                     </div>
                   </div>
 
-                  {/* Score breakdown pills */}
-                  <div className="flex flex-wrap justify-center gap-2 mt-4">
-                    {logsWithCheckIn.length > 0 && (
-                      <>
-                        <div className="flex items-center gap-1.5 bg-grappler-800 rounded-full px-3 py-1">
-                          <Moon className="w-3 h-3 text-indigo-400" />
-                          <span className="text-xs text-grappler-200">
-                            Sleep {logsWithCheckIn[0].preCheckIn!.sleepQuality}/5
-                          </span>
+                  {/* Breakdown with context labels */}
+                  {logsWithCheckIn.length > 0 && (() => {
+                    const latest = logsWithCheckIn[0].preCheckIn!;
+                    return (
+                      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-grappler-700/40">
+                        <div className="text-center">
+                          <Moon className="w-3.5 h-3.5 text-indigo-400 mx-auto mb-1" />
+                          <p className="text-xs font-medium text-grappler-200">Sleep</p>
+                          <p className={`text-[11px] font-medium ${metricColor(latest.sleepQuality >= 4, latest.sleepQuality >= 3)}`}>
+                            {sleepLabel(latest.sleepQuality)} ({latest.sleepQuality}/5)
+                          </p>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-grappler-800 rounded-full px-3 py-1">
-                          <Thermometer className="w-3 h-3 text-blue-400" />
-                          <span className="text-xs text-grappler-200">
-                            Soreness {logsWithCheckIn[0].preCheckIn!.soreness}/5
-                          </span>
+                        <div className="text-center">
+                          <Thermometer className="w-3.5 h-3.5 text-blue-400 mx-auto mb-1" />
+                          <p className="text-xs font-medium text-grappler-200">Soreness</p>
+                          <p className={`text-[11px] font-medium ${metricColor(latest.soreness <= 2, latest.soreness <= 3)}`}>
+                            {sorenessLabel(latest.soreness)} ({latest.soreness}/5)
+                          </p>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-grappler-800 rounded-full px-3 py-1">
-                          <Brain className="w-3 h-3 text-purple-400" />
-                          <span className="text-xs text-grappler-200">
-                            Stress {logsWithCheckIn[0].preCheckIn!.stress}/5
-                          </span>
+                        <div className="text-center">
+                          <Brain className="w-3.5 h-3.5 text-purple-400 mx-auto mb-1" />
+                          <p className="text-xs font-medium text-grappler-200">Stress</p>
+                          <p className={`text-[11px] font-medium ${metricColor(latest.stress <= 2, latest.stress <= 3)}`}>
+                            {stressLabel(latest.stress)} ({latest.stress}/5)
+                          </p>
                         </div>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </motion.div>
 
-              {/* Readiness Indicator */}
-              <motion.div variants={itemVariants}>
-                <div className={`card p-4 border ${readiness.border}`}>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-4 h-4 rounded-full`}
-                      style={{ backgroundColor: readiness.color, boxShadow: `0 0 12px ${readiness.color}40` }}
-                    />
-                    <div>
-                      <h3 className="text-sm font-semibold text-grappler-50">Today&apos;s Readiness</h3>
-                      <p className="text-xs" style={{ color: readiness.color }}>{readiness.label}</p>
-                    </div>
-                    <div className="ml-auto">
-                      {recoveryScore > 67 ? (
-                        <TrendingUp className="w-5 h-5 text-emerald-400" />
-                      ) : recoveryScore >= 34 ? (
-                        <Minus className="w-5 h-5 text-yellow-400" />
-                      ) : (
-                        <TrendingDown className="w-5 h-5 text-red-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Training Load */}
+              {/* Training Intensity — plain English, no jargon */}
               <motion.div variants={itemVariants} className="card p-4">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-3">
                   <Activity className="w-5 h-5 text-primary-400" />
-                  <h2 className="text-base font-semibold text-grappler-50">Training Load</h2>
+                  <h2 className="text-base font-semibold text-grappler-50">Training Intensity</h2>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                    <p className="text-xs text-grappler-400 mb-1">Acute (7d)</p>
-                    <p className="text-lg font-bold text-grappler-50">
-                      {trainingLoad.acute > 1000
-                        ? `${(trainingLoad.acute / 1000).toFixed(1)}k`
-                        : trainingLoad.acute.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                    <p className="text-xs text-grappler-400 mb-1">Chronic (28d)</p>
-                    <p className="text-lg font-bold text-grappler-50">
-                      {trainingLoad.chronic > 1000
-                        ? `${(trainingLoad.chronic / 1000).toFixed(1)}k`
-                        : Math.round(trainingLoad.chronic).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                    <p className="text-xs text-grappler-400 mb-1">A:C Ratio</p>
-                    <p
-                      className="text-lg font-bold"
-                      style={{
-                        color: trainingLoad.isOptimal
-                          ? '#34d399'
-                          : trainingLoad.isTooHigh
-                          ? '#f87171'
-                          : '#fbbf24',
-                      }}
-                    >
-                      {trainingLoad.ratio.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-sm text-grappler-200 mb-3">
+                  {trainingLoad.ratio === 0
+                    ? 'Not enough data to assess your training load yet.'
+                    : trainingLoad.isOptimal
+                    ? 'Your training volume is well balanced with what your body is used to.'
+                    : trainingLoad.isTooHigh
+                    ? <>You&apos;re pushing <span className="font-bold text-red-400">{trainingLoad.ratio.toFixed(1)}x</span> harder than your 4-week average. That&apos;s above the safe zone.</>
+                    : <>You&apos;re at <span className="font-bold text-yellow-400">{Math.round(trainingLoad.ratio * 100)}%</span> of your usual effort &mdash; below your baseline.</>
+                  }
+                </p>
 
-                {/* Load ratio bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs text-grappler-400">
-                    <span>Low</span>
-                    <span className="text-emerald-400">Optimal (0.8-1.3)</span>
-                    <span>High</span>
-                  </div>
-                  <div className="relative h-3 bg-grappler-800 rounded-full overflow-hidden">
-                    {/* Optimal zone indicator */}
-                    <div
-                      className="absolute h-full bg-emerald-500/20 rounded-full"
-                      style={{ left: '32%', width: '28%' }}
-                    />
-                    {/* Current position marker */}
-                    <motion.div
-                      className="absolute top-0 h-full w-2 rounded-full"
-                      style={{
-                        backgroundColor: trainingLoad.isOptimal ? '#34d399' : trainingLoad.isTooHigh ? '#f87171' : '#fbbf24',
-                        left: `${Math.min(Math.max((trainingLoad.ratio / 2.5) * 100, 2), 98)}%`,
-                      }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.8 }}
-                    />
-                  </div>
-                </div>
+                {trainingLoad.ratio > 0 && (
+                  <>
+                    {/* Visual ratio bar */}
+                    <div className="space-y-1.5">
+                      <div className="relative h-3 bg-grappler-800 rounded-full overflow-hidden">
+                        <div className="absolute h-full bg-emerald-500/20 rounded-full" style={{ left: '32%', width: '28%' }} />
+                        <motion.div
+                          className="absolute top-0 h-full w-2 rounded-full"
+                          style={{
+                            backgroundColor: trainingLoad.isOptimal ? '#34d399' : trainingLoad.isTooHigh ? '#f87171' : '#fbbf24',
+                            left: `${Math.min(Math.max((trainingLoad.ratio / 2.5) * 100, 2), 98)}%`,
+                          }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5 }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-grappler-500">
+                        <span>Under-training</span>
+                        <span className="text-emerald-400/80">Sweet spot</span>
+                        <span>Overreaching</span>
+                      </div>
+                    </div>
+
+                    {/* This week vs average */}
+                    <div className="flex gap-2 mt-3">
+                      <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
+                        <span className="text-[11px] text-grappler-500">This week</span>
+                        <span className="text-xs font-medium text-grappler-200">
+                          {trainingLoad.acute > 1000 ? `${(trainingLoad.acute / 1000).toFixed(1)}k` : trainingLoad.acute.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
+                        <span className="text-[11px] text-grappler-500">Avg/week</span>
+                        <span className="text-xs font-medium text-grappler-200">
+                          {trainingLoad.chronic > 1000 ? `${(trainingLoad.chronic / 1000).toFixed(1)}k` : Math.round(trainingLoad.chronic).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {!trainingLoad.isOptimal && trainingLoad.ratio > 0 && (
-                  <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <div className="flex items-start gap-2 mt-3 p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-yellow-200">
                       {trainingLoad.isTooHigh
-                        ? 'Training load is ramping up too fast. Consider reducing volume this week.'
-                        : 'Training load is below baseline. Gradually increase volume if feeling recovered.'}
+                        ? 'Your body hasn\u2019t adapted to this volume yet. Drop 1\u20132 sets per exercise this week to stay in the safe zone.'
+                        : 'You\u2019re training less than your body is used to. If you feel recovered, gradually add volume back.'}
                     </p>
                   </div>
                 )}
               </motion.div>
 
-              {/* Recovery Recommendations */}
+              {/* Quick Trends — inline sparklines so users don't need Trends tab */}
+              {(sleepSparkData.length > 1 || rpeSparkData.length > 1) && (
+                <motion.div variants={itemVariants} className="card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="w-5 h-5 text-primary-400" />
+                    <h2 className="text-base font-semibold text-grappler-50">Recent Trends</h2>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {sleepSparkData.length > 1 && (
+                      <div>
+                        <p className="text-[11px] text-grappler-400 mb-1">Sleep Quality</p>
+                        <div className="h-10">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={sleepSparkData}>
+                              <defs>
+                                <linearGradient id="sparkSleepG" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <YAxis domain={[1, 5]} hide />
+                              <Area type="monotone" dataKey="sleep" stroke="#818cf8" strokeWidth={1.5} fill="url(#sparkSleepG)" dot={false} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                          Avg: {(sleepSparkData.reduce((s, d) => s + d.sleep, 0) / sleepSparkData.length).toFixed(1)}/5
+                        </p>
+                      </div>
+                    )}
+                    {rpeSparkData.length > 1 && (
+                      <div>
+                        <p className="text-[11px] text-grappler-400 mb-1">Workout Effort</p>
+                        <div className="h-10">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={rpeSparkData}>
+                              <defs>
+                                <linearGradient id="sparkRpeG" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
+                                  <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <YAxis domain={[1, 10]} hide />
+                              <Area type="monotone" dataKey="rpe" stroke="#34d399" strokeWidth={1.5} fill="url(#sparkRpeG)" dot={false} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                          Avg RPE: {(rpeSparkData.reduce((s, d) => s + d.rpe, 0) / rpeSparkData.length).toFixed(1)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* What to Do */}
               <motion.div variants={itemVariants} className="card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Wind className="w-5 h-5 text-primary-400" />
-                  <h2 className="text-base font-semibold text-grappler-50">Recommendations</h2>
+                  <h2 className="text-base font-semibold text-grappler-50">What to Do</h2>
                 </div>
 
                 <div className="space-y-2">
@@ -691,7 +702,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                       <span className="text-xs text-grappler-400">Stress</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
                       <span className="text-xs text-grappler-400">Soreness</span>
                     </div>
                   </div>

@@ -1274,106 +1274,32 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         </div>
       )}
 
-      {/* ─── Post-Workout Summary — compact card ─── */}
-      <AnimatePresence>
-        {lastCompletedWorkout && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-gradient-to-r from-green-500/15 to-emerald-500/10 border border-green-500/30 rounded-xl p-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Trophy className="w-4 h-4 text-green-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-green-300 text-sm">Done!</h3>
-                  <span className="text-xs text-green-400/70">+{lastCompletedWorkout.points} XP</span>
-                  {lastCompletedWorkout.hadPR && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 font-medium">PR</span>
-                  )}
-                  {variableReward && variableReward.type !== 'none' && (
-                    <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
-                      'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
-                      'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
-                      'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
-                      'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
-                    })}>+{variableReward.bonusPoints}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-0.5">
-                  <span className="text-xs text-grappler-400">{lastCompletedWorkout.log.exercises.length} ex</span>
-                  <span className="text-xs text-grappler-400">{formatNumber(lastCompletedWorkout.log.totalVolume)} {weightUnit}</span>
-                  <span className="text-xs text-grappler-400">{lastCompletedWorkout.log.duration}m</span>
-                  <span className="text-xs text-grappler-500">Lv.{gamificationStats.level}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button onClick={handleShareWorkout}
-                  className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
-                  title="Share workout">
-                  {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                </button>
-                <button onClick={dismissWorkoutSummary}
-                  className="text-grappler-500 hover:text-grappler-300 p-1.5">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-            {/* Coaching line + nutrition nudge — compact row */}
-            {(postWorkoutCoaching || postWorkoutNutritionNudge) && (
-              <div className="mt-2 pt-2 border-t border-green-500/20">
-                {postWorkoutCoaching && (
-                  <p className="text-xs text-grappler-400 leading-relaxed">{postWorkoutCoaching}</p>
-                )}
-                {postWorkoutNutritionNudge && (
-                  <p className={cn('text-xs mt-1', postWorkoutNutritionNudge.urgent ? 'text-orange-400' : 'text-green-400')}>
-                    {postWorkoutNutritionNudge.text}
-                  </p>
-                )}
-              </div>
-            )}
-            {/* Badges — inline chips */}
-            {lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
-              <div className="flex gap-1.5 mt-2 flex-wrap">
-                {lastCompletedWorkout.newBadges.map((badge) => (
-                  <span key={badge.id} className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300">
-                    {badge.icon} {badge.name}
-                  </span>
-                ))}
-              </div>
-            )}
-            {/* Guest sign-up — one line */}
-            {!session && (
-              <div className="mt-2 pt-2 border-t border-green-500/20 flex items-center justify-between">
-                <p className="text-xs text-primary-400">Save your progress?</p>
-                <div className="flex gap-1.5">
-                  <button onClick={() => signIn('google', { callbackUrl: '/' })}
-                    className="px-2.5 py-1 text-xs font-medium bg-grappler-800 border border-grappler-700 text-grappler-100 rounded-lg">Google</button>
-                  <Link href="/register" className="px-2.5 py-1 text-xs font-medium bg-primary-500/20 text-primary-300 rounded-lg">Email</Link>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ─── ZONE 2: THE DIRECTIVE — single adaptive card ─── */}
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
-        /* POST-SESSION: Session Verdict — grade, PRs, forward look */
+        /* POST-SESSION: Unified verdict — grade, metrics, coaching, nutrition, forward look */
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5">
+          {/* Header: grade + verdict + XP + share */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Check className="w-4 h-4 text-green-400" />
                 <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
+                {lastCompletedWorkout && (
+                  <span className="text-xs text-green-400/60">+{lastCompletedWorkout.points} XP</span>
+                )}
+                {variableReward && variableReward.type !== 'none' && (
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
+                    'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
+                    'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
+                    'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
+                    'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
+                  })}>+{variableReward.bonusPoints}</span>
+                )}
               </div>
-              {/* Grade + Verdict */}
+              {/* Grade letter + verdict */}
               <div className="flex items-center gap-3 mt-2">
                 <span className={cn(
-                  'text-3xl font-black leading-none',
+                  'text-4xl font-black leading-none',
                   directive.todayPerformance.grade === 'S' ? 'text-yellow-400' :
                   directive.todayPerformance.grade === 'A' ? 'text-green-400' :
                   directive.todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
@@ -1381,6 +1307,13 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                 <p className="text-sm text-grappler-300 leading-snug flex-1">{directive.todayPerformance.verdict}</p>
               </div>
             </div>
+            {lastCompletedWorkout && (
+              <button onClick={handleShareWorkout}
+                className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors flex-shrink-0"
+                title="Share workout">
+                {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+              </button>
+            )}
           </div>
 
           {/* PR callout */}
@@ -1393,6 +1326,17 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
                   : `${directive.todayPerformance.prs} PRs: ${directive.todayPerformance.prExercises.slice(0, 2).join(', ')}${directive.todayPerformance.prs > 2 ? ` +${directive.todayPerformance.prs - 2}` : ''}`
                 }
               </p>
+            </div>
+          )}
+
+          {/* Badges */}
+          {lastCompletedWorkout?.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {lastCompletedWorkout.newBadges.map((badge) => (
+                <span key={badge.id} className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300">
+                  {badge.icon} {badge.name}
+                </span>
+              ))}
             </div>
           )}
 
@@ -1412,11 +1356,16 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             </div>
           </div>
 
-          {/* Top exercise */}
-          {directive.todayPerformance.topExercise && (
-            <div className="flex items-center gap-2 bg-grappler-800/40 rounded-lg px-3 py-2 mb-3">
-              <Zap className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
-              <p className="text-xs text-grappler-300">Top lift: <span className="font-semibold text-grappler-100">{directive.todayPerformance.topExercise}</span> · {formatNumber(directive.todayPerformance.topExerciseVolume)} {weightUnit}</p>
+          {/* Nutrition nudge — inline */}
+          {postWorkoutNutritionNudge && (
+            <div className={cn(
+              'flex items-center gap-2 rounded-lg px-3 py-2 mb-3',
+              postWorkoutNutritionNudge.urgent ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-green-500/8 border border-green-500/15'
+            )}>
+              <Apple className="w-3.5 h-3.5 flex-shrink-0 text-green-400" />
+              <p className={cn('text-xs', postWorkoutNutritionNudge.urgent ? 'text-orange-300' : 'text-green-400')}>
+                {postWorkoutNutritionNudge.text}
+              </p>
             </div>
           )}
 
@@ -1424,7 +1373,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           {directive.forwardLook && (
             <div className="flex items-center gap-2 pt-2 border-t border-grappler-700/40">
               <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-              <p className="text-[10px] text-grappler-500">{directive.forwardLook}</p>
+              <p className="text-[11px] text-grappler-500">{directive.forwardLook}</p>
             </div>
           )}
 

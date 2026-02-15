@@ -1437,6 +1437,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           onStartWorkout={startWorkout}
           onQuickWorkout={handleQuickWorkout}
           onReadinessToggle={() => setReadinessExpanded(v => !v)}
+          forwardLook={directive.forwardLook}
         />
 
       ) : directive.todayType === 'combat' ? (

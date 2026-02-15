@@ -289,7 +289,7 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
   const [showVideo, setShowVideo] = useState(false);
 
   const videoQuery = `${exercise.name} proper form technique`;
-  const embedUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(videoQuery)}&rel=0&modestbranding=1`;
+  const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(videoQuery)}`;
 
   return (
     <AnimatePresence>
@@ -503,14 +503,17 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
                 </button>
               ) : (
                 <div className="px-4 pb-4">
-                  <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
-                    <iframe
-                      className="absolute inset-0 w-full h-full rounded-lg"
-                      src={embedUrl}
-                      title={`${exercise.name} form video`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                  <div className="relative w-full rounded-lg overflow-hidden bg-grappler-800 border border-grappler-700/50 flex flex-col items-center justify-center gap-3 py-8">
+                    <p className="text-sm text-grappler-300">Watch form guide on YouTube</p>
+                    <a
+                      href={youtubeSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-red-600 text-white font-medium text-sm active:bg-red-700 transition-colors"
+                    >
+                      <Video className="w-4 h-4" />
+                      Open on YouTube
+                    </a>
                   </div>
                 </div>
               )}

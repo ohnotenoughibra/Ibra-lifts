@@ -62,6 +62,8 @@ import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/
 import type { CycleLog } from '@/lib/female-athlete';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
 import PerformanceReadiness from './PerformanceReadiness';
+import SorenessCheck from './SorenessCheck';
+import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
 
 // ─── Factor explainer data ───
@@ -381,7 +383,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock, awardSmartRest,
+    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog,
   } = useAppStore();
   const { showToast } = useToast();
   const { data: session } = useSession();
@@ -401,6 +403,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
   const [readinessExpanded, setReadinessExpanded] = useState(false);
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState(false);
+  const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   // ─── Daily Directive — single mission for today ───
@@ -427,6 +430,30 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
       lastCompletedWorkout.log, workoutLogs, latestWhoopData
     );
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  // ─── Soreness Check — show on rest days and after workout completion ───
+  const todayIso = new Date().toISOString().split('T')[0];
+  const alreadyLoggedSorenessToday = useMemo(() => {
+    return quickLogs.some(
+      l => l.type === 'soreness' && new Date(l.timestamp).toISOString().split('T')[0] === todayIso
+    );
+  }, [quickLogs, todayIso]);
+
+  const isRestOrRecovery = directive.todayType === 'rest' || directive.todayType === 'recovery';
+  const showSorenessCheck = !sorenessCheckDismissed && !alreadyLoggedSorenessToday && (
+    isRestOrRecovery || (directive.todayPerformance !== null && directive.todayType === 'recovery')
+  );
+
+  const handleSorenessLog = (areas: { area: SorenessArea; severity: SorenessSeverity }[]) => {
+    addQuickLog({
+      type: 'soreness',
+      value: areas.length > 0 ? areas.map(a => `${a.area}:${a.severity}`).join(',') : 'none',
+      timestamp: new Date(),
+      notes: areas.length > 0
+        ? `Sore areas: ${areas.map(a => a.area.replace('_', ' ')).join(', ')}`
+        : 'Body check: feeling good',
+    });
+  };
 
   // ─── Confetti + Haptic on PR / badge unlock ───
   const confettiFired = useRef(false);
@@ -1741,6 +1768,16 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             </button>
           </div>
         </motion.div>
+      )}
+
+      {/* ─── Body Check-In — soreness & mobility on rest days / after workouts ─── */}
+      {showSorenessCheck && (
+        <SorenessCheck
+          context={directive.todayPerformance ? 'post_workout' : 'rest_day'}
+          isCombatAthlete={user?.trainingIdentity === 'combat'}
+          onDismiss={() => setSorenessCheckDismissed(true)}
+          onLog={handleSorenessLog}
+        />
       )}
 
       {/* ─── Momentum Strip — streak, week progress, next milestone ─── */}

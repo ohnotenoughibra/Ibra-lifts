@@ -74,11 +74,8 @@ export default function ActiveWorkout() {
   const [showPRCelebration, setShowPRCelebration] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showOverview, setShowOverview] = useState(true);
-  const [checkInSkippedThisWeek] = useState(() => {
-    const skipUntil = localStorage.getItem('skipCheckInUntil');
-    return skipUntil ? new Date(skipUntil) > new Date() : false;
-  });
-  const [showCheckInSection, setShowCheckInSection] = useState(false);
+  const [feeling, setFeeling] = useState<'great' | 'good' | 'okay' | 'rough'>('good');
+  const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [swapShowAll, setSwapShowAll] = useState(false);
@@ -128,30 +125,46 @@ export default function ActiveWorkout() {
   }, personalBaseline) : null;
 
   // Pre-workout check-in state - initialized with Whoop data if available
-  const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>(() => ({
-    sleepQuality: latestWhoopData?.sleepScore
-      ? Math.round((latestWhoopData.sleepScore / 100) * 5) // Convert 0-100 to 1-5
-      : 3,
-    sleepHours: latestWhoopData?.sleepHours ?? 7,
-    nutrition: 'full_meal',
-    stress: 2,
-    soreness: 2,
-    motivation: 4,
-    notes: ''
-  }));
+  // Feeling presets → auto-map to full PreWorkoutCheckIn
+  const FEELING_PRESETS: Record<'great' | 'good' | 'okay' | 'rough', PreWorkoutCheckIn> = {
+    great: { sleepQuality: 5, sleepHours: 8, nutrition: 'full_meal', stress: 1, soreness: 1, motivation: 5 },
+    good:  { sleepQuality: 4, sleepHours: 7, nutrition: 'full_meal', stress: 2, soreness: 2, motivation: 4 },
+    okay:  { sleepQuality: 3, sleepHours: 6.5, nutrition: 'light_meal', stress: 3, soreness: 3, motivation: 3 },
+    rough: { sleepQuality: 2, sleepHours: 5.5, nutrition: 'light_meal', stress: 4, soreness: 4, motivation: 2 },
+  };
 
-  // Update check-in when Whoop data becomes available
+  const [checkIn, setCheckIn] = useState<PreWorkoutCheckIn>(() => {
+    const preset = FEELING_PRESETS['good'];
+    return {
+      ...preset,
+      sleepQuality: latestWhoopData?.sleepScore
+        ? Math.round((latestWhoopData.sleepScore / 100) * 5)
+        : preset.sleepQuality,
+      sleepHours: latestWhoopData?.sleepHours ?? preset.sleepHours,
+    };
+  });
+
+  // Auto-select feeling from Whoop recovery score
   useEffect(() => {
-    if (latestWhoopData) {
-      setCheckIn(prev => ({
-        ...prev,
-        sleepHours: latestWhoopData.sleepHours ?? prev.sleepHours,
-        sleepQuality: latestWhoopData.sleepScore
-          ? Math.round((latestWhoopData.sleepScore / 100) * 5)
-          : prev.sleepQuality,
-      }));
+    if (latestWhoopData?.recoveryScore) {
+      const score = latestWhoopData.recoveryScore;
+      const whoopFeeling = score >= 67 ? 'great' as const : score >= 34 ? 'good' as const : 'rough' as const;
+      setFeeling(whoopFeeling);
     }
   }, [latestWhoopData]);
+
+  // Sync feeling → checkIn (preserve Whoop sleep data if available)
+  useEffect(() => {
+    const preset = FEELING_PRESETS[feeling];
+    setCheckIn(prev => ({
+      ...preset,
+      sleepHours: latestWhoopData?.sleepHours ?? preset.sleepHours,
+      sleepQuality: latestWhoopData?.sleepScore
+        ? Math.round((latestWhoopData.sleepScore / 100) * 5)
+        : preset.sleepQuality,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feeling]);
 
   // Exercise feedback state
   const [exerciseFeedback, setExerciseFeedbackState] = useState<Partial<ExerciseFeedback>>({
@@ -1450,109 +1463,100 @@ export default function ActiveWorkout() {
               </div>
             </div>
 
-            {/* Inline Check-In (collapsible, hideable for the week) */}
-            {!checkInSkippedThisWeek && (
+            {/* Quick Readiness — always visible, 1-tap, always submits */}
             <div className="mt-5">
+              <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5" /> How are you feeling?
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { id: 'great' as const, label: 'Great', color: 'green' },
+                  { id: 'good' as const, label: 'Good', color: 'primary' },
+                  { id: 'okay' as const, label: 'Okay', color: 'yellow' },
+                  { id: 'rough' as const, label: 'Rough', color: 'red' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setFeeling(opt.id)}
+                    className={cn(
+                      'py-2.5 rounded-xl text-center transition-all',
+                      feeling === opt.id
+                        ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
+                        : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
+                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
+                        : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
+                        : 'bg-grappler-800/60 border border-grappler-700/50'
+                    )}
+                  >
+                    <p className={cn('text-xs font-medium',
+                      feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
+                    )}>{opt.label}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Optional fine-tune toggle */}
               <button
-                onClick={() => setShowCheckInSection(!showCheckInSection)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-grappler-800/60 border border-grappler-700/50"
+                onClick={() => setShowCheckInDetail(!showCheckInDetail)}
+                className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
               >
-                <span className="text-sm font-medium text-grappler-300 flex items-center gap-2">
-                  <Brain className="w-4 h-4" /> Quick Check-In
-                  <span className="text-xs text-grappler-500">(optional)</span>
-                </span>
-                <ChevronDown className={cn('w-4 h-4 text-grappler-400 transition-transform', showCheckInSection && 'rotate-180')} />
+                Fine-tune
+                <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
               </button>
 
               <AnimatePresence>
-                {showCheckInSection && (
+                {showCheckInDetail && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pt-3 space-y-3">
-                      {/* Sleep + Hours row */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-grappler-800/40 rounded-lg p-3">
-                          <label className="text-xs text-grappler-400 mb-1.5 flex items-center gap-1">
-                            <Moon className="w-3 h-3" /> Sleep Quality
+                    <div className="pt-2 space-y-2">
+                      {/* Sleep row */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                          <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                            <Moon className="w-3 h-3" /> Sleep
                           </label>
-                          <div className="flex gap-1">
+                          <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map((v) => (
                               <button
                                 key={v}
                                 onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
                                 className={cn(
-                                  'flex-1 py-1.5 rounded text-xs font-medium',
+                                  'flex-1 py-1 rounded text-xs font-medium',
                                   checkIn.sleepQuality === v
                                     ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
                                     : 'bg-grappler-700 text-grappler-500'
                                 )}
-                              >
-                                {v}
-                              </button>
+                              >{v}</button>
                             ))}
                           </div>
                         </div>
-                        <div className="bg-grappler-800/40 rounded-lg p-3">
-                          <label className="text-xs text-grappler-400 mb-1.5 block">Hours Slept</label>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                              className="w-7 h-7 rounded bg-grappler-700 flex items-center justify-center"
-                            >
-                              <Minus className="w-3 h-3 text-grappler-300" />
+                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                          <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
+                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                              <Minus className="w-2.5 h-2.5 text-grappler-300" />
                             </button>
-                            <span className="text-lg font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
-                            <button
-                              onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                              className="w-7 h-7 rounded bg-grappler-700 flex items-center justify-center"
-                            >
-                              <Plus className="w-3 h-3 text-grappler-300" />
+                            <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
+                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
+                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                              <Plus className="w-2.5 h-2.5 text-grappler-300" />
                             </button>
                           </div>
                         </div>
                       </div>
-
-                      {/* Nutrition */}
-                      <div className="bg-grappler-800/40 rounded-lg p-3">
-                        <label className="text-xs text-grappler-400 mb-1.5 flex items-center gap-1">
-                          <Utensils className="w-3 h-3" /> Nutrition
-                        </label>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {([
-                            { value: 'fasted', label: 'Fasted' },
-                            { value: 'light_meal', label: 'Light' },
-                            { value: 'full_meal', label: 'Full' },
-                            { value: 'heavy_meal', label: 'Heavy' }
-                          ] as const).map((opt) => (
-                            <button
-                              key={opt.value}
-                              onClick={() => setCheckIn({ ...checkIn, nutrition: opt.value })}
-                              className={cn(
-                                'py-1.5 rounded text-xs font-medium',
-                                checkIn.nutrition === opt.value
-                                  ? 'bg-primary-500 text-white'
-                                  : 'bg-grappler-700 text-grappler-500'
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Stress + Soreness + Motivation compact row */}
-                      <div className="grid grid-cols-3 gap-2">
+                      {/* Stress + Soreness compact row */}
+                      <div className="grid grid-cols-2 gap-2">
                         {([
-                          { label: 'Stress', key: 'stress' as const, icon: Brain, lowLabel: 'Low', highLabel: 'High', invert: true },
-                          { label: 'Soreness', key: 'soreness' as const, icon: Heart, lowLabel: 'None', highLabel: 'Sore', invert: true },
-                          { label: 'Motivation', key: 'motivation' as const, icon: Zap, lowLabel: 'Low', highLabel: 'High', invert: false },
-                        ]).map(({ label, key, icon: Icon, invert }) => (
-                          <div key={key} className="bg-grappler-800/40 rounded-lg p-3">
-                            <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
+                          { label: 'Stress', key: 'stress' as const, icon: Brain },
+                          { label: 'Soreness', key: 'soreness' as const, icon: Heart },
+                        ]).map(({ label, key, icon: Icon }) => (
+                          <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
+                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
                               <Icon className="w-3 h-3" /> {label}
                             </label>
                             <div className="flex gap-0.5">
@@ -1563,14 +1567,10 @@ export default function ActiveWorkout() {
                                   className={cn(
                                     'flex-1 py-1 rounded text-xs font-medium',
                                     checkIn[key] === v
-                                      ? invert
-                                        ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                        : v >= 4 ? 'bg-green-500 text-white' : v <= 2 ? 'bg-red-500 text-white' : 'bg-yellow-500 text-white'
+                                      ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
                                       : 'bg-grappler-700 text-grappler-500'
                                   )}
-                                >
-                                  {v}
-                                </button>
+                                >{v}</button>
                               ))}
                             </div>
                           </div>
@@ -1580,25 +1580,13 @@ export default function ActiveWorkout() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <button
-                onClick={() => {
-                  const skipUntil = new Date();
-                  skipUntil.setDate(skipUntil.getDate() + 7);
-                  localStorage.setItem('skipCheckInUntil', skipUntil.toISOString());
-                  setShowCheckInSection(false);
-                }}
-                className="w-full mt-2 text-xs text-grappler-500 hover:text-grappler-300 py-1"
-              >
-                Don&apos;t ask this week
-              </button>
             </div>
-            )}
 
-            {/* Bottom CTA */}
+            {/* Bottom CTA — always submits check-in */}
             <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4">
               <button
                 onClick={() => {
-                  if (showCheckInSection) submitPreCheckIn();
+                  submitPreCheckIn();
                   setShowOverview(false);
                 }}
                 className="btn btn-primary btn-lg w-full gap-2"

@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Moon, Target, Zap, Play, Dumbbell, Apple,
-  Droplets, Check, Move, ChevronRight,
+  Droplets, Check, Move, ChevronRight, Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WorkoutSession, WorkoutLog, MuscleGroup } from '@/lib/types';
@@ -230,6 +230,23 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
                   </div>
                   <span className="text-xs text-grappler-500 font-medium">{completedCount}/{missions.length}</span>
                 </div>
+
+                {/* Victory banner — all missions complete */}
+                {completedCount === missions.length && missions.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2.5 px-3 py-2.5 mb-3 rounded-xl bg-green-500/10 border border-green-500/25"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                      <Star className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-green-300">Recovery Complete</p>
+                      <p className="text-[10px] text-green-400/70">All missions hit — adaptation is happening. +{pointRewards.smartRest} XP</p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Mission items */}
                 <div className="space-y-2">

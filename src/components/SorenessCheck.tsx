@@ -12,7 +12,9 @@ import {
   SkipForward,
   Sparkles,
   X,
+  Video,
 } from 'lucide-react';
+import YouTubeEmbed from '@/components/YouTubeEmbed';
 import { cn } from '@/lib/utils';
 import {
   SORENESS_AREAS,
@@ -59,6 +61,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
   const [isRunning, setIsRunning] = useState(false);
   const [completedDrills, setCompletedDrills] = useState<Set<number>>(new Set());
   const [sessionDone, setSessionDone] = useState(false);
+  const [formCheckDrill, setFormCheckDrill] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const toggleArea = useCallback((area: SorenessArea) => {
@@ -136,9 +139,10 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
   const advanceToNext = useCallback(() => {
     if (!currentDrill) return;
     const drill = currentDrill;
+    const isBilateral = drill.bilateral !== false;
 
-    // Side 1 → Side 2
-    if (currentSide === 'left') {
+    // Bilateral drills: Side 1 → Side 2
+    if (isBilateral && currentSide === 'left') {
       setCurrentSide('right');
       setTimeLeft(drill.duration);
       setIsRunning(false);
@@ -148,7 +152,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     // Next set
     if (currentSet < drill.sets) {
       setCurrentSet(s => s + 1);
-      setCurrentSide('left');
+      if (isBilateral) setCurrentSide('left');
       setTimeLeft(drill.duration);
       setIsRunning(false);
       return;
@@ -463,7 +467,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       {/* Current drill display */}
       <div className="text-center mb-3">
         <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1">
-          Set {currentSet}/{currentDrill.sets} &middot; {currentSide === 'left' ? 'Left side' : 'Right side'}
+          Set {currentSet}/{currentDrill.sets}{currentDrill.bilateral !== false && (<> &middot; {currentSide === 'left' ? 'Left side' : 'Right side'}</>)}
         </p>
         <h3 className="text-base font-black text-grappler-100 leading-tight">{currentDrill.name}</h3>
       </div>
@@ -534,7 +538,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       </div>
 
       {/* Drill instructions (expandable) */}
-      <DrillDetails drill={currentDrill} />
+      <DrillDetails drill={currentDrill} onFormCheck={(name) => { setIsRunning(false); setFormCheckDrill(name); }} />
 
       {/* Upcoming queue */}
       {sessionPlan.length > 1 && (
@@ -558,24 +562,42 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           </div>
         </div>
       )}
+
+      {/* YouTube form video modal */}
+      {formCheckDrill && (
+        <YouTubeEmbed
+          exerciseName={formCheckDrill}
+          onClose={() => setFormCheckDrill(null)}
+        />
+      )}
     </motion.div>
   );
 }
 
 // ─── Drill Details Sub-Component ───
 
-function DrillDetails({ drill }: { drill: MobilityDrill }) {
+function DrillDetails({ drill, onFormCheck }: { drill: MobilityDrill; onFormCheck: (name: string) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="rounded-xl bg-grappler-800/40 border border-grappler-700/30">
-      <button
-        onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center justify-between px-3 py-2"
-      >
-        <span className="text-[11px] text-grappler-400">How to do this</span>
-        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" /> : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />}
-      </button>
+      <div className="flex items-center">
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="flex-1 flex items-center justify-between px-3 py-2"
+        >
+          <span className="text-[11px] text-grappler-400">How to do this</span>
+          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" /> : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />}
+        </button>
+        <button
+          onClick={() => onFormCheck(drill.name)}
+          className="flex items-center gap-1 px-2.5 py-1.5 mr-2 rounded-lg bg-red-500/15 border border-red-500/25 text-red-400 hover:bg-red-500/25 active:scale-[0.95] transition-all"
+          title="Watch form video"
+        >
+          <Video className="w-3 h-3" />
+          <span className="text-[10px] font-medium">Form</span>
+        </button>
+      </div>
       <AnimatePresence>
         {expanded && (
           <motion.div

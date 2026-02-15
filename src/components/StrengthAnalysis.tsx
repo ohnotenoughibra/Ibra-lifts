@@ -29,6 +29,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import { analyzeStickingPoints } from '@/lib/ai-coach';
 import { StickingPointAnalysis } from '@/lib/types';
+import { getAccessoryPrescription, type StickingPointPrescription } from '@/lib/sticking-point-data';
 
 interface StrengthAnalysisProps {
   onClose: () => void;
@@ -367,35 +368,107 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
               )}
             </div>
 
-            {/* Suggested Accessories */}
-            <div className="card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-4 h-4 text-yellow-400" />
-                <h4 className="font-medium text-grappler-200">Suggested Accessories</h4>
-              </div>
-              {selectedExercise.suggestedAccessories.length > 0 ? (
-                <div className="space-y-2">
-                  {selectedExercise.suggestedAccessories.map((accessory, i) => (
-                    <motion.div
-                      key={accessory}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex items-center gap-3 bg-grappler-800 rounded-lg p-3"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-primary-400">{i + 1}</span>
-                      </div>
-                      <span className="text-sm text-grappler-200">{accessory}</span>
-                    </motion.div>
-                  ))}
-                </div>
+            {/* Targeted Accessory Prescription */}
+            {(() => {
+              const prescription = getAccessoryPrescription(
+                selectedExercise.exerciseName,
+                selectedExercise.exerciseId,
+                selectedExercise.stickingPoint
+              );
+              return prescription ? (
+                <>
+                  {/* Root Cause */}
+                  <div className="card p-4 bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <h4 className="font-medium text-grappler-200">Root Cause</h4>
+                    </div>
+                    <p className="text-sm text-grappler-300 leading-relaxed">
+                      {prescription.commonCause}
+                    </p>
+                  </div>
+
+                  {/* Accessory Exercises */}
+                  <div className="card p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-yellow-400" />
+                      <h4 className="font-medium text-grappler-200">Fix It — Accessory Exercises</h4>
+                    </div>
+                    <div className="space-y-2.5">
+                      {prescription.accessories.map((acc, i) => (
+                        <motion.div
+                          key={acc.name}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="bg-grappler-800 rounded-lg p-3"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[10px] font-bold text-primary-400">{i + 1}</span>
+                              </div>
+                              <span className="text-sm font-medium text-grappler-100">{acc.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px]">
+                              <span className="px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300 font-mono">{acc.sets}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300 font-mono">RPE {acc.rpe}</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-grappler-400 ml-7">{acc.why}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Form Cues */}
+                  <div className="card p-4 bg-gradient-to-br from-primary-500/5 to-transparent border-primary-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-4 h-4 text-primary-400" />
+                      <h4 className="font-medium text-grappler-200">Form Cues</h4>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {prescription.formCues.map((cue, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-grappler-300">
+                          <span className="text-primary-400 mt-0.5 flex-shrink-0">-</span>
+                          {cue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
               ) : (
-                <p className="text-sm text-grappler-500">
-                  No specific accessories suggested at this time.
-                </p>
-              )}
-            </div>
+                /* Fallback: original generic accessories */
+                <div className="card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    <h4 className="font-medium text-grappler-200">Suggested Accessories</h4>
+                  </div>
+                  {selectedExercise.suggestedAccessories.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedExercise.suggestedAccessories.map((accessory, i) => (
+                        <motion.div
+                          key={accessory}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex items-center gap-3 bg-grappler-800 rounded-lg p-3"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-primary-400">{i + 1}</span>
+                          </div>
+                          <span className="text-sm text-grappler-200">{accessory}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-grappler-500">
+                      Log more sessions with RPE to unlock targeted recommendations.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Analysis Paragraph */}
             <div className="card p-4">

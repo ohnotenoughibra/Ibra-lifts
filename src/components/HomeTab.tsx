@@ -2348,7 +2348,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         ) : null;
       })()}
 
-      {/* ─── PINNED TOOLS DOCK — iPhone-style quick access row ─── */}
+      {/* ─── PINNED TOOLS DOCK — glassmorphic quick access card ─── */}
       {(() => {
         const dockTools = pinnedIds
           .slice(0, DOCK_SLOTS)
@@ -2357,37 +2357,63 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         const emptySlots = DOCK_SLOTS - dockTools.length;
 
         return (
-          <div className="mt-2">
-            <div className="flex items-center justify-center gap-3">
-              {dockTools.map(tool => {
-                const Icon = tool.icon;
-                // Extract the text color from the gradient color string (e.g. "from-green-500/20 to-green-500/5 text-green-400" → "text-green-400")
-                const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
-                return (
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* Glass background layer */}
+            <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.04] via-transparent to-white/[0.02]" />
+            <div className="absolute inset-[0.5px] rounded-2xl border border-white/[0.08]" />
+
+            {/* Content */}
+            <div className="relative px-4 pt-3 pb-3.5">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <div className="w-1 h-1 rounded-full bg-primary-400/60" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-grappler-500">Quick Access</span>
+              </div>
+              <div className="flex items-center justify-around">
+                {dockTools.map(tool => {
+                  const Icon = tool.icon;
+                  const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
+                  // Extract the base color for the glow (e.g. "text-green-400" → "green")
+                  const glowBase = textColor.match(/text-(\w+)-/)?.[1] || 'primary';
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() => onNavigate(tool.id as any)}
+                      className="flex flex-col items-center gap-1.5 flex-1 group"
+                    >
+                      <div className={cn(
+                        'relative w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
+                        'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
+                        'border border-white/[0.06]',
+                        'group-hover:from-white/[0.12] group-hover:to-white/[0.04] group-hover:border-white/[0.10]',
+                        'group-active:scale-90',
+                        'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]',
+                      )}>
+                        <div className={cn('absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300', `bg-${glowBase}-500/10`)} />
+                        <Icon className={cn('w-5 h-5 relative z-10', textColor)} />
+                      </div>
+                      <span className="text-[10px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
+                    </button>
+                  );
+                })}
+                {Array.from({ length: emptySlots }).map((_, i) => (
                   <button
-                    key={tool.id}
-                    onClick={() => onNavigate(tool.id as any)}
-                    className="flex flex-col items-center gap-1 w-16 group"
+                    key={`empty-${i}`}
+                    onClick={() => onSwitchTab?.('explore')}
+                    className="flex flex-col items-center gap-1.5 flex-1 group"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-grappler-800/70 border border-grappler-700/30 flex items-center justify-center group-hover:bg-grappler-700/70 group-active:scale-95 transition-all">
-                      <Icon className={cn('w-5 h-5', textColor)} />
+                    <div className={cn(
+                      'w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
+                      'border border-dashed border-white/[0.06]',
+                      'group-hover:border-white/[0.12] group-hover:bg-white/[0.03]',
+                      'group-active:scale-90',
+                    )}>
+                      <Plus className="w-4 h-4 text-grappler-600 group-hover:text-grappler-400 transition-colors" />
                     </div>
-                    <span className="text-[10px] text-grappler-500 truncate w-full text-center leading-tight">{tool.label}</span>
+                    <span className="text-[10px] text-grappler-600 leading-tight">&nbsp;</span>
                   </button>
-                );
-              })}
-              {Array.from({ length: emptySlots }).map((_, i) => (
-                <button
-                  key={`empty-${i}`}
-                  onClick={() => onSwitchTab?.('explore')}
-                  className="flex flex-col items-center gap-1 w-16 group"
-                >
-                  <div className="w-11 h-11 rounded-xl border border-dashed border-grappler-700/40 flex items-center justify-center group-hover:border-grappler-600/60 group-active:scale-95 transition-all">
-                    <Plus className="w-4 h-4 text-grappler-600" />
-                  </div>
-                  <span className="text-[10px] text-grappler-600 leading-tight">&nbsp;</span>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         );

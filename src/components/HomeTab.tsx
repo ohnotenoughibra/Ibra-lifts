@@ -72,6 +72,7 @@ import WeeklyMomentum from './WeeklyMomentum';
 import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
+import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView } from './dashboard-types';
 
@@ -667,6 +668,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const strain = latestWhoopData?.strain;
   const sleepHours = latestWhoopData?.sleepHours;
   const waterToday = waterLog[todayIso] || 0;
+  const activeDietPhase = useAppStore(s => s.activeDietPhase);
 
   // ─── Time-Aware Coaching — one adaptive line that changes throughout the day ───
   const timeCoaching = useMemo(() => {
@@ -698,6 +700,52 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
     if (phase === 'pm') return `Afternoon window. Readiness: ${directive.readinessLevel}.`;
     return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
   }, [directive, macroTargets, todayProtein, hour, sleepHours]);
+
+  // ─── Sport Nutrition Tip icons ───
+  const tipIconMap: Record<string, typeof Zap> = {
+    zap: Zap, droplets: Droplets, 'alert-triangle': AlertTriangle,
+    target: Target, 'utensils-crossed': Apple, thermometer: Thermometer,
+    shield: Shield, moon: Moon, heart: HeartPulse, flame: Flame,
+    'trending-up': TrendingUp, clock: Clock, scale: Scale, beaker: Sparkles,
+  };
+
+  // ─── Sport Nutrition Tips — evidence-based, context-aware coaching ───
+  const sportTips = useMemo(() => {
+    if (!user) return [];
+    const lastBW = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+    const bwKg = lastBW
+      ? (weightUnit === 'lbs' ? lastBW.weight * 0.453592 : lastBW.weight)
+      : 75;
+
+    const daysToComp = (() => {
+      const now = Date.now();
+      const next = competitions
+        .filter(c => c.isActive && new Date(c.date).getTime() > now)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+      if (!next) return null;
+      return Math.ceil((new Date(next.date).getTime() - now) / (1000 * 60 * 60 * 24));
+    })();
+
+    const dietPhase = activeDietPhase;
+
+    return generateCoachingTips({
+      todayType: directive.todayType,
+      hour,
+      hasTrainedToday: directive.todayPerformance != null,
+      sport: user.combatSport,
+      trainingIdentity: user.trainingIdentity,
+      goalFocus: user.goalFocus,
+      fightCampPhase: directive.fightCampTag,
+      dietGoal: dietPhase?.isActive ? dietPhase.goal : null,
+      proteinSoFar: todayProtein,
+      proteinTarget: macroTargets.protein || 0,
+      waterIntake: waterToday,
+      sleepHours: sleepHours ?? null,
+      bodyWeightKg: bwKg,
+      daysToCompetition: daysToComp,
+      isDeload: directive.isDeload,
+    });
+  }, [user, directive, hour, bodyWeightLog, weightUnit, competitions, activeDietPhase, todayProtein, macroTargets, waterToday, sleepHours]);
 
   const handleShareWorkout = async () => {
     if (!lastCompletedWorkout) return;
@@ -1057,7 +1105,6 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   }
 
   // 5. Body weight reminder → regular feed
-  const activeDietPhase = useAppStore(s => s.activeDietPhase);
   const lastBWEntry = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
   const daysSinceLastBW = lastBWEntry
     ? Math.floor((Date.now() - new Date(lastBWEntry.date).getTime()) / (1000 * 60 * 60 * 24))
@@ -1340,6 +1387,21 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               <span className="text-[10px] text-blue-300/70 tabular-nums font-medium">{waterToday}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── SPORT NUTRITION TIPS — evidence-based coaching for today's session ─── */}
+      {sportTips.length > 0 && (
+        <div className="space-y-1.5 px-1">
+          {sportTips.map((tip, i) => {
+            const Icon = tipIconMap[tip.icon] || Zap;
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <Icon className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', tip.color)} />
+                <p className="text-xs text-grappler-300 leading-snug">{tip.text}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -51,8 +51,9 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
   const [waterMl, setWaterMl] = useState(250); // Default 250ml (1 glass)
-  const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || 175;
-  const [weightLbs, setWeightLbs] = useState(latestWeight);
+  const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || (user?.weightUnit === 'kg' ? 80 : 175);
+  const [weightValue, setWeightValue] = useState(latestWeight);
+  const weightUnit = user?.weightUnit || 'lbs';
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -124,8 +125,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
         message = `+${waterMl}ml water logged`;
         break;
       case 'weight':
-        addBodyWeight(weightLbs);
-        message = `Weight: ${weightLbs}lbs logged`;
+        addBodyWeight(weightValue);
+        message = `Weight: ${weightValue}${weightUnit} logged`;
         break;
       case 'sleep':
         addQuickLog({ type: 'sleep', value: sleepHours, unit: 'hours', timestamp: new Date(), notes: `Quality: ${sleepQuality}/5` });
@@ -303,32 +304,33 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             <div className="text-center">
               <Scale className="w-12 h-12 mx-auto text-purple-400 mb-2" />
               <h3 className="text-lg font-semibold text-white">Log Weight</h3>
-              {todayWeight && <p className="text-sm text-gray-400">Already logged: {todayWeight.weight}lbs</p>}
+              {todayWeight && <p className="text-sm text-gray-400">Already logged: {todayWeight.weight}{todayWeight.unit || weightUnit}</p>}
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
                 aria-label="Decrease weight"
-                onClick={() => setWeightLbs(Math.max(50, weightLbs - 0.5))}
+                onClick={() => setWeightValue(Math.max(20, Math.round((weightValue - 0.5) * 10) / 10))}
                 className="btn btn-circle btn-ghost"
               >
                 <Minus className="w-5 h-5" />
               </button>
               <input
                 type="number"
-                value={weightLbs}
-                onChange={(e) => setWeightLbs(parseFloat(e.target.value) || 0)}
+                inputMode="decimal"
+                value={weightValue}
+                onChange={(e) => setWeightValue(parseFloat(e.target.value) || 0)}
                 className="input input-bordered w-32 text-center text-2xl font-bold"
                 step="0.1"
               />
               <button
                 aria-label="Increase weight"
-                onClick={() => setWeightLbs(weightLbs + 0.5)}
+                onClick={() => setWeightValue(Math.round((weightValue + 0.5) * 10) / 10)}
                 className="btn btn-circle btn-ghost"
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-center text-gray-400 text-sm">lbs</p>
+            <p className="text-center text-gray-400 text-sm">{weightUnit}</p>
           </div>
         );
 

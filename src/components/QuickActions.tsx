@@ -19,6 +19,8 @@ import {
   TrendingUp,
   Sparkles,
   UtensilsCrossed,
+  Dumbbell,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -28,6 +30,7 @@ import {
   type SessionTiming,
   type MealType,
 } from '@/lib/types';
+import { generateQuickWorkout } from '@/lib/workout-generator';
 
 interface QuickActionsProps {
   onClose: () => void;
@@ -47,7 +50,7 @@ const QUICK_FOODS = [
 ] as const;
 
 export default function QuickActions({ onClose }: QuickActionsProps) {
-  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession, addMeal, meals } = useAppStore();
+  const { user, addQuickLog, quickLogs = [], bodyWeightLog, addBodyWeight, trainingSessions, addTrainingSession, addMeal, meals, startWorkout } = useAppStore();
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
   const [waterMl, setWaterMl] = useState(250); // Default 250ml (1 glass)
@@ -261,8 +264,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Droplets className="w-12 h-12 mx-auto text-blue-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Log Water</h3>
-              <p className="text-sm text-gray-400">Today: {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}</p>
+              <h3 className="text-lg font-semibold text-grappler-50">Log Water</h3>
+              <p className="text-sm text-grappler-400">Today: {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}</p>
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
@@ -272,7 +275,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <div className="text-4xl font-bold text-white w-28 text-center">{waterMl}ml</div>
+              <div className="text-4xl font-bold text-grappler-50 w-28 text-center">{waterMl}ml</div>
               <button
                 aria-label="Increase water amount"
                 onClick={() => setWaterMl(waterMl + 100)}
@@ -303,8 +306,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Scale className="w-12 h-12 mx-auto text-purple-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Log Weight</h3>
-              {todayWeight && <p className="text-sm text-gray-400">Already logged: {todayWeight.weight}{todayWeight.unit || weightUnit}</p>}
+              <h3 className="text-lg font-semibold text-grappler-50">Log Weight</h3>
+              {todayWeight && <p className="text-sm text-grappler-400">Already logged: {todayWeight.weight}{todayWeight.unit || weightUnit}</p>}
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
@@ -330,7 +333,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-center text-gray-400 text-sm">{weightUnit}</p>
+            <p className="text-center text-grappler-400 text-sm">{weightUnit}</p>
           </div>
         );
 
@@ -339,10 +342,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Moon className="w-12 h-12 mx-auto text-indigo-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Log Sleep</h3>
+              <h3 className="text-lg font-semibold text-grappler-50">Log Sleep</h3>
             </div>
             <div className="space-y-3">
-              <label className="text-sm text-gray-400">Hours slept</label>
+              <label className="text-sm text-grappler-400">Hours slept</label>
               <div className="flex items-center justify-center gap-4">
                 <button
                   aria-label="Decrease sleep hours"
@@ -351,7 +354,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 >
                   <Minus className="w-5 h-5" />
                 </button>
-                <div className="text-4xl font-bold text-white w-20 text-center">{sleepHours}h</div>
+                <div className="text-4xl font-bold text-grappler-50 w-20 text-center">{sleepHours}h</div>
                 <button
                   aria-label="Increase sleep hours"
                   onClick={() => setSleepHours(Math.min(14, sleepHours + 0.5))}
@@ -362,7 +365,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Quality</label>
+              <label className="text-sm text-grappler-400">Quality</label>
               <div className="flex gap-2 justify-center">
                 {([1, 2, 3, 4, 5] as const).map(q => (
                   <button
@@ -377,7 +380,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   </button>
                 ))}
               </div>
-              <div className="flex justify-between text-xs text-gray-500 px-2">
+              <div className="flex justify-between text-xs text-grappler-500 px-2">
                 <span>Poor</span>
                 <span>Excellent</span>
               </div>
@@ -390,8 +393,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Zap className="w-12 h-12 mx-auto text-yellow-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Energy Level</h3>
-              <p className="text-sm text-gray-400">How energized do you feel?</p>
+              <h3 className="text-lg font-semibold text-grappler-50">Energy Level</h3>
+              <p className="text-sm text-grappler-400">How energized do you feel?</p>
             </div>
             <div className="flex gap-3 justify-center">
               {([1, 2, 3, 4, 5] as const).map(level => (
@@ -405,12 +408,12 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                       : "bg-grappler-800 hover:bg-grappler-700"
                   )}
                 >
-                  <Zap className={cn("w-5 h-5", level <= energyLevel ? "text-yellow-400" : "text-gray-600")} />
-                  <span className="text-xs mt-1 text-gray-400">{level}</span>
+                  <Zap className={cn("w-5 h-5", level <= energyLevel ? "text-yellow-400" : "text-grappler-600")} />
+                  <span className="text-xs mt-1 text-grappler-400">{level}</span>
                 </button>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-gray-500 px-4">
+            <div className="flex justify-between text-xs text-grappler-500 px-4">
               <span>Exhausted</span>
               <span>Energized</span>
             </div>
@@ -422,8 +425,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Heart className="w-12 h-12 mx-auto text-red-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Training Readiness</h3>
-              <p className="text-sm text-gray-400">How ready are you to train?</p>
+              <h3 className="text-lg font-semibold text-grappler-50">Training Readiness</h3>
+              <p className="text-sm text-grappler-400">How ready are you to train?</p>
             </div>
             <div className="flex gap-3 justify-center">
               {([1, 2, 3, 4, 5] as const).map(score => (
@@ -437,12 +440,12 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                       : "bg-grappler-800 hover:bg-grappler-700"
                   )}
                 >
-                  <Heart className={cn("w-5 h-5", score <= readinessScore ? "text-red-400" : "text-gray-600")} />
-                  <span className="text-xs mt-1 text-gray-400">{score}</span>
+                  <Heart className={cn("w-5 h-5", score <= readinessScore ? "text-red-400" : "text-grappler-600")} />
+                  <span className="text-xs mt-1 text-grappler-400">{score}</span>
                 </button>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-gray-500 px-4">
+            <div className="flex justify-between text-xs text-grappler-500 px-4">
               <span>Rest day</span>
               <span>Peak</span>
             </div>
@@ -454,10 +457,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Shield className="w-12 h-12 mx-auto text-lime-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Quick Training Log</h3>
+              <h3 className="text-lg font-semibold text-grappler-50">Quick Training Log</h3>
             </div>
             <div className="space-y-3">
-              <label className="text-sm text-gray-400">Duration (minutes)</label>
+              <label className="text-sm text-grappler-400">Duration (minutes)</label>
               <div className="flex items-center justify-center gap-4">
                 <button
                   aria-label="Decrease training duration"
@@ -466,7 +469,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 >
                   <Minus className="w-5 h-5" />
                 </button>
-                <div className="text-4xl font-bold text-white w-24 text-center">{trainingMinutes}</div>
+                <div className="text-4xl font-bold text-grappler-50 w-24 text-center">{trainingMinutes}</div>
                 <button
                   aria-label="Increase training duration"
                   onClick={() => setTrainingMinutes(trainingMinutes + 15)}
@@ -477,7 +480,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Activity Type</label>
+              <label className="text-sm text-grappler-400">Activity Type</label>
               <div className="flex gap-2 justify-center flex-wrap">
                 {/* Show types based on user's combat sport preference */}
                 {(user?.combatSport === 'striking' ? [
@@ -528,7 +531,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Intensity</label>
+              <label className="text-sm text-grappler-400">Intensity</label>
               <div className="flex gap-2 justify-center flex-wrap">
                 {([
                   { value: 'light_flow' as TrainingIntensity, label: 'Light' },
@@ -550,7 +553,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Timing (relative to lifting)</label>
+              <label className="text-sm text-grappler-400">Timing (relative to lifting)</label>
               <div className="flex gap-2 justify-center flex-wrap">
                 {([
                   { value: 'standalone' as SessionTiming, label: 'Standalone' },
@@ -572,7 +575,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Perceived Exertion (1-10)</label>
+              <label className="text-sm text-grappler-400">Perceived Exertion (1-10)</label>
               <div className="flex gap-1 justify-center flex-wrap">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
                   <button
@@ -582,7 +585,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                       "w-8 h-8 rounded-lg text-xs font-medium transition-all",
                       perceivedExertion === val
                         ? "bg-lime-500/30 ring-2 ring-lime-400 text-lime-300"
-                        : "bg-grappler-800 text-gray-400 hover:bg-grappler-700"
+                        : "bg-grappler-800 text-grappler-400 hover:bg-grappler-700"
                     )}
                   >
                     {val}
@@ -598,8 +601,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <UtensilsCrossed className="w-12 h-12 mx-auto text-orange-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Quick Food Log</h3>
-              <p className="text-sm text-gray-400">{todayCals > 0 ? `${todayCals} cal today` : 'No meals yet'}</p>
+              <h3 className="text-lg font-semibold text-grappler-50">Quick Food Log</h3>
+              <p className="text-sm text-grappler-400">{todayCals > 0 ? `${todayCals} cal today` : 'No meals yet'}</p>
             </div>
 
             {/* Meal type selector */}
@@ -627,7 +630,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
             {/* Quick presets */}
             <div>
-              <p className="text-xs text-gray-500 mb-1.5">Quick add</p>
+              <p className="text-xs text-grappler-500 mb-1.5">Quick add</p>
               <div className="flex gap-1.5 flex-wrap">
                 {QUICK_FOODS.map(food => (
                   <button
@@ -661,7 +664,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               />
               <div className="grid grid-cols-4 gap-2">
                 <div>
-                  <label className="text-xs text-gray-500">Cal</label>
+                  <label className="text-xs text-grappler-500">Cal</label>
                   <input
                     type="number"
                     value={foodCal || ''}
@@ -671,7 +674,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">Protein</label>
+                  <label className="text-xs text-grappler-500">Protein</label>
                   <input
                     type="number"
                     value={foodProtein || ''}
@@ -681,7 +684,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">Carbs</label>
+                  <label className="text-xs text-grappler-500">Carbs</label>
                   <input
                     type="number"
                     value={foodCarbs || ''}
@@ -691,7 +694,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">Fat</label>
+                  <label className="text-xs text-grappler-500">Fat</label>
                   <input
                     type="number"
                     value={foodFat || ''}
@@ -710,7 +713,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <div className="space-y-4">
             <div className="text-center">
               <Leaf className="w-12 h-12 mx-auto text-emerald-400 mb-2" />
-              <h3 className="text-lg font-semibold text-white">Log Mobility Work</h3>
+              <h3 className="text-lg font-semibold text-grappler-50">Log Mobility Work</h3>
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
@@ -720,7 +723,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <div className="text-4xl font-bold text-white w-24 text-center">{mobilityMinutes}</div>
+              <div className="text-4xl font-bold text-grappler-50 w-24 text-center">{mobilityMinutes}</div>
               <button
                 aria-label="Increase mobility duration"
                 onClick={() => setMobilityMinutes(mobilityMinutes + 5)}
@@ -729,7 +732,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-center text-gray-400 text-sm">minutes</p>
+            <p className="text-center text-grappler-400 text-sm">minutes</p>
             <div className="flex gap-2 justify-center">
               {[5, 10, 15, 20, 30].map(min => (
                 <button
@@ -754,19 +757,13 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
   return (
     <div className="min-h-screen bg-grappler-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800">
-        <div className="p-4 flex items-center gap-3">
-          <button aria-label="Close quick actions" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
-            <X className="w-5 h-5" />
+      {/* Header — clean minimal */}
+      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-xl border-b border-grappler-800/50">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-grappler-50">Quick Actions</h1>
+          <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full bg-grappler-800/60 flex items-center justify-center hover:bg-grappler-700 transition-colors">
+            <X className="w-4 h-4 text-grappler-400" />
           </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary-400" />
-              Quick Actions
-            </h1>
-            <p className="text-sm text-gray-400">Fast logging for daily tracking</p>
-          </div>
         </div>
       </div>
 
@@ -777,38 +774,64 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-xl flex items-center gap-2"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-green-500/15 border border-green-500/40 text-green-400 px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-lg"
           >
-            <Check className="w-5 h-5" />
-            {successMessage}
+            <Check className="w-4 h-4" />
+            <span className="text-sm font-medium">{successMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-3">
+
+        {/* ─── Quick Workout Hero Card ─── */}
+        {!activeLog && user && (
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              const session = generateQuickWorkout(
+                user.equipment,
+                30,
+                user.goalFocus,
+                user.availableEquipment,
+                user.trainingIdentity
+              );
+              startWorkout(session);
+              onClose();
+            }}
+            className="w-full rounded-2xl overflow-hidden border border-primary-500/30 bg-gradient-to-br from-primary-500/15 via-grappler-800 to-accent-500/10 p-4 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
+              <Dumbbell className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-grappler-50">Quick Workout</p>
+              <p className="text-xs text-grappler-400 mt-0.5">30-min auto-generated lift session</p>
+            </div>
+            <div className="w-9 h-9 rounded-lg bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+              <Play className="w-4 h-4 text-primary-400" />
+            </div>
+          </motion.button>
+        )}
+
         {/* Smart Contextual Prompts */}
         {!activeLog && (() => {
           const hour = new Date().getHours();
           const prompts: { text: string; action: QuickLogType; icon: string; color: string }[] = [];
 
-          // Morning: weight check
           if (hour < 12 && !todayWeight) {
             prompts.push({ text: 'Log morning weight (fasted)', action: 'weight', icon: 'scale', color: 'text-purple-400' });
           }
-
-          // After training: post-workout meal
           if (todayTraining.length > 0 && todayMeals.length === 0) {
             prompts.push({ text: 'Log your post-workout meal', action: 'food', icon: 'food', color: 'text-orange-400' });
           } else if (todayTraining.length > 0 && todayCals < 500) {
             prompts.push({ text: 'You trained today — fuel up!', action: 'food', icon: 'food', color: 'text-orange-400' });
           }
-
-          // Low water
           if (todayWater < 1500 && hour >= 14) {
             prompts.push({ text: 'Water intake is low — drink up', action: 'water', icon: 'water', color: 'text-blue-400' });
           }
-
-          // Evening: no sleep logged
           if (hour >= 20 && !todayLogs.find(l => l.type === 'sleep')) {
             prompts.push({ text: 'Log last night\'s sleep', action: 'sleep', icon: 'sleep', color: 'text-indigo-400' });
           }
@@ -824,10 +847,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
                   onClick={() => setActiveLog(p.action)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-grappler-800/50 border border-grappler-700/50 hover:border-grappler-600 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-grappler-800/40 border border-grappler-700/30 hover:border-grappler-600 transition-colors"
                 >
                   <Sparkles className={cn('w-3.5 h-3.5', p.color)} />
-                  <span className="text-xs text-grappler-300">{p.text}</span>
+                  <span className="text-xs text-grappler-300 font-medium">{p.text}</span>
                   <TrendingUp className="w-3 h-3 text-grappler-600 ml-auto" />
                 </motion.button>
               ))}
@@ -835,39 +858,40 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           );
         })()}
 
-        {/* Quick Action Grid */}
+        {/* ─── Quick Action Grid ─── */}
         {!activeLog && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-2 gap-3"
+            className="grid grid-cols-2 gap-2.5"
           >
-            {quickActions.map((action) => (
+            {quickActions.map((action, idx) => (
               <motion.button
                 key={action.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
                 onClick={() => setActiveLog(action.id)}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.96 }}
                 className={cn(
-                  "relative p-4 rounded-xl border transition-all",
+                  "relative p-3.5 rounded-xl border transition-all text-left",
                   action.highlight
-                    ? "bg-grappler-800/80 border-grappler-600"
-                    : "bg-grappler-900/50 border-grappler-800 hover:border-grappler-600"
+                    ? "bg-grappler-800/60 border-grappler-600/50"
+                    : "bg-grappler-900/40 border-grappler-700/30 hover:border-grappler-600/50 hover:bg-grappler-800/30"
                 )}
               >
-                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center mb-2", action.color)}>
-                  <action.icon className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-white">{action.label}</p>
-                  <p className={cn("text-xs", action.highlight ? "text-green-400" : "text-gray-500")}>
-                    {action.stat}
-                  </p>
-                </div>
-                {action.highlight && (
-                  <div className="absolute top-2 right-2">
-                    <Check className="w-4 h-4 text-green-400" />
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", action.color)}>
+                    <action.icon className="w-4 h-4" />
                   </div>
-                )}
+                  {action.highlight && (
+                    <Check className="w-3.5 h-3.5 text-green-400 ml-auto" />
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-grappler-100">{action.label}</p>
+                <p className={cn("text-[11px] mt-0.5", action.highlight ? "text-green-400/80" : "text-grappler-500")}>
+                  {action.stat}
+                </p>
               </motion.button>
             ))}
           </motion.div>
@@ -884,16 +908,16 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             >
               {renderQuickInput()}
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-2.5 mt-6">
                 <button
                   onClick={() => setActiveLog(null)}
-                  className="btn btn-ghost flex-1"
+                  className="btn btn-ghost flex-1 text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleSaveLog(activeLog)}
-                  className="btn btn-primary flex-1 gap-2"
+                  className="btn btn-primary flex-1 gap-2 text-sm"
                 >
                   <Check className="w-4 h-4" />
                   Save
@@ -903,67 +927,44 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           )}
         </AnimatePresence>
 
-        {/* Today's Summary */}
+        {/* Today's Summary — compact, theme-consistent */}
         {!activeLog && (
-          <div className="bg-grappler-900/50 border border-grappler-800 rounded-xl p-4">
-            <h3 className="font-medium text-white mb-3 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary-400" />
-              Today&apos;s Summary
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Water intake</span>
-                <span className={cn(todayWater >= 2000 ? "text-green-400" : "text-gray-300")}>
-                  {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`} {todayWater >= 2000 && '✓'}
-                </span>
+          <div className="rounded-xl border border-grappler-700/30 bg-grappler-900/40 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-grappler-500 mb-2.5">Today</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
+                <p className={cn("text-sm font-bold tabular-nums", todayWater >= 2000 ? "text-blue-400" : "text-grappler-300")}>
+                  {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}
+                </p>
+                <p className="text-[10px] text-grappler-500">Water</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Meals</span>
-                <span className={cn(todayMeals.length > 0 ? "text-orange-400" : "text-gray-500")}>
-                  {todayMeals.length > 0 ? `${todayCals} cal · ${todayProteinG}g P` : 'None'}
-                </span>
+              <div className="text-center">
+                <p className={cn("text-sm font-bold tabular-nums", todayCals > 0 ? "text-orange-400" : "text-grappler-500")}>
+                  {todayCals > 0 ? `${todayCals}` : '—'}
+                </p>
+                <p className="text-[10px] text-grappler-500">Calories</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Weight logged</span>
-                <span className={cn(todayWeight ? "text-green-400" : "text-gray-500")}>
-                  {todayWeight ? `${todayWeight.weight}lbs ✓` : 'Not yet'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Sleep logged</span>
-                <span className={cn(todayLogs.find(l => l.type === 'sleep') ? "text-green-400" : "text-gray-500")}>
-                  {todayLogs.find(l => l.type === 'sleep') ? 'Yes ✓' : 'Not yet'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Training</span>
-                <span className={cn(todayTraining.length > 0 ? "text-lime-400" : "text-gray-500")}>
-                  {todayTraining.length > 0
-                    ? `${todayTraining.reduce((s, t) => s + t.duration, 0)}min ✓`
-                    : 'None'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Mobility</span>
-                <span className={cn(
-                  todayLogs.filter(l => l.type === 'mobility').length > 0 ? "text-emerald-400" : "text-gray-500"
-                )}>
-                  {todayLogs.filter(l => l.type === 'mobility').reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0) > 0
-                    ? `${todayLogs.filter(l => l.type === 'mobility').reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0)}min ✓`
-                    : 'None'}
-                </span>
+              <div className="text-center">
+                <p className={cn("text-sm font-bold tabular-nums", todayProteinG > 0 ? "text-grappler-200" : "text-grappler-500")}>
+                  {todayProteinG > 0 ? `${Math.round(todayProteinG)}g` : '—'}
+                </p>
+                <p className="text-[10px] text-grappler-500">Protein</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Tip */}
-        {!activeLog && (
-          <div className="flex items-start gap-3 p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-300">
-              Quick logging helps build consistent habits. Track water, weight, and readiness daily for best results.
-            </p>
+            {/* Secondary row */}
+            <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-grappler-700/20">
+              <span className={cn("text-[10px] font-medium", todayWeight ? "text-green-400" : "text-grappler-600")}>
+                {todayWeight ? `${todayWeight.weight}${weightUnit} ✓` : 'No weight'}
+              </span>
+              <span className="text-grappler-700">·</span>
+              <span className={cn("text-[10px] font-medium", todayLogs.find(l => l.type === 'sleep') ? "text-green-400" : "text-grappler-600")}>
+                {todayLogs.find(l => l.type === 'sleep') ? 'Sleep ✓' : 'No sleep'}
+              </span>
+              <span className="text-grappler-700">·</span>
+              <span className={cn("text-[10px] font-medium", todayTraining.length > 0 ? "text-green-400" : "text-grappler-600")}>
+                {todayTraining.length > 0 ? `${todayTraining.reduce((s, t) => s + t.duration, 0)}min ✓` : 'No training'}
+              </span>
+            </div>
           </div>
         )}
       </div>

@@ -138,8 +138,10 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
     }
 
     const diff = props.weekDone - expectedByNow;
-    if (diff > 0) return { status: 'ahead' as const, text: `${diff} ahead of pace`, color: 'text-green-400' };
-    if (diff < 0) return { status: 'behind' as const, text: `${Math.abs(diff)} behind pace`, color: 'text-amber-400' };
+    const remaining = Math.max(0, props.weekTarget - props.weekDone);
+    if (diff > 0) return { status: 'ahead' as const, text: `${diff} ahead`, color: 'text-green-400' };
+    if (diff < 0 && props.weekDone === 0) return { status: 'fresh' as const, text: `${remaining} to go`, color: 'text-grappler-400' };
+    if (diff < 0) return { status: 'behind' as const, text: `${remaining} to go`, color: 'text-amber-400' };
     return { status: 'on_track' as const, text: 'On pace', color: 'text-primary-400' };
   }, [props.weekDone, props.liftDays, props.combatDays, todayMonIdx, startOfWeek]);
 
@@ -230,7 +232,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
             <div className="flex flex-col items-end pl-2 border-l border-grappler-700/50 min-w-[44px]">
               <span className="text-xs font-bold text-grappler-100">{props.weekDone}/{props.weekTarget}</span>
               <span className={cn('text-[9px] font-medium', paceInfo.color)}>
-                {paceInfo.status === 'on_track' ? 'On pace' : paceInfo.status === 'ahead' ? '↑ Ahead' : '↓ Behind'}
+                {paceInfo.status === 'on_track' ? 'On pace' : paceInfo.status === 'ahead' ? '↑ Ahead' : paceInfo.status === 'fresh' ? 'Fresh week' : `${Math.max(0, props.weekTarget - props.weekDone)} to go`}
               </span>
               {todayMonIdx < 6 && (
                 <span className="text-[8px] text-grappler-600">{6 - todayMonIdx}d left</span>

@@ -12,6 +12,8 @@ interface StatusBarProps {
   blockPosition: string | null;
   /** Fight camp or cycle phase tag, e.g. "Peak · 12d out" */
   phaseTag: string | null;
+  /** Weekly training progress: done / target */
+  weekProgress?: { done: number; target: number } | null;
   onReadinessTap: () => void;
 }
 
@@ -37,10 +39,11 @@ export default function StatusBar({
   streak,
   blockPosition,
   phaseTag,
+  weekProgress,
   onReadinessTap,
 }: StatusBarProps) {
   return (
-    <div className="flex items-center gap-3 px-1 py-1.5">
+    <div className="flex items-center gap-2.5 px-1 py-1.5">
       {/* Readiness — tappable */}
       <button
         onClick={onReadinessTap}
@@ -52,6 +55,9 @@ export default function StatusBar({
           {readinessScore}
         </span>
       </button>
+
+      {/* Divider */}
+      <span className="text-grappler-700">·</span>
 
       {/* Streak — only when ≥2 */}
       {streak >= 2 && (
@@ -66,9 +72,30 @@ export default function StatusBar({
         <span className="text-xs font-medium text-grappler-400 tabular-nums">{blockPosition}</span>
       )}
 
+      {/* Spacer pushes right-side items */}
+      <div className="flex-1" />
+
+      {/* Week progress mini-bar */}
+      {weekProgress && weekProgress.target > 0 && (
+        <div className="flex items-center gap-1.5">
+          <div className="flex gap-0.5">
+            {Array.from({ length: weekProgress.target }, (_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'w-1.5 h-3 rounded-sm transition-colors',
+                  i < weekProgress.done ? 'bg-primary-400' : 'bg-grappler-700'
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-grappler-500 tabular-nums">{weekProgress.done}/{weekProgress.target}</span>
+        </div>
+      )}
+
       {/* Phase tag — fight camp, cycle, etc. */}
       {phaseTag && (
-        <span className="text-xs font-medium text-grappler-500 ml-auto truncate max-w-[140px]">{phaseTag}</span>
+        <span className="text-[10px] font-medium text-grappler-500 truncate max-w-[120px]">{phaseTag}</span>
       )}
     </div>
   );

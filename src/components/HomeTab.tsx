@@ -421,6 +421,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
+  const hour = new Date().getHours();
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {
@@ -666,6 +667,37 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const strain = latestWhoopData?.strain;
   const sleepHours = latestWhoopData?.sleepHours;
   const waterToday = waterLog[todayIso] || 0;
+
+  // ─── Time-Aware Coaching — one adaptive line that changes throughout the day ───
+  const timeCoaching = useMemo(() => {
+    const hasTrainedToday = directive.todayPerformance != null;
+    const isRestDay = directive.todayType === 'rest' || (directive.todayType === 'recovery' && !hasTrainedToday);
+    const pTarget = macroTargets.protein || 0;
+    const proteinRemaining = Math.round(Math.max(0, pTarget - todayProtein));
+    const proteinPct = pTarget > 0 ? Math.round((todayProtein / pTarget) * 100) : 0;
+    const sleep = sleepHours;
+    const phase = hour < 12 ? 'am' : hour < 18 ? 'pm' : 'eve';
+
+    if (hasTrainedToday) {
+      if (phase === 'am') return proteinRemaining > 20 ? `Session done. ${proteinRemaining}g protein to go — spread it across your meals.` : 'Done early. Nutrition on track.';
+      if (phase === 'pm') return proteinRemaining > 20 ? `Refuel: ${proteinRemaining}g protein still needed today.` : 'Recovery fueling on point.';
+      return proteinRemaining > 20 ? `${proteinRemaining}g protein left — last meal counts.` : 'Great day. Sleep well tonight.';
+    }
+
+    if (isRestDay) {
+      if (phase === 'am') return 'Recovery day. Light movement and protein first.';
+      if (phase === 'pm') return proteinPct < 60 ? `Protein at ${proteinPct}% — don't slack on rest days.` : 'Recovery on track. Stay fueled.';
+      return 'Rest day done. Sleep is your best recovery tool.';
+    }
+
+    // Training day, haven't trained yet
+    if (phase === 'am') {
+      if (sleep != null && sleep < 6) return `${sleep.toFixed(1)}h sleep — consider lighter session.`;
+      return sleep != null ? `${sleep.toFixed(1)}h sleep. Ready to go.` : 'Training day. Fuel up.';
+    }
+    if (phase === 'pm') return `Afternoon window. Readiness: ${directive.readinessLevel}.`;
+    return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
+  }, [directive, macroTargets, todayProtein, hour, sleepHours]);
 
   const handleShareWorkout = async () => {
     if (!lastCompletedWorkout) return;
@@ -1274,6 +1306,43 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         onReadinessTap={() => setReadinessExpanded(v => !v)}
       />
 
+      {/* ─── TIME-AWARE COACHING LINE — one sentence that changes throughout the day ─── */}
+      <div className="flex items-start gap-2.5 px-1">
+        <Sun className="w-3.5 h-3.5 text-grappler-600 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-grappler-400 leading-snug">{timeCoaching}</p>
+      </div>
+
+      {/* ─── PERSISTENT NUTRITION STRIP — protein + water always visible ─── */}
+      {macroTargets.protein > 0 && (
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
+            <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all duration-500',
+                  todayProtein >= macroTargets.protein ? 'bg-green-400' :
+                  todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
+                )}
+                style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
+              />
+            </div>
+            <span className={cn(
+              'text-[10px] tabular-nums font-medium flex-shrink-0',
+              todayProtein >= macroTargets.protein ? 'text-green-400' :
+              todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
+            )}>
+              {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
+            </span>
+          </div>
+          {waterToday > 0 && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Droplets className="w-3 h-3 text-blue-400/70" />
+              <span className="text-[10px] text-blue-300/70 tabular-nums font-medium">{waterToday}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─── CRITICAL ALERTS — non-dismissible, above everything ─── */}
       {criticalAlerts.length > 0 && (
         <div className="space-y-2">
@@ -1299,16 +1368,8 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
           >
             <Check className="w-4 h-4 text-green-400" />
             <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
-            {lastCompletedWorkout && (
-              <span className="text-xs text-green-400/60">+{lastCompletedWorkout.points} XP</span>
-            )}
-            {variableReward && variableReward.type !== 'none' && (
-              <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium', {
-                'bg-blue-500/15 text-blue-400': variableReward.rarity === 'common',
-                'bg-purple-500/15 text-purple-400': variableReward.rarity === 'uncommon',
-                'bg-yellow-500/15 text-yellow-400': variableReward.rarity === 'rare',
-                'bg-cyan-500/15 text-cyan-400': variableReward.rarity === 'epic',
-              })}>+{variableReward.bonusPoints}</span>
+            {currentStreak > 1 && (
+              <span className="text-xs text-green-400/50">{currentStreak} day streak</span>
             )}
           </motion.div>
 
@@ -1612,23 +1673,27 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
             );
           })()}
 
-          {/* Secondary lift CTA — elevated design */}
+          {/* Next strength session — informational preview, not a temptation */}
           {nextWorkout && (
-            <button onClick={() => startWorkout(nextWorkout)} className="w-full rounded-xl border border-primary-500/20 bg-primary-500/5 hover:bg-primary-500/10 p-3.5 text-left transition-colors flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-500/15 flex items-center justify-center flex-shrink-0">
-                <Dumbbell className="w-5 h-5 text-primary-400" />
+            <div className="w-full rounded-xl border border-grappler-700/30 bg-grappler-800/30 p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary-500/10 flex items-center justify-center flex-shrink-0">
+                <Dumbbell className="w-4 h-4 text-primary-400/60" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-primary-400 font-bold uppercase tracking-wide">Also want to lift?</p>
-                <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel && !nextWorkout.name.startsWith(directive.sessionLabel) ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
+                <p className="text-[10px] text-grappler-500 font-medium uppercase tracking-wide">
+                  Next Strength{directive.nextLiftDayLabel ? ` · ${directive.nextLiftDayLabel}` : ''}
+                </p>
+                <p className="text-sm font-semibold text-grappler-300 truncate">{directive.sessionLabel && !nextWorkout.name.startsWith(directive.sessionLabel) ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
                 <p className="text-[10px] text-grappler-500">{nextWorkout.exercises.length} exercises · ~{nextWorkout.estimatedDuration}m</p>
               </div>
-              <Play className="w-4 h-4 text-primary-400 flex-shrink-0" />
-            </button>
+              <button
+                onClick={() => startWorkout(nextWorkout)}
+                className="text-[10px] text-primary-400/60 hover:text-primary-400 px-2.5 py-1.5 rounded-lg hover:bg-primary-500/10 transition-colors flex-shrink-0"
+              >
+                Start
+              </button>
+            </div>
           )}
-          <div className="flex items-center justify-center">
-            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-          </div>
         </motion.div>
 
       ) : nextWorkout ? (

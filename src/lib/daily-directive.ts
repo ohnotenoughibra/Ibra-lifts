@@ -79,6 +79,8 @@ export interface DailyDirective {
   overloadTeaser: string | null;
   /** Training modification guidance when readiness is low */
   trainingModification: string | null;
+  /** Label for the next scheduled lift day, e.g. "Wed" or "tomorrow" */
+  nextLiftDayLabel: string | null;
 }
 
 export type SessionGrade = 'S' | 'A' | 'B' | 'C';
@@ -308,11 +310,20 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     case 'rest':
       headline = 'Rest & Recover';
       break;
-    case 'combat':
+    case 'combat': {
+      // Use the user's sport name when session type is generic (e.g. "Moderate Session")
+      const sportLabels: Record<string, string> = {
+        mma: 'MMA', grappling_gi: 'Gi Training', grappling_nogi: 'No-Gi Training', striking: 'Striking',
+      };
+      const sportName = user?.combatSport ? sportLabels[user.combatSport] || null : null;
+      const sessionType = todayCombatSessions[0]?.type || 'Mat Day';
+      const isGenericType = /^(light|moderate|hard|heavy)\s+session$/i.test(sessionType);
+      const displayType = isGenericType && sportName ? sportName : sessionType;
       headline = todayCombatSessions.length === 1
-        ? todayCombatSessions[0].type
-        : `${todayCombatSessions[0].type} + ${todayCombatSessions.length - 1} more`;
+        ? displayType
+        : `${displayType} + ${todayCombatSessions.length - 1} more`;
       break;
+    }
     case 'both':
       headline = nextSession ? nextSession.name : 'Training Day';
       break;
@@ -528,6 +539,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     forwardLook,
     overloadTeaser,
     trainingModification,
+    nextLiftDayLabel,
   };
 }
 
@@ -592,7 +604,10 @@ function buildSubline(
 
   if (todayType === 'combat' && combatSessions.length > 0) {
     const totalMin = combatSessions.reduce((s, c) => s + c.duration, 0);
-    return `${ctx}${totalMin}min on the mats — no lifting today`;
+    if (totalMin > 0) {
+      return `${ctx}${totalMin}min on the mats — no lifting today`;
+    }
+    return `${ctx}${combatSessions.length} session${combatSessions.length > 1 ? 's' : ''} on the mats today`;
   }
 
   if (todayType === 'both' && combatSessions.length > 0) {

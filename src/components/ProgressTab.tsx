@@ -288,7 +288,7 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
     ).join(' ');
     return (
       <svg width={w} height={h} className="mt-1">
-        <polyline fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+        <polyline fill="none" className="stroke-violet-400" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
       </svg>
     );
   };
@@ -762,7 +762,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
         {/* Score Ring */}
         <div className="relative w-16 h-16 flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r="42" fill="none" stroke="#1e293b" strokeWidth="8" />
+            <circle cx="50" cy="50" r="42" fill="none" className="stroke-grappler-800" strokeWidth="8" />
             <circle cx="50" cy="50" r="42" fill="none" stroke={getRingColor(score.total)}
               strokeWidth="8" strokeLinecap="round"
               strokeDasharray={`${strokeDash} ${circumference}`}

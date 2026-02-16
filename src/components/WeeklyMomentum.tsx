@@ -168,7 +168,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
 
   // ─── Volume delta ───
   const volumeDelta = useMemo(() => {
-    if (props.lastWeekVolume === 0) return null;
+    if (props.lastWeekVolume === 0 || props.weekStats.totalVolume === 0) return null;
     const pct = Math.round(((props.weekStats.totalVolume - props.lastWeekVolume) / props.lastWeekVolume) * 100);
     return pct;
   }, [props.weekStats.totalVolume, props.lastWeekVolume]);
@@ -334,19 +334,26 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
 
               {/* Trends + protein */}
               <div className="flex items-center gap-3 pt-2 border-t border-grappler-700/40">
-                <div className="flex items-center gap-1">
-                  <TrendIcon className={cn('w-3 h-3', trendColor)} />
-                  <span className={cn('text-[10px] font-medium', trendColor)}>
-                    Volume {props.weekTrends.volume === 'up' ? '↑' : props.weekTrends.volume === 'down' ? '↓' : '→'}
-                  </span>
-                </div>
+                {props.weekStats.workouts > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <TrendIcon className={cn('w-3 h-3', trendColor)} />
+                    <span className={cn('text-[10px] font-medium', trendColor)}>
+                      Volume {props.weekTrends.volume === 'up' ? '↑' : props.weekTrends.volume === 'down' ? '↓' : '→'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <Minus className="w-3 h-3 text-grappler-600" />
+                    <span className="text-[10px] text-grappler-600">Volume —</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1">
                   <Target className="w-3 h-3 text-grappler-500" />
                   <span className="text-[10px] text-grappler-400">
-                    Protein {props.weekStats.proteinAdherence !== null ? `${props.weekStats.proteinAdherence}%` : '—'}
+                    Protein {props.weekStats.proteinAdherence !== null && props.weekStats.proteinAdherence > 0 ? `${props.weekStats.proteinAdherence}%` : '—'}
                   </span>
                 </div>
-                {props.weekTrends.consistency !== 'stable' && (
+                {props.weekTrends.consistency !== 'stable' && props.weekStats.workouts > 0 && (
                   <div className="flex items-center gap-1">
                     <span className={cn('text-[10px] font-medium', props.weekTrends.consistency === 'up' ? 'text-green-400' : 'text-amber-400')}>
                       Consistency {props.weekTrends.consistency === 'up' ? '↑' : '↓'}

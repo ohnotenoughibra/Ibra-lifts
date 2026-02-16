@@ -239,45 +239,78 @@
   body.light-mode .bg-grappler-900 { background-color: #f8fafc; }
   body.light-mode .bg-grappler-900\/80 { background-color: rgba(248,250,252,0.8); }
   body.light-mode .bg-grappler-900\/95 { background-color: rgba(248,250,252,0.95); }
+  body.light-mode .bg-grappler-900\/90 { background-color: rgba(248,250,252,0.9); }
   body.light-mode .bg-grappler-900\/70 { background-color: rgba(248,250,252,0.7); }
+  body.light-mode .bg-grappler-900\/60 { background-color: rgba(248,250,252,0.6); }
+  body.light-mode .bg-grappler-900\/50 { background-color: rgba(248,250,252,0.5); }
+  body.light-mode .bg-grappler-900\/40 { background-color: rgba(248,250,252,0.4); }
+  body.light-mode .bg-grappler-950 { background-color: #ffffff; }
+  body.light-mode .bg-grappler-950\/95 { background-color: rgba(255,255,255,0.95); }
+  body.light-mode .bg-grappler-850 { background-color: #f8fafc; }
   body.light-mode .bg-grappler-800 { background-color: #ffffff; }
   body.light-mode .bg-grappler-800\/50 { background-color: rgba(255,255,255,0.8); }
   body.light-mode .bg-grappler-800\/40 { background-color: rgba(241,245,249,0.6); }
   body.light-mode .bg-grappler-800\/60 { background-color: rgba(241,245,249,0.8); }
+  body.light-mode .bg-grappler-800\/70 { background-color: rgba(241,245,249,0.85); }
+  body.light-mode .bg-grappler-800\/30 { background-color: rgba(241,245,249,0.3); }
+  body.light-mode .bg-grappler-750 { background-color: #f1f5f9; }
   body.light-mode .bg-grappler-700 { background-color: #e2e8f0; }
   body.light-mode .bg-grappler-700\/30 { background-color: rgba(226,232,240,0.3); }
   body.light-mode .bg-grappler-700\/40 { background-color: rgba(226,232,240,0.4); }
   body.light-mode .bg-grappler-700\/50 { background-color: rgba(226,232,240,0.5); }
   body.light-mode .bg-grappler-700\/60 { background-color: rgba(226,232,240,0.6); }
+  body.light-mode .bg-grappler-700\/80 { background-color: rgba(226,232,240,0.8); }
+  body.light-mode .bg-grappler-600 { background-color: #cbd5e1; }
+  body.light-mode .bg-grappler-600\/50 { background-color: rgba(203,213,225,0.5); }
+  body.light-mode .bg-grappler-600\/40 { background-color: rgba(203,213,225,0.4); }
+  body.light-mode .bg-grappler-600\/30 { background-color: rgba(203,213,225,0.3); }
+  body.light-mode .bg-grappler-500 { background-color: #94a3b8; }
+  body.light-mode .bg-grappler-400\/20 { background-color: rgba(100,116,139,0.2); }
 
-  /* Text */
+  /* Text — contrast-safe for light backgrounds */
   body.light-mode .text-grappler-50 { color: #0f172a; }
   body.light-mode .text-grappler-100 { color: #1e293b; }
   body.light-mode .text-grappler-200 { color: #334155; }
   body.light-mode .text-grappler-300 { color: #475569; }
   body.light-mode .text-grappler-400 { color: #64748b; }
   body.light-mode .text-grappler-500 { color: #94a3b8; }
-  body.light-mode .text-grappler-600 { color: #cbd5e1; }
-  body.light-mode .text-grappler-700 { color: #e2e8f0; }
+  body.light-mode .text-grappler-600 { color: #94a3b8; }
+  body.light-mode .text-grappler-700 { color: #cbd5e1; }
 
   /* Borders */
   body.light-mode .border-grappler-700 { border-color: #e2e8f0; }
   body.light-mode .border-grappler-700\/50 { border-color: rgba(226,232,240,0.5); }
   body.light-mode .border-grappler-700\/60 { border-color: rgba(226,232,240,0.6); }
+  body.light-mode .border-grappler-700\/40 { border-color: rgba(226,232,240,0.4); }
+  body.light-mode .border-grappler-700\/30 { border-color: rgba(226,232,240,0.3); }
   body.light-mode .border-grappler-800 { border-color: #e2e8f0; }
+  body.light-mode .border-grappler-800\/50 { border-color: rgba(226,232,240,0.5); }
   body.light-mode .border-grappler-600 { border-color: #cbd5e1; }
   body.light-mode .border-grappler-600\/50 { border-color: rgba(203,213,225,0.5); }
+  body.light-mode .border-grappler-600\/40 { border-color: rgba(203,213,225,0.4); }
+  body.light-mode .border-grappler-600\/60 { border-color: rgba(203,213,225,0.6); }
+  body.light-mode .border-grappler-500 { border-color: #94a3b8; }
+  body.light-mode .border-grappler-500\/40 { border-color: rgba(148,163,184,0.4); }
+
+  /* Divide */
+  body.light-mode .divide-grappler-700\/30 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(226,232,240,0.3); }
 
   /* Hover states */
   body.light-mode .hover\:bg-grappler-800:hover { background-color: #f1f5f9; }
+  body.light-mode .hover\:bg-grappler-800\/50:hover { background-color: rgba(241,245,249,0.5); }
+  body.light-mode .hover\:bg-grappler-800\/40:hover { background-color: rgba(241,245,249,0.4); }
   body.light-mode .hover\:bg-grappler-700:hover { background-color: #e2e8f0; }
   body.light-mode .hover\:bg-grappler-700\/60:hover { background-color: rgba(226,232,240,0.6); }
+  body.light-mode .hover\:bg-grappler-700\/40:hover { background-color: rgba(226,232,240,0.4); }
+  body.light-mode .hover\:bg-grappler-700\/30:hover { background-color: rgba(226,232,240,0.3); }
   body.light-mode .hover\:bg-grappler-600:hover { background-color: #cbd5e1; }
   body.light-mode .hover\:text-grappler-200:hover { color: #334155; }
   body.light-mode .hover\:text-grappler-300:hover { color: #475569; }
+  body.light-mode .hover\:text-grappler-400:hover { color: #64748b; }
   body.light-mode .hover\:text-grappler-100:hover { color: #1e293b; }
   body.light-mode .hover\:text-grappler-50:hover { color: #0f172a; }
   body.light-mode .hover\:border-grappler-600:hover { border-color: #cbd5e1; }
+  body.light-mode .hover\:border-grappler-700:hover { border-color: #e2e8f0; }
 
   /* Focus ring offset */
   body.light-mode .focus-visible\:ring-offset-grappler-900:focus-visible { --tw-ring-offset-color: #f8fafc; }
@@ -285,8 +318,10 @@
   /* Gradient stops — remap dark grappler stops to light equivalents */
   body.light-mode .from-grappler-800 { --tw-gradient-from: #ffffff; --tw-gradient-from-position: ; }
   body.light-mode .from-grappler-800\/50 { --tw-gradient-from: rgba(255,255,255,0.8); --tw-gradient-from-position: ; }
+  body.light-mode .from-grappler-850 { --tw-gradient-from: #f8fafc; --tw-gradient-from-position: ; }
   body.light-mode .from-grappler-900 { --tw-gradient-from: #f8fafc; --tw-gradient-from-position: ; }
   body.light-mode .via-grappler-800 { --tw-gradient-via: #ffffff; --tw-gradient-via-position: ; }
+  body.light-mode .via-grappler-850 { --tw-gradient-via: #f8fafc; --tw-gradient-via-position: ; }
   body.light-mode .via-grappler-900 { --tw-gradient-via: #f8fafc; --tw-gradient-via-position: ; }
   body.light-mode .to-grappler-800 { --tw-gradient-to: #ffffff; --tw-gradient-to-position: ; }
   body.light-mode .to-grappler-800\/40 { --tw-gradient-to: rgba(255,255,255,0.6); --tw-gradient-to-position: ; }
@@ -299,6 +334,21 @@
 
   /* Placeholder */
   body.light-mode .placeholder-grappler-500::placeholder { color: #94a3b8; }
+  body.light-mode .placeholder\:text-grappler-600::placeholder { color: #94a3b8; }
+
+  /* ── Recharts — light mode chart colors ── */
+  body.light-mode .recharts-cartesian-grid line { stroke: #e2e8f0 !important; }
+  body.light-mode .recharts-xAxis .recharts-cartesian-axis-tick text,
+  body.light-mode .recharts-yAxis .recharts-cartesian-axis-tick text { fill: #64748b !important; }
+  body.light-mode .recharts-xAxis .recharts-cartesian-axis-line,
+  body.light-mode .recharts-yAxis .recharts-cartesian-axis-line { stroke: #cbd5e1 !important; }
+  body.light-mode .recharts-default-tooltip {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+  }
+  body.light-mode .recharts-tooltip-label { color: #0f172a !important; }
+  body.light-mode .recharts-polar-grid-concentric circle { stroke: #e2e8f0 !important; }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {

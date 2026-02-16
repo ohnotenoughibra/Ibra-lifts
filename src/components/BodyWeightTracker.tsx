@@ -929,6 +929,7 @@ export default function BodyWeightTracker() {
                 <input
                   type="number"
                   inputMode="decimal"
+                  step="any"
                   value={newWeight}
                   onChange={(e) => setNewWeight(e.target.value)}
                   placeholder={weightUnit === 'lbs' ? '185' : '84'}

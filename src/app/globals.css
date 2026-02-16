@@ -676,6 +676,11 @@
   }
 }
 
+@keyframes dock-jiggle {
+  0% { transform: rotate(-1.2deg); }
+  100% { transform: rotate(1.2deg); }
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }

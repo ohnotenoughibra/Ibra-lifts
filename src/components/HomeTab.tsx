@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { getReadinessSummary } from '@/lib/performance-engine';
@@ -74,7 +74,8 @@ import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
-import { TOOL_MAP, PINNED_STORAGE_KEY } from './ExploreTab';
+import { TOOL_MAP, PINNED_STORAGE_KEY, ALL_TOOLS } from './ExploreTab';
+import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
 
@@ -446,6 +447,37 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const interval = setInterval(sync, 2000);
     return () => { window.removeEventListener('focus', sync); clearInterval(interval); };
   }, []);
+  const [dockEditMode, setDockEditMode] = useState(false);
+  const [dockPickerOpen, setDockPickerOpen] = useState(false);
+  const [dockPickerSlot, setDockPickerSlot] = useState<number | null>(null);
+  const dockLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dockLongPressTriggered = useRef(false);
+
+  const savePinnedIds = useCallback((ids: string[]) => {
+    setPinnedIds(ids);
+    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(ids));
+  }, []);
+
+  const handleDockRemove = useCallback((id: string) => {
+    hapticMedium();
+    savePinnedIds(pinnedIds.filter(p => p !== id));
+  }, [pinnedIds, savePinnedIds]);
+
+  const handleDockAdd = useCallback((toolId: string) => {
+    hapticMedium();
+    const slot = dockPickerSlot;
+    if (slot != null && slot < pinnedIds.length) {
+      // Replace existing slot
+      const next = [...pinnedIds];
+      next[slot] = toolId;
+      savePinnedIds(next);
+    } else {
+      // Append
+      savePinnedIds([...pinnedIds.filter(id => id !== toolId), toolId].slice(0, DOCK_SLOTS));
+    }
+    setDockPickerOpen(false);
+    setDockPickerSlot(null);
+  }, [pinnedIds, dockPickerSlot, savePinnedIds]);
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {
@@ -2356,8 +2388,29 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           .filter(Boolean) as { id: string; label: string; icon: React.ElementType; color: string }[];
         const emptySlots = DOCK_SLOTS - dockTools.length;
 
+        const onPointerDown = () => {
+          dockLongPressTriggered.current = false;
+          dockLongPressRef.current = setTimeout(() => {
+            dockLongPressTriggered.current = true;
+            hapticMedium();
+            setDockEditMode(true);
+          }, 500);
+        };
+        const onPointerUp = () => {
+          if (dockLongPressRef.current) clearTimeout(dockLongPressRef.current);
+        };
+        const onPointerLeave = () => {
+          if (dockLongPressRef.current) clearTimeout(dockLongPressRef.current);
+        };
+
         return (
-          <div className="relative rounded-2xl overflow-hidden">
+          <div
+            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300', dockEditMode && 'ring-1 ring-primary-400/30')}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerLeave}
+            onContextMenu={(e) => { e.preventDefault(); hapticMedium(); setDockEditMode(true); }}
+          >
             {/* Glass background layer */}
             <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl" />
             <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.04] via-transparent to-white/[0.02]" />
@@ -2365,50 +2418,98 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
             {/* Content */}
             <div className="relative px-4 pt-3 pb-3.5">
-              <div className="flex items-center gap-1.5 mb-2.5">
-                <div className="w-1 h-1 rounded-full bg-primary-400/60" />
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-grappler-500">Quick Access</span>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1 h-1 rounded-full bg-primary-400/60" />
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-grappler-500">
+                    {dockEditMode ? 'Edit Quick Access' : 'Quick Access'}
+                  </span>
+                </div>
+                {dockEditMode && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    onClick={(e) => { e.stopPropagation(); setDockEditMode(false); setDockPickerOpen(false); setDockPickerSlot(null); }}
+                    className="px-2.5 py-0.5 rounded-full bg-primary-500/20 border border-primary-500/30 text-[10px] font-semibold text-primary-400 hover:bg-primary-500/30 transition-colors"
+                  >
+                    Done
+                  </motion.button>
+                )}
               </div>
+
               <div className="flex items-center justify-around">
-                {dockTools.map(tool => {
+                {dockTools.map((tool, idx) => {
                   const Icon = tool.icon;
                   const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
-                  // Extract the base color for the glow (e.g. "text-green-400" → "green")
                   const glowBase = textColor.match(/text-(\w+)-/)?.[1] || 'primary';
                   return (
-                    <button
-                      key={tool.id}
-                      onClick={() => onNavigate(tool.id as any)}
-                      className="flex flex-col items-center gap-1.5 flex-1 group"
-                    >
-                      <div className={cn(
-                        'relative w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
-                        'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
-                        'border border-white/[0.06]',
-                        'group-hover:from-white/[0.12] group-hover:to-white/[0.04] group-hover:border-white/[0.10]',
-                        'group-active:scale-90',
-                        'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]',
-                      )}>
-                        <div className={cn('absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300', `bg-${glowBase}-500/10`)} />
-                        <Icon className={cn('w-5 h-5 relative z-10', textColor)} />
-                      </div>
-                      <span className="text-[10px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
-                    </button>
+                    <div key={tool.id} className="flex flex-col items-center gap-1.5 flex-1 relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (dockLongPressTriggered.current) return;
+                          if (dockEditMode) {
+                            setDockPickerSlot(idx);
+                            setDockPickerOpen(true);
+                          } else {
+                            onNavigate(tool.id as any);
+                          }
+                        }}
+                        className={cn('flex flex-col items-center gap-1.5 w-full group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
+                        style={dockEditMode ? { animationDelay: `${idx * 0.05}s` } : undefined}
+                      >
+                        <div className={cn(
+                          'relative w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
+                          'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
+                          'border border-white/[0.06]',
+                          !dockEditMode && 'group-hover:from-white/[0.12] group-hover:to-white/[0.04] group-hover:border-white/[0.10]',
+                          !dockEditMode && 'group-active:scale-90',
+                          'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]',
+                        )}>
+                          <div className={cn('absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300', `bg-${glowBase}-500/10`)} />
+                          <Icon className={cn('w-5 h-5 relative z-10', textColor)} />
+                        </div>
+                        <span className="text-[10px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
+                      </button>
+                      {/* Remove badge */}
+                      {dockEditMode && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                          onClick={(e) => { e.stopPropagation(); handleDockRemove(tool.id); }}
+                          className="absolute -top-1 -right-0.5 z-20 w-5 h-5 rounded-full bg-red-500 border-2 border-grappler-900 flex items-center justify-center shadow-lg"
+                        >
+                          <X className="w-2.5 h-2.5 text-white" />
+                        </motion.button>
+                      )}
+                    </div>
                   );
                 })}
                 {Array.from({ length: emptySlots }).map((_, i) => (
                   <button
                     key={`empty-${i}`}
-                    onClick={() => onSwitchTab?.('explore')}
-                    className="flex flex-col items-center gap-1.5 flex-1 group"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (dockLongPressTriggered.current) return;
+                      if (dockEditMode) {
+                        setDockPickerSlot(pinnedIds.length + i);
+                        setDockPickerOpen(true);
+                      } else {
+                        onSwitchTab?.('explore');
+                      }
+                    }}
+                    className={cn('flex flex-col items-center gap-1.5 flex-1 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
+                    style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s` } : undefined}
                   >
                     <div className={cn(
                       'w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
-                      'border border-dashed border-white/[0.06]',
+                      'border border-dashed',
+                      dockEditMode ? 'border-primary-400/30 bg-primary-500/5' : 'border-white/[0.06]',
                       'group-hover:border-white/[0.12] group-hover:bg-white/[0.03]',
                       'group-active:scale-90',
                     )}>
-                      <Plus className="w-4 h-4 text-grappler-600 group-hover:text-grappler-400 transition-colors" />
+                      <Plus className={cn('w-4 h-4 transition-colors', dockEditMode ? 'text-primary-400' : 'text-grappler-600 group-hover:text-grappler-400')} />
                     </div>
                     <span className="text-[10px] text-grappler-600 leading-tight">&nbsp;</span>
                   </button>
@@ -2418,6 +2519,78 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           </div>
         );
       })()}
+
+      {/* ─── DOCK TOOL PICKER — slide-up sheet ─── */}
+      <AnimatePresence>
+        {dockPickerOpen && dockEditMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-0 left-0 right-0 max-h-[60vh] rounded-t-2xl overflow-hidden"
+            >
+              {/* Picker glass background */}
+              <div className="absolute inset-0 bg-grappler-900/95 backdrop-blur-xl" />
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/[0.03]" />
+
+              <div className="relative">
+                {/* Handle + header */}
+                <div className="sticky top-0 z-10 pt-3 pb-2 px-4 border-b border-white/[0.06]">
+                  <div className="w-8 h-1 rounded-full bg-grappler-600 mx-auto mb-3" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-grappler-200">
+                      {dockPickerSlot != null && dockPickerSlot < pinnedIds.length ? 'Replace Tool' : 'Add Tool'}
+                    </span>
+                    <button
+                      onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+                      className="w-7 h-7 rounded-full bg-grappler-800 flex items-center justify-center"
+                    >
+                      <X className="w-3.5 h-3.5 text-grappler-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tool grid */}
+                <div className="overflow-y-auto max-h-[calc(60vh-60px)] p-3 pb-safe">
+                  <div className="grid grid-cols-4 gap-2">
+                    {ALL_TOOLS
+                      .filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id))
+                      .map(tool => {
+                        const Icon = tool.icon;
+                        const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
+                        return (
+                          <button
+                            key={tool.id}
+                            onClick={() => handleDockAdd(tool.id)}
+                            className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-white/[0.04] active:scale-95 transition-all"
+                          >
+                            <div className={cn(
+                              'w-11 h-11 rounded-[12px] flex items-center justify-center',
+                              'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
+                              'border border-white/[0.06]',
+                            )}>
+                              <Icon className={cn('w-5 h-5', textColor)} />
+                            </div>
+                            <span className="text-[9px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Dialogs ─── */}
 

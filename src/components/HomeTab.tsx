@@ -42,6 +42,7 @@ import {
   ChevronRight,
   MoreHorizontal,
   Droplets,
+  Plus,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -73,8 +74,9 @@ import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
+import { TOOL_MAP, PINNED_STORAGE_KEY } from './ExploreTab';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
-import type { OverlayView } from './dashboard-types';
+import type { OverlayView, TabType } from './dashboard-types';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -390,7 +392,7 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
   );
 }
 
-export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void }) {
+export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void; onSwitchTab?: (tab: TabType) => void }) {
   const {
     user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
@@ -423,6 +425,27 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
+
+  // ─── Pinned tools dock — synced with Explore tab via localStorage ───
+  const DOCK_SLOTS = 4;
+  const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[]; }
+    catch { return []; }
+  });
+  // Re-sync when tab becomes visible (user may pin/unpin in Explore)
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const ids = JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[];
+        setPinnedIds(ids);
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('focus', sync);
+    // Also listen for storage events from the same page
+    const interval = setInterval(sync, 2000);
+    return () => { window.removeEventListener('focus', sync); clearInterval(interval); };
+  }, []);
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {
@@ -2325,8 +2348,50 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
         ) : null;
       })()}
 
+      {/* ─── PINNED TOOLS DOCK — iPhone-style quick access row ─── */}
+      {(() => {
+        const dockTools = pinnedIds
+          .slice(0, DOCK_SLOTS)
+          .map(id => TOOL_MAP.get(id))
+          .filter(Boolean) as { id: string; label: string; icon: React.ElementType; color: string }[];
+        const emptySlots = DOCK_SLOTS - dockTools.length;
 
-
+        return (
+          <div className="mt-2">
+            <div className="flex items-center justify-center gap-3">
+              {dockTools.map(tool => {
+                const Icon = tool.icon;
+                // Extract the text color from the gradient color string (e.g. "from-green-500/20 to-green-500/5 text-green-400" → "text-green-400")
+                const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={() => onNavigate(tool.id as any)}
+                    className="flex flex-col items-center gap-1 w-16 group"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-grappler-800/70 border border-grappler-700/30 flex items-center justify-center group-hover:bg-grappler-700/70 group-active:scale-95 transition-all">
+                      <Icon className={cn('w-5 h-5', textColor)} />
+                    </div>
+                    <span className="text-[10px] text-grappler-500 truncate w-full text-center leading-tight">{tool.label}</span>
+                  </button>
+                );
+              })}
+              {Array.from({ length: emptySlots }).map((_, i) => (
+                <button
+                  key={`empty-${i}`}
+                  onClick={() => onSwitchTab?.('explore')}
+                  className="flex flex-col items-center gap-1 w-16 group"
+                >
+                  <div className="w-11 h-11 rounded-xl border border-dashed border-grappler-700/40 flex items-center justify-center group-hover:border-grappler-600/60 group-active:scale-95 transition-all">
+                    <Plus className="w-4 h-4 text-grappler-600" />
+                  </div>
+                  <span className="text-[10px] text-grappler-600 leading-tight">&nbsp;</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── Dialogs ─── */}
 

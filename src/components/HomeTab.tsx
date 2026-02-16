@@ -1620,7 +1620,7 @@ export default function HomeTab({ onNavigate, onViewReport }: { onNavigate: (vie
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-primary-400 font-bold uppercase tracking-wide">Also want to lift?</p>
-                <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
+                <p className="text-sm font-semibold text-grappler-200 truncate">{directive.sessionLabel && !nextWorkout.name.startsWith(directive.sessionLabel) ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
                 <p className="text-[10px] text-grappler-500">{nextWorkout.exercises.length} exercises · ~{nextWorkout.estimatedDuration}m</p>
               </div>
               <Play className="w-4 h-4 text-primary-400 flex-shrink-0" />

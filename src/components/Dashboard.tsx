@@ -528,7 +528,7 @@ export default function Dashboard({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} />
+              <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={setActiveTab} />
             </motion.div>
           )}
           {activeTab === 'program' && (

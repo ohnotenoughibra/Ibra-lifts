@@ -16,7 +16,7 @@ import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
 import type { OverlayView } from './dashboard-types';
 
-interface Tool {
+export interface Tool {
   id: NonNullable<OverlayView>;
   label: string;
   desc: string;
@@ -108,11 +108,12 @@ const SUGGESTIONS: Record<string, NonNullable<OverlayView>[]> = {
   new_user: ['builder', 'block_suggestion', 'one_rm', 'overload'],
 };
 
-const ALL_TOOLS = CATEGORIES.flatMap(c => c.tools);
-const TOOL_MAP = new Map<string, Tool>(ALL_TOOLS.map(t => [t.id, t]));
+export const ALL_TOOLS = CATEGORIES.flatMap(c => c.tools);
+export const TOOL_MAP = new Map<string, Tool>(ALL_TOOLS.map(t => [t.id, t]));
+export const PINNED_STORAGE_KEY = 'roots-explore-pinned';
 
 const STORAGE_KEY_RECENT = 'roots-explore-recent';
-const STORAGE_KEY_PINNED = 'roots-explore-pinned';
+const STORAGE_KEY_PINNED = PINNED_STORAGE_KEY;
 const STORAGE_KEY_USAGE = 'roots-explore-usage';
 const STORAGE_KEY_PIN_HINT = 'roots-explore-pin-hint-shown';
 const STORAGE_KEY_NEW_BANNER = 'roots-explore-new-dismissed';

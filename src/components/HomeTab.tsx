@@ -2405,7 +2405,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
         return (
           <div
-            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300', dockEditMode && 'ring-1 ring-primary-400/30')}
+            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300 max-w-md mx-auto w-full', dockEditMode && 'ring-1 ring-primary-400/30')}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerLeave}

@@ -722,7 +722,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;
   const sleepHours = latestWhoopData?.sleepHours;
-  const waterToday = waterLog[todayIso] || 0;
+  const waterTodayGlasses = waterLog[todayIso] || 0;
+  const waterTodayL = parseFloat((waterTodayGlasses * 0.25).toFixed(1)); // glasses → liters (1 glass = 250ml)
   const activeDietPhase = useAppStore(s => s.activeDietPhase);
 
   // ─── Time-Aware Coaching — one adaptive line that changes throughout the day ───
@@ -743,7 +744,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
     if (isRestDay) {
       if (phase === 'am') return 'Recovery day. Light movement and protein first.';
-      if (phase === 'pm') return proteinPct < 60 ? `Protein at ${proteinPct}% — don't slack on rest days.` : 'Recovery on track. Stay fueled.';
+      if (phase === 'pm') return proteinPct < 60 ? `Protein at ${Math.round(todayProtein)}/${pTarget}g (${proteinPct}%) — don't slack on rest days.` : 'Recovery on track. Stay fueled.';
       return 'Rest day done. Sleep is your best recovery tool.';
     }
 
@@ -794,13 +795,13 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       dietGoal: dietPhase?.isActive ? dietPhase.goal : null,
       proteinSoFar: todayProtein,
       proteinTarget: macroTargets.protein || 0,
-      waterIntake: waterToday,
+      waterIntake: waterTodayGlasses,
       sleepHours: sleepHours ?? null,
       bodyWeightKg: bwKg,
       daysToCompetition: daysToComp,
       isDeload: directive.isDeload,
     });
-  }, [user, directive, hour, bodyWeightLog, weightUnit, competitions, activeDietPhase, todayProtein, macroTargets, waterToday, sleepHours]);
+  }, [user, directive, hour, bodyWeightLog, weightUnit, competitions, activeDietPhase, todayProtein, macroTargets, waterTodayGlasses, sleepHours]);
 
   const handleShareWorkout = async () => {
     if (!lastCompletedWorkout) return;
@@ -1436,10 +1437,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
             </span>
           </div>
-          {waterToday > 0 && (
+          {waterTodayL > 0 && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <Droplets className="w-3 h-3 text-blue-400/70" />
-              <span className="text-[10px] text-blue-300/70 tabular-nums font-medium">{waterToday}</span>
+              <span className="text-[10px] text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
             </div>
           )}
         </div>
@@ -1657,7 +1658,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           nextWorkout={nextWorkout}
           todayProtein={todayProtein}
           proteinTarget={macroTargets.protein}
-          waterToday={waterToday}
+          waterToday={waterTodayGlasses}
           sleepHours={sleepHours ?? null}
           alreadyLoggedSoreness={alreadyLoggedSorenessToday}
           yesterdayWorkouts={yesterdayWorkouts}
@@ -1825,7 +1826,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             const intelChips: { label: string; value: string; color: string; icon: React.ReactNode }[] = [];
             if (sleepHours != null) intelChips.push({ label: 'Sleep', value: `${sleepHours.toFixed(1)}h`, color: sleepHours >= 7 ? 'text-green-400' : sleepHours >= 5.5 ? 'text-yellow-400' : 'text-red-400', icon: <Moon className="w-3 h-3" /> });
             if (macroTargets.protein > 0) intelChips.push({ label: 'Protein', value: `${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g`, color: todayProtein >= macroTargets.protein * 0.5 ? 'text-green-400' : todayProtein > 0 ? 'text-yellow-400' : 'text-grappler-500', icon: <Apple className="w-3 h-3" /> });
-            if (waterToday > 0 || macroTargets.protein > 0) intelChips.push({ label: 'Water', value: waterToday > 0 ? `${waterToday}` : '—', color: waterToday >= 6 ? 'text-blue-400' : waterToday >= 3 ? 'text-blue-300' : 'text-grappler-500', icon: <Droplets className="w-3 h-3" /> });
+            if (waterTodayL > 0 || macroTargets.protein > 0) intelChips.push({ label: 'Water', value: waterTodayL > 0 ? `${waterTodayL}L` : '—', color: waterTodayL >= 1.5 ? 'text-blue-400' : waterTodayL >= 0.75 ? 'text-blue-300' : 'text-grappler-500', icon: <Droplets className="w-3 h-3" /> });
             if (recoveryScore != null) intelChips.push({ label: 'Recovery', value: `${recoveryScore}%`, color: recoveryScore >= 67 ? 'text-green-400' : recoveryScore >= 34 ? 'text-yellow-400' : 'text-red-400', icon: <HeartPulse className="w-3 h-3" /> });
             return intelChips.length > 0 ? (
               <div className="flex items-center gap-1 px-1 overflow-x-auto no-scrollbar">
@@ -2405,7 +2406,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
         return (
           <div
-            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300', dockEditMode && 'ring-1 ring-primary-400/30')}
+            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300 max-w-md mx-auto w-full', dockEditMode && 'ring-1 ring-primary-400/30')}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerLeave}

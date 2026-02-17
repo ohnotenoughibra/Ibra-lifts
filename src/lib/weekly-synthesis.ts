@@ -499,7 +499,7 @@ export function generateWeeklyInsights(opts: {
     } else if (stats.proteinAdherence < 60) {
       insights.push({
         type: 'nutrition', icon: 'target', label: 'Nutrition',
-        text: `Protein at ${stats.proteinAdherence}% — you're leaving recovery and gains on the table.`,
+        text: `Protein adherence at ${stats.proteinAdherence}% of days hitting target — you're leaving recovery and gains on the table.`,
         color: 'blue',
       });
     }

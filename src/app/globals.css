@@ -236,23 +236,24 @@
   }
 
   /* Backgrounds */
-  body.light-mode .bg-grappler-900 { background-color: #f8fafc; }
-  body.light-mode .bg-grappler-900\/80 { background-color: rgba(248,250,252,0.8); }
-  body.light-mode .bg-grappler-900\/95 { background-color: rgba(248,250,252,0.95); }
-  body.light-mode .bg-grappler-900\/90 { background-color: rgba(248,250,252,0.9); }
-  body.light-mode .bg-grappler-900\/70 { background-color: rgba(248,250,252,0.7); }
-  body.light-mode .bg-grappler-900\/60 { background-color: rgba(248,250,252,0.6); }
-  body.light-mode .bg-grappler-900\/50 { background-color: rgba(248,250,252,0.5); }
-  body.light-mode .bg-grappler-900\/40 { background-color: rgba(248,250,252,0.4); }
-  body.light-mode .bg-grappler-950 { background-color: #ffffff; }
-  body.light-mode .bg-grappler-950\/95 { background-color: rgba(255,255,255,0.95); }
-  body.light-mode .bg-grappler-850 { background-color: #f8fafc; }
+  /* Backgrounds — dark panels → light panels with visible contrast on slate-50 body */
+  body.light-mode .bg-grappler-900 { background-color: #ffffff; }
+  body.light-mode .bg-grappler-900\/80 { background-color: rgba(255,255,255,0.85); }
+  body.light-mode .bg-grappler-900\/95 { background-color: rgba(255,255,255,0.95); }
+  body.light-mode .bg-grappler-900\/90 { background-color: rgba(255,255,255,0.92); }
+  body.light-mode .bg-grappler-900\/70 { background-color: rgba(241,245,249,0.8); }
+  body.light-mode .bg-grappler-900\/60 { background-color: rgba(241,245,249,0.7); }
+  body.light-mode .bg-grappler-900\/50 { background-color: rgba(241,245,249,0.6); }
+  body.light-mode .bg-grappler-900\/40 { background-color: rgba(241,245,249,0.5); }
+  body.light-mode .bg-grappler-950 { background-color: #f8fafc; }
+  body.light-mode .bg-grappler-950\/95 { background-color: rgba(248,250,252,0.95); }
+  body.light-mode .bg-grappler-850 { background-color: #ffffff; }
   body.light-mode .bg-grappler-800 { background-color: #ffffff; }
-  body.light-mode .bg-grappler-800\/50 { background-color: rgba(255,255,255,0.8); }
+  body.light-mode .bg-grappler-800\/50 { background-color: rgba(241,245,249,0.7); }
   body.light-mode .bg-grappler-800\/40 { background-color: rgba(241,245,249,0.6); }
   body.light-mode .bg-grappler-800\/60 { background-color: rgba(241,245,249,0.8); }
   body.light-mode .bg-grappler-800\/70 { background-color: rgba(241,245,249,0.85); }
-  body.light-mode .bg-grappler-800\/30 { background-color: rgba(241,245,249,0.3); }
+  body.light-mode .bg-grappler-800\/30 { background-color: rgba(241,245,249,0.4); }
   body.light-mode .bg-grappler-750 { background-color: #f1f5f9; }
   body.light-mode .bg-grappler-700 { background-color: #e2e8f0; }
   body.light-mode .bg-grappler-700\/30 { background-color: rgba(226,232,240,0.3); }
@@ -267,15 +268,17 @@
   body.light-mode .bg-grappler-500 { background-color: #94a3b8; }
   body.light-mode .bg-grappler-400\/20 { background-color: rgba(100,116,139,0.2); }
 
-  /* Text — contrast-safe for light backgrounds */
-  body.light-mode .text-grappler-50 { color: #0f172a; }
-  body.light-mode .text-grappler-100 { color: #1e293b; }
-  body.light-mode .text-grappler-200 { color: #334155; }
-  body.light-mode .text-grappler-300 { color: #475569; }
-  body.light-mode .text-grappler-400 { color: #64748b; }
-  body.light-mode .text-grappler-500 { color: #94a3b8; }
-  body.light-mode .text-grappler-600 { color: #94a3b8; }
-  body.light-mode .text-grappler-700 { color: #cbd5e1; }
+  /* Text — contrast-safe for light backgrounds
+     Dark mode text (light on dark) → Light mode text (dark on light)
+     50 (brightest) → 900 (darkest) ... 700 (dimmest) → 300 (medium) */
+  body.light-mode .text-grappler-50 { color: #0f172a; }   /* → slate-900 */
+  body.light-mode .text-grappler-100 { color: #1e293b; }  /* → slate-800 */
+  body.light-mode .text-grappler-200 { color: #334155; }  /* → slate-700 */
+  body.light-mode .text-grappler-300 { color: #475569; }  /* → slate-600 */
+  body.light-mode .text-grappler-400 { color: #475569; }  /* → slate-600 (secondary text, must be readable) */
+  body.light-mode .text-grappler-500 { color: #64748b; }  /* → slate-500 (muted text, still readable) */
+  body.light-mode .text-grappler-600 { color: #64748b; }  /* → slate-500 (dimmer labels) */
+  body.light-mode .text-grappler-700 { color: #94a3b8; }  /* → slate-400 (dimmest hint text) */
 
   /* Borders */
   body.light-mode .border-grappler-700 { border-color: #e2e8f0; }
@@ -349,6 +352,45 @@
   }
   body.light-mode .recharts-tooltip-label { color: #0f172a !important; }
   body.light-mode .recharts-polar-grid-concentric circle { stroke: #e2e8f0 !important; }
+
+  /* ── Glassmorphic overrides ──
+     In dark mode: white/[0.0x] creates subtle glass edges on dark panels.
+     In light mode: white-on-white is invisible → swap to slate borders/fills. */
+  body.light-mode .border-white\/\[0\.06\] { border-color: rgba(148,163,184,0.18); }
+  body.light-mode .border-white\/\[0\.08\] { border-color: rgba(148,163,184,0.22); }
+  body.light-mode .border-white\/\[0\.10\] { border-color: rgba(148,163,184,0.28); }
+  body.light-mode .border-white\/\[0\.12\] { border-color: rgba(148,163,184,0.32); }
+  body.light-mode .bg-white\/\[0\.02\] { background-color: rgba(241,245,249,0.5); }
+  body.light-mode .bg-white\/\[0\.03\] { background-color: rgba(241,245,249,0.6); }
+  body.light-mode .bg-white\/\[0\.04\] { background-color: rgba(241,245,249,0.65); }
+  body.light-mode .bg-white\/\[0\.06\] { background-color: rgba(241,245,249,0.7); }
+  body.light-mode .bg-white\/\[0\.08\] { background-color: rgba(226,232,240,0.4); }
+  body.light-mode .bg-white\/\[0\.12\] { background-color: rgba(226,232,240,0.5); }
+  body.light-mode .from-white\/\[0\.04\] { --tw-gradient-from: rgba(241,245,249,0.65); }
+  body.light-mode .from-white\/\[0\.08\] { --tw-gradient-from: rgba(226,232,240,0.4); }
+  body.light-mode .from-white\/\[0\.12\] { --tw-gradient-from: rgba(226,232,240,0.5); }
+  body.light-mode .to-white\/\[0\.02\] { --tw-gradient-to: rgba(241,245,249,0.5); }
+  body.light-mode .to-white\/\[0\.04\] { --tw-gradient-to: rgba(241,245,249,0.65); }
+  body.light-mode .via-transparent { --tw-gradient-via: transparent; }
+
+  /* Glass card containers in light mode — give them a slight shadow + border feel */
+  body.light-mode .backdrop-blur-xl { backdrop-filter: blur(12px); }
+
+  /* ── Colored text adjustments for light mode readability ── */
+  body.light-mode .text-blue-300\/70 { color: rgba(37,99,235,0.85); }
+  body.light-mode .text-blue-400\/70 { color: rgba(37,99,235,0.7); }
+  body.light-mode .text-blue-400 { color: #2563eb; }
+  body.light-mode .text-blue-300 { color: #3b82f6; }
+  body.light-mode .text-green-400 { color: #16a34a; }
+  body.light-mode .text-green-300 { color: #22c55e; }
+  body.light-mode .text-red-400 { color: #dc2626; }
+  body.light-mode .text-yellow-400 { color: #ca8a04; }
+  body.light-mode .text-purple-400 { color: #9333ea; }
+  body.light-mode .text-emerald-400 { color: #059669; }
+  body.light-mode .text-amber-400 { color: #d97706; }
+  body.light-mode .text-orange-400 { color: #ea580c; }
+  body.light-mode .text-teal-400 { color: #0d9488; }
+  body.light-mode .text-cyan-400 { color: #0891b2; }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
@@ -478,16 +520,32 @@
     @apply bg-strength/20 text-red-400 border border-strength/30;
   }
 
+  body.light-mode .badge-strength {
+    @apply bg-red-100 text-red-700 border-red-200;
+  }
+
   .badge-hypertrophy {
     @apply bg-hypertrophy/20 text-purple-400 border border-hypertrophy/30;
+  }
+
+  body.light-mode .badge-hypertrophy {
+    @apply bg-purple-100 text-purple-700 border-purple-200;
   }
 
   .badge-power {
     @apply bg-power/20 text-teal-400 border border-power/30;
   }
 
+  body.light-mode .badge-power {
+    @apply bg-teal-100 text-teal-700 border-teal-200;
+  }
+
   .badge-success {
     @apply bg-success/20 text-green-400 border border-success/30;
+  }
+
+  body.light-mode .badge-success {
+    @apply bg-green-100 text-green-700 border-green-200;
   }
 
   /* Progress bar */

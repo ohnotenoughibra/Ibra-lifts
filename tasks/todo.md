@@ -1,11 +1,12 @@
 # Current Tasks
 
-<!-- Track active work here. Check items off as completed. -->
+## In Progress: Reduce Food Logging Friction
 
-## Completed
-- [x] Switch water display from glasses to liters
-- [x] Fix protein message to show actual grams (70/156g)
-- [x] Fix light mode colors — text contrast, glassmorphic borders, badges
-- [x] Show weight bump suggestion inside rest timer overlay
-- [x] Make rest timer overlay minimizable
-- [x] Update CLAUDE.md with workflow orchestration rules
+### Changes
+- [ ] Add fuzzy matching to food autocomplete (biggest win — typos/partial words)
+- [ ] Lower autocomplete trigger from 2 chars to 1 char
+- [ ] Show top frequent foods as 1-tap chips directly in the nutrition section (no "Manual" tap needed first)
+- [ ] Verify build passes
+
+### Completed
+- [x] Investigate current food logging flow and identify friction points

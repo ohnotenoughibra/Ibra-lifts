@@ -69,6 +69,7 @@ export default function ActiveWorkout() {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [isResting, setIsResting] = useState(false);
+  const [restMinimized, setRestMinimized] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
   const [showPRCelebration, setShowPRCelebration] = useState(false);
@@ -358,6 +359,7 @@ export default function ActiveWorkout() {
     // Start rest timer — store end timestamp so it survives backgrounding
     setRestEndTime(Date.now() + currentExercise.prescription.restSeconds * 1000);
     setIsResting(true);
+    setRestMinimized(false);
 
     // Check if this was the last set of current exercise
     const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
@@ -2185,15 +2187,24 @@ export default function ActiveWorkout() {
         </p>
       </header>
 
-      {/* Rest Timer Overlay */}
+      {/* Rest Timer — Full Overlay or Minimized Floating Bar */}
       <AnimatePresence>
-        {isResting && (
+        {isResting && !restMinimized && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-30 bg-grappler-900/95 flex flex-col items-center justify-center"
           >
+            {/* Minimize button */}
+            <button
+              onClick={() => setRestMinimized(true)}
+              className="absolute top-4 right-4 p-2 rounded-lg bg-grappler-800 hover:bg-grappler-700 text-grappler-400 hover:text-grappler-200 transition-colors"
+              title="Minimize to view workout"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+
             <p className={cn(
               'text-sm font-medium mb-4 uppercase tracking-wider transition-colors',
               restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-400'
@@ -2232,6 +2243,38 @@ export default function ActiveWorkout() {
                 </p>
               </div>
             </div>
+
+            {/* Weight bump suggestion — shown inside rest overlay */}
+            {weightSuggestion && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 mx-6 bg-primary-500/15 border border-primary-500/30 rounded-xl p-3 flex items-center justify-between gap-3 max-w-sm"
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <TrendingUp className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                  <p className="text-xs text-primary-300">{weightSuggestion.message}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setExactValue('weight', weightSuggestion.suggestedWeight);
+                      setWeightSuggestion(null);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-500 text-white"
+                  >
+                    {weightSuggestion.suggestedWeight} {weightUnit}
+                  </button>
+                  <button
+                    onClick={() => setWeightSuggestion(null)}
+                    className="text-grappler-500 hover:text-grappler-300"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {/* Volume tracker during rest */}
             <div className="flex items-center gap-4 mb-4">
               <div className="text-center">
@@ -2341,6 +2384,74 @@ export default function ActiveWorkout() {
                 </div>
               </motion.div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Minimized Rest Timer — floating bar at top */}
+      <AnimatePresence>
+        {isResting && restMinimized && (
+          <motion.div
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            className="fixed top-0 left-0 right-0 z-30 bg-grappler-900/95 backdrop-blur-lg border-b border-grappler-700/50 px-4 py-2.5 safe-area-top"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => setRestMinimized(false)}
+                className="flex items-center gap-3 flex-1 min-w-0"
+              >
+                {/* Mini circular timer */}
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(100,116,139,0.2)" strokeWidth="3" />
+                    <circle
+                      cx="20" cy="20" r="17" fill="none"
+                      strokeWidth="3" strokeLinecap="round"
+                      className={cn(
+                        restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
+                      )}
+                      strokeDasharray={2 * Math.PI * 17}
+                      strokeDashoffset={2 * Math.PI * 17 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                    />
+                  </svg>
+                  <span className={cn(
+                    'absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums',
+                    restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+                  )}>
+                    {restTimer}
+                  </span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <p className={cn(
+                    'text-sm font-semibold',
+                    restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-200'
+                  )}>
+                    {restTimer <= 10 && restTimer > 0 ? 'Get Ready!' : 'Resting...'}
+                  </p>
+                  <p className="text-[10px] text-grappler-500 truncate">Tap to expand</p>
+                </div>
+              </button>
+              {weightSuggestion && (
+                <button
+                  onClick={() => {
+                    setExactValue('weight', weightSuggestion.suggestedWeight);
+                    setWeightSuggestion(null);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary-500/20 border border-primary-500/30 flex-shrink-0"
+                >
+                  <TrendingUp className="w-3 h-3 text-primary-400" />
+                  <span className="text-xs font-medium text-primary-300">{weightSuggestion.suggestedWeight} {weightUnit}</span>
+                </button>
+              )}
+              <button
+                onClick={skipRest}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-grappler-800 text-grappler-300 hover:bg-grappler-700 flex-shrink-0"
+              >
+                Skip
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

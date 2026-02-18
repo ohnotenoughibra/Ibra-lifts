@@ -1187,6 +1187,125 @@ export default function ActiveWorkout() {
                 </div>
               </div>
 
+              {/* Quick Readiness — moved above exercises so it's visible on mobile */}
+              <div className="mb-5">
+                <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
+                  <Brain className="w-3.5 h-3.5" /> How are you feeling?
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { id: 'great' as const, label: 'Great', color: 'green' },
+                    { id: 'good' as const, label: 'Good', color: 'primary' },
+                    { id: 'okay' as const, label: 'Okay', color: 'yellow' },
+                    { id: 'rough' as const, label: 'Rough', color: 'red' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFeeling(opt.id)}
+                      className={cn(
+                        'py-2.5 rounded-xl text-center transition-all',
+                        feeling === opt.id
+                          ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
+                          : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
+                          : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
+                          : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
+                          : 'bg-grappler-800/60 border border-grappler-700/50'
+                      )}
+                    >
+                      <p className={cn('text-xs font-medium',
+                        feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
+                      )}>{opt.label}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Optional fine-tune toggle */}
+                <button
+                  onClick={() => setShowCheckInDetail(!showCheckInDetail)}
+                  className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
+                >
+                  Fine-tune
+                  <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
+                </button>
+
+                <AnimatePresence>
+                  {showCheckInDetail && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 space-y-2">
+                        {/* Sleep row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                              <Moon className="w-3 h-3" /> Sleep
+                            </label>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((v) => (
+                                <button
+                                  key={v}
+                                  onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
+                                  className={cn(
+                                    'flex-1 py-1 rounded text-xs font-medium',
+                                    checkIn.sleepQuality === v
+                                      ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                      : 'bg-grappler-700 text-grappler-500'
+                                  )}
+                                >{v}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                            <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                <Minus className="w-2.5 h-2.5 text-grappler-300" />
+                              </button>
+                              <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
+                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                <Plus className="w-2.5 h-2.5 text-grappler-300" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Stress + Soreness compact row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { label: 'Stress', key: 'stress' as const, icon: Brain },
+                            { label: 'Soreness', key: 'soreness' as const, icon: Heart },
+                          ]).map(({ label, key, icon: Icon }) => (
+                            <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
+                              <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                                <Icon className="w-3 h-3" /> {label}
+                              </label>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((v) => (
+                                  <button
+                                    key={v}
+                                    onClick={() => setCheckIn({ ...checkIn, [key]: v })}
+                                    className={cn(
+                                      'flex-1 py-1 rounded text-xs font-medium',
+                                      checkIn[key] === v
+                                        ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                        : 'bg-grappler-700 text-grappler-500'
+                                    )}
+                                  >{v}</button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Whoop Readiness Card */}
               {latestWhoopData && whoopReadiness && !whoopApplied && (
                 <motion.div
@@ -1827,127 +1946,8 @@ export default function ActiveWorkout() {
               </div>
             </div>
 
-            {/* Quick Readiness — always visible, 1-tap, always submits */}
-            <div className="mt-5">
-              <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5" /> How are you feeling?
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {([
-                  { id: 'great' as const, label: 'Great', color: 'green' },
-                  { id: 'good' as const, label: 'Good', color: 'primary' },
-                  { id: 'okay' as const, label: 'Okay', color: 'yellow' },
-                  { id: 'rough' as const, label: 'Rough', color: 'red' },
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setFeeling(opt.id)}
-                    className={cn(
-                      'py-2.5 rounded-xl text-center transition-all',
-                      feeling === opt.id
-                        ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
-                        : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
-                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
-                        : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
-                        : 'bg-grappler-800/60 border border-grappler-700/50'
-                    )}
-                  >
-                    <p className={cn('text-xs font-medium',
-                      feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
-                    )}>{opt.label}</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Optional fine-tune toggle */}
-              <button
-                onClick={() => setShowCheckInDetail(!showCheckInDetail)}
-                className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
-              >
-                Fine-tune
-                <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
-              </button>
-
-              <AnimatePresence>
-                {showCheckInDetail && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-2 space-y-2">
-                      {/* Sleep row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                          <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
-                            <Moon className="w-3 h-3" /> Sleep
-                          </label>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map((v) => (
-                              <button
-                                key={v}
-                                onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
-                                className={cn(
-                                  'flex-1 py-1 rounded text-xs font-medium',
-                                  checkIn.sleepQuality === v
-                                    ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                    : 'bg-grappler-700 text-grappler-500'
-                                )}
-                              >{v}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                          <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
-                              <Minus className="w-2.5 h-2.5 text-grappler-300" />
-                            </button>
-                            <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
-                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
-                              <Plus className="w-2.5 h-2.5 text-grappler-300" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Stress + Soreness compact row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {([
-                          { label: 'Stress', key: 'stress' as const, icon: Brain },
-                          { label: 'Soreness', key: 'soreness' as const, icon: Heart },
-                        ]).map(({ label, key, icon: Icon }) => (
-                          <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
-                              <Icon className="w-3 h-3" /> {label}
-                            </label>
-                            <div className="flex gap-0.5">
-                              {[1, 2, 3, 4, 5].map((v) => (
-                                <button
-                                  key={v}
-                                  onClick={() => setCheckIn({ ...checkIn, [key]: v })}
-                                  className={cn(
-                                    'flex-1 py-1 rounded text-xs font-medium',
-                                    checkIn[key] === v
-                                      ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                      : 'bg-grappler-700 text-grappler-500'
-                                  )}
-                                >{v}</button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
             {/* Bottom CTA — always submits check-in */}
-            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4">
+            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => {
                   submitPreCheckIn();
@@ -2694,17 +2694,11 @@ export default function ActiveWorkout() {
               </motion.div>
             )}
 
-            {/* Volume tracker during rest */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="text-center">
-                <p className="text-lg font-bold text-grappler-200">{totalVolumeCompleted.toLocaleString()}</p>
-                <p className="text-xs text-grappler-500">Volume ({weightUnit})</p>
-              </div>
-              <div className="w-px h-8 bg-grappler-700" />
-              <div className="text-center">
-                <p className="text-lg font-bold text-grappler-200">{completedSets}/{totalSets}</p>
-                <p className="text-xs text-grappler-500">Sets</p>
-              </div>
+            {/* Compact stats + skip */}
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-xs text-grappler-500">{completedSets}/{totalSets} sets</span>
+              <span className="text-xs text-grappler-600">·</span>
+              <span className="text-xs text-grappler-500">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
@@ -2717,29 +2711,16 @@ export default function ActiveWorkout() {
               )}
             </div>
 
-            {/* What's next during rest */}
+            {/* What's next — one-line hint */}
             {!isLastSet && (
-              <div className="mt-6 text-center">
-                <p className="text-xs text-grappler-500 mb-1">Up Next</p>
-                <p className="text-sm font-medium text-grappler-200">
-                  Set {currentSetIndex + 2} of {currentLog.sets.length}
-                </p>
-                <p className="text-xs text-grappler-500">
-                  {currentExercise.exercise.name} &middot; {currentExercise.prescription.targetReps} reps
-                </p>
-              </div>
+              <p className="mt-4 text-xs text-grappler-500 text-center">
+                Next: Set {currentSetIndex + 2}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
+              </p>
             )}
             {isLastSet && !allExercisesDone && (
-              <div className="mt-6 text-center">
-                <p className="text-xs text-grappler-500 mb-1">Up Next</p>
-                <p className="text-sm font-medium text-grappler-200">
-                  {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.name}
-                </p>
-                <p className="text-xs text-grappler-500">
-                  {activeWorkout.session.exercises[currentExerciseIndex]?.sets} sets x{' '}
-                  {activeWorkout.session.exercises[currentExerciseIndex]?.prescription.targetReps} reps
-                </p>
-              </div>
+              <p className="mt-4 text-xs text-grappler-500 text-center">
+                Next: {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.name} · {activeWorkout.session.exercises[currentExerciseIndex]?.sets} sets
+              </p>
             )}
             {/* Form Video + Swap for next exercise — shown during rest after last set */}
             {lastCompletedExerciseIndex !== null && !allExercisesDone && (
@@ -3042,61 +3023,41 @@ export default function ActiveWorkout() {
           key={currentExerciseIndex}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="card p-6 mb-6"
+          className="card p-4 mb-4"
         >
-          <div className="text-center mb-4">
+          <div className="text-center mb-2">
             <div className="flex items-center justify-center gap-2 mb-1">
               <h2 className="text-xl font-bold text-grappler-50">
                 {currentExercise.exercise.name}
               </h2>
             </div>
-            <div className="flex items-center justify-center gap-2 mt-1">
+            <div className="flex items-center justify-center gap-1.5 mt-1">
               {currentExercise.exercise.videoUrl && (
                 <a
                   href={currentExercise.exercise.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
+                  className="w-8 h-8 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-all text-red-400"
+                  title="Form Video"
                 >
                   <Video className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">Form Video</span>
                 </a>
               )}
               <button
                 onClick={() => setShowSwapModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
+                className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-primary-400"
+                title="Swap Exercise"
               >
                 <Shuffle className="w-3.5 h-3.5" />
-                <span className="text-xs font-medium">Swap Exercise</span>
               </button>
               <button
                 onClick={handleSkipExercise}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-blue-500/50 transition-all text-grappler-400 hover:text-blue-400"
+                className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-blue-400"
+                title="Skip"
               >
                 <SkipForward className="w-3.5 h-3.5" />
-                <span className="text-xs font-medium">Skip</span>
               </button>
             </div>
-            {/* Workout Type Context Explanation */}
-            {activeWorkout?.session.type && (
-              <div className={cn(
-                'mt-2 px-3 py-1.5 rounded-lg text-xs text-center',
-                activeWorkout.session.type === 'strength' && 'bg-red-500/10 text-red-400',
-                activeWorkout.session.type === 'hypertrophy' && 'bg-purple-500/10 text-purple-400',
-                activeWorkout.session.type === 'power' && 'bg-blue-500/10 text-blue-400'
-              )}>
-                {activeWorkout.session.type === 'strength' && (
-                  <>Heavy weight, low reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Build max strength. Full recovery between sets.</>
-                )}
-                {activeWorkout.session.type === 'hypertrophy' && (
-                  <>Moderate weight, controlled reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Build muscle. Focus on the squeeze and stretch.</>
-                )}
-                {activeWorkout.session.type === 'power' && (
-                  <>Explosive reps ({currentExercise.prescription.minReps}-{currentExercise.prescription.maxReps}). Move the weight fast. Quality over fatigue.</>
-                )}
-              </div>
-            )}
-
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="text-sm text-grappler-300">
                 {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
@@ -3121,69 +3082,38 @@ export default function ActiveWorkout() {
                 </button>
               )}
             </div>
-            <p className="text-xs text-grappler-500 mt-1">
-              Rest: {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} between sets
+            <p className="text-[11px] text-grappler-500 mt-0.5">
+              {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} rest
             </p>
 
-            {/* RPE-based weight suggestion */}
-            {rpeSuggestion && (
-              <div className="mt-3 px-4 py-3 bg-primary-500/10 border border-primary-500/30 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center">
-                      <Lightbulb className="w-4 h-4 text-primary-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-primary-300">{rpeSuggestion.suggested} {weightUnit}</p>
-                      <p className="text-xs text-grappler-500">suggested weight</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setExactValue('weight', rpeSuggestion.suggested);
-                    }}
-                    className="text-sm font-medium text-primary-400 bg-primary-500/20 px-3 py-1.5 rounded-lg hover:bg-primary-500/30 transition-colors"
-                  >
-                    Use
-                  </button>
-                </div>
-                <p className="text-xs text-grappler-400 mt-2">
-                  Last session: {rpeSuggestion.lastWeight}{weightUnit} @ RPE {rpeSuggestion.lastRPE}
-                  {rpeSuggestion.targetRPE !== rpeSuggestion.lastRPE && ` — adjusted to RPE ${rpeSuggestion.targetRPE}`}
-                </p>
-              </div>
-            )}
-
-            {/* Per-exercise history from last session */}
-            {previousPerformance ? (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="px-3 py-1.5 bg-grappler-800/60 rounded-lg">
-                  <p className="text-xs text-grappler-400">
-                    Last: <span className="text-grappler-200 font-medium">{previousPerformance.weight} {weightUnit} x {previousPerformance.reps}</span>
-                    <span className="text-grappler-500 ml-1">@ RPE {previousPerformance.rpe}</span>
-                  </p>
-                </div>
+            {/* Compact weight suggestion + last session (merged into one row) */}
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              {rpeSuggestion && (
                 <button
-                  onClick={() => setShowHistoryModal(true)}
-                  className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-grappler-800/50"
+                  onClick={() => setExactValue('weight', rpeSuggestion.suggested)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-primary-500/10 border border-primary-500/30 rounded-lg text-xs transition-colors hover:bg-primary-500/20 active:scale-95"
                 >
-                  <TrendingUp className="w-3 h-3" />
-                  Full History
+                  <Lightbulb className="w-3 h-3 text-primary-400" />
+                  <span className="text-primary-300 font-semibold">{rpeSuggestion.suggested} {weightUnit}</span>
                 </button>
-              </div>
-            ) : (
+              )}
+              {previousPerformance && (
+                <span className="text-xs text-grappler-500">
+                  Last: {previousPerformance.weight}{weightUnit} × {previousPerformance.reps} @ RPE {previousPerformance.rpe}
+                </span>
+              )}
               <button
                 onClick={() => setShowHistoryModal(true)}
-                className="mt-2 text-xs text-grappler-500 hover:text-grappler-400 flex items-center gap-1 transition-colors"
+                className="text-xs text-primary-400/70 hover:text-primary-400 flex items-center gap-0.5 transition-colors ml-auto"
               >
-                <Clock className="w-3 h-3" />
-                View History
+                <TrendingUp className="w-3 h-3" />
+                History
               </button>
-            )}
+            </div>
 
-            {/* Full exercise history panel */}
+            {/* Full exercise history panel — removed inline, use modal via History button */}
             <AnimatePresence>
-              {showHistory && exerciseHistory.length > 0 && (
+              {false && showHistory && exerciseHistory.length > 0 && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
@@ -3648,11 +3578,15 @@ export default function ActiveWorkout() {
           )}
         </motion.div>
 
-        {/* Cues */}
+        {/* Cues — collapsed by default */}
         {currentExercise.exercise.cues.length > 0 && (
-          <div className="card p-4">
-            <h3 className="font-medium text-grappler-200 text-sm mb-2">Form Cues</h3>
-            <ul className="text-sm text-grappler-400 space-y-1">
+          <details className="card overflow-hidden">
+            <summary className="p-3 flex items-center gap-2 cursor-pointer text-xs font-medium text-grappler-400 hover:text-grappler-300 transition-colors list-none [&::-webkit-details-marker]:hidden">
+              <Info className="w-3.5 h-3.5" />
+              Form Cues ({currentExercise.exercise.cues.length})
+              <ChevronDown className="w-3 h-3 ml-auto transition-transform [[open]>&]:rotate-180" />
+            </summary>
+            <ul className="text-sm text-grappler-400 space-y-1 px-3 pb-3">
               {currentExercise.exercise.cues.slice(0, 3).map((cue, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 bg-primary-500 rounded-full mt-2 flex-shrink-0" />
@@ -3660,16 +3594,20 @@ export default function ActiveWorkout() {
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         )}
 
-        {/* Up Next / Workout Progress Hint */}
-        <div className="card p-4 mt-4">
-          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        {/* Workout Progress — collapsed by default, expand to navigate */}
+        <details className="card mt-4 overflow-hidden">
+          <summary className="p-3 flex items-center gap-2 cursor-pointer text-xs font-semibold text-grappler-400 uppercase tracking-wide list-none [&::-webkit-details-marker]:hidden hover:text-grappler-300 transition-colors">
             <ListChecks className="w-3.5 h-3.5" />
             Workout Progress
-          </h3>
-          <div className="space-y-2">
+            <span className="ml-auto text-grappler-500 normal-case font-normal">
+              {activeWorkout.exerciseLogs.reduce((s, e) => s + e.sets.filter(ss => ss.completed).length, 0)}/{activeWorkout.session.exercises.reduce((s, e) => s + e.sets, 0)} sets
+            </span>
+            <ChevronDown className="w-3 h-3 transition-transform [[open]>&]:rotate-180" />
+          </summary>
+          <div className="space-y-1 px-3 pb-3">
             {activeWorkout.session.exercises.map((ex, i) => {
               const log = activeWorkout.exerciseLogs[i];
               const doneSets = log.sets.filter(s => s.completed).length;
@@ -3680,49 +3618,34 @@ export default function ActiveWorkout() {
                   key={i}
                   onClick={() => { setCurrentExerciseIndex(i); setCurrentSetIndex(0); }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all',
+                    'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-all',
                     isCurrent && 'bg-primary-500/10 border border-primary-500/30',
                     isDone && !isCurrent && 'opacity-50',
                     !isCurrent && !isDone && 'hover:bg-grappler-800/50',
                   )}
                 >
                   <div className={cn(
-                    'w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0',
+                    'w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
                     isDone ? 'bg-green-500/20 text-green-400' :
                     isCurrent ? 'bg-primary-500/20 text-primary-400' :
                     'bg-grappler-700/50 text-grappler-500'
                   )}>
-                    {isDone ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                    {isDone ? <Check className="w-3 h-3" /> : i + 1}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm truncate',
-                      isCurrent ? 'text-grappler-100 font-medium' :
-                      isDone ? 'text-grappler-500 line-through' :
-                      'text-grappler-400'
-                    )}>
-                      {ex.exercise.name}
-                    </p>
-                    <p className="text-xs text-grappler-500">
-                      {doneSets}/{log.sets.length} sets
-                      {isCurrent && !isDone && (
-                        <span className="text-primary-400 ml-1">— in progress</span>
-                      )}
-                      {isDone && (
-                        <span className="text-green-400 ml-1">— complete</span>
-                      )}
-                    </p>
-                  </div>
-                  {i === currentExerciseIndex + 1 && !isDone && (
-                    <span className="text-xs bg-grappler-700 text-grappler-300 px-2 py-0.5 rounded-full flex-shrink-0">
-                      up next
-                    </span>
-                  )}
+                  <p className={cn(
+                    'text-xs truncate flex-1',
+                    isCurrent ? 'text-grappler-100 font-medium' :
+                    isDone ? 'text-grappler-500 line-through' :
+                    'text-grappler-400'
+                  )}>
+                    {ex.exercise.name}
+                  </p>
+                  <span className="text-[10px] text-grappler-500 flex-shrink-0">{doneSets}/{log.sets.length}</span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </details>
       </main>
 
       {/* Cancel Confirmation Modal */}

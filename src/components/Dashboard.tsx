@@ -93,6 +93,8 @@ const FightCampNutrition = dynamic(() => import('./FightCampNutrition'), { loadi
 const BadgeShowcase = dynamic(() => import('./BadgeShowcase'), { loading: () => <OverlaySkeleton /> });
 const AutoThrottleInfo = dynamic(() => import('./AutoThrottleInfo'), { loading: () => <OverlaySkeleton /> });
 const CornerCoachInfo = dynamic(() => import('./CornerCoachInfo'), { loading: () => <OverlaySkeleton /> });
+const TrainingLoadDashboard = dynamic(() => import('./TrainingLoadDashboard'), { loading: () => <OverlaySkeleton /> });
+const WarmUpInfo = dynamic(() => import('./WarmUpInfo'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -426,6 +428,8 @@ export default function Dashboard({
   if (overlayView === 'badge_showcase') return <BadgeShowcase onClose={() => setOverlayView(null)} />;
   if (overlayView === 'auto_throttle') return <AutoThrottleInfo onClose={() => setOverlayView(null)} />;
   if (overlayView === 'corner_coach') return <CornerCoachInfo onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'training_load') return <TrainingLoadDashboard onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'warm_up') return <WarmUpInfo onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

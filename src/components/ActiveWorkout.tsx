@@ -47,6 +47,9 @@ import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator'
 import { applyThrottle, getThrottleConfig, getThrottleInsights, getThrottleSummary, type ThrottleResult, type ThrottleLevel } from '@/lib/readiness-throttle';
 import { calculateReadiness as calcFullReadiness } from '@/lib/performance-engine';
 import { getCoachMessages, type CoachMessage, type CoachContext } from '@/lib/corner-coach';
+import { regulateRPE, type RPERegulation } from '@/lib/rpe-regulator';
+import { generateSmartWarmUp, type WarmUpProtocol, type WarmUpStep } from '@/lib/warmup-generator';
+import { detectSupersetCandidates } from '@/lib/superset-engine';
 import { getActiveInjuryAdaptations } from '@/lib/injury-science';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -118,6 +121,17 @@ export default function ActiveWorkout() {
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const coachTriggerHistory = useRef<Set<string>>(new Set());
   const [coachDismissed, setCoachDismissed] = useState<string | null>(null);
+
+  // ── Live RPE Regulator state ──
+  const [rpeRegulation, setRpeRegulation] = useState<RPERegulation | null>(null);
+
+  // ── Smart Warm-Up state ──
+  const [warmUpProtocol, setWarmUpProtocol] = useState<WarmUpProtocol | null>(null);
+  const [showWarmUp, setShowWarmUp] = useState(false);
+  const [warmUpStepIndex, setWarmUpStepIndex] = useState(0);
+
+  // ── Superset detection state ──
+  const [supersetCandidates, setSupersetCandidates] = useState<{ indexA: number; indexB: number; reason: string }[]>([]);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [whoopFollowed, setWhoopFollowed] = useState(false);
@@ -413,6 +427,19 @@ export default function ActiveWorkout() {
       // Don't let coach errors break the workout
     }
 
+    // ── Live RPE Regulator: check for weight adjustment suggestion ──
+    try {
+      const regulation = regulateRPE(
+        newSets,
+        currentExercise,
+        (throttleResult?.config.level ?? 'green') as ThrottleLevel,
+        weightUnit,
+      );
+      setRpeRegulation(regulation);
+    } catch {
+      // Don't let regulator errors break the workout
+    }
+
     // Check if this was the last set of current exercise
     const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
 
@@ -547,6 +574,36 @@ export default function ActiveWorkout() {
         }
       } catch {
         // Graceful fallback — don't block the workout if readiness calc fails
+      }
+    }
+
+    // ── Smart Warm-Up: generate based on session exercises ──
+    if (activeWorkout?.session) {
+      try {
+        // Get working weight for first compound
+        const firstCompound = activeWorkout.session.exercises.find(e => e.exercise.category === 'compound');
+        let workingWeight: number | undefined;
+        if (firstCompound) {
+          const suggested = getSuggestedWeight(firstCompound.exerciseId, storeWorkoutLogs);
+          if (suggested) workingWeight = suggested;
+        }
+        const protocol = generateSmartWarmUp(
+          activeWorkout.session.exercises,
+          activeWorkout.session.type,
+          workingWeight,
+          weightUnit,
+        );
+        setWarmUpProtocol(protocol);
+      } catch {
+        // Non-critical
+      }
+
+      // ── Superset Detection ──
+      try {
+        const candidates = detectSupersetCandidates(activeWorkout.session.exercises);
+        setSupersetCandidates(candidates);
+      } catch {
+        // Non-critical
       }
     }
   };
@@ -1519,6 +1576,81 @@ export default function ActiveWorkout() {
                 </motion.div>
               )}
 
+              {/* Smart Warm-Up Card */}
+              {warmUpProtocol && warmUpProtocol.steps.length > 0 && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setShowWarmUp(!showWarmUp)}
+                    className="w-full rounded-xl p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/20 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-amber-300">Smart Warm-Up</p>
+                        <p className="text-[11px] text-grappler-400">
+                          {warmUpProtocol.totalDuration} min · {warmUpProtocol.steps.length} steps · {warmUpProtocol.rampUpSets.length} ramp-up sets
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown className={cn('w-4 h-4 text-grappler-500 transition-transform', showWarmUp && 'rotate-180')} />
+                  </button>
+                  <AnimatePresence>
+                    {showWarmUp && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-2 space-y-1.5">
+                          {warmUpProtocol.steps.map((step, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs',
+                                step.type === 'cardio' ? 'bg-blue-500/10 text-blue-300' :
+                                step.type === 'dynamic_stretch' ? 'bg-teal-500/10 text-teal-300' :
+                                step.type === 'activation' ? 'bg-violet-500/10 text-violet-300' :
+                                'bg-amber-500/10 text-amber-300'
+                              )}
+                            >
+                              <span className="w-5 h-5 rounded-full bg-grappler-800 flex items-center justify-center text-[10px] font-bold text-grappler-400 flex-shrink-0">
+                                {i + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium">{step.name}</span>
+                                {step.cue && <span className="text-grappler-500 ml-1">— {step.cue}</span>}
+                              </div>
+                              <span className="text-[10px] text-grappler-500 flex-shrink-0">
+                                {step.duration >= 60 ? `${Math.round(step.duration / 60)}m` : `${step.duration}s`}
+                                {step.sets && step.sets > 1 ? ` ×${step.sets}` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Superset Suggestions */}
+              {supersetCandidates.length > 0 && (
+                <div className="mb-4 rounded-xl p-3 bg-violet-500/10 border border-violet-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Shuffle className="w-3.5 h-3.5 text-violet-400" />
+                    <p className="text-xs font-bold text-violet-300">Superset Opportunities</p>
+                  </div>
+                  {supersetCandidates.map((pair, i) => (
+                    <p key={i} className="text-[11px] text-violet-300/80 mt-1">
+                      {pair.reason}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               {/* Exercise List */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide px-1">
@@ -2428,6 +2560,52 @@ export default function ActiveWorkout() {
                   </button>
                   <button
                     onClick={() => setWeightSuggestion(null)}
+                    className="text-grappler-500 hover:text-grappler-300"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* RPE Auto-Regulator suggestion */}
+            {rpeRegulation && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  'mb-4 mx-6 rounded-xl p-3 flex items-center justify-between gap-3 max-w-sm border',
+                  rpeRegulation.type === 'drop'
+                    ? 'bg-orange-500/15 border-orange-500/30'
+                    : 'bg-emerald-500/15 border-emerald-500/30'
+                )}
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {rpeRegulation.type === 'drop'
+                    ? <ArrowDown className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                    : <ArrowUp className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                  <div className="min-w-0">
+                    <p className={cn('text-xs font-medium', rpeRegulation.type === 'drop' ? 'text-orange-300' : 'text-emerald-300')}>
+                      {rpeRegulation.message}
+                    </p>
+                    <p className="text-[10px] text-grappler-500 mt-0.5">{rpeRegulation.reason}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      setExactValue('weight', rpeRegulation.suggestedWeight);
+                      setRpeRegulation(null);
+                    }}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium text-white',
+                      rpeRegulation.type === 'drop' ? 'bg-orange-500' : 'bg-emerald-500'
+                    )}
+                  >
+                    {rpeRegulation.suggestedWeight} {weightUnit}
+                  </button>
+                  <button
+                    onClick={() => setRpeRegulation(null)}
                     className="text-grappler-500 hover:text-grappler-300"
                   >
                     <X className="w-3.5 h-3.5" />

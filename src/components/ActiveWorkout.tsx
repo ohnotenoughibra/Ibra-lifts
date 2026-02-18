@@ -1187,6 +1187,125 @@ export default function ActiveWorkout() {
                 </div>
               </div>
 
+              {/* Quick Readiness — moved above exercises so it's visible on mobile */}
+              <div className="mb-5">
+                <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
+                  <Brain className="w-3.5 h-3.5" /> How are you feeling?
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { id: 'great' as const, label: 'Great', color: 'green' },
+                    { id: 'good' as const, label: 'Good', color: 'primary' },
+                    { id: 'okay' as const, label: 'Okay', color: 'yellow' },
+                    { id: 'rough' as const, label: 'Rough', color: 'red' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFeeling(opt.id)}
+                      className={cn(
+                        'py-2.5 rounded-xl text-center transition-all',
+                        feeling === opt.id
+                          ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
+                          : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
+                          : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
+                          : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
+                          : 'bg-grappler-800/60 border border-grappler-700/50'
+                      )}
+                    >
+                      <p className={cn('text-xs font-medium',
+                        feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
+                      )}>{opt.label}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Optional fine-tune toggle */}
+                <button
+                  onClick={() => setShowCheckInDetail(!showCheckInDetail)}
+                  className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
+                >
+                  Fine-tune
+                  <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
+                </button>
+
+                <AnimatePresence>
+                  {showCheckInDetail && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 space-y-2">
+                        {/* Sleep row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                              <Moon className="w-3 h-3" /> Sleep
+                            </label>
+                            <div className="flex gap-0.5">
+                              {[1, 2, 3, 4, 5].map((v) => (
+                                <button
+                                  key={v}
+                                  onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
+                                  className={cn(
+                                    'flex-1 py-1 rounded text-xs font-medium',
+                                    checkIn.sleepQuality === v
+                                      ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                      : 'bg-grappler-700 text-grappler-500'
+                                  )}
+                                >{v}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
+                            <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                <Minus className="w-2.5 h-2.5 text-grappler-300" />
+                              </button>
+                              <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
+                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                <Plus className="w-2.5 h-2.5 text-grappler-300" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Stress + Soreness compact row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { label: 'Stress', key: 'stress' as const, icon: Brain },
+                            { label: 'Soreness', key: 'soreness' as const, icon: Heart },
+                          ]).map(({ label, key, icon: Icon }) => (
+                            <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
+                              <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                                <Icon className="w-3 h-3" /> {label}
+                              </label>
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((v) => (
+                                  <button
+                                    key={v}
+                                    onClick={() => setCheckIn({ ...checkIn, [key]: v })}
+                                    className={cn(
+                                      'flex-1 py-1 rounded text-xs font-medium',
+                                      checkIn[key] === v
+                                        ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                                        : 'bg-grappler-700 text-grappler-500'
+                                    )}
+                                  >{v}</button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Whoop Readiness Card */}
               {latestWhoopData && whoopReadiness && !whoopApplied && (
                 <motion.div
@@ -1827,127 +1946,8 @@ export default function ActiveWorkout() {
               </div>
             </div>
 
-            {/* Quick Readiness — always visible, 1-tap, always submits */}
-            <div className="mt-5">
-              <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5" /> How are you feeling?
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {([
-                  { id: 'great' as const, label: 'Great', color: 'green' },
-                  { id: 'good' as const, label: 'Good', color: 'primary' },
-                  { id: 'okay' as const, label: 'Okay', color: 'yellow' },
-                  { id: 'rough' as const, label: 'Rough', color: 'red' },
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setFeeling(opt.id)}
-                    className={cn(
-                      'py-2.5 rounded-xl text-center transition-all',
-                      feeling === opt.id
-                        ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
-                        : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
-                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
-                        : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
-                        : 'bg-grappler-800/60 border border-grappler-700/50'
-                    )}
-                  >
-                    <p className={cn('text-xs font-medium',
-                      feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
-                    )}>{opt.label}</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Optional fine-tune toggle */}
-              <button
-                onClick={() => setShowCheckInDetail(!showCheckInDetail)}
-                className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
-              >
-                Fine-tune
-                <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
-              </button>
-
-              <AnimatePresence>
-                {showCheckInDetail && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-2 space-y-2">
-                      {/* Sleep row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                          <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
-                            <Moon className="w-3 h-3" /> Sleep
-                          </label>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map((v) => (
-                              <button
-                                key={v}
-                                onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
-                                className={cn(
-                                  'flex-1 py-1 rounded text-xs font-medium',
-                                  checkIn.sleepQuality === v
-                                    ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                    : 'bg-grappler-700 text-grappler-500'
-                                )}
-                              >{v}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                          <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
-                              <Minus className="w-2.5 h-2.5 text-grappler-300" />
-                            </button>
-                            <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
-                            <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                              className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
-                              <Plus className="w-2.5 h-2.5 text-grappler-300" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Stress + Soreness compact row */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {([
-                          { label: 'Stress', key: 'stress' as const, icon: Brain },
-                          { label: 'Soreness', key: 'soreness' as const, icon: Heart },
-                        ]).map(({ label, key, icon: Icon }) => (
-                          <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
-                              <Icon className="w-3 h-3" /> {label}
-                            </label>
-                            <div className="flex gap-0.5">
-                              {[1, 2, 3, 4, 5].map((v) => (
-                                <button
-                                  key={v}
-                                  onClick={() => setCheckIn({ ...checkIn, [key]: v })}
-                                  className={cn(
-                                    'flex-1 py-1 rounded text-xs font-medium',
-                                    checkIn[key] === v
-                                      ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                      : 'bg-grappler-700 text-grappler-500'
-                                  )}
-                                >{v}</button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
             {/* Bottom CTA — always submits check-in */}
-            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4">
+            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => {
                   submitPreCheckIn();

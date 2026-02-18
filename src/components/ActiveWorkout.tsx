@@ -44,6 +44,9 @@ import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
 import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator';
+import { applyThrottle, getThrottleConfig, getThrottleInsights, getThrottleSummary, type ThrottleResult, type ThrottleLevel } from '@/lib/readiness-throttle';
+import { calculateReadiness as calcFullReadiness } from '@/lib/performance-engine';
+import { getCoachMessages, type CoachMessage, type CoachContext } from '@/lib/corner-coach';
 import { getActiveInjuryAdaptations } from '@/lib/injury-science';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -62,6 +65,14 @@ export default function ActiveWorkout() {
     calculatePersonalBaseline(wearableHistory),
     [wearableHistory]
   );
+  // Store selectors for full readiness (used by throttle engine)
+  const storeWorkoutLogs = useAppStore(s => s.workoutLogs);
+  const trainingSessions = useAppStore(s => s.trainingSessions ?? []);
+  const meals = useAppStore(s => s.meals ?? []);
+  const macroTargets = useAppStore(s => s.macroTargets ?? { calories: 2500, protein: 180, carbs: 300, fat: 80 });
+  const waterLog = useAppStore(s => s.waterLog ?? {});
+  const quickLogs = useAppStore(s => s.quickLogs ?? []);
+
   // Active injury adaptations — for per-exercise warnings
   const injuryLog = useAppStore(s => s.injuryLog);
   const injuryAdaptations = useMemo(() => getActiveInjuryAdaptations(injuryLog), [injuryLog]);
@@ -97,6 +108,16 @@ export default function ActiveWorkout() {
   const [formCheckExercise, setFormCheckExercise] = useState<{ name: string; videoUrl?: string } | null>(null);
   const [lastCompletedExerciseIndex, setLastCompletedExerciseIndex] = useState<number | null>(null);
   const [undoInfo, setUndoInfo] = useState<{ exerciseIndex: number; setIndex: number; previousSets: SetLog[]; previousPR: boolean; previousE1RM: number } | null>(null);
+
+  // ── Readiness Auto-Throttle state ──
+  const [throttleResult, setThrottleResult] = useState<ThrottleResult | null>(null);
+  const [throttleApplied, setThrottleApplied] = useState(false);
+  const [throttleDismissed, setThrottleDismissed] = useState(false);
+
+  // ── Corner Coach state ──
+  const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
+  const coachTriggerHistory = useRef<Set<string>>(new Set());
+  const [coachDismissed, setCoachDismissed] = useState<string | null>(null);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [whoopFollowed, setWhoopFollowed] = useState(false);
@@ -361,6 +382,37 @@ export default function ActiveWorkout() {
     setIsResting(true);
     setRestMinimized(false);
 
+    // ── Corner Coach: generate coaching messages after set completion ──
+    try {
+      const coachCtx: CoachContext = {
+        currentExercise,
+        currentExerciseLog: { ...currentLog, sets: newSets },
+        currentSetIndex,
+        justCompletedSet: newSets[currentSetIndex],
+        allExerciseLogs: activeWorkout.exerciseLogs,
+        exerciseIndex: currentExerciseIndex,
+        totalExercises: activeWorkout.session.exercises.length,
+        sessionStartTime: new Date(activeWorkout.startTime),
+        completedSets: activeWorkout.exerciseLogs.reduce((s, e) => s + e.sets.filter(ss => ss.completed).length, 0) + 1,
+        totalSets: activeWorkout.session.exercises.reduce((s, e) => s + e.sets, 0),
+        previousLogs: storeWorkoutLogs,
+        throttleLevel: (throttleResult?.config.level ?? 'green') as ThrottleLevel,
+        preCheckIn: activeWorkout.preCheckIn ?? null,
+        recentMessageTriggers: coachTriggerHistory.current,
+      };
+      const msgs = getCoachMessages(coachCtx);
+      if (msgs.length > 0) {
+        setCoachMessages(msgs);
+        setCoachDismissed(null);
+        msgs.forEach(m => coachTriggerHistory.current.add(m.trigger));
+        // Auto-dismiss after the longest message duration
+        const maxDuration = Math.max(...msgs.map(m => m.dismissAfterMs));
+        setTimeout(() => setCoachMessages([]), maxDuration);
+      }
+    } catch {
+      // Don't let coach errors break the workout
+    }
+
     // Check if this was the last set of current exercise
     const isLastSetOfExercise = currentSetIndex === currentLog.sets.length - 1;
 
@@ -463,6 +515,40 @@ export default function ActiveWorkout() {
 
   const submitPreCheckIn = () => {
     setPreCheckIn(checkIn);
+
+    // ── Readiness Auto-Throttle: compute full readiness and apply ──
+    if (activeWorkout?.session) {
+      try {
+        const fullReadiness = calcFullReadiness({
+          user: user ?? null,
+          workoutLogs: storeWorkoutLogs,
+          trainingSessions,
+          wearableData: latestWhoopData,
+          wearableHistory,
+          meals,
+          macroTargets,
+          waterLog,
+          injuryLog,
+          quickLogs,
+          preCheckIn: checkIn,
+        });
+        const result = applyThrottle(activeWorkout.session, fullReadiness);
+        setThrottleResult(result);
+
+        // Auto-apply if not green (green = no changes)
+        if (result.config.level !== 'green') {
+          useAppStore.setState({
+            activeWorkout: {
+              ...activeWorkout,
+              session: result.adjustedSession,
+            },
+          });
+          setThrottleApplied(true);
+        }
+      } catch {
+        // Graceful fallback — don't block the workout if readiness calc fails
+      }
+    }
   };
 
   const submitInlineFeedback = (difficulty: 'too_easy' | 'just_right' | 'too_hard', pain: boolean) => {
@@ -1369,6 +1455,69 @@ export default function ActiveWorkout() {
                 </motion.div>
               )}
 
+              {/* Readiness Auto-Throttle Banner */}
+              {throttleResult && throttleResult.config.level !== 'green' && !throttleDismissed && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn(
+                    'rounded-xl p-4 mb-4 border',
+                    throttleResult.config.level === 'peak' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                    throttleResult.config.level === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                    throttleResult.config.level === 'orange' ? 'bg-orange-500/10 border-orange-500/30' :
+                    'bg-red-500/10 border-red-500/30'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 flex-1">
+                      <div className={cn(
+                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                        throttleResult.config.level === 'peak' ? 'bg-emerald-500/20' :
+                        throttleResult.config.level === 'yellow' ? 'bg-yellow-500/20' :
+                        throttleResult.config.level === 'orange' ? 'bg-orange-500/20' :
+                        'bg-red-500/20'
+                      )}>
+                        <Battery className={cn(
+                          'w-4 h-4',
+                          throttleResult.config.level === 'peak' ? 'text-emerald-400' :
+                          throttleResult.config.level === 'yellow' ? 'text-yellow-400' :
+                          throttleResult.config.level === 'orange' ? 'text-orange-400' :
+                          'text-red-400'
+                        )} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={cn(
+                          'text-sm font-bold',
+                          throttleResult.config.level === 'peak' ? 'text-emerald-300' :
+                          throttleResult.config.level === 'yellow' ? 'text-yellow-300' :
+                          throttleResult.config.level === 'orange' ? 'text-orange-300' :
+                          'text-red-300'
+                        )}>
+                          Auto-Throttle: {throttleResult.config.label}
+                        </h4>
+                        <p className="text-xs text-grappler-400 mt-0.5">
+                          {throttleResult.config.message}
+                        </p>
+                        <p className="text-xs text-grappler-500 mt-1">
+                          {getThrottleSummary(throttleResult)}
+                        </p>
+                        {throttleResult.droppedExercises.length > 0 && (
+                          <p className="text-xs text-grappler-500 mt-1">
+                            Dropped: {throttleResult.droppedExercises.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setThrottleDismissed(true)}
+                      className="text-grappler-500 hover:text-grappler-300 p-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Exercise List */}
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide px-1">
@@ -2155,7 +2304,18 @@ export default function ActiveWorkout() {
             <p className="text-xs text-grappler-400">
               <Timer className="w-3 h-3 inline mr-1" />
               {formatTime(Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 60000))}
-              {readiness && (
+              {throttleResult ? (
+                <span className={cn(
+                  'ml-2 px-1.5 py-0.5 rounded text-xs font-medium',
+                  throttleResult.config.level === 'peak' ? 'bg-emerald-500/20 text-emerald-400' :
+                  throttleResult.config.level === 'green' ? 'bg-green-500/20 text-green-400' :
+                  throttleResult.config.level === 'yellow' ? 'bg-yellow-500/20 text-yellow-400' :
+                  throttleResult.config.level === 'orange' ? 'bg-orange-500/20 text-orange-400' :
+                  'bg-red-500/20 text-red-400'
+                )}>
+                  {throttleResult.config.label}
+                </span>
+              ) : readiness && (
                 <span className={cn(
                   'ml-2 px-1.5 py-0.5 rounded text-xs font-medium',
                   readiness.score >= 65 ? 'bg-green-500/20 text-green-400' :
@@ -2371,8 +2531,61 @@ export default function ActiveWorkout() {
               </button>
             )}
 
-            {/* Tip during rest */}
-            {showTip && (
+            {/* Corner Coach Messages during rest */}
+            {coachMessages.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="absolute bottom-20 left-4 right-4 space-y-2"
+              >
+                {coachMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      'rounded-xl p-3.5 border backdrop-blur-sm flex items-start gap-3',
+                      msg.tone === 'hype' ? 'bg-emerald-500/15 border-emerald-500/30' :
+                      msg.tone === 'warning' ? 'bg-red-500/15 border-red-500/30' :
+                      msg.tone === 'celebrate' ? 'bg-yellow-500/15 border-yellow-500/30' :
+                      msg.tone === 'tactical' ? 'bg-blue-500/15 border-blue-500/30' :
+                      'bg-grappler-800/80 border-grappler-700/50'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
+                      msg.tone === 'hype' ? 'bg-emerald-500/20' :
+                      msg.tone === 'warning' ? 'bg-red-500/20' :
+                      msg.tone === 'celebrate' ? 'bg-yellow-500/20' :
+                      msg.tone === 'tactical' ? 'bg-blue-500/20' :
+                      'bg-grappler-700/50'
+                    )}>
+                      {msg.tone === 'celebrate' ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
+                       msg.tone === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> :
+                       msg.tone === 'hype' ? <Zap className="w-3.5 h-3.5 text-emerald-400" /> :
+                       msg.tone === 'tactical' ? <Brain className="w-3.5 h-3.5 text-blue-400" /> :
+                       <Lightbulb className="w-3.5 h-3.5 text-grappler-400" />}
+                    </div>
+                    <p className={cn(
+                      'text-sm flex-1',
+                      msg.tone === 'hype' ? 'text-emerald-300' :
+                      msg.tone === 'warning' ? 'text-red-300' :
+                      msg.tone === 'celebrate' ? 'text-yellow-300' :
+                      msg.tone === 'tactical' ? 'text-blue-300' :
+                      'text-grappler-300'
+                    )}>{msg.text}</p>
+                    <button
+                      onClick={() => setCoachMessages(prev => prev.filter(m => m.id !== msg.id))}
+                      className="text-grappler-600 hover:text-grappler-400 flex-shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Tip during rest (hidden when coach messages are showing) */}
+            {showTip && coachMessages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

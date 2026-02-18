@@ -2194,15 +2194,15 @@ export default function ActiveWorkout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-30 bg-grappler-900/95 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-50 bg-grappler-900/95 flex flex-col items-center justify-center"
           >
             {/* Minimize button */}
             <button
               onClick={() => setRestMinimized(true)}
-              className="absolute top-4 right-4 p-2 rounded-lg bg-grappler-800 hover:bg-grappler-700 text-grappler-400 hover:text-grappler-200 transition-colors"
-              title="Minimize to view workout"
+              className="absolute top-4 right-4 safe-area-top flex items-center gap-1.5 px-3 py-2 rounded-xl bg-grappler-700/80 border border-grappler-600/50 text-grappler-200 hover:bg-grappler-600/80 active:scale-95 transition-all"
             >
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4" />
+              <span className="text-sm font-medium">Minimize</span>
             </button>
 
             <p className={cn(
@@ -2388,70 +2388,48 @@ export default function ActiveWorkout() {
         )}
       </AnimatePresence>
 
-      {/* Minimized Rest Timer — floating bar at top */}
+      {/* Minimized Rest Timer — subtle floating pill */}
       <AnimatePresence>
         {isResting && restMinimized && (
           <motion.div
-            initial={{ opacity: 0, y: -40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -40 }}
-            className="fixed top-0 left-0 right-0 z-30 bg-grappler-900/95 backdrop-blur-lg border-b border-grappler-700/50 px-4 py-2.5 safe-area-top"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed top-4 right-4 z-50 safe-area-top"
           >
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => setRestMinimized(false)}
-                className="flex items-center gap-3 flex-1 min-w-0"
-              >
-                {/* Mini circular timer */}
-                <div className="relative w-10 h-10 flex-shrink-0">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
-                    <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(100,116,139,0.2)" strokeWidth="3" />
-                    <circle
-                      cx="20" cy="20" r="17" fill="none"
-                      strokeWidth="3" strokeLinecap="round"
-                      className={cn(
-                        restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
-                      )}
-                      strokeDasharray={2 * Math.PI * 17}
-                      strokeDashoffset={2 * Math.PI * 17 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
-                    />
-                  </svg>
-                  <span className={cn(
-                    'absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums',
-                    restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
-                  )}>
-                    {restTimer}
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <p className={cn(
-                    'text-sm font-semibold',
-                    restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-200'
-                  )}>
-                    {restTimer <= 10 && restTimer > 0 ? 'Get Ready!' : 'Resting...'}
-                  </p>
-                  <p className="text-[10px] text-grappler-500 truncate">Tap to expand</p>
-                </div>
-              </button>
-              {weightSuggestion && (
-                <button
-                  onClick={() => {
-                    setExactValue('weight', weightSuggestion.suggestedWeight);
-                    setWeightSuggestion(null);
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary-500/20 border border-primary-500/30 flex-shrink-0"
-                >
-                  <TrendingUp className="w-3 h-3 text-primary-400" />
-                  <span className="text-xs font-medium text-primary-300">{weightSuggestion.suggestedWeight} {weightUnit}</span>
-                </button>
-              )}
-              <button
-                onClick={skipRest}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-grappler-800 text-grappler-300 hover:bg-grappler-700 flex-shrink-0"
-              >
-                Skip
-              </button>
-            </div>
+            <button
+              onClick={() => setRestMinimized(false)}
+              className="flex items-center gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full bg-grappler-900/90 backdrop-blur-lg border border-grappler-700/50 shadow-lg shadow-black/30 active:scale-95 transition-transform"
+            >
+              {/* Mini circular progress timer */}
+              <div className="relative w-9 h-9 flex-shrink-0">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(100,116,139,0.2)" strokeWidth="2.5" />
+                  <circle
+                    cx="18" cy="18" r="15" fill="none"
+                    strokeWidth="2.5" strokeLinecap="round"
+                    className={cn(
+                      'transition-colors',
+                      restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
+                    )}
+                    strokeDasharray={2 * Math.PI * 15}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                  />
+                </svg>
+                <span className={cn(
+                  'absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums',
+                  restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+                )}>
+                  {restTimer}
+                </span>
+              </div>
+              <span className={cn(
+                'text-xs font-semibold',
+                restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-300'
+              )}>
+                {restTimer <= 10 && restTimer > 0 ? 'Go!' : 'Rest'}
+              </span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

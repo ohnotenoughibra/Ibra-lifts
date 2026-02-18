@@ -221,6 +221,11 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
     [trainingSessions]
   );
 
+  const totalLiftingTime = useMemo(
+    () => workoutLogs.reduce((sum, w) => sum + (w.duration || 0), 0),
+    [workoutLogs]
+  );
+
   const avgRPE = useMemo(() => {
     if (trainingSessions.length === 0) return 0;
     const total = trainingSessions.reduce((sum, s) => sum + s.perceivedExertion, 0);
@@ -428,6 +433,30 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
             </div>
           </div>
         </div>
+
+        {/* All-Time Totals */}
+        {(totalMatTime > 0 || totalLiftingTime > 0) && (
+          <div className="flex gap-3">
+            <div className="flex-1 bg-grappler-800 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-grappler-100">{formatDuration(totalMatTime)}</div>
+                <div className="text-[10px] text-grappler-500 uppercase tracking-wider">Mat time all-time</div>
+              </div>
+            </div>
+            <div className="flex-1 bg-grappler-800 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center flex-shrink-0">
+                <Dumbbell className="w-4 h-4 text-primary-400" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-grappler-100">{formatDuration(totalLiftingTime)}</div>
+                <div className="text-[10px] text-grappler-500 uppercase tracking-wider">Lifting all-time</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Add Session Form */}
         <AnimatePresence>

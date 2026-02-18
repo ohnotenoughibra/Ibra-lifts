@@ -320,11 +320,13 @@ function transformWhoopData(apiData: WhoopApiResponse): TransformResult {
   // --- Estimate today's strain from completed workouts ---
   // Whoop's API doesn't expose running strain for PENDING_STRAIN (in-progress)
   // day cycles. Instead of showing nothing all day, pull strain from today's
-  // scored workouts. This gives a meaningful running number.
+  // scored workouts and combine them. Strain is logarithmic (0-21), so we
+  // use root-sum-of-squares to approximate cumulative daily strain from
+  // multiple activities rather than showing only the highest single one.
   let todayStrainEstimated = false;
   const todayEntry = dataMap.get(todayKey);
   if (todayEntry && todayEntry.strain == null && apiData.workouts) {
-    let maxWorkoutStrain = 0;
+    const workoutStrains: number[] = [];
     let totalCalories = 0;
     let peakHR = 0;
     let peakAvgHR = 0;
@@ -333,17 +335,21 @@ function transformWhoopData(apiData: WhoopApiResponse): TransformResult {
       const wDate = (w.end || w.start || '')?.substring?.(0, 10);
       if (wDate !== todayKey) continue;
       const wStrain = w.score?.strain ?? 0;
-      if (wStrain > maxWorkoutStrain) maxWorkoutStrain = wStrain;
+      if (wStrain > 0) workoutStrains.push(wStrain);
       totalCalories += w.score?.kilojoule ? Math.round(w.score.kilojoule * 0.239006) : 0;
       const wMax = w.score?.max_heart_rate ?? 0;
       if (wMax > peakHR) peakHR = wMax;
       const wAvg = w.score?.average_heart_rate ?? 0;
       if (wAvg > peakAvgHR) peakAvgHR = wAvg;
     }
-    if (maxWorkoutStrain > 0) {
+    // Combine strains: RSS for multiple workouts, capped at 21 (Whoop max)
+    const combinedStrain = workoutStrains.length > 0
+      ? Math.min(21, Math.sqrt(workoutStrains.reduce((sum, s) => sum + s * s, 0)))
+      : 0;
+    if (combinedStrain > 0) {
       todayStrainEstimated = true;
       const updates: Partial<WearableData> = {
-        strain: Math.round(maxWorkoutStrain * 10) / 10,
+        strain: Math.round(combinedStrain * 10) / 10,
       };
       if (totalCalories > 0 && todayEntry.caloriesBurned == null) updates.caloriesBurned = totalCalories;
       if (peakHR > 0 && todayEntry.maxHeartRate == null) updates.maxHeartRate = peakHR;
@@ -1102,8 +1108,10 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
 
   const todayWorkoutStrain = useMemo(() => {
     if (todayWorkouts.length === 0) return 0;
-    // Use the highest individual workout strain (Whoop day strain is NOT the sum)
-    return Math.max(...todayWorkouts.map(w => w.strain ?? 0));
+    // Combine all workout strains using root-sum-of-squares (strain is logarithmic 0-21)
+    const strains = todayWorkouts.map(w => w.strain ?? 0).filter(s => s > 0);
+    if (strains.length === 0) return 0;
+    return Math.min(21, Math.round(Math.sqrt(strains.reduce((sum, s) => sum + s * s, 0)) * 10) / 10);
   }, [todayWorkouts]);
 
   // For today: prefer cycle strain if available (rarely), otherwise use workout strain

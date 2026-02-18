@@ -5,7 +5,7 @@ import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
   Heart, Shield, Thermometer, Zap, Moon, Battery,
-  Apple, Grip, Flame, Brain,
+  Apple, Grip, Flame, Brain, Gauge, Sunrise,
   Swords, Navigation, Move, Watch,
   Users, MessageSquare, Search, Clock, Pin,
   Crown, Hammer, Eye, Salad, Trophy,
@@ -61,6 +61,7 @@ const CATEGORIES: Category[] = [
       { id: 'profiler', label: 'Exercise Profiler', desc: 'Per-exercise deep dive', longDesc: 'Volume, intensity, frequency, and performance over time per exercise', keywords: 'history stats analytics individual exercise detail performance data sets reps', icon: Target, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'volume_map', label: 'Volume Map', desc: 'Muscle group volume', longDesc: 'Weekly sets per muscle group against science-based volume landmarks', keywords: 'muscle group heatmap chest back legs arms shoulders volume sets weekly body part', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
       { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
+      { id: 'training_load', label: 'Training Load', desc: 'ACWR & load tracking', longDesc: 'Acute:Chronic Workload Ratio dashboard — see weekly load trends, 28-day heatmap, and injury risk zones (Gabbett 2016)', keywords: 'acwr load training volume weekly chronic acute ratio overtraining injury risk workload heatmap', icon: Gauge, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
     ],
   },
   {
@@ -75,6 +76,7 @@ const CATEGORIES: Category[] = [
       { id: 'illness', label: 'Illness Log', desc: 'Log sick days', longDesc: 'Log sick days to track how illness affects your training and recovery', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'fatigue', label: 'Fatigue', desc: 'Monitor fatigue levels', longDesc: 'Monitor accumulated fatigue — know when to push and when to pull back', keywords: 'tired exhausted worn out energy low deload overtraining fatigue debt accumulated', icon: Zap, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400', isPro: true },
       { id: 'auto_throttle', label: 'Auto-Throttle', desc: 'Smart workout scaling', longDesc: 'Automatically adjusts volume, intensity, and exercise selection based on your readiness score — from peak performance mode to recovery mode', keywords: 'readiness auto adjust throttle scale volume intensity smart adaptive recovery whoop sleep', icon: Battery, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400', isPro: true },
+      { id: 'warm_up', label: 'Smart Warm-Up', desc: 'Auto warm-up builder', longDesc: 'Generates a personalized warm-up based on your session — dynamic stretches, activation drills, and ramp-up sets for your first compound lift', keywords: 'warm up warmup stretch mobility dynamic activation ramp sets bar prep movement prep cardio', icon: Sunrise, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
     ],
   },
   {

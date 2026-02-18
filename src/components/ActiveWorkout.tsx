@@ -966,7 +966,7 @@ export default function ActiveWorkout() {
             role="dialog"
             aria-modal="true"
           >
-            <div className="flex-1 overflow-y-auto p-4 pb-32">
+            <div className="flex-1 overflow-y-auto p-4 pb-40">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <button

@@ -585,7 +585,7 @@ export default function Dashboard({
 
       {/* Bottom Navigation — 5 tabs */}
       <nav
-        className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
         role="tablist"
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}

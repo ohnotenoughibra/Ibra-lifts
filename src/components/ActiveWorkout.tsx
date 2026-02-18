@@ -956,12 +956,13 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Workout Overview Modal */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {showOverview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
             role="dialog"
             aria-modal="true"

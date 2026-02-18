@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
-  Heart, Shield, Thermometer, Zap, Moon,
-  Apple, Grip, Flame,
+  Heart, Shield, Thermometer, Zap, Moon, Battery,
+  Apple, Grip, Flame, Brain,
   Swords, Navigation, Move, Watch,
   Users, MessageSquare, Search, Clock, Pin,
   Crown, Hammer, Eye, Salad, Trophy,
@@ -74,6 +74,7 @@ const CATEGORIES: Category[] = [
       { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'illness', label: 'Illness Log', desc: 'Log sick days', longDesc: 'Log sick days to track how illness affects your training and recovery', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'fatigue', label: 'Fatigue', desc: 'Monitor fatigue levels', longDesc: 'Monitor accumulated fatigue — know when to push and when to pull back', keywords: 'tired exhausted worn out energy low deload overtraining fatigue debt accumulated', icon: Zap, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400', isPro: true },
+      { id: 'auto_throttle', label: 'Auto-Throttle', desc: 'Smart workout scaling', longDesc: 'Automatically adjusts volume, intensity, and exercise selection based on your readiness score — from peak performance mode to recovery mode', keywords: 'readiness auto adjust throttle scale volume intensity smart adaptive recovery whoop sleep', icon: Battery, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400', isPro: true },
     ],
   },
   {
@@ -96,6 +97,7 @@ const CATEGORIES: Category[] = [
       { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
       { id: 'wearable', label: 'Wearables', desc: 'Connect your device', longDesc: 'Connect Whoop, Apple Watch, or Garmin for sleep, HRV, and recovery data', keywords: 'whoop apple watch garmin fitbit oura ring wearable device sync connect tracker', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400', isPro: true },
       { id: 'coach', label: 'Weekly Coach', desc: 'AI training feedback', longDesc: 'AI-generated weekly training review with progress insights and adjustments', keywords: 'coach advice tips feedback review summary weekly insight recommendation ai smart', icon: MessageSquare, color: 'from-primary-500/20 to-primary-500/5 text-primary-400', isPro: true },
+      { id: 'corner_coach', label: 'Corner Coach', desc: 'Live workout coaching', longDesc: 'Real-time coaching voice during your workout — reacts to RPE, rep drops, weight changes, and pacing like a corner coach in a fight', keywords: 'coach live real time workout corner fight mma boxing coaching feedback cue tips voice reactive', icon: Brain, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
       { id: 'community_share', label: 'Share', desc: 'Share with friends', longDesc: 'Export workout summaries and PR achievements as shareable cards', keywords: 'share export screenshot post social media friends community brag show results', icon: Users, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
     ],
   },

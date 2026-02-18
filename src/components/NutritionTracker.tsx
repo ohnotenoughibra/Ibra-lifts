@@ -731,16 +731,26 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   // Autocomplete suggestions based on current input
   // Day-of-week pattern meals are boosted to the top when they match the query
+  // Supports fuzzy matching: "chick" matches "chicken", "sal" matches "salmon"
   const autocompleteSuggestions = useMemo(() => {
     const q = formName.toLowerCase().trim();
-    if (q.length < 2) return [];
+    if (q.length < 1) return [];
 
     // Build a set of today's pattern meal keys for boosting
     const patternKeys = new Set(todayPatternMeals.map(p => p.name.toLowerCase()));
 
+    // Fuzzy match helper: checks if query is a prefix/substring of text or any word in text
+    const fuzzyMatch = (text: string, query: string) => {
+      const lower = text.toLowerCase();
+      if (lower.includes(query)) return true;
+      // Also match if query is a prefix of any word in the text
+      const words = lower.split(/[\s,()-]+/);
+      return words.some(w => w.startsWith(query));
+    };
+
     // 1. Search meal history first (frequency-weighted, pattern-boosted)
     const historyMatches = Array.from(mealHistoryIndex.values())
-      .filter(f => f.name.toLowerCase().includes(q))
+      .filter(f => fuzzyMatch(f.name, q))
       .sort((a, b) => {
         // Pattern meals for today sort first
         const aPattern = patternKeys.has(a.name.toLowerCase()) ? 100 : 0;
@@ -756,10 +766,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           : undefined,
       }));
 
-    // 2. Search FOOD_DB (only add items not already in history)
+    // 2. Search FOOD_DB with fuzzy matching (only add items not already in history)
     const historyNames = new Set(historyMatches.map(h => h.name.toLowerCase()));
     const dbMatches = FOOD_DB
-      .filter(f => f.keywords.some(kw => kw.includes(q) || q.includes(kw)))
+      .filter(f => f.keywords.some(kw => kw.startsWith(q) || kw.includes(q) || q.includes(kw)) || fuzzyMatch(f.name, q))
       .filter(f => !historyNames.has(f.name.toLowerCase()))
       .slice(0, 3)
       .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const, dayPattern: undefined as string | undefined }));
@@ -1971,6 +1981,42 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             Quick Add Protein (+30g)
           </button>
 
+          {/* 1-Tap frequent foods — always visible, no form needed */}
+          {favoriteFoods.length > 0 && (
+            <div className="mb-3">
+              <label className="text-[10px] text-grappler-500 mb-1.5 block uppercase tracking-wider font-semibold flex items-center gap-1">
+                <Star className="w-3 h-3 text-sky-400" />
+                Tap to log
+              </label>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                {favoriteFoods.map(food => {
+                  const h = new Date().getHours();
+                  const mealType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+                  return (
+                    <button
+                      key={food.name}
+                      onClick={() => {
+                        addMeal({
+                          date: new Date(selectedDate + 'T12:00:00'),
+                          mealType,
+                          name: food.name,
+                          calories: Math.round(food.calories),
+                          protein: Math.round(food.protein),
+                          carbs: Math.round(food.carbs),
+                          fat: Math.round(food.fat),
+                        });
+                      }}
+                      className="flex-shrink-0 px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-colors active:scale-95 text-left"
+                    >
+                      <p className="text-xs font-medium text-grappler-100 truncate max-w-[120px]">{food.name}</p>
+                      <p className="text-[10px] text-grappler-500">{Math.round(food.calories)} kcal · {Math.round(food.protein)}g P</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
               Log Food
@@ -2146,10 +2192,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         value={formName}
                         onChange={(e) => {
                           setFormName(e.target.value);
-                          setShowAutocomplete(e.target.value.trim().length >= 2);
+                          setShowAutocomplete(e.target.value.trim().length >= 1);
                         }}
                         onFocus={() => {
-                          if (formName.trim().length >= 2) setShowAutocomplete(true);
+                          if (formName.trim().length >= 1) setShowAutocomplete(true);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && formName.trim()) {

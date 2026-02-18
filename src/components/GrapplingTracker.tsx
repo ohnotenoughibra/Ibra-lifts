@@ -20,6 +20,8 @@ import {
   Brain,
   Zap,
   Utensils,
+  BarChart3,
+  Weight,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
@@ -174,9 +176,10 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'log' | 'stats'>('log');
+  const [activeTab, setActiveTab] = useState<'log' | 'combat' | 'lifting'>('log');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingIntensityId, setEditingIntensityId] = useState<string | null>(null);
+  const [statsPeriod, setStatsPeriod] = useState<'30d' | '3m' | 'year' | 'all'>('all');
 
   // Form state
   const [formType, setFormType] = useState<ActivityType>('bjj_nogi');
@@ -246,6 +249,121 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
     const weeks = Math.max(1, (latest - earliest) / (7 * 24 * 60 * 60 * 1000));
     return Math.round((trainingSessions.length / weeks) * 10) / 10;
   }, [trainingSessions]);
+
+  // -----------------------------------------------------------------------
+  // Period-filtered stats
+  // -----------------------------------------------------------------------
+
+  const periodCutoff = useMemo(() => {
+    const now = new Date();
+    switch (statsPeriod) {
+      case '30d': return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+      case '3m': return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+      case 'year': return new Date(now.getFullYear(), 0, 1);
+      case 'all': return new Date(0);
+    }
+  }, [statsPeriod]);
+
+  const filteredCombat = useMemo(
+    () => trainingSessions.filter(s => new Date(s.date) >= periodCutoff),
+    [trainingSessions, periodCutoff]
+  );
+
+  const filteredLifting = useMemo(
+    () => workoutLogs.filter(w => new Date(w.date) >= periodCutoff),
+    [workoutLogs, periodCutoff]
+  );
+
+  const filteredCombatTime = useMemo(
+    () => filteredCombat.reduce((sum, s) => sum + s.duration, 0),
+    [filteredCombat]
+  );
+
+  const filteredLiftingTime = useMemo(
+    () => filteredLifting.reduce((sum, w) => sum + (w.duration || 0), 0),
+    [filteredLifting]
+  );
+
+  const filteredLiftingVolume = useMemo(
+    () => filteredLifting.reduce((sum, w) => sum + (w.totalVolume || 0), 0),
+    [filteredLifting]
+  );
+
+  // Monthly breakdown — builds an array of { month: 'Jan', year: 2025, combatMins, liftingMins, combatSessions, liftingSessions }
+  const monthlyBreakdown = useMemo(() => {
+    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const map = new Map<string, { month: string; year: number; combatMins: number; liftingMins: number; combatSessions: number; liftingSessions: number }>();
+
+    const ensureEntry = (d: Date) => {
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!map.has(key)) {
+        map.set(key, { month: MONTH_NAMES[d.getMonth()], year: d.getFullYear(), combatMins: 0, liftingMins: 0, combatSessions: 0, liftingSessions: 0 });
+      }
+      return map.get(key)!;
+    };
+
+    for (const s of filteredCombat) {
+      const entry = ensureEntry(new Date(s.date));
+      entry.combatMins += s.duration;
+      entry.combatSessions += 1;
+    }
+
+    for (const w of filteredLifting) {
+      const entry = ensureEntry(new Date(w.date));
+      entry.liftingMins += w.duration || 0;
+      entry.liftingSessions += 1;
+    }
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return MONTH_NAMES.indexOf(a.month) - MONTH_NAMES.indexOf(b.month);
+    });
+  }, [filteredCombat, filteredLifting]);
+
+  // Yearly breakdown
+  const yearlyBreakdown = useMemo(() => {
+    const map = new Map<number, { year: number; combatMins: number; liftingMins: number; combatSessions: number; liftingSessions: number }>();
+
+    const ensureEntry = (y: number) => {
+      if (!map.has(y)) map.set(y, { year: y, combatMins: 0, liftingMins: 0, combatSessions: 0, liftingSessions: 0 });
+      return map.get(y)!;
+    };
+
+    for (const s of trainingSessions) {
+      const entry = ensureEntry(new Date(s.date).getFullYear());
+      entry.combatMins += s.duration;
+      entry.combatSessions += 1;
+    }
+    for (const w of workoutLogs) {
+      const entry = ensureEntry(new Date(w.date).getFullYear());
+      entry.liftingMins += w.duration || 0;
+      entry.liftingSessions += 1;
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.year - b.year);
+  }, [trainingSessions, workoutLogs]);
+
+  // Combat-specific: filtered avg RPE, submissions, type breakdown
+  const filteredAvgRPE = useMemo(() => {
+    if (filteredCombat.length === 0) return 0;
+    return Math.round((filteredCombat.reduce((s, x) => s + x.perceivedExertion, 0) / filteredCombat.length) * 10) / 10;
+  }, [filteredCombat]);
+
+  const filteredSubmissions = useMemo(
+    () => filteredCombat.reduce((s, x) => s + (x.submissions ?? 0), 0),
+    [filteredCombat]
+  );
+
+  // Lifting-specific: filtered avg RPE, avg duration
+  const filteredLiftingAvgRPE = useMemo(() => {
+    if (filteredLifting.length === 0) return 0;
+    return Math.round((filteredLifting.reduce((s, w) => s + w.overallRPE, 0) / filteredLifting.length) * 10) / 10;
+  }, [filteredLifting]);
+
+  const filteredLiftingAvgDuration = useMemo(() => {
+    if (filteredLifting.length === 0) return 0;
+    return Math.round(filteredLifting.reduce((s, w) => s + (w.duration || 0), 0) / filteredLifting.length);
+  }, [filteredLifting]);
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -331,10 +449,10 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
               </div>
               <div>
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
-                  Grappling Log
+                  Training Log
                 </h1>
                 <p className="text-xs text-grappler-500">
-                  Track mat sessions
+                  Sessions &amp; stats
                 </p>
               </div>
             </div>
@@ -349,27 +467,26 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
         </div>
 
         {/* Tab switcher */}
-        <div className="px-4 pb-2 flex gap-2">
-          <button
-            onClick={() => setActiveTab('log')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === 'log'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'text-grappler-400 hover:text-grappler-200'
-            }`}
-          >
-            Sessions
-          </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === 'stats'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'text-grappler-400 hover:text-grappler-200'
-            }`}
-          >
-            Stats
-          </button>
+        <div className="px-4 pb-2 flex gap-1.5">
+          {([
+            { id: 'log', label: 'Sessions', color: 'emerald' },
+            { id: 'combat', label: 'Combat', color: 'emerald' },
+            { id: 'lifting', label: 'Lifting', color: 'primary' },
+          ] as const).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? tab.color === 'primary'
+                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                  : 'text-grappler-400 hover:text-grappler-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -1086,94 +1203,156 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
           </div>
         )}
 
-        {/* Tab Content: Stats */}
-        {activeTab === 'stats' && (
+        {/* ━━━ Tab Content: Combat Stats ━━━ */}
+        {activeTab === 'combat' && (
           <div className="space-y-4">
-            {/* Overview stat cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-grappler-800 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs text-grappler-400">Total Mat Time</span>
-                </div>
-                <div className="text-xl font-bold text-grappler-50">
-                  {formatDuration(totalMatTime)}
-                </div>
-                <div className="text-xs text-grappler-500 mt-0.5">
-                  {trainingSessions.length} session{trainingSessions.length !== 1 ? 's' : ''}
-                </div>
-              </div>
+            {/* Period selector */}
+            <div className="flex gap-1.5 bg-grappler-800 rounded-xl p-1.5">
+              {([
+                { id: '30d', label: '30 Days' },
+                { id: '3m', label: '3 Months' },
+                { id: 'year', label: 'This Year' },
+                { id: 'all', label: 'All Time' },
+              ] as const).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setStatsPeriod(p.id)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    statsPeriod === p.id
+                      ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                      : 'text-grappler-500 hover:text-grappler-300'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
 
-              <div className="bg-grappler-800 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Flame className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs text-grappler-400">Avg RPE</span>
-                </div>
-                <div className={`text-xl font-bold ${avgRPE > 0 ? rpeColor(avgRPE) : 'text-grappler-50'}`}>
-                  {avgRPE > 0 ? avgRPE : '--'}
-                </div>
-                <div className="text-xs text-grappler-500 mt-0.5">perceived effort</div>
+            {/* Hero stat: Total Mat Time */}
+            <div className="bg-gradient-to-br from-emerald-500/10 via-grappler-800 to-grappler-800 rounded-2xl p-5 border border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-400/80 uppercase tracking-wider">Total Mat Time</span>
               </div>
+              <div className="text-4xl font-black text-grappler-50 tracking-tight">
+                {filteredCombatTime >= 60
+                  ? <>{Math.floor(filteredCombatTime / 60)}<span className="text-lg font-semibold text-grappler-400">h </span>{filteredCombatTime % 60 > 0 && <>{filteredCombatTime % 60}<span className="text-lg font-semibold text-grappler-400">m</span></>}</>
+                  : <>{filteredCombatTime}<span className="text-lg font-semibold text-grappler-400">m</span></>
+                }
+              </div>
+              <p className="text-xs text-grappler-500 mt-1">
+                {filteredCombat.length} session{filteredCombat.length !== 1 ? 's' : ''}
+                {filteredCombat.length > 0 && ` · avg ${Math.round(filteredCombatTime / filteredCombat.length)}m per session`}
+              </p>
+            </div>
 
-              <div className="bg-grappler-800 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-primary-400" />
-                  <span className="text-xs text-grappler-400">Frequency</span>
+            {/* Quick stat cards */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className={`text-lg font-bold ${filteredAvgRPE > 0 ? rpeColor(filteredAvgRPE) : 'text-grappler-400'}`}>
+                  {filteredAvgRPE > 0 ? filteredAvgRPE : '--'}
                 </div>
-                <div className="text-xl font-bold text-grappler-50">
+                <div className="text-[10px] text-grappler-500 mt-0.5">Avg RPE</div>
+              </div>
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-grappler-100">
                   {sessionsPerWeek > 0 ? sessionsPerWeek : '--'}
                 </div>
-                <div className="text-xs text-grappler-500 mt-0.5">sessions / week</div>
+                <div className="text-[10px] text-grappler-500 mt-0.5">Per Week</div>
               </div>
-
-              <div className="bg-grappler-800 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs text-grappler-400">Total Subs</span>
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-emerald-400">
+                  {filteredSubmissions > 0 ? filteredSubmissions : '--'}
                 </div>
-                <div className="text-xl font-bold text-emerald-400">
-                  {totalSubmissions > 0 ? totalSubmissions : '--'}
-                </div>
-                <div className="text-xs text-grappler-500 mt-0.5">submissions landed</div>
+                <div className="text-[10px] text-grappler-500 mt-0.5">Subs</div>
               </div>
             </div>
 
-            {/* Training breakdown by type */}
-            <div className="bg-grappler-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-                <Dumbbell className="w-4 h-4 text-emerald-400" />
-                Training Breakdown
-              </h3>
-              {trainingSessions.length === 0 ? (
-                <p className="text-xs text-grappler-500 text-center py-4">
-                  Log sessions to see your breakdown.
-                </p>
-              ) : (
+            {/* Monthly breakdown chart */}
+            {monthlyBreakdown.length > 0 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                  Monthly Mat Time
+                </h3>
+                <div className="space-y-1.5">
+                  {monthlyBreakdown.slice(-6).map((m) => {
+                    const maxMins = Math.max(...monthlyBreakdown.slice(-6).map(x => x.combatMins), 1);
+                    const pct = Math.round((m.combatMins / maxMins) * 100);
+                    return (
+                      <div key={`${m.year}-${m.month}`} className="flex items-center gap-2">
+                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">
+                          {m.month} {m.year !== new Date().getFullYear() ? `'${String(m.year).slice(2)}` : ''}
+                        </span>
+                        <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(pct, 2)}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="h-full bg-emerald-500/40 rounded"
+                          />
+                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                            {formatDuration(m.combatMins)} · {m.combatSessions}s
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Yearly totals */}
+            {yearlyBreakdown.length > 1 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                  Yearly Mat Time
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {yearlyBreakdown.map(y => (
+                    <div key={y.year} className="bg-grappler-700/40 rounded-lg p-3">
+                      <div className="text-xs text-grappler-500 font-medium">{y.year}</div>
+                      <div className="text-lg font-bold text-emerald-400">{formatDuration(y.combatMins)}</div>
+                      <div className="text-[10px] text-grappler-500">{y.combatSessions} sessions</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Type breakdown */}
+            {filteredCombat.length > 0 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-emerald-400" />
+                  By Discipline
+                </h3>
                 <div className="space-y-2">
                   {ACTIVITY_TYPES.map((gt) => {
-                    const count = trainingSessions.filter(
-                      (s) => s.type === gt.id
-                    ).length;
-                    if (count === 0) return null;
-                    const pct = Math.round((count / trainingSessions.length) * 100);
+                    const sessions = filteredCombat.filter(s => s.type === gt.id);
+                    if (sessions.length === 0) return null;
+                    const mins = sessions.reduce((sum, s) => sum + s.duration, 0);
+                    const pct = Math.round((sessions.length / filteredCombat.length) * 100);
                     return (
                       <div key={gt.id}>
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="text-grappler-300 flex items-center gap-1.5">
-                            <span
-                              className={`w-2 h-2 rounded-full ${
-                                gt.id === 'bjj_gi' ? 'bg-emerald-500' :
-                                gt.id === 'bjj_nogi' ? 'bg-teal-500' :
-                                gt.id === 'wrestling' ? 'bg-sky-500' :
-                                gt.id === 'mma' ? 'bg-red-500' :
-                                gt.id === 'judo' ? 'bg-blue-500' :
-                                'bg-grappler-500'
-                              }`}
-                            />
+                            <span className={`w-2 h-2 rounded-full ${
+                              gt.id === 'bjj_gi' ? 'bg-emerald-500' :
+                              gt.id === 'bjj_nogi' ? 'bg-teal-500' :
+                              gt.id === 'wrestling' ? 'bg-sky-500' :
+                              gt.id === 'mma' ? 'bg-red-500' :
+                              gt.id === 'judo' ? 'bg-blue-500' :
+                              gt.id === 'boxing' ? 'bg-orange-500' :
+                              gt.id === 'kickboxing' ? 'bg-amber-500' :
+                              gt.id === 'muay_thai' ? 'bg-rose-500' :
+                              'bg-grappler-500'
+                            }`} />
                             {gt.label}
                           </span>
-                          <span className="text-grappler-400">
-                            {count} ({pct}%)
+                          <span className="text-grappler-500">
+                            {sessions.length} · {formatDuration(mins)}
                           </span>
                         </div>
                         <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
@@ -1187,6 +1366,9 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                               gt.id === 'wrestling' ? 'bg-sky-500' :
                               gt.id === 'mma' ? 'bg-red-500' :
                               gt.id === 'judo' ? 'bg-blue-500' :
+                              gt.id === 'boxing' ? 'bg-orange-500' :
+                              gt.id === 'kickboxing' ? 'bg-amber-500' :
+                              gt.id === 'muay_thai' ? 'bg-rose-500' :
                               'bg-grappler-500'
                             }`}
                           />
@@ -1195,100 +1377,248 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     );
                   })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Intensity distribution */}
-            <div className="bg-grappler-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-                <Flame className="w-4 h-4 text-blue-400" />
-                Intensity Distribution
-              </h3>
-              {trainingSessions.length === 0 ? (
-                <p className="text-xs text-grappler-500 text-center py-4">
-                  No data yet.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
+            {filteredCombat.length > 0 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Flame className="w-3.5 h-3.5 text-blue-400" />
+                  Intensity Distribution
+                </h3>
+                <div className="grid grid-cols-4 gap-1.5">
                   {INTENSITY_OPTIONS.map((opt) => {
-                    const count = trainingSessions.filter(
+                    const count = filteredCombat.filter(
                       (s) => (s.actualIntensity || s.plannedIntensity) === opt.id
                     ).length;
-                    const pct =
-                      trainingSessions.length > 0
-                        ? Math.round((count / trainingSessions.length) * 100)
-                        : 0;
+                    const pct = filteredCombat.length > 0 ? Math.round((count / filteredCombat.length) * 100) : 0;
                     return (
                       <div
                         key={opt.id}
-                        className={`rounded-lg p-3 border text-center ${
-                          count > 0
-                            ? opt.color
-                            : 'bg-grappler-700/50 border-grappler-600/50 text-grappler-500'
+                        className={`rounded-lg p-2 border text-center ${
+                          count > 0 ? opt.color : 'bg-grappler-700/50 border-grappler-600/50 text-grappler-500'
                         }`}
                       >
-                        <div className="text-lg font-bold">{count}</div>
-                        <div className="text-xs font-medium mt-0.5">
-                          {opt.label}
-                        </div>
-                        {count > 0 && (
-                          <div className="text-xs opacity-70 mt-0.5">{pct}%</div>
-                        )}
+                        <div className="text-base font-bold">{count}</div>
+                        <div className="text-[9px] font-medium mt-0.5 leading-tight">{opt.label}</div>
+                        {count > 0 && <div className="text-[9px] opacity-60 mt-0.5">{pct}%</div>}
                       </div>
                     );
                   })}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {filteredCombat.length === 0 && (
+              <div className="text-center py-10">
+                <Target className="w-10 h-10 text-grappler-700 mx-auto mb-3" />
+                <p className="text-sm text-grappler-400 font-medium">No combat sessions in this period</p>
+                <p className="text-xs text-grappler-500 mt-1">Log sessions in the Sessions tab to see your stats here</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ━━━ Tab Content: Lifting Stats ━━━ */}
+        {activeTab === 'lifting' && (
+          <div className="space-y-4">
+            {/* Period selector */}
+            <div className="flex gap-1.5 bg-grappler-800 rounded-xl p-1.5">
+              {([
+                { id: '30d', label: '30 Days' },
+                { id: '3m', label: '3 Months' },
+                { id: 'year', label: 'This Year' },
+                { id: 'all', label: 'All Time' },
+              ] as const).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setStatsPeriod(p.id)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    statsPeriod === p.id
+                      ? 'bg-primary-500/20 text-primary-400 shadow-sm'
+                      : 'text-grappler-500 hover:text-grappler-300'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
 
-            {/* Grappling vs Lifting all-time */}
-            <div className="bg-grappler-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-emerald-400" />
-                Grappling vs Lifting (All Time)
-              </h3>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex-1 text-center">
-                  <div className="text-2xl font-bold text-emerald-400">
-                    {trainingSessions.length}
-                  </div>
-                  <div className="text-xs text-grappler-400">Mat Sessions</div>
-                </div>
-                <div className="text-grappler-600 text-xl font-light">vs</div>
-                <div className="flex-1 text-center">
-                  <div className="text-2xl font-bold text-primary-400">
-                    {workoutLogs.length}
-                  </div>
-                  <div className="text-xs text-grappler-400">Gym Sessions</div>
-                </div>
+            {/* Hero stat: Total Gym Time */}
+            <div className="bg-gradient-to-br from-primary-500/10 via-grappler-800 to-grappler-800 rounded-2xl p-5 border border-primary-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Dumbbell className="w-4 h-4 text-primary-400" />
+                <span className="text-xs font-semibold text-primary-400/80 uppercase tracking-wider">Total Gym Time</span>
               </div>
-              {trainingSessions.length + workoutLogs.length > 0 && (
-                <div className="h-3 bg-grappler-700 rounded-full overflow-hidden flex">
-                  <div
-                    className="h-full bg-emerald-500 transition-all duration-500"
-                    style={{
-                      width: `${(trainingSessions.length / (trainingSessions.length + workoutLogs.length)) * 100}%`,
-                    }}
-                  />
-                  <div
-                    className="h-full bg-primary-500 transition-all duration-500"
-                    style={{
-                      width: `${(workoutLogs.length / (trainingSessions.length + workoutLogs.length)) * 100}%`,
-                    }}
-                  />
+              <div className="text-4xl font-black text-grappler-50 tracking-tight">
+                {filteredLiftingTime >= 60
+                  ? <>{Math.floor(filteredLiftingTime / 60)}<span className="text-lg font-semibold text-grappler-400">h </span>{filteredLiftingTime % 60 > 0 && <>{filteredLiftingTime % 60}<span className="text-lg font-semibold text-grappler-400">m</span></>}</>
+                  : <>{filteredLiftingTime}<span className="text-lg font-semibold text-grappler-400">m</span></>
+                }
+              </div>
+              <p className="text-xs text-grappler-500 mt-1">
+                {filteredLifting.length} session{filteredLifting.length !== 1 ? 's' : ''}
+                {filteredLifting.length > 0 && ` · avg ${filteredLiftingAvgDuration}m per session`}
+              </p>
+            </div>
+
+            {/* Quick stat cards */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-primary-400">
+                  {filteredLiftingVolume > 0 ? `${Math.round(filteredLiftingVolume / 1000)}k` : '--'}
                 </div>
-              )}
-              <div className="flex items-center justify-between mt-2 text-xs text-grappler-500">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Grappling
+                <div className="text-[10px] text-grappler-500 mt-0.5">Volume ({user?.weightUnit || 'kg'})</div>
+              </div>
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className={`text-lg font-bold ${filteredLiftingAvgRPE > 0 ? rpeColor(filteredLiftingAvgRPE) : 'text-grappler-400'}`}>
+                  {filteredLiftingAvgRPE > 0 ? filteredLiftingAvgRPE : '--'}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-primary-500" />
-                  Lifting
+                <div className="text-[10px] text-grappler-500 mt-0.5">Avg RPE</div>
+              </div>
+              <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                <div className="text-lg font-bold text-grappler-100">
+                  {filteredLiftingAvgDuration > 0 ? filteredLiftingAvgDuration : '--'}
+                  {filteredLiftingAvgDuration > 0 && <span className="text-xs text-grappler-500">m</span>}
                 </div>
+                <div className="text-[10px] text-grappler-500 mt-0.5">Avg Duration</div>
               </div>
             </div>
+
+            {/* Monthly breakdown chart */}
+            {monthlyBreakdown.length > 0 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <BarChart3 className="w-3.5 h-3.5 text-primary-400" />
+                  Monthly Gym Time
+                </h3>
+                <div className="space-y-1.5">
+                  {monthlyBreakdown.slice(-6).map((m) => {
+                    const maxMins = Math.max(...monthlyBreakdown.slice(-6).map(x => x.liftingMins), 1);
+                    const pct = Math.round((m.liftingMins / maxMins) * 100);
+                    return (
+                      <div key={`${m.year}-${m.month}`} className="flex items-center gap-2">
+                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">
+                          {m.month} {m.year !== new Date().getFullYear() ? `'${String(m.year).slice(2)}` : ''}
+                        </span>
+                        <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(pct, 2)}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="h-full bg-primary-500/40 rounded"
+                          />
+                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                            {formatDuration(m.liftingMins)} · {m.liftingSessions}s
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Yearly totals */}
+            {yearlyBreakdown.length > 1 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-primary-400" />
+                  Yearly Gym Time
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {yearlyBreakdown.map(y => (
+                    <div key={y.year} className="bg-grappler-700/40 rounded-lg p-3">
+                      <div className="text-xs text-grappler-500 font-medium">{y.year}</div>
+                      <div className="text-lg font-bold text-primary-400">{formatDuration(y.liftingMins)}</div>
+                      <div className="text-[10px] text-grappler-500">{y.liftingSessions} sessions</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Volume trend — monthly */}
+            {filteredLifting.length > 0 && monthlyBreakdown.length > 0 && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Weight className="w-3.5 h-3.5 text-primary-400" />
+                  Monthly Volume
+                </h3>
+                <div className="space-y-1.5">
+                  {(() => {
+                    // Build monthly volume from filtered lifting
+                    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const volMap = new Map<string, { label: string; volume: number }>();
+                    for (const w of filteredLifting) {
+                      const d = new Date(w.date);
+                      const key = `${d.getFullYear()}-${d.getMonth()}`;
+                      if (!volMap.has(key)) volMap.set(key, { label: `${MONTH_NAMES[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? ` '${String(d.getFullYear()).slice(2)}` : ''}`, volume: 0 });
+                      volMap.get(key)!.volume += w.totalVolume || 0;
+                    }
+                    const entries = Array.from(volMap.values()).slice(-6);
+                    const maxVol = Math.max(...entries.map(e => e.volume), 1);
+                    return entries.map((e) => (
+                      <div key={e.label} className="flex items-center gap-2">
+                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">{e.label}</span>
+                        <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(Math.round((e.volume / maxVol) * 100), 2)}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            className="h-full bg-primary-500/30 rounded"
+                          />
+                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                            {e.volume >= 1000 ? `${(e.volume / 1000).toFixed(1)}k` : e.volume} {user?.weightUnit || 'kg'}
+                          </span>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Grappling vs Lifting comparison */}
+            {(filteredCombat.length > 0 || filteredLifting.length > 0) && (
+              <div className="bg-grappler-800 rounded-xl p-4">
+                <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-3">
+                  Combat vs Lifting Split
+                </h3>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 text-center">
+                    <div className="text-xl font-bold text-emerald-400">{formatDuration(filteredCombatTime)}</div>
+                    <div className="text-[10px] text-grappler-500">{filteredCombat.length} sessions</div>
+                  </div>
+                  <div className="text-grappler-600 text-sm">vs</div>
+                  <div className="flex-1 text-center">
+                    <div className="text-xl font-bold text-primary-400">{formatDuration(filteredLiftingTime)}</div>
+                    <div className="text-[10px] text-grappler-500">{filteredLifting.length} sessions</div>
+                  </div>
+                </div>
+                {filteredCombatTime + filteredLiftingTime > 0 && (
+                  <div className="h-2.5 bg-grappler-700 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(filteredCombatTime / (filteredCombatTime + filteredLiftingTime)) * 100}%` }} />
+                    <div className="h-full bg-primary-500 transition-all duration-500" style={{ width: `${(filteredLiftingTime / (filteredCombatTime + filteredLiftingTime)) * 100}%` }} />
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-2 text-[10px] text-grappler-500">
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Combat</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary-500" />Lifting</div>
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {filteredLifting.length === 0 && (
+              <div className="text-center py-10">
+                <Dumbbell className="w-10 h-10 text-grappler-700 mx-auto mb-3" />
+                <p className="text-sm text-grappler-400 font-medium">No lifting sessions in this period</p>
+                <p className="text-xs text-grappler-500 mt-1">Complete workouts to see your lifting stats here</p>
+              </div>
+            )}
           </div>
         )}
       </div>

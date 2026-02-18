@@ -50,6 +50,7 @@ import { getCoachMessages, type CoachMessage, type CoachContext } from '@/lib/co
 import { regulateRPE, type RPERegulation } from '@/lib/rpe-regulator';
 import { generateSmartWarmUp, type WarmUpProtocol, type WarmUpStep } from '@/lib/warmup-generator';
 import { detectSupersetCandidates } from '@/lib/superset-engine';
+import { parseTempo, initTempoState, tickTempo, stopTempo, formatTUT, PHASE_LABELS, PHASE_COLORS, PHASE_BG_COLORS, type TempoState, type TempoPrescription } from '@/lib/tempo-engine';
 import { getActiveInjuryAdaptations } from '@/lib/injury-science';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
@@ -132,6 +133,12 @@ export default function ActiveWorkout() {
 
   // ── Superset detection state ──
   const [supersetCandidates, setSupersetCandidates] = useState<{ indexA: number; indexB: number; reason: string }[]>([]);
+
+  // ── Tempo Training state ──
+  const [tempoState, setTempoState] = useState<TempoState | null>(null);
+  const [tempoPrescription, setTempoPrescription] = useState<TempoPrescription | null>(null);
+  const tempoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [tempoTotalTUT, setTempoTotalTUT] = useState(0);
 
   const [whoopApplied, setWhoopApplied] = useState(false);
   const [whoopFollowed, setWhoopFollowed] = useState(false);
@@ -341,6 +348,67 @@ export default function ActiveWorkout() {
     updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: newSets });
   };
 
+  // ── Tempo metronome controls ──
+  const startTempo = () => {
+    const parsed = parseTempo(currentExercise?.prescription?.tempo);
+    if (!parsed) return;
+    setTempoPrescription(parsed);
+    const initial = initTempoState(parsed);
+    setTempoState(initial);
+    // Haptic on start
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+  };
+
+  const stopTempoMetronome = () => {
+    if (tempoIntervalRef.current) {
+      clearInterval(tempoIntervalRef.current);
+      tempoIntervalRef.current = null;
+    }
+    if (tempoState) {
+      setTempoTotalTUT(tempoState.tut);
+    }
+    setTempoState(null);
+    setTempoPrescription(null);
+  };
+
+  // Tempo tick interval
+  useEffect(() => {
+    if (!tempoState?.active || !tempoPrescription) {
+      if (tempoIntervalRef.current) {
+        clearInterval(tempoIntervalRef.current);
+        tempoIntervalRef.current = null;
+      }
+      return;
+    }
+    tempoIntervalRef.current = setInterval(() => {
+      setTempoState(prev => {
+        if (!prev || !prev.active) return prev;
+        const result = tickTempo(prev, tempoPrescription);
+        if (result.phaseChanged) {
+          // Haptic on phase change — double pulse for rep completion
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(result.repCompleted ? [80, 40, 80] : [50]);
+          }
+        }
+        return result.state;
+      });
+    }, 1000);
+    return () => {
+      if (tempoIntervalRef.current) {
+        clearInterval(tempoIntervalRef.current);
+        tempoIntervalRef.current = null;
+      }
+    };
+  }, [tempoState?.active, tempoPrescription]);
+
+  // Stop tempo when exercise changes or rest starts
+  useEffect(() => {
+    if (isResting && tempoState) {
+      stopTempoMetronome();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isResting]);
+
   const completeSet = () => {
     // Save undo info before modifying
     setUndoInfo({
@@ -352,7 +420,19 @@ export default function ActiveWorkout() {
     });
 
     const newSets = [...currentLog.sets];
-    newSets[currentSetIndex] = { ...newSets[currentSetIndex], completed: true };
+    // Record tempo TUT if the metronome was used
+    const setTUT = tempoState?.tut || tempoTotalTUT;
+    const tempoNote = setTUT > 0 ? `TUT: ${formatTUT(setTUT)}` : undefined;
+    newSets[currentSetIndex] = {
+      ...newSets[currentSetIndex],
+      completed: true,
+      ...(tempoNote ? { notes: [newSets[currentSetIndex].notes, tempoNote].filter(Boolean).join(' | ') } : {}),
+    };
+    // Reset tempo state for next set
+    if (tempoState || tempoTotalTUT > 0) {
+      stopTempoMetronome();
+      setTempoTotalTUT(0);
+    }
 
     // Carry forward weight/reps to next set so the user doesn't have to re-enter
     if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
@@ -3028,7 +3108,17 @@ export default function ActiveWorkout() {
                 <span className="text-sm text-primary-400">~{currentExercise.prescription.percentageOf1RM}% 1RM</span>
               )}
               {currentExercise.prescription.tempo && (
-                <span className="text-sm text-grappler-400">Tempo: {currentExercise.prescription.tempo}</span>
+                <button
+                  onClick={!tempoState ? startTempo : stopTempoMetronome}
+                  className={cn(
+                    'text-sm px-2 py-0.5 rounded-md transition-colors',
+                    tempoState
+                      ? 'bg-primary-500/20 text-primary-400 animate-pulse'
+                      : 'text-grappler-400 bg-grappler-700/50 hover:bg-grappler-700'
+                  )}
+                >
+                  {tempoState ? '⏱ Tempo Running' : `Tempo: ${currentExercise.prescription.tempo}`}
+                </button>
               )}
             </div>
             <p className="text-xs text-grappler-500 mt-1">
@@ -3410,6 +3500,120 @@ export default function ActiveWorkout() {
               )}
             </div>
           </div>
+
+          {/* ── Tempo Metronome ── */}
+          {currentExercise.prescription.tempo && !currentSet.completed && (
+            <AnimatePresence>
+              {tempoState ? (
+                <motion.div
+                  key="tempo-active"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className={cn(
+                    'rounded-2xl border p-4 bg-gradient-to-br transition-all duration-300',
+                    PHASE_BG_COLORS[tempoState.phase],
+                    tempoState.phase === 'eccentric' ? 'border-blue-500/30' :
+                    tempoState.phase === 'pause' ? 'border-yellow-500/30' :
+                    tempoState.phase === 'concentric' ? 'border-red-500/30' :
+                    'border-green-500/30'
+                  )}>
+                    {/* Phase label & rep counter */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-grappler-400 uppercase">Rep {tempoState.currentRep}</span>
+                        <span className="text-xs text-grappler-500">TUT: {formatTUT(tempoState.tut)}</span>
+                      </div>
+                      <button
+                        onClick={stopTempoMetronome}
+                        className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                      >
+                        Stop
+                      </button>
+                    </div>
+
+                    {/* Big phase display */}
+                    <div className="text-center">
+                      <motion.p
+                        key={tempoState.phase}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className={cn('text-3xl font-black tracking-wider', PHASE_COLORS[tempoState.phase])}
+                      >
+                        {PHASE_LABELS[tempoState.phase]}
+                      </motion.p>
+                      <motion.p
+                        key={`${tempoState.phase}-${tempoState.phaseTimeLeft}`}
+                        initial={{ scale: 1.3, opacity: 0.5 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="text-5xl font-black text-grappler-50 mt-1 tabular-nums"
+                      >
+                        {tempoState.phaseTimeLeft}
+                      </motion.p>
+                    </div>
+
+                    {/* Phase progress bar */}
+                    <div className="mt-3 h-2 bg-grappler-800/50 rounded-full overflow-hidden">
+                      <motion.div
+                        className={cn(
+                          'h-full rounded-full',
+                          tempoState.phase === 'eccentric' ? 'bg-blue-500' :
+                          tempoState.phase === 'pause' ? 'bg-yellow-500' :
+                          tempoState.phase === 'concentric' ? 'bg-red-500' :
+                          'bg-green-500'
+                        )}
+                        initial={{ width: '100%' }}
+                        animate={{ width: `${(tempoState.phaseTimeLeft / tempoState.phaseDuration) * 100}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+
+                    {/* Phase legend */}
+                    <div className="mt-3 flex justify-center gap-3">
+                      {(['eccentric', 'pause', 'concentric', 'lockout'] as const).map(phase => {
+                        const secs = tempoPrescription ? (
+                          phase === 'eccentric' ? tempoPrescription.eccentric :
+                          phase === 'pause' ? tempoPrescription.pause :
+                          phase === 'concentric' ? tempoPrescription.concentric :
+                          tempoPrescription.lockout
+                        ) : 0;
+                        if (secs === 0) return null;
+                        return (
+                          <div
+                            key={phase}
+                            className={cn(
+                              'text-center px-2 py-1 rounded-lg transition-all text-xs',
+                              tempoState.phase === phase
+                                ? 'bg-grappler-800/60 ring-1 ring-white/20 scale-110'
+                                : 'opacity-50'
+                            )}
+                          >
+                            <span className={cn('font-bold', PHASE_COLORS[phase])}>{secs}s</span>
+                            <p className="text-grappler-500 text-[10px] capitalize">{phase === 'lockout' ? 'top' : phase === 'pause' ? 'bottom' : phase}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.button
+                  key="tempo-start"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={startTempo}
+                  className="w-full rounded-xl border border-grappler-700 bg-grappler-800/50 p-3 flex items-center justify-center gap-2 hover:bg-grappler-700/50 transition-colors active:scale-[0.98]"
+                >
+                  <Timer className="w-4 h-4 text-primary-400" />
+                  <span className="text-sm font-medium text-grappler-300">Start Tempo Guide</span>
+                  <span className="text-xs text-grappler-500 ml-1">{currentExercise.prescription.tempo}</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+          )}
 
           {/* Complete Set Button */}
           <button

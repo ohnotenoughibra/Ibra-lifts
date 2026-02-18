@@ -118,7 +118,7 @@ function analyzeRPE(ctx: CoachContext): CoachMessage[] {
       tone: 'warning',
       priority: 1,
       icon: 'AlertTriangle',
-      dismissAfterMs: 8000,
+      dismissAfterMs: 15000,
       trigger: `rpe-high-${ctx.currentSetIndex}`,
     }];
   }
@@ -131,7 +131,7 @@ function analyzeRPE(ctx: CoachContext): CoachMessage[] {
       tone: 'hype',
       priority: 4,
       icon: 'TrendingUp',
-      dismissAfterMs: 6000,
+      dismissAfterMs: 12000,
       trigger: `rpe-low-${ctx.currentSetIndex}`,
     }];
   }
@@ -144,7 +144,7 @@ function analyzeRPE(ctx: CoachContext): CoachMessage[] {
       tone: 'celebrate',
       priority: 7,
       icon: 'Check',
-      dismissAfterMs: 4000,
+      dismissAfterMs: 12000,
       trigger: `rpe-perfect-${ctx.exerciseIndex}`,
     }];
   }
@@ -171,7 +171,7 @@ function analyzeRepDrop(ctx: CoachContext): CoachMessage[] {
       tone: 'tactical',
       priority: 2,
       icon: 'ArrowDown',
-      dismissAfterMs: 8000,
+      dismissAfterMs: 15000,
       trigger: `rep-drop-${ctx.exerciseIndex}`,
     }];
   }
@@ -184,7 +184,7 @@ function analyzeRepDrop(ctx: CoachContext): CoachMessage[] {
       tone: 'calm',
       priority: 8,
       icon: 'Target',
-      dismissAfterMs: 4000,
+      dismissAfterMs: 12000,
       trigger: `rep-consistent-${ctx.exerciseIndex}`,
     }];
   }
@@ -214,7 +214,7 @@ function analyzeWeightVsHistory(ctx: CoachContext): CoachMessage[] {
       tone: 'hype',
       priority: 5,
       icon: 'TrendingUp',
-      dismissAfterMs: 5000,
+      dismissAfterMs: 12000,
       trigger: `weight-up-${ctx.exerciseIndex}`,
     }];
   }
@@ -226,7 +226,7 @@ function analyzeWeightVsHistory(ctx: CoachContext): CoachMessage[] {
       tone: 'calm',
       priority: 6,
       icon: 'Info',
-      dismissAfterMs: 5000,
+      dismissAfterMs: 12000,
       trigger: `weight-down-${ctx.exerciseIndex}`,
     }];
   }
@@ -249,7 +249,7 @@ function analyzeSessionPacing(ctx: CoachContext): CoachMessage[] {
       tone: 'tactical',
       priority: 3,
       icon: 'Clock',
-      dismissAfterMs: 8000,
+      dismissAfterMs: 15000,
       trigger: 'pacing-long',
     });
   }
@@ -262,7 +262,7 @@ function analyzeSessionPacing(ctx: CoachContext): CoachMessage[] {
       tone: 'hype',
       priority: 8,
       icon: 'Zap',
-      dismissAfterMs: 4000,
+      dismissAfterMs: 12000,
       trigger: 'halfway',
     });
   }
@@ -285,7 +285,7 @@ function analyzeThrottleContext(ctx: CoachContext): CoachMessage[] {
         tone: 'hype',
         priority: 5,
         icon: 'Flame',
-        dismissAfterMs: 6000,
+        dismissAfterMs: 12000,
         trigger: 'throttle-peak',
       }];
     case 'yellow':
@@ -295,7 +295,7 @@ function analyzeThrottleContext(ctx: CoachContext): CoachMessage[] {
         tone: 'calm',
         priority: 3,
         icon: 'Shield',
-        dismissAfterMs: 6000,
+        dismissAfterMs: 12000,
         trigger: 'throttle-yellow',
       }];
     case 'orange':
@@ -305,7 +305,7 @@ function analyzeThrottleContext(ctx: CoachContext): CoachMessage[] {
         tone: 'warning',
         priority: 2,
         icon: 'Battery',
-        dismissAfterMs: 7000,
+        dismissAfterMs: 14000,
         trigger: 'throttle-orange',
       }];
     case 'red':
@@ -315,7 +315,7 @@ function analyzeThrottleContext(ctx: CoachContext): CoachMessage[] {
         tone: 'calm',
         priority: 1,
         icon: 'Heart',
-        dismissAfterMs: 8000,
+        dismissAfterMs: 15000,
         trigger: 'throttle-red',
       }];
     default:
@@ -342,7 +342,7 @@ function analyzeExerciseTransition(ctx: CoachContext): CoachMessage[] {
     tone: 'tactical',
     priority: 6,
     icon: 'Dumbbell',
-    dismissAfterMs: 8000,
+    dismissAfterMs: 15000,
     trigger: `transition-${ctx.exerciseIndex}`,
   }];
 }
@@ -365,7 +365,7 @@ function analyzeMilestones(ctx: CoachContext): CoachMessage[] {
         tone: 'celebrate',
         priority: 0,
         icon: 'Trophy',
-        dismissAfterMs: 6000,
+        dismissAfterMs: 12000,
         trigger: `pr-${ctx.exerciseIndex}-${justCompletedSet.weight}`,
       }];
     }
@@ -380,7 +380,7 @@ function analyzeMilestones(ctx: CoachContext): CoachMessage[] {
       tone: 'hype',
       priority: 4,
       icon: 'Flame',
-      dismissAfterMs: 5000,
+      dismissAfterMs: 12000,
       trigger: 'last-set-session',
     }];
   }
@@ -407,7 +407,7 @@ function analyzeFormCues(ctx: CoachContext): CoachMessage[] {
     tone: 'tactical',
     priority: 9,
     icon: 'Lightbulb',
-    dismissAfterMs: 7000,
+    dismissAfterMs: 14000,
     trigger: `cue-${ctx.exerciseIndex}`,
   }];
 }

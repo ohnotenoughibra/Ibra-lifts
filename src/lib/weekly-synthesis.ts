@@ -133,8 +133,12 @@ export function generateWeeklySynthesis(opts: {
   }
 
   // ─── Trends ───
+  // Only mark volume "down" if the user has done at least as many sessions as
+  // last week.  Comparing a partial week (e.g. 1 session done, 1 still planned)
+  // against a full week is misleading and causes false "volume dipped" warnings.
+  const weekSessionsComplete = thisWorkouts >= lastWorkouts;
   const volumeTrend = thisVolume > lastVolume * 1.05 ? 'up' as const
-    : thisVolume < lastVolume * 0.95 ? 'down' as const : 'stable' as const;
+    : (thisVolume < lastVolume * 0.95 && weekSessionsComplete) ? 'down' as const : 'stable' as const;
   const prTrend = thisPRs > lastPRs ? 'up' as const
     : thisPRs < lastPRs ? 'down' as const : 'stable' as const;
   const consistencyTrend = thisWorkouts > lastWorkouts ? 'up' as const
@@ -266,21 +270,21 @@ function buildNarrative(data: {
     parts.push(`Still ${data.daysLeft} days left to build on that.`);
   }
 
-  // Volume context — only compare to last week if week is mostly done
+  // Volume context — only compare negatively when session count matches last week.
+  // Comparing e.g. 1 power session vs last week's 2 (power + hypertrophy) is misleading.
+  const sessionsComplete = data.workouts >= data.lastWorkouts;
   if (data.lastVolume > 0 && Math.abs(volDelta) > 5) {
-    if (midWeek) {
-      // Mid-week: don't compare partial to full week — that's unfair
-      if (volDelta > 0) {
-        parts.push(`Volume is already up ${volDelta}% and still climbing.`);
-      }
-      // Skip negative volume commentary mid-week — incomplete data
-    } else {
-      if (volDelta > 0) {
-        parts.push(`Volume is up ${volDelta}% from last week — progressive overload working.`);
-      } else {
-        parts.push(`Volume dipped ${Math.abs(volDelta)}% from last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
-      }
+    if (volDelta > 0) {
+      parts.push(
+        midWeek
+          ? `Volume is already up ${volDelta}% and still climbing.`
+          : `Volume is up ${volDelta}% from last week — progressive overload working.`
+      );
+    } else if (sessionsComplete) {
+      // Only mention a dip when the user has done the same number of sessions
+      parts.push(`Volume dipped ${Math.abs(volDelta)}% from last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
     }
+    // If volume is down but fewer sessions completed → stay silent, week isn't done
   }
 
   // Recovery/readiness
@@ -454,7 +458,8 @@ export function generateWeeklyInsights(opts: {
         : `+${volDelta}% volume vs last week — progressive overload locked in.`,
       color: 'green',
     });
-  } else if (trends.volume === 'down' && !isMidWeek && volDelta < 0) {
+  } else if (trends.volume === 'down' && stats.workouts >= lastWorkouts && volDelta < 0) {
+    // Only show volume drop when user has done at least as many sessions as last week
     const fatigueNote = stats.avgRPE > 8.5 ? ' RPE is high — could be accumulated fatigue.' : '';
     insights.push({
       type: 'trend', icon: 'trending', label: 'Volume',
@@ -568,7 +573,7 @@ function pickOneThing(
   if (stats.avgReadiness !== null && stats.avgReadiness < 40) {
     return `Add 30 min to your sleep this week. Recovery is the biggest untapped lever.`;
   }
-  if (trends.volume === 'down' && !isMidWeek) {
+  if (trends.volume === 'down') {
     return `Add one extra set per exercise next week to recover volume.`;
   }
   if (stats.proteinAdherence !== null && stats.proteinAdherence < 85) {

@@ -1073,6 +1073,40 @@ export interface SupplementRecommendation {
   contraindications?: string[];
 }
 
+// ── Supplement Intake Tracking Types ──────────────────────────────────────────
+
+/** Macro content per serving of a supplement (for auto-adding to nutrition) */
+export interface SupplementMacros {
+  calories: number;
+  protein: number;   // grams
+  carbs: number;     // grams
+  fat: number;       // grams
+}
+
+/** A single logged supplement intake */
+export interface SupplementIntake {
+  id: string;
+  supplementId: string;
+  name: string;
+  date: string;         // YYYY-MM-DD
+  time: string;         // HH:MM
+  servings: number;     // 1 scoop, 2 capsules, etc.
+  macrosPerServing: SupplementMacros | null;  // null = no macros (e.g., vitamin D capsule)
+  autoLoggedToMeals: boolean;                 // true if macros were auto-added to nutrition
+  mealEntryId?: string;                       // reference to the auto-created MealEntry
+}
+
+/** User's personal supplement stack — what they're currently taking */
+export interface UserSupplement {
+  supplementId: string;
+  name: string;
+  customDose?: string;                        // user can override default dose
+  macrosPerServing: SupplementMacros | null;   // user can set their specific product's macros
+  servingsPerDose: number;                    // e.g., 2 scoops
+  enabled: boolean;                           // toggle on/off without deleting
+  timingSlot: 'morning' | 'pre_workout' | 'post_workout' | 'evening' | 'with_meal';
+}
+
 // ── Energy Availability Types ──────────────────────────────────────────────
 
 export type EnergyAvailabilityStatus = 'adequate' | 'caution' | 'low' | 'critical';

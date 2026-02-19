@@ -21,7 +21,71 @@
  *   - Wankhede et al. 2015: ashwagandha (KSM-66)
  */
 
-import type { SupplementRecommendation, SupplementTier } from './types';
+import type {
+  SupplementRecommendation,
+  SupplementTier,
+  SupplementMacros,
+  SupplementIntake,
+  UserSupplement,
+} from './types';
+
+// ── Supplement Macro Database ───────────────────────────────────────────────
+// Per-serving macro data for supplements that contribute meaningful nutrition.
+// Based on typical product labels (hydrolyzed collagen, whey protein, etc.)
+// Users can override these with their specific product's values.
+
+export const SUPPLEMENT_MACROS: Record<string, SupplementMacros & { servingLabel: string }> = {
+  collagen: {
+    // 15-20g hydrolyzed collagen peptides per serving
+    calories: 70,
+    protein: 18,   // collagen peptides are ~90% protein by weight
+    carbs: 0,
+    fat: 0,
+    servingLabel: '1 scoop (20g)',
+  },
+  creatine: {
+    // 5g creatine monohydrate — negligible macros
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    servingLabel: '1 scoop (5g)',
+  },
+  omega3: {
+    // 2 softgels — ~18 kcal from fish oil fat
+    calories: 18,
+    protein: 0,
+    carbs: 0,
+    fat: 2,
+    servingLabel: '2 softgels',
+  },
+  vitamin_d: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 softgel' },
+  magnesium: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '2 capsules' },
+  caffeine: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 capsule / 1 espresso' },
+  beta_alanine: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 scoop (3.2g)' },
+  sodium_bicarbonate: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '0.3g/kg split dose' },
+  electrolytes: {
+    // Most electrolyte mixes have trace carbs from flavor
+    calories: 10,
+    protein: 0,
+    carbs: 2,
+    fat: 0,
+    servingLabel: '1 packet / 1 scoop',
+  },
+  tart_cherry: {
+    // 30ml juice concentrate
+    calories: 45,
+    protein: 0,
+    carbs: 11,
+    fat: 0,
+    servingLabel: '30ml concentrate',
+  },
+  ashwagandha: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 capsule (600mg)' },
+  zinc: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 capsule (30mg)' },
+  iron: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 capsule' },
+  citrulline: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '1 scoop (8g)' },
+  hmb: { calories: 0, protein: 0, carbs: 0, fat: 0, servingLabel: '3 capsules (3g)' },
+};
 
 // ── Complete Supplement Database ─────────────────────────────────────────────
 
@@ -330,4 +394,215 @@ export function getPreCompetitionPauses(daysToCompetition: number): { supplement
   }
 
   return pauses;
+}
+
+// ── Smart Supplement Tracking ───────────────────────────────────────────────
+
+/**
+ * Get the macro content for a supplement serving.
+ * Uses default database values, but respects user overrides.
+ */
+export function getSupplementMacros(
+  supplementId: string,
+  servings: number = 1,
+  userOverride?: SupplementMacros | null,
+): SupplementMacros | null {
+  const macros = userOverride ?? SUPPLEMENT_MACROS[supplementId];
+  if (!macros || (macros.calories === 0 && macros.protein === 0 && macros.carbs === 0 && macros.fat === 0)) {
+    return null; // No meaningful macros (e.g., vitamin D capsule)
+  }
+  return {
+    calories: Math.round(macros.calories * servings),
+    protein: Math.round(macros.protein * servings * 10) / 10,
+    carbs: Math.round(macros.carbs * servings * 10) / 10,
+    fat: Math.round(macros.fat * servings * 10) / 10,
+  };
+}
+
+/**
+ * Calculate total macros contributed by all supplement intakes for a given date.
+ * This is what gets auto-added to the nutrition tracker.
+ */
+export function getDailySupplementMacros(
+  intakes: SupplementIntake[],
+  dateStr: string,
+): SupplementMacros {
+  const dayIntakes = intakes.filter(i => i.date === dateStr);
+  return dayIntakes.reduce<SupplementMacros>(
+    (acc, intake) => {
+      if (!intake.macrosPerServing) return acc;
+      return {
+        calories: acc.calories + Math.round(intake.macrosPerServing.calories * intake.servings),
+        protein: acc.protein + Math.round(intake.macrosPerServing.protein * intake.servings * 10) / 10,
+        carbs: acc.carbs + Math.round(intake.macrosPerServing.carbs * intake.servings * 10) / 10,
+        fat: acc.fat + Math.round(intake.macrosPerServing.fat * intake.servings * 10) / 10,
+      };
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+/**
+ * Build a default supplement stack based on the user's plan.
+ * Maps the SupplementPlan output to UserSupplement entries with timing.
+ */
+export function buildDefaultStack(plan: SupplementPlan): UserSupplement[] {
+  const stack: UserSupplement[] = [];
+  const seen = new Set<string>();
+
+  const addSupp = (supp: SupplementRecommendation, slot: UserSupplement['timingSlot']) => {
+    if (seen.has(supp.id)) return;
+    seen.add(supp.id);
+    const macroData = SUPPLEMENT_MACROS[supp.id];
+    const hasMacros = macroData && (macroData.calories > 0 || macroData.protein > 0);
+    stack.push({
+      supplementId: supp.id,
+      name: supp.name,
+      macrosPerServing: hasMacros ? { calories: macroData.calories, protein: macroData.protein, carbs: macroData.carbs, fat: macroData.fat } : null,
+      servingsPerDose: 1,
+      enabled: true,
+      timingSlot: slot,
+    });
+  };
+
+  // Map each supplement to its ideal timing
+  const timingMap: Record<string, UserSupplement['timingSlot']> = {
+    creatine: 'with_meal',
+    omega3: 'with_meal',
+    vitamin_d: 'morning',
+    magnesium: 'evening',
+    caffeine: 'pre_workout',
+    beta_alanine: 'with_meal',
+    collagen: 'pre_workout',       // Shaw et al. 2017: 30-60 min pre-training
+    electrolytes: 'pre_workout',
+    tart_cherry: 'evening',
+    ashwagandha: 'morning',
+    zinc: 'evening',
+    iron: 'morning',
+    citrulline: 'pre_workout',
+    hmb: 'with_meal',
+    sodium_bicarbonate: 'pre_workout',
+  };
+
+  for (const supp of plan.daily) {
+    addSupp(supp, timingMap[supp.id] ?? 'with_meal');
+  }
+  for (const supp of plan.trainingDay) {
+    addSupp(supp, timingMap[supp.id] ?? 'pre_workout');
+  }
+
+  return stack;
+}
+
+/**
+ * Get today's supplement checklist — which supplements to take and when.
+ * Factors in: day type (training vs rest vs competition), timing slots, enabled status.
+ */
+export function getTodayChecklist(
+  stack: UserSupplement[],
+  todayIntakes: SupplementIntake[],
+  isTrainingDay: boolean,
+): {
+  slot: string;
+  supplements: {
+    supplement: UserSupplement;
+    taken: boolean;
+    intakeId?: string;
+    macros: SupplementMacros | null;
+  }[];
+}[] {
+  const enabled = stack.filter(s => s.enabled);
+
+  // Filter out training-day-only supplements on rest days
+  const trainingOnlyIds = new Set(['caffeine', 'citrulline', 'electrolytes', 'sodium_bicarbonate']);
+  const applicable = isTrainingDay
+    ? enabled
+    : enabled.filter(s => !trainingOnlyIds.has(s.supplementId));
+
+  // Group by timing slot
+  const slotOrder: UserSupplement['timingSlot'][] = ['morning', 'pre_workout', 'with_meal', 'post_workout', 'evening'];
+  const slotLabels: Record<string, string> = {
+    morning: 'Morning',
+    pre_workout: 'Pre-Workout',
+    with_meal: 'With Meal',
+    post_workout: 'Post-Workout',
+    evening: 'Evening',
+  };
+
+  const groups: Map<string, typeof applicable> = new Map();
+  for (const supp of applicable) {
+    const slot = supp.timingSlot;
+    if (!groups.has(slot)) groups.set(slot, []);
+    groups.get(slot)!.push(supp);
+  }
+
+  return slotOrder
+    .filter(slot => groups.has(slot))
+    .map(slot => ({
+      slot: slotLabels[slot],
+      supplements: groups.get(slot)!.map(s => {
+        const intake = todayIntakes.find(i => i.supplementId === s.supplementId);
+        const macros = getSupplementMacros(s.supplementId, s.servingsPerDose, s.macrosPerServing);
+        return {
+          supplement: s,
+          taken: !!intake,
+          intakeId: intake?.id,
+          macros,
+        };
+      }),
+    }));
+}
+
+/**
+ * Get adherence stats for supplement intake over a period.
+ */
+export function getSupplementAdherence(
+  stack: UserSupplement[],
+  intakes: SupplementIntake[],
+  days: number = 7,
+): {
+  overall: number;     // 0-100 percentage
+  perSupplement: { id: string; name: string; taken: number; expected: number; pct: number }[];
+  streak: number;      // consecutive days with 100% adherence
+} {
+  const enabled = stack.filter(s => s.enabled);
+  if (enabled.length === 0) return { overall: 0, perSupplement: [], streak: 0 };
+
+  const today = new Date();
+  const perSupplement = enabled.map(s => {
+    let taken = 0;
+    for (let d = 0; d < days; d++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - d);
+      const dateStr = date.toISOString().split('T')[0];
+      const wasTaken = intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr);
+      if (wasTaken) taken++;
+    }
+    return {
+      id: s.supplementId,
+      name: s.name,
+      taken,
+      expected: days,
+      pct: Math.round((taken / days) * 100),
+    };
+  });
+
+  const totalTaken = perSupplement.reduce((s, p) => s + p.taken, 0);
+  const totalExpected = perSupplement.reduce((s, p) => s + p.expected, 0);
+  const overall = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+
+  // Calculate streak
+  let streak = 0;
+  for (let d = 0; d < 365; d++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - d);
+    const dateStr = date.toISOString().split('T')[0];
+    const allTaken = enabled.every(s =>
+      intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr)
+    );
+    if (allTaken) streak++;
+    else break;
+  }
+
+  return { overall, perSupplement, streak };
 }

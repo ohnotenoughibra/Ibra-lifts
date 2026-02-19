@@ -41,6 +41,7 @@ import { getContextualNutrition, getSupplementRecommendations, type ContextualMa
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, assessHydrationStatus } from '@/lib/electrolyte-engine';
 import { cn } from '@/lib/utils';
 import DietCoach from './DietCoach';
+import SupplementTracker from './SupplementTracker';
 import NutritionTrends from './NutritionTrends';
 
 // ── Preset foods with metric portions ──────────────────────────────────────
@@ -1527,6 +1528,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
         {/* ── Diet Coach ── */}
         <DietCoach />
+
+        {/* ── Supplement Tracker ── */}
+        <SupplementTracker />
 
         {/* ── Daily Goals ── */}
         <motion.div

@@ -61,6 +61,8 @@ import {
   CombatAthleteNutritionProfile,
   FightCampNutritionPlan,
   SupplementRecommendation,
+  SupplementIntake,
+  UserSupplement,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
@@ -179,6 +181,10 @@ interface AppState {
 
   // Active supplements (user's current supplement protocol)
   activeSupplements: SupplementRecommendation[];
+
+  // Smart supplement tracking
+  supplementStack: UserSupplement[];     // user's personal stack with timing + custom macros
+  supplementIntakes: SupplementIntake[];  // daily intake log (what was actually taken)
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
@@ -390,6 +396,12 @@ interface AppState {
   addActiveSupplement: (supplement: SupplementRecommendation) => void;
   removeActiveSupplement: (supplementId: string) => void;
 
+  // Smart supplement tracking actions
+  setSupplementStack: (stack: UserSupplement[]) => void;
+  updateSupplementInStack: (supplementId: string, updates: Partial<UserSupplement>) => void;
+  logSupplementIntake: (intake: Omit<SupplementIntake, 'id' | 'autoLoggedToMeals' | 'mealEntryId'>) => void;
+  removeSupplementIntake: (intakeId: string) => void;
+
   // Whoop actions
   setLatestWhoopData: (data: WearableData | null) => void;
   setWearableHistory: (data: WearableData[]) => void;
@@ -519,6 +531,8 @@ export const useAppStore = create<AppState>()(
       combatNutritionProfile: null,
       fightCampPlans: [],
       activeSupplements: [],
+      supplementStack: [],
+      supplementIntakes: [],
       latestWhoopData: null,
       wearableHistory: [],
       whoopWorkouts: [],
@@ -826,6 +840,72 @@ export const useAppStore = create<AppState>()(
       removeActiveSupplement: (supplementId) => {
         set({
           activeSupplements: get().activeSupplements.filter(s => s.id !== supplementId),
+        });
+      },
+
+      // ── Smart supplement tracking actions ──────────────────────────────
+      setSupplementStack: (stack) => {
+        set({ supplementStack: stack });
+      },
+
+      updateSupplementInStack: (supplementId, updates) => {
+        const { supplementStack } = get();
+        set({
+          supplementStack: supplementStack.map(s =>
+            s.supplementId === supplementId ? { ...s, ...updates } : s
+          ),
+        });
+      },
+
+      logSupplementIntake: (intake) => {
+        const id = uuidv4();
+        let mealEntryId: string | undefined;
+        let autoLoggedToMeals = false;
+
+        // Auto-add macros to nutrition tracker if the supplement has meaningful macros
+        if (intake.macrosPerServing && (intake.macrosPerServing.protein > 0 || intake.macrosPerServing.calories > 0)) {
+          const macros = intake.macrosPerServing;
+          const servings = intake.servings;
+          mealEntryId = uuidv4();
+          const mealEntry = {
+            id: mealEntryId,
+            date: new Date(`${intake.date}T${intake.time}`),
+            mealType: 'snack' as const,
+            name: `${intake.name} (supplement)`,
+            calories: Math.round(macros.calories * servings),
+            protein: Math.round(macros.protein * servings * 10) / 10,
+            carbs: Math.round(macros.carbs * servings * 10) / 10,
+            fat: Math.round(macros.fat * servings * 10) / 10,
+            portion: `${servings} serving${servings !== 1 ? 's' : ''}`,
+            notes: 'Auto-logged from supplement tracker',
+          };
+          const { meals } = get();
+          set({ meals: [...meals, mealEntry] });
+          autoLoggedToMeals = true;
+        }
+
+        set({
+          supplementIntakes: [...get().supplementIntakes, {
+            ...intake,
+            id,
+            autoLoggedToMeals,
+            mealEntryId,
+          }],
+        });
+      },
+
+      removeSupplementIntake: (intakeId) => {
+        const { supplementIntakes, meals } = get();
+        const intake = supplementIntakes.find(i => i.id === intakeId);
+
+        // Also remove the auto-logged meal entry if it exists
+        const updatedMeals = intake?.mealEntryId
+          ? meals.filter(m => m.id !== intake.mealEntryId)
+          : meals;
+
+        set({
+          supplementIntakes: supplementIntakes.filter(i => i.id !== intakeId),
+          meals: updatedMeals,
         });
       },
 
@@ -2943,6 +3023,8 @@ export const useAppStore = create<AppState>()(
           combatNutritionProfile: null,
           fightCampPlans: [],
           activeSupplements: [],
+          supplementStack: [],
+          supplementIntakes: [],
           activeEquipmentProfile: 'gym' as const,
           homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || [] as EquipmentType[],
           latestWhoopData: null,
@@ -3072,6 +3154,8 @@ export const useAppStore = create<AppState>()(
           if (!state.combatNutritionProfile) state.combatNutritionProfile = null;
           if (!state.fightCampPlans) state.fightCampPlans = [];
           if (!state.activeSupplements) state.activeSupplements = [];
+          if (!state.supplementStack) state.supplementStack = [];
+          if (!state.supplementIntakes) state.supplementIntakes = [];
           // Migrate blockQueue → mesocycleQueue
           if (state.blockQueue) {
             state.mesocycleQueue = state.blockQueue;
@@ -3132,6 +3216,8 @@ export const useAppStore = create<AppState>()(
         combatNutritionProfile: state.combatNutritionProfile,
         fightCampPlans: state.fightCampPlans,
         activeSupplements: state.activeSupplements,
+        supplementStack: state.supplementStack,
+        supplementIntakes: state.supplementIntakes,
         activeEquipmentProfile: state.activeEquipmentProfile,
         homeGymEquipment: state.homeGymEquipment,
         lastSyncAt: state.lastSyncAt,

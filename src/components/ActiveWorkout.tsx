@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import {
   X,
   Check,
@@ -62,7 +63,17 @@ export default function ActiveWorkout() {
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts
-  } = useAppStore();
+  } = useAppStore(
+    useShallow(s => ({
+      activeWorkout: s.activeWorkout, user: s.user, updateExerciseLog: s.updateExerciseLog,
+      completeWorkout: s.completeWorkout, cancelWorkout: s.cancelWorkout,
+      setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
+      swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
+      activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
+      wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
+      baselineLifts: s.baselineLifts,
+    }))
+  );
 
   // Calculate personal baseline from wearable history for accurate HRV/RHR analysis
   const personalBaseline = useMemo(() =>

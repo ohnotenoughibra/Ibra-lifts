@@ -319,6 +319,21 @@ const MOVEMENT_PATTERNS_PER_SESSION = {
     strength: ['hinge', 'squat', 'push', 'pull', 'carry'],
     hypertrophy: ['push', 'pull', 'squat', 'hinge'],
     power: ['explosive', 'rotation', 'hinge', 'carry']
+  },
+  striker_power: {
+    power: ['explosive', 'rotation', 'push', 'core'],
+    strength: ['push', 'pull', 'squat', 'rotation'],
+    hypertrophy: ['push', 'pull', 'squat', 'core']
+  },
+  wrestler_strength: {
+    strength: ['hinge', 'squat', 'pull', 'carry', 'core'],
+    power: ['explosive', 'hinge', 'pull', 'carry'],
+    hypertrophy: ['pull', 'squat', 'hinge', 'carry']
+  },
+  mma_hybrid: {
+    strength: ['hinge', 'squat', 'push', 'pull', 'rotation'],
+    power: ['explosive', 'rotation', 'hinge', 'push'],
+    hypertrophy: ['push', 'pull', 'squat', 'hinge', 'core']
   }
 };
 
@@ -351,10 +366,15 @@ const EXPERIENCE_MODIFIERS: Record<ExperienceLevel, { volumeScale: number; rpeOf
 };
 
 // Determine split type based on sessions/week and training identity
-function determineSplitType(sessionsPerWeek: number, identity?: TrainingIdentity): SplitType {
+function determineSplitType(sessionsPerWeek: number, identity?: TrainingIdentity, combatSport?: CombatSport): SplitType {
   if (identity === 'combat') {
-    // Combat athletes benefit from full-body or upper/lower to leave room for sport training
     if (sessionsPerWeek <= 3) return 'full_body';
+    if (combatSport === 'striking') return 'striker_power';
+    if (combatSport === 'grappling_gi' || combatSport === 'grappling_nogi') {
+      return sessionsPerWeek <= 4 ? 'upper_lower' : 'grappler_hybrid';
+    }
+    if (combatSport === 'mma') return 'mma_hybrid';
+    // wrestling uses wrestler_strength if enough sessions
     if (sessionsPerWeek <= 4) return 'upper_lower';
     return 'grappler_hybrid';
   }
@@ -573,14 +593,8 @@ function selectExercisesForType(
   };
 
   // Pick movement pattern template based on split type
-  const splitType = determineSplitType(0, trainingIdentity); // just for pattern lookup
-  const patternSource = splitType === 'grappler_hybrid'
-    ? MOVEMENT_PATTERNS_PER_SESSION.grappler_hybrid
-    : splitType === 'upper_lower'
-    ? MOVEMENT_PATTERNS_PER_SESSION.upper_lower
-    : splitType === 'push_pull_legs'
-    ? MOVEMENT_PATTERNS_PER_SESSION.push_pull_legs
-    : MOVEMENT_PATTERNS_PER_SESSION.full_body;
+  const splitType = determineSplitType(0, trainingIdentity, combatSport); // just for pattern lookup
+  const patternSource = MOVEMENT_PATTERNS_PER_SESSION[splitType] ?? MOVEMENT_PATTERNS_PER_SESSION.full_body;
   const targetPatterns: string[] = type in patternSource
     ? (patternSource as any)[type] as string[]
     : ['hinge', 'squat', 'push', 'pull'];
@@ -1093,7 +1107,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     power: ['Explosive Phase', 'Athletic Power', 'Speed Strength Block'],
   };
   const namePool = trainingIdentity === 'combat' ? combatNames : generalNames;
-  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity);
+  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
 
   // Validate per-muscle volume stays within MEV–MRV
   const allExercises = getExercisesByGranularEquipment(equipment, availableEquipment);

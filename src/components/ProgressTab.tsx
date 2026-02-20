@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Flame,
   Target,
@@ -872,7 +873,9 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
 // ─── Training Timeline ───
 
 function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
-  const { mesocycleHistory, currentMesocycle } = useAppStore();
+  const { mesocycleHistory, currentMesocycle } = useAppStore(
+    useShallow(s => ({ mesocycleHistory: s.mesocycleHistory, currentMesocycle: s.currentMesocycle }))
+  );
 
   const blocks = useMemo(() => {
     const allBlocks = [
@@ -1127,7 +1130,9 @@ function SessionRecapCard() {
 // ─── Block Performance Card ───
 
 function BlockPerformanceCard() {
-  const { currentMesocycle, workoutLogs, mesocycleHistory } = useAppStore();
+  const { currentMesocycle, workoutLogs, mesocycleHistory } = useAppStore(
+    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory }))
+  );
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
 
   if (!currentMesocycle) return null;
@@ -1248,7 +1253,9 @@ function OverviewSkeleton() {
 
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
-  const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore();
+  const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore(
+    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats }))
+  );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
   const [showExport, setShowExport] = useState(false);

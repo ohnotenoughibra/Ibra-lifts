@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Dumbbell,
   Calendar,
@@ -37,9 +38,9 @@ const HomeTab = dynamic(() => import('./HomeTab'), { loading: () => <HomeTabSkel
 const WorkoutView = dynamic(() => import('./WorkoutView'), { loading: () => <ProgramTabSkeleton /> });
 const ExploreTab = dynamic(() => import('./ExploreTab'), { loading: () => <ExploreTabSkeleton /> });
 const ProgressAndHistoryTab = dynamic(() => import('./ProgressTab'), { loading: () => <ProgressTabSkeleton /> });
-// These are lightweight enough to keep eager
-import ProfileSettings from './ProfileSettings';
-import ActiveWorkout from './ActiveWorkout';
+// Lazy-loaded — only mount when needed
+const ProfileSettings = dynamic(() => import('./ProfileSettings'), { loading: () => <OverlaySkeleton /> });
+const ActiveWorkout = dynamic(() => import('./ActiveWorkout'), { ssr: false });
 
 // Overlay components — lazy-loaded (only when opened)
 function OverlaySkeleton() {
@@ -246,18 +247,19 @@ export default function Dashboard({
     }
   };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
-  const user = useAppStore(s => s.user);
-  const gamificationStats = useAppStore(s => s.gamificationStats);
-  const currentMesocycle = useAppStore(s => s.currentMesocycle);
-  const activeWorkout = useAppStore(s => s.activeWorkout);
-  const workoutLogs = useAppStore(s => s.workoutLogs);
-  const mesocycleHistory = useAppStore(s => s.mesocycleHistory);
-  const deleteMesocycle = useAppStore(s => s.deleteMesocycle);
-  const syncConflict = useAppStore(s => s.syncConflict);
-  const resolveSyncConflict = useAppStore(s => s.resolveSyncConflict);
-  const dismissSyncConflict = useAppStore(s => s.dismissSyncConflict);
-  const ensureWeeklyChallenge = useAppStore(s => s.ensureWeeklyChallenge);
-  const lastCompletedWorkout = useAppStore(s => s.lastCompletedWorkout);
+  const {
+    user, gamificationStats, currentMesocycle, activeWorkout,
+    workoutLogs, mesocycleHistory, deleteMesocycle,
+    syncConflict, resolveSyncConflict, dismissSyncConflict,
+    ensureWeeklyChallenge, lastCompletedWorkout,
+  } = useAppStore(
+    useShallow(s => ({
+      user: s.user, gamificationStats: s.gamificationStats, currentMesocycle: s.currentMesocycle, activeWorkout: s.activeWorkout,
+      workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory, deleteMesocycle: s.deleteMesocycle,
+      syncConflict: s.syncConflict, resolveSyncConflict: s.resolveSyncConflict, dismissSyncConflict: s.dismissSyncConflict,
+      ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
+    }))
+  );
 
   // Tab switch with haptic feedback
   const switchTab = useCallback((id: TabType) => {

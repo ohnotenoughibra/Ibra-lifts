@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { getReadinessSummary } from '@/lib/performance-engine';
 import {
   Dumbbell,
@@ -327,7 +328,9 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
 }
 
 function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavigate: (view: OverlayView) => void }) {
-  const { mealReminders, activeDietPhase, macroTargets } = useAppStore();
+  const { mealReminders, activeDietPhase, macroTargets } = useAppStore(
+    useShallow(s => ({ mealReminders: s.mealReminders, activeDietPhase: s.activeDietPhase, macroTargets: s.macroTargets }))
+  );
 
   if (!mealReminders.enabled || !activeDietPhase) return null;
 
@@ -402,7 +405,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
     deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow(s => ({
+      user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
+      lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
+      mesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
+      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals, subscription: s.subscription,
+      migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
+      skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
+      deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
+    }))
+  );
   const { showToast } = useToast();
   const { data: session } = useSession();
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog);

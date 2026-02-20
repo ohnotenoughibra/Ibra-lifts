@@ -1925,7 +1925,7 @@ export default function ActiveWorkout() {
                           <div className="min-w-0">
                             <p className="font-semibold text-grappler-100">{ex.exercise.name}</p>
                             <p className="text-xs text-grappler-400 mt-0.5">
-                              {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
+                              {ex.sets} x {ex.prescription.targetReps} reps{ex.exercise.isUnilateral ? ' /side' : ''} @ RPE {ex.prescription.rpe}
                               {ex.prescription.percentageOf1RM && (
                                 <span className="text-primary-400 ml-1">~{ex.prescription.percentageOf1RM}% 1RM</span>
                               )}
@@ -3110,7 +3110,7 @@ export default function ActiveWorkout() {
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="text-sm text-grappler-300">
-                {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps
+                {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps{currentExercise.exercise.isUnilateral ? ' /side' : ''}
               </span>
               <span className="px-2 py-0.5 rounded-md bg-primary-500/15 text-sm font-semibold text-primary-400">
                 RPE {currentExercise.prescription.rpe}
@@ -3404,7 +3404,7 @@ export default function ActiveWorkout() {
                 <span className="text-sm font-medium text-grappler-400">
                   Target: {isTimeBased
                     ? `${currentExercise.prescription.targetReps}s`
-                    : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}`
+                    : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}${currentExercise.exercise.isUnilateral ? ' /side' : ''}`
                   }
                 </span>
               </div>

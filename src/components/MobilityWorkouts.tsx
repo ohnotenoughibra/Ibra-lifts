@@ -174,8 +174,21 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([300, 150, 300, 150, 500]);
       }
+      // Log to quickLogs so Quick Actions tile updates
+      if (selectedRoutine) {
+        const totalMin = Math.round(
+          selectedRoutine.exercises.reduce((s, ex) => s + ex.duration * ex.sets, 0) / 60
+        );
+        addQuickLog({
+          type: 'mobility',
+          value: totalMin,
+          unit: 'min',
+          timestamp: new Date(),
+          notes: selectedRoutine.name,
+        });
+      }
     }
-  }, [selectedRoutine, currentExerciseIndex, currentSet]);
+  }, [selectedRoutine, currentExerciseIndex, currentSet, addQuickLog]);
 
   // Skip to next exercise
   const skipExercise = useCallback(() => {

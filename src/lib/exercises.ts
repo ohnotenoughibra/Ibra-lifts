@@ -351,7 +351,8 @@ export const exercises: Exercise[] = [
       'Sweep leg through to kneeling',
       'Stand up, reverse to descend',
       'Keep eyes on weight throughout'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'farmers-walk',
@@ -395,7 +396,8 @@ export const exercises: Exercise[] = [
       'Resist leaning to weighted side',
       'Walk with control',
       'Switch sides'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'medicine-ball-slam',
@@ -612,7 +614,8 @@ export const exercises: Exercise[] = [
       'Full stretch at bottom',
       'Peak contraction at top',
       'Alternate or both together'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'hammer-curl',
@@ -930,7 +933,8 @@ export const exercises: Exercise[] = [
       'Forearm and feet stacked',
       'Hips high, body straight',
       'Hold for time each side'
-    ]
+    ],
+    isUnilateral: true,
   },
 
   // ACCESSORY MOVEMENTS
@@ -995,7 +999,8 @@ export const exercises: Exercise[] = [
       'Pull dumbbell to hip',
       'Slight rotation allowed',
       'Full stretch at bottom'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'dumbbell-press',
@@ -1058,7 +1063,8 @@ export const exercises: Exercise[] = [
       'Lower until back knee near ground',
       'Keep torso upright',
       'Drive through front heel'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'lunges',
@@ -1079,7 +1085,8 @@ export const exercises: Exercise[] = [
       'Lower back knee toward ground',
       'Drive through front heel',
       'Step through to next rep'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'kettlebell-swing',
@@ -1384,7 +1391,8 @@ export const exercises: Exercise[] = [
     strengthValue: 7,
     description: 'Unilateral leg work mimicking grappling level changes.',
     videoUrl: 'https://www.youtube.com/results?search_query=dumbbell+step+up+proper+form+technique+short',
-    cues: ['High box for full ROM', 'Drive through front heel', 'Dont push off back foot', 'Control the descent']
+    cues: ['High box for full ROM', 'Drive through front heel', 'Dont push off back foot', 'Control the descent'],
+    isUnilateral: true,
   },
   {
     id: 'nordic-curl',
@@ -1906,7 +1914,8 @@ export const exercises: Exercise[] = [
       'Drive up while resisting rotation',
       'Alternate lead leg each set',
       'Excellent anti-rotation core training'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'trap-bar-deadlift',
@@ -2246,7 +2255,8 @@ export const exercises: Exercise[] = [
       'Drive through planted heel',
       'Full hip extension at top',
       'Control the eccentric - no dropping'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'reverse-nordic',
@@ -2312,7 +2322,8 @@ export const exercises: Exercise[] = [
       'Keep hips square - dont open up',
       'Dumbbell or kettlebell in opposite hand',
       'Squeeze glute to stand up'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'seated-leg-curl',
@@ -2719,7 +2730,8 @@ export const exercises: Exercise[] = [
       'Shoulders pulled back, chest proud',
       'Lower until hamstrings are fully stretched',
       'Drive hips forward to stand'
-    ]
+    ],
+    isUnilateral: true,
   },
 
   // ─── ADDITIONAL SQUAT VARIATIONS ───
@@ -2765,7 +2777,8 @@ export const exercises: Exercise[] = [
       'Descend slowly, keeping heel flat',
       'Go as deep as mobility allows',
       'Drive through whole foot to stand'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'reverse-lunge',
@@ -2787,7 +2800,8 @@ export const exercises: Exercise[] = [
       'Front shin stays vertical',
       'Drive through front heel to return',
       'Control the step back — no crashing down'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'hack-squat-barbell',
@@ -3281,7 +3295,8 @@ export const exercises: Exercise[] = [
       'Curl heel to glute with control',
       'Squeeze hamstring at the top',
       'Slow eccentric — resist the weight back down'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'donkey-calf-raise',
@@ -3527,7 +3542,8 @@ export const exercises: Exercise[] = [
       'Explode up and switch legs mid-air',
       'Land softly in opposite lunge',
       'Keep torso upright throughout'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'med-ball-chest-pass',
@@ -3795,7 +3811,8 @@ export const exercises: Exercise[] = [
       'Front knee stays over ankle, not past toes',
       'Push through front foot to return',
       'Keep torso upright throughout'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'shrimp-squat',
@@ -3817,7 +3834,8 @@ export const exercises: Exercise[] = [
       'Keep chest up and forward lean minimal',
       'Drive through standing leg to rise',
       'Use a chair for support if needed'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'single-leg-glute-bridge',
@@ -3839,7 +3857,8 @@ export const exercises: Exercise[] = [
       'Squeeze glute hard at the top',
       'Lower slowly, don\'t let hips touch the floor between reps',
       'Keep hips level — don\'t rotate'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'bodyweight-rdl',
@@ -3861,7 +3880,8 @@ export const exercises: Exercise[] = [
       'Back leg extends behind you as counterbalance',
       'Keep hips square — don\'t open up',
       'Return to standing by squeezing glute'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'superman-hold',
@@ -4019,7 +4039,8 @@ export const exercises: Exercise[] = [
       'Thread back leg through to standing',
       'Keep eyes forward, free hand protecting face',
       'Alternate posting hand each rep'
-    ]
+    ],
+    isUnilateral: true,
   },
   {
     id: 'wrestler-bridge',
@@ -4087,7 +4108,8 @@ export const exercises: Exercise[] = [
       'Pause at the top, squeeze calves',
       'Lower slowly past parallel if on a step',
       'Go single-leg for more difficulty'
-    ]
+    ],
+    isUnilateral: true,
   },
 
   // ─── Resistance Band exercises for Travel / Minimal ───

@@ -208,7 +208,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       icon: Scale,
       label: 'Weight',
       color: 'text-purple-400 bg-purple-500/20',
-      stat: todayWeight ? `${todayWeight.weight}lbs` : 'Not logged',
+      stat: todayWeight ? `${todayWeight.weight}${weightUnit}` : 'Not logged',
       highlight: !!todayWeight,
     },
     {
@@ -318,12 +318,16 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <Minus className="w-5 h-5" />
               </button>
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={weightValue}
-                onChange={(e) => setWeightValue(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const v = e.target.value.replace(',', '.');
+                  const num = parseFloat(v);
+                  if (!isNaN(num)) setWeightValue(num);
+                }}
                 className="input input-bordered w-32 text-center text-2xl font-bold"
-                step="0.1"
               />
               <button
                 aria-label="Increase weight"

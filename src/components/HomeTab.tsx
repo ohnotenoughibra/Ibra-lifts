@@ -503,9 +503,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     setDockPickerOpen(false);
     setDockPickerSlot(null);
     setDockEditMode(false);
-    // Navigate to the tool after adding it
-    onNavigate(toolId as any);
-  }, [pinnedIds, dockPickerSlot, savePinnedIds, onNavigate]);
+  }, [pinnedIds, dockPickerSlot, savePinnedIds]);
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {

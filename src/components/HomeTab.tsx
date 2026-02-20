@@ -502,7 +502,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
     setDockPickerOpen(false);
     setDockPickerSlot(null);
-  }, [pinnedIds, dockPickerSlot, savePinnedIds]);
+    setDockEditMode(false);
+    // Navigate to the tool after adding it
+    onNavigate(toolId as any);
+  }, [pinnedIds, dockPickerSlot, savePinnedIds, onNavigate]);
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {
@@ -2568,10 +2571,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 {Array.from({ length: emptySlots }).map((_, i) => (
                   <button
                     key={`empty-${i}`}
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (dockLongPressTriggered.current) return;
-                      if (!dockEditMode) setDockEditMode(true);
+                      // Always open picker — bypass long-press guard
+                      setDockEditMode(true);
                       setDockPickerSlot(pinnedIds.length + i);
                       setDockPickerOpen(true);
                     }}

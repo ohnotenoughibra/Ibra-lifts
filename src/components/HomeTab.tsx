@@ -2195,6 +2195,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         weekStats={synthesis.stats}
         weekTrends={synthesis.trends}
         lastWeekVolume={periodSummaries.lastWeek.volume}
+        lastCombatLoad={synthesis.lastCombatLoad}
         weightUnit={weightUnit}
         nextBadgeDistance={nextBadgeDistance}
       />

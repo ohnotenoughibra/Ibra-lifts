@@ -166,7 +166,28 @@ export function calculateEnhancedACWR(
     });
   }
 
-  const chronicWeekly = chronic28d / 4;
+  // Count actual active weeks (weeks with at least one session) in the 28-day window.
+  // Dividing by 4 when the user has <4 weeks of data inflates the ACWR ratio
+  // because empty weeks before they started training drag down the chronic average.
+  const activeWeeks = (() => {
+    let count = 0;
+    for (let w = 0; w < 4; w++) {
+      const weekStart = now - (w + 1) * 7 * DAY_MS;
+      const weekEnd = now - w * 7 * DAY_MS;
+      const hasWorkout = workoutLogs.some(log => {
+        const t = new Date(log.date).getTime();
+        return t >= weekStart && t < weekEnd;
+      });
+      const hasSession = trainingSessions?.some(s => {
+        const t = new Date(s.date).getTime();
+        return t >= weekStart && t < weekEnd;
+      });
+      if (hasWorkout || hasSession) count++;
+    }
+    return Math.max(count, 1);
+  })();
+
+  const chronicWeekly = chronic28d / activeWeeks;
 
   if (chronicWeekly === 0 && acute7d === 0) {
     return { acute: 0, chronic: 0, ratio: 0, status: 'no_data' };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
@@ -214,7 +214,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       {/* Pin onboarding hint */}
       {!isSearching && shouldShowPinHint && (
         <p className="text-xs text-grappler-400 px-1">
-          <span className="text-grappler-300 font-medium">Tip:</span> Long-press any tool to pin it for quick access
+          <span className="text-grappler-300 font-medium">Tip:</span> Tap the pin icon on any tool to add it to quick access
         </p>
       )}
 
@@ -309,8 +309,6 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   );
 }
 
-const LONG_PRESS_MS = 500;
-
 function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
   tool: Tool;
   onNavigate: (id: NonNullable<OverlayView>) => void;
@@ -318,104 +316,75 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
   onTogglePin: (id: string) => void;
   compact?: boolean;
 }) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const didLongPress = useRef(false);
-  const touchOrigin = useRef<{ x: number; y: number } | null>(null);
-  const [showLongDesc, setShowLongDesc] = useState(false);
-
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-  }, []);
-
-  const startTouch = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    touchOrigin.current = { x: touch.clientX, y: touch.clientY };
-    didLongPress.current = false;
-    timerRef.current = setTimeout(() => {
-      didLongPress.current = true;
-      onTogglePin(tool.id);
-    }, LONG_PRESS_MS);
-  }, [onTogglePin, tool.id]);
-
-  const moveTouch = useCallback((e: React.TouchEvent) => {
-    if (!touchOrigin.current) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchOrigin.current.x;
-    const dy = touch.clientY - touchOrigin.current.y;
-    if (Math.sqrt(dx * dx + dy * dy) > 10) {
-      clearTimer();
-    }
-  }, [clearTimer]);
-
-  const endPress = useCallback(() => {
-    clearTimer();
-    touchOrigin.current = null;
-  }, [clearTimer]);
-
-  useEffect(() => clearTimer, [clearTimer]);
-
-  // Compact mode for pinned row — icon + label only
+  // Compact mode for pinned row — icon + label + unpin button
   if (compact) {
     return (
-      <button
-        onClick={() => { if (!didLongPress.current) onNavigate(tool.id); }}
-        onContextMenu={(e) => { e.preventDefault(); onTogglePin(tool.id); }}
-        onTouchStart={startTouch}
-        onTouchEnd={endPress}
-        onTouchCancel={endPress}
-        onTouchMove={moveTouch}
-        className={cn(
-          'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
-          'border-2 border-primary-500/40',
-          'hover:border-primary-500/60 active:scale-95 transition-all select-none',
-          tool.color
-        )}
-      >
-        <tool.icon className="w-5 h-5" />
-        <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
-          {tool.label}
-        </span>
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => onNavigate(tool.id)}
+          className={cn(
+            'relative w-full flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
+            'border-2 border-primary-500/40',
+            'hover:border-primary-500/60 active:scale-95 transition-all select-none',
+            tool.color
+          )}
+        >
+          <tool.icon className="w-5 h-5" />
+          <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
+            {tool.label}
+          </span>
+        </button>
+        {/* Unpin button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
+          className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-primary-500/30 border border-primary-400/40 flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <Pin className="w-2.5 h-2.5 text-primary-300" />
+        </button>
+      </div>
     );
   }
 
   return (
-    <button
-      onClick={() => { if (!didLongPress.current) onNavigate(tool.id); }}
-      onContextMenu={(e) => { e.preventDefault(); onTogglePin(tool.id); }}
-      onTouchStart={startTouch}
-      onTouchEnd={endPress}
-      onTouchCancel={endPress}
-      onTouchMove={moveTouch}
-      onMouseEnter={() => setShowLongDesc(true)}
-      onMouseLeave={() => setShowLongDesc(false)}
-      className={cn(
-        'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
-        'hover:border-grappler-700 active:scale-95 transition-all select-none',
-        isPinned
-          ? 'border-2 border-primary-500/40'
-          : 'border border-grappler-800/50',
-        tool.color
-      )}
-    >
-      {isPinned && (
-        <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 rounded-full bg-primary-500/20">
-          <Pin className="w-2.5 h-2.5 text-primary-400" />
+    <div className="relative">
+      <button
+        onClick={() => onNavigate(tool.id)}
+        className={cn(
+          'w-full relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
+          'hover:border-grappler-700 active:scale-95 transition-all select-none',
+          isPinned
+            ? 'border-2 border-primary-500/40'
+            : 'border border-grappler-800/50',
+          tool.color
+        )}
+      >
+        {!isPinned && tool.isPro && (
+          <span className="absolute top-1 right-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
+            <Crown className="w-2.5 h-2.5" />
+            <span className="text-[8px] font-bold leading-none">PRO</span>
+          </span>
+        )}
+        <tool.icon className="w-5 h-5" />
+        <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
+          {tool.label}
         </span>
-      )}
-      {!isPinned && tool.isPro && (
-        <span className="absolute top-1 right-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
-          <Crown className="w-2.5 h-2.5" />
-          <span className="text-[8px] font-bold leading-none">PRO</span>
+        <span className="text-[11px] text-grappler-400 text-center leading-tight line-clamp-2">
+          {tool.desc}
         </span>
-      )}
-      <tool.icon className="w-5 h-5" />
-      <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
-        {tool.label}
-      </span>
-      <span className="text-[11px] text-grappler-400 text-center leading-tight line-clamp-2">
-        {showLongDesc ? tool.longDesc : tool.desc}
-      </span>
-    </button>
+      </button>
+      {/* Pin/unpin button — always visible, single tap */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
+        className={cn(
+          'absolute top-1 right-1 z-10 w-6 h-6 rounded-full flex items-center justify-center active:scale-90 transition-all',
+          isPinned
+            ? 'bg-primary-500/30 border border-primary-400/40'
+            : 'bg-grappler-800/60 border border-grappler-700/50 opacity-0 group-hover:opacity-100'
+        )}
+        style={!isPinned ? { opacity: 1 } : undefined}
+      >
+        <Pin className={cn('w-3 h-3', isPinned ? 'text-primary-300' : 'text-grappler-400')} />
+      </button>
+    </div>
   );
 }

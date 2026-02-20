@@ -7,7 +7,7 @@ import {
   Heart, Shield, Thermometer, Zap,
   Apple, Grip, Flame, Gauge,
   Swords, Navigation, Move,
-  Search, Clock, Pin,
+  Search, Clock, Pin, X,
   Crown, Hammer, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -334,12 +334,13 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
             {tool.label}
           </span>
         </button>
-        {/* Unpin button */}
+        {/* Unpin button — 44px touch target for mobile */}
         <button
           onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
-          className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-primary-500/30 border border-primary-400/40 flex items-center justify-center active:scale-90 transition-transform"
+          className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-red-500/80 border-2 border-grappler-900 flex items-center justify-center active:scale-90 transition-transform shadow-lg"
+          style={{ touchAction: 'manipulation', minWidth: 32, minHeight: 32 }}
         >
-          <Pin className="w-2.5 h-2.5 text-primary-300" />
+          <X className="w-3 h-3 text-white" />
         </button>
       </div>
     );
@@ -359,7 +360,7 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
         )}
       >
         {!isPinned && tool.isPro && (
-          <span className="absolute top-1 right-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
+          <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
             <Crown className="w-2.5 h-2.5" />
             <span className="text-[8px] font-bold leading-none">PRO</span>
           </span>
@@ -372,18 +373,18 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
           {tool.desc}
         </span>
       </button>
-      {/* Pin/unpin button — always visible, single tap */}
+      {/* Pin/unpin — always visible, 44px min touch target */}
       <button
         onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
         className={cn(
-          'absolute top-1 right-1 z-10 w-6 h-6 rounded-full flex items-center justify-center active:scale-90 transition-all',
+          'absolute -top-1 -right-1 z-10 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-md',
           isPinned
-            ? 'bg-primary-500/30 border border-primary-400/40'
-            : 'bg-grappler-800/60 border border-grappler-700/50 opacity-0 group-hover:opacity-100'
+            ? 'bg-primary-500 border-2 border-primary-400'
+            : 'bg-grappler-700 border border-grappler-600'
         )}
-        style={!isPinned ? { opacity: 1 } : undefined}
+        style={{ touchAction: 'manipulation', minWidth: 32, minHeight: 32 }}
       >
-        <Pin className={cn('w-3 h-3', isPinned ? 'text-primary-300' : 'text-grappler-400')} />
+        <Pin className={cn('w-3.5 h-3.5', isPinned ? 'text-white' : 'text-grappler-300')} />
       </button>
     </div>
   );

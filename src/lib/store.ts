@@ -68,7 +68,7 @@ import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
-import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards } from './gamification';
+import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
@@ -1774,49 +1774,12 @@ export const useAppStore = create<AppState>()(
           whoopHR,
         };
 
-        // Calculate date-aware streak (respects trainingIdentity)
-        const fmtDate = (d: Date) => {
-          const dt = new Date(d);
-          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-        };
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = fmtDate(today);
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = fmtDate(yesterday);
-
-        // Collect all training dates - include training sessions if user does combat/general fitness
-        const includeOtherSessions = user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness';
-        const allTrainingDates = new Set<string>();
-
-        // Add all workout log dates
-        workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
-
-        // Add training session dates if applicable
-        if (includeOtherSessions && trainingSessions.length > 0) {
-          trainingSessions.forEach(session => allTrainingDates.add(fmtDate(new Date(session.date))));
-        }
-
-        const alreadyTrainedToday = allTrainingDates.has(todayStr);
-
-        let newStreak: number;
-        if (alreadyTrainedToday) {
-          // Already trained today — don't double-count
-          newStreak = gamificationStats.currentStreak;
-        } else {
-          // Get all dates sorted descending to find the last training date
-          const sortedDates = Array.from(allTrainingDates).sort().reverse();
-          const lastTrainingDate = sortedDates[0] || null;
-
-          if (!lastTrainingDate) {
-            newStreak = 1; // first training ever
-          } else {
-            newStreak = lastTrainingDate === yesterdayStr
-              ? gamificationStats.currentStreak + 1
-              : 1; // gap — reset streak
-          }
-        }
+        // Universal streak — counts lifting, combat, AND mobility
+        const { quickLogs } = get();
+        const allLogs = [...workoutLogs, workoutLog]; // include the workout we just completed
+        let newStreak = calculateStreak(allLogs, trainingSessions, quickLogs);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const fmtDate = (d: Date) => new Date(d).toISOString().split('T')[0];
 
         // Detect comeback (7+ days since last activity)
         const isComeback = detectComeback(gamificationStats.lastActiveDate || null);
@@ -2368,12 +2331,13 @@ export const useAppStore = create<AppState>()(
 
       // Quick log actions
       addQuickLog: (log) => {
-        const { quickLogs } = get();
+        const { quickLogs, workoutLogs, trainingSessions, gamificationStats } = get();
         const entry: QuickLog = {
           ...log,
           id: uuidv4(),
         };
-        set({ quickLogs: [...quickLogs, entry] });
+        const updatedQuickLogs = [...quickLogs, entry];
+        set({ quickLogs: updatedQuickLogs });
 
         // Sync water quick logs → waterLog Record for nutrition/readiness engines
         // waterLog stores glasses (1 glass = 250ml), QuickActions logs in ml
@@ -2383,6 +2347,21 @@ export const useAppStore = create<AppState>()(
           const existing = waterLog[dateStr] || 0;
           const glassesAdded = log.value / 250; // convert ml → glasses
           set({ waterLog: { ...waterLog, [dateStr]: existing + glassesAdded } });
+        }
+
+        // Mobility logs count toward streak — recalculate
+        if (log.type === 'mobility') {
+          const newStreak = calculateStreak(workoutLogs, trainingSessions, updatedQuickLogs);
+          if (newStreak !== gamificationStats.currentStreak) {
+            set({
+              gamificationStats: {
+                ...gamificationStats,
+                currentStreak: newStreak,
+                longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
+                lastActiveDate: new Date().toISOString().split('T')[0],
+              },
+            });
+          }
         }
       },
 
@@ -2605,47 +2584,14 @@ export const useAppStore = create<AppState>()(
           category,
         };
 
-        // Update streak if user does combat/general fitness training
-        const includeInStreak = user && (user.trainingIdentity === 'combat' || user.trainingIdentity === 'general_fitness');
-
-        if (includeInStreak) {
-          // Calculate streak including this new session
-          const fmtDate = (d: Date) => {
-            const dt = new Date(d);
-            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-          };
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const todayStr = fmtDate(today);
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = fmtDate(yesterday);
-
-          // Collect all existing training dates
-          const allTrainingDates = new Set<string>();
-          workoutLogs.forEach(log => allTrainingDates.add(fmtDate(new Date(log.date))));
-          trainingSessions.forEach(s => allTrainingDates.add(fmtDate(new Date(s.date))));
-
-          const sessionDateStr = fmtDate(new Date(session.date));
-          const alreadyTrainedOnSessionDate = allTrainingDates.has(sessionDateStr);
-
-          let newStreak = gamificationStats.currentStreak;
-          if (!alreadyTrainedOnSessionDate) {
-            // This session is on a new day - check streak continuity
-            const sortedDates = Array.from(allTrainingDates).sort().reverse();
-            const lastTrainingDate = sortedDates[0] || null;
-
-            if (!lastTrainingDate) {
-              newStreak = 1; // first training ever
-            } else if (sessionDateStr === todayStr && lastTrainingDate === yesterdayStr) {
-              newStreak = gamificationStats.currentStreak + 1;
-            } else if (sessionDateStr === todayStr && lastTrainingDate !== todayStr) {
-              // Training today but gap from last session
-              newStreak = 1;
-            }
-          }
+        // Universal streak — always include all activity sources
+        {
+          const { quickLogs } = get();
+          const allSessions = [...trainingSessions, newSession];
+          const newStreak = calculateStreak(workoutLogs, allSessions, quickLogs);
 
           // Check if this is also a lifting day (dual training)
+          const fmtDate = (d: Date) => new Date(d).toDateString();
           const sessionDay = fmtDate(new Date(session.date));
           const hasLiftingToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === sessionDay);
           const newDualDays = hasLiftingToday
@@ -2687,15 +2633,6 @@ export const useAppStore = create<AppState>()(
 
           // Check badges after updating
           queueMicrotask(() => get().checkAndAwardBadges());
-        } else {
-          set({
-            trainingSessions: [...trainingSessions, newSession],
-            gamificationStats: {
-              ...gamificationStats,
-              totalTrainingSessions: (gamificationStats.totalTrainingSessions || 0) + 1,
-              lastActiveDate: new Date().toISOString().split('T')[0],
-            }
-          });
         }
       },
 
@@ -3135,7 +3072,7 @@ export const useAppStore = create<AppState>()(
       },
       // ── Schema version: bump this when you add/rename/remove persisted fields.
       // Zustand calls `migrate` BEFORE hydrating the store, so the data is safe.
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>;
 
@@ -3172,7 +3109,27 @@ export const useAppStore = create<AppState>()(
           if (!state.activeEquipmentProfile) state.activeEquipmentProfile = 'gym';
           if (!state.homeGymEquipment) state.homeGymEquipment = ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'];
         }
-        // Future: if (fromVersion < 3) { ... }
+
+        if (fromVersion < 3) {
+          // v2 → v3: Recalculate streak from ALL historical data (lifting + combat + mobility)
+          const workoutLogs = (state.workoutLogs || []) as Array<{ date: string }>;
+          const trainingSessions = (state.trainingSessions || []) as Array<{ date: string }>;
+          const quickLogs = (state.quickLogs || []) as Array<{ type: string; timestamp: string | Date }>;
+          const gamStats = (state.gamificationStats || {}) as Record<string, unknown>;
+
+          const recalculated = calculateStreak(
+            workoutLogs as never[],
+            trainingSessions as never[],
+            quickLogs as never[],
+          );
+
+          state.gamificationStats = {
+            ...gamStats,
+            currentStreak: recalculated,
+            longestStreak: Math.max(recalculated, (gamStats.longestStreak as number) || 0),
+          };
+        }
+        // Future: if (fromVersion < 4) { ... }
 
         return state;
       },

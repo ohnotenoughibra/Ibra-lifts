@@ -1,4 +1,4 @@
-import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity } from './types';
+import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Badge definitions — 52 total badges across 5 categories
@@ -818,28 +818,71 @@ export function getBadgesByCategory(category: BadgeCategory): Badge[] {
 }
 
 // Calculate streak from workout logs
-export function calculateStreak(workoutLogs: WorkoutLog[]): number {
-  if (workoutLogs.length === 0) return 0;
+/**
+ * Universal streak — counts consecutive days with ANY intentional activity.
+ *
+ * What counts as "showing up":
+ *   - Lifting (workoutLogs)
+ *   - Combat / sport training (trainingSessions)
+ *   - Mobility / stretching (quickLogs type='mobility')
+ *
+ * What does NOT count (passive tracking):
+ *   - Water, sleep, energy, readiness quick-logs
+ *
+ * Design: Allows a 1-day grace (daysDiff <= 2) so training Mon-Wed-Fri
+ * keeps the streak alive. This matches the original behavior.
+ */
+export function calculateStreak(
+  workoutLogs: WorkoutLog[],
+  trainingSessions?: TrainingSession[],
+  quickLogs?: QuickLog[],
+): number {
+  const fmtDate = (d: Date) => {
+    const dt = new Date(d);
+    dt.setHours(0, 0, 0, 0);
+    return dt.getTime();
+  };
 
-  const sorted = [...workoutLogs].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Collect all active dates from every source
+  const activeDatesSet = new Set<number>();
 
-  let streak = 0;
-  let currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
+  for (const log of workoutLogs) {
+    activeDatesSet.add(fmtDate(new Date(log.date)));
+  }
+  if (trainingSessions) {
+    for (const s of trainingSessions) {
+      activeDatesSet.add(fmtDate(new Date(s.date)));
+    }
+  }
+  if (quickLogs) {
+    for (const q of quickLogs) {
+      if (q.type === 'mobility') {
+        activeDatesSet.add(fmtDate(new Date(q.timestamp)));
+      }
+    }
+  }
 
-  for (const log of sorted) {
-    const logDate = new Date(log.date);
-    logDate.setHours(0, 0, 0, 0);
+  if (activeDatesSet.size === 0) return 0;
 
-    const daysDiff = Math.floor(
-      (currentDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+  // Sort descending
+  const sortedDates = Array.from(activeDatesSet).sort((a, b) => b - a);
 
-    if (daysDiff <= 2) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const DAY_MS = 86400000;
+
+  // If the most recent activity is more than 2 days ago, streak is 0
+  if ((todayMs - sortedDates[0]) > 2 * DAY_MS) return 0;
+
+  let streak = 1;
+  let cursor = sortedDates[0];
+
+  for (let i = 1; i < sortedDates.length; i++) {
+    const gap = (cursor - sortedDates[i]) / DAY_MS;
+    if (gap <= 2) {
       streak++;
-      currentDate = logDate;
+      cursor = sortedDates[i];
     } else {
       break;
     }

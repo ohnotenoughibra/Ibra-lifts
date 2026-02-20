@@ -151,7 +151,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
               />
             )}
           </div>
-          <div className="flex justify-between text-[10px] text-grappler-500">
+          <div className="flex justify-between text-xs text-grappler-400">
             <span>0</span>
             <span>0.8</span>
             <span>1.3</span>
@@ -165,14 +165,14 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
         {/* Load Numbers */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl p-3.5 bg-grappler-800/50 border border-grappler-700/50">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Acute (7-day)</p>
+            <p className="text-xs text-grappler-400 uppercase tracking-wide">Acute (7-day)</p>
             <p className="text-xl font-bold text-grappler-100 mt-1">{acwr.acute.toLocaleString()}</p>
-            <p className="text-[10px] text-grappler-500">sRPE units</p>
+            <p className="text-xs text-grappler-400">sRPE units</p>
           </div>
           <div className="rounded-xl p-3.5 bg-grappler-800/50 border border-grappler-700/50">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Chronic (weekly avg)</p>
+            <p className="text-xs text-grappler-400 uppercase tracking-wide">Chronic (weekly avg)</p>
             <p className="text-xl font-bold text-grappler-100 mt-1">{acwr.chronic.toLocaleString()}</p>
-            <p className="text-[10px] text-grappler-500">sRPE units</p>
+            <p className="text-xs text-grappler-400">sRPE units</p>
           </div>
         </div>
 
@@ -184,7 +184,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
           <div className="space-y-2">
             {weeklyLoads.map((week, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="text-[11px] text-grappler-500 w-24 flex-shrink-0">{week.label}</span>
+                <span className="text-[11px] text-grappler-400 w-24 flex-shrink-0">{week.label}</span>
                 <div className="flex-1 h-6 bg-grappler-800/50 rounded-lg overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -228,7 +228,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
               );
             })}
           </div>
-          <div className="flex items-center gap-1.5 mt-2 text-[10px] text-grappler-500">
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-grappler-400">
             <span>Less</span>
             <div className="w-3 h-3 rounded-sm bg-grappler-800/40" />
             <div className="w-3 h-3 rounded-sm bg-green-500/20" />
@@ -245,7 +245,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
             <Activity className="w-4 h-4 text-grappler-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-medium text-grappler-300">About ACWR</p>
-              <p className="text-[11px] text-grappler-500 mt-1">
+              <p className="text-[11px] text-grappler-400 mt-1">
                 Acute:Chronic Workload Ratio compares your last 7 days of training to your 28-day average.
                 The sweet spot (0.8-1.3) means you&apos;re progressing safely. Above 1.5 means you&apos;ve spiked load
                 too fast — injury risk increases 2-4x (Gabbett 2016).

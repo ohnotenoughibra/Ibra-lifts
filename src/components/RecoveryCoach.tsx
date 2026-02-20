@@ -120,7 +120,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
                   Recovery Coach
                 </h1>
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   AI-powered recovery insights
                 </p>
               </div>

@@ -180,7 +180,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
                   />
                   <button
                     onClick={(e) => { e.stopPropagation(); const v = parseInt(goalInput); if (v > 0) saveGoal(lift.exerciseId, v); }}
-                    className="text-[10px] bg-primary-500 text-white px-2 py-1 rounded font-medium"
+                    className="text-xs bg-primary-500 text-white px-2 py-1 rounded font-medium"
                   >
                     Set
                   </button>
@@ -303,7 +303,7 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
         </h3>
         {phase && (
           <span className={cn(
-            'text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase',
+            'text-xs font-semibold px-2 py-0.5 rounded-full uppercase',
             phase === 'cut' ? 'bg-red-500/15 text-red-400' :
             phase === 'bulk' ? 'bg-blue-500/15 text-blue-400' :
             'bg-green-500/15 text-green-400'
@@ -335,11 +335,11 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
             <p className={cn('text-sm font-bold', data.volumeDelta > 0 ? 'text-green-400' : data.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-100')}>
               {data.volumeDelta > 0 ? '+' : ''}{formatNumber(data.volumeDelta)}
             </p>
-            <p className="text-xs text-grappler-500">vs first 2 weeks</p>
+            <p className="text-xs text-grappler-400">vs first 2 weeks</p>
           </div>
         )}
       </div>
-      <p className="text-xs text-grappler-500 mt-2">{getInterpretation()}</p>
+      <p className="text-xs text-grappler-400 mt-2">{getInterpretation()}</p>
     </div>
   );
 }
@@ -593,8 +593,8 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
         ))}
       </div>
       <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-grappler-500">{weeks * 7} days</span>
-        <div className="flex items-center gap-2 text-xs text-grappler-500">
+        <span className="text-xs text-grappler-400">{weeks * 7} days</span>
+        <div className="flex items-center gap-2 text-xs text-grappler-400">
           <div className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
             <span>Lifting</span>
@@ -790,7 +790,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
               {getGrade(score.total)}
             </span>
           </div>
-          <p className="text-[10px] text-grappler-500 mt-0.5">
+          <p className="text-xs text-grappler-400 mt-0.5">
             {score.total >= 80 ? 'Crushing it — keep the momentum' :
              score.total >= 60 ? 'Solid progress — room to improve' :
              score.total >= 40 ? 'Getting there — stay consistent' :
@@ -853,8 +853,8 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
                           className="overflow-hidden"
                         >
                           <div className="ml-[72px] pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
-                            <p className="text-[10px] text-grappler-500">{explainer.what}</p>
-                            <p className="text-[10px] text-primary-400">{explainer.action}</p>
+                            <p className="text-xs text-grappler-400">{explainer.what}</p>
+                            <p className="text-xs text-primary-400">{explainer.action}</p>
                           </div>
                         </motion.div>
                       )}
@@ -925,7 +925,7 @@ function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog
 
   return (
     <div className="card p-4">
-      <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2 mb-3">
+      <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
         <Clock className="w-3.5 h-3.5" />
         Training Journey
       </h3>
@@ -946,7 +946,7 @@ function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog
               />
             </div>
             {/* Label */}
-            <p className={cn('text-[10px] font-medium text-center truncate w-full', block.isCurrent ? 'text-primary-400' : 'text-grappler-400')}>
+            <p className={cn('text-xs font-medium text-center truncate w-full', block.isCurrent ? 'text-primary-400' : 'text-grappler-400')}>
               {block.isCurrent ? 'Current' : `Block ${i + 1}`}
             </p>
             <p className="text-[9px] text-grappler-600 text-center">{block.weeks}wk · {block.completed}s</p>
@@ -1063,7 +1063,7 @@ function SessionRecapCard() {
             </div>
             <div>
               <h3 className="text-sm font-bold text-green-300">Session Complete</h3>
-              <p className="text-[10px] text-grappler-400">{Math.round(hoursAgo * 60) < 60 ? `${Math.round(hoursAgo * 60)}m ago` : `${Math.round(hoursAgo)}h ago`}</p>
+              <p className="text-xs text-grappler-400">{Math.round(hoursAgo * 60) < 60 ? `${Math.round(hoursAgo * 60)}m ago` : `${Math.round(hoursAgo)}h ago`}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -1115,7 +1115,7 @@ function SessionRecapCard() {
               <div key={badge.id} className="flex items-center gap-2 bg-purple-500/10 rounded-lg px-3 py-2">
                 <span className="text-base">{badge.icon}</span>
                 <span className="text-xs font-semibold text-purple-300">{badge.name}</span>
-                <span className="text-[10px] text-purple-400 ml-auto">+{badge.points}</span>
+                <span className="text-xs text-purple-400 ml-auto">+{badge.points}</span>
               </div>
             ))}
           </div>
@@ -1168,7 +1168,7 @@ function BlockPerformanceCard() {
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2">
           <Target className="w-3.5 h-3.5" />
           Current Block
         </h3>
@@ -1200,7 +1200,7 @@ function BlockPerformanceCard() {
       <div className="grid grid-cols-3 gap-3">
         <div className="text-center">
           <p className="text-lg font-bold text-grappler-100">{formatNumber(totalVolume)}</p>
-          <p className="text-xs text-grappler-500">Volume ({weightUnit})</p>
+          <p className="text-xs text-grappler-400">Volume ({weightUnit})</p>
           {volumeDelta !== null && (
             <p className={cn('text-xs font-medium', volumeDelta >= 0 ? 'text-green-400' : 'text-red-400')}>
               {volumeDelta >= 0 ? '+' : ''}{volumeDelta}% vs last
@@ -1209,11 +1209,11 @@ function BlockPerformanceCard() {
         </div>
         <div className="text-center">
           <p className="text-lg font-bold text-grappler-100">{avgRPE || '—'}</p>
-          <p className="text-xs text-grappler-500">Avg RPE</p>
+          <p className="text-xs text-grappler-400">Avg RPE</p>
         </div>
         <div className="text-center">
           <p className="text-lg font-bold text-yellow-400">{prs}</p>
-          <p className="text-xs text-grappler-500">PRs</p>
+          <p className="text-xs text-grappler-400">PRs</p>
         </div>
       </div>
     </div>

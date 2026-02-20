@@ -28,7 +28,7 @@ export default class CardErrorBoundary extends Component<Props, State> {
       return (
         <div className="card p-4 flex items-center gap-3 opacity-60">
           <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
-          <p className="text-xs text-grappler-500">
+          <p className="text-xs text-grappler-400">
             {this.props.fallbackLabel || 'This section'} couldn&apos;t load.
           </p>
         </div>

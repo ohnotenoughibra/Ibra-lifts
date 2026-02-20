@@ -355,7 +355,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </button>
               ))}
             </div>
-            {todayWater > 0 && <p className="text-center text-[10px] text-grappler-500">Today: {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}</p>}
+            {todayWater > 0 && <p className="text-center text-xs text-grappler-400">Today: {todayWater >= 1000 ? `${(todayWater / 1000).toFixed(1)}L` : `${todayWater}ml`}</p>}
           </div>
         );
 
@@ -374,7 +374,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <Plus className="w-4 h-4 text-grappler-300" />
               </button>
             </div>
-            {todayWeight && <p className="text-center text-[10px] text-grappler-500">Already logged: {todayWeight.weight}{todayWeight.unit || weightUnit}</p>}
+            {todayWeight && <p className="text-center text-xs text-grappler-400">Already logged: {todayWeight.weight}{todayWeight.unit || weightUnit}</p>}
           </div>
         );
 
@@ -391,7 +391,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               </button>
             </div>
             <div>
-              <p className="text-[10px] text-grappler-500 text-center mb-1.5">Quality</p>
+              <p className="text-xs text-grappler-400 text-center mb-1.5">Quality</p>
               <div className="flex gap-1.5 justify-center">
                 {([1, 2, 3, 4, 5] as const).map(q => (
                   <button key={q} onClick={() => setSleepQuality(q)} className={cn("w-10 h-8 rounded-lg text-xs font-medium transition-all", sleepQuality === q ? "bg-indigo-500/25 text-indigo-400 ring-1 ring-indigo-500/30" : "bg-grappler-800 text-grappler-400")}>
@@ -411,7 +411,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               {([1, 2, 3, 4, 5] as const).map(level => (
                 <button key={level} onClick={() => setEnergyLevel(level)} className={cn("w-12 h-12 rounded-xl flex flex-col items-center justify-center transition-all", energyLevel === level ? "bg-yellow-500/25 ring-2 ring-yellow-400/50" : "bg-grappler-800")}>
                   <Zap className={cn("w-4 h-4", level <= energyLevel ? "text-yellow-400" : "text-grappler-600")} />
-                  <span className="text-[10px] text-grappler-400">{level}</span>
+                  <span className="text-xs text-grappler-400">{level}</span>
                 </button>
               ))}
             </div>
@@ -481,10 +481,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               ))}
             </div>
             <div>
-              <p className="text-[10px] text-grappler-500 text-center mb-1">RPE</p>
+              <p className="text-xs text-grappler-400 text-center mb-1">RPE</p>
               <div className="flex gap-0.5 justify-center">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
-                  <button key={val} onClick={() => setPerceivedExertion(val)} className={cn("w-7 h-7 rounded text-[10px] font-medium transition-all", perceivedExertion === val ? "bg-lime-500/25 ring-1 ring-lime-400 text-lime-300" : "bg-grappler-800 text-grappler-500")}>
+                  <button key={val} onClick={() => setPerceivedExertion(val)} className={cn("w-7 h-7 rounded text-xs font-medium transition-all", perceivedExertion === val ? "bg-lime-500/25 ring-1 ring-lime-400 text-lime-300" : "bg-grappler-800 text-grappler-400")}>
                     {val}
                   </button>
                 ))}
@@ -526,7 +526,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 { l: 'F (g)', v: foodFat, set: setFoodFat },
               ] as const).map(({ l, v, set }) => (
                 <div key={l}>
-                  <label className="text-[10px] text-grappler-500">{l}</label>
+                  <label className="text-xs text-grappler-400">{l}</label>
                   <input type="number" inputMode="decimal" value={v || ''} onChange={(e) => set(parseFloat(e.target.value) || 0)} className="w-full bg-grappler-800 rounded px-2 py-1.5 text-xs text-center text-grappler-200 border border-grappler-700 focus:border-primary-500 outline-none" />
                 </div>
               ))}
@@ -544,7 +544,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             ) : (
               supplementChecklist.map(group => (
                 <div key={group.slot}>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1">{group.slot}</p>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1">{group.slot}</p>
                   <div className="space-y-1">
                     {group.supplements.map(({ supplement: s, taken, intakeId, macros }) => (
                       <button
@@ -567,7 +567,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                         </div>
                         <span className={cn('text-xs flex-1 truncate', taken ? 'text-grappler-400 line-through' : 'text-grappler-200')}>{s.name}</span>
                         {macros && macros.protein > 0 && (
-                          <span className="text-[10px] text-primary-400">{Math.round(macros.protein * s.servingsPerDose)}g P</span>
+                          <span className="text-xs text-primary-400">{Math.round(macros.protein * s.servingsPerDose)}g P</span>
                         )}
                       </button>
                     ))}
@@ -653,7 +653,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex-1">
               <p className="text-sm font-bold text-grappler-50">Quick 30min Workout</p>
-              <p className="text-[10px] text-grappler-400">Auto-generated lift session</p>
+              <p className="text-xs text-grappler-400">Auto-generated lift session</p>
             </div>
             <Play className="w-4 h-4 text-primary-400" />
           </motion.button>
@@ -699,7 +699,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </div>
                 <p className="text-[11px] font-medium text-grappler-200">{a.label}</p>
                 {a.stat && (
-                  <p className={cn('text-[10px] mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-500')}>{a.stat}</p>
+                  <p className={cn('text-xs mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-400')}>{a.stat}</p>
                 )}
                 {a.done && <Check className="w-3 h-3 text-green-400 absolute top-1.5 right-1.5" />}
               </motion.button>
@@ -712,7 +712,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           <>
             <button
               onClick={() => setShowMore(!showMore)}
-              className="w-full flex items-center justify-center gap-1 py-1.5 text-[10px] text-grappler-500 hover:text-grappler-300 transition-colors"
+              className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
             >
               {showMore ? 'Less' : 'More'} <ChevronDown className={cn('w-3 h-3 transition-transform', showMore && 'rotate-180')} />
             </button>
@@ -742,7 +742,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                           <a.icon className={cn('w-4 h-4', a.color)} />
                         </div>
                         <p className="text-[11px] font-medium text-grappler-200">{a.label}</p>
-                        {a.stat && <p className={cn('text-[10px] mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-500')}>{a.stat}</p>}
+                        {a.stat && <p className={cn('text-xs mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-400')}>{a.stat}</p>}
                         {a.done && <Check className="w-3 h-3 text-green-400 absolute top-1.5 right-1.5" />}
                       </motion.button>
                     ))}

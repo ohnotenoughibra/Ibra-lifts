@@ -87,8 +87,8 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
       {/* Progress bar */}
       <div className="max-w-lg mx-auto mb-8">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-grappler-500">Step {currentStep} of {TOTAL_STEPS}</p>
-          <p className="text-xs text-grappler-500">{Math.round((currentStep / TOTAL_STEPS) * 100)}%</p>
+          <p className="text-xs text-grappler-400">Step {currentStep} of {TOTAL_STEPS}</p>
+          <p className="text-xs text-grappler-400">{Math.round((currentStep / TOTAL_STEPS) * 100)}%</p>
         </div>
         <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden">
           <motion.div
@@ -592,7 +592,7 @@ function Step3_Schedule({
             </button>
           ))}
         </div>
-        <p className="text-xs text-grappler-500 mt-1.5 text-center">{getSplitLabel()}</p>
+        <p className="text-xs text-grappler-400 mt-1.5 text-center">{getSplitLabel()}</p>
       </div>
 
       {/* Week grid — simplified: tap to toggle lift days */}
@@ -639,19 +639,19 @@ function Step3_Schedule({
         <div className="flex items-center justify-center gap-4 mt-2">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-1.5 rounded-full bg-primary-400" />
-            <span className="text-xs text-grappler-500">Lift</span>
+            <span className="text-xs text-grappler-400">Lift</span>
           </div>
           {isCombat && (
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-1.5 rounded-full bg-red-400" />
-              <span className="text-xs text-grappler-500">Combat (auto-scheduled)</span>
+              <span className="text-xs text-grappler-400">Combat (auto-scheduled)</span>
             </div>
           )}
         </div>
       </div>
 
       {isCombat && (
-        <p className="text-xs text-grappler-500 text-center">
+        <p className="text-xs text-grappler-400 text-center">
           Combat sessions are auto-optimized around your lifts. Fine-tune in Settings.
         </p>
       )}
@@ -770,11 +770,11 @@ function Step4_Ready({
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
             <p className="text-sm font-bold text-grappler-100">{getSplitLabel()}</p>
-            <p className="text-xs text-grappler-500">Split</p>
+            <p className="text-xs text-grappler-400">Split</p>
           </div>
           <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
             <p className="text-sm font-bold text-grappler-100">{getPeriodizationLabel()}</p>
-            <p className="text-xs text-grappler-500">Periodization</p>
+            <p className="text-xs text-grappler-400">Periodization</p>
           </div>
         </div>
       </motion.div>

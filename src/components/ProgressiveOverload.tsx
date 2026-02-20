@@ -337,7 +337,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
                 >
                   <div>
                     <p className="text-sm font-medium text-grappler-100">{ex.exerciseName}</p>
-                    <p className="text-xs text-grappler-500">
+                    <p className="text-xs text-grappler-400">
                       {ex.sessions.length} session{ex.sessions.length !== 1 ? 's' : ''}
                     </p>
                   </div>
@@ -382,7 +382,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         >
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-grappler-200">Estimated 1RM Over Time</h4>
-            <span className="text-xs text-grappler-500">Epley Formula</span>
+            <span className="text-xs text-grappler-400">Epley Formula</span>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -453,7 +453,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
             </ResponsiveContainer>
           </div>
           {selectedExercise.weeklyRate !== 0 && selectedExercise.sessions.length >= 2 && (
-            <p className="text-xs text-grappler-500 mt-2 text-center">
+            <p className="text-xs text-grappler-400 mt-2 text-center">
               Dotted line shows projected trajectory at current rate of{' '}
               <span className={trendColor(selectedExercise.trend)}>
                 {selectedExercise.weeklyRate > 0 ? '+' : ''}
@@ -555,7 +555,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         <div className="flex items-center gap-2 mb-3">
           <Dumbbell className="w-4 h-4 text-primary-400" />
           <h4 className="font-medium text-grappler-200">All Exercises</h4>
-          <span className="text-xs text-grappler-500">({allExercises.length})</span>
+          <span className="text-xs text-grappler-400">({allExercises.length})</span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -588,7 +588,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
                 <span className="text-xs font-normal text-grappler-400">{weightUnit}</span>
               </p>
 
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 {ex.sessions.length} session{ex.sessions.length !== 1 ? 's' : ''}
                 {ex.totalGain !== 0 && (
                   <span className={`ml-1 ${trendColor(ex.trend)}`}>
@@ -630,7 +630,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
                   <p className="text-lg font-bold text-grappler-50">
                     {projected}
                   </p>
-                  <p className="text-xs text-grappler-500">{weightUnit}</p>
+                  <p className="text-xs text-grappler-400">{weightUnit}</p>
                 </div>
               );
             })}

@@ -152,7 +152,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                   <span className="text-sm font-medium text-teal-400">Deload</span>
                 </div>
               </div>
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 Tap any session card to view full exercise details. The current week is highlighted with a bright border.
               </p>
             </div>
@@ -205,14 +205,14 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                   )}>
                     W{week.weekNumber} {week.isDeload ? '(Deload)' : ''}
                   </span>
-                  <div className="flex items-center gap-2 text-xs text-grappler-500">
+                  <div className="flex items-center gap-2 text-xs text-grappler-400">
                     <span>Vol: {(week.volumeMultiplier * 100).toFixed(0)}%</span>
                     <span>Int: {(week.intensityMultiplier * 100).toFixed(0)}%</span>
                   </div>
                 </div>
                 {/* Volume bar */}
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-grappler-500 w-6">Vol</span>
+                  <span className="text-xs text-grappler-400 w-6">Vol</span>
                   <div className="flex-1 h-2 bg-grappler-900 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -227,7 +227,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                 </div>
                 {/* Intensity bar */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-grappler-500 w-6">Int</span>
+                  <span className="text-xs text-grappler-400 w-6">Int</span>
                   <div className="flex-1 h-2 bg-grappler-900 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -286,7 +286,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-grappler-500">
+                <div className="flex items-center gap-1.5 text-xs text-grappler-400">
                   <span>{(week.volumeMultiplier * 100).toFixed(0)}% vol</span>
                   <span className="text-grappler-700">|</span>
                   <span>{(week.intensityMultiplier * 100).toFixed(0)}% int</span>
@@ -323,7 +323,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                         </span>
                       </div>
                       <p className="text-xs text-grappler-200 truncate">{session.name}</p>
-                      <p className="text-xs text-grappler-500 mt-0.5">
+                      <p className="text-xs text-grappler-400 mt-0.5">
                         {session.exercises.length} exercises
                       </p>
                       {completed && (
@@ -436,19 +436,19 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                     >
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-grappler-500 bg-grappler-700 w-6 h-6 rounded-lg flex items-center justify-center">
+                          <span className="text-xs font-bold text-grappler-400 bg-grappler-700 w-6 h-6 rounded-lg flex items-center justify-center">
                             {idx + 1}
                           </span>
                           <div>
                             <p className="text-sm font-semibold text-grappler-50">{ex.exercise.name}</p>
-                            <p className="text-xs text-grappler-500 capitalize">{ex.exercise.category}</p>
+                            <p className="text-xs text-grappler-400 capitalize">{ex.exercise.category}</p>
                           </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">{ex.sets}</p>
-                          <p className="text-xs text-grappler-500">Sets</p>
+                          <p className="text-xs text-grappler-400">Sets</p>
                         </div>
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">
@@ -456,11 +456,11 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
                               ? ex.prescription.targetReps
                               : `${ex.prescription.minReps}-${ex.prescription.maxReps}`}
                           </p>
-                          <p className="text-xs text-grappler-500">Reps</p>
+                          <p className="text-xs text-grappler-400">Reps</p>
                         </div>
                         <div className="bg-grappler-900 rounded-lg p-2 text-center">
                           <p className="text-sm font-bold text-grappler-50">{ex.prescription.rpe}</p>
-                          <p className="text-xs text-grappler-500">RPE</p>
+                          <p className="text-xs text-grappler-400">RPE</p>
                         </div>
                       </div>
                       {ex.prescription.tempo && (

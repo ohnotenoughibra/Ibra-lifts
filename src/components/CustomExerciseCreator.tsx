@@ -387,7 +387,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     }
                     className="w-full accent-primary-500"
                   />
-                  <div className="flex justify-between text-xs text-grappler-500 mt-0.5">
+                  <div className="flex justify-between text-xs text-grappler-400 mt-0.5">
                     <span>1</span>
                     <span>10</span>
                   </div>
@@ -413,7 +413,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     }
                     className="w-full accent-primary-500"
                   />
-                  <div className="flex justify-between text-xs text-grappler-500 mt-0.5">
+                  <div className="flex justify-between text-xs text-grappler-400 mt-0.5">
                     <span>1</span>
                     <span>10</span>
                   </div>
@@ -643,7 +643,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
               <p className="text-grappler-400 text-sm mb-1">
                 No custom exercises yet.
               </p>
-              <p className="text-grappler-500 text-xs">
+              <p className="text-grappler-400 text-xs">
                 Tap <span className="text-primary-400">+</span> to create one.
               </p>
             </motion.div>

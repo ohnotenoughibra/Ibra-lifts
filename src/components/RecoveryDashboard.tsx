@@ -339,7 +339,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                       >
                         {recoveryScore}
                       </motion.p>
-                      <p className="text-[10px] text-grappler-500 uppercase">{scoreLabel}</p>
+                      <p className="text-xs text-grappler-400 uppercase">{scoreLabel}</p>
                     </div>
                   </div>
 
@@ -410,7 +410,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                           transition={{ delay: 0.5 }}
                         />
                       </div>
-                      <div className="flex justify-between text-[10px] text-grappler-500">
+                      <div className="flex justify-between text-xs text-grappler-400">
                         <span>Under-training</span>
                         <span className="text-emerald-400/80">Sweet spot</span>
                         <span>Overreaching</span>
@@ -420,13 +420,13 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                     {/* This week vs average */}
                     <div className="flex gap-2 mt-3">
                       <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
-                        <span className="text-[11px] text-grappler-500">This week</span>
+                        <span className="text-[11px] text-grappler-400">This week</span>
                         <span className="text-xs font-medium text-grappler-200">
                           {trainingLoad.acute > 1000 ? `${(trainingLoad.acute / 1000).toFixed(1)}k` : trainingLoad.acute.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
-                        <span className="text-[11px] text-grappler-500">Avg/week</span>
+                        <span className="text-[11px] text-grappler-400">Avg/week</span>
                         <span className="text-xs font-medium text-grappler-200">
                           {trainingLoad.chronic > 1000 ? `${(trainingLoad.chronic / 1000).toFixed(1)}k` : Math.round(trainingLoad.chronic).toLocaleString()}
                         </span>
@@ -472,7 +472,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>
-                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-400 mt-0.5">
                           Avg: {(sleepSparkData.reduce((s, d) => s + d.sleep, 0) / sleepSparkData.length).toFixed(1)}/5
                         </p>
                       </div>
@@ -494,7 +494,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>
-                        <p className="text-[10px] text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-400 mt-0.5">
                           Avg RPE: {(rpeSparkData.reduce((s, d) => s + d.rpe, 0) / rpeSparkData.length).toFixed(1)}
                         </p>
                       </div>

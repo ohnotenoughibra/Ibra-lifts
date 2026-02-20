@@ -229,7 +229,7 @@ export default function YouTubeEmbed({ exerciseName, videoUrl, onClose }: YouTub
           {/* Footer hint */}
           <div className="px-5 py-2.5 bg-grappler-800/60 border-t border-grappler-700/30">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 {embedUrl ? `Showing: "${query}"` : `Search: "${query}"`}
               </p>
               <a

@@ -246,7 +246,7 @@ export default function NewUserGuide({ onComplete }: NewUserGuideProps) {
           Back
         </button>
 
-        <span className="text-xs text-grappler-500">
+        <span className="text-xs text-grappler-400">
           {currentStep + 1} / {GUIDE_STEPS.length}
         </span>
 

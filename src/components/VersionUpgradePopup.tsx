@@ -157,7 +157,7 @@ export default function VersionUpgradePopup() {
                     <div key={ver.version} className="space-y-1.5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-bold text-primary-400">v{ver.version}</span>
-                        <span className="text-xs text-grappler-500">{ver.releasedAt}</span>
+                        <span className="text-xs text-grappler-400">{ver.releasedAt}</span>
                       </div>
                       <ul className="space-y-1">
                         {ver.highlights.map((h, i) => (
@@ -168,7 +168,7 @@ export default function VersionUpgradePopup() {
                         ))}
                       </ul>
                       {ver.migrationNotes && (
-                        <p className="text-xs text-grappler-500 mt-1 pl-5">{ver.migrationNotes}</p>
+                        <p className="text-xs text-grappler-400 mt-1 pl-5">{ver.migrationNotes}</p>
                       )}
                     </div>
                   ))}

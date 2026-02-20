@@ -29,6 +29,7 @@ interface WeeklyMomentumProps {
     totalVolume: number;
     combatSessions: number;
     combatMinutes: number;
+    combatLoad: number;
     proteinAdherence: number | null;
   };
   weekTrends: {
@@ -37,6 +38,7 @@ interface WeeklyMomentumProps {
     consistency: 'up' | 'down' | 'stable';
   };
   lastWeekVolume: number;
+  lastCombatLoad: number;
   weightUnit: WeightUnit;
   nextBadgeDistance: number | null;
 }
@@ -175,6 +177,12 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
     return pct;
   }, [props.weekStats.totalVolume, props.lastWeekVolume]);
 
+  // ─── Combat load delta (sRPE: duration × RPE) ───
+  const combatLoadDelta = useMemo(() => {
+    if (props.lastCombatLoad === 0 || props.weekStats.combatLoad === 0) return null;
+    return Math.round(((props.weekStats.combatLoad - props.lastCombatLoad) / props.lastCombatLoad) * 100);
+  }, [props.weekStats.combatLoad, props.lastCombatLoad]);
+
   // ─── Day cell styling ───
   const getDayStyle = (activity: DayActivity, isToday: boolean) => {
     const base = isToday ? 'ring-2 ring-primary-400/60' : '';
@@ -296,7 +304,14 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
               </div>
 
               {/* Stats grid */}
-              <div className={cn('grid gap-2 text-center', props.weekStats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
+              <div className={cn(
+                'grid gap-2 text-center',
+                props.weekStats.totalVolume > 0 && props.weekStats.combatLoad > 0
+                  ? 'grid-cols-6'
+                  : props.weekStats.combatSessions > 0
+                    ? 'grid-cols-5'
+                    : 'grid-cols-4'
+              )}>
                 <div>
                   <p className="text-lg font-bold text-primary-400">{props.weekStats.workouts}</p>
                   <p className="text-xs text-grappler-400">Lifts</p>
@@ -318,20 +333,63 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
                   <p className="text-xs text-grappler-400">Avg RPE</p>
                 </div>
                 <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <p className="text-lg font-bold text-grappler-100">
-                      {props.weekStats.totalVolume > 0 ? formatNumber(props.weekStats.totalVolume) : '—'}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center gap-0.5">
-                    <p className="text-xs text-grappler-400">{props.weightUnit}</p>
-                    {volumeDelta !== null && (
-                      <span className={cn('text-[9px] font-medium', volumeDelta > 0 ? 'text-green-400' : volumeDelta < 0 ? 'text-red-400' : 'text-grappler-500')}>
-                        {volumeDelta > 0 ? '+' : ''}{volumeDelta}%
-                      </span>
-                    )}
-                  </div>
+                  {props.weekStats.totalVolume > 0 ? (
+                    <>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-lg font-bold text-grappler-100">
+                          {formatNumber(props.weekStats.totalVolume)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <p className="text-xs text-grappler-400">{props.weightUnit}</p>
+                        {volumeDelta !== null && (
+                          <span className={cn('text-[9px] font-medium', volumeDelta > 0 ? 'text-green-400' : volumeDelta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                            {volumeDelta > 0 ? '+' : ''}{volumeDelta}%
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : props.weekStats.combatLoad > 0 ? (
+                    <>
+                      <div className="flex items-center justify-center gap-1">
+                        <p className="text-lg font-bold text-purple-400">
+                          {formatNumber(props.weekStats.combatLoad)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <p className="text-xs text-grappler-400">load</p>
+                        {combatLoadDelta !== null && (
+                          <span className={cn('text-[9px] font-medium', combatLoadDelta > 0 ? 'text-green-400' : combatLoadDelta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                            {combatLoadDelta > 0 ? '+' : ''}{combatLoadDelta}%
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg font-bold text-grappler-100">—</p>
+                      <p className="text-xs text-grappler-400">volume</p>
+                    </>
+                  )}
                 </div>
+                {/* Combat load (shown alongside lifting volume when both exist) */}
+                {props.weekStats.totalVolume > 0 && props.weekStats.combatLoad > 0 && (
+                  <div>
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-lg font-bold text-purple-400">
+                        {formatNumber(props.weekStats.combatLoad)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-0.5">
+                      <p className="text-xs text-grappler-400">load</p>
+                      {combatLoadDelta !== null && (
+                        <span className={cn('text-[9px] font-medium', combatLoadDelta > 0 ? 'text-green-400' : combatLoadDelta < 0 ? 'text-red-400' : 'text-grappler-500')}>
+                          {combatLoadDelta > 0 ? '+' : ''}{combatLoadDelta}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Trends + protein */}
@@ -341,6 +399,13 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
                     <TrendIcon className={cn('w-3 h-3', trendColor)} />
                     <span className={cn('text-xs font-medium', trendColor)}>
                       Volume {props.weekTrends.volume === 'up' ? '↑' : props.weekTrends.volume === 'down' ? '↓' : '→'}
+                    </span>
+                  </div>
+                ) : props.weekStats.combatLoad > 0 ? (
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-purple-400" />
+                    <span className="text-xs font-medium text-purple-400">
+                      Mat load {combatLoadDelta !== null ? (combatLoadDelta > 0 ? '↑' : combatLoadDelta < 0 ? '↓' : '→') : '→'}
                     </span>
                   </div>
                 ) : (

@@ -2571,12 +2571,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     onClick={(e) => {
                       e.stopPropagation();
                       if (dockLongPressTriggered.current) return;
-                      if (dockEditMode) {
-                        setDockPickerSlot(pinnedIds.length + i);
-                        setDockPickerOpen(true);
-                      } else {
-                        onSwitchTab?.('explore');
-                      }
+                      if (!dockEditMode) setDockEditMode(true);
+                      setDockPickerSlot(pinnedIds.length + i);
+                      setDockPickerOpen(true);
                     }}
                     className={cn('flex flex-col items-center gap-1.5 flex-1 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
                     style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s` } : undefined}

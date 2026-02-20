@@ -2458,7 +2458,13 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   ) : null;
                 })()}
 
-      {/* ─── PINNED TOOLS DOCK — glassmorphic quick access card ─── */}
+        </div>{/* end space-y-3 pt-1 */}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>{/* end collapsible insights wrapper */}
+
+      {/* ─── PINNED TOOLS DOCK — always visible, outside collapsible ─── */}
       {(() => {
         const dockTools = pinnedIds
           .slice(0, DOCK_SLOTS)
@@ -2487,14 +2493,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 {dockEditMode ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDockEditMode(false); setDockPickerOpen(false); setDockPickerSlot(null); }}
-                    className="px-2.5 py-0.5 rounded-full bg-primary-500/20 border border-primary-500/30 text-xs font-semibold text-primary-400 hover:bg-primary-500/30 transition-colors"
+                    className="px-3.5 py-1.5 rounded-full bg-primary-500/20 border border-primary-500/30 text-sm font-semibold text-primary-400 active:bg-primary-500/40 transition-colors"
+                    style={{ touchAction: 'manipulation', minHeight: 36 }}
                   >
                     Done
                   </button>
                 ) : dockTools.length > 0 && (
                   <button
                     onClick={(e) => { e.stopPropagation(); hapticMedium(); setDockEditMode(true); }}
-                    className="px-2 py-0.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                    className="px-3 py-1.5 text-sm font-medium text-grappler-400 active:text-grappler-200 transition-colors"
+                    style={{ touchAction: 'manipulation', minHeight: 36 }}
                   >
                     Edit
                   </button>
@@ -2519,31 +2527,30 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                           }
                         }}
                         className={cn('flex flex-col items-center gap-1.5 w-full group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
-                        style={dockEditMode ? { animationDelay: `${idx * 0.05}s` } : undefined}
+                        style={dockEditMode ? { animationDelay: `${idx * 0.05}s`, touchAction: 'manipulation' } : { touchAction: 'manipulation' }}
                       >
                         <div className={cn(
                           'relative w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
                           'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
                           'border border-white/[0.06]',
-                          !dockEditMode && 'group-hover:from-white/[0.12] group-hover:to-white/[0.04] group-hover:border-white/[0.10]',
                           !dockEditMode && 'group-active:scale-90',
                           'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]',
                         )}>
-                          <div className={cn('absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300', `bg-${glowBase}-500/10`)} />
                           <Icon className={cn('w-5 h-5 relative z-10', textColor)} />
                         </div>
                         <span className="text-xs text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
                       </button>
-                      {/* Remove badge */}
+                      {/* Remove badge — bigger touch target for mobile */}
                       {dockEditMode && (
                         <motion.button
                           initial={{ opacity: 0, scale: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                           onClick={(e) => { e.stopPropagation(); handleDockRemove(tool.id); }}
-                          className="absolute -top-1 -right-0.5 z-20 w-5 h-5 rounded-full bg-red-500 border-2 border-grappler-900 flex items-center justify-center shadow-lg"
+                          className="absolute -top-2 -right-1 z-20 w-7 h-7 rounded-full bg-red-500 border-2 border-grappler-900 flex items-center justify-center shadow-lg"
+                          style={{ touchAction: 'manipulation', minWidth: 28, minHeight: 28 }}
                         >
-                          <X className="w-2.5 h-2.5 text-white" />
+                          <X className="w-3 h-3 text-white" />
                         </motion.button>
                       )}
                     </div>
@@ -2558,16 +2565,15 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       setDockPickerOpen(true);
                     }}
                     className={cn('flex flex-col items-center gap-1.5 flex-1 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
-                    style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s` } : undefined}
+                    style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s`, touchAction: 'manipulation' } : { touchAction: 'manipulation' }}
                   >
                     <div className={cn(
                       'w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
                       'border border-dashed',
                       dockEditMode ? 'border-primary-400/30 bg-primary-500/5' : 'border-white/[0.06]',
-                      'group-hover:border-white/[0.12] group-hover:bg-white/[0.03]',
                       'group-active:scale-90',
                     )}>
-                      <Plus className={cn('w-4 h-4 transition-colors', dockEditMode ? 'text-primary-400' : 'text-grappler-600 group-hover:text-grappler-400')} />
+                      <Plus className={cn('w-4 h-4 transition-colors', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
                     </div>
                     <span className="text-xs text-grappler-600 leading-tight">&nbsp;</span>
                   </button>
@@ -2577,12 +2583,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           </div>
         );
       })()}
-
-        </div>{/* end space-y-3 pt-1 */}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>{/* end collapsible insights wrapper */}
 
       {/* ─── DOCK TOOL PICKER — slide-up sheet ─── */}
       <AnimatePresence>
@@ -2616,16 +2616,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     </span>
                     <button
                       onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
-                      className="w-7 h-7 rounded-full bg-grappler-800 flex items-center justify-center"
+                      className="w-9 h-9 rounded-full bg-grappler-800 flex items-center justify-center active:bg-grappler-700"
+                      style={{ touchAction: 'manipulation' }}
                     >
-                      <X className="w-3.5 h-3.5 text-grappler-400" />
+                      <X className="w-4 h-4 text-grappler-400" />
                     </button>
                   </div>
                 </div>
 
                 {/* Tool grid */}
                 <div className="overflow-y-auto max-h-[calc(60vh-60px)] p-3 pb-safe">
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2.5">
                     {ALL_TOOLS
                       .filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id))
                       .map(tool => {
@@ -2635,16 +2636,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                           <button
                             key={tool.id}
                             onClick={() => handleDockAdd(tool.id)}
-                            className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-white/[0.04] active:scale-95 transition-all"
+                            className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl active:bg-white/[0.08] active:scale-95 transition-all"
+                            style={{ touchAction: 'manipulation' }}
                           >
                             <div className={cn(
-                              'w-11 h-11 rounded-[12px] flex items-center justify-center',
+                              'w-12 h-12 rounded-[14px] flex items-center justify-center',
                               'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
                               'border border-white/[0.06]',
                             )}>
                               <Icon className={cn('w-5 h-5', textColor)} />
                             </div>
-                            <span className="text-[9px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
+                            <span className="text-[10px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
                           </button>
                         );
                       })}

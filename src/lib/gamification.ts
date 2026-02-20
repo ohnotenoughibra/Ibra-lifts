@@ -531,7 +531,9 @@ export const badges: Badge[] = [
   },
 ];
 
-// Level thresholds — 50 levels (extended from 30)
+// Level thresholds — 50 levels
+// Curve designed so an active user (~1,300 XP/week) reaches max in ~2 years
+// and a casual user (~700 XP/week) in ~3.5 years
 export const levelThresholds: number[] = [
   0,        // Level 1
   100,      // Level 2
@@ -544,45 +546,45 @@ export const levelThresholds: number[] = [
   2500,     // Level 9
   3200,     // Level 10
   4000,     // Level 11
-  5000,     // Level 12
-  6200,     // Level 13
-  7600,     // Level 14
-  9200,     // Level 15
-  11000,    // Level 16
-  13000,    // Level 17
-  15500,    // Level 18
-  18500,    // Level 19
-  22000,    // Level 20
-  26000,    // Level 21
-  30500,    // Level 22
-  35500,    // Level 23
-  41000,    // Level 24
-  47000,    // Level 25
-  54000,    // Level 26
-  62000,    // Level 27
-  71000,    // Level 28
-  81000,    // Level 29
-  92000,    // Level 30
-  104000,   // Level 31
-  117000,   // Level 32
-  131000,   // Level 33
-  146000,   // Level 34
-  162000,   // Level 35
-  180000,   // Level 36
-  200000,   // Level 37
-  222000,   // Level 38
-  246000,   // Level 39
-  272000,   // Level 40
-  300000,   // Level 41
-  332000,   // Level 42
-  368000,   // Level 43
-  408000,   // Level 44
-  452000,   // Level 45
-  500000,   // Level 46
-  555000,   // Level 47
-  618000,   // Level 48
-  690000,   // Level 49
-  770000,   // Level 50
+  4900,     // Level 12
+  5900,     // Level 13
+  7000,     // Level 14
+  8200,     // Level 15
+  9600,     // Level 16
+  11000,    // Level 17
+  12600,    // Level 18
+  14200,    // Level 19
+  16000,    // Level 20
+  18000,    // Level 21
+  20000,    // Level 22
+  22200,    // Level 23
+  24600,    // Level 24
+  27000,    // Level 25
+  29600,    // Level 26
+  32400,    // Level 27
+  35200,    // Level 28
+  38200,    // Level 29
+  41400,    // Level 30
+  44700,    // Level 31
+  48200,    // Level 32
+  51800,    // Level 33
+  55600,    // Level 34
+  59500,    // Level 35
+  63600,    // Level 36
+  67800,    // Level 37
+  72300,    // Level 38
+  76900,    // Level 39
+  81600,    // Level 40
+  86500,    // Level 41
+  91700,    // Level 42
+  97000,    // Level 43
+  102500,   // Level 44
+  108000,   // Level 45
+  114000,   // Level 46
+  120000,   // Level 47
+  126500,   // Level 48
+  133000,   // Level 49
+  140000,   // Level 50
 ];
 
 // Point rewards for various actions
@@ -1023,7 +1025,7 @@ export function getMotivationalMessage(stats: GamificationStats): string {
   const defaults = [
     'Every rep counts. Let\'s get after it!',
     'The only bad workout is the one that didn\'t happen.',
-    'Grapplers are built in the weight room.',
+    'Champions are built in the weight room.',
     'Strength is earned, never given.',
     'Train like a champion today!'
   ];
@@ -1038,7 +1040,7 @@ export function getLevelTitle(level: number): string {
   if (level >= 45) return 'Grandmaster';
   if (level >= 40) return 'Transcendent';
   if (level >= 35) return 'Legendary Athlete';
-  if (level >= 30) return 'Legendary Grappler';
+  if (level >= 30) return 'Legendary Fighter';
   if (level >= 25) return 'Master';
   if (level >= 20) return 'Elite Athlete';
   if (level >= 15) return 'Seasoned Veteran';

@@ -548,7 +548,7 @@ export default function Dashboard({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <WorkoutView onOpenBuilder={() => setOverlayView('builder')} />
+              <WorkoutView />
             </motion.div>
           )}
           {activeTab === 'explore' && (

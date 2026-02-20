@@ -17,7 +17,7 @@ import {
   badges,
   pointRewards,
 } from '@/lib/gamification';
-import type { GamificationStats, WorkoutLog } from '@/lib/types';
+import type { GamificationStats, WorkoutLog, TrainingSession, QuickLog } from '@/lib/types';
 
 // ── calculateLevel ──────────────────────────────────────────────────────────
 
@@ -380,6 +380,112 @@ describe('calculateStreak', () => {
     ] as WorkoutLog[];
 
     expect(calculateStreak(logs)).toBe(1);
+  });
+
+  it('allows 1-day rest gap (2-day tolerance)', () => {
+    const today = new Date();
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    const logs = [
+      { id: '1', date: today.toISOString() },
+      { id: '2', date: twoDaysAgo.toISOString() },
+    ] as WorkoutLog[];
+
+    expect(calculateStreak(logs)).toBe(2);
+  });
+
+  it('counts combat training sessions toward streak', () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const logs = [
+      { id: '1', date: today.toISOString() } as WorkoutLog,
+    ];
+    const sessions = [
+      { id: 's1', date: yesterday.toISOString() } as TrainingSession,
+    ];
+
+    expect(calculateStreak(logs, sessions)).toBe(2);
+  });
+
+  it('counts mobility quicklogs toward streak', () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const logs = [
+      { id: '1', date: today.toISOString() } as WorkoutLog,
+    ];
+    const quickLogs: QuickLog[] = [
+      { type: 'mobility', value: 15, unit: 'min', timestamp: yesterday, notes: 'Stretching' },
+    ];
+
+    expect(calculateStreak(logs, [], quickLogs)).toBe(2);
+  });
+
+  it('does not count non-mobility quicklogs toward streak', () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const logs = [
+      { id: '1', date: today.toISOString() } as WorkoutLog,
+    ];
+    const quickLogs: QuickLog[] = [
+      { type: 'weight', value: 80, unit: 'kg', timestamp: yesterday },
+    ];
+
+    expect(calculateStreak(logs, [], quickLogs)).toBe(1);
+  });
+
+  it('deduplicates same-day activities from different sources', () => {
+    const today = new Date();
+
+    const logs = [
+      { id: '1', date: today.toISOString() } as WorkoutLog,
+    ];
+    const sessions = [
+      { id: 's1', date: today.toISOString() } as TrainingSession,
+    ];
+    const quickLogs: QuickLog[] = [
+      { type: 'mobility', value: 10, unit: 'min', timestamp: today },
+    ];
+
+    // All on same day = 1 unique day
+    expect(calculateStreak(logs, sessions, quickLogs)).toBe(1);
+  });
+
+  it('builds streak across all three sources on different days', () => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    const logs = [
+      { id: '1', date: today.toISOString() } as WorkoutLog,
+    ];
+    const sessions = [
+      { id: 's1', date: yesterday.toISOString() } as TrainingSession,
+    ];
+    const quickLogs: QuickLog[] = [
+      { type: 'mobility', value: 15, unit: 'min', timestamp: twoDaysAgo },
+    ];
+
+    expect(calculateStreak(logs, sessions, quickLogs)).toBe(3);
+  });
+
+  it('returns 0 when most recent activity is more than 2 days ago', () => {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const logs = [
+      { id: '1', date: threeDaysAgo.toISOString() } as WorkoutLog,
+    ];
+
+    expect(calculateStreak(logs)).toBe(0);
   });
 });
 

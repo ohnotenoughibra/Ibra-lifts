@@ -29,6 +29,7 @@ export interface WeeklySynthesisData {
     totalVolume: number;
     combatSessions: number;
     combatMinutes: number;
+    combatLoad: number; // sRPE: duration × perceived exertion
   };
   /** Trend compared to last week */
   trends: {
@@ -40,6 +41,7 @@ export interface WeeklySynthesisData {
   hasData: boolean;
   /** For insights engine — last week stats */
   lastWeekVolume: number;
+  lastCombatLoad: number;
   lastWorkouts: number;
   stalledExercises: string[];
   isMidWeek: boolean;
@@ -86,8 +88,10 @@ export function generateWeeklySynthesis(opts: {
   });
   const combatSessions = thisWeekCombat.length;
   const combatMinutes = thisWeekCombat.reduce((s, c) => s + (c.duration || 0), 0);
+  const combatLoad = thisWeekCombat.reduce((s, c) => s + (c.duration || 0) * (c.perceivedExertion || 5), 0);
   const lastCombatSessions = lastWeekCombat.length;
   const lastCombatMinutes = lastWeekCombat.reduce((s, c) => s + (c.duration || 0), 0);
+  const lastCombatLoad = lastWeekCombat.reduce((s, c) => s + (c.duration || 0) * (c.perceivedExertion || 5), 0);
 
   const thisWorkouts = thisWeekLogs.length;
   const lastWorkouts = lastWeekLogs.length;
@@ -186,6 +190,7 @@ export function generateWeeklySynthesis(opts: {
       totalVolume: thisVolume,
       combatSessions,
       combatMinutes,
+      combatLoad,
     },
     trends: {
       volume: volumeTrend,
@@ -194,6 +199,7 @@ export function generateWeeklySynthesis(opts: {
     },
     hasData,
     lastWeekVolume: lastVolume,
+    lastCombatLoad: lastCombatLoad,
     lastWorkouts,
     stalledExercises,
     isMidWeek,

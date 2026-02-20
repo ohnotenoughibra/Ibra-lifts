@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Apple,
   Droplets,
@@ -457,7 +458,24 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     latestWhoopData,
     workoutLogs,
     getActiveIllness,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow(s => ({
+      user: s.user,
+      meals: s.meals,
+      macroTargets: s.macroTargets,
+      waterLog: s.waterLog,
+      addMeal: s.addMeal,
+      updateMeal: s.updateMeal,
+      deleteMeal: s.deleteMeal,
+      setWaterGlasses: s.setWaterGlasses,
+      bodyWeightLog: s.bodyWeightLog,
+      currentMesocycle: s.currentMesocycle,
+      trainingSessions: s.trainingSessions,
+      latestWhoopData: s.latestWhoopData,
+      workoutLogs: s.workoutLogs,
+      getActiveIllness: s.getActiveIllness,
+    }))
+  );
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
 
@@ -526,7 +544,9 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   }, [trainingSessions]);
 
   // Combat context for nutrition detection
-  const { competitions, combatNutritionProfile } = useAppStore();
+  const { competitions, combatNutritionProfile } = useAppStore(
+    useShallow(s => ({ competitions: s.competitions, combatNutritionProfile: s.combatNutritionProfile }))
+  );
   const nearestComp = useMemo(() => {
     const now = Date.now();
     return (competitions || [])

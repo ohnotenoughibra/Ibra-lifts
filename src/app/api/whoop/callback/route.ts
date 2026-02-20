@@ -168,9 +168,8 @@ export async function GET(request: NextRequest) {
       +   '</div>'
       +   '<h2 style="font-size:22px;font-weight:700;color:#f1f5f9;margin:0;">WHOOP Connected!</h2>'
       +   '<p style="font-size:14px;color:#94a3b8;line-height:1.6;margin:0;">Your account is linked. Close this browser to return to <strong style="color:#e2e8f0;">Roots Gains</strong> \\u2014 your data will load automatically.</p>'
-      +   '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 18px;width:100%;">'
-      +     '<p style="font-size:13px;color:#cbd5e1;margin:0;line-height:1.5;">Tap <strong style="color:#f1f5f9;">Done</strong> (top-left) or swipe down to close this browser and return to the app.</p>'
-      +   '</div>'
+      +   '<button onclick="try{window.close()}catch(e){};setTimeout(function(){window.location.replace(\\'' + appUrl + '?whoop_connected=true\\')},300)" style="display:block;width:100%;padding:14px;background:#22c55e;color:#0f172a;font-size:16px;font-weight:700;border:none;border-radius:12px;cursor:pointer;">Return to App</button>'
+      +   '<p style="font-size:12px;color:#64748b;margin:0;">Or swipe down to close this browser.</p>'
       + '</div>';
   } else if (stored) {
     // Normal browser flow — redirect to app

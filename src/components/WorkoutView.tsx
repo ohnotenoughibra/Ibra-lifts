@@ -76,7 +76,6 @@ export default function WorkoutView() {
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
   const [blockWeeks, setBlockWeeks] = useState(4);
   const [sessionMinutes, setSessionMinutes] = useState(0); // 0 = no limit
-  const [showFullProgram, setShowFullProgram] = useState(false);
   const [formCheckExercise, setFormCheckExercise] = useState<{ name: string; videoUrl?: string } | null>(null);
   const [undoToast, setUndoToast] = useState<{ oldExerciseId: string; oldExerciseName: string; newExerciseName: string; weekIndex: number; sessionId: string; exerciseIndex: number } | null>(null);
 
@@ -231,15 +230,14 @@ export default function WorkoutView() {
   };
 
   // Wizard state
-  const [wizardStep, setWizardStep] = useState(0);
   const [wizardGoal, setWizardGoal] = useState<GoalFocus>('balanced');
   const [wizardDays, setWizardDays] = useState<SessionsPerWeek>(3);
 
   if (!currentMesocycle) {
     const goalOptions: { value: GoalFocus; label: string; desc: string; icon: typeof Zap }[] = [
-      { value: 'strength', label: 'Get Stronger', desc: 'Heavy compounds, low reps, long rest', icon: Zap },
-      { value: 'hypertrophy', label: 'Build Muscle', desc: 'Moderate weight, higher volume, pump focus', icon: Heart },
-      { value: 'balanced', label: 'Both', desc: 'Undulating periodization — best of both worlds', icon: Flame },
+      { value: 'strength', label: 'Strength', desc: 'Heavy, low reps', icon: Zap },
+      { value: 'hypertrophy', label: 'Muscle', desc: 'Volume, pump', icon: Heart },
+      { value: 'balanced', label: 'Both', desc: 'Best of both', icon: Flame },
     ];
 
     const dayOptions: SessionsPerWeek[] = [2, 3, 4, 5, 6];
@@ -249,7 +247,6 @@ export default function WorkoutView() {
     };
 
     const handleWizardGenerate = () => {
-      // Apply wizard goal + sessions to user before generating
       const state = useAppStore.getState();
       if (state.user) {
         state.setUser({ ...state.user, sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
@@ -259,130 +256,75 @@ export default function WorkoutView() {
 
     return (
       <div className="space-y-6">
-        {/* Step indicators */}
-        <div className="flex items-center justify-center gap-2">
-          {['Goal', 'Schedule', 'Generate'].map((label, i) => (
-            <div key={label} className="flex items-center gap-2">
-              <button
-                onClick={() => i < wizardStep && setWizardStep(i)}
-                className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all',
-                  wizardStep === i ? 'bg-primary-500 text-white' :
-                  wizardStep > i ? 'bg-green-500 text-white' :
-                  'bg-grappler-700 text-grappler-400'
-                )}
-              >
-                {wizardStep > i ? <Check className="w-4 h-4" /> : i + 1}
-              </button>
-              {i < 2 && <div className={cn('w-8 h-0.5 rounded', wizardStep > i ? 'bg-green-500' : 'bg-grappler-700')} />}
-            </div>
-          ))}
+        <div>
+          <h2 className="text-xl font-bold text-grappler-50 text-center">Build Your Program</h2>
+          <p className="text-sm text-grappler-400 text-center mt-1">Pick a goal, pick your days, go.</p>
         </div>
 
-        <AnimatePresence mode="wait">
-          {/* Step 1: Goal */}
-          {wizardStep === 0 && (
-            <motion.div key="goal" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">What&apos;s your goal?</h2>
-              <p className="text-sm text-grappler-400 text-center mb-6">This shapes your rep ranges, rest times, and volume</p>
-              <div className="space-y-3 max-w-sm mx-auto">
-                {goalOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setWizardGoal(opt.value); setWizardStep(1); }}
-                    className={cn(
-                      'w-full card p-4 flex items-center gap-4 text-left transition-all border',
-                      wizardGoal === opt.value ? 'border-primary-500 bg-primary-500/10' : 'border-transparent hover:bg-grappler-700/50'
-                    )}
-                  >
-                    <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <opt.icon className="w-6 h-6 text-primary-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-grappler-100">{opt.label}</p>
-                      <p className="text-xs text-grappler-400 mt-0.5">{opt.desc}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-grappler-500 ml-auto flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
+        {/* Goal */}
+        <div>
+          <label className="text-xs font-medium text-grappler-400 uppercase tracking-wider mb-2 block px-1">Goal</label>
+          <div className="grid grid-cols-3 gap-2">
+            {goalOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setWizardGoal(opt.value)}
+                className={cn(
+                  'card p-3 flex flex-col items-center gap-2 text-center transition-all border',
+                  wizardGoal === opt.value ? 'border-primary-500 bg-primary-500/10' : 'border-transparent hover:bg-grappler-700/50'
+                )}
+              >
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', wizardGoal === opt.value ? 'bg-primary-500/30' : 'bg-grappler-700/50')}>
+                  <opt.icon className={cn('w-5 h-5', wizardGoal === opt.value ? 'text-primary-400' : 'text-grappler-400')} />
+                </div>
+                <div>
+                  <p className={cn('text-sm font-semibold', wizardGoal === opt.value ? 'text-grappler-50' : 'text-grappler-200')}>{opt.label}</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">{opt.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {/* Step 2: Schedule */}
-          {wizardStep === 1 && (
-            <motion.div key="schedule" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">How many days per week?</h2>
-              <p className="text-sm text-grappler-400 text-center mb-6">We&apos;ll pick the best split for your schedule</p>
-              <div className="flex justify-center gap-3 mb-4">
-                {dayOptions.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setWizardDays(d)}
-                    className={cn(
-                      'w-14 h-14 rounded-xl flex flex-col items-center justify-center transition-all border font-bold text-lg',
-                      wizardDays === d
-                        ? 'bg-primary-500 text-white border-primary-400'
-                        : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
-                    )}
-                  >
-                    {d}
-                    <span className="text-xs font-normal opacity-70">days</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-center text-sm text-grappler-400 mb-6">
-                Recommended split: <span className="text-primary-400 font-medium">{dayLabels[wizardDays]}</span>
-              </p>
-              <div className="flex justify-center gap-3">
-                <button onClick={() => setWizardStep(0)} className="btn btn-ghost btn-sm">Back</button>
-                <button onClick={() => setWizardStep(2)} className="btn btn-primary btn-md gap-2">
-                  Next <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
+        {/* Days per week */}
+        <div>
+          <label className="text-xs font-medium text-grappler-400 uppercase tracking-wider mb-2 block px-1">Days / Week</label>
+          <div className="flex justify-center gap-2">
+            {dayOptions.map((d) => (
+              <button
+                key={d}
+                onClick={() => setWizardDays(d)}
+                className={cn(
+                  'w-14 h-14 rounded-xl flex flex-col items-center justify-center transition-all border font-bold text-lg',
+                  wizardDays === d
+                    ? 'bg-primary-500 text-white border-primary-400'
+                    : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
+                )}
+              >
+                {d}
+                <span className="text-xs font-normal opacity-70">days</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-xs text-grappler-400 mt-2">
+            <span className="text-primary-400 font-medium">{dayLabels[wizardDays]}</span> split
+          </p>
+        </div>
 
-          {/* Step 3: Confirm + Advanced */}
-          {wizardStep === 2 && (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-              <h2 className="text-xl font-bold text-grappler-50 text-center mb-2">Ready to go</h2>
-              <p className="text-sm text-grappler-400 text-center mb-6">Here&apos;s what we&apos;ll build for you</p>
-              <div className="card p-4 max-w-sm mx-auto mb-6 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-grappler-400">Goal</span>
-                  <span className="text-grappler-100 font-medium capitalize">{wizardGoal}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-grappler-400">Days / Week</span>
-                  <span className="text-grappler-100 font-medium">{wizardDays}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-grappler-400">Block Length</span>
-                  <span className="text-grappler-100 font-medium">{blockWeeks} weeks</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-grappler-400">Split</span>
-                  <span className="text-grappler-100 font-medium">{dayLabels[wizardDays]}</span>
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
-                <button onClick={handleWizardGenerate} className="btn btn-primary btn-md w-full gap-2 font-semibold">
-                  <Play className="w-4 h-4" />
-                  Generate Program
-                </button>
-                <button
-                  onClick={() => setShowEmphasisPicker(true)}
-                  className="btn btn-ghost btn-sm gap-2 text-grappler-400"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  Advanced: Customize Muscle Priorities
-                </button>
-                <button onClick={() => setWizardStep(1)} className="btn btn-ghost btn-sm text-grappler-500">Back</button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Generate */}
+        <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
+          <button onClick={handleWizardGenerate} className="btn btn-primary btn-md w-full gap-2 font-semibold">
+            <Play className="w-4 h-4" />
+            Generate Program
+          </button>
+          <button
+            onClick={() => setShowEmphasisPicker(true)}
+            className="btn btn-ghost btn-sm gap-2 text-grappler-400"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            Customize Muscles
+          </button>
+        </div>
 
         <AnimatePresence>
           {showEmphasisPicker && (
@@ -461,7 +403,7 @@ export default function WorkoutView() {
 
 
 
-      {/* Next Up Hero Card */}
+      {/* Next Up Hero Card — minimal, CTA-first */}
       {nextUpSession ? (() => {
         const { session, weekNumber } = nextUpSession;
         const TypeIcon = getWorkoutTypeIcon(session.type);
@@ -471,54 +413,27 @@ export default function WorkoutView() {
           : 'from-blue-500/20 to-blue-900/10 border-blue-500/30';
         const heroIntensity = session.type === 'strength' ? 'Heavy' : session.type === 'power' ? 'Explosive' : 'Moderate';
         const heroIntensityColor = session.type === 'strength' ? 'text-red-400' : session.type === 'power' ? 'text-blue-400' : 'text-purple-400';
-        // Derive unique muscle groups from exercises
         const muscleGroups = Array.from(new Set(session.exercises.flatMap(ex => ex.exercise.primaryMuscles || []).filter(Boolean)));
         return (
           <div className={cn('card p-5 bg-gradient-to-br border', typeBg)}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-grappler-400">Next Up</span>
-              <span className="text-xs text-grappler-400">Week {weekNumber}</span>
-              <span className={cn('text-xs font-semibold ml-auto', heroIntensityColor)}>{heroIntensity}</span>
-            </div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', typeColor)}>
-                <TypeIcon className="w-5 h-5" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', typeColor)}>
+                <TypeIcon className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-grappler-50 text-lg truncate">{session.name}</h3>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="font-bold text-grappler-50 text-lg truncate">{session.name}</h3>
+                  <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', heroIntensityColor, `${session.type === 'strength' ? 'bg-red-500/15' : session.type === 'power' ? 'bg-blue-500/15' : 'bg-purple-500/15'}`)}>{heroIntensity}</span>
+                </div>
                 <div className="flex items-center gap-3 text-xs text-grappler-400">
-                  <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" />{session.exercises.length} exercises</span>
+                  <span>Week {weekNumber}</span>
+                  <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" />{session.exercises.length}</span>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{session.estimatedDuration}m</span>
+                  {muscleGroups.length > 0 && (
+                    <span className="truncate">{muscleGroups.slice(0, 3).map(mg => mg.replace(/_/g, ' ')).join(' · ')}</span>
+                  )}
                 </div>
               </div>
-            </div>
-            {/* Muscle groups targeted */}
-            {muscleGroups.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {muscleGroups.slice(0, 5).map(mg => (
-                  <span key={mg} className="text-xs px-2 py-0.5 rounded-full bg-grappler-800/80 text-grappler-400 capitalize">
-                    {mg.replace(/_/g, ' ')}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {session.exercises.slice(0, 5).map((ex, i) => (
-                <button
-                  key={i}
-                  onClick={() => setFormCheckExercise({ name: ex.exercise.name, videoUrl: ex.exercise.videoUrl })}
-                  className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-300 hover:bg-primary-500/20 hover:text-primary-300 transition-colors flex items-center gap-1"
-                  title="Check form"
-                >
-                  <Video className="w-3 h-3 opacity-50" />
-                  {ex.exercise.name}
-                </button>
-              ))}
-              {session.exercises.length > 5 && (
-                <span className="text-xs px-2 py-1 rounded-md bg-grappler-800/60 text-grappler-400">
-                  +{session.exercises.length - 5} more
-                </span>
-              )}
             </div>
             <button
               onClick={() => startWorkout(session)}
@@ -551,66 +466,45 @@ export default function WorkoutView() {
         </motion.div>
       )}
 
-      {/* Full Program — Horizontal Week Pills */}
-      <button
-        onClick={() => setShowFullProgram(!showFullProgram)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
-      >
-        <span className="text-sm font-medium text-grappler-300">
-          {showFullProgram ? 'Hide' : 'View'} Full Program
-          {!showFullProgram && (
-            <span className="text-xs text-grappler-400 ml-2">
-              {currentMesocycle.weeks.length} weeks · {progressStats.total} sessions
-            </span>
-          )}
-        </span>
-        <ChevronDown className={cn('w-4 h-4 text-grappler-400 transition-transform', showFullProgram && 'rotate-180')} />
-      </button>
-
-      <AnimatePresence>
-        {showFullProgram && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden space-y-4"
-          >
-            {/* Week pill selector */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-1 py-1">
-              {currentMesocycle.weeks.map((week, weekIndex) => {
-                const completedCount = week.sessions.filter(s => completedSessionIds.has(s.id)).length;
-                const allDone = completedCount === week.sessions.length;
-                return (
-                  <button
-                    key={weekIndex}
-                    onClick={() => setExpandedWeek(expandedWeek === weekIndex ? null : weekIndex)}
-                    className={cn(
-                      'flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap',
-                      expandedWeek === weekIndex
-                        ? week.isDeload
-                          ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
-                          : 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-                        : allDone
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-grappler-800 text-grappler-300 hover:bg-grappler-700'
-                    )}
-                  >
-                    W{week.weekNumber}
-                    {week.isDeload && ' 🟢'}
-                    <span className="ml-1.5 text-xs opacity-75">{completedCount}/{week.sessions.length}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected week sessions */}
-            {expandedWeek !== null && currentMesocycle.weeks[expandedWeek] && (
-              <motion.div
-                key={expandedWeek}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
+      {/* Week Pills — always visible */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar px-1 py-1">
+          {currentMesocycle.weeks.map((week, weekIndex) => {
+            const completedCount = week.sessions.filter(s => completedSessionIds.has(s.id)).length;
+            const allDone = completedCount === week.sessions.length;
+            return (
+              <button
+                key={weekIndex}
+                onClick={() => setExpandedWeek(expandedWeek === weekIndex ? null : weekIndex)}
+                className={cn(
+                  'flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap',
+                  expandedWeek === weekIndex
+                    ? week.isDeload
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                      : 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+                    : allDone
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-grappler-800 text-grappler-300 hover:bg-grappler-700'
+                )}
               >
+                W{week.weekNumber}
+                {week.isDeload && ' 🟢'}
+                <span className="ml-1.5 text-xs opacity-75">{completedCount}/{week.sessions.length}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected week sessions */}
+        <AnimatePresence>
+          {expandedWeek !== null && currentMesocycle.weeks[expandedWeek] && (
+            <motion.div
+              key={expandedWeek}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-3"
+            >
                 {currentMesocycle.weeks[expandedWeek].sessions.map((session) => {
                   const Icon = getWorkoutTypeIcon(session.type);
                   const colorClass = getWorkoutTypeColor(session.type);
@@ -694,9 +588,8 @@ export default function WorkoutView() {
                 })}
               </motion.div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
       {/* Muscle Emphasis Picker (New Block config) */}
       <AnimatePresence>

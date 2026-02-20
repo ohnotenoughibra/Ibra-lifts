@@ -220,19 +220,19 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
             {phaseMacros && (
               <div className="grid grid-cols-4 gap-2 mt-4">
                 <div className="bg-grappler-900/50 rounded-lg p-2 text-center">
-                  <p className="text-xs text-grappler-500">Calories</p>
+                  <p className="text-xs text-grappler-400">Calories</p>
                   <p className="text-sm font-bold text-grappler-100">{phaseMacros.calories}</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-2 text-center">
-                  <p className="text-xs text-grappler-500">Protein</p>
+                  <p className="text-xs text-grappler-400">Protein</p>
                   <p className="text-sm font-bold text-grappler-100">{phaseMacros.protein}g</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-2 text-center">
-                  <p className="text-xs text-grappler-500">Carbs</p>
+                  <p className="text-xs text-grappler-400">Carbs</p>
                   <p className="text-sm font-bold text-grappler-100">{phaseMacros.carbs}g</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-2 text-center">
-                  <p className="text-xs text-grappler-500">Fat</p>
+                  <p className="text-xs text-grappler-400">Fat</p>
                   <p className="text-sm font-bold text-grappler-100">{phaseMacros.fat}g</p>
                 </div>
               </div>
@@ -308,9 +308,9 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
                         {item.phase.replace(/_/g, ' ')}
                         {isCurrent && <span className="ml-2 text-xs bg-white/10 px-1.5 py-0.5 rounded-full">Now</span>}
                       </p>
-                      <p className="text-xs text-grappler-500">{item.focus}</p>
+                      <p className="text-xs text-grappler-400">{item.focus}</p>
                     </div>
-                    <span className="text-xs text-grappler-500 flex-shrink-0">
+                    <span className="text-xs text-grappler-400 flex-shrink-0">
                       {new Date(item.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                   </button>
@@ -343,31 +343,31 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
                 <div className="mt-3 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                      <p className="text-xs text-grappler-500">Est. Fluid Loss</p>
+                      <p className="text-xs text-grappler-400">Est. Fluid Loss</p>
                       <p className="text-sm font-bold text-blue-300">{electrolyteNeeds.fluidLossL}L</p>
-                      <p className="text-xs text-grappler-500">per 90min session</p>
+                      <p className="text-xs text-grappler-400">per 90min session</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                      <p className="text-xs text-grappler-500">Replace</p>
+                      <p className="text-xs text-grappler-400">Replace</p>
                       <p className="text-sm font-bold text-blue-300">{electrolyteNeeds.replacementFluidL}L</p>
-                      <p className="text-xs text-grappler-500">150% replacement</p>
+                      <p className="text-xs text-grappler-400">150% replacement</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-xs text-grappler-500">Sodium</p>
+                      <p className="text-xs text-grappler-400">Sodium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.sodiumMg}mg</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-xs text-grappler-500">Potassium</p>
+                      <p className="text-xs text-grappler-400">Potassium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.potassiumMg}mg</p>
                     </div>
                     <div className="bg-grappler-800/40 rounded-lg p-2 text-center">
-                      <p className="text-xs text-grappler-500">Magnesium</p>
+                      <p className="text-xs text-grappler-400">Magnesium</p>
                       <p className="text-xs font-bold text-grappler-200">{electrolyteNeeds.magnesiumMg}mg</p>
                     </div>
                   </div>
-                  <p className="text-xs text-grappler-500">{electrolyteNeeds.timing}</p>
+                  <p className="text-xs text-grappler-400">{electrolyteNeeds.timing}</p>
                 </div>
               </motion.div>
             )}

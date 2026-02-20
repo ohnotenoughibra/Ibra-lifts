@@ -87,7 +87,7 @@ export default function WarmUpInfo({ onClose }: { onClose: () => void }) {
 
         {/* Info */}
         <div className="rounded-xl p-3.5 bg-grappler-800/30 border border-grappler-700/30">
-          <p className="text-xs text-grappler-500">
+          <p className="text-xs text-grappler-400">
             The warm-up appears automatically at the top of your workout overview when you start a session. Tap each step to mark it done as you go.
           </p>
         </div>

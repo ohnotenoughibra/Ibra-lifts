@@ -244,7 +244,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
           {props.nextBadgeDistance != null && props.nextBadgeDistance <= 5 && (
             <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2.5 py-1.5 flex-shrink-0">
               <Award className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-[10px] text-purple-300">{props.nextBadgeDistance}</span>
+              <span className="text-xs text-purple-300">{props.nextBadgeDistance}</span>
             </div>
           )}
 
@@ -252,7 +252,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
         </div>
 
         {/* Adaptive insight */}
-        <p className="text-[10px] text-grappler-500 mt-1.5 px-1 text-left">{adaptiveInsight}</p>
+        <p className="text-xs text-grappler-400 mt-1.5 px-1 text-left">{adaptiveInsight}</p>
       </button>
 
       {/* ─── Expanded Scorecard ─── */}
@@ -299,23 +299,23 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
               <div className={cn('grid gap-2 text-center', props.weekStats.combatSessions > 0 ? 'grid-cols-5' : 'grid-cols-4')}>
                 <div>
                   <p className="text-lg font-bold text-primary-400">{props.weekStats.workouts}</p>
-                  <p className="text-[10px] text-grappler-500">Lifts</p>
+                  <p className="text-xs text-grappler-400">Lifts</p>
                 </div>
                 {props.weekStats.combatSessions > 0 && (
                   <div>
                     <p className="text-lg font-bold text-purple-400">{props.weekStats.combatSessions}</p>
-                    <p className="text-[10px] text-grappler-500">Mat</p>
+                    <p className="text-xs text-grappler-400">Mat</p>
                   </div>
                 )}
                 <div>
                   <p className="text-lg font-bold text-yellow-400">{props.weekStats.prs}</p>
-                  <p className="text-[10px] text-grappler-500">PRs</p>
+                  <p className="text-xs text-grappler-400">PRs</p>
                 </div>
                 <div>
                   <p className={cn('text-lg font-bold', props.weekStats.avgRPE >= 9 ? 'text-red-400' : props.weekStats.avgRPE >= 7 ? 'text-yellow-400' : 'text-grappler-100')}>
                     {props.weekStats.avgRPE > 0 ? props.weekStats.avgRPE : '—'}
                   </p>
-                  <p className="text-[10px] text-grappler-500">Avg RPE</p>
+                  <p className="text-xs text-grappler-400">Avg RPE</p>
                 </div>
                 <div>
                   <div className="flex items-center justify-center gap-1">
@@ -324,7 +324,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-0.5">
-                    <p className="text-[10px] text-grappler-500">{props.weightUnit}</p>
+                    <p className="text-xs text-grappler-400">{props.weightUnit}</p>
                     {volumeDelta !== null && (
                       <span className={cn('text-[9px] font-medium', volumeDelta > 0 ? 'text-green-400' : volumeDelta < 0 ? 'text-red-400' : 'text-grappler-500')}>
                         {volumeDelta > 0 ? '+' : ''}{volumeDelta}%
@@ -339,25 +339,25 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
                 {props.weekStats.workouts > 0 ? (
                   <div className="flex items-center gap-1">
                     <TrendIcon className={cn('w-3 h-3', trendColor)} />
-                    <span className={cn('text-[10px] font-medium', trendColor)}>
+                    <span className={cn('text-xs font-medium', trendColor)}>
                       Volume {props.weekTrends.volume === 'up' ? '↑' : props.weekTrends.volume === 'down' ? '↓' : '→'}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1">
                     <Minus className="w-3 h-3 text-grappler-600" />
-                    <span className="text-[10px] text-grappler-600">Volume —</span>
+                    <span className="text-xs text-grappler-600">Volume —</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1">
                   <Target className="w-3 h-3 text-grappler-500" />
-                  <span className="text-[10px] text-grappler-400">
+                  <span className="text-xs text-grappler-400">
                     Protein {props.weekStats.proteinAdherence !== null && props.weekStats.proteinAdherence > 0 ? `${props.weekStats.proteinAdherence}%` : '—'}
                   </span>
                 </div>
                 {props.weekTrends.consistency !== 'stable' && props.weekStats.workouts > 0 && (
                   <div className="flex items-center gap-1">
-                    <span className={cn('text-[10px] font-medium', props.weekTrends.consistency === 'up' ? 'text-green-400' : 'text-amber-400')}>
+                    <span className={cn('text-xs font-medium', props.weekTrends.consistency === 'up' ? 'text-green-400' : 'text-amber-400')}>
                       Consistency {props.weekTrends.consistency === 'up' ? '↑' : '↓'}
                     </span>
                   </div>

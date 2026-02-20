@@ -170,7 +170,7 @@ export default function SupplementTracker() {
         {recommendedPlan.warnings.length > 0 && (
           <div className="mt-3 space-y-1">
             {recommendedPlan.warnings.slice(0, 2).map((w, i) => (
-              <p key={i} className="text-[10px] text-yellow-400/80 flex items-start gap-1">
+              <p key={i} className="text-xs text-yellow-400/80 flex items-start gap-1">
                 <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                 {w}
               </p>
@@ -211,7 +211,7 @@ export default function SupplementTracker() {
               Supplements
             </h2>
             <span className={cn(
-              'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+              'text-xs font-medium px-1.5 py-0.5 rounded-full',
               allDone
                 ? 'bg-emerald-500/20 text-emerald-400'
                 : 'bg-grappler-700 text-grappler-400'
@@ -221,14 +221,14 @@ export default function SupplementTracker() {
           </div>
           {/* Macro contribution summary */}
           {todaySupplementMacros.protein > 0 && (
-            <p className="text-[10px] text-grappler-500 mt-0.5">
+            <p className="text-xs text-grappler-400 mt-0.5">
               +{todaySupplementMacros.protein}g protein · {todaySupplementMacros.calories} cal from supps
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
           {adherence.streak > 0 && (
-            <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
+            <span className="text-xs text-emerald-400 flex items-center gap-0.5">
               <TrendingUp className="w-3 h-3" />
               {adherence.streak}d
             </span>
@@ -282,7 +282,7 @@ export default function SupplementTracker() {
               {/* Timing groups */}
               {checklist.map(group => (
                 <div key={group.slot}>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1.5 flex items-center gap-1">
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1.5 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {group.slot}
                   </p>
@@ -311,21 +311,21 @@ export default function SupplementTracker() {
                           )}>
                             {s.name}
                           </p>
-                          <p className="text-[10px] text-grappler-500">
+                          <p className="text-xs text-grappler-400">
                             {s.customDose || SUPPLEMENT_DATABASE.find(d => d.id === s.supplementId)?.doseRange}
                           </p>
                         </div>
                         {/* Macro badge */}
                         {macros && macros.protein > 0 && (
                           <span className={cn(
-                            'text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0',
+                            'text-xs px-1.5 py-0.5 rounded-full flex-shrink-0',
                             taken ? 'bg-emerald-500/15 text-emerald-400' : 'bg-primary-500/10 text-primary-400'
                           )}>
                             {Math.round(macros.protein * s.servingsPerDose)}g protein
                           </span>
                         )}
                         {macros && macros.protein === 0 && macros.calories > 0 && (
-                          <span className="text-[10px] text-grappler-500 flex-shrink-0">
+                          <span className="text-xs text-grappler-400 flex-shrink-0">
                             {Math.round(macros.calories * s.servingsPerDose)} cal
                           </span>
                         )}
@@ -362,7 +362,7 @@ export default function SupplementTracker() {
               {/* Macro auto-log summary */}
               {todaySupplementMacros.protein > 0 || todaySupplementMacros.calories > 0 ? (
                 <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-3">
-                  <p className="text-[10px] text-primary-400 font-medium mb-1 flex items-center gap-1">
+                  <p className="text-xs text-primary-400 font-medium mb-1 flex items-center gap-1">
                     <Flame className="w-3 h-3" /> Auto-logged to Nutrition
                   </p>
                   <div className="flex items-center gap-3 text-xs">
@@ -390,7 +390,7 @@ export default function SupplementTracker() {
               {/* 7-day adherence */}
               {adherence.perSupplement.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-grappler-500 uppercase tracking-wide font-medium mb-1.5">
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1.5">
                     7-Day Adherence: {adherence.overall}%
                   </p>
                   <div className="flex gap-0.5 mb-2">
@@ -425,7 +425,7 @@ export default function SupplementTracker() {
               {recommendedPlan.warnings.length > 0 && (
                 <div className="space-y-1">
                   {recommendedPlan.warnings.map((w, i) => (
-                    <p key={i} className="text-[10px] text-yellow-400/70 flex items-start gap-1">
+                    <p key={i} className="text-xs text-yellow-400/70 flex items-start gap-1">
                       <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                       {w}
                     </p>
@@ -436,7 +436,7 @@ export default function SupplementTracker() {
               {/* Reset / rebuild stack */}
               <button
                 onClick={handleSetupStack}
-                className="text-[10px] text-grappler-500 hover:text-grappler-300 transition-colors flex items-center gap-1"
+                className="text-xs text-grappler-400 hover:text-grappler-300 transition-colors flex items-center gap-1"
               >
                 <Settings className="w-3 h-3" /> Rebuild stack from recommendations
               </button>
@@ -482,7 +482,7 @@ function CustomizePanel({
 
         {/* Science note */}
         {dbSupp && (
-          <p className="text-[10px] text-grappler-500 flex items-start gap-1">
+          <p className="text-xs text-grappler-400 flex items-start gap-1">
             <Info className="w-3 h-3 flex-shrink-0 mt-0.5 text-primary-400" />
             {dbSupp.evidence.split(' — ')[1] || dbSupp.evidence}
           </p>
@@ -490,7 +490,7 @@ function CustomizePanel({
 
         {/* Servings per dose */}
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-grappler-400 w-16">Servings</label>
+          <label className="text-xs text-grappler-400 w-16">Servings</label>
           <input
             type="number"
             value={servings}
@@ -503,7 +503,7 @@ function CustomizePanel({
 
         {/* Custom macros per serving */}
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-grappler-400 w-16">Protein/srv</label>
+          <label className="text-xs text-grappler-400 w-16">Protein/srv</label>
           <input
             type="number"
             value={protein}
@@ -513,7 +513,7 @@ function CustomizePanel({
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-grappler-400 w-16">Cal/srv</label>
+          <label className="text-xs text-grappler-400 w-16">Cal/srv</label>
           <input
             type="number"
             value={calories}
@@ -525,7 +525,7 @@ function CustomizePanel({
 
         {/* Toggle enabled */}
         <div className="flex items-center justify-between pt-1 border-t border-grappler-700/50">
-          <label className="text-[10px] text-grappler-400">Include in daily stack</label>
+          <label className="text-xs text-grappler-400">Include in daily stack</label>
           <button
             onClick={() => onUpdate({ enabled: !supp.enabled })}
             className={cn(

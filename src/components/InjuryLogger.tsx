@@ -288,7 +288,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
                   Injury &amp; Pain Log
                 </h1>
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   Track &amp; manage injuries
                 </p>
               </div>
@@ -834,7 +834,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                       style={{ width: `${Math.min(100, timeline.percentHealed)}%` }}
                     />
                   </div>
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     {timeline.percentHealed}% through estimated recovery ({classification.estimatedHealDays.min}-{classification.estimatedHealDays.max} days)
                   </p>
                 </div>
@@ -1014,7 +1014,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                             Resolved
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-grappler-500">
+                        <div className="flex items-center gap-2 text-xs text-grappler-400">
                           <span className="capitalize">{injury.painType}</span>
                           <span>&middot;</span>
                           <span>
@@ -1038,7 +1038,7 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                           )}
                         </div>
                         {injury.duringExercise && (
-                          <p className="text-xs text-grappler-500">
+                          <p className="text-xs text-grappler-400">
                             During: {injury.duringExercise}
                           </p>
                         )}

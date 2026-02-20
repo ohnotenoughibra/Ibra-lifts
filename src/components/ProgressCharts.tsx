@@ -561,7 +561,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
           <div className="flex items-center gap-2 mb-3">
             <Target className="w-4 h-4 text-primary-400" />
             <h3 className="font-medium text-grappler-200 text-sm">Relative Strength</h3>
-            <span className="text-xs text-grappler-500 ml-auto">{strengthRatios.bodyWeight} {weightUnit} BW</span>
+            <span className="text-xs text-grappler-400 ml-auto">{strengthRatios.bodyWeight} {weightUnit} BW</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {strengthRatios.ratios.map(r => (
@@ -582,7 +582,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
       {/* Insight Cards with Sparklines */}
       {insightCards.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2">
             <TrendingUp className="w-3.5 h-3.5" />
             Key Trends
           </h3>
@@ -961,7 +961,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       <p className="text-xs text-grappler-400">Est. VO2 Max Trend</p>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-grappler-100">{vo2maxData.value} ml/kg/min</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                           vo2maxData.classification === 'Elite' || vo2maxData.classification === 'Excellent'
                             ? 'bg-green-500/20 text-green-400'
                             : vo2maxData.classification === 'Good'
@@ -1007,7 +1007,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
-                    <p className="text-[10px] text-grappler-600 mt-1">Estimated from resting HR via Uth-Sorensen formula. Track over weeks for meaningful trends.</p>
+                    <p className="text-xs text-grappler-600 mt-1">Estimated from resting HR via Uth-Sorensen formula. Track over weeks for meaningful trends.</p>
                   </div>
                 )}
               </div>
@@ -1039,7 +1039,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-grappler-200 truncate">{meso.name}</p>
-                    <p className="text-xs text-grappler-500">
+                    <p className="text-xs text-grappler-400">
                       {meso.weeks.length} weeks · {meso.goalFocus} · {mesoLogs.length} sessions · {formatNumber(totalVol)} {weightUnit}
                       {prs > 0 && <span className="text-yellow-400"> · {prs} PRs</span>}
                     </p>

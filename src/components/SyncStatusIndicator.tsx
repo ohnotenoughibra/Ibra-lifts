@@ -162,7 +162,7 @@ export default function SyncStatusIndicator({
 
                 {/* How it works */}
                 <div className="space-y-2">
-                  <p className="text-xs text-grappler-500 uppercase tracking-wide font-medium">How multi-device sync works</p>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium">How multi-device sync works</p>
                   <div className="space-y-1.5">
                     {[
                       { icon: Check, text: 'Changes push to cloud within seconds' },

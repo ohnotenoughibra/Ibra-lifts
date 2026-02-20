@@ -287,7 +287,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
                 <span className="text-grappler-300">Above MRV <span className="text-grappler-500">(overreaching)</span></span>
               </div>
             </div>
-            <p className="text-xs text-grappler-500 mt-2.5">
+            <p className="text-xs text-grappler-400 mt-2.5">
               MEV = Minimum Effective Volume &bull; MAV = Maximum Adaptive Volume &bull; MRV = Maximum Recoverable Volume
             </p>
           </motion.div>
@@ -297,7 +297,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary-400" />
               <h2 className="text-base font-semibold text-grappler-50">Weekly Set Volume</h2>
-              <span className="text-xs text-grappler-500 ml-auto">last 7 days</span>
+              <span className="text-xs text-grappler-400 ml-auto">last 7 days</span>
             </div>
 
             <div className="space-y-1">
@@ -502,7 +502,7 @@ function MuscleVolumeBar({
           </span>
         </div>
         <span className="text-sm tabular-nums text-grappler-200 font-semibold">
-          {sets % 1 === 0 ? sets : sets.toFixed(1)} <span className="text-grappler-500 font-normal text-xs">sets</span>
+          {sets % 1 === 0 ? sets : sets.toFixed(1)} <span className="text-grappler-400 font-normal text-xs">sets</span>
         </span>
       </button>
 
@@ -577,19 +577,19 @@ function MuscleVolumeBar({
       {/* Landmark numbers below bar */}
       <div className="relative h-3 mt-0.5">
         <span
-          className="absolute text-xs text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-400 tabular-nums"
           style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}
         >
           {mev}
         </span>
         <span
-          className="absolute text-xs text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-400 tabular-nums"
           style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}
         >
           {mav}
         </span>
         <span
-          className="absolute text-xs text-grappler-500 tabular-nums"
+          className="absolute text-xs text-grappler-400 tabular-nums"
           style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}
         >
           {mrv}

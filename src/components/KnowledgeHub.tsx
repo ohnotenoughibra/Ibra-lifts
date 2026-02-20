@@ -78,7 +78,7 @@ export default function KnowledgeHub() {
               className="text-sm text-grappler-300 bg-grappler-800/50 rounded-lg p-3"
             >
               <p>{tip.content}</p>
-              <p className="text-xs text-grappler-500 mt-1 capitalize">
+              <p className="text-xs text-grappler-400 mt-1 capitalize">
                 {categoryInfo[tip.category]?.name || tip.category}
               </p>
             </motion.div>
@@ -164,12 +164,12 @@ export default function KnowledgeHub() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{categoryInfo[article.category]?.icon}</span>
-                  <span className="text-xs text-grappler-500 capitalize">
+                  <span className="text-xs text-grappler-400 capitalize">
                     {categoryInfo[article.category]?.name}
                   </span>
                 </div>
                 <h4 className="font-medium text-grappler-100 mb-1">{article.title}</h4>
-                <div className="flex items-center gap-3 text-xs text-grappler-500">
+                <div className="flex items-center gap-3 text-xs text-grappler-400">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {article.readTime} min
@@ -251,7 +251,7 @@ export default function KnowledgeHub() {
 
                 {selectedArticle.source && (
                   <div className="mt-8 pt-4 border-t border-grappler-700">
-                    <p className="text-xs text-grappler-500">
+                    <p className="text-xs text-grappler-400">
                       Source: {selectedArticle.source}
                     </p>
                   </div>

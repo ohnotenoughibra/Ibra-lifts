@@ -375,7 +375,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
                   Health &amp; Illness
                 </h1>
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   Track illness &amp; recovery
                 </p>
               </div>
@@ -544,19 +544,19 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                       {recommendation.canTrain && (
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           <div className="bg-grappler-800 rounded-lg p-2 text-center">
-                            <p className="text-xs text-grappler-500">Max Volume</p>
+                            <p className="text-xs text-grappler-400">Max Volume</p>
                             <p className="text-sm font-bold text-grappler-100">
                               {recommendation.maxVolumePercent}%
                             </p>
                           </div>
                           <div className="bg-grappler-800 rounded-lg p-2 text-center">
-                            <p className="text-xs text-grappler-500">Max Intensity</p>
+                            <p className="text-xs text-grappler-400">Max Intensity</p>
                             <p className="text-sm font-bold text-grappler-100">
                               {recommendation.maxIntensityPercent}%
                             </p>
                           </div>
                           <div className="bg-grappler-800 rounded-lg p-2 text-center">
-                            <p className="text-xs text-grappler-500">RPE Cap</p>
+                            <p className="text-xs text-grappler-400">RPE Cap</p>
                             <p className="text-sm font-bold text-grappler-100">
                               {recommendation.rpeCap}
                             </p>
@@ -566,7 +566,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
 
                       {recommendation.suggestedActivities.length > 0 && (
                         <div>
-                          <p className="text-xs text-grappler-500 mb-1">Suggested activities</p>
+                          <p className="text-xs text-grappler-400 mb-1">Suggested activities</p>
                           <div className="flex flex-wrap gap-1.5">
                             {recommendation.suggestedActivities.map((act) => (
                               <span
@@ -604,7 +604,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                     day: 'numeric',
                                   })}
                                 </p>
-                                <p className="text-xs text-grappler-500">
+                                <p className="text-xs text-grappler-400">
                                   {ci.symptoms.length} symptom{ci.symptoms.length !== 1 ? 's' : ''}{' '}
                                   &middot; {ci.severity}
                                 </p>
@@ -691,11 +691,11 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                   <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
                                     Resolved
                                   </span>
-                                  <span className="text-xs text-grappler-500">
+                                  <span className="text-xs text-grappler-400">
                                     {duration} day{duration !== 1 ? 's' : ''}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-grappler-500">
+                                <div className="flex items-center gap-2 text-xs text-grappler-400">
                                   <span>
                                     {new Date(illness.startDate).toLocaleDateString('en-US', {
                                       month: 'short',
@@ -724,7 +724,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                     </span>
                                   ))}
                                   {illness.symptoms.length > 4 && (
-                                    <span className="px-1.5 py-0.5 text-grappler-500 text-xs">
+                                    <span className="px-1.5 py-0.5 text-grappler-400 text-xs">
                                       +{illness.symptoms.length - 4} more
                                     </span>
                                   )}
@@ -846,7 +846,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                             placeholder="Temperature (optional, e.g. 101.3)"
                             className="input flex-1"
                           />
-                          <span className="text-xs text-grappler-500">&deg;F</span>
+                          <span className="text-xs text-grappler-400">&deg;F</span>
                         </div>
                       </motion.div>
                     )}
@@ -1014,7 +1014,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                             placeholder="Temperature (optional)"
                             className="input flex-1"
                           />
-                          <span className="text-xs text-grappler-500">&deg;F</span>
+                          <span className="text-xs text-grappler-400">&deg;F</span>
                         </div>
                       </motion.div>
                     )}

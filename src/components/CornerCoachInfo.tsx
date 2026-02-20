@@ -111,7 +111,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide">How It Works</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide">How It Works</h2>
         <div className="space-y-2">
           <div className="flex items-start gap-3 p-3 rounded-xl bg-grappler-800/50">
             <span className="text-sm font-bold text-grappler-300 mt-0.5">1.</span>
@@ -131,7 +131,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide pt-2">Message Tones</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide pt-2">Message Tones</h2>
         <div className="flex flex-wrap gap-2">
           {TONES.map(t => (
             <div key={t.tone} className={cn('px-3 py-1.5 rounded-full border text-xs font-medium', toneColorMap[t.color])}>
@@ -140,7 +140,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide pt-2">8 Real-Time Analyzers</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide pt-2">8 Real-Time Analyzers</h2>
         <div className="space-y-3">
           {ANALYZERS.map(a => {
             const Icon = a.icon;
@@ -151,7 +151,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
                   <span className="text-sm font-bold">{a.title}</span>
                 </div>
                 <p className="text-xs text-grappler-300 mb-2">{a.desc}</p>
-                <p className="text-xs italic text-grappler-500">{a.example}</p>
+                <p className="text-xs italic text-grappler-400">{a.example}</p>
               </div>
             );
           })}

@@ -308,14 +308,14 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   <div key={stat.label} className="text-center bg-grappler-900/50 rounded-lg p-2">
                     <stat.icon className={cn('w-4 h-4 mx-auto mb-1', stat.color)} />
                     <p className="text-sm font-bold text-grappler-100">{stat.value}</p>
-                    <p className="text-xs text-grappler-500">{stat.label}</p>
+                    <p className="text-xs text-grappler-400">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
               {stats.bestPRs.length > 0 && (
                 <div>
-                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-2">Top Lifts</p>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">Top Lifts</p>
                   <div className="space-y-1.5">
                     {stats.bestPRs.slice(0, 3).map(pr => (
                       <div key={pr.exerciseName} className="flex items-center justify-between bg-grappler-900/50 rounded-lg px-3 py-2">
@@ -328,7 +328,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               )}
 
               <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
-                <span className="text-xs text-grappler-500">
+                <span className="text-xs text-grappler-400">
                   {formatNumber(gamificationStats.totalPoints)} XP
                   {currentMesocycle ? ` | ${currentMesocycle.name}` : ''}
                 </span>
@@ -348,7 +348,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
             {/* Quick share: recent workout */}
             {workoutLogs.length > 0 && (
               <div>
-                <p className="text-xs text-grappler-500 uppercase tracking-wide mb-2">Recent Workouts</p>
+                <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">Recent Workouts</p>
                 <div className="space-y-2">
                   {workoutLogs.slice(-3).reverse().map(log => {
                     const shareText = [
@@ -366,7 +366,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                           <p className="text-sm text-grappler-200 truncate">
                             {log.exercises.length} exercises | {formatNumber(Math.round(log.totalVolume))} {weightUnit}
                           </p>
-                          <p className="text-xs text-grappler-500">{formatDate(log.date)}</p>
+                          <p className="text-xs text-grappler-400">{formatDate(log.date)}</p>
                         </div>
                         <button
                           onClick={() => handleShare(shareText, log.id)}
@@ -400,7 +400,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   </button>
                 </div>
                 <p className="text-lg font-bold text-grappler-100">{stats.avgPerWeek} <span className="text-sm font-normal text-grappler-400">workouts/week</span></p>
-                <p className="text-xs text-grappler-500">Last 4 weeks average</p>
+                <p className="text-xs text-grappler-400">Last 4 weeks average</p>
               </div>
             )}
           </motion.div>
@@ -430,15 +430,15 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
                   <p className="text-lg font-bold text-green-400">{nutritionStats.avgCals}</p>
-                  <p className="text-xs text-grappler-500">Avg cal/day</p>
+                  <p className="text-xs text-grappler-400">Avg cal/day</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
                   <p className="text-lg font-bold text-blue-400">{nutritionStats.avgProtein}g</p>
-                  <p className="text-xs text-grappler-500">Avg protein/day</p>
+                  <p className="text-xs text-grappler-400">Avg protein/day</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
                   <p className="text-lg font-bold text-yellow-400">{nutritionStats.trainingHrs}h</p>
-                  <p className="text-xs text-grappler-500">Training this week</p>
+                  <p className="text-xs text-grappler-400">Training this week</p>
                 </div>
                 <div className="bg-grappler-900/50 rounded-lg p-3 text-center">
                   <p className="text-lg font-bold text-grappler-200">
@@ -446,7 +446,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                       ? `${nutritionStats.weightDelta > 0 ? '+' : ''}${nutritionStats.weightDelta} ${weightUnit}`
                       : '—'}
                   </p>
-                  <p className="text-xs text-grappler-500">Weight change</p>
+                  <p className="text-xs text-grappler-400">Weight change</p>
                 </div>
               </div>
 
@@ -463,7 +463,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               )}
 
               <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
-                <span className="text-xs text-grappler-500">
+                <span className="text-xs text-grappler-400">
                   {nutritionStats.avgCals > 0 ? `${nutritionStats.avgProtein}g protein · ${nutritionStats.trainingHrs}h training` : 'Start logging meals to share'}
                 </span>
                 <span className="text-xs text-grappler-600">Roots Gains</span>
@@ -505,7 +505,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                         <span className="text-grappler-500">x</span>
                         <span className="text-lg font-bold text-grappler-200">{pr.reps}</span>
                       </div>
-                      <p className="text-xs text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-400 mt-1">
                         e1RM: {pr.e1rm} {weightUnit} | {getRelativeTime(pr.date)}
                       </p>
                     </div>
@@ -547,7 +547,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                       <div>
                         <p className="font-medium text-grappler-100 text-sm">{ub.badge.name}</p>
                         <p className="text-xs text-grappler-400">{ub.badge.description}</p>
-                        <p className="text-xs text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-400 mt-0.5">
                           +{ub.badge.points} XP | {getRelativeTime(ub.earnedAt)}
                         </p>
                       </div>

@@ -257,7 +257,7 @@ export default function TrainingCalendar() {
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 text-center">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} className="text-xs text-grappler-500 py-1">{d}</div>
+          <div key={d} className="text-xs text-grappler-400 py-1">{d}</div>
         ))}
       </div>
 
@@ -640,7 +640,7 @@ export default function TrainingCalendar() {
                     {expandedExercise === exIndex && (
                       <div className="px-3 pb-3 space-y-2">
                         {/* Header */}
-                        <div className="grid grid-cols-4 gap-2 text-xs text-grappler-500 uppercase px-1">
+                        <div className="grid grid-cols-4 gap-2 text-xs text-grappler-400 uppercase px-1">
                           <span>Set</span>
                           <span>{weightUnit}</span>
                           <span>Reps</span>

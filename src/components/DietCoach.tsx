@@ -402,7 +402,7 @@ export default function DietCoach() {
               {showSetup && setupStep === 'info' && (
                 <div className="space-y-3">
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Your Info</p>
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     Used for Mifflin-St Jeor BMR — the most accurate validated formula (ADA 2005).
                   </p>
 
@@ -464,7 +464,7 @@ export default function DietCoach() {
                   {/* BMR preview */}
                   {formWeight && formHeight && (
                     <div className="p-2.5 bg-grappler-800/30 rounded-lg">
-                      <p className="text-xs text-grappler-500">
+                      <p className="text-xs text-grappler-400">
                         {latestBodyFat ? (
                           <>Estimated BMR (Cunningham): {Math.round(500 + 22 * bodyWeightKg * (1 - latestBodyFat / 100))} kcal/day &middot; BF {latestBodyFat}%</>
                         ) : (
@@ -517,13 +517,13 @@ export default function DietCoach() {
                                 <p className={`text-sm font-medium ${isSelected ? config.color : 'text-grappler-200'}`}>
                                   {config.label}
                                 </p>
-                                <p className="text-xs text-grappler-500">{config.description}</p>
+                                <p className="text-xs text-grappler-400">{config.description}</p>
                               </div>
                             </div>
                             {isSelected && (
                               <div className="text-right">
                                 <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
-                                <p className="text-xs text-grappler-500">
+                                <p className="text-xs text-grappler-400">
                                   {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
                                 </p>
                               </div>
@@ -535,7 +535,7 @@ export default function DietCoach() {
                   </div>
 
                   <div className="p-2.5 bg-grappler-800/30 rounded-lg flex items-center justify-between">
-                    <p className="text-xs text-grappler-500">
+                    <p className="text-xs text-grappler-400">
                       {Math.round(bodyWeightKg)}kg &middot; {Math.round(heightCm)}cm &middot; {formSex} &middot; age {age}
                     </p>
                     <button
@@ -569,17 +569,17 @@ export default function DietCoach() {
                   {/* Phase info + macros */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
-                      <p className="text-xs text-grappler-500 mb-1">Current Phase</p>
+                      <p className="text-xs text-grappler-400 mb-1">Current Phase</p>
                       <div className="flex items-center gap-1.5">
                         {GOAL_CONFIG[activeDietPhase.goal].icon}
                         <span className={`text-sm font-medium ${GOAL_CONFIG[activeDietPhase.goal].color}`}>
                           {GOAL_CONFIG[activeDietPhase.goal].label}
                         </span>
                       </div>
-                      <p className="text-xs text-grappler-500 mt-1">Week {activeDietPhase.weeksCompleted + 1}</p>
+                      <p className="text-xs text-grappler-400 mt-1">Week {activeDietPhase.weeksCompleted + 1}</p>
                     </div>
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
-                      <p className="text-xs text-grappler-500 mb-1">Daily Targets</p>
+                      <p className="text-xs text-grappler-400 mb-1">Daily Targets</p>
                       <p className="text-sm font-medium text-white">{macroTargets.calories} kcal</p>
                       <p className="text-xs text-grappler-400">
                         {macroTargets.protein}P / {macroTargets.carbs}C / {macroTargets.fat}F
@@ -665,15 +665,15 @@ export default function DietCoach() {
                                 <div>
                                   <p className={`text-xs font-medium ${isCurrent ? config.color : 'text-grappler-200'}`}>
                                     {config.label}
-                                    {isCurrent && <span className="text-xs text-grappler-500 ml-1.5">(current)</span>}
+                                    {isCurrent && <span className="text-xs text-grappler-400 ml-1.5">(current)</span>}
                                   </p>
-                                  <p className="text-xs text-grappler-500">{config.description}</p>
+                                  <p className="text-xs text-grappler-400">{config.description}</p>
                                 </div>
                               </div>
                               {!isCurrent && (
                                 <div className="text-right flex-shrink-0">
                                   <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
-                                  <p className="text-xs text-grappler-500">
+                                  <p className="text-xs text-grappler-400">
                                     {previewMacros.protein}P / {previewMacros.carbs}C / {previewMacros.fat}F
                                   </p>
                                 </div>
@@ -684,7 +684,7 @@ export default function DietCoach() {
                       </div>
                       <button
                         onClick={() => setShowSwitchGoal(false)}
-                        className="w-full py-1.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                        className="w-full py-1.5 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
                       >
                         Cancel
                       </button>
@@ -695,7 +695,7 @@ export default function DietCoach() {
                   {bodyWeightLog.length >= 3 && (
                     <div className="p-2.5 bg-grappler-800/40 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <p className="text-xs text-grappler-500">Weight Trend</p>
+                        <p className="text-xs text-grappler-400">Weight Trend</p>
                         <div className="flex items-center gap-1">
                           {weightTrend.weeklyChange < -0.1 ? (
                             <TrendingDown className="w-3 h-3 text-red-400" />
@@ -728,7 +728,7 @@ export default function DietCoach() {
                   {/* Adherence */}
                   <div className="p-2.5 bg-grappler-800/40 rounded-lg">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-grappler-500">7-Day Logging</p>
+                      <p className="text-xs text-grappler-400">7-Day Logging</p>
                       <span className={`text-xs font-medium ${
                         adherence >= 80 ? 'text-green-400' :
                         adherence >= 60 ? 'text-sky-400' :
@@ -749,7 +749,7 @@ export default function DietCoach() {
                       />
                     </div>
                     {adherence < 70 && (
-                      <p className="text-xs text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-400 mt-1">
                         Log at least 2 meals/day for accurate macro adjustments
                       </p>
                     )}
@@ -857,19 +857,19 @@ export default function DietCoach() {
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div className="bg-grappler-800/60 rounded-lg p-2.5">
                               <p className="text-lg font-bold text-white">{weightTrend.current}</p>
-                              <p className="text-[10px] text-grappler-500 uppercase">{unitLabel} trend</p>
+                              <p className="text-xs text-grappler-400 uppercase">{unitLabel} trend</p>
                             </div>
                             <div className="bg-grappler-800/60 rounded-lg p-2.5">
                               <p className={`text-lg font-bold ${changeColor}`}>
                                 {weightTrend.weeklyChange > 0 ? '+' : ''}{weightTrend.weeklyChange}
                               </p>
-                              <p className="text-[10px] text-grappler-500 uppercase">{unitLabel}/wk</p>
+                              <p className="text-xs text-grappler-400 uppercase">{unitLabel}/wk</p>
                             </div>
                             <div className="bg-grappler-800/60 rounded-lg p-2.5">
                               <p className={`text-lg font-bold ${adherence >= 70 ? 'text-green-400' : adherence >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                                 {adherence}%
                               </p>
-                              <p className="text-[10px] text-grappler-500 uppercase">Logged</p>
+                              <p className="text-xs text-grappler-400 uppercase">Logged</p>
                             </div>
                           </div>
 
@@ -946,7 +946,7 @@ export default function DietCoach() {
                                           { label: 'F', delta: preview.newMacros.fat - macroTargets.fat },
                                         ].filter(d => d.delta !== 0);
                                         return deltas.map(d => (
-                                          <span key={d.label} className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                          <span key={d.label} className={`text-xs px-1.5 py-0.5 rounded-full ${
                                             d.delta > 0 ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'
                                           }`}>
                                             {d.delta > 0 ? '+' : ''}{d.delta} {d.label}
@@ -1002,7 +1002,7 @@ export default function DietCoach() {
                       )}
                       <span>Meal Reminders</span>
                     </div>
-                    <span className={`text-xs ${mealReminders.enabled ? 'text-violet-400' : 'text-grappler-500'}`}>
+                    <span className={`text-xs ${mealReminders.enabled ? 'text-violet-400' : 'text-grappler-400'}`}>
                       {mealReminders.enabled ? 'On' : 'Off'}
                     </span>
                   </button>
@@ -1030,7 +1030,7 @@ export default function DietCoach() {
 
                           {mealReminders.enabled && (
                             <div className="space-y-2">
-                              <p className="text-xs text-grappler-500">
+                              <p className="text-xs text-grappler-400">
                                 Get notified when it&apos;s time to log meals. Requires notification permission.
                               </p>
 
@@ -1047,7 +1047,7 @@ export default function DietCoach() {
                                       })
                                     }
                                     className={`flex items-center gap-2 text-xs transition-colors ${
-                                      mealReminders.enabledMeals[meal] ? 'text-grappler-200' : 'text-grappler-500 line-through'
+                                      mealReminders.enabledMeals[meal] ? 'text-grappler-200' : 'text-grappler-400 line-through'
                                     }`}
                                   >
                                     <div className={`w-3 h-3 rounded border ${
@@ -1106,7 +1106,7 @@ export default function DietCoach() {
                       setShowSetup(false);
                       setShowSwitchGoal(false);
                     }}
-                    className="w-full text-xs text-grappler-500 hover:text-red-400 transition-colors py-1.5"
+                    className="w-full text-xs text-grappler-400 hover:text-red-400 transition-colors py-1.5"
                   >
                     End current phase
                   </button>
@@ -1379,9 +1379,9 @@ function DietHistorySection({
                       <div>
                         <p className={`text-xs font-medium ${goalColor(activeDietPhase.goal)}`}>
                           {goalLabel(activeDietPhase.goal)}
-                          <span className="text-xs text-grappler-500 ml-1.5">active</span>
+                          <span className="text-xs text-grappler-400 ml-1.5">active</span>
                         </p>
-                        <p className="text-xs text-grappler-500 mt-0.5">
+                        <p className="text-xs text-grappler-400 mt-0.5">
                           Since {formatDate(activeDietPhase.startDate)} · Week {activeDietPhase.weeksCompleted + 1}
                         </p>
                       </div>
@@ -1488,7 +1488,7 @@ function DietHistorySection({
                                   onChange={e => setEditForm(f => ({ ...f, endWeightKg: e.target.value }))}
                                   className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
-                                <span className="text-xs text-grappler-500">{unitLabel}</span>
+                                <span className="text-xs text-grappler-400">{unitLabel}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <label className="text-xs text-grappler-400 w-16">Calories</label>
@@ -1498,7 +1498,7 @@ function DietHistorySection({
                                   onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
                                   className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"
                                 />
-                                <span className="text-xs text-grappler-500">kcal</span>
+                                <span className="text-xs text-grappler-400">kcal</span>
                               </div>
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
@@ -1520,7 +1520,7 @@ function DietHistorySection({
                       </AnimatePresence>
 
                       {/* Details */}
-                      <div className="flex items-center gap-3 text-xs text-grappler-500">
+                      <div className="flex items-center gap-3 text-xs text-grappler-400">
                         <span>{formatDate(phase.startDate)} – {formatDate(phase.endDate)}</span>
                         <span>{phase.weeksCompleted} wk{phase.weeksCompleted !== 1 ? 's' : ''}</span>
                         {avgAdherence !== null && (
@@ -1529,7 +1529,7 @@ function DietHistorySection({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-grappler-500">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-grappler-400">
                         <span>{formatWeight(phase.startWeightKg)} → {formatWeight(phase.endWeightKg)}</span>
                         <span>·</span>
                         <span>{phase.finalMacros.calories} kcal final</span>
@@ -1540,7 +1540,7 @@ function DietHistorySection({
               })}
 
               {sortedHistory.length === 0 && !activeDietPhase && (
-                <p className="text-xs text-grappler-500 text-center py-2">
+                <p className="text-xs text-grappler-400 text-center py-2">
                   No completed phases yet. Your diet history will appear here.
                 </p>
               )}

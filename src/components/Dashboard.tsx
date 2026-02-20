@@ -466,7 +466,7 @@ export default function Dashboard({
             <div className="min-w-0">
               <h1 className="font-bold text-sm text-grappler-50 truncate">Roots Gains</h1>
               <div className="flex items-center gap-1.5">
-                <p className="text-[10px] text-grappler-400 whitespace-nowrap">
+                <p className="text-xs text-grappler-400 whitespace-nowrap">
                   Lv.{gamificationStats.level}
                 </p>
                 <div className="w-14 h-1 bg-grappler-700 rounded-full overflow-hidden flex-shrink-0" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
@@ -491,7 +491,7 @@ export default function Dashboard({
               return (
                 <div className="flex items-center gap-0.5 bg-grappler-800 px-1.5 py-1 rounded-full" title={`Weekly: ${completed}/${goals.length} goals done`}>
                   <Target className="w-3 h-3 text-accent-400" />
-                  <span className="text-[10px] font-semibold text-grappler-200">{completed}/{goals.length}</span>
+                  <span className="text-xs font-semibold text-grappler-200">{completed}/{goals.length}</span>
                 </div>
               );
             })()}

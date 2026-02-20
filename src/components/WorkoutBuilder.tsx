@@ -46,80 +46,322 @@ interface BuiltExercise {
   restSeconds: number;
 }
 
-// Preset mesocycle templates
-const MESOCYCLE_TEMPLATES = [
+type TemplateCategory = 'popular' | 'combat' | 'strength' | 'hypertrophy' | 'athletic' | 'lifestyle';
+
+interface MesocycleTemplate {
+  id: string;
+  name: string;
+  description: string;
+  sessions: number;
+  weeks: number;
+  focus: 'strength' | 'hypertrophy' | 'balanced' | 'power';
+  periodization: 'undulating' | 'block' | 'linear';
+  category: TemplateCategory;
+  tags: string[];
+  icon: string;
+}
+
+// Preset mesocycle templates — comprehensive, evidence-based
+const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
+  // ─── POPULAR ───
   {
     id: 'push_pull_legs',
     name: 'Push / Pull / Legs',
-    description: 'Classic 3-day split targeting push muscles, pull muscles, and legs separately',
+    description: 'The gold standard bodybuilding split. Each session targets push, pull, or leg muscles with high volume.',
     sessions: 3,
-    focus: 'hypertrophy' as const,
-    muscleGroups: ['chest', 'shoulders', 'triceps', 'back', 'biceps', 'quadriceps', 'hamstrings', 'glutes'],
+    weeks: 5,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'popular',
+    tags: ['Bodybuilding', '2x frequency'],
     icon: '💪'
   },
   {
     id: 'upper_lower',
     name: 'Upper / Lower',
-    description: 'Alternating upper and lower body days. Great for 2-day schedules',
-    sessions: 2,
-    focus: 'balanced' as const,
-    muscleGroups: ['chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes'],
+    description: '4-day split hitting each muscle 2x/week. Ideal balance of frequency, volume, and recovery.',
+    sessions: 4,
+    weeks: 5,
+    focus: 'balanced',
+    periodization: 'undulating',
+    category: 'popular',
+    tags: ['Versatile', '2x frequency'],
     icon: '⬆️'
   },
   {
-    id: 'full_body_strength',
-    name: 'Full Body Strength',
-    description: 'Heavy compound lifts every session. Maximum strength gains',
+    id: 'full_body_3x',
+    name: 'Full Body 3x',
+    description: 'Three full-body sessions per week. Compound-focused. Proven best for beginners and intermediates.',
     sessions: 3,
-    focus: 'strength' as const,
-    muscleGroups: ['full_body'],
+    weeks: 5,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'popular',
+    tags: ['Beginner-friendly', 'Efficient'],
     icon: '🏋️'
   },
   {
+    id: '531_progression',
+    name: '5/3/1 Progression',
+    description: 'Wendler-inspired 4-week waves. Submaximal training with planned progression — sustainable for years.',
+    sessions: 4,
+    weeks: 4,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'popular',
+    tags: ['Long-term', 'Sustainable'],
+    icon: '📈'
+  },
+
+  // ─── COMBAT SPORT ───
+  {
     id: 'grappler_hybrid',
-    name: 'Rootsler Hybrid',
-    description: 'Strength + power + grip work designed around mat time. Our recommended split',
+    name: 'Grappler Hybrid',
+    description: 'Strength + power + grip built around mat time. Posterior chain emphasis for takedowns and guard retention.',
     sessions: 3,
-    focus: 'balanced' as const,
-    muscleGroups: ['full_body'],
+    weeks: 5,
+    focus: 'balanced',
+    periodization: 'undulating',
+    category: 'combat',
+    tags: ['BJJ/Wrestling', 'Recovery-aware'],
     icon: '🥋'
   },
   {
-    id: 'chest_back',
-    name: 'Chest & Back Focus',
-    description: 'Prioritize pushing and pulling muscles for upper body development',
+    id: 'striker_power',
+    name: 'Striker Power',
+    description: 'Rotational power, shoulder endurance, and leg drive for boxing, Muay Thai, and kickboxing.',
     sessions: 3,
-    focus: 'hypertrophy' as const,
-    muscleGroups: ['chest', 'back', 'shoulders'],
+    weeks: 5,
+    focus: 'power',
+    periodization: 'undulating',
+    category: 'combat',
+    tags: ['Boxing/MT', 'Explosive'],
+    icon: '🥊'
+  },
+  {
+    id: 'mma_concurrent',
+    name: 'MMA Concurrent',
+    description: 'Balances striking, grappling, and lifting demands. Auto-scaled volume based on training load.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'balanced',
+    periodization: 'undulating',
+    category: 'combat',
+    tags: ['MMA', 'Multi-sport'],
+    icon: '🏟️'
+  },
+  {
+    id: 'fight_camp_peak',
+    name: 'Fight Camp Peaking',
+    description: '4-week intensification block for fight prep. Taper volume, peak power, maintain strength.',
+    sessions: 3,
+    weeks: 4,
+    focus: 'power',
+    periodization: 'block',
+    category: 'combat',
+    tags: ['Competition', 'Peaking'],
+    icon: '🏆'
+  },
+  {
+    id: 'grappler_offseason',
+    name: 'Grappler Off-Season',
+    description: 'Higher volume when mat time is low. Build muscle and work capacity for the next competition cycle.',
+    sessions: 4,
+    weeks: 6,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'combat',
+    tags: ['Off-season', 'Volume'],
+    icon: '🔨'
+  },
+
+  // ─── STRENGTH ───
+  {
+    id: 'powerbuilding',
+    name: 'Powerbuilding',
+    description: 'Heavy compounds for strength + isolation accessories for size. Best of both worlds.',
+    sessions: 4,
+    weeks: 5,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'strength',
+    tags: ['Hybrid', 'Compound focus'],
+    icon: '🦍'
+  },
+  {
+    id: 'dup_strength',
+    name: 'Daily Undulating',
+    description: 'Heavy day, volume day, speed day each week. Prevents staleness, drives adaptation through variation.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'strength',
+    tags: ['Anti-plateau', 'Varied'],
+    icon: '🔄'
+  },
+  {
+    id: 'block_periodization',
+    name: 'Block Periodization',
+    description: 'Accumulation → Intensification → Realization. Classic Eastern European approach for intermediate+ lifters.',
+    sessions: 4,
+    weeks: 6,
+    focus: 'strength',
+    periodization: 'block',
+    category: 'strength',
+    tags: ['Intermediate+', 'Periodized'],
+    icon: '📊'
+  },
+  {
+    id: 'strength_skill',
+    name: 'Strength as Skill',
+    description: 'Frequent heavy singles and doubles, low total volume. Neural efficiency over muscle damage.',
+    sessions: 5,
+    weeks: 4,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'strength',
+    tags: ['Neurological', 'Low fatigue'],
+    icon: '🧠'
+  },
+
+  // ─── HYPERTROPHY ───
+  {
+    id: 'volume_block',
+    name: 'Volume Block',
+    description: 'High-volume accumulation in the 8-12 rep range. Systematic overload across the mesocycle.',
+    sessions: 4,
+    weeks: 5,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'hypertrophy',
+    tags: ['Muscle growth', 'Volume'],
+    icon: '📐'
+  },
+  {
+    id: 'high_frequency',
+    name: 'High Frequency',
+    description: 'Each muscle 3x/week with moderate per-session volume. Spreads work across more sessions.',
+    sessions: 5,
+    weeks: 4,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'hypertrophy',
+    tags: ['Advanced', 'Full body'],
+    icon: '📆'
+  },
+  {
+    id: 'chest_back_focus',
+    name: 'Chest & Back Focus',
+    description: 'Extra pushing and pulling volume for upper body emphasis. Legs at maintenance.',
+    sessions: 4,
+    weeks: 5,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'hypertrophy',
+    tags: ['Upper body', 'Specialization'],
     icon: '🎯'
   },
   {
-    id: 'leg_day_focus',
-    name: 'Leg Day Specialist',
-    description: 'Extra lower body volume for wrestlers and takedown artists',
-    sessions: 3,
-    focus: 'hypertrophy' as const,
-    muscleGroups: ['quadriceps', 'hamstrings', 'glutes', 'calves'],
+    id: 'leg_specialization',
+    name: 'Leg Specialization',
+    description: 'Extra quad, hamstring, and glute volume. Upper body at maintenance. Wrestlers and athletes.',
+    sessions: 4,
+    weeks: 5,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'hypertrophy',
+    tags: ['Lower body', 'Specialization'],
     icon: '🦵'
   },
   {
+    id: 'long_accumulation',
+    name: 'Long Accumulation',
+    description: '6-8 week volume ramp. More time to build work capacity before deloading.',
+    sessions: 4,
+    weeks: 8,
+    focus: 'hypertrophy',
+    periodization: 'undulating',
+    category: 'hypertrophy',
+    tags: ['Patient', 'Volume build'],
+    icon: '📈'
+  },
+
+  // ─── ATHLETIC ───
+  {
     id: 'power_athlete',
     name: 'Power Athlete',
-    description: 'Explosive training for speed, power, and athletic performance',
+    description: 'Explosive training for speed, power, and athletic performance. Olympic lifts + plyometrics.',
     sessions: 3,
-    focus: 'power' as const,
-    muscleGroups: ['full_body'],
+    weeks: 5,
+    focus: 'power',
+    periodization: 'undulating',
+    category: 'athletic',
+    tags: ['Explosive', 'Sport'],
     icon: '⚡'
   },
   {
-    id: 'minimalist',
-    name: 'Minimalist (2x/week)',
-    description: 'Maximum results with minimum time. 2 sessions of key compounds',
+    id: 'comp_prep',
+    name: 'Competition Prep',
+    description: 'Short peaking block. Taper volume, peak intensity. For meets, fights, and tournaments.',
+    sessions: 3,
+    weeks: 3,
+    focus: 'power',
+    periodization: 'block',
+    category: 'athletic',
+    tags: ['Peaking', 'Taper'],
+    icon: '🏅'
+  },
+
+  // ─── LIFESTYLE ───
+  {
+    id: 'minimalist_2x',
+    name: 'Minimalist 2x/Week',
+    description: 'Maximum results, minimum time. 2 sessions of key compounds — for busy schedules.',
     sessions: 2,
-    focus: 'strength' as const,
-    muscleGroups: ['full_body'],
+    weeks: 6,
+    focus: 'strength',
+    periodization: 'undulating',
+    category: 'lifestyle',
+    tags: ['Time-efficient', 'Busy schedule'],
     icon: '⏱️'
-  }
+  },
+  {
+    id: 'deload_recovery',
+    name: 'Active Recovery',
+    description: 'Strategic deload. 50-60% of normal volume at reduced intensity. Use between hard blocks.',
+    sessions: 2,
+    weeks: 1,
+    focus: 'balanced',
+    periodization: 'block',
+    category: 'lifestyle',
+    tags: ['Deload', 'Recovery'],
+    icon: '🧘'
+  },
+  {
+    id: 'home_gym',
+    name: 'Home Gym Essentials',
+    description: 'Optimized for limited equipment — barbell, dumbbells, pull-up bar. No machines needed.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'balanced',
+    periodization: 'undulating',
+    category: 'lifestyle',
+    tags: ['Home gym', 'Minimal equipment'],
+    icon: '🏠'
+  },
+  {
+    id: 'bodyweight_only',
+    name: 'Bodyweight Only',
+    description: 'Zero equipment. Push-ups, squats, pull-ups, core. Travel-friendly and effective.',
+    sessions: 4,
+    weeks: 4,
+    focus: 'hypertrophy',
+    periodization: 'linear',
+    category: 'lifestyle',
+    tags: ['No equipment', 'Travel'],
+    icon: '🤸'
+  },
 ];
 
 const MUSCLE_GROUP_LABELS: Record<string, string> = {
@@ -145,6 +387,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategory | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [templateCategory, setTemplateCategory] = useState<TemplateCategory | 'all'>('all');
 
   // Builder state
   const [builtExercises, setBuiltExercises] = useState<BuiltExercise[]>([]);
@@ -236,19 +479,19 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
     onClose();
   };
 
-  const startFromTemplate = (templateId: string) => {
-    const template = MESOCYCLE_TEMPLATES.find(t => t.id === templateId);
-    if (!template || !user) return;
-
-    // Generate a mesocycle with the user's settings
-    generateNewMesocycle(5);
-    onClose();
-  };
-
-  const startQuickFromTemplate = (templateId: string) => {
+  const startFromTemplate = (template: MesocycleTemplate) => {
     if (!user) return;
-    const quickSession = generateQuickWorkout(user.equipment, 45, user.goalFocus);
-    startWorkout(quickSession);
+
+    // Set user's goal and sessions to match the template before generating
+    useAppStore.setState({
+      user: {
+        ...user,
+        goalFocus: template.focus,
+        sessionsPerWeek: template.sessions as any,
+        updatedAt: new Date()
+      }
+    });
+    generateNewMesocycle(template.weeks, undefined, template.periodization);
     onClose();
   };
 
@@ -305,54 +548,104 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
       <main className="p-4 pb-32">
         {/* Templates View */}
-        {view === 'templates' && (
-          <div className="space-y-3">
-            <p className="text-sm text-grappler-400 mb-2">
-              Choose a program template or build your own from the exercise database
-            </p>
+        {view === 'templates' && (() => {
+          const CATEGORY_TABS: { id: TemplateCategory | 'all'; label: string }[] = [
+            { id: 'all', label: 'All' },
+            { id: 'popular', label: 'Popular' },
+            { id: 'combat', label: 'Combat' },
+            { id: 'strength', label: 'Strength' },
+            { id: 'hypertrophy', label: 'Size' },
+            { id: 'athletic', label: 'Athletic' },
+            { id: 'lifestyle', label: 'Lifestyle' },
+          ];
 
-            {MESOCYCLE_TEMPLATES.map((template) => (
-              <motion.div
-                key={template.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="card p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-grappler-700 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                    {template.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-grappler-100">{template.name}</h3>
-                      <span className={cn(
-                        'text-xs px-2 py-0.5 rounded-full font-medium',
-                        template.focus === 'strength' ? 'bg-red-500/20 text-red-400' :
-                        template.focus === 'hypertrophy' ? 'bg-purple-500/20 text-purple-400' :
-                        template.focus === 'power' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-primary-500/20 text-primary-400'
-                      )}>
-                        {template.focus}
-                      </span>
+          const focusColors: Record<string, string> = {
+            strength: 'bg-red-500/20 text-red-400',
+            hypertrophy: 'bg-purple-500/20 text-purple-400',
+            power: 'bg-blue-500/20 text-blue-400',
+            balanced: 'bg-primary-500/20 text-primary-400',
+          };
+
+          const filtered = templateCategory === 'all'
+            ? MESOCYCLE_TEMPLATES
+            : MESOCYCLE_TEMPLATES.filter(t => t.category === templateCategory);
+
+          return (
+            <div className="space-y-3">
+              {/* Category pills */}
+              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {CATEGORY_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setTemplateCategory(tab.id)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0',
+                      templateCategory === tab.id
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs text-grappler-400">
+                {filtered.length} program{filtered.length !== 1 ? 's' : ''}
+              </p>
+
+              {filtered.map((template) => (
+                <motion.div
+                  key={template.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-grappler-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                      {template.icon}
                     </div>
-                    <p className="text-xs text-grappler-400 mb-2">{template.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-grappler-400 mb-3">
-                      <span>{template.sessions}x/week</span>
-                      <span>5-week block</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <h3 className="font-bold text-grappler-100 text-sm">{template.name}</h3>
+                        <span className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize',
+                          focusColors[template.focus]
+                        )}>
+                          {template.focus}
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-400 mb-2">{template.description}</p>
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
+                          {template.sessions}x/week
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
+                          {template.weeks}w block
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300 capitalize">
+                          {template.periodization}
+                        </span>
+                        {template.tags.map((tag, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/30 text-grappler-400">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => startFromTemplate(template)}
+                        className="btn btn-primary btn-sm w-full gap-1"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        Start {template.weeks}w / {template.sessions}x Program
+                      </button>
                     </div>
-                    <button
-                      onClick={() => startFromTemplate(template.id)}
-                      className="btn btn-primary btn-sm w-full gap-1"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      Generate This Program
-                    </button>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+                </motion.div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Exercise Browser View */}
         {view === 'browse' && (

@@ -320,13 +320,16 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
 }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const [showLongDesc, setShowLongDesc] = useState(false);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
   }, []);
 
-  const startPress = useCallback(() => {
+  const startTouch = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchOrigin.current = { x: touch.clientX, y: touch.clientY };
     didLongPress.current = false;
     timerRef.current = setTimeout(() => {
       didLongPress.current = true;
@@ -334,7 +337,32 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
     }, LONG_PRESS_MS);
   }, [onTogglePin, tool.id]);
 
+  const moveTouch = useCallback((e: React.TouchEvent) => {
+    // Only cancel if finger moved > 10px (prevents accidental cancellation)
+    if (!touchOrigin.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchOrigin.current.x;
+    const dy = touch.clientY - touchOrigin.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      clearTimer();
+    }
+  }, [clearTimer]);
+
   const endPress = useCallback(() => {
+    clearTimer();
+    touchOrigin.current = null;
+  }, [clearTimer]);
+
+  // Desktop: mouse-based long-press
+  const startMouse = useCallback(() => {
+    didLongPress.current = false;
+    timerRef.current = setTimeout(() => {
+      didLongPress.current = true;
+      onTogglePin(tool.id);
+    }, LONG_PRESS_MS);
+  }, [onTogglePin, tool.id]);
+
+  const endMouse = useCallback(() => {
     clearTimer();
   }, [clearTimer]);
 
@@ -346,10 +374,13 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
       <button
         onClick={() => { if (!didLongPress.current) onNavigate(tool.id); }}
         onContextMenu={(e) => { e.preventDefault(); onTogglePin(tool.id); }}
-        onTouchStart={startPress}
+        onTouchStart={startTouch}
         onTouchEnd={endPress}
         onTouchCancel={endPress}
-        onTouchMove={endPress}
+        onTouchMove={moveTouch}
+        onMouseDown={startMouse}
+        onMouseUp={endMouse}
+        onMouseLeave={endMouse}
         className={cn(
           'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
           'border-2 border-primary-500/40',
@@ -369,12 +400,14 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
     <button
       onClick={() => { if (!didLongPress.current) onNavigate(tool.id); }}
       onContextMenu={(e) => { e.preventDefault(); onTogglePin(tool.id); }}
-      onTouchStart={startPress}
+      onTouchStart={startTouch}
       onTouchEnd={endPress}
       onTouchCancel={endPress}
-      onTouchMove={endPress}
+      onTouchMove={moveTouch}
+      onMouseDown={startMouse}
+      onMouseUp={endMouse}
+      onMouseLeave={(e) => { endMouse(); setShowLongDesc(false); }}
       onMouseEnter={() => setShowLongDesc(true)}
-      onMouseLeave={() => setShowLongDesc(false)}
       className={cn(
         'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
         'hover:border-grappler-700 active:scale-95 transition-all select-none',

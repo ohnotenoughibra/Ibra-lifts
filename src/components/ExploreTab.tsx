@@ -338,7 +338,6 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
   }, [onTogglePin, tool.id]);
 
   const moveTouch = useCallback((e: React.TouchEvent) => {
-    // Only cancel if finger moved > 10px (prevents accidental cancellation)
     if (!touchOrigin.current) return;
     const touch = e.touches[0];
     const dx = touch.clientX - touchOrigin.current.x;
@@ -353,19 +352,6 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
     touchOrigin.current = null;
   }, [clearTimer]);
 
-  // Desktop: mouse-based long-press
-  const startMouse = useCallback(() => {
-    didLongPress.current = false;
-    timerRef.current = setTimeout(() => {
-      didLongPress.current = true;
-      onTogglePin(tool.id);
-    }, LONG_PRESS_MS);
-  }, [onTogglePin, tool.id]);
-
-  const endMouse = useCallback(() => {
-    clearTimer();
-  }, [clearTimer]);
-
   useEffect(() => clearTimer, [clearTimer]);
 
   // Compact mode for pinned row — icon + label only
@@ -378,9 +364,6 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
         onTouchEnd={endPress}
         onTouchCancel={endPress}
         onTouchMove={moveTouch}
-        onMouseDown={startMouse}
-        onMouseUp={endMouse}
-        onMouseLeave={endMouse}
         className={cn(
           'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
           'border-2 border-primary-500/40',
@@ -404,10 +387,8 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
       onTouchEnd={endPress}
       onTouchCancel={endPress}
       onTouchMove={moveTouch}
-      onMouseDown={startMouse}
-      onMouseUp={endMouse}
-      onMouseLeave={(e) => { endMouse(); setShowLongDesc(false); }}
       onMouseEnter={() => setShowLongDesc(true)}
+      onMouseLeave={() => setShowLongDesc(false)}
       className={cn(
         'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
         'hover:border-grappler-700 active:scale-95 transition-all select-none',

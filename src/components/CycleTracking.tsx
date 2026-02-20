@@ -99,7 +99,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             <span className="flex items-center gap-2 text-sm font-semibold text-grappler-100">
               <Plus className="w-4 h-4 text-primary-400" /> Log New Entry
             </span>
-            <motion.span animate={{ rotate: formOpen ? 180 : 0 }} className="text-grappler-500 text-xs">{formOpen ? 'Close' : 'Open'}</motion.span>
+            <motion.span animate={{ rotate: formOpen ? 180 : 0 }} className="text-grappler-400 text-xs">{formOpen ? 'Close' : 'Open'}</motion.span>
           </button>
           <AnimatePresence>
             {formOpen && (
@@ -164,7 +164,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl bg-grappler-800 border border-grappler-700 p-6 text-center">
             <Moon className="w-10 h-10 text-grappler-600 mx-auto mb-3" />
             <h3 className="text-grappler-200 font-semibold mb-1">No Cycle Data Yet</h3>
-            <p className="text-xs text-grappler-500 max-w-xs mx-auto">
+            <p className="text-xs text-grappler-400 max-w-xs mx-auto">
               Log your first entry above to unlock phase-based training adjustments, performance windows, and nutrition guidance.
             </p>
           </motion.div>
@@ -182,7 +182,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
               <span className="text-sm text-grappler-300">Day {profile.dayInCycle} of ~{profile.averageCycleLength}</span>
             </div>
             <p className="text-xs text-grappler-400 mb-2">{insights.phaseDescription}</p>
-            <div className="flex items-center gap-1.5 text-xs text-grappler-500">
+            <div className="flex items-center gap-1.5 text-xs text-grappler-400">
               <Droplets className="w-3.5 h-3.5" />
               Next period estimate: <span className="text-grappler-300 font-medium">{fmt(profile.nextPeriodEstimate)}</span>
             </div>
@@ -198,17 +198,17 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="bg-grappler-900/50 rounded-lg p-3 border border-grappler-700">
-                <p className="text-xs text-grappler-500 mb-0.5">Volume</p>
+                <p className="text-xs text-grappler-400 mb-0.5">Volume</p>
                 <p className="text-lg font-bold text-grappler-100">{Math.round(adjustments.volumeMultiplier * 100)}%</p>
               </div>
               <div className="bg-grappler-900/50 rounded-lg p-3 border border-grappler-700">
-                <p className="text-xs text-grappler-500 mb-0.5">Intensity</p>
+                <p className="text-xs text-grappler-400 mb-0.5">Intensity</p>
                 <p className="text-lg font-bold text-grappler-100">{Math.round(adjustments.intensityMultiplier * 100)}%</p>
               </div>
             </div>
             {adjustments.focusAreas.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs text-grappler-500 mb-1.5">Focus Areas</p>
+                <p className="text-xs text-grappler-400 mb-1.5">Focus Areas</p>
                 <div className="flex flex-wrap gap-1.5">
                   {adjustments.focusAreas.map((f, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/30">{f}</span>
@@ -218,7 +218,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             )}
             {adjustments.avoidAreas.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs text-grappler-500 mb-1.5">Areas to Avoid</p>
+                <p className="text-xs text-grappler-400 mb-1.5">Areas to Avoid</p>
                 <div className="flex flex-wrap gap-1.5">
                   {adjustments.avoidAreas.map((a, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">{a}</span>
@@ -227,7 +227,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
               </div>
             )}
             <div>
-              <p className="text-xs text-grappler-500 mb-1.5">Recommendations</p>
+              <p className="text-xs text-grappler-400 mb-1.5">Recommendations</p>
               <ul className="space-y-1.5">
                 {adjustments.recommendations.map((r, i) => (
                   <li key={i} className="text-xs text-grappler-300 flex gap-2"><span className="text-primary-400 mt-0.5 shrink-0">-</span>{r}</li>
@@ -250,7 +250,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                 <span className="text-xs font-semibold text-green-400">Peak Window</span>
               </div>
               <p className="text-xs text-grappler-300 mb-1">{fmt(perfWindows.peakWindow.start)} – {fmt(perfWindows.peakWindow.end)}</p>
-              <p className="text-xs text-grappler-500">{perfWindows.peakWindow.description}</p>
+              <p className="text-xs text-grappler-400">{perfWindows.peakWindow.description}</p>
             </div>
             <div className="bg-sky-500/10 border border-sky-500/25 rounded-lg p-3">
               <div className="flex items-center gap-1.5 mb-1">
@@ -258,7 +258,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                 <span className="text-xs font-semibold text-sky-400">Caution Window</span>
               </div>
               <p className="text-xs text-grappler-300 mb-1">{fmt(perfWindows.cautionWindow.start)} – {fmt(perfWindows.cautionWindow.end)}</p>
-              <p className="text-xs text-grappler-500">{perfWindows.cautionWindow.description}</p>
+              <p className="text-xs text-grappler-400">{perfWindows.cautionWindow.description}</p>
             </div>
           </motion.div>
         )}
@@ -272,16 +272,16 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="bg-grappler-900/50 rounded-lg p-3 border border-grappler-700">
-                <p className="text-xs text-grappler-500 mb-0.5">Calories</p>
+                <p className="text-xs text-grappler-400 mb-0.5">Calories</p>
                 <p className="text-lg font-bold text-grappler-100">{nutrition.adjustedCalories}</p>
               </div>
               <div className="bg-grappler-900/50 rounded-lg p-3 border border-grappler-700">
-                <p className="text-xs text-grappler-500 mb-0.5">Protein</p>
+                <p className="text-xs text-grappler-400 mb-0.5">Protein</p>
                 <p className="text-lg font-bold text-grappler-100">{nutrition.adjustedProtein}g</p>
               </div>
             </div>
             <div className="mb-3">
-              <p className="text-xs text-grappler-500 mb-1.5">Key Nutrients</p>
+              <p className="text-xs text-grappler-400 mb-1.5">Key Nutrients</p>
               <ul className="space-y-1">
                 {nutrition.keyNutrients.map((n, i) => (
                   <li key={i} className="text-xs text-grappler-300 flex gap-2"><span className="text-green-400 shrink-0">+</span> {n}</li>
@@ -289,7 +289,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
               </ul>
             </div>
             <div className="mb-3">
-              <p className="text-xs text-grappler-500 mb-1.5">Meal Suggestions</p>
+              <p className="text-xs text-grappler-400 mb-1.5">Meal Suggestions</p>
               <ul className="space-y-1">
                 {nutrition.mealSuggestions.map((m, i) => (
                   <li key={i} className="text-xs text-grappler-300 flex gap-2"><span className="text-primary-400 shrink-0">-</span> {m}</li>
@@ -322,7 +322,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-xs text-grappler-400">{fmt(log.startDate)}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${lc.bg} ${lc.border} ${lc.color}`}>{lc.label}</span>
-                        <span className="text-xs text-grappler-500">E:{log.energyLevel}/5</span>
+                        <span className="text-xs text-grappler-400">E:{log.energyLevel}/5</span>
                       </div>
                       {log.symptoms.length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -331,7 +331,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                           ))}
                         </div>
                       )}
-                      {log.notes && <p className="text-xs text-grappler-500 mt-1 truncate">{log.notes}</p>}
+                      {log.notes && <p className="text-xs text-grappler-400 mt-1 truncate">{log.notes}</p>}
                     </div>
                     <button onClick={() => deleteCycleLog(log.id)} className="shrink-0 text-grappler-600 hover:text-red-400 transition-colors p-0.5" title="Delete entry">
                       <X className="w-3.5 h-3.5" />

@@ -346,7 +346,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                     <div className="flex items-center justify-between py-2 border-b border-grappler-700/50">
                       <div>
                         <p className="text-sm text-grappler-200">Epley</p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           weight x (1 + reps/30)
                         </p>
                       </div>
@@ -357,7 +357,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                     <div className="flex items-center justify-between py-2 border-b border-grappler-700/50">
                       <div>
                         <p className="text-sm text-grappler-200">Brzycki</p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           weight x 36/(37 - reps)
                         </p>
                       </div>
@@ -368,7 +368,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                     <div className="flex items-center justify-between py-2">
                       <div>
                         <p className="text-sm text-grappler-200">Lombardi</p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           weight x reps^0.1
                         </p>
                       </div>
@@ -446,7 +446,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   <TrendingUp className="w-4 h-4 text-accent-400" />
                   <h4 className="text-sm font-medium text-grappler-200">From History</h4>
                 </div>
-                <p className="text-xs text-grappler-500 mb-3">
+                <p className="text-xs text-grappler-400 mb-3">
                   Best sets from your recent workouts. Tap to calculate from any of them.
                 </p>
                 <div className="space-y-2">
@@ -471,7 +471,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                         <p className="text-sm font-bold text-primary-400">
                           e1RM: {Math.round(entry.e1rm)}
                         </p>
-                        <p className="text-xs text-grappler-500">Calculate from this</p>
+                        <p className="text-xs text-grappler-400">Calculate from this</p>
                       </div>
                     </motion.button>
                   ))}
@@ -541,7 +541,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                 <label className="text-sm font-medium text-grappler-300 mb-3 block">
                   Estimated 1RM for {selectedExercise} ({unit})
                 </label>
-                <p className="text-xs text-grappler-500 mb-3">
+                <p className="text-xs text-grappler-400 mb-3">
                   Enter your estimated max or use the Calculator tab first. This determines warm-up weights.
                 </p>
                 <div className="flex items-center gap-3">
@@ -627,7 +627,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                       setProtocolSets([]);
                       setActual1RM('');
                     }}
-                    className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                    className="text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
                   >
                     Reset
                   </button>
@@ -678,7 +678,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                         <p className="text-sm font-bold text-grappler-200">
                           x{set.reps} {set.reps === 1 ? 'rep' : 'reps'}
                         </p>
-                        <p className="text-xs text-grappler-500">Rest: {set.rest}</p>
+                        <p className="text-xs text-grappler-400">Rest: {set.rest}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -692,7 +692,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                       Record Actual 1RM
                     </h4>
                   </div>
-                  <p className="text-xs text-grappler-500 mb-3">
+                  <p className="text-xs text-grappler-400 mb-3">
                     Enter the weight you successfully lifted for 1 rep.
                   </p>
                   <div className="flex items-center gap-3">
@@ -720,7 +720,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                         <span className="text-lg text-grappler-400">{unit}</span>
                       </p>
                       {protocolEstimate > 0 && (
-                        <p className="text-xs text-grappler-500 mt-2">
+                        <p className="text-xs text-grappler-400 mt-2">
                           {parseFloat(actual1RM) >= protocolEstimate
                             ? `+${Math.round(parseFloat(actual1RM) - protocolEstimate)} ${unit} above estimate`
                             : `${Math.round(protocolEstimate - parseFloat(actual1RM))} ${unit} below estimate`}

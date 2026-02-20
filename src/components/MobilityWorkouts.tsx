@@ -268,7 +268,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
               transition={{ duration: 0.3 }}
             />
           </div>
-          <p className="text-xs text-grappler-500 mt-1 text-center">
+          <p className="text-xs text-grappler-400 mt-1 text-center">
             {Math.round(overallProgress)}% complete
           </p>
         </div>
@@ -355,7 +355,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         {/* Upcoming Exercise */}
         {currentExerciseIndex < selectedRoutine.exercises.length - 1 && (
           <div className="p-4 border-t border-grappler-800">
-            <p className="text-xs text-grappler-500 mb-1">Up next</p>
+            <p className="text-xs text-grappler-400 mb-1">Up next</p>
             <p className="text-sm text-grappler-200">
               {selectedRoutine.exercises[currentExerciseIndex + 1].name}
             </p>
@@ -460,7 +460,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-grappler-500 bg-grappler-700 w-6 h-6 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-bold text-grappler-400 bg-grappler-700 w-6 h-6 rounded-full flex items-center justify-center">
                     {index + 1}
                   </span>
                   <h4 className="font-medium text-grappler-50">{exercise.name}</h4>
@@ -669,7 +669,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-xs text-grappler-500 flex-shrink-0">
+            <div className="flex items-center gap-1 text-xs text-grappler-400 flex-shrink-0">
               <Clock className="w-3.5 h-3.5" />
               {recoverySession.estimatedDuration}m
             </div>

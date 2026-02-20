@@ -372,7 +372,7 @@ export default function WorkoutHistory() {
         <p className="text-sm text-grappler-400 max-w-xs mx-auto">
           After your first workout you'll see volume trends, PRs, and strength progression over time.
         </p>
-        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-grappler-500">
+        <div className="mt-4 flex items-center justify-center gap-3 text-xs text-grappler-400">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary-500 inline-block" /> 3 workouts = volume trends</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 5 workouts = PR tracking</span>
         </div>
@@ -410,12 +410,12 @@ export default function WorkoutHistory() {
                   <p className="text-sm font-medium text-grappler-100">{p.exercise}</p>
                   <p className="text-xs text-grappler-400">Est. 1RM: <span className="text-grappler-200 font-medium">{p.current1RM} {weightUnit}</span></p>
                 </div>
-                <p className="text-xs text-grappler-500 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
+                <p className="text-xs text-grappler-400 mb-2">Gaining ~{p.weeklyGain} {weightUnit}/week</p>
                 <div className="flex gap-2">
                   {p.milestones.map((m, j) => (
                     <div key={j} className="flex-1 bg-grappler-700/40 rounded-lg px-3 py-2 text-center">
                       <p className="text-sm font-bold text-primary-400">{m.target} {weightUnit}</p>
-                      <p className="text-xs text-grappler-500">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-grappler-400">~{m.weeksAway} week{m.weeksAway !== 1 ? 's' : ''}</p>
                     </div>
                   ))}
                 </div>
@@ -506,7 +506,7 @@ export default function WorkoutHistory() {
               <div className="space-y-3 pt-1">
                 {/* Muscle group filter */}
                 <div>
-                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Muscle Group</p>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide mb-1.5">Muscle Group</p>
                   <div className="flex flex-wrap gap-1.5">
                     {muscleGroups.map(mg => (
                       <button
@@ -527,7 +527,7 @@ export default function WorkoutHistory() {
 
                 {/* Sort */}
                 <div>
-                  <p className="text-xs text-grappler-500 uppercase tracking-wide mb-1.5">Sort By</p>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wide mb-1.5">Sort By</p>
                   <div className="flex gap-2">
                     {([
                       { value: 'date', label: 'Date' },
@@ -562,7 +562,7 @@ export default function WorkoutHistory() {
           )}
         </AnimatePresence>
 
-        <p className="text-xs text-grappler-500">{filteredLogs.length} workout{filteredLogs.length !== 1 ? 's' : ''} found</p>
+        <p className="text-xs text-grappler-400">{filteredLogs.length} workout{filteredLogs.length !== 1 ? 's' : ''} found</p>
       </div>
 
       {/* First-visit edit tooltip */}
@@ -608,7 +608,7 @@ export default function WorkoutHistory() {
                     <p className="font-medium text-grappler-100 text-sm truncate">
                       {log.exercises.length} exercises
                     </p>
-                    <p className="text-xs text-grappler-500">{formatDate(log.date)}</p>
+                    <p className="text-xs text-grappler-400">{formatDate(log.date)}</p>
                   </div>
                 </div>
 
@@ -617,7 +617,7 @@ export default function WorkoutHistory() {
                     <p className="text-sm font-medium text-grappler-200">
                       {formatNumber(Math.round(log.totalVolume))} {weightUnit}
                     </p>
-                    <p className="text-xs text-grappler-500">{log.duration} min</p>
+                    <p className="text-xs text-grappler-400">{log.duration} min</p>
                   </div>
                   <div className={cn(
                     'px-2 py-0.5 rounded text-xs font-medium',
@@ -719,7 +719,7 @@ export default function WorkoutHistory() {
                           onChange={(e) => setEditDuration(Math.max(1, parseInt(e.target.value) || 0))}
                           className="w-16 px-2 py-1 bg-grappler-700 border border-grappler-600 rounded text-sm text-grappler-200 text-center"
                         />
-                        <span className="text-xs text-grappler-500">min</span>
+                        <span className="text-xs text-grappler-400">min</span>
                       </div>
                     )}
 
@@ -1003,7 +1003,7 @@ export default function WorkoutHistory() {
                     <p className="font-semibold text-sm text-grappler-100 group-hover:text-primary-300 transition-colors">
                       {ex.name}
                     </p>
-                    <p className="text-xs text-grappler-500 mt-0.5 capitalize">
+                    <p className="text-xs text-grappler-400 mt-0.5 capitalize">
                       {ex.primaryMuscles.join(', ')}
                     </p>
                   </button>

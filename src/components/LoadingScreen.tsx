@@ -54,7 +54,7 @@ export default function LoadingScreen() {
           <h1 className="text-2xl font-black text-grappler-50 tracking-tight font-display">
             Roots Gains
           </h1>
-          <p className="text-xs text-grappler-500 mt-1.5 tracking-wide uppercase font-medium">
+          <p className="text-xs text-grappler-400 mt-1.5 tracking-wide uppercase font-medium">
             Performance System
           </p>
         </motion.div>

@@ -450,7 +450,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
                             <p className="font-medium text-grappler-100 truncate">
                               {profile.exerciseName}
                             </p>
-                            <div className="flex items-center gap-2 text-xs text-grappler-500">
+                            <div className="flex items-center gap-2 text-xs text-grappler-400">
                               <span>{profile.totalSessions} sessions</span>
                               <span>-</span>
                               <span>{profile.bestRepRange} reps</span>
@@ -466,7 +466,7 @@ export default function ExerciseProfiler({ onClose }: ExerciseProfilerProps) {
                       </div>
 
                       {/* Mini stats row */}
-                      <div className="flex items-center gap-4 mt-2 ml-11 text-xs text-grappler-500">
+                      <div className="flex items-center gap-4 mt-2 ml-11 text-xs text-grappler-400">
                         <span className="flex items-center gap-1">
                           <Zap className="w-3 h-3 text-purple-400" />
                           Pump: {profile.avgPumpRating.toFixed(1)}

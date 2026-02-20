@@ -233,12 +233,12 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
                             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2">
                               <p className="text-xs text-blue-400 uppercase tracking-wide mb-0.5">This Device</p>
                               <p className="text-xs text-grappler-200 font-medium">{field.localValue}</p>
-                              {field.localDetail && <p className="text-xs text-grappler-500 mt-0.5">{field.localDetail}</p>}
+                              {field.localDetail && <p className="text-xs text-grappler-400 mt-0.5">{field.localDetail}</p>}
                             </div>
                             <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-2">
                               <p className="text-xs text-purple-400 uppercase tracking-wide mb-0.5">Cloud</p>
                               <p className="text-xs text-grappler-200 font-medium">{field.remoteValue}</p>
-                              {field.remoteDetail && <p className="text-xs text-grappler-500 mt-0.5">{field.remoteDetail}</p>}
+                              {field.remoteDetail && <p className="text-xs text-grappler-400 mt-0.5">{field.remoteDetail}</p>}
                             </div>
                           </div>
                         </div>
@@ -275,7 +275,7 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
                         )}
                       </div>
                       <p className="text-xs text-grappler-400 mt-0.5">{option.description}</p>
-                      <p className="text-xs text-grappler-500 mt-1">{option.detail}</p>
+                      <p className="text-xs text-grappler-400 mt-1">{option.detail}</p>
                     </div>
                     {selectedResolution === option.id && (
                       <Check className="w-5 h-5 text-primary-400 mt-0.5" />

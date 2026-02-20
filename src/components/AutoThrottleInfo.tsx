@@ -98,7 +98,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide">How It Works</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide">How It Works</h2>
         <div className="space-y-2">
           <div className="flex items-start gap-3 p-3 rounded-xl bg-grappler-800/50">
             <span className="text-sm font-bold text-grappler-300 mt-0.5">1.</span>
@@ -114,7 +114,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide pt-2">Throttle Levels</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide pt-2">Throttle Levels</h2>
         <div className="space-y-3">
           {LEVELS.map((l) => {
             const c = colorMap[l.color];
@@ -124,23 +124,23 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center gap-2.5 mb-2">
                   <Icon className={cn('w-4 h-4', c.icon)} />
                   <span className={cn('text-sm font-bold', c.text)}>{l.level}</span>
-                  <span className="text-xs text-grappler-500 ml-auto">Score {l.range}</span>
+                  <span className="text-xs text-grappler-400 ml-auto">Score {l.range}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2 mb-2">
                   <div>
-                    <p className="text-[10px] text-grappler-500 uppercase">Volume</p>
+                    <p className="text-xs text-grappler-400 uppercase">Volume</p>
                     <p className="text-xs font-medium text-grappler-300">{l.volume}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-grappler-500 uppercase">RPE</p>
+                    <p className="text-xs text-grappler-400 uppercase">RPE</p>
                     <p className="text-xs font-medium text-grappler-300">{l.rpe}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-grappler-500 uppercase">Rest</p>
+                    <p className="text-xs text-grappler-400 uppercase">Rest</p>
                     <p className="text-xs font-medium text-grappler-300">{l.rest}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-grappler-500 uppercase">Isolation</p>
+                    <p className="text-xs text-grappler-400 uppercase">Isolation</p>
                     <p className="text-xs font-medium text-grappler-300">{l.isolation}</p>
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
           })}
         </div>
 
-        <h2 className="text-xs font-semibold text-grappler-500 uppercase tracking-wide pt-2">Readiness Factors</h2>
+        <h2 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide pt-2">Readiness Factors</h2>
         <div className="grid grid-cols-2 gap-2">
           {[
             { icon: Moon, label: 'Sleep', weight: '20%' },
@@ -167,7 +167,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
             <div key={f.label} className="flex items-center gap-2 p-2.5 rounded-lg bg-grappler-800/40">
               <f.icon className="w-3.5 h-3.5 text-grappler-500" />
               <span className="text-xs text-grappler-300 flex-1">{f.label}</span>
-              <span className="text-[10px] text-grappler-500">{f.weight}</span>
+              <span className="text-xs text-grappler-400">{f.weight}</span>
             </div>
           ))}
         </div>

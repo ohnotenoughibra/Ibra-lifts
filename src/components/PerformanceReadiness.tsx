@@ -170,7 +170,7 @@ export default function PerformanceReadiness() {
             <div className="flex items-center gap-1.5">
               <span className={cn('w-2 h-2 rounded-full', getScoreDot(readiness.score))} />
               <span className={cn('text-lg font-bold', getScoreColor(readiness.score))}>{readiness.score}</span>
-              <span className="text-xs text-grappler-500 font-medium">/100</span>
+              <span className="text-xs text-grappler-400 font-medium">/100</span>
             </div>
             <span className="text-xs text-grappler-600 group-hover:text-grappler-400 transition-colors ml-1">
               {detailsOpen ? '▴' : '▾'}
@@ -179,7 +179,7 @@ export default function PerformanceReadiness() {
         </button>
 
         {/* Subline — always visible */}
-        <p className="text-[10px] text-grappler-500 mt-1 ml-6">
+        <p className="text-xs text-grappler-400 mt-1 ml-6">
           {(() => {
             const hour = new Date().getHours();
             const isEarlyMorning = hour < 10;
@@ -251,8 +251,8 @@ export default function PerformanceReadiness() {
                               className="overflow-hidden"
                             >
                               <div className="ml-20 pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
-                                <p className="text-[10px] text-grappler-500">{explainer.what}</p>
-                                <p className="text-[10px] text-primary-400">{explainer.action}</p>
+                                <p className="text-xs text-grappler-400">{explainer.what}</p>
+                                <p className="text-xs text-primary-400">{explainer.action}</p>
                               </div>
                             </motion.div>
                           )}
@@ -263,7 +263,7 @@ export default function PerformanceReadiness() {
                 </div>
               ) : (
                 <div className="mt-3 p-2 bg-grappler-800/30 rounded-lg border border-grappler-700/50">
-                  <p className="text-xs text-grappler-500 text-center">
+                  <p className="text-xs text-grappler-400 text-center">
                     Upgrade to Pro for component breakdown and action items
                   </p>
                 </div>
@@ -278,7 +278,7 @@ export default function PerformanceReadiness() {
                     )} />
                     <div>
                       <p className="text-xs text-grappler-300 font-medium">{readiness.bottleneck}</p>
-                      <p className="text-xs text-grappler-500">{readiness.actionItem}</p>
+                      <p className="text-xs text-grappler-400">{readiness.actionItem}</p>
                     </div>
                   </div>
                 </div>

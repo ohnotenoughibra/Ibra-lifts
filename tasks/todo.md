@@ -10,3 +10,7 @@ Full audit written to `tasks/audit.md`
 - [x] "Grapplers are built in the weight room" → "Champions are built in the weight room"
 - [x] Updated pitch-deck and README references
 - [x] All 270 tests passing
+
+## In Progress: Explorer Tab Redesign
+
+See plan below — awaiting approval.

@@ -24,13 +24,30 @@ import {
   Award,
   Star,
   Share2,
+  Activity,
+  ShieldCheck,
+  AlertTriangle,
+  Gauge,
+  HeartPulse,
+  Swords,
+  Medal,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import { isCurrentWeek, badges as allBadges } from '@/lib/gamification';
-import { calculate1RM } from '@/lib/workout-generator';
+import { calculate1RM, VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { generateWorkoutShareCard } from '@/lib/share-card';
+import {
+  extractPRTimeline,
+  calculateSyntheticRecovery,
+  detectPlateaus,
+  calculateCombatBenchmarks,
+  calculateHardMetrics,
+  calculateMuscleVolumeGauges,
+  type PREvent,
+  type MuscleVolumeGauge,
+} from '@/lib/progress-analytics';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
@@ -615,7 +632,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
   );
 }
 
-// ─── Performance Score (0-100) ───
+// ─── Hard Metrics (replaces Performance Score) ───
 
 const PERF_FACTOR_EXPLAINERS: Record<string, { what: string; action: string }> = {
   Consistency: {
@@ -866,6 +883,484 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Hard Metrics Card (3 numbers: Strength Trend, Volume Capacity, Fight Readiness) ───
+
+function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const currentMesocycle = useAppStore(s => s.currentMesocycle);
+  const metrics = useMemo(
+    () => calculateHardMetrics(workoutLogs, currentMesocycle?.id || null),
+    [workoutLogs, currentMesocycle]
+  );
+
+  if (!metrics) return null;
+
+  const { strengthTrend, volumeCapacity, fightReadiness } = metrics;
+
+  const getZoneColor = (zone: string) => {
+    switch (zone) {
+      case 'below_mev': return 'text-yellow-400';
+      case 'productive': return 'text-green-400';
+      case 'near_mrv': return 'text-orange-400';
+      case 'over_mrv': return 'text-red-400';
+      default: return 'text-grappler-400';
+    }
+  };
+  const getZoneLabel = (zone: string) => {
+    switch (zone) {
+      case 'below_mev': return 'Below MEV';
+      case 'productive': return 'Productive';
+      case 'near_mrv': return 'Approaching MRV';
+      case 'over_mrv': return 'Over MRV';
+      default: return '';
+    }
+  };
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <Activity className="w-3.5 h-3.5" />
+        Training Pulse
+      </h3>
+      <div className="grid grid-cols-3 gap-3">
+        {/* Strength Trend */}
+        <div className="text-center bg-grappler-800/50 rounded-lg px-2 py-3">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            {strengthTrend.direction === 'up'
+              ? <ArrowUpRight className="w-3.5 h-3.5 text-green-400" />
+              : strengthTrend.direction === 'down'
+              ? <ArrowDownRight className="w-3.5 h-3.5 text-red-400" />
+              : <Minus className="w-3.5 h-3.5 text-grappler-500" />}
+            <span className={cn('text-lg font-black',
+              strengthTrend.direction === 'up' ? 'text-green-400' :
+              strengthTrend.direction === 'down' ? 'text-red-400' : 'text-grappler-300'
+            )}>
+              {strengthTrend.value > 0 ? '+' : ''}{strengthTrend.value}%
+            </span>
+          </div>
+          <p className="text-[10px] text-grappler-500 font-medium">Strength</p>
+          <p className={cn('text-[9px] font-semibold',
+            strengthTrend.direction === 'up' ? 'text-green-500' :
+            strengthTrend.direction === 'down' ? 'text-red-500' : 'text-grappler-500'
+          )}>{strengthTrend.label}</p>
+        </div>
+
+        {/* Volume Capacity */}
+        <div className="text-center bg-grappler-800/50 rounded-lg px-2 py-3">
+          <p className={cn('text-lg font-black', getZoneColor(volumeCapacity.zone))}>
+            {volumeCapacity.pctOfMAV}%
+          </p>
+          <p className="text-[10px] text-grappler-500 font-medium">Vol Capacity</p>
+          <p className={cn('text-[9px] font-semibold', getZoneColor(volumeCapacity.zone))}>
+            {getZoneLabel(volumeCapacity.zone)}
+          </p>
+        </div>
+
+        {/* Fight Readiness */}
+        <div className="text-center bg-grappler-800/50 rounded-lg px-2 py-3">
+          <p className={cn('text-lg font-black',
+            fightReadiness.score >= 80 ? 'text-green-400' :
+            fightReadiness.score >= 60 ? 'text-primary-400' :
+            fightReadiness.score >= 40 ? 'text-yellow-400' : 'text-red-400'
+          )}>
+            {fightReadiness.score}
+          </p>
+          <p className="text-[10px] text-grappler-500 font-medium">Readiness</p>
+          <p className={cn('text-[9px] font-semibold',
+            fightReadiness.score >= 80 ? 'text-green-500' :
+            fightReadiness.score >= 60 ? 'text-primary-500' :
+            fightReadiness.score >= 40 ? 'text-yellow-500' : 'text-red-500'
+          )}>{fightReadiness.label}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PR Timeline ───
+
+function PRTimelineCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+  const [showAll, setShowAll] = useState(false);
+  const events = useMemo(() => extractPRTimeline(workoutLogs), [workoutLogs]);
+
+  if (events.length === 0) return null;
+
+  const visible = showAll ? events : events.slice(0, 5);
+
+  const getTypeIcon = (type: PREvent['type']) => {
+    switch (type) {
+      case 'weight': return '🏋️';
+      case 'e1rm': return '📈';
+      case 'reps': return '🔁';
+    }
+  };
+
+  const getRecoveryBadge = (ctx: PREvent['recoveryContext']) => {
+    if (ctx === 'fresh') return <span className="text-[8px] bg-green-500/20 text-green-400 px-1 rounded">Fresh</span>;
+    if (ctx === 'fatigued') return <span className="text-[8px] bg-orange-500/20 text-orange-400 px-1 rounded">Fatigued</span>;
+    return null;
+  };
+
+  const formatDate = (d: Date) => {
+    const now = Date.now();
+    const diff = now - d.getTime();
+    const days = Math.floor(diff / (86400000));
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+        PR Timeline
+        <span className="ml-auto text-yellow-400 font-bold">{events.length}</span>
+      </h3>
+      <div className="space-y-1.5">
+        {visible.map((pr, i) => (
+          <div key={`${pr.exerciseId}-${i}`} className="flex items-center gap-2 bg-grappler-800/40 rounded-lg px-3 py-2">
+            <span className="text-sm flex-shrink-0">{getTypeIcon(pr.type)}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-grappler-200 truncate">{pr.exerciseName}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-grappler-100 font-bold">
+                  {pr.value} {weightUnit}
+                </span>
+                {pr.previousBest > 0 && (
+                  <span className="text-[10px] text-green-400 font-medium">
+                    +{pr.delta} ({pr.deltaPct > 0 ? `+${pr.deltaPct}%` : '—'})
+                  </span>
+                )}
+                {getRecoveryBadge(pr.recoveryContext)}
+              </div>
+            </div>
+            <span className="text-[10px] text-grappler-600 flex-shrink-0">{formatDate(pr.date)}</span>
+          </div>
+        ))}
+      </div>
+      {events.length > 5 && (
+        <button
+          onClick={() => setShowAll(v => !v)}
+          className="mt-2 text-xs text-primary-400 hover:text-primary-300 w-full text-center py-1"
+        >
+          {showAll ? 'Show less' : `Show all ${events.length} PRs`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Volume Dashboard (MEV/MAV/MRV gauges) ───
+
+function VolumeDashboard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const gauges = useMemo(() => calculateMuscleVolumeGauges(workoutLogs), [workoutLogs]);
+
+  if (gauges.length === 0) return null;
+
+  const getZoneColor = (zone: MuscleVolumeGauge['zone']) => {
+    switch (zone) {
+      case 'below_mev': return { bar: 'bg-yellow-500', text: 'text-yellow-400', bg: 'bg-yellow-500/10' };
+      case 'productive': return { bar: 'bg-green-500', text: 'text-green-400', bg: 'bg-green-500/10' };
+      case 'near_mrv': return { bar: 'bg-orange-500', text: 'text-orange-400', bg: 'bg-orange-500/10' };
+      case 'over_mrv': return { bar: 'bg-red-500', text: 'text-red-400', bg: 'bg-red-500/10' };
+    }
+  };
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <Gauge className="w-3.5 h-3.5 text-primary-400" />
+        Volume Dashboard
+        <span className="ml-auto text-[9px] text-grappler-600 font-normal normal-case">weekly sets</span>
+      </h3>
+      <div className="space-y-2">
+        {gauges.map(g => {
+          const colors = getZoneColor(g.zone);
+          // Position markers as percentages
+          const range = g.mrv; // use MRV as 100% of the bar width
+          const mevPct = (g.mev / range) * 100;
+          const mavPct = (g.mav / range) * 100;
+          const currentPct = Math.min(100, (g.currentSets / range) * 100);
+
+          return (
+            <div key={g.muscle} className="group">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[11px] text-grappler-300 font-medium">{g.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn('text-[10px] font-bold', colors.text)}>{g.currentSets}</span>
+                  <span className="text-[9px] text-grappler-600">/ {g.mav} MAV</span>
+                </div>
+              </div>
+              {/* Gauge bar */}
+              <div className="relative h-2 bg-grappler-800 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(2, currentPct)}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className={cn('h-full rounded-full', colors.bar)}
+                />
+                {/* MEV marker */}
+                <div
+                  className="absolute top-0 h-full w-px bg-grappler-500"
+                  style={{ left: `${mevPct}%` }}
+                  title={`MEV: ${g.mev}`}
+                />
+                {/* MAV marker */}
+                <div
+                  className="absolute top-0 h-full w-px bg-grappler-400"
+                  style={{ left: `${mavPct}%` }}
+                  title={`MAV: ${g.mav}`}
+                />
+              </div>
+              {/* Zone labels on hover/focus */}
+              <div className="flex justify-between mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[8px] text-grappler-600">{g.mev} MEV</span>
+                <span className="text-[8px] text-grappler-600">{g.mav} MAV</span>
+                <span className="text-[8px] text-grappler-600">{g.mrv} MRV</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Legend */}
+      <div className="flex gap-3 mt-3 pt-2 border-t border-grappler-800">
+        <div className="flex items-center gap-1 text-[9px] text-yellow-400"><div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />Below MEV</div>
+        <div className="flex items-center gap-1 text-[9px] text-green-400"><div className="w-1.5 h-1.5 rounded-full bg-green-500" />Productive</div>
+        <div className="flex items-center gap-1 text-[9px] text-orange-400"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" />Near MRV</div>
+        <div className="flex items-center gap-1 text-[9px] text-red-400"><div className="w-1.5 h-1.5 rounded-full bg-red-500" />Over MRV</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Synthetic Recovery ───
+
+function SyntheticRecoveryCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const recovery = useMemo(() => calculateSyntheticRecovery(workoutLogs), [workoutLogs]);
+
+  if (!recovery) return null;
+
+  const getTrendIcon = () => {
+    switch (recovery.trend) {
+      case 'improving': return <ArrowUpRight className="w-3 h-3 text-green-400" />;
+      case 'declining': return <ArrowDownRight className="w-3 h-3 text-red-400" />;
+      default: return <Minus className="w-3 h-3 text-grappler-500" />;
+    }
+  };
+
+  const getScoreColor = (s: number) =>
+    s >= 75 ? 'text-green-400' : s >= 50 ? 'text-primary-400' : s >= 30 ? 'text-yellow-400' : 'text-red-400';
+
+  const components = [
+    { label: 'RPE Load', value: recovery.components.rpeLoad, icon: '⚡' },
+    { label: 'Soreness', value: recovery.components.soreness, icon: '💪' },
+    { label: 'Sleep', value: recovery.components.sleepQuality, icon: '😴' },
+    { label: 'Energy', value: recovery.components.energy, icon: '🔋' },
+  ];
+
+  // Mini sparkline for weekly recovery trend
+  const SparkLine = () => {
+    if (recovery.weeklyScores.length < 2) return null;
+    const pts = recovery.weeklyScores.map(w => w.score);
+    const min = Math.min(...pts);
+    const max = Math.max(...pts);
+    const range = max - min || 1;
+    const w = 80;
+    const h = 20;
+    const points = pts.map((v, i) =>
+      `${(i / (pts.length - 1)) * w},${h - ((v - min) / range) * (h - 4) - 2}`
+    ).join(' ');
+    const color = recovery.trend === 'improving' ? 'stroke-green-400' : recovery.trend === 'declining' ? 'stroke-red-400' : 'stroke-primary-400';
+    return (
+      <svg width={w} height={h}>
+        <polyline fill="none" className={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+      </svg>
+    );
+  };
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2">
+          <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
+          Recovery Score
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {getTrendIcon()}
+          <span className={cn('text-lg font-black', getScoreColor(recovery.score))}>
+            {recovery.score}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {components.map(c => (
+          <div key={c.label} className="text-center bg-grappler-800/40 rounded-lg py-2">
+            <span className="text-xs">{c.icon}</span>
+            <p className={cn('text-sm font-bold', getScoreColor(c.value))}>{c.value}</p>
+            <p className="text-[9px] text-grappler-600">{c.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] text-grappler-500">
+          {recovery.score >= 75 ? 'Well recovered — push hard today' :
+           recovery.score >= 50 ? 'Moderate recovery — train smart' :
+           recovery.score >= 30 ? 'Fatigued — consider lighter session' :
+           'Run down — prioritize rest'}
+        </p>
+        <SparkLine />
+      </div>
+    </div>
+  );
+}
+
+// ─── Plateau Analysis ───
+
+function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+  const plateaus = useMemo(() => detectPlateaus(workoutLogs), [workoutLogs]);
+
+  if (plateaus.length === 0) return null;
+
+  const getCauseIcon = (cause: string) => {
+    switch (cause) {
+      case 'volume_low': return '📉';
+      case 'volume_high': return '📊';
+      case 'poor_recovery': return '😫';
+      case 'low_frequency': return '📅';
+      case 'stale_stimulus': return '🔄';
+      default: return '⚠️';
+    }
+  };
+
+  const getCauseLabel = (cause: string) => {
+    switch (cause) {
+      case 'volume_low': return 'Low Volume';
+      case 'volume_high': return 'Excess Volume';
+      case 'poor_recovery': return 'Poor Recovery';
+      case 'low_frequency': return 'Low Frequency';
+      case 'stale_stimulus': return 'Stale Stimulus';
+      default: return 'Unknown';
+    }
+  };
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+        Plateau Alert
+        <span className="ml-auto text-amber-400 text-[10px] font-bold">{plateaus.length} stalled</span>
+      </h3>
+      <div className="space-y-2">
+        {plateaus.map(p => (
+          <div key={p.exerciseId} className="bg-grappler-800/40 rounded-lg px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{getCauseIcon(p.rootCause)}</span>
+                <span className="text-xs font-semibold text-grappler-200">{p.exerciseName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-grappler-500">{p.currentE1RM} {weightUnit} e1RM</span>
+                <span className="text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                  {p.weeksStalled}w stalled
+                </span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 mt-1.5">
+              <span className={cn(
+                'text-[9px] px-1.5 py-0.5 rounded font-semibold flex-shrink-0',
+                p.rootCause === 'poor_recovery' ? 'bg-red-500/15 text-red-400' :
+                p.rootCause === 'volume_high' ? 'bg-orange-500/15 text-orange-400' :
+                'bg-primary-500/15 text-primary-400'
+              )}>
+                {getCauseLabel(p.rootCause)}
+              </span>
+              <p className="text-[10px] text-grappler-400 leading-relaxed">{p.prescription}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Combat Benchmarks ───
+
+function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
+  const user = useAppStore(s => s.user);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const weightUnit = user?.weightUnit || 'lbs';
+
+  const benchmarks = useMemo(() => {
+    // Get bodyweight in kg
+    let bwKg = 0;
+    if (bodyWeightLog.length > 0) {
+      const latest = bodyWeightLog[bodyWeightLog.length - 1].weight;
+      bwKg = weightUnit === 'lbs' ? latest / 2.20462 : latest;
+    } else if (user?.bodyWeightKg) {
+      bwKg = user.bodyWeightKg;
+    }
+    if (bwKg <= 0) return [];
+    return calculateCombatBenchmarks(workoutLogs, bwKg, weightUnit);
+  }, [workoutLogs, bodyWeightLog, user, weightUnit]);
+
+  if (benchmarks.length === 0) return null;
+
+  const getPercentileColor = (p: number) =>
+    p >= 80 ? 'text-green-400' : p >= 60 ? 'text-primary-400' : p >= 40 ? 'text-yellow-400' : 'text-grappler-400';
+
+  const getPercentileBarColor = (p: number) =>
+    p >= 80 ? 'bg-green-500' : p >= 60 ? 'bg-primary-500' : p >= 40 ? 'bg-yellow-500' : 'bg-grappler-600';
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2">
+          <Medal className="w-3.5 h-3.5 text-amber-400" />
+          Combat Benchmarks
+        </h3>
+        {benchmarks[0] && (
+          <span className="text-[10px] text-grappler-500">{benchmarks[0].weightClass} class</span>
+        )}
+      </div>
+      <div className="space-y-2.5">
+        {benchmarks.map(b => (
+          <div key={b.exerciseId}>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs text-grappler-300 font-medium">{b.exerciseName}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-grappler-100 font-bold">{b.current1RM} {weightUnit}</span>
+                <span className={cn('text-[10px] font-bold', getPercentileColor(b.percentile))}>
+                  P{b.percentile}
+                </span>
+              </div>
+            </div>
+            {/* Percentile bar */}
+            <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden mb-0.5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.max(3, b.percentile)}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className={cn('h-full rounded-full', getPercentileBarColor(b.percentile))}
+              />
+            </div>
+            {b.gap > 0 && (
+              <p className="text-[9px] text-grappler-600">
+                {b.gap} {weightUnit} to {b.nextTier}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1433,15 +1928,30 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
           {/* Post-workout session recap (visible for 2h after workout) */}
           <SessionRecapCard />
 
-          {/* Performance Score — single-number emotional read */}
-          <PerformanceScore workoutLogs={workoutLogs} gamificationStats={gamificationStats} />
+          {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
+          <HardMetricsCard workoutLogs={workoutLogs} />
+
+          {/* Synthetic Recovery — no Whoop needed */}
+          <SyntheticRecoveryCard workoutLogs={workoutLogs} />
 
           {/* Current block performance — bridges program and progress */}
           <BlockPerformanceCard />
 
+          {/* Volume Dashboard — per-muscle MEV/MAV/MRV gauges */}
+          <VolumeDashboard workoutLogs={workoutLogs} />
+
           {/* Engagement hooks — challenges, streak, trends */}
           <WeeklyChallengeCard gamificationStats={gamificationStats} />
           <StreakHeatmap workoutLogs={workoutLogs} />
+
+          {/* PR Timeline — full history with metadata */}
+          <PRTimelineCard workoutLogs={workoutLogs} />
+
+          {/* Plateau Analysis — root cause prescriptions */}
+          <PlateauAnalysisCard workoutLogs={workoutLogs} />
+
+          {/* Combat Benchmarks — weight-class percentiles */}
+          <CombatBenchmarksCard workoutLogs={workoutLogs} />
 
           {/* Training timeline — block-over-block journey */}
           <TrainingTimeline workoutLogs={workoutLogs} weightUnit={weightUnit} />

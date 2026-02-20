@@ -914,7 +914,8 @@ export function generateWeeklyChallenge(
     sessions: number;
     dualDays: number;
   },
-  sessionsPerWeek: number = 3
+  sessionsPerWeek: number = 3,
+  recentChallengeCompletionRate?: number, // 0-1: how many goals completed over last 4 weeks
 ): WeeklyChallenge {
   const weekStart = getMonday(new Date());
   const isCombat = trainingIdentity === 'combat' || trainingIdentity === 'general_fitness';
@@ -923,26 +924,32 @@ export function generateWeeklyChallenge(
   const avg = recentWeeklyAvg ?? { workouts: Math.min(2, sessionsPerWeek), volume: 4000 * sessionsPerWeek, prs: 0, sessions: 1, dualDays: 0 };
   const plannedSessions = Math.max(1, sessionsPerWeek);
 
+  // Adaptive difficulty: scale stretch % based on recent challenge completion rate
+  // High completion (>80%) → stretch more (20%), Low (<40%) → ease off (5%), Normal → 10-15%
+  const completionRate = recentChallengeCompletionRate ?? 0.5;
+  const stretchFactor = completionRate > 0.8 ? 1.20 : completionRate > 0.6 ? 1.15 : completionRate > 0.4 ? 1.10 : 1.05;
+  const xpMultiplier = completionRate > 0.8 ? 1.25 : completionRate < 0.4 ? 0.9 : 1.0;
+
   // Pool of possible goals per training identity
   type GoalTemplate = { type: WeeklyChallengeGoal['type']; target: number; desc: string; xp: number };
 
   // Workout targets: capped by the user's actual plan — never exceed sessionsPerWeek
   const workoutTarget = Math.min(plannedSessions, Math.max(1, Math.round(avg.workouts)));
 
-  // Volume targets: per-session average × planned sessions, stretched 10-20%, rounded to 500
+  // Volume targets: per-session average × planned sessions, adaptively stretched, rounded to 500
   const perSessionVol = avg.workouts > 0 ? avg.volume / avg.workouts : 4000;
   const weeklyVolForPlan = perSessionVol * plannedSessions;
   const volBase = Math.round(weeklyVolForPlan * 1.0 / 500) * 500;   // match plan
-  const volStretch = Math.round(weeklyVolForPlan * 1.15 / 500) * 500; // 15% stretch
+  const volStretch = Math.round(weeklyVolForPlan * stretchFactor / 500) * 500; // adaptive stretch
 
   // PR targets: always 1 — PRs are rare, shouldn't be forced
   const prTarget = 1;
 
   const commonGoals: GoalTemplate[] = [
-    { type: 'workouts', target: workoutTarget, desc: `Complete ${workoutTarget} lifting session${workoutTarget !== 1 ? 's' : ''}`, xp: 75 },
-    { type: 'volume', target: Math.max(1000, volBase), desc: `Lift ${Math.max(1000, volBase).toLocaleString()} kg total volume`, xp: 75 },
-    { type: 'volume', target: Math.max(1500, volStretch), desc: `Lift ${Math.max(1500, volStretch).toLocaleString()} kg total volume`, xp: 100 },
-    { type: 'prs', target: prTarget, desc: `Hit ${prTarget} personal record`, xp: 100 },
+    { type: 'workouts', target: workoutTarget, desc: `Complete ${workoutTarget} lifting session${workoutTarget !== 1 ? 's' : ''}`, xp: Math.round(75 * xpMultiplier) },
+    { type: 'volume', target: Math.max(1000, volBase), desc: `Lift ${Math.max(1000, volBase).toLocaleString()} kg total volume`, xp: Math.round(75 * xpMultiplier) },
+    { type: 'volume', target: Math.max(1500, volStretch), desc: `Lift ${Math.max(1500, volStretch).toLocaleString()} kg total volume`, xp: Math.round(100 * xpMultiplier) },
+    { type: 'prs', target: prTarget, desc: `Hit ${prTarget} personal record`, xp: Math.round(100 * xpMultiplier) },
   ];
 
   // Combat-specific: based on actual training session frequency, capped by plan

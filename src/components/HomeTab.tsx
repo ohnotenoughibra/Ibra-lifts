@@ -475,8 +475,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [dockEditMode, setDockEditMode] = useState(false);
   const [dockPickerOpen, setDockPickerOpen] = useState(false);
   const [dockPickerSlot, setDockPickerSlot] = useState<number | null>(null);
-  const dockLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dockLongPressTriggered = useRef(false);
 
   const savePinnedIds = useCallback((ids: string[]) => {
     setPinnedIds(ids);
@@ -2468,28 +2466,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           .filter(Boolean) as { id: string; label: string; icon: React.ElementType; color: string }[];
         const emptySlots = DOCK_SLOTS - dockTools.length;
 
-        const onPointerDown = () => {
-          dockLongPressTriggered.current = false;
-          dockLongPressRef.current = setTimeout(() => {
-            dockLongPressTriggered.current = true;
-            hapticMedium();
-            setDockEditMode(true);
-          }, 500);
-        };
-        const onPointerUp = () => {
-          if (dockLongPressRef.current) clearTimeout(dockLongPressRef.current);
-        };
-        const onPointerLeave = () => {
-          if (dockLongPressRef.current) clearTimeout(dockLongPressRef.current);
-        };
-
         return (
           <div
             className={cn('relative rounded-2xl overflow-hidden transition-all duration-300 max-w-md mx-auto w-full', dockEditMode && 'ring-1 ring-primary-400/30')}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
-            onPointerLeave={onPointerLeave}
-            onContextMenu={(e) => { e.preventDefault(); hapticMedium(); setDockEditMode(true); }}
           >
             {/* Glass background layer */}
             <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl" />
@@ -2505,15 +2484,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     {dockEditMode ? 'Edit Quick Access' : 'Quick Access'}
                   </span>
                 </div>
-                {dockEditMode && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                {dockEditMode ? (
+                  <button
                     onClick={(e) => { e.stopPropagation(); setDockEditMode(false); setDockPickerOpen(false); setDockPickerSlot(null); }}
                     className="px-2.5 py-0.5 rounded-full bg-primary-500/20 border border-primary-500/30 text-xs font-semibold text-primary-400 hover:bg-primary-500/30 transition-colors"
                   >
                     Done
-                  </motion.button>
+                  </button>
+                ) : dockTools.length > 0 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); hapticMedium(); setDockEditMode(true); }}
+                    className="px-2 py-0.5 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                  >
+                    Edit
+                  </button>
                 )}
               </div>
 
@@ -2527,7 +2511,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (dockLongPressTriggered.current) return;
                           if (dockEditMode) {
                             setDockPickerSlot(idx);
                             setDockPickerOpen(true);
@@ -2569,10 +2552,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 {Array.from({ length: emptySlots }).map((_, i) => (
                   <button
                     key={`empty-${i}`}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Always open picker — bypass long-press guard
+                    onClick={() => {
                       setDockEditMode(true);
                       setDockPickerSlot(pinnedIds.length + i);
                       setDockPickerOpen(true);

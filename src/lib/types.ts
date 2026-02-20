@@ -113,6 +113,7 @@ export interface Exercise {
   cues: string[];
   videoUrl?: string;
   measurementType?: ExerciseMeasurement; // 'reps' (default), 'time' (seconds), 'distance'
+  isUnilateral?: boolean; // true = performed one side at a time; reps are per side
 }
 
 // Workout Programming Types

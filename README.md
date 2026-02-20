@@ -27,7 +27,7 @@ Roots Gains generates periodized lifting programs (5-12 weeks) using Daily Undul
 - **50+ Exercise Database** — Compound-heavy, grappling-relevant exercises with form cues, YouTube links, and equipment alternatives.
 - **Whoop Integration** — Pulls HRV, recovery score, sleep data. Adjusts workout intensity based on readiness.
 - **Nutrition Tracking** — Contextual macros that adjust based on training type, recovery score, and competition proximity.
-- **Gamification** — XP, levels (Novice to Legendary Grappler), 30+ badges, streaks. Keeps you showing up.
+- **Gamification** — XP, levels (Novice to Living Legend), 56 badges, streaks. Keeps you showing up.
 - **Full Offline Support** — PWA with service worker. Works without internet. Syncs when back online.
 
 ### Everything Else

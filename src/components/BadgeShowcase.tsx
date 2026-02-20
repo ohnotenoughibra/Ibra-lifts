@@ -51,7 +51,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
               <Trophy className="w-5 h-5 text-yellow-400" />
               Badge Showcase
             </h1>
-            <p className="text-xs text-grappler-500">{earnedCount} / {totalCount} earned</p>
+            <p className="text-xs text-grappler-400">{earnedCount} / {totalCount} earned</p>
           </div>
         </div>
 
@@ -177,7 +177,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
                       <span className="text-xs text-yellow-400 font-medium">{badge.points} pts</span>
                       <span className="text-xs text-grappler-600 capitalize">{badge.category}</span>
                       {badge.earned && badge.earnedAt && (
-                        <span className="text-xs text-grappler-500">
+                        <span className="text-xs text-grappler-400">
                           Earned {new Date(badge.earnedAt).toLocaleDateString()}
                         </span>
                       )}

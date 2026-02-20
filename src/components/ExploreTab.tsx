@@ -277,7 +277,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
           <Sparkles className="w-5 h-5 text-teal-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-teal-300">New: Body Check-In & Soreness Tracking</p>
-            <p className="text-[10px] text-grappler-400 mt-0.5">Tap <span className="text-teal-400 font-medium">Mobility</span> to log soreness — it feeds into your readiness score</p>
+            <p className="text-xs text-grappler-400 mt-0.5">Tap <span className="text-teal-400 font-medium">Mobility</span> to log soreness — it feeds into your readiness score</p>
           </div>
           <button onClick={dismissNewBanner} className="p-1 rounded-lg hover:bg-grappler-800/50 text-grappler-500">
             <X className="w-3.5 h-3.5" />
@@ -289,7 +289,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       {!isSearching && shouldShowPinHint && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-grappler-800/40 border border-grappler-700/30">
           <Info className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
-          <p className="text-[10px] text-grappler-400">
+          <p className="text-xs text-grappler-400">
             <span className="text-grappler-300 font-medium">Tip:</span> Long-press any tool to pin it for quick access
           </p>
         </div>
@@ -382,7 +382,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       {/* Search results: flat ranked list (#8) */}
       {isSearching && searchResults && searchResults.length > 0 && (
         <div>
-          <p className="text-xs text-grappler-500 mb-2">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</p>
+          <p className="text-xs text-grappler-400 mb-2">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {searchResults.map(tool => (
               <ToolButton
@@ -426,7 +426,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
             {hiddenCount > 0 && (
               <button
                 onClick={() => toggleCategory(category.title)}
-                className="mt-2 flex items-center gap-1 text-[11px] text-grappler-500 hover:text-grappler-300 transition-colors"
+                className="mt-2 flex items-center gap-1 text-[11px] text-grappler-400 hover:text-grappler-300 transition-colors"
               >
                 <ChevronDown className={cn('w-3 h-3 transition-transform', isExpanded && 'rotate-180')} />
                 {isExpanded ? 'Show less' : `Show ${hiddenCount} more`}
@@ -516,7 +516,7 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, lastUsed }: {
       <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
         {tool.label}
       </span>
-      <span className="text-[10px] text-grappler-500 text-center leading-tight line-clamp-2">
+      <span className="text-xs text-grappler-400 text-center leading-tight line-clamp-2">
         {showLongDesc ? tool.longDesc : tool.desc}
       </span>
       {/* Usage time-ago badge (#2) */}

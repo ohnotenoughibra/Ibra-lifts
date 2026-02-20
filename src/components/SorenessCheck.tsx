@@ -224,7 +224,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           </div>
           <div>
             <p className="text-sm font-bold text-grappler-100">Body Check-In</p>
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">
+            <p className="text-xs text-grappler-400 uppercase tracking-wide">
               {context === 'rest_day' ? 'Recovery Day' : context === 'post_workout' ? 'Post-Workout' : 'Pre-Workout'}
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           { label: 'Lower Body', areas: lowerAreas },
         ].map(group => (
           <div key={group.label} className="mb-3">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1.5">{group.label}</p>
+            <p className="text-xs text-grappler-400 uppercase tracking-wider mb-1.5">{group.label}</p>
             <div className="flex flex-wrap gap-1.5">
               {group.areas.map(area => {
                 const isSelected = selectedAreas.has(area.id);
@@ -316,7 +316,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
               className="overflow-hidden"
             >
               <div className="border-t border-grappler-700/50 pt-3 mt-1 space-y-2">
-                <p className="text-[10px] text-grappler-500 uppercase tracking-wider">How bad?</p>
+                <p className="text-xs text-grappler-400 uppercase tracking-wider">How bad?</p>
                 {Array.from(selectedAreas.entries()).map(([area, severity]) => {
                   const areaInfo = SORENESS_AREAS.find(a => a.id === area);
                   return (
@@ -328,7 +328,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
                             key={sev.id}
                             onClick={() => setSeverity(area, sev.id)}
                             className={cn(
-                              'flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all',
+                              'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
                               severity === sev.id
                                 ? `${sev.bgColor} ${sev.borderColor} border ${sev.color}`
                                 : 'bg-grappler-800/60 border border-grappler-700/30 text-grappler-500'
@@ -389,14 +389,14 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
               className="py-3 rounded-xl bg-grappler-800/80 border border-grappler-700/50 hover:border-violet-500/40 active:scale-[0.96] transition-all text-center group"
             >
               <p className="text-lg font-black text-grappler-100 group-hover:text-violet-300 transition-colors">{opt.label}</p>
-              <p className="text-[10px] text-grappler-500">{opt.desc}</p>
+              <p className="text-xs text-grappler-400">{opt.desc}</p>
             </button>
           ))}
         </div>
 
         <button
           onClick={() => setPhase('select')}
-          className="w-full mt-2 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+          className="w-full mt-2 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
         >
           Back
         </button>
@@ -456,7 +456,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
             transition={{ duration: 0.3 }}
           />
         </div>
-        <span className="text-[10px] text-grappler-500 font-medium">
+        <span className="text-xs text-grappler-400 font-medium">
           {completedDrills.size}/{sessionPlan.length}
         </span>
         <button onClick={onDismiss} className="p-0.5 text-grappler-600 hover:text-grappler-300">
@@ -466,7 +466,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
 
       {/* Current drill display */}
       <div className="text-center mb-3">
-        <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1">
+        <p className="text-xs text-grappler-400 uppercase tracking-wider mb-1">
           Set {currentSet}/{currentDrill.sets}{currentDrill.bilateral !== false && (<> &middot; {currentSide === 'left' ? 'Left side' : 'Right side'}</>)}
         </p>
         <h3 className="text-base font-black text-grappler-100 leading-tight">{currentDrill.name}</h3>
@@ -495,7 +495,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
             )}>
               {timeLeft}
             </span>
-            <span className="text-[10px] text-grappler-500">sec</span>
+            <span className="text-xs text-grappler-400">sec</span>
           </div>
         </div>
       </div>
@@ -543,7 +543,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       {/* Upcoming queue */}
       {sessionPlan.length > 1 && (
         <div className="mt-3 border-t border-grappler-700/30 pt-2">
-          <p className="text-[10px] text-grappler-500 uppercase tracking-wider mb-1.5">Up next</p>
+          <p className="text-xs text-grappler-400 uppercase tracking-wider mb-1.5">Up next</p>
           <div className="space-y-1">
             {sessionPlan.slice(currentDrillIndex + 1, currentDrillIndex + 3).map((d, i) => (
               <div key={d.name + i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-grappler-800/30">
@@ -551,11 +551,11 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
                   {currentDrillIndex + i + 2}
                 </div>
                 <p className="text-[11px] text-grappler-400 flex-1 truncate">{d.name}</p>
-                <span className="text-[10px] text-grappler-600">{d.sets}&times;{d.duration}s</span>
+                <span className="text-xs text-grappler-600">{d.sets}&times;{d.duration}s</span>
               </div>
             ))}
             {sessionPlan.length - currentDrillIndex - 1 > 2 && (
-              <p className="text-[10px] text-grappler-600 text-center">
+              <p className="text-xs text-grappler-600 text-center">
                 +{sessionPlan.length - currentDrillIndex - 3} more
               </p>
             )}
@@ -595,7 +595,7 @@ function DrillDetails({ drill, onFormCheck }: { drill: MobilityDrill; onFormChec
           title="Watch form video"
         >
           <Video className="w-3 h-3" />
-          <span className="text-[10px] font-medium">Form</span>
+          <span className="text-xs font-medium">Form</span>
         </button>
       </div>
       <AnimatePresence>
@@ -609,9 +609,9 @@ function DrillDetails({ drill, onFormCheck }: { drill: MobilityDrill; onFormChec
             <div className="px-3 pb-2.5 space-y-1.5">
               <p className="text-[11px] text-grappler-300 leading-relaxed">{drill.description}</p>
               {drill.breathingCue && (
-                <p className="text-[10px] text-blue-400/80 italic">Breathing: {drill.breathingCue}</p>
+                <p className="text-xs text-blue-400/80 italic">Breathing: {drill.breathingCue}</p>
               )}
-              <p className="text-[10px] text-violet-400/80">Why: {drill.combatBenefit}</p>
+              <p className="text-xs text-violet-400/80">Why: {drill.combatBenefit}</p>
             </div>
           </motion.div>
         )}

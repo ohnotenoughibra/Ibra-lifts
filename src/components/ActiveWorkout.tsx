@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
+import { useSwipe } from '@/lib/use-swipe';
 import {
   X,
   Check,
@@ -161,6 +162,24 @@ export default function ActiveWorkout() {
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
+
+  // Swipe between exercises
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: useCallback(() => {
+      if (activeWorkout && currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
+        setCurrentExerciseIndex(prev => prev + 1);
+        setCurrentSetIndex(0);
+      }
+    }, [activeWorkout, currentExerciseIndex]),
+    onSwipeRight: useCallback(() => {
+      if (currentExerciseIndex > 0) {
+        setCurrentExerciseIndex(prev => prev - 1);
+        setCurrentSetIndex(0);
+      }
+    }, [currentExerciseIndex]),
+    threshold: 50,
+    preventScroll: true,
+  });
 
   // Compute Whoop readiness for display (uses personal baseline for accurate HRV/RHR analysis)
   const whoopReadiness = latestWhoopData ? whoopRecoveryToReadiness({
@@ -1121,6 +1140,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => cancelWorkout()}
                   className="btn btn-ghost btn-sm"
+                  aria-label="Close workout overview"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1224,7 +1244,7 @@ export default function ActiveWorkout() {
                       )}
                     >
                       <p className={cn('text-xs font-medium',
-                        feeling === opt.id ? 'text-grappler-100' : 'text-grappler-500'
+                        feeling === opt.id ? 'text-grappler-100' : 'text-grappler-400'
                       )}>{opt.label}</p>
                     </button>
                   ))}
@@ -1233,7 +1253,7 @@ export default function ActiveWorkout() {
                 {/* Optional fine-tune toggle */}
                 <button
                   onClick={() => setShowCheckInDetail(!showCheckInDetail)}
-                  className="w-full mt-2 text-[11px] text-grappler-500 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
+                  className="w-full mt-2 text-[11px] text-grappler-400 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
                 >
                   Fine-tune
                   <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
@@ -1251,7 +1271,7 @@ export default function ActiveWorkout() {
                         {/* Sleep row */}
                         <div className="grid grid-cols-2 gap-2">
                           <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                            <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                               <Moon className="w-3 h-3" /> Sleep
                             </label>
                             <div className="flex gap-0.5">
@@ -1270,15 +1290,17 @@ export default function ActiveWorkout() {
                             </div>
                           </div>
                           <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-[10px] text-grappler-400 mb-1 block">Hours</label>
+                            <label className="text-xs text-grappler-400 mb-1 block">Hours</label>
                             <div className="flex items-center gap-1.5">
                               <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center"
+                                aria-label="Decrease sleep hours">
                                 <Minus className="w-2.5 h-2.5 text-grappler-300" />
                               </button>
                               <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
                               <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center">
+                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center"
+                                aria-label="Increase sleep hours">
                                 <Plus className="w-2.5 h-2.5 text-grappler-300" />
                               </button>
                             </div>
@@ -1291,7 +1313,7 @@ export default function ActiveWorkout() {
                             { label: 'Soreness', key: 'soreness' as const, icon: Heart },
                           ]).map(({ label, key, icon: Icon }) => (
                             <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
-                              <label className="text-[10px] text-grappler-400 mb-1 flex items-center gap-1">
+                              <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                                 <Icon className="w-3 h-3" /> {label}
                               </label>
                               <div className="flex gap-0.5">
@@ -1349,28 +1371,28 @@ export default function ActiveWorkout() {
                       )}>
                         {latestWhoopData.recoveryScore ?? '--'}%
                       </p>
-                      <p className="text-xs text-grappler-500">Recovery</p>
+                      <p className="text-xs text-grappler-400">Recovery</p>
                     </div>
                     <div className="text-center">
                       <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.strain?.toFixed(1) ?? '--'}
                       </p>
-                      <p className="text-xs text-grappler-500">Strain</p>
+                      <p className="text-xs text-grappler-400">Strain</p>
                     </div>
                     <div className="text-center">
                       <Moon className="w-4 h-4 mx-auto mb-0.5 text-indigo-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.sleepHours?.toFixed(1) ?? '--'}h
                       </p>
-                      <p className="text-xs text-grappler-500">Sleep</p>
+                      <p className="text-xs text-grappler-400">Sleep</p>
                     </div>
                     <div className="text-center">
                       <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
                       <p className="text-lg font-bold text-grappler-100">
                         {latestWhoopData.caloriesBurned?.toLocaleString() ?? '--'}
                       </p>
-                      <p className="text-xs text-grappler-500">kcal</p>
+                      <p className="text-xs text-grappler-400">kcal</p>
                     </div>
                   </div>
 
@@ -1559,7 +1581,7 @@ export default function ActiveWorkout() {
                     ))}
                   </div>
                   {grapplingToday !== 'none' && !showGrapplingQ && (
-                    <p className="text-xs text-grappler-500 mt-2">
+                    <p className="text-xs text-grappler-400 mt-2">
                       Volume adjusted for {grapplingToday} grappling session
                     </p>
                   )}
@@ -1673,7 +1695,7 @@ export default function ActiveWorkout() {
                     initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
-                    className="text-xs text-grappler-500 text-center -mt-4 mb-4"
+                    className="text-xs text-grappler-400 text-center -mt-4 mb-4"
                   >
                     Exercises will adapt to {showLocationConfirm} equipment
                     <button
@@ -1766,11 +1788,11 @@ export default function ActiveWorkout() {
                         <p className="text-xs text-grappler-400 mt-0.5">
                           {throttleResult.config.message}
                         </p>
-                        <p className="text-xs text-grappler-500 mt-1">
+                        <p className="text-xs text-grappler-400 mt-1">
                           {getThrottleSummary(throttleResult)}
                         </p>
                         {throttleResult.droppedExercises.length > 0 && (
-                          <p className="text-xs text-grappler-500 mt-1">
+                          <p className="text-xs text-grappler-400 mt-1">
                             Dropped: {throttleResult.droppedExercises.join(', ')}
                           </p>
                         )}
@@ -1779,6 +1801,7 @@ export default function ActiveWorkout() {
                     <button
                       onClick={() => setThrottleDismissed(true)}
                       className="text-grappler-500 hover:text-grappler-300 p-1"
+                      aria-label="Dismiss auto-throttle notice"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1826,14 +1849,14 @@ export default function ActiveWorkout() {
                                 'bg-amber-500/10 text-amber-300'
                               )}
                             >
-                              <span className="w-5 h-5 rounded-full bg-grappler-800 flex items-center justify-center text-[10px] font-bold text-grappler-400 flex-shrink-0">
+                              <span className="w-5 h-5 rounded-full bg-grappler-800 flex items-center justify-center text-xs font-bold text-grappler-400 flex-shrink-0">
                                 {i + 1}
                               </span>
                               <div className="flex-1 min-w-0">
                                 <span className="font-medium">{step.name}</span>
                                 {step.cue && <span className="text-grappler-500 ml-1">— {step.cue}</span>}
                               </div>
-                              <span className="text-[10px] text-grappler-500 flex-shrink-0">
+                              <span className="text-xs text-grappler-400 flex-shrink-0">
                                 {step.duration >= 60 ? `${Math.round(step.duration / 60)}m` : `${step.duration}s`}
                                 {step.sets && step.sets > 1 ? ` ×${step.sets}` : ''}
                               </span>
@@ -1907,7 +1930,7 @@ export default function ActiveWorkout() {
                                 <span className="text-primary-400 ml-1">~{ex.prescription.percentageOf1RM}% 1RM</span>
                               )}
                             </p>
-                            <p className="text-xs text-grappler-500 mt-0.5">
+                            <p className="text-xs text-grappler-400 mt-0.5">
                               Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
                               {' '}| {ex.exercise.primaryMuscles.slice(0, 2).join(', ')}
                             </p>
@@ -1925,6 +1948,7 @@ export default function ActiveWorkout() {
                             onClick={() => setFormCheckExercise({ name: ex.exercise.name, videoUrl: ex.exercise.videoUrl })}
                             className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors"
                             title="Check form"
+                            aria-label="Check form video"
                           >
                             <Video className="w-4 h-4" />
                           </button>
@@ -1937,6 +1961,7 @@ export default function ActiveWorkout() {
                                 : 'bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400'
                             )}
                             title={isInjuryFlagged ? 'Swap — flagged for injury' : 'Swap exercise'}
+                            aria-label={isInjuryFlagged ? 'Swap exercise — flagged for injury' : 'Swap exercise'}
                           >
                             <Shuffle className="w-4 h-4" />
                           </button>
@@ -2021,7 +2046,7 @@ export default function ActiveWorkout() {
                   Replace <span className="text-grappler-200 font-medium">{targetEx.exercise.name}</span>
                 </p>
                 <div className="flex items-center gap-2 mb-4">
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     Sorted by match score — how well each exercise replaces the current one
                   </p>
                   {activeEquipmentProfile !== 'gym' && (
@@ -2063,7 +2088,7 @@ export default function ActiveWorkout() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-xs text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-400 mt-1">
                         {rec.exercise.primaryMuscles.join(', ')}
                         {rec.exercise.secondaryMuscles.length > 0 && (
                           <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
@@ -2096,7 +2121,7 @@ export default function ActiveWorkout() {
                                       Needs equipment
                                     </span>
                                   </div>
-                                  <p className="text-xs text-grappler-500 mt-1">
+                                  <p className="text-xs text-grappler-400 mt-1">
                                     {rec.exercise.primaryMuscles.join(', ')}
                                   </p>
                                 </button>
@@ -2143,7 +2168,7 @@ export default function ActiveWorkout() {
                 Replace <span className="text-grappler-200 font-medium">{currentExercise.exercise.name}</span>
               </p>
               <div className="flex items-center gap-2 mb-4">
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   Sorted by match score — how well each exercise replaces the current one
                 </p>
                 {activeEquipmentProfile !== 'gym' && (
@@ -2203,7 +2228,7 @@ export default function ActiveWorkout() {
                       )}
 
                       {/* Muscle info */}
-                      <p className="text-xs text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-400 mt-1">
                         {rec.exercise.primaryMuscles.join(', ')}
                         {rec.exercise.secondaryMuscles.length > 0 && (
                           <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
@@ -2246,7 +2271,7 @@ export default function ActiveWorkout() {
                           Needs equipment
                         </span>
                       </div>
-                      <p className="text-xs text-grappler-500 mt-1">
+                      <p className="text-xs text-grappler-400 mt-1">
                         {rec.exercise.primaryMuscles.join(', ')}
                       </p>
                     </button>
@@ -2342,7 +2367,7 @@ export default function ActiveWorkout() {
                         {ex.movementPattern}
                       </span>
                     </div>
-                    <p className="text-xs text-grappler-500 mt-1 capitalize">
+                    <p className="text-xs text-grappler-400 mt-1 capitalize">
                       {ex.primaryMuscles.join(', ')}
                     </p>
                   </button>
@@ -2399,6 +2424,7 @@ export default function ActiveWorkout() {
                   <button
                     onClick={() => setShowHistoryModal(false)}
                     className="p-2 text-grappler-400 hover:text-grappler-200"
+                    aria-label="Close exercise history"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -2450,7 +2476,7 @@ export default function ActiveWorkout() {
                                 )}
                                 style={{ height: `${heightPct}%` }}
                               />
-                              <p className="text-xs text-grappler-500 truncate w-full text-center">
+                              <p className="text-xs text-grappler-400 truncate w-full text-center">
                                 {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                               </p>
                             </div>
@@ -2458,7 +2484,7 @@ export default function ActiveWorkout() {
                         });
                       })()}
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-grappler-500">
+                    <div className="flex justify-between mt-2 text-xs text-grappler-400">
                       <span>Oldest</span>
                       <span>Most Recent</span>
                     </div>
@@ -2485,7 +2511,7 @@ export default function ActiveWorkout() {
                         )}>
                           {session.weight} {weightUnit} x {session.reps}
                         </p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           {session.sets} sets @ RPE {session.rpe}
                         </p>
                       </div>
@@ -2493,7 +2519,7 @@ export default function ActiveWorkout() {
                         <p className="text-xs text-grappler-400">
                           {session.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                         </p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           e1RM: {Math.round(session.estimated1RM)}
                         </p>
                       </div>
@@ -2520,7 +2546,7 @@ export default function ActiveWorkout() {
             } else {
               cancelWorkout();
             }
-          }} className="btn btn-ghost btn-sm">
+          }} className="btn btn-ghost btn-sm" aria-label="Cancel workout">
             <X className="w-5 h-5" />
           </button>
           <div className="text-center">
@@ -2554,6 +2580,7 @@ export default function ActiveWorkout() {
           <button
             onClick={() => setShowFinishModal(true)}
             className="btn btn-primary btn-sm"
+            aria-label="Finish workout"
           >
             <Save className="w-4 h-4" />
           </button>
@@ -2566,7 +2593,7 @@ export default function ActiveWorkout() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-xs text-grappler-500 mt-1 text-center">
+        <p className="text-xs text-grappler-400 mt-1 text-center">
           {completedSets}/{totalSets} sets completed
         </p>
       </header>
@@ -2622,7 +2649,7 @@ export default function ActiveWorkout() {
                 >
                   {formatRestTime(restTimer)}
                 </motion.div>
-                <p className="text-xs text-grappler-500 mt-1">
+                <p className="text-xs text-grappler-400 mt-1">
                   of {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')}
                 </p>
               </div>
@@ -2652,6 +2679,7 @@ export default function ActiveWorkout() {
                   <button
                     onClick={() => setWeightSuggestion(null)}
                     className="text-grappler-500 hover:text-grappler-300"
+                    aria-label="Dismiss weight suggestion"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -2679,7 +2707,7 @@ export default function ActiveWorkout() {
                     <p className={cn('text-xs font-medium', rpeRegulation.type === 'drop' ? 'text-orange-300' : 'text-emerald-300')}>
                       {rpeRegulation.message}
                     </p>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">{rpeRegulation.reason}</p>
+                    <p className="text-xs text-grappler-400 mt-0.5">{rpeRegulation.reason}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -2698,6 +2726,7 @@ export default function ActiveWorkout() {
                   <button
                     onClick={() => setRpeRegulation(null)}
                     className="text-grappler-500 hover:text-grappler-300"
+                    aria-label="Dismiss RPE adjustment"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -2707,16 +2736,16 @@ export default function ActiveWorkout() {
 
             {/* Compact stats + skip */}
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs text-grappler-500">{completedSets}/{totalSets} sets</span>
+              <span className="text-xs text-grappler-400">{completedSets}/{totalSets} sets</span>
               <span className="text-xs text-grappler-600">·</span>
-              <span className="text-xs text-grappler-500">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
+              <span className="text-xs text-grappler-400">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
                 Skip Rest
               </button>
               {undoInfo && (
-                <button onClick={undoLastSet} className="btn btn-secondary btn-lg px-4" title="Undo last set">
+                <button onClick={undoLastSet} className="btn btn-secondary btn-lg px-4" title="Undo last set" aria-label="Undo last set">
                   <RotateCcw className="w-5 h-5" />
                 </button>
               )}
@@ -2724,12 +2753,12 @@ export default function ActiveWorkout() {
 
             {/* What's next — one-line hint */}
             {!isLastSet && (
-              <p className="mt-4 text-xs text-grappler-500 text-center">
+              <p className="mt-4 text-xs text-grappler-400 text-center">
                 Next: Set {currentSetIndex + 2}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
               </p>
             )}
             {isLastSet && !allExercisesDone && (
-              <p className="mt-4 text-xs text-grappler-500 text-center">
+              <p className="mt-4 text-xs text-grappler-400 text-center">
                 Next: {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.name} · {activeWorkout.session.exercises[currentExerciseIndex]?.sets} sets
               </p>
             )}
@@ -2827,6 +2856,7 @@ export default function ActiveWorkout() {
                     <button
                       onClick={() => setCoachMessages(prev => prev.filter(m => m.id !== msg.id))}
                       className="text-grappler-600 hover:text-grappler-400 flex-shrink-0"
+                      aria-label="Dismiss coach message"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -2916,6 +2946,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => setInlineFeedbackIndex(null)}
                   className="text-grappler-500 hover:text-grappler-300"
+                  aria-label="Dismiss exercise feedback"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -2943,6 +2974,7 @@ export default function ActiveWorkout() {
                   onClick={() => submitInlineFeedback('just_right', true)}
                   className="py-2 px-3 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 transition-colors"
                   title="Pain during this exercise"
+                  aria-label="Report pain during this exercise"
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
                 </button>
@@ -2977,6 +3009,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => setWeightSuggestion(null)}
                   className="text-grappler-500 hover:text-grappler-300"
+                  aria-label="Dismiss weight suggestion"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -2996,6 +3029,7 @@ export default function ActiveWorkout() {
             }}
             disabled={currentExerciseIndex === 0}
             className="btn btn-ghost btn-sm"
+            aria-label="Previous exercise"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -3011,6 +3045,7 @@ export default function ActiveWorkout() {
               }}
               className="w-6 h-6 rounded-full bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 flex items-center justify-center transition-colors"
               title="Add exercise"
+              aria-label="Add exercise"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -3024,17 +3059,19 @@ export default function ActiveWorkout() {
             }}
             disabled={currentExerciseIndex === activeWorkout.session.exercises.length - 1}
             className="btn btn-ghost btn-sm"
+            aria-label="Next exercise"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Exercise Card */}
+        {/* Exercise Card — swipe left/right to change exercise */}
         <motion.div
           key={currentExerciseIndex}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="card p-4 mb-4"
+          {...swipeHandlers}
         >
           <div className="text-center mb-2">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -3058,6 +3095,7 @@ export default function ActiveWorkout() {
                 onClick={() => setShowSwapModal(true)}
                 className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-primary-400"
                 title="Swap Exercise"
+                aria-label="Swap exercise"
               >
                 <Shuffle className="w-3.5 h-3.5" />
               </button>
@@ -3065,6 +3103,7 @@ export default function ActiveWorkout() {
                 onClick={handleSkipExercise}
                 className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-blue-400"
                 title="Skip"
+                aria-label="Skip exercise"
               >
                 <SkipForward className="w-3.5 h-3.5" />
               </button>
@@ -3093,7 +3132,7 @@ export default function ActiveWorkout() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-grappler-500 mt-0.5">
+            <p className="text-[11px] text-grappler-400 mt-0.5">
               {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} rest
             </p>
 
@@ -3109,7 +3148,7 @@ export default function ActiveWorkout() {
                 </button>
               )}
               {previousPerformance && (
-                <span className="text-xs text-grappler-500">
+                <span className="text-xs text-grappler-400">
                   Last: {previousPerformance.weight}{weightUnit} × {previousPerformance.reps} @ RPE {previousPerformance.rpe}
                 </span>
               )}
@@ -3133,7 +3172,7 @@ export default function ActiveWorkout() {
                   className="mt-2 overflow-hidden"
                 >
                   <div className="bg-grappler-800/40 rounded-lg p-3 space-y-2">
-                    <p className="text-xs text-grappler-500 uppercase tracking-wide font-medium">Last {exerciseHistory.length} sessions</p>
+                    <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium">Last {exerciseHistory.length} sessions</p>
                     {exerciseHistory.map((h, i) => (
                       <div key={i} className="flex items-center justify-between text-xs">
                         <span className="text-grappler-500">
@@ -3166,7 +3205,7 @@ export default function ActiveWorkout() {
                     ))}
                     {exerciseHistory.length >= 2 && (
                       <div className="pt-1 border-t border-grappler-700/50">
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           {exerciseHistory[0].weight > exerciseHistory[exerciseHistory.length - 1].weight
                             ? `↑ +${exerciseHistory[0].weight - exerciseHistory[exerciseHistory.length - 1].weight} ${weightUnit} over ${exerciseHistory.length} sessions`
                             : exerciseHistory[0].weight < exerciseHistory[exerciseHistory.length - 1].weight
@@ -3204,7 +3243,7 @@ export default function ActiveWorkout() {
                       Use
                     </button>
                   </div>
-                  <p className="text-xs text-grappler-500 mt-0.5">{firstTimeEstimate.source}</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">{firstTimeEstimate.source}</p>
                 </div>
               ) : (
                 <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
@@ -3249,7 +3288,7 @@ export default function ActiveWorkout() {
           </div>
           {/* Per-set history from last session */}
           {previousSetHistory && previousSetHistory.length > 0 ? (
-            <p className="text-center text-xs text-grappler-500 mb-6">
+            <p className="text-center text-xs text-grappler-400 mb-6">
               Last: {previousSetHistory.slice(0, currentLog.sets.length).map((s, i) => (
                 <span key={i} className={cn(i === currentSetIndex && 'text-grappler-300 font-medium')}>
                   {i > 0 && ' · '}{s.weight}×{s.reps}
@@ -3308,6 +3347,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => updateSetValue('weight', -weightIncrement)}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Decrease weight"
                 >
                   <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
@@ -3328,9 +3368,22 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => updateSetValue('weight', weightIncrement)}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Increase weight"
                 >
                   <Plus className="w-6 h-6 text-grappler-300" />
                 </button>
+              </div>
+              {/* Quick-adjust weight pills */}
+              <div className="flex items-center justify-center gap-2 mt-2">
+                {[2.5, 5, 10, 25].map((inc) => (
+                  <button
+                    key={inc}
+                    onClick={() => updateSetValue('weight', inc)}
+                    className="px-3 py-1.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
+                  >
+                    +{inc}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -3359,6 +3412,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => updateSetValue('reps', -1)}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Decrease reps"
                 >
                   <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
@@ -3379,9 +3433,22 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => updateSetValue('reps', 1)}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Increase reps"
                 >
                   <Plus className="w-6 h-6 text-grappler-300" />
                 </button>
+              </div>
+              {/* Quick-adjust rep pills */}
+              <div className="flex items-center justify-center gap-2 mt-2">
+                {[1, 2, 5].map((inc) => (
+                  <button
+                    key={inc}
+                    onClick={() => updateSetValue('reps', inc)}
+                    className="px-3 py-1.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
+                  >
+                    +{inc}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -3392,6 +3459,7 @@ export default function ActiveWorkout() {
                 <button
                   onClick={() => setShowRPEInfo(prev => !prev)}
                   className="text-grappler-500 hover:text-grappler-300 transition-colors"
+                  aria-label="RPE info"
                 >
                   <Info className="w-3.5 h-3.5" />
                 </button>
@@ -3435,7 +3503,7 @@ export default function ActiveWorkout() {
                 ))}
               </div>
               {currentExercise.prescription.rpe && (
-                <p className="text-xs text-grappler-500 text-center mt-2">
+                <p className="text-xs text-grappler-400 text-center mt-2">
                   Target RPE {currentExercise.prescription.rpe} = {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps in reserve
                 </p>
               )}
@@ -3465,11 +3533,11 @@ export default function ActiveWorkout() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-grappler-400 uppercase">Rep {tempoState.currentRep}</span>
-                        <span className="text-xs text-grappler-500">TUT: {formatTUT(tempoState.tut)}</span>
+                        <span className="text-xs text-grappler-400">TUT: {formatTUT(tempoState.tut)}</span>
                       </div>
                       <button
                         onClick={stopTempoMetronome}
-                        className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                        className="text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
                       >
                         Stop
                       </button>
@@ -3532,7 +3600,7 @@ export default function ActiveWorkout() {
                             )}
                           >
                             <span className={cn('font-bold', PHASE_COLORS[phase])}>{secs}s</span>
-                            <p className="text-grappler-500 text-[10px] capitalize">{phase === 'lockout' ? 'top' : phase === 'pause' ? 'bottom' : phase}</p>
+                            <p className="text-grappler-400 text-xs capitalize">{phase === 'lockout' ? 'top' : phase === 'pause' ? 'bottom' : phase}</p>
                           </div>
                         );
                       })}
@@ -3550,7 +3618,7 @@ export default function ActiveWorkout() {
                 >
                   <Timer className="w-4 h-4 text-primary-400" />
                   <span className="text-sm font-medium text-grappler-300">Start Tempo Guide</span>
-                  <span className="text-xs text-grappler-500 ml-1">{currentExercise.prescription.tempo}</span>
+                  <span className="text-xs text-grappler-400 ml-1">{currentExercise.prescription.tempo}</span>
                 </motion.button>
               )}
             </AnimatePresence>
@@ -3636,7 +3704,7 @@ export default function ActiveWorkout() {
                   )}
                 >
                   <div className={cn(
-                    'w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+                    'w-5 h-5 rounded flex items-center justify-center text-xs font-bold flex-shrink-0',
                     isDone ? 'bg-green-500/20 text-green-400' :
                     isCurrent ? 'bg-primary-500/20 text-primary-400' :
                     'bg-grappler-700/50 text-grappler-500'
@@ -3651,7 +3719,7 @@ export default function ActiveWorkout() {
                   )}>
                     {ex.exercise.name}
                   </p>
-                  <span className="text-[10px] text-grappler-500 flex-shrink-0">{doneSets}/{log.sets.length}</span>
+                  <span className="text-xs text-grappler-400 flex-shrink-0">{doneSets}/{log.sets.length}</span>
                 </button>
               );
             })}
@@ -3784,7 +3852,7 @@ export default function ActiveWorkout() {
                     onChange={(e) => setFeedback({ ...feedback, soreness: parseInt(e.target.value) })}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-grappler-500">
+                  <div className="flex justify-between text-xs text-grappler-400">
                     <span>Fresh</span>
                     <span>{feedback.soreness}</span>
                     <span>Very Sore</span>
@@ -3804,7 +3872,7 @@ export default function ActiveWorkout() {
                     onChange={(e) => setFeedback({ ...feedback, energy: parseInt(e.target.value) })}
                     className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-grappler-500">
+                  <div className="flex justify-between text-xs text-grappler-400">
                     <span>Exhausted</span>
                     <span>{feedback.energy}</span>
                     <span>Energized</span>
@@ -3830,7 +3898,7 @@ export default function ActiveWorkout() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                  <div className="flex justify-between text-xs text-grappler-400 mt-1">
                     <span>Bad</span>
                     <span>Great</span>
                   </div>
@@ -3888,7 +3956,7 @@ export default function ActiveWorkout() {
                       <label className="text-sm text-yellow-300 mb-1 block font-medium">
                         Actual workout duration
                       </label>
-                      <p className="text-xs text-grappler-500 mb-2">
+                      <p className="text-xs text-grappler-400 mb-2">
                         Looks like you logged this after the session. How long did it actually take?
                       </p>
                       <div className="flex items-center gap-3">
@@ -3903,7 +3971,7 @@ export default function ActiveWorkout() {
                         <span className="text-sm text-grappler-400">minutes</span>
                         <button
                           onClick={() => setDurationOverride(null)}
-                          className="ml-auto text-xs text-grappler-500 underline"
+                          className="ml-auto text-xs text-grappler-400 underline"
                         >
                           Use actual time ({elapsedMin}m)
                         </button>

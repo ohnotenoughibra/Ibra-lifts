@@ -1155,7 +1155,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                   <p className="text-grappler-400 text-sm">
                     No cardio sessions logged yet.
                   </p>
-                  <p className="text-grappler-500 text-xs">
+                  <p className="text-grappler-400 text-xs">
                     Log sessions manually or connect a wearable to auto-import combat sport HR data.
                   </p>
                   <button

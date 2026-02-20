@@ -260,7 +260,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                   {stickingPointConfig[selectedExercise.stickingPoint].label}
                 </span>
               </div>
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 {stickingPointConfig[selectedExercise.stickingPoint].description}
               </p>
             </div>
@@ -362,7 +362,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                 </div>
               )}
               {failureRepData.length > 0 && (
-                <p className="text-xs text-grappler-500 mt-2">
+                <p className="text-xs text-grappler-400 mt-2">
                   Shows which rep number you most frequently fail on, helping identify fatigue patterns.
                 </p>
               )}
@@ -406,7 +406,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
                               <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                                <span className="text-[10px] font-bold text-primary-400">{i + 1}</span>
+                                <span className="text-xs font-bold text-primary-400">{i + 1}</span>
                               </div>
                               <span className="text-sm font-medium text-grappler-100">{acc.name}</span>
                             </div>
@@ -554,7 +554,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex items-center justify-center gap-6 mt-2 text-xs text-grappler-500">
+                <div className="flex items-center justify-center gap-6 mt-2 text-xs text-grappler-400">
                   <span className="flex items-center gap-1">
                     <span className="w-3 h-0.5 bg-red-500 inline-block rounded" />
                     Avg RPE
@@ -626,7 +626,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-grappler-500">
+                      <div className="flex items-center gap-4 text-xs text-grappler-400">
                         <span className="flex items-center gap-1">
                           <Target className="w-3 h-3" />
                           RPE: {analysis.avgRPE.toFixed(1)}
@@ -646,7 +646,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                       </div>
 
                       {/* Mini analysis preview */}
-                      <p className="text-xs text-grappler-500 mt-2 line-clamp-2">
+                      <p className="text-xs text-grappler-400 mt-2 line-clamp-2">
                         {analysis.analysis}
                       </p>
                     </motion.button>

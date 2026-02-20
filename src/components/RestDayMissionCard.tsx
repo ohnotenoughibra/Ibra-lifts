@@ -214,7 +214,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
         {!allComplete && props.forwardLook && (
           <div className="flex items-center gap-2 px-5 pb-2">
             <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-            <p className="text-[11px] text-grappler-500">{props.forwardLook}</p>
+            <p className="text-[11px] text-grappler-400">{props.forwardLook}</p>
           </div>
         )}
 
@@ -224,7 +224,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
             <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
               <div className="h-full bg-grappler-500 rounded-full" style={{ width: `${props.mesocycleProgress.percent}%` }} />
             </div>
-            <span className="text-xs text-grappler-500">{props.mesocycleProgress.completed}/{props.mesocycleProgress.total}</span>
+            <span className="text-xs text-grappler-400">{props.mesocycleProgress.completed}/{props.mesocycleProgress.total}</span>
           </div>
         )}
       </div>
@@ -246,7 +246,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
         </button>
       )}
       <div className="flex items-center justify-center">
-        <button onClick={props.onQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors">
+        <button onClick={props.onQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">
           <Zap className="w-3.5 h-3.5" />Quick 30m
         </button>
       </div>

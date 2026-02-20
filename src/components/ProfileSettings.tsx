@@ -401,7 +401,7 @@ export default function ProfileSettings() {
                     <div className="w-4 h-4 rounded-full" style={{ background: theme.colors[1] }} />
                   </div>
                   <span className={cn(
-                    'text-[10px] font-medium',
+                    'text-xs font-medium',
                     isActive ? 'text-primary-400' : 'text-grappler-400'
                   )}>
                     {theme.label}
@@ -415,7 +415,7 @@ export default function ProfileSettings() {
               );
             })}
           </div>
-          <p className="text-[10px] text-grappler-500 mt-2">Works with both dark and light mode</p>
+          <p className="text-xs text-grappler-400 mt-2">Works with both dark and light mode</p>
         </div>
       </div>
 
@@ -675,7 +675,7 @@ export default function ProfileSettings() {
       <div className="card overflow-hidden">
         <div className="p-4 border-b border-grappler-700">
           <h3 className="font-medium text-grappler-200">Wearable Integration</h3>
-          <p className="text-xs text-grappler-500 mt-1">Auto-adjust training based on recovery data</p>
+          <p className="text-xs text-grappler-400 mt-1">Auto-adjust training based on recovery data</p>
         </div>
         <div className="p-4 space-y-3">
           {([
@@ -777,7 +777,7 @@ export default function ProfileSettings() {
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-grappler-700">
             <h3 className="font-medium text-grappler-200">Training Schedule</h3>
-            <p className="text-xs text-grappler-500 mt-1">Tap to toggle lifting (green) · Long-press for combat (purple)</p>
+            <p className="text-xs text-grappler-400 mt-1">Tap to toggle lifting (green) · Long-press for combat (purple)</p>
           </div>
           <div className="p-4">
             <div className="flex gap-1.5 justify-between">
@@ -823,19 +823,19 @@ export default function ProfileSettings() {
             </div>
             {/* Legend */}
             <div className="flex items-center justify-center gap-3 mt-3">
-              <div className="flex items-center gap-1 text-xs text-grappler-500">
+              <div className="flex items-center gap-1 text-xs text-grappler-400">
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
                 <span>Lift</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-grappler-500">
+              <div className="flex items-center gap-1 text-xs text-grappler-400">
                 <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
                 <span>Combat</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-grappler-500">
+              <div className="flex items-center gap-1 text-xs text-grappler-400">
                 <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-green-500 to-purple-500" />
                 <span>Both</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-grappler-500">
+              <div className="flex items-center gap-1 text-xs text-grappler-400">
                 <div className="w-2.5 h-2.5 rounded-full bg-grappler-800 border border-grappler-600" />
                 <span>Rest</span>
               </div>
@@ -850,7 +850,7 @@ export default function ProfileSettings() {
               ]);
               const restCount = 7 - allActiveDays.size;
               return (
-                <p className="text-xs text-grappler-500 text-center mt-2">
+                <p className="text-xs text-grappler-400 text-center mt-2">
                   {liftCount} lift · {combatCount} combat · {restCount} rest
                 </p>
               );
@@ -884,7 +884,7 @@ export default function ProfileSettings() {
                       placeholder="—"
                       className="w-full bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm font-bold text-grappler-100 outline-none focus-visible:border-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
-                    <span className="text-xs text-grappler-500 shrink-0">{weightUnit}</span>
+                    <span className="text-xs text-grappler-400 shrink-0">{weightUnit}</span>
                   </div>
                 ) : (
                   <p className="text-lg font-bold text-grappler-100">
@@ -955,7 +955,7 @@ export default function ProfileSettings() {
                   <div className="w-14 h-14 bg-grappler-800 rounded-xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">
                     {badge.icon}
                   </div>
-                  <p className="text-xs text-grappler-500 truncate">{badge.name}</p>
+                  <p className="text-xs text-grappler-400 truncate">{badge.name}</p>
                 </div>
               ))}
             </div>
@@ -977,7 +977,7 @@ export default function ProfileSettings() {
       {/* Reconfigure Training */}
       <div className="card p-4">
         <h3 className="font-medium text-grappler-200 mb-1 text-sm">Training Setup</h3>
-        <p className="text-xs text-grappler-500 mb-3">
+        <p className="text-xs text-grappler-400 mb-3">
           Re-run setup to change goals, equipment, schedule, or training style. Your history is kept.
         </p>
         <button
@@ -1334,7 +1334,7 @@ function VersionFooter() {
           <Info className="w-5 h-5 text-grappler-400" />
           <div className="text-left">
             <span className="text-sm text-grappler-300">Roots Gains</span>
-            <span className="text-xs text-grappler-500 ml-2">v{APP_VERSION}</span>
+            <span className="text-xs text-grappler-400 ml-2">v{APP_VERSION}</span>
           </div>
         </div>
         {showChangelog ? (
@@ -1360,7 +1360,7 @@ function VersionFooter() {
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-primary-400" />
                     <span className="text-xs font-mono font-bold text-primary-400">v{ver.version}</span>
-                    <span className="text-xs text-grappler-500">{ver.releasedAt}</span>
+                    <span className="text-xs text-grappler-400">{ver.releasedAt}</span>
                   </div>
                   <ul className="space-y-1 pl-5">
                     {ver.highlights.map((h, i) => (

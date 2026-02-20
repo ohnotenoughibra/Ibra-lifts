@@ -108,7 +108,7 @@ function BMIScaleBar({ bmi }: { bmi: number }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-400">
         <span>18.5</span>
         <span>25</span>
         <span>30</span>
@@ -160,7 +160,7 @@ function BodyFatScaleBar({ bf, sex }: { bf: number; sex: 'male' | 'female' }) {
           style={{ left: `${position}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-grappler-500">
+      <div className="flex justify-between text-xs text-grappler-400">
         {sex === 'male' ? (
           <>
             <span>6%</span>
@@ -660,7 +660,7 @@ export default function BodyWeightTracker() {
           <div className="flex items-center gap-3">
             {/* BMI display */}
             <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-              <p className="text-xs text-grappler-500 mb-0.5">BMI</p>
+              <p className="text-xs text-grappler-400 mb-0.5">BMI</p>
               {(latestSavedBMI || bmi) ? (() => {
                 const displayBMI = latestSavedBMI || bmi!;
                 const cat = getBMICategory(displayBMI);
@@ -672,18 +672,18 @@ export default function BodyWeightTracker() {
                         {cat.label}
                       </span>
                     </div>
-                    <p className="text-xs text-grappler-500 mt-0.5">Range: {cat.range}</p>
+                    <p className="text-xs text-grappler-400 mt-0.5">Range: {cat.range}</p>
                     <BMIScaleBar bmi={displayBMI} />
                   </div>
                 );
               })() : (
-                <p className="text-xs text-grappler-500">Set height in settings</p>
+                <p className="text-xs text-grappler-400">Set height in settings</p>
               )}
             </div>
 
             {/* Body Fat display */}
             <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-              <p className="text-xs text-grappler-500 mb-0.5">Body Fat</p>
+              <p className="text-xs text-grappler-400 mb-0.5">Body Fat</p>
               {latestBF != null ? (() => {
                 const bfCat = getBodyFatCategory(latestBF, sex);
                 return (
@@ -694,19 +694,19 @@ export default function BodyWeightTracker() {
                         {bfCat.label}
                       </span>
                     </div>
-                    <p className="text-xs text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
+                    <p className="text-xs text-grappler-400 mt-0.5">Range: {bfCat.range}</p>
                     <BodyFatScaleBar bf={latestBF} sex={sex} />
                   </div>
                 );
               })() : (
-                <p className="text-xs text-grappler-500">Log measurements below</p>
+                <p className="text-xs text-grappler-400">Log measurements below</p>
               )}
             </div>
           </div>
 
           {/* BMI description (de-emphasized for athletes) */}
           {(latestSavedBMI || bmi) && (
-            <p className="text-xs text-grappler-500 leading-relaxed">
+            <p className="text-xs text-grappler-400 leading-relaxed">
               {getBMICategory(latestSavedBMI || bmi!).description}
               {' '}BMI is less reliable for muscular athletes — body fat % is more meaningful.
             </p>
@@ -981,7 +981,7 @@ export default function BodyWeightTracker() {
                         <p className="text-xs text-grappler-400 mb-2">Measurements (for body fat calculation)</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs text-grappler-500 mb-0.5 block">Waist (cm)</label>
+                            <label className="text-xs text-grappler-400 mb-0.5 block">Waist (cm)</label>
                             <input
                               type="text"
                               inputMode="decimal"
@@ -993,7 +993,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-grappler-500 mb-0.5 block">Neck (cm)</label>
+                            <label className="text-xs text-grappler-400 mb-0.5 block">Neck (cm)</label>
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1006,7 +1006,7 @@ export default function BodyWeightTracker() {
                           </div>
                           {sex === 'female' && (
                             <div className="col-span-2">
-                              <label className="text-xs text-grappler-500 mb-0.5 block">Hip (cm)</label>
+                              <label className="text-xs text-grappler-400 mb-0.5 block">Hip (cm)</label>
                               <input
                                 type="text"
                                 inputMode="decimal"
@@ -1035,10 +1035,10 @@ export default function BodyWeightTracker() {
 
                       {/* Manual overrides */}
                       <div className="border-t border-grappler-700/50 pt-3 space-y-2">
-                        <p className="text-xs text-grappler-500">Or enter manually</p>
+                        <p className="text-xs text-grappler-400">Or enter manually</p>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs text-grappler-500 mb-0.5 block">Body Fat %</label>
+                            <label className="text-xs text-grappler-400 mb-0.5 block">Body Fat %</label>
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1056,7 +1056,7 @@ export default function BodyWeightTracker() {
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-grappler-500 mb-0.5 block">BMI</label>
+                            <label className="text-xs text-grappler-400 mb-0.5 block">BMI</label>
                             <input
                               type="text"
                               inputMode="decimal"
@@ -1075,12 +1075,12 @@ export default function BodyWeightTracker() {
                           </div>
                         </div>
                         {useManualBF && formBodyFat && (
-                          <p className="text-xs text-grappler-500">
+                          <p className="text-xs text-grappler-400">
                             Using your manual body fat value. Clear the field to use Navy method calculation.
                           </p>
                         )}
                         {useManualBMI && formBMI && (
-                          <p className="text-xs text-grappler-500">
+                          <p className="text-xs text-grappler-400">
                             Using your manual BMI value. Clear the field to auto-calculate from weight & height.
                           </p>
                         )}
@@ -1232,7 +1232,7 @@ export default function BodyWeightTracker() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     {new Date(entry.date).toLocaleDateString()}
                     {comp?.waist && ` · W: ${comp.waist}cm`}
                     {comp?.neck && ` · N: ${comp.neck}cm`}
@@ -1257,7 +1257,7 @@ export default function BodyWeightTracker() {
       {sortedLog.length === 0 && !showAddForm && (
         <div className="text-center py-8">
           <p className="text-sm font-medium text-grappler-300">Start tracking your weight</p>
-          <p className="text-xs text-grappler-500 mt-1 max-w-[260px] mx-auto">
+          <p className="text-xs text-grappler-400 mt-1 max-w-[260px] mx-auto">
             Log 2+ entries to see trends. Weekly weigh-ins are enough to track progress during a bulk or cut.
           </p>
         </div>

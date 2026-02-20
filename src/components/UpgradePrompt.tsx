@@ -219,11 +219,11 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         <p className="text-sm text-grappler-400 mb-4">{featureDescription}</p>
         {billingToggle}
         {checkoutSection}
-        <p className="text-center text-xs text-grappler-500 mt-3">
+        <p className="text-center text-xs text-grappler-400 mt-3">
           PayPal, SEPA Lastschrift, or card. Cancel anytime.
         </p>
         {onDismiss && (
-          <button onClick={onDismiss} className="mt-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors">
+          <button onClick={onDismiss} className="mt-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">
             Maybe later
           </button>
         )}
@@ -274,7 +274,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           {billingToggle}
           {checkoutSection}
 
-          <p className="text-center text-xs text-grappler-500 mt-3">
+          <p className="text-center text-xs text-grappler-400 mt-3">
             PayPal, SEPA Lastschrift, or card. Cancel anytime.
           </p>
         </motion.div>

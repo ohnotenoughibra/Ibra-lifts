@@ -154,7 +154,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
               <h1 className="font-bold text-grappler-50 text-lg leading-tight">
                 Next Block
               </h1>
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 Smart suggestion engine
               </p>
             </div>
@@ -322,7 +322,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                       <span className="w-5 h-5 rounded-full bg-grappler-700 flex items-center justify-center text-xs text-grappler-400 font-medium flex-shrink-0">{idx + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm text-grappler-100 font-medium truncate">{block.name}</p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           {block.weeks}wk · {block.focus} · {block.periodization || 'undulating'}
                           {block.sessionsPerWeek ? ` · ${block.sessionsPerWeek}x/wk` : ''}
                           {block.sessionDurationMinutes ? ` · ${block.sessionDurationMinutes}min` : ''}
@@ -361,7 +361,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                         <div className="px-3 pb-3 space-y-3 border-t border-grappler-700 pt-3">
                           {/* Name */}
                           <div>
-                            <label className="text-xs text-grappler-500 mb-1 block">Block Name</label>
+                            <label className="text-xs text-grappler-400 mb-1 block">Block Name</label>
                             <input
                               type="text"
                               value={block.name}
@@ -372,7 +372,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
 
                           {/* Focus */}
                           <div>
-                            <label className="text-xs text-grappler-500 mb-1 block">Focus</label>
+                            <label className="text-xs text-grappler-400 mb-1 block">Focus</label>
                             <div className="grid grid-cols-2 gap-1.5">
                               {(['hypertrophy', 'strength', 'power', 'balanced'] as GoalFocus[]).map(f => (
                                 <button
@@ -394,7 +394,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                           {/* Duration + Sessions row */}
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                              <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> Weeks
                               </label>
                               <div className="flex items-center gap-2">
@@ -414,7 +414,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                               </div>
                             </div>
                             <div>
-                              <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                              <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                                 <Dumbbell className="w-3 h-3" /> Days/Week
                               </label>
                               <div className="flex items-center gap-1">
@@ -438,7 +438,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
 
                           {/* Session duration */}
                           <div>
-                            <label className="text-xs text-grappler-500 mb-1 flex items-center gap-1">
+                            <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
                               <Clock className="w-3 h-3" /> Session Duration
                             </label>
                             <div className="flex items-center gap-1.5">
@@ -461,7 +461,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
 
                           {/* Periodization */}
                           <div>
-                            <label className="text-xs text-grappler-500 mb-1 block">Periodization</label>
+                            <label className="text-xs text-grappler-400 mb-1 block">Periodization</label>
                             <div className="flex items-center gap-1.5">
                               {([
                                 { value: 'undulating', label: 'DUP' },
@@ -486,7 +486,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
 
                           {/* Notes */}
                           <div>
-                            <label className="text-xs text-grappler-500 mb-1 block">Notes</label>
+                            <label className="text-xs text-grappler-400 mb-1 block">Notes</label>
                             <textarea
                               value={block.notes || ''}
                               onChange={(e) => updateMesocycleInQueue(block.id, { notes: e.target.value || undefined })}
@@ -502,7 +502,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                 </div>
               );
             })}
-            <p className="text-xs text-grappler-500">
+            <p className="text-xs text-grappler-400">
               Queued blocks auto-start when your current mesocycle completes.
             </p>
           </div>

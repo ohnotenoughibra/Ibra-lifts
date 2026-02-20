@@ -408,7 +408,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                     onChange={(e) => setFormPeakingWeeks(parseInt(e.target.value))}
                     className="w-full accent-primary-500"
                   />
-                  <div className="flex justify-between text-xs text-grappler-500 mt-1">
+                  <div className="flex justify-between text-xs text-grappler-400 mt-1">
                     <span>2 weeks</span>
                     <span>6 weeks</span>
                   </div>
@@ -948,7 +948,7 @@ function EventDetail({
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     {item.endWeeks === 0
                       ? 'Final week'
                       : `${item.endWeeks + 1} - ${item.startWeeks} weeks out`}

@@ -672,7 +672,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
 
               {/* Sessions/week filter */}
               <div className="flex gap-1.5 items-center">
-                <span className="text-xs text-grappler-500 mr-1">Days/wk:</span>
+                <span className="text-xs text-grappler-400 mr-1">Days/wk:</span>
                 <button
                   onClick={() => setProgramFilterSessions(null)}
                   className={cn(
@@ -698,7 +698,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
 
               {/* Weeks filter */}
               <div className="flex gap-1.5 items-center">
-                <span className="text-xs text-grappler-500 mr-1">Weeks:</span>
+                <span className="text-xs text-grappler-400 mr-1">Weeks:</span>
                 <button
                   onClick={() => setProgramFilterWeeks(null)}
                   className={cn(
@@ -724,7 +724,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             </div>
 
             {/* Results count */}
-            <p className="text-xs text-grappler-500">
+            <p className="text-xs text-grappler-400">
               {filteredPrograms.length} of {PROGRAM_TEMPLATES.length} programs
             </p>
 
@@ -914,7 +914,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     </div>
                     <p className="text-xs text-grappler-400 mb-3">{preset.description}</p>
 
-                    <div className="flex items-center gap-3 text-xs text-grappler-500 mb-3">
+                    <div className="flex items-center gap-3 text-xs text-grappler-400 mb-3">
                       <span className="flex items-center gap-1">
                         <Dumbbell className="w-3 h-3" />
                         {session.exercises.length} exercises
@@ -1002,7 +1002,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     <Shield className="w-4 h-4" />
                     Browse Grappling Templates
                   </button>
-                  <p className="text-xs text-grappler-500">
+                  <p className="text-xs text-grappler-400">
                     Or save sessions from your program using the &quot;Save Current&quot; tab
                   </p>
                 </div>
@@ -1142,7 +1142,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                                     {ex.sets} sets x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
                                   </p>
                                 </div>
-                                <div className="text-xs text-grappler-500 flex-shrink-0 ml-2">
+                                <div className="text-xs text-grappler-400 flex-shrink-0 ml-2">
                                   Rest {Math.round(ex.prescription.restSeconds / 60)}min
                                 </div>
                               </div>
@@ -1196,7 +1196,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     </div>
                     <p className="text-xs text-grappler-400 mb-3">{preset.description}</p>
 
-                    <div className="flex items-center gap-3 text-xs text-grappler-500 mb-3">
+                    <div className="flex items-center gap-3 text-xs text-grappler-400 mb-3">
                       <span className="flex items-center gap-1">
                         <Dumbbell className="w-3 h-3" />
                         {session.exercises.length} exercises

@@ -43,7 +43,7 @@ interface MesocycleReportProps {
 function DeltaBadge({ value, suffix = '', invert = false }: { value: number; suffix?: string; invert?: boolean }) {
   const positive = invert ? value < 0 : value > 0;
   const negative = invert ? value > 0 : value < 0;
-  if (value === 0) return <span className="text-xs text-grappler-500 flex items-center gap-0.5"><Minus className="w-3 h-3" />same</span>;
+  if (value === 0) return <span className="text-xs text-grappler-400 flex items-center gap-0.5"><Minus className="w-3 h-3" />same</span>;
   return (
     <span className={cn('text-xs font-medium flex items-center gap-0.5', positive ? 'text-green-400' : negative ? 'text-red-400' : 'text-grappler-400')}>
       {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -63,7 +63,7 @@ function StatCard({ label, value, sub, icon: Icon, color = 'text-primary-400' }:
     <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
       <Icon className={cn('w-4 h-4 mx-auto mb-1', color)} />
       <p className="text-lg font-bold text-grappler-100">{value}</p>
-      <p className="text-xs text-grappler-500 uppercase tracking-wide">{label}</p>
+      <p className="text-xs text-grappler-400 uppercase tracking-wide">{label}</p>
       {sub && <div className="mt-0.5">{sub}</div>}
     </div>
   );
@@ -134,7 +134,7 @@ export default function MesocycleReport({
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-grappler-100 truncate">Block Report</h1>
-            <p className="text-xs text-grappler-500">{mesocycle.name}</p>
+            <p className="text-xs text-grappler-400">{mesocycle.name}</p>
           </div>
           {onDelete && (
             <button
@@ -175,7 +175,7 @@ export default function MesocycleReport({
               style={{ width: `${report.completionRate}%` }}
             />
           </div>
-          <p className="text-xs text-grappler-500 mt-2">
+          <p className="text-xs text-grappler-400 mt-2">
             {new Date(report.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             {' — '}
             {new Date(report.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -194,7 +194,7 @@ export default function MesocycleReport({
             icon={Dumbbell}
             label="Total Volume"
             value={formatVolume(report.totalVolume)}
-            sub={<span className="text-xs text-grappler-500">{unit}</span>}
+            sub={<span className="text-xs text-grappler-400">{unit}</span>}
             color="text-primary-400"
           />
           <StatCard
@@ -227,14 +227,14 @@ export default function MesocycleReport({
             icon={BarChart3}
             label="Avg Volume"
             value={formatVolume(report.avgVolumePerSession)}
-            sub={<span className="text-xs text-grappler-500">per session</span>}
+            sub={<span className="text-xs text-grappler-400">per session</span>}
             color="text-accent-400"
           />
           <StatCard
             icon={Clock}
             label="Avg Duration"
             value={`${report.avgDuration}m`}
-            sub={<span className="text-xs text-grappler-500">per session</span>}
+            sub={<span className="text-xs text-grappler-400">per session</span>}
             color="text-emerald-400"
           />
         </motion.div>
@@ -275,7 +275,7 @@ export default function MesocycleReport({
           <div className="space-y-2">
             {report.weekSummaries.map((week, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className={cn('text-xs w-12 text-right shrink-0', week.isDeload ? 'text-yellow-400' : 'text-grappler-500')}>
+                <span className={cn('text-xs w-12 text-right shrink-0', week.isDeload ? 'text-yellow-400' : 'text-grappler-400')}>
                   {week.isDeload ? 'Deload' : `Wk ${week.weekNumber}`}
                 </span>
                 <div className="flex-1 h-5 bg-grappler-800 rounded-full overflow-hidden relative">
@@ -290,7 +290,7 @@ export default function MesocycleReport({
                     {formatVolume(report.volumeByWeek[i])} {unit}
                   </span>
                 </div>
-                <span className="text-xs text-grappler-500 w-14 text-right">
+                <span className="text-xs text-grappler-400 w-14 text-right">
                   {week.workoutsCompleted}/{week.workoutsPlanned} done
                 </span>
               </div>
@@ -364,7 +364,7 @@ export default function MesocycleReport({
                       {ex.exerciseName}
                       {ex.hadPR && <Star className="w-3 h-3 text-yellow-400 shrink-0" />}
                     </p>
-                    <div className="flex items-center gap-3 text-xs text-grappler-500">
+                    <div className="flex items-center gap-3 text-xs text-grappler-400">
                       <span>{ex.totalSets} sets</span>
                       <span>{formatVolume(ex.totalVolume)} {unit}</span>
                       <span>Best: {ex.bestWeight}{unit}</span>
@@ -392,38 +392,38 @@ export default function MesocycleReport({
             <div className="grid grid-cols-2 gap-3">
               {report.avgSleepQuality !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Sleep Quality</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgSleepQuality}<span className="text-xs text-grappler-500">/5</span></p>
+                  <p className="text-xs text-grappler-400">Sleep Quality</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgSleepQuality}<span className="text-xs text-grappler-400">/5</span></p>
                 </div>
               )}
               {report.avgMotivation !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Motivation</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgMotivation}<span className="text-xs text-grappler-500">/5</span></p>
+                  <p className="text-xs text-grappler-400">Motivation</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgMotivation}<span className="text-xs text-grappler-400">/5</span></p>
                 </div>
               )}
               {report.avgStress !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Stress</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgStress}<span className="text-xs text-grappler-500">/5</span></p>
+                  <p className="text-xs text-grappler-400">Stress</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgStress}<span className="text-xs text-grappler-400">/5</span></p>
                 </div>
               )}
               {report.avgSoreness !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Soreness</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgSoreness}<span className="text-xs text-grappler-500">/5</span></p>
+                  <p className="text-xs text-grappler-400">Soreness</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgSoreness}<span className="text-xs text-grappler-400">/5</span></p>
                 </div>
               )}
               {report.avgEnergy !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Post Energy</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgEnergy}<span className="text-xs text-grappler-500">/10</span></p>
+                  <p className="text-xs text-grappler-400">Post Energy</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgEnergy}<span className="text-xs text-grappler-400">/10</span></p>
                 </div>
               )}
               {report.avgPostSoreness !== null && (
                 <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                  <p className="text-xs text-grappler-500">Post Soreness</p>
-                  <p className="text-lg font-bold text-grappler-200">{report.avgPostSoreness}<span className="text-xs text-grappler-500">/10</span></p>
+                  <p className="text-xs text-grappler-400">Post Soreness</p>
+                  <p className="text-lg font-bold text-grappler-200">{report.avgPostSoreness}<span className="text-xs text-grappler-400">/10</span></p>
                 </div>
               )}
             </div>
@@ -444,20 +444,20 @@ export default function MesocycleReport({
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                <p className="text-xs text-grappler-500">Volume</p>
+                <p className="text-xs text-grappler-400">Volume</p>
                 <DeltaBadge value={report.comparison.volumeDeltaPct} suffix="%" />
                 <p className="text-xs text-grappler-600 mt-0.5">{report.comparison.volumeDelta > 0 ? '+' : ''}{formatVolume(report.comparison.volumeDelta)} {unit}</p>
               </div>
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                <p className="text-xs text-grappler-500">Avg RPE</p>
+                <p className="text-xs text-grappler-400">Avg RPE</p>
                 <DeltaBadge value={report.comparison.rpeDelta} invert />
               </div>
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                <p className="text-xs text-grappler-500">Sessions</p>
+                <p className="text-xs text-grappler-400">Sessions</p>
                 <DeltaBadge value={report.comparison.sessionsDelta} />
               </div>
               <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-                <p className="text-xs text-grappler-500">PRs</p>
+                <p className="text-xs text-grappler-400">PRs</p>
                 <DeltaBadge value={report.comparison.prsDelta} />
               </div>
             </div>
@@ -478,7 +478,7 @@ export default function MesocycleReport({
           <div className="overflow-x-auto -mx-1">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-grappler-500 text-xs uppercase tracking-wider">
+                <tr className="text-grappler-400 text-xs uppercase tracking-wider">
                   <th className="text-left py-1.5 px-1">Week</th>
                   <th className="text-center py-1.5 px-1">Done</th>
                   <th className="text-right py-1.5 px-1">Volume</th>

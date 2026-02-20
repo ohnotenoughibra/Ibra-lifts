@@ -217,7 +217,7 @@ export default function BlockQueue() {
             <div className="bg-grappler-800/60 rounded-xl p-3 space-y-3 border border-grappler-700/50">
               {/* Focus selector */}
               <div>
-                <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1.5 block">Focus</label>
+                <label className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1.5 block">Focus</label>
                 <div className="grid grid-cols-2 gap-2">
                   {FOCUS_OPTIONS.map(opt => (
                     <button
@@ -243,7 +243,7 @@ export default function BlockQueue() {
               {/* Weeks + periodization row */}
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Weeks</label>
+                  <label className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1 block">Weeks</label>
                   <div className="flex items-center gap-1">
                     {[3, 4, 5, 6].map(w => (
                       <button
@@ -262,7 +262,7 @@ export default function BlockQueue() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Style</label>
+                  <label className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1 block">Style</label>
                   <select
                     value={formPeriodization}
                     onChange={e => setFormPeriodization(e.target.value as typeof formPeriodization)}
@@ -277,7 +277,7 @@ export default function BlockQueue() {
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1 block">Notes (optional)</label>
+                <label className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1 block">Notes (optional)</label>
                 <input
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
@@ -303,7 +303,7 @@ export default function BlockQueue() {
       {mesocycleQueue.length === 0 && !showAddForm ? (
         <div className="text-center py-4">
           <Calendar className="w-8 h-8 text-grappler-700 mx-auto mb-2" />
-          <p className="text-xs text-grappler-500">No mesocycles queued yet</p>
+          <p className="text-xs text-grappler-400">No mesocycles queued yet</p>
           <p className="text-xs text-grappler-600 mt-0.5">Plan your next training mesocycles ahead</p>
         </div>
       ) : (
@@ -328,7 +328,7 @@ export default function BlockQueue() {
                   >
                     <ChevronUp className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-xs font-black text-grappler-500 w-5 text-center">{i + 1}</span>
+                  <span className="text-xs font-black text-grappler-400 w-5 text-center">{i + 1}</span>
                   <button
                     onClick={() => moveDown(i)}
                     disabled={i === mesocycleQueue.length - 1}
@@ -347,16 +347,16 @@ export default function BlockQueue() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-grappler-200 truncate">{block.name}</p>
-                    <span className="text-xs text-grappler-500 shrink-0">{block.weeks}wk</span>
+                    <span className="text-xs text-grappler-400 shrink-0">{block.weeks}wk</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     {block.periodization && (
-                      <span className="text-xs text-grappler-500 capitalize">{block.periodization}</span>
+                      <span className="text-xs text-grappler-400 capitalize">{block.periodization}</span>
                     )}
                     <span className="text-xs text-grappler-600">{getEstimatedStart(i)} — {getEstimatedEnd(i)}</span>
                   </div>
                   {block.notes && (
-                    <p className="text-xs text-grappler-500 mt-0.5 truncate">{block.notes}</p>
+                    <p className="text-xs text-grappler-400 mt-0.5 truncate">{block.notes}</p>
                   )}
                 </div>
 

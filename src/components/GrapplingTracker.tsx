@@ -451,7 +451,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <h1 className="font-bold text-grappler-50 text-lg leading-tight">
                   Training Log
                 </h1>
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   Sessions &amp; stats
                 </p>
               </div>
@@ -491,6 +491,90 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
       </header>
 
       <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+        {/* Weekly Summary Bar */}
+        <div className="bg-grappler-800 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-emerald-400" />
+            This Week
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Grappling this week */}
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-emerald-400">{weeklyTraining.length}</div>
+              <div className="text-xs text-grappler-400 mt-0.5">Grappling</div>
+              <div className="text-xs text-emerald-500/70 mt-0.5">
+                {weeklyTraining.reduce((s, g) => s + g.duration, 0)}m on mat
+              </div>
+            </div>
+            {/* Lifting this week */}
+            <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-primary-400">{weeklyLifting.length}</div>
+              <div className="text-xs text-grappler-400 mt-0.5">Lifting</div>
+              <div className="text-xs text-primary-500/70 mt-0.5">
+                {weeklyLifting.reduce((s, w) => s + (w.duration || 0), 0)}m in gym
+              </div>
+            </div>
+          </div>
+          {/* Combined weekly bar */}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex-1 h-2.5 bg-grappler-700 rounded-full overflow-hidden flex">
+              {weeklyTraining.length + weeklyLifting.length > 0 && (
+                <>
+                  <div
+                    className="h-full bg-emerald-500 transition-all duration-500"
+                    style={{
+                      width: `${(weeklyTraining.length / (weeklyTraining.length + weeklyLifting.length)) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-primary-500 transition-all duration-500"
+                    style={{
+                      width: `${(weeklyLifting.length / (weeklyTraining.length + weeklyLifting.length)) * 100}%`,
+                    }}
+                  />
+                </>
+              )}
+            </div>
+            <span className="text-xs text-grappler-400 whitespace-nowrap">
+              {weeklyTraining.length + weeklyLifting.length} total
+            </span>
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-xs text-grappler-400">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Grappling
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary-500" />
+              Lifting
+            </div>
+          </div>
+        </div>
+
+        {/* All-Time Totals */}
+        {(totalMatTime > 0 || totalLiftingTime > 0) && (
+          <div className="flex gap-3">
+            <div className="flex-1 bg-grappler-800 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-grappler-100">{formatDuration(totalMatTime)}</div>
+                <div className="text-xs text-grappler-400 uppercase tracking-wider">Mat time all-time</div>
+              </div>
+            </div>
+            <div className="flex-1 bg-grappler-800 rounded-xl p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center flex-shrink-0">
+                <Dumbbell className="w-4 h-4 text-primary-400" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-grappler-100">{formatDuration(totalLiftingTime)}</div>
+                <div className="text-xs text-grappler-400 uppercase tracking-wider">Lifting all-time</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Add Session Form */}
         <AnimatePresence>
           {showAddForm && (
@@ -900,7 +984,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <p className="text-sm text-grappler-400 mb-1">
                   No grappling sessions logged yet.
                 </p>
-                <p className="text-xs text-grappler-500">
+                <p className="text-xs text-grappler-400">
                   Tap &quot;Log&quot; to record your first mat session.
                 </p>
               </div>
@@ -1019,7 +1103,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
                             {session.techniques && (
                               <div>
-                                <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">
+                                <span className="text-xs uppercase tracking-wider text-grappler-400 font-semibold">
                                   Techniques
                                 </span>
                                 <p className="text-xs text-grappler-300 mt-0.5">
@@ -1030,7 +1114,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
                             {session.notes && (
                               <div>
-                                <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">
+                                <span className="text-xs uppercase tracking-wider text-grappler-400 font-semibold">
                                   Notes
                                 </span>
                                 <p className="text-xs text-grappler-400 italic mt-0.5">
@@ -1102,7 +1186,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             <div className="flex justify-end">
                               <button
                                 onClick={() => deleteTrainingSession(session.id)}
-                                className="flex items-center gap-1.5 text-xs text-grappler-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
+                                className="flex items-center gap-1.5 text-xs text-grappler-400 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                                 Delete
@@ -1156,7 +1240,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                   : <>{filteredCombatTime}<span className="text-lg font-semibold text-grappler-400">m</span></>
                 }
               </div>
-              <p className="text-xs text-grappler-500 mt-1">
+              <p className="text-xs text-grappler-400 mt-1">
                 {filteredCombat.length} session{filteredCombat.length !== 1 ? 's' : ''}
                 {filteredCombat.length > 0 && ` · avg ${Math.round(filteredCombatTime / filteredCombat.length)}m per session`}
               </p>
@@ -1168,19 +1252,19 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className={`text-lg font-bold ${filteredAvgRPE > 0 ? rpeColor(filteredAvgRPE) : 'text-grappler-400'}`}>
                   {filteredAvgRPE > 0 ? filteredAvgRPE : '--'}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Avg RPE</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Avg RPE</div>
               </div>
               <div className="bg-grappler-800 rounded-xl p-3 text-center">
                 <div className="text-lg font-bold text-grappler-100">
                   {sessionsPerWeek > 0 ? sessionsPerWeek : '--'}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Per Week</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Per Week</div>
               </div>
               <div className="bg-grappler-800 rounded-xl p-3 text-center">
                 <div className="text-lg font-bold text-emerald-400">
                   {filteredSubmissions > 0 ? filteredSubmissions : '--'}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Subs</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Subs</div>
               </div>
             </div>
 
@@ -1197,7 +1281,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     const pct = Math.round((m.combatMins / maxMins) * 100);
                     return (
                       <div key={`${m.year}-${m.month}`} className="flex items-center gap-2">
-                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">
+                        <span className="text-xs text-grappler-400 w-14 text-right font-medium">
                           {m.month} {m.year !== new Date().getFullYear() ? `'${String(m.year).slice(2)}` : ''}
                         </span>
                         <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
@@ -1207,7 +1291,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                             className="h-full bg-emerald-500/40 rounded"
                           />
-                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                          <span className="absolute inset-0 flex items-center px-2 text-xs font-semibold text-grappler-200">
                             {formatDuration(m.combatMins)} · {m.combatSessions}s
                           </span>
                         </div>
@@ -1228,9 +1312,9 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className="grid grid-cols-2 gap-2">
                   {yearlyBreakdown.map(y => (
                     <div key={y.year} className="bg-grappler-700/40 rounded-lg p-3">
-                      <div className="text-xs text-grappler-500 font-medium">{y.year}</div>
+                      <div className="text-xs text-grappler-400 font-medium">{y.year}</div>
                       <div className="text-lg font-bold text-emerald-400">{formatDuration(y.combatMins)}</div>
-                      <div className="text-[10px] text-grappler-500">{y.combatSessions} sessions</div>
+                      <div className="text-xs text-grappler-400">{y.combatSessions} sessions</div>
                     </div>
                   ))}
                 </div>
@@ -1331,7 +1415,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
               <div className="text-center py-10">
                 <Target className="w-10 h-10 text-grappler-700 mx-auto mb-3" />
                 <p className="text-sm text-grappler-400 font-medium">No combat sessions in this period</p>
-                <p className="text-xs text-grappler-500 mt-1">Log sessions in the Sessions tab to see your stats here</p>
+                <p className="text-xs text-grappler-400 mt-1">Log sessions in the Sessions tab to see your stats here</p>
               </div>
             )}
           </div>
@@ -1374,7 +1458,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                   : <>{filteredLiftingTime}<span className="text-lg font-semibold text-grappler-400">m</span></>
                 }
               </div>
-              <p className="text-xs text-grappler-500 mt-1">
+              <p className="text-xs text-grappler-400 mt-1">
                 {filteredLifting.length} session{filteredLifting.length !== 1 ? 's' : ''}
                 {filteredLifting.length > 0 && ` · avg ${filteredLiftingAvgDuration}m per session`}
               </p>
@@ -1386,20 +1470,20 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className="text-lg font-bold text-primary-400">
                   {filteredLiftingVolume > 0 ? `${Math.round(filteredLiftingVolume / 1000)}k` : '--'}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Volume ({user?.weightUnit || 'kg'})</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Volume ({user?.weightUnit || 'kg'})</div>
               </div>
               <div className="bg-grappler-800 rounded-xl p-3 text-center">
                 <div className={`text-lg font-bold ${filteredLiftingAvgRPE > 0 ? rpeColor(filteredLiftingAvgRPE) : 'text-grappler-400'}`}>
                   {filteredLiftingAvgRPE > 0 ? filteredLiftingAvgRPE : '--'}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Avg RPE</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Avg RPE</div>
               </div>
               <div className="bg-grappler-800 rounded-xl p-3 text-center">
                 <div className="text-lg font-bold text-grappler-100">
                   {filteredLiftingAvgDuration > 0 ? filteredLiftingAvgDuration : '--'}
-                  {filteredLiftingAvgDuration > 0 && <span className="text-xs text-grappler-500">m</span>}
+                  {filteredLiftingAvgDuration > 0 && <span className="text-xs text-grappler-400">m</span>}
                 </div>
-                <div className="text-[10px] text-grappler-500 mt-0.5">Avg Duration</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Avg Duration</div>
               </div>
             </div>
 
@@ -1416,7 +1500,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     const pct = Math.round((m.liftingMins / maxMins) * 100);
                     return (
                       <div key={`${m.year}-${m.month}`} className="flex items-center gap-2">
-                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">
+                        <span className="text-xs text-grappler-400 w-14 text-right font-medium">
                           {m.month} {m.year !== new Date().getFullYear() ? `'${String(m.year).slice(2)}` : ''}
                         </span>
                         <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
@@ -1426,7 +1510,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                             className="h-full bg-primary-500/40 rounded"
                           />
-                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                          <span className="absolute inset-0 flex items-center px-2 text-xs font-semibold text-grappler-200">
                             {formatDuration(m.liftingMins)} · {m.liftingSessions}s
                           </span>
                         </div>
@@ -1447,9 +1531,9 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className="grid grid-cols-2 gap-2">
                   {yearlyBreakdown.map(y => (
                     <div key={y.year} className="bg-grappler-700/40 rounded-lg p-3">
-                      <div className="text-xs text-grappler-500 font-medium">{y.year}</div>
+                      <div className="text-xs text-grappler-400 font-medium">{y.year}</div>
                       <div className="text-lg font-bold text-primary-400">{formatDuration(y.liftingMins)}</div>
-                      <div className="text-[10px] text-grappler-500">{y.liftingSessions} sessions</div>
+                      <div className="text-xs text-grappler-400">{y.liftingSessions} sessions</div>
                     </div>
                   ))}
                 </div>
@@ -1478,7 +1562,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     const maxVol = Math.max(...entries.map(e => e.volume), 1);
                     return entries.map((e) => (
                       <div key={e.label} className="flex items-center gap-2">
-                        <span className="text-[10px] text-grappler-500 w-14 text-right font-medium">{e.label}</span>
+                        <span className="text-xs text-grappler-400 w-14 text-right font-medium">{e.label}</span>
                         <div className="flex-1 h-5 bg-grappler-700/50 rounded overflow-hidden relative">
                           <motion.div
                             initial={{ width: 0 }}
@@ -1486,7 +1570,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                             className="h-full bg-primary-500/30 rounded"
                           />
-                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-grappler-200">
+                          <span className="absolute inset-0 flex items-center px-2 text-xs font-semibold text-grappler-200">
                             {e.volume >= 1000 ? `${(e.volume / 1000).toFixed(1)}k` : e.volume} {user?.weightUnit || 'kg'}
                           </span>
                         </div>
@@ -1506,12 +1590,12 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 text-center">
                     <div className="text-xl font-bold text-emerald-400">{formatDuration(filteredCombatTime)}</div>
-                    <div className="text-[10px] text-grappler-500">{filteredCombat.length} sessions</div>
+                    <div className="text-xs text-grappler-400">{filteredCombat.length} sessions</div>
                   </div>
                   <div className="text-grappler-600 text-sm">vs</div>
                   <div className="flex-1 text-center">
                     <div className="text-xl font-bold text-primary-400">{formatDuration(filteredLiftingTime)}</div>
-                    <div className="text-[10px] text-grappler-500">{filteredLifting.length} sessions</div>
+                    <div className="text-xs text-grappler-400">{filteredLifting.length} sessions</div>
                   </div>
                 </div>
                 {filteredCombatTime + filteredLiftingTime > 0 && (
@@ -1520,7 +1604,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     <div className="h-full bg-primary-500 transition-all duration-500" style={{ width: `${(filteredLiftingTime / (filteredCombatTime + filteredLiftingTime)) * 100}%` }} />
                   </div>
                 )}
-                <div className="flex items-center justify-between mt-2 text-[10px] text-grappler-500">
+                <div className="flex items-center justify-between mt-2 text-xs text-grappler-400">
                   <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />Combat</div>
                   <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary-500" />Lifting</div>
                 </div>
@@ -1532,7 +1616,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
               <div className="text-center py-10">
                 <Dumbbell className="w-10 h-10 text-grappler-700 mx-auto mb-3" />
                 <p className="text-sm text-grappler-400 font-medium">No lifting sessions in this period</p>
-                <p className="text-xs text-grappler-500 mt-1">Complete workouts to see your lifting stats here</p>
+                <p className="text-xs text-grappler-400 mt-1">Complete workouts to see your lifting stats here</p>
               </div>
             )}
           </div>

@@ -174,7 +174,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           <div className="text-left">
             <h2 className="text-sm font-semibold text-grappler-200">Nutrition Trends</h2>
             {stats && !expanded && (
-              <p className="text-xs text-grappler-500">
+              <p className="text-xs text-grappler-400">
                 Avg {stats.avg.calories} kcal / {stats.avg.protein}g protein
               </p>
             )}
@@ -223,10 +223,10 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
                 <div key={i} className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
                   <s.icon className={cn('w-3.5 h-3.5 mx-auto mb-1', s.color)} />
                   <p className={cn('text-sm font-bold', s.color)}>{s.value}</p>
-                  <p className="text-xs text-grappler-500 mt-0.5">{s.label}</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">{s.label}</p>
                   {s.diff != null && (
                     <p className={cn('text-xs mt-0.5 font-medium',
-                      s.diff > 0 ? 'text-green-400' : s.diff < -100 ? 'text-red-400' : 'text-grappler-500'
+                      s.diff > 0 ? 'text-green-400' : s.diff < -100 ? 'text-red-400' : 'text-grappler-400'
                     )}>
                       {s.diff > 0 ? '+' : ''}{s.diff}{s.label.includes('Cal') ? '' : 'g'} vs target
                     </p>
@@ -380,7 +380,7 @@ export default function NutritionTrends({ meals, macroTargets }: NutritionTrends
           {/* Weekly averages */}
           {weeklyData.length > 1 && (
             <div>
-              <h3 className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-2">
+              <h3 className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-2">
                 Weekly Averages (per day)
               </h3>
               <div className="h-36">

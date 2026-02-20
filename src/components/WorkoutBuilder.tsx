@@ -336,7 +336,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                       </span>
                     </div>
                     <p className="text-xs text-grappler-400 mb-2">{template.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-grappler-500 mb-3">
+                    <div className="flex items-center gap-3 text-xs text-grappler-400 mb-3">
                       <span>{template.sessions}x/week</span>
                       <span>5-week block</span>
                     </div>
@@ -401,7 +401,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   className="overflow-hidden space-y-3"
                 >
                   <div>
-                    <p className="text-xs text-grappler-500 uppercase tracking-wide mb-2">Muscle Group</p>
+                    <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">Muscle Group</p>
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => setSelectedMuscle('all')}
@@ -428,7 +428,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   </div>
 
                   <div>
-                    <p className="text-xs text-grappler-500 uppercase tracking-wide mb-2">Category</p>
+                    <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">Category</p>
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => setSelectedCategory('all')}
@@ -458,7 +458,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
             </AnimatePresence>
 
             {/* Results Count */}
-            <p className="text-xs text-grappler-500">
+            <p className="text-xs text-grappler-400">
               {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
             </p>
 
@@ -528,7 +528,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
                         {exercise.cues.length > 0 && (
                           <div>
-                            <p className="text-xs text-grappler-500 uppercase mb-1">Form Cues</p>
+                            <p className="text-xs text-grappler-400 uppercase mb-1">Form Cues</p>
                             <ul className="space-y-0.5">
                               {exercise.cues.map((cue, i) => (
                                 <li key={i} className="text-xs text-grappler-400 flex items-start gap-1.5">
@@ -572,7 +572,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
               />
 
               <div>
-                <p className="text-xs text-grappler-500 mb-2">Workout Type</p>
+                <p className="text-xs text-grappler-400 mb-2">Workout Type</p>
                 <div className="flex gap-2">
                   {([
                     { type: 'strength', label: 'Strength', icon: Zap, color: 'bg-red-500' },
@@ -628,10 +628,10 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                     className="card p-3"
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs text-grappler-500 font-mono w-5">{index + 1}</span>
+                      <span className="text-xs text-grappler-400 font-mono w-5">{index + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-grappler-100 truncate">{be.exercise.name}</p>
-                        <p className="text-xs text-grappler-500">
+                        <p className="text-xs text-grappler-400">
                           {be.exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(', ')}
                         </p>
                       </div>
@@ -646,7 +646,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                     {/* Editable parameters */}
                     <div className="grid grid-cols-4 gap-2">
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-grappler-500 mb-1">Sets</p>
+                        <p className="text-xs text-grappler-400 mb-1">Sets</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'sets', Math.max(1, be.sets - 1))}
@@ -664,7 +664,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-grappler-500 mb-1">Reps</p>
+                        <p className="text-xs text-grappler-400 mb-1">Reps</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'reps', Math.max(1, be.reps - 1))}
@@ -682,7 +682,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-grappler-500 mb-1">RPE</p>
+                        <p className="text-xs text-grappler-400 mb-1">RPE</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'rpe', Math.max(5, be.rpe - 0.5))}
@@ -700,7 +700,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
-                        <p className="text-xs text-grappler-500 mb-1">Rest</p>
+                        <p className="text-xs text-grappler-400 mb-1">Rest</p>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'restSeconds', Math.max(30, be.restSeconds - 15))}

@@ -89,13 +89,13 @@ export default function StatusBar({
               />
             ))}
           </div>
-          <span className="text-[10px] text-grappler-500 tabular-nums">{weekProgress.done}/{weekProgress.target}</span>
+          <span className="text-xs text-grappler-400 tabular-nums">{weekProgress.done}/{weekProgress.target}</span>
         </div>
       )}
 
       {/* Phase tag — fight camp, cycle, etc. */}
       {phaseTag && (
-        <span className="text-[10px] font-medium text-grappler-500 truncate max-w-[120px]">{phaseTag}</span>
+        <span className="text-xs font-medium text-grappler-400 truncate max-w-[120px]">{phaseTag}</span>
       )}
     </div>
   );

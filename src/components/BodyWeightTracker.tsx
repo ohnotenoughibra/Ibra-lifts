@@ -927,11 +927,15 @@ export default function BodyWeightTracker() {
               <div>
                 <label className="text-xs text-grappler-400 mb-1 block">Weight ({weightUnit})</label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="any"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={newWeight}
-                  onChange={(e) => setNewWeight(e.target.value)}
+                  onChange={(e) => {
+                    // Accept digits, dot, and comma (normalize comma to dot)
+                    const v = e.target.value.replace(',', '.');
+                    if (v === '' || /^\d*\.?\d*$/.test(v)) setNewWeight(v);
+                  }}
                   placeholder={weightUnit === 'lbs' ? '185' : '84'}
                   className="input"
                   autoFocus
@@ -979,10 +983,11 @@ export default function BodyWeightTracker() {
                           <div>
                             <label className="text-xs text-grappler-500 mb-0.5 block">Waist (cm)</label>
                             <input
-                              type="number"
+                              type="text"
                               inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
                               value={formWaist}
-                              onChange={(e) => setFormWaist(e.target.value)}
+                              onChange={(e) => { const v = e.target.value.replace(',', '.'); if (v === '' || /^\d*\.?\d*$/.test(v)) setFormWaist(v); }}
                               placeholder="84"
                               className="input text-sm py-1.5"
                             />
@@ -990,10 +995,11 @@ export default function BodyWeightTracker() {
                           <div>
                             <label className="text-xs text-grappler-500 mb-0.5 block">Neck (cm)</label>
                             <input
-                              type="number"
+                              type="text"
                               inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
                               value={formNeck}
-                              onChange={(e) => setFormNeck(e.target.value)}
+                              onChange={(e) => { const v = e.target.value.replace(',', '.'); if (v === '' || /^\d*\.?\d*$/.test(v)) setFormNeck(v); }}
                               placeholder="38"
                               className="input text-sm py-1.5"
                             />
@@ -1002,10 +1008,11 @@ export default function BodyWeightTracker() {
                             <div className="col-span-2">
                               <label className="text-xs text-grappler-500 mb-0.5 block">Hip (cm)</label>
                               <input
-                                type="number"
+                                type="text"
                                 inputMode="decimal"
+                                pattern="[0-9]*[.,]?[0-9]*"
                                 value={formHip}
-                                onChange={(e) => setFormHip(e.target.value)}
+                                onChange={(e) => { const v = e.target.value.replace(',', '.'); if (v === '' || /^\d*\.?\d*$/.test(v)) setFormHip(v); }}
                                 placeholder="96"
                                 className="input text-sm py-1.5"
                               />
@@ -1033,12 +1040,16 @@ export default function BodyWeightTracker() {
                           <div>
                             <label className="text-xs text-grappler-500 mb-0.5 block">Body Fat %</label>
                             <input
-                              type="number"
+                              type="text"
                               inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
                               value={formBodyFat}
                               onChange={(e) => {
-                                setFormBodyFat(e.target.value);
-                                setUseManualBF(e.target.value.length > 0);
+                                const v = e.target.value.replace(',', '.');
+                                if (v === '' || /^\d*\.?\d*$/.test(v)) {
+                                  setFormBodyFat(v);
+                                  setUseManualBF(v.length > 0);
+                                }
                               }}
                               placeholder={autoCalcBF != null ? String(autoCalcBF) : '15'}
                               className="input text-sm py-1.5"
@@ -1047,12 +1058,16 @@ export default function BodyWeightTracker() {
                           <div>
                             <label className="text-xs text-grappler-500 mb-0.5 block">BMI</label>
                             <input
-                              type="number"
+                              type="text"
                               inputMode="decimal"
+                              pattern="[0-9]*[.,]?[0-9]*"
                               value={formBMI}
                               onChange={(e) => {
-                                setFormBMI(e.target.value);
-                                setUseManualBMI(e.target.value.length > 0);
+                                const v = e.target.value.replace(',', '.');
+                                if (v === '' || /^\d*\.?\d*$/.test(v)) {
+                                  setFormBMI(v);
+                                  setUseManualBMI(v.length > 0);
+                                }
                               }}
                               placeholder={autoCalcBMI != null ? String(autoCalcBMI) : '24'}
                               className="input text-sm py-1.5"

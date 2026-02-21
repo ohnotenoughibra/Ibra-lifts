@@ -587,6 +587,11 @@ export const useAppStore = create<AppState>()(
       mentalCheckIns: [],
       confidenceLedger: [],
       featureFeedback: [],
+      seenInsights: [],
+      dismissedInsights: [],
+      readArticles: [],
+      bookmarkedArticles: [],
+      lastInsightDate: null,
       showTip: true,
       currentTipId: null,
 
@@ -3026,6 +3031,25 @@ export const useAppStore = create<AppState>()(
         set({ featureFeedback: [...get().featureFeedback, { id: crypto.randomUUID(), feature, rating, timestamp: new Date().toISOString() }] });
       },
 
+      // Knowledge library actions
+      markInsightSeen: (id) => {
+        const s = get().seenInsights;
+        if (!s.includes(id)) set({ seenInsights: [...s, id] });
+      },
+      dismissInsight: (id) => {
+        const s = get().dismissedInsights;
+        if (!s.includes(id)) set({ dismissedInsights: [...s, id] });
+      },
+      markArticleRead: (id) => {
+        const s = get().readArticles;
+        if (!s.includes(id)) set({ readArticles: [...s, id] });
+      },
+      toggleBookmarkArticle: (id) => {
+        const s = get().bookmarkedArticles;
+        set({ bookmarkedArticles: s.includes(id) ? s.filter(a => a !== id) : [...s, id] });
+      },
+      setLastInsightDate: (date) => set({ lastInsightDate: date }),
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -3102,6 +3126,11 @@ export const useAppStore = create<AppState>()(
           mentalCheckIns: [],
           confidenceLedger: [],
           featureFeedback: [],
+          seenInsights: [],
+          dismissedInsights: [],
+          readArticles: [],
+          bookmarkedArticles: [],
+          lastInsightDate: null,
           showTip: true,
           currentTipId: null
         })

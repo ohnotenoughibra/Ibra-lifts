@@ -691,7 +691,7 @@ export default function BodyWeightTracker() {
                         <span className="text-sm font-bold text-grappler-300">{displayBMI}</span>
                         <span className={cn('text-xs', cat.color)}>{cat.label}</span>
                       </div>
-                      <span className="text-[10px] text-grappler-600">Less reliable for athletes</span>
+                      <span className="text-xs text-grappler-600">Less reliable for athletes</span>
                     </div>
                   </div>
                 );

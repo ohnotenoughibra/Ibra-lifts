@@ -326,7 +326,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                       />
                       <div>
                         <p className="text-sm font-semibold text-grappler-50">{readiness.label}</p>
-                        <p className="text-[11px] text-grappler-400">Based on sleep, stress & training load</p>
+                        <p className="text-xs text-grappler-400">Based on sleep, stress & training load</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -351,21 +351,21 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                         <div className="text-center">
                           <Moon className="w-3.5 h-3.5 text-indigo-400 mx-auto mb-1" />
                           <p className="text-xs font-medium text-grappler-200">Sleep</p>
-                          <p className={`text-[11px] font-medium ${metricColor(latest.sleepQuality >= 4, latest.sleepQuality >= 3)}`}>
+                          <p className={`text-xs font-medium ${metricColor(latest.sleepQuality >= 4, latest.sleepQuality >= 3)}`}>
                             {sleepLabel(latest.sleepQuality)} ({latest.sleepQuality}/5)
                           </p>
                         </div>
                         <div className="text-center">
                           <Thermometer className="w-3.5 h-3.5 text-blue-400 mx-auto mb-1" />
                           <p className="text-xs font-medium text-grappler-200">Soreness</p>
-                          <p className={`text-[11px] font-medium ${metricColor(latest.soreness <= 2, latest.soreness <= 3)}`}>
+                          <p className={`text-xs font-medium ${metricColor(latest.soreness <= 2, latest.soreness <= 3)}`}>
                             {sorenessLabel(latest.soreness)} ({latest.soreness}/5)
                           </p>
                         </div>
                         <div className="text-center">
                           <Brain className="w-3.5 h-3.5 text-purple-400 mx-auto mb-1" />
                           <p className="text-xs font-medium text-grappler-200">Stress</p>
-                          <p className={`text-[11px] font-medium ${metricColor(latest.stress <= 2, latest.stress <= 3)}`}>
+                          <p className={`text-xs font-medium ${metricColor(latest.stress <= 2, latest.stress <= 3)}`}>
                             {stressLabel(latest.stress)} ({latest.stress}/5)
                           </p>
                         </div>
@@ -420,13 +420,13 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                     {/* This week vs average */}
                     <div className="flex gap-2 mt-3">
                       <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
-                        <span className="text-[11px] text-grappler-400">This week</span>
+                        <span className="text-xs text-grappler-400">This week</span>
                         <span className="text-xs font-medium text-grappler-200">
                           {trainingLoad.acute > 1000 ? `${(trainingLoad.acute / 1000).toFixed(1)}k` : trainingLoad.acute.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex-1 bg-grappler-800/60 rounded-lg px-3 py-2 flex justify-between items-center">
-                        <span className="text-[11px] text-grappler-400">Avg/week</span>
+                        <span className="text-xs text-grappler-400">Avg/week</span>
                         <span className="text-xs font-medium text-grappler-200">
                           {trainingLoad.chronic > 1000 ? `${(trainingLoad.chronic / 1000).toFixed(1)}k` : Math.round(trainingLoad.chronic).toLocaleString()}
                         </span>
@@ -457,7 +457,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                   <div className="grid grid-cols-2 gap-3">
                     {sleepSparkData.length > 1 && (
                       <div>
-                        <p className="text-[11px] text-grappler-400 mb-1">Sleep Quality</p>
+                        <p className="text-xs text-grappler-400 mb-1">Sleep Quality</p>
                         <div className="h-10">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={sleepSparkData}>
@@ -479,7 +479,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
                     )}
                     {rpeSparkData.length > 1 && (
                       <div>
-                        <p className="text-[11px] text-grappler-400 mb-1">Workout Effort</p>
+                        <p className="text-xs text-grappler-400 mb-1">Workout Effort</p>
                         <div className="h-10">
                           <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={rpeSparkData}>

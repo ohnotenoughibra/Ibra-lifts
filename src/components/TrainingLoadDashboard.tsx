@@ -184,7 +184,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
           <div className="space-y-2">
             {weeklyLoads.map((week, i) => (
               <div key={i} className="flex items-center gap-3">
-                <span className="text-[11px] text-grappler-400 w-24 flex-shrink-0">{week.label}</span>
+                <span className="text-xs text-grappler-400 w-24 flex-shrink-0">{week.label}</span>
                 <div className="flex-1 h-6 bg-grappler-800/50 rounded-lg overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -245,7 +245,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
             <Activity className="w-4 h-4 text-grappler-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-medium text-grappler-300">About ACWR</p>
-              <p className="text-[11px] text-grappler-400 mt-1">
+              <p className="text-xs text-grappler-400 mt-1">
                 Acute:Chronic Workload Ratio compares your last 7 days of training to your 28-day average.
                 The sweet spot (0.8-1.3) means you&apos;re progressing safely. Above 1.5 means you&apos;ve spiked load
                 too fast — injury risk increases 2-4x (Gabbett 2016).

@@ -110,7 +110,7 @@ function StatPill({ icon: Icon, value, label, accent }: {
         <Icon className="w-4 h-4 text-white/90" />
       </div>
       <span className="text-base font-bold text-grappler-50 tabular-nums">{value}</span>
-      <span className="text-[10px] text-grappler-400 uppercase tracking-wider">{label}</span>
+      <span className="text-xs text-grappler-400 uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -423,7 +423,7 @@ export default function ProfileSettings() {
 
             {/* XP bar */}
             <div className="w-full max-w-xs mt-4">
-              <div className="flex justify-between text-[10px] text-grappler-400 mb-1 tabular-nums">
+              <div className="flex justify-between text-xs text-grappler-400 mb-1 tabular-nums">
                 <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
                 <span>{formatNumber(pointsNeeded)} to next</span>
               </div>
@@ -481,8 +481,8 @@ export default function ProfileSettings() {
                   <div className="w-14 h-14 bg-grappler-700/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl ring-1 ring-grappler-600/50">
                     {ub.badge.icon}
                   </div>
-                  <p className="text-[10px] text-grappler-300 truncate max-w-[60px] mx-auto">{ub.badge.name}</p>
-                  <p className="text-[10px] text-primary-400 font-medium">+{ub.badge.points}</p>
+                  <p className="text-xs text-grappler-300 truncate max-w-[60px] mx-auto">{ub.badge.name}</p>
+                  <p className="text-xs text-primary-400 font-medium">+{ub.badge.points}</p>
                 </div>
               ))}
             </div>
@@ -504,7 +504,7 @@ export default function ProfileSettings() {
                     <div className="w-14 h-14 bg-grappler-800/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">
                       {badge.icon}
                     </div>
-                    <p className="text-[10px] text-grappler-500 truncate max-w-[60px] mx-auto">{badge.name}</p>
+                    <p className="text-xs text-grappler-500 truncate max-w-[60px] mx-auto">{badge.name}</p>
                   </div>
                 ))}
               </div>
@@ -518,7 +518,7 @@ export default function ProfileSettings() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-grappler-300 font-medium truncate">Next: {nextBadge.name}</p>
-                <p className="text-[10px] text-grappler-500 truncate">{nextBadge.description}</p>
+                <p className="text-xs text-grappler-500 truncate">{nextBadge.description}</p>
               </div>
               <Zap className="w-3.5 h-3.5 text-primary-500/50 flex-shrink-0" />
             </div>
@@ -545,7 +545,7 @@ export default function ProfileSettings() {
               {stat.value}
               {stat.suffix && <span className="text-xs text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
             </p>
-            <p className="text-[10px] text-grappler-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
+            <p className="text-xs text-grappler-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
           </div>
         ))}
       </motion.div>
@@ -562,7 +562,7 @@ export default function ProfileSettings() {
             <div className="flex items-center gap-2 mb-4">
               <Dumbbell className="w-4 h-4 text-grappler-400" />
               <h3 className="text-sm font-semibold text-grappler-100">Strength Profile</h3>
-              <span className="text-[10px] text-grappler-500 ml-auto">1RM · {weightUnit}</span>
+              <span className="text-xs text-grappler-500 ml-auto">1RM · {weightUnit}</span>
             </div>
 
             <div className="space-y-3">
@@ -600,7 +600,7 @@ export default function ProfileSettings() {
                             onBlur={() => saveLift(lift.key, liftDraft)}
                             className="w-16 bg-grappler-900 border border-primary-500/50 rounded px-2 py-0.5 text-xs text-right text-grappler-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
-                          <span className="text-[10px] text-grappler-500">{weightUnit}</span>
+                          <span className="text-xs text-grappler-500">{weightUnit}</span>
                         </div>
                       ) : (
                         <button
@@ -645,7 +645,7 @@ export default function ProfileSettings() {
               const liftCount = user.trainingDays?.length || 0;
               const combatCount = new Set((user.combatTrainingDays || []).map(d => d.day)).size;
               const allActive = new Set([...(user.trainingDays || []), ...(user.combatTrainingDays || []).map(d => d.day)]);
-              return <span className="text-[10px] text-grappler-500 ml-auto">{liftCount}L · {combatCount}C · {7 - allActive.size}R</span>;
+              return <span className="text-xs text-grappler-500 ml-auto">{liftCount}L · {combatCount}C · {7 - allActive.size}R</span>;
             })()}
           </div>
 
@@ -671,7 +671,7 @@ export default function ProfileSettings() {
                     updateUser({ combatTrainingDays: next });
                   }}
                   className={cn(
-                    'w-10 h-10 rounded-xl text-[11px] font-semibold transition-all active:scale-90',
+                    'w-10 h-10 rounded-xl text-xs font-semibold transition-all active:scale-90',
                     isBoth ? 'bg-gradient-to-br from-green-500 to-purple-500 text-white shadow-lg shadow-green-500/20'
                       : isLift ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
                       : hasCombat ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30'
@@ -690,13 +690,13 @@ export default function ProfileSettings() {
               { color: 'bg-purple-500/30 ring-1 ring-purple-500/50', label: 'Combat' },
               { color: 'bg-gradient-to-br from-green-500 to-purple-500', label: 'Both' },
             ].map(l => (
-              <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-grappler-400">
+              <div key={l.label} className="flex items-center gap-1.5 text-xs text-grappler-400">
                 <div className={cn('w-2 h-2 rounded', l.color)} />
                 {l.label}
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-grappler-600 text-center mt-1.5">Tap = lift · Long-press = combat</p>
+          <p className="text-xs text-grappler-600 text-center mt-1.5">Tap = lift · Long-press = combat</p>
         </motion.div>
       )}
 
@@ -829,7 +829,7 @@ export default function ProfileSettings() {
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-grappler-600 mt-1.5">Bodyweight always included</p>
+                <p className="text-xs text-grappler-600 mt-1.5">Bodyweight always included</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -890,7 +890,7 @@ export default function ProfileSettings() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-grappler-100">{opt.label}</p>
-                  <p className="text-[10px] text-grappler-400">{opt.desc}</p>
+                  <p className="text-xs text-grappler-400">{opt.desc}</p>
                 </div>
                 {selected && <Check className="w-4 h-4 text-primary-400 flex-shrink-0" />}
               </button>
@@ -956,7 +956,7 @@ export default function ProfileSettings() {
                   <div className="w-4 h-4 rounded-full" style={{ background: theme.colors[0] }} />
                   <div className="w-4 h-4 rounded-full" style={{ background: theme.colors[1] }} />
                 </div>
-                <span className={cn('text-[10px] font-medium', isActive ? 'text-primary-400' : 'text-grappler-500')}>
+                <span className={cn('text-xs font-medium', isActive ? 'text-primary-400' : 'text-grappler-500')}>
                   {theme.label}
                 </span>
               </button>
@@ -1073,7 +1073,7 @@ export default function ProfileSettings() {
                 <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
                 <p className="text-xs text-amber-400 font-medium">Data Recovery</p>
               </div>
-              <p className="text-[11px] text-grappler-500 mb-2">Scan the database if your data disappeared.</p>
+              <p className="text-xs text-grappler-500 mb-2">Scan the database if your data disappeared.</p>
 
               {recoverStatus === 'idle' && (
                 <button onClick={handleScanForData}
@@ -1090,10 +1090,10 @@ export default function ProfileSettings() {
                 <div className="space-y-2">
                   <div className="bg-grappler-900/50 rounded-xl p-2.5 space-y-1">
                     <p className="text-xs font-medium text-green-400">Found:</p>
-                    {recoverStats.hasProfile && <p className="text-[10px] text-grappler-300">&#10003; Profile</p>}
-                    {(recoverStats.workoutLogs ?? 0) > 0 && <p className="text-[10px] text-grappler-300">&#10003; {recoverStats.workoutLogs} workout logs</p>}
-                    {(recoverStats.mesocycles ?? 0) > 0 && <p className="text-[10px] text-grappler-300">&#10003; {recoverStats.mesocycles} programs</p>}
-                    {recoverStats.hasGamification && <p className="text-[10px] text-grappler-300">&#10003; Gamification</p>}
+                    {recoverStats.hasProfile && <p className="text-xs text-grappler-300">&#10003; Profile</p>}
+                    {(recoverStats.workoutLogs ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.workoutLogs} workout logs</p>}
+                    {(recoverStats.mesocycles ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.mesocycles} programs</p>}
+                    {recoverStats.hasGamification && <p className="text-xs text-grappler-300">&#10003; Gamification</p>}
                   </div>
                   <button onClick={handleRestoreData}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-500/10 text-green-400 text-xs font-medium ring-1 ring-green-500/20">
@@ -1112,12 +1112,12 @@ export default function ProfileSettings() {
                 </div>
               )}
               {recoverStatus === 'nothing' && (
-                <p className="text-[10px] text-grappler-500 py-1">No recoverable data found.</p>
+                <p className="text-xs text-grappler-500 py-1">No recoverable data found.</p>
               )}
               {recoverStatus === 'error' && (
                 <div className="space-y-1">
-                  <p className="text-[10px] text-red-400">Scan failed.</p>
-                  <button onClick={() => setRecoverStatus('idle')} className="text-[10px] text-amber-400 underline">Retry</button>
+                  <p className="text-xs text-red-400">Scan failed.</p>
+                  <button onClick={() => setRecoverStatus('idle')} className="text-xs text-amber-400 underline">Retry</button>
                 </div>
               )}
             </div>
@@ -1240,11 +1240,11 @@ function VersionFooter() {
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-3 h-3 text-primary-400" />
                     <span className="text-xs font-mono font-bold text-primary-400">v{ver.version}</span>
-                    <span className="text-[10px] text-grappler-500">{ver.releasedAt}</span>
+                    <span className="text-xs text-grappler-500">{ver.releasedAt}</span>
                   </div>
                   <ul className="space-y-1 pl-5">
                     {ver.highlights.map((h, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[10px] text-grappler-500">
+                      <li key={i} className="flex items-start gap-2 text-xs text-grappler-500">
                         <ChevronRight className="w-2.5 h-2.5 text-grappler-600 flex-shrink-0 mt-0.5" />
                         {h}
                       </li>

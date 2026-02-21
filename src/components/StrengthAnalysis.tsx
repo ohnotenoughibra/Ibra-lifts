@@ -410,7 +410,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                               </div>
                               <span className="text-sm font-medium text-grappler-100">{acc.name}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-[11px]">
+                            <div className="flex items-center gap-2 text-xs">
                               <span className="px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300 font-mono">{acc.sets}</span>
                               <span className="px-1.5 py-0.5 rounded bg-grappler-700 text-grappler-300 font-mono">RPE {acc.rpe}</span>
                             </div>

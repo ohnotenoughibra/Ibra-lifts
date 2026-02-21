@@ -249,7 +249,7 @@ function ReadinessCard() {
                       className="w-full group"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] w-[72px] text-left truncate text-grappler-400 group-hover:text-grappler-200 transition-colors">
+                        <span className="text-xs w-[72px] text-left truncate text-grappler-400 group-hover:text-grappler-200 transition-colors">
                           {f.label}
                         </span>
                         <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
@@ -261,7 +261,7 @@ function ReadinessCard() {
                           />
                         </div>
                         <span className={cn(
-                          'text-[11px] font-mono w-6 text-right',
+                          'text-xs font-mono w-6 text-right',
                           f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
                         )}>
                           {f.score}
@@ -427,6 +427,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
   const cycleLogs = useAppStore(s => s.cycleLogs);
+  const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
+  const confidenceLedger = useAppStore(s => s.confidenceLedger);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
@@ -1615,6 +1617,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </motion.div>
           )}
 
+          {/* Mental check-in nudge */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.6, duration: 0.3 }}
+            onClick={() => onNavigate('fighters_mind')}
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 mb-2 bg-violet-500/10 border border-violet-500/20 text-left hover:bg-violet-500/15 transition-colors"
+          >
+            <Brain className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+            <p className="text-xs text-violet-300">How&apos;s the mind? Log a deeper check-in</p>
+            <ChevronRight className="w-3 h-3 text-violet-400/50 ml-auto flex-shrink-0" />
+          </motion.button>
+
           {/* Forward look */}
           {directive.forwardLook && (
             <motion.div
@@ -1624,7 +1639,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               className="flex items-center gap-2 pt-2 border-t border-grappler-700/40"
             >
               <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-              <p className="text-[11px] text-grappler-400">{directive.forwardLook}</p>
+              <p className="text-xs text-grappler-400">{directive.forwardLook}</p>
             </motion.div>
           )}
 
@@ -1635,9 +1650,44 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               transition={{ delay: 1.8, duration: 0.3 }}
               className="flex items-center gap-2 mt-3"
             >
-              <span className="text-[10px] text-grappler-500">Block</span>
+              <span className="text-xs text-grappler-500">Block</span>
               <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
               <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+            </motion.div>
+          )}
+
+          {/* Contextual tool suggestions — based on what just happened */}
+          {lastCompletedWorkout && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.0, duration: 0.3 }}
+              className="flex gap-2 mt-3 pt-3 border-t border-grappler-700/30 overflow-x-auto"
+            >
+              {(() => {
+                const suggestions: { id: string; label: string; icon: React.ElementType; reason: string }[] = [];
+                const log = lastCompletedWorkout.log;
+                const streak = lastCompletedWorkout.newStreak;
+                // High RPE → recovery
+                if (log.overallRPE >= 8) suggestions.push({ id: 'recovery', label: 'Recovery', icon: Shield, reason: 'Heavy session' });
+                // PR → strength analysis
+                if (lastCompletedWorkout.hadPR) suggestions.push({ id: 'strength', label: 'Strength', icon: TrendingUp, reason: 'New PR' });
+                // 5+ day streak → journal
+                if (streak >= 5) suggestions.push({ id: 'training_journal', label: 'Journal', icon: Calendar, reason: `${streak}d streak` });
+                // Always show fighters mind
+                suggestions.push({ id: 'fighters_mind', label: 'Mind', icon: Brain, reason: 'Reflect' });
+                return suggestions.slice(0, 3).map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => onNavigate(s.id as OverlayView)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-grappler-800/60 border border-grappler-700/30 hover:bg-grappler-800 transition-colors flex-shrink-0"
+                  >
+                    <s.icon className="w-3 h-3 text-grappler-400" />
+                    <span className="text-xs text-grappler-300">{s.label}</span>
+                    <span className="text-[10px] text-grappler-600">{s.reason}</span>
+                  </button>
+                ));
+              })()}
             </motion.div>
           )}
         </motion.div>
@@ -1689,7 +1739,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <div className="flex items-center gap-2 mb-1">
                 {allCombatLogged ? <Check className="w-4 h-4 text-green-400" /> : <Shield className="w-4 h-4 text-purple-400" />}
                 {directive.todayCombatSessions.length === 1 && (
-                  <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1',
+                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-semibold ml-1',
                     /hard|sparring|competition/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
                     /moderate/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
                     'bg-green-500/12 text-green-400 border border-green-500/20'
@@ -1697,7 +1747,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 )}
                 {mesocycleProgress && (
                   <div className="flex items-center gap-2 ml-auto">
-                    <span className="text-[10px] text-grappler-500">Block</span>
+                    <span className="text-xs text-grappler-500">Block</span>
                     <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
                       <div className="h-full bg-purple-400/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} />
                     </div>
@@ -1724,7 +1774,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       <p className="text-sm font-semibold text-grappler-200">{s.type}</p>
                       <p className="text-xs text-grappler-400">{s.duration > 0 ? `${s.duration}min` : 'Open mat'}</p>
                     </div>
-                    <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold',
+                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-semibold',
                       /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
                       /moderate/i.test(s.intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
                       'bg-green-500/12 text-green-400 border border-green-500/20'
@@ -1877,7 +1927,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               </div>
               {mesocycleProgress && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-grappler-500">Block</span>
+                  <span className="text-xs text-grappler-500">Block</span>
                   <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
                     <div className={cn('h-full rounded-full', directive.todayType === 'both' ? 'bg-purple-400/60' : 'bg-primary-400/60')} style={{ width: `${mesocycleProgress.percent}%` }} />
                   </div>
@@ -1890,7 +1940,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             <div className="px-5 pb-3">
               <h2 className="text-xl font-black text-grappler-50 leading-tight">{nextWorkout.name}</h2>
               {directive.sessionLabel && (
-                <p className="text-[10px] text-grappler-500 mt-0.5">{directive.sessionLabel}</p>
+                <p className="text-xs text-grappler-500 mt-0.5">{directive.sessionLabel}</p>
               )}
               <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
             </div>
@@ -1899,7 +1949,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             {directive.overloadTeaser && (
               <div className="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/8 border border-green-500/15">
                 <TrendingUp className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                <p className="text-[11px] text-green-300 font-semibold">{directive.overloadTeaser}</p>
+                <p className="text-xs text-green-300 font-semibold">{directive.overloadTeaser}</p>
               </div>
             )}
 
@@ -1967,7 +2017,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 <div key={i} className="flex items-center gap-2.5 bg-grappler-800/40 border border-purple-500/15 rounded-lg px-3 py-2">
                   {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400/60 flex-shrink-0" />}
                   <p className="text-xs text-grappler-300 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''}</p>
-                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                  <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium',
                     /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400' :
                     /moderate/i.test(s.intensity) ? 'bg-yellow-500/15 text-yellow-400' :
                     'bg-green-500/15 text-green-400'
@@ -2207,6 +2257,75 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         weightUnit={weightUnit}
         nextBadgeDistance={nextBadgeDistance}
       />
+
+      {/* ─── Weekly Mental Digest — Fighter's Mind summary card ─── */}
+      {mentalCheckIns.length >= 3 && (() => {
+        const now = Date.now();
+        const weekMs = 7 * 24 * 60 * 60 * 1000;
+        const thisWeek = mentalCheckIns.filter(c => now - new Date(c.timestamp).getTime() < weekMs);
+        const prevWeek = mentalCheckIns.filter(c => {
+          const age = now - new Date(c.timestamp).getTime();
+          return age >= weekMs && age < weekMs * 2;
+        });
+        if (thisWeek.length === 0) return null;
+        const score = (c: { energy: number; focus: number; confidence: number; composure: number }) =>
+          Math.round(((c.energy + c.focus + c.confidence + c.composure) / 20) * 100);
+        const avgScore = Math.round(thisWeek.map(score).reduce((a, b) => a + b, 0) / thisWeek.length);
+        const prevAvgScore = prevWeek.length > 0
+          ? Math.round(prevWeek.map(score).reduce((a, b) => a + b, 0) / prevWeek.length) : null;
+        const delta = prevAvgScore !== null ? avgScore - prevAvgScore : null;
+        const dims = ['energy', 'focus', 'confidence', 'composure'] as const;
+        const strongest = dims.reduce((best, d) => {
+          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
+          return avg > best.avg ? { dim: d, avg } : best;
+        }, { dim: 'energy' as typeof dims[number], avg: 0 });
+        const weakest = dims.reduce((worst, d) => {
+          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
+          return avg < worst.avg ? { dim: d, avg } : worst;
+        }, { dim: 'energy' as typeof dims[number], avg: 6 });
+        const recentConfidence = confidenceLedger.filter(e => now - new Date(e.date).getTime() < weekMs).length;
+
+        return (
+          <button
+            onClick={() => onNavigate('fighters_mind')}
+            className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 rounded-xl p-3.5 text-left active:scale-[0.99] transition-all"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-violet-400" />
+                <span className="text-xs font-bold text-violet-300 uppercase tracking-wide">Mental State</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn('text-sm font-black', avgScore >= 70 ? 'text-emerald-400' : avgScore >= 50 ? 'text-yellow-400' : 'text-red-400')}>
+                  {avgScore}%
+                </span>
+                {delta !== null && delta !== 0 && (
+                  <span className={cn('text-xs font-medium', delta > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-grappler-400">
+              <span>{thisWeek.length} check-in{thisWeek.length !== 1 ? 's' : ''}</span>
+              <span className="text-grappler-600">·</span>
+              <span>Strongest: <span className="text-grappler-200 capitalize">{strongest.dim}</span></span>
+              {weakest.avg < 3 && (
+                <>
+                  <span className="text-grappler-600">·</span>
+                  <span>Watch: <span className="text-red-400 capitalize">{weakest.dim}</span></span>
+                </>
+              )}
+              {recentConfidence > 0 && (
+                <>
+                  <span className="text-grappler-600">·</span>
+                  <span>{recentConfidence} win{recentConfidence !== 1 ? 's' : ''}</span>
+                </>
+              )}
+            </div>
+          </button>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
           COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed, tools dock
@@ -2527,7 +2646,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   <div className="w-12 h-12 rounded-2xl bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
                     <Icon className={cn('w-5 h-5', textColor)} />
                   </div>
-                  <span className="text-[11px] text-grappler-400 font-medium truncate w-full text-center">{tool.label}</span>
+                  <span className="text-xs text-grappler-400 font-medium truncate w-full text-center">{tool.label}</span>
                 </button>
                 {dockEditMode && (
                   <button
@@ -2558,7 +2677,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               )}>
                 <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
               </div>
-              <span className="text-[11px] text-transparent select-none">&nbsp;</span>
+              <span className="text-xs text-transparent select-none">&nbsp;</span>
             </button>
           ))}
         </div>

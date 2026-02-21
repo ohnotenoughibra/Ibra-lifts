@@ -222,21 +222,21 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
               {/* ACWR */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
-                  <p className="text-[11px] text-grappler-400 mb-0.5">Acute (7d)</p>
+                  <p className="text-xs text-grappler-400 mb-0.5">Acute (7d)</p>
                   <p className="text-base font-bold text-grappler-100">
                     {metrics.acwr.acute > 1000 ? `${(metrics.acwr.acute / 1000).toFixed(1)}k` : metrics.acwr.acute}
                   </p>
                   <p className="text-xs text-grappler-400">sRPE</p>
                 </div>
                 <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
-                  <p className="text-[11px] text-grappler-400 mb-0.5">Chronic (28d)</p>
+                  <p className="text-xs text-grappler-400 mb-0.5">Chronic (28d)</p>
                   <p className="text-base font-bold text-grappler-100">
                     {metrics.acwr.chronic > 1000 ? `${(metrics.acwr.chronic / 1000).toFixed(1)}k` : metrics.acwr.chronic}
                   </p>
                   <p className="text-xs text-grappler-400">sRPE/wk</p>
                 </div>
                 <div className="bg-grappler-900/60 rounded-lg p-2.5 text-center">
-                  <p className="text-[11px] text-grappler-400 mb-0.5">A:C Ratio</p>
+                  <p className="text-xs text-grappler-400 mb-0.5">A:C Ratio</p>
                   <p className="text-base font-bold" style={{ color: getACWRColor(metrics.acwr.status) }}>
                     {metrics.acwr.ratio.toFixed(2)}
                   </p>
@@ -299,7 +299,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 <div className="bg-grappler-900/60 rounded-lg p-3">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-[11px] text-grappler-400">High-Intensity</span>
+                    <span className="text-xs text-grappler-400">High-Intensity</span>
                   </div>
                   <span className="text-xl font-bold text-grappler-100">{metrics.highIntensityMinutes}</span>
                   <span className="text-xs text-grappler-400 ml-1">min</span>
@@ -308,7 +308,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                 <div className="bg-grappler-900/60 rounded-lg p-3">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Shield className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="text-[11px] text-grappler-400">Mat Time</span>
+                    <span className="text-xs text-grappler-400">Mat Time</span>
                   </div>
                   <span className="text-xl font-bold text-grappler-100">{metrics.matTimeMinutes}</span>
                   <span className="text-xs text-grappler-400 ml-1">min</span>

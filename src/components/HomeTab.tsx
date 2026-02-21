@@ -453,7 +453,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   });
 
   // ─── Pinned tools dock — synced with Explore tab via localStorage ───
-  const DOCK_SLOTS = 4;
+  const DOCK_SLOTS = 6;
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[]; }
@@ -2509,13 +2509,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 )}
               </div>
 
-              <div className="flex items-center justify-around">
+              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
                 {dockTools.map((tool, idx) => {
                   const Icon = tool.icon;
                   const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
-                  const glowBase = textColor.match(/text-(\w+)-/)?.[1] || 'primary';
                   return (
-                    <div key={tool.id} className="flex flex-col items-center gap-1.5 flex-1 relative">
+                    <div key={tool.id} className="flex flex-col items-center gap-1.5 relative">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2564,7 +2563,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       setDockPickerSlot(pinnedIds.length + i);
                       setDockPickerOpen(true);
                     }}
-                    className={cn('flex flex-col items-center gap-1.5 flex-1 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
+                    className={cn('flex flex-col items-center gap-1.5 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
                     style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s`, touchAction: 'manipulation' } : { touchAction: 'manipulation' }}
                   >
                     <div className={cn(

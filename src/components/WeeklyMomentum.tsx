@@ -103,10 +103,12 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
   }, [props.workoutLogs, props.trainingSessions, props.liftDays, props.combatDays, startOfWeek, todayMonIdx]);
 
   // ─── Smart headline ───
+  const bonus = Math.max(0, props.weekDone - props.weekTarget);
   const headline = useMemo(() => {
     const remaining = Math.max(0, props.weekTarget - props.weekDone);
     const pct = props.weekTarget > 0 ? props.weekDone / props.weekTarget : 0;
 
+    if (bonus > 0) return `Going beyond. +${bonus} bonus session${bonus > 1 ? 's' : ''}.`;
     if (pct >= 1) return 'Week complete. Recovery earned.';
     if (remaining === 1 && todayMonIdx >= 4) return 'One more to close out the week.';
     if (remaining === 1) return 'One session away from a full week.';
@@ -115,7 +117,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
     if (props.weekDone === 0 && todayMonIdx >= 3) return `${remaining} sessions — still time to make this week count.`;
     if (todayMonIdx >= 5) return remaining > 0 ? `${remaining} left — don't let the weekend steal your gains.` : 'Strong finish. Enjoy the rest.';
     return `${remaining} to go. Tracking well.`;
-  }, [props.weekDone, props.weekTarget, todayMonIdx]);
+  }, [props.weekDone, props.weekTarget, todayMonIdx, bonus]);
 
   // ─── Volume deltas (for expanded view only) ───
   const volumeDelta = useMemo(() => {
@@ -149,10 +151,14 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
             )}
 
             {/* The bar */}
-            <div className="flex-1 h-3 rounded-full bg-grappler-800 overflow-hidden">
+            <div className={cn(
+              'flex-1 h-3 rounded-full bg-grappler-800 overflow-hidden',
+              bonus > 0 && 'ring-1 ring-emerald-400/40 shadow-[0_0_8px_rgba(52,211,153,0.25)]',
+            )}>
               <motion.div
                 className={cn(
                   'h-full rounded-full',
+                  bonus > 0 ? 'bg-gradient-to-r from-emerald-500 via-green-400 to-cyan-400' :
                   pct >= 1 ? 'bg-gradient-to-r from-green-500 to-emerald-400' :
                   pct >= 0.5 ? 'bg-gradient-to-r from-primary-500 to-primary-400' :
                   'bg-primary-600'
@@ -164,7 +170,11 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
             </div>
 
             <span className="text-sm font-black text-grappler-100 tabular-nums flex-shrink-0">
-              {props.weekDone}<span className="text-grappler-500 font-medium">/{props.weekTarget}</span>
+              {props.weekDone}
+              <span className="text-grappler-500 font-medium">/{props.weekTarget}</span>
+              {bonus > 0 && (
+                <span className="text-emerald-400 font-bold text-xs ml-0.5">+{bonus}</span>
+              )}
             </span>
           </div>
 

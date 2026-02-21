@@ -95,6 +95,20 @@ const STORAGE_KEY_USAGE = 'roots-explore-usage';
 const STORAGE_KEY_PIN_HINT = 'roots-explore-pin-hint-shown';
 const MAX_RECENT = 4;
 const MAX_PINNED = 4;
+const PIN_SYNC_EVENT = 'roots-pins-changed';
+
+/** Read pins fresh from localStorage — never stale */
+export function readPins(): string[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_PINNED) || '[]') as string[]; }
+  catch { return []; }
+}
+
+/** Write pins + fire sync event so all mounted components update */
+export function writePins(ids: string[]) {
+  localStorage.setItem(STORAGE_KEY_PINNED, JSON.stringify(ids));
+  window.dispatchEvent(new Event(PIN_SYNC_EVENT));
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -122,14 +136,22 @@ interface ExploreTabProps {
 export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [search, setSearch] = useState('');
   const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
-  const [pinnedIds, setPinnedIds] = useState<string[]>(() => readJson(STORAGE_KEY_PINNED, []));
+  const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
   const [pinHintShown, setPinHintShown] = useState(() => readJson(STORAGE_KEY_PIN_HINT, false));
 
-  // Persist pinned to localStorage
-  useEffect(() => { localStorage.setItem(STORAGE_KEY_PINNED, JSON.stringify(pinnedIds)); }, [pinnedIds]);
+  // Sync pins with HomeTab — event-based, no polling
+  useEffect(() => {
+    const sync = () => setPinnedIds(readPins());
+    window.addEventListener(PIN_SYNC_EVENT, sync);
+    const onVisible = () => { if (!document.hidden) sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener(PIN_SYNC_EVENT, sync);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
-  // Show pin hint after 2nd tool use if never pinned anything
   const shouldShowPinHint = !pinHintShown && recentIds.length >= 2 && pinnedIds.length === 0;
 
   const handleNavigate = useCallback((id: NonNullable<OverlayView>) => {
@@ -146,11 +168,15 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     onNavigate(id);
   }, [onNavigate]);
 
+  // Always read fresh from localStorage — never stale closures
   const togglePin = useCallback((id: string) => {
     hapticMedium();
-    setPinnedIds(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id].slice(0, MAX_PINNED)
-    );
+    const current = readPins();
+    const next = current.includes(id)
+      ? current.filter(p => p !== id)
+      : [...current, id].slice(0, MAX_PINNED);
+    writePins(next);
+    setPinnedIds(next);
     if (!pinHintShown) {
       setPinHintShown(true);
       localStorage.setItem(STORAGE_KEY_PIN_HINT, JSON.stringify(true));

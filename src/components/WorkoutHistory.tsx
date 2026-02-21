@@ -22,14 +22,18 @@ import {
   ChevronRight,
   FileDown,
   Plus,
+  List,
+  CalendarDays,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
 import { SetLog, ExerciseLog, MuscleGroup } from '@/lib/types';
 import { exercises as exerciseLibrary, getExerciseById } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
+import TrainingCalendar from './TrainingCalendar';
 
 export default function WorkoutHistory() {
   const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog } = useAppStore();
+  const [historyView, setHistoryView] = useState<'list' | 'calendar'>('list');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
@@ -385,16 +389,48 @@ export default function WorkoutHistory() {
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-bold text-grappler-50">Workout History</h2>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => exportWorkoutHistoryPdf(workoutLogs, user?.weightUnit || 'lbs')}
-            className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
-            title="Export as PDF"
-          >
-            <FileDown className="w-4 h-4" />
-          </button>
+          {/* List / Calendar toggle */}
+          <div className="flex bg-grappler-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setHistoryView('list')}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                historyView === 'list' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+              )}
+              title="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setHistoryView('calendar')}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                historyView === 'calendar' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+              )}
+              title="Calendar view"
+            >
+              <CalendarDays className="w-4 h-4" />
+            </button>
+          </div>
+          {historyView === 'list' && (
+            <button
+              onClick={() => exportWorkoutHistoryPdf(workoutLogs, user?.weightUnit || 'lbs')}
+              className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
+              title="Export as PDF"
+            >
+              <FileDown className="w-4 h-4" />
+            </button>
+          )}
           <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
         </div>
       </div>
+
+      {/* Calendar View */}
+      {historyView === 'calendar' && <TrainingCalendar />}
+
+      {/* List View */}
+      {historyView === 'list' && (<>
+
 
       {/* Progress Projection */}
       {progressProjections.length > 0 && (
@@ -1022,6 +1058,7 @@ export default function WorkoutHistory() {
           </motion.div>
         )}
       </AnimatePresence>
+      </>)}
     </div>
   );
 }

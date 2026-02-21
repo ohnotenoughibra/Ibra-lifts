@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -45,9 +45,10 @@ type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency' | 'recover
 
 interface ProgressChartsProps {
   onViewReport?: (mesoId: string) => void;
+  children?: React.ReactNode;
 }
 
-export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {}) {
+export default function ProgressCharts({ onViewReport, children }: ProgressChartsProps) {
   const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');
@@ -146,9 +147,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     const distribution: Record<string, number> = {};
 
     const muscleNameMap: Record<string, string> = {
-      chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Arms',
-      triceps: 'Arms', quadriceps: 'Legs', hamstrings: 'Legs', glutes: 'Legs',
-      calves: 'Legs', core: 'Core', forearms: 'Arms', traps: 'Back',
+      chest: 'Chest', back: 'Back', shoulders: 'Shoulders', biceps: 'Biceps',
+      triceps: 'Triceps', quadriceps: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes',
+      calves: 'Calves', core: 'Core', forearms: 'Forearms', traps: 'Traps',
       full_body: 'Full Body'
     };
 
@@ -511,7 +512,42 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
     return cards;
   }, [strengthData, volumeData, workoutLogs, weightUnit]);
 
-  const [showCharts, setShowCharts] = useState(false);
+  // Extract named analytics children for context-pairing under sub-tabs.
+  // Children are rendered by display name convention:
+  //   SyntheticRecoveryCard → recovery tab
+  //   VolumeDashboard → volume tab
+  //   PRTimelineCard → strength tab
+  //   PlateauAnalysisCard → strength tab
+  //   CombatBenchmarksCard → strength tab
+  //   TrainingTimeline → frequency tab
+  //   BodyRecompCard → volume tab
+  const childArray = React.Children.toArray(children);
+  const getChildByName = (name: string) =>
+    childArray.find(c => React.isValidElement(c) && (c.type as { name?: string })?.name === name);
+
+  const strengthExtras = (
+    <>
+      {getChildByName('PRTimelineCard')}
+      {getChildByName('PlateauAnalysisCard')}
+      {getChildByName('CombatBenchmarksCard')}
+    </>
+  );
+  const volumeExtras = (
+    <>
+      {getChildByName('VolumeDashboard')}
+      {getChildByName('BodyRecompCard')}
+    </>
+  );
+  const frequencyExtras = (
+    <>
+      {getChildByName('TrainingTimeline')}
+    </>
+  );
+  const recoveryExtras = (
+    <>
+      {getChildByName('SyntheticRecoveryCard')}
+    </>
+  );
 
   // SVG Sparkline component
   const Sparkline = ({ data, color, width = 80, height = 28 }: { data: number[]; color: string; width?: number; height?: number }) => {
@@ -589,7 +625,7 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
           {insightCards.map((card) => (
             <button
               key={card.id}
-              onClick={() => { setActiveView(card.chartView); setShowCharts(true); }}
+              onClick={() => { setActiveView(card.chartView); }}
               className="w-full card p-4 flex items-center gap-3 text-left hover:bg-grappler-700/30 transition-colors"
             >
               <div className="flex-1 min-w-0">
@@ -636,41 +672,24 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
         ))}
       </div>
 
-      {/* Charts Toggle */}
-      <button
-        onClick={() => setShowCharts(!showCharts)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
-      >
-        <span className="text-sm font-medium text-grappler-300">{showCharts ? 'Hide' : 'View'} Detailed Charts</span>
-        <ChevronRight className={cn('w-4 h-4 text-grappler-400 transition-transform', showCharts && 'rotate-90')} />
-      </button>
-
-      {/* Chart Tabs + Charts (collapsible) */}
-      <AnimatePresence>
-        {showCharts && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden space-y-4"
+      {/* Chart Sub-Tabs */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveView(tab.id as ChartView)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
+              activeView === tab.id
+                ? 'bg-primary-500 text-white'
+                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+            )}
           >
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveView(tab.id as ChartView)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
-                    activeView === tab.id
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
-                  )}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Charts */}
       <div className="card p-4">
@@ -692,7 +711,9 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                       }}
                     />
                     <Legend />
-                    {Object.entries(strengthData).slice(0, 4).map(([exercise, data], i) => (
+                    {Object.entries(strengthData)
+                      .sort((a, b) => b[1].length - a[1].length)
+                      .slice(0, 4).map(([exercise, data], i) => (
                       <Line
                         key={exercise}
                         data={data}
@@ -727,6 +748,8 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 <p className="text-xs text-grappler-600">Complete a few workouts to track your estimated 1RM over time</p>
               </div>
             )}
+            {/* Context-paired analytics for Strength */}
+            <div className="mt-4 space-y-4">{strengthExtras}</div>
           </div>
         )}
 
@@ -781,6 +804,8 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 <p className="text-xs text-grappler-600">Log sets and reps to see your weekly volume trends</p>
               </div>
             )}
+            {/* Context-paired analytics for Volume */}
+            <div className="mt-4 space-y-4">{volumeExtras}</div>
           </div>
         )}
 
@@ -864,6 +889,8 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 <p className="text-xs text-grappler-600">Train consistently to see your workout frequency over time</p>
               </div>
             )}
+            {/* Context-paired analytics for Frequency */}
+            <div className="mt-4 space-y-4">{frequencyExtras}</div>
           </div>
         )}
 
@@ -1018,6 +1045,8 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
                 <p className="text-xs text-grappler-600">Connect Whoop or add manual entries to track recovery trends</p>
               </div>
             )}
+            {/* Context-paired analytics for Recovery */}
+            <div className="mt-4 space-y-4">{recoveryExtras}</div>
           </div>
         )}
       </div>
@@ -1051,9 +1080,6 @@ export default function ProgressCharts({ onViewReport }: ProgressChartsProps = {
           </div>
         </div>
       )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

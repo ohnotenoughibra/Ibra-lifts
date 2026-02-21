@@ -1,4 +1,5 @@
 import { KnowledgeArticle, KnowledgeTip, ContentCategory } from './types';
+import type { Insight } from './knowledge-engine';
 
 // In-workout tips that pop up during sessions
 export const workoutTips: KnowledgeTip[] = [
@@ -2079,6 +2080,439 @@ export function searchArticlesByTag(tag: string): KnowledgeArticle[] {
 export function getFeaturedArticle(): KnowledgeArticle {
   return knowledgeArticles[Math.floor(Math.random() * knowledgeArticles.length)];
 }
+
+// ── Contextual Insights ─────────────────────────────────────────────────────
+// Bite-size teaching moments surfaced in the HomeTab feed.
+// Each one should take ≤15 seconds to read and leave you smarter.
+
+export const insights: Insight[] = [
+  // ─── MUSCLE SCIENCE ───────────────────────────────────────────────────────
+  {
+    id: 'ins-mps-window',
+    headline: 'The anabolic window is wider than you think',
+    body: 'Muscle protein synthesis stays elevated for 24-48 hours post-training. The "30-minute window" is a myth — total daily protein matters far more than timing.',
+    category: 'muscle_science',
+    context: ['post_workout', 'lift_day'],
+    tags: ['protein', 'recovery', 'myth-busting'],
+    source: 'Schoenfeld & Aragon, 2018 meta-analysis'
+  },
+  {
+    id: 'ins-stretch-hypertrophy',
+    headline: 'Stretched positions build more muscle',
+    body: 'Training at long muscle lengths (deep stretch under load) produces ~2x more hypertrophy than shortened positions. Go deep on RDLs, incline curls, and overhead tricep work.',
+    category: 'muscle_science',
+    context: ['lift_day', 'any'],
+    tags: ['hypertrophy', 'technique', 'research'],
+    source: 'Maeo et al., 2022; Pedrosa et al., 2023'
+  },
+  {
+    id: 'ins-fiber-types',
+    headline: 'Your muscles are a spectrum',
+    body: 'Type I fibers (slow-twitch) resist fatigue. Type II (fast-twitch) produce power but fatigue fast. Combat athletes need both — heavy compounds train Type II, higher reps train Type I.',
+    category: 'muscle_science',
+    context: ['lift_day', 'combat_day'],
+    tags: ['muscle fibers', 'physiology']
+  },
+  {
+    id: 'ins-neural-gains',
+    headline: 'First 6 weeks of strength are in your brain',
+    body: 'Early strength gains come from neural adaptations — your nervous system learning to recruit more motor units simultaneously. True muscle growth kicks in around week 6-8.',
+    category: 'muscle_science',
+    context: ['new_block', 'lift_day'],
+    tags: ['neural', 'beginner', 'adaptation']
+  },
+  {
+    id: 'ins-satellite-cells',
+    headline: 'Muscle memory is real biology',
+    body: 'Training creates permanent satellite cell nuclei in muscle fibers. Even after years of detraining, these nuclei remain — making regaining lost muscle 2-3x faster than building it new.',
+    category: 'muscle_science',
+    context: ['any'],
+    tags: ['muscle memory', 'detraining', 'comeback']
+  },
+  {
+    id: 'ins-eccentric-tendons',
+    headline: 'Slow eccentrics strengthen tendons',
+    body: 'Controlled lowering phases (3-4 seconds) build stronger, thicker tendons. This is especially important for grapplers and strikers who rely on connective tissue resilience.',
+    category: 'muscle_science',
+    context: ['lift_day', 'injured'],
+    tags: ['eccentric', 'tendon', 'injury prevention']
+  },
+
+  // ─── NUTRITION SCIENCE ────────────────────────────────────────────────────
+  {
+    id: 'ins-protein-per-meal',
+    headline: '~40g protein per meal is the sweet spot',
+    body: 'Recent research shows per-meal MPS maxes out around 40g for most people (not 20-30g as previously thought). But total daily intake still matters most — aim for 1.6-2.2g/kg.',
+    category: 'nutrition',
+    context: ['any'],
+    tags: ['protein', 'meal planning', 'macros'],
+    source: 'Trommelen et al., 2023'
+  },
+  {
+    id: 'ins-creatine',
+    headline: 'Creatine: the most studied supplement in history',
+    body: '3-5g daily of creatine monohydrate improves strength, power, and even cognitive function. No loading phase needed. No cycling needed. Works for everyone.',
+    category: 'nutrition',
+    context: ['any'],
+    tags: ['supplements', 'creatine', 'evidence-based'],
+    source: 'ISSN Position Stand, 2017'
+  },
+  {
+    id: 'ins-caffeine-timing',
+    headline: 'Caffeine peaks at 45-60 minutes',
+    body: 'For maximum training benefit, consume caffeine 45-60 minutes before your session. Effective dose: 3-6mg/kg bodyweight. Avoid within 8-10 hours of sleep.',
+    category: 'nutrition',
+    context: ['lift_day', 'morning', 'combat_day'],
+    tags: ['caffeine', 'performance', 'timing']
+  },
+  {
+    id: 'ins-cut-protein-higher',
+    headline: 'Cutting? Raise your protein even higher',
+    body: 'During a caloric deficit, protein needs increase to preserve muscle. Aim for 2.3-3.1g/kg of lean body mass — significantly higher than during maintenance or bulking.',
+    category: 'nutrition',
+    context: ['cutting'],
+    tags: ['cutting', 'protein', 'muscle preservation'],
+    source: 'Helms et al., 2014'
+  },
+  {
+    id: 'ins-hydration-performance',
+    headline: '2% dehydration = 10-20% performance drop',
+    body: 'Even mild dehydration impairs strength, power, and cognitive function. For combat athletes, this is critical — reaction time and decision-making suffer first.',
+    category: 'nutrition',
+    context: ['any', 'combat_day'],
+    tags: ['hydration', 'performance', 'combat']
+  },
+  {
+    id: 'ins-fiber-satiety',
+    headline: 'Fiber is the secret weapon of every successful cut',
+    body: 'High-fiber foods (vegetables, legumes, whole grains) increase satiety with fewer calories. Aim for 25-40g/day. It also feeds gut bacteria that regulate metabolism.',
+    category: 'dieting',
+    context: ['cutting'],
+    tags: ['fiber', 'satiety', 'dieting']
+  },
+  {
+    id: 'ins-sodium-combat',
+    headline: 'Sodium isn\'t the enemy athletes think',
+    body: 'Active people lose 500-1000mg sodium per hour of training via sweat. Restricting sodium impairs muscle contractions and blood volume. Season your food — your body needs it.',
+    category: 'nutrition',
+    context: ['any', 'combat_day'],
+    tags: ['sodium', 'electrolytes', 'hydration']
+  },
+
+  // ─── RECOVERY SCIENCE ─────────────────────────────────────────────────────
+  {
+    id: 'ins-sleep-testosterone',
+    headline: 'Sleep is your #1 performance enhancer',
+    body: 'Sleeping <6 hours reduces testosterone by up to 15% and impairs muscle protein synthesis. 7-9 hours is non-negotiable. No supplement replaces adequate sleep.',
+    category: 'recovery',
+    context: ['rest_day', 'evening', 'low_readiness'],
+    tags: ['sleep', 'testosterone', 'hormones'],
+    source: 'Leproult & Van Cauter, 2011'
+  },
+  {
+    id: 'ins-deload-adaptation',
+    headline: 'Deloads are when you actually grow',
+    body: 'Training creates the stimulus. Deloading allows supercompensation — your body rebuilds stronger than before. Skipping deloads leads to accumulated fatigue, not more gains.',
+    category: 'recovery',
+    context: ['deload_week', 'rest_day'],
+    tags: ['deload', 'supercompensation', 'programming']
+  },
+  {
+    id: 'ins-active-recovery',
+    headline: 'Move on rest days — just not hard',
+    body: 'Light activity (walking, easy cycling, mobility work) on rest days increases blood flow to recovering muscles without adding training stress. 20-30 minutes of Zone 1 cardio is ideal.',
+    category: 'recovery',
+    context: ['rest_day'],
+    tags: ['active recovery', 'blood flow', 'rest day']
+  },
+  {
+    id: 'ins-cold-exposure',
+    headline: 'Cold plunges: great for recovery, bad for hypertrophy',
+    body: 'Cold water immersion reduces inflammation — helpful for combat athletes between sessions. But post-lifting, it blunts the inflammatory signaling needed for muscle growth. Time it strategically.',
+    category: 'recovery',
+    context: ['post_workout', 'combat_day'],
+    tags: ['cold plunge', 'inflammation', 'timing'],
+    source: 'Roberts et al., 2015'
+  },
+  {
+    id: 'ins-stress-recovery',
+    headline: 'Life stress is training stress',
+    body: 'Your body doesn\'t distinguish between gym stress and work/relationship stress. High life stress = reduced recovery capacity. Autoregulate — train lighter when life is heavy.',
+    category: 'recovery',
+    context: ['low_readiness', 'any'],
+    tags: ['stress', 'autoregulation', 'allostatic load']
+  },
+  {
+    id: 'ins-hrv-morning',
+    headline: 'HRV: your body\'s readiness signal',
+    body: 'Heart Rate Variability measures autonomic nervous system balance. Higher HRV = better recovered. Track it first thing in the morning, lying down, for consistent readings.',
+    category: 'recovery',
+    context: ['morning', 'any'],
+    tags: ['HRV', 'wearable', 'readiness']
+  },
+
+  // ─── PERIODIZATION & PROGRAMMING ─────────────────────────────────────────
+  {
+    id: 'ins-volume-landmarks',
+    headline: 'Know your volume landmarks',
+    body: 'MV (Maintenance Volume): ~6 sets/week to maintain. MEV: ~8-10 to grow minimally. MAV: 12-20 for optimal growth. MRV: beyond this, you can\'t recover. Train between MEV and MAV.',
+    category: 'periodization',
+    context: ['lift_day', 'new_block'],
+    tags: ['volume', 'sets', 'programming'],
+    source: 'Dr. Mike Israetel, RP Strength'
+  },
+  {
+    id: 'ins-rpe-autoregulation',
+    headline: 'RPE is autoregulation, not guessing',
+    body: 'RPE 7 = could do 3 more reps. RPE 8 = could do 2 more. RPE 9 = could do 1 more. RPE 10 = absolute failure. Most hypertrophy work should live at RPE 7-9.',
+    category: 'periodization',
+    context: ['lift_day'],
+    tags: ['RPE', 'autoregulation', 'intensity']
+  },
+  {
+    id: 'ins-frequency-matters',
+    headline: 'Frequency > volume per session',
+    body: 'Splitting 20 weekly sets across 3 sessions beats cramming them into 1. MPS peaks at ~5-10 sets per muscle per session. After that, junk volume creeps in.',
+    category: 'periodization',
+    context: ['lift_day', 'any'],
+    tags: ['frequency', 'volume', 'split'],
+    source: 'Schoenfeld et al., 2016'
+  },
+  {
+    id: 'ins-progressive-overload',
+    headline: 'Progressive overload has 4 levers',
+    body: 'More weight isn\'t the only way to progress. You can also add reps, add sets, reduce rest time, or improve technique (range of motion, tempo). Use all of them.',
+    category: 'periodization',
+    context: ['lift_day'],
+    tags: ['progressive overload', 'progression', 'strategy']
+  },
+  {
+    id: 'ins-undulating',
+    headline: 'Why undulating beats linear for fighters',
+    body: 'Daily undulating periodization (varying rep ranges each session) develops both strength and hypertrophy simultaneously. Perfect for combat athletes who can\'t dedicate whole blocks to one quality.',
+    category: 'periodization',
+    context: ['combat_day', 'lift_day'],
+    tags: ['DUP', 'undulating', 'combat athletes']
+  },
+
+  // ─── COMBAT SPORTS ────────────────────────────────────────────────────────
+  {
+    id: 'ins-grappling-strength',
+    headline: 'Grappling demands isometric strength',
+    body: 'Controlling an opponent requires sustained muscle contractions — isometric holds. Add paused reps, iso-holds, and farmer carries to build the "squeeze strength" grapplers need.',
+    category: 'grappling',
+    context: ['combat_day', 'lift_day'],
+    tags: ['isometric', 'grappling', 'grip']
+  },
+  {
+    id: 'ins-weight-cut-science',
+    headline: 'Water cuts work through osmosis',
+    body: 'Acute weight cuts manipulate sodium/water balance. Water loading → water restriction forces continued excretion via osmotic momentum. Never water cut more than 5-8% bodyweight.',
+    category: 'grappling',
+    context: ['fight_camp'],
+    tags: ['weight cut', 'competition', 'water'],
+  },
+  {
+    id: 'ins-striking-power',
+    headline: 'Punching power starts at the floor',
+    body: 'Force production for strikes follows the kinetic chain: feet → hips → core → shoulder → fist. Hip rotation generates ~50% of punch force. Train rotational power with med ball throws.',
+    category: 'striking',
+    context: ['combat_day', 'lift_day'],
+    tags: ['striking', 'power', 'kinetic chain']
+  },
+  {
+    id: 'ins-combat-conditioning',
+    headline: 'Rounds demand both energy systems',
+    body: 'A 5-minute MMA round uses aerobic capacity for sustained output and anaerobic power for explosive bursts. Train both: Zone 2 cardio (base) + interval sprints (top end).',
+    category: 'mma',
+    context: ['combat_day'],
+    tags: ['conditioning', 'energy systems', 'MMA']
+  },
+  {
+    id: 'ins-grip-endurance',
+    headline: 'Grip fails before everything else in grappling',
+    body: 'Forearm endurance is often the first limiter in rolling. Dead hangs, gi pull-ups, and thick-grip training build the sustained squeeze strength that wins late-round scrambles.',
+    category: 'grappling',
+    context: ['combat_day', 'lift_day'],
+    tags: ['grip', 'endurance', 'forearms']
+  },
+  {
+    id: 'ins-fight-camp-taper',
+    headline: 'Peak performance needs a taper',
+    body: 'Reduce training volume by 40-60% in the final 7-10 days before competition while maintaining intensity. This dissipates fatigue while preserving fitness. You should feel restless — that\'s correct.',
+    category: 'mma',
+    context: ['fight_camp'],
+    tags: ['taper', 'peaking', 'competition']
+  },
+
+  // ─── LIFTING TECHNIQUE ────────────────────────────────────────────────────
+  {
+    id: 'ins-breathing-brace',
+    headline: 'Breathe and brace like a belt',
+    body: 'Valsalva maneuver: inhale into your belly (not chest), brace your core 360° like you\'re about to be punched, hold through the rep. This creates intra-abdominal pressure that protects your spine.',
+    category: 'lifting_technique',
+    context: ['lift_day'],
+    tags: ['bracing', 'technique', 'safety']
+  },
+  {
+    id: 'ins-tempo-control',
+    headline: 'Tempo is a free variable most ignore',
+    body: 'A 3-1-1-0 tempo (3s eccentric, 1s pause, 1s concentric, 0s top) more than doubles time under tension vs. bouncing reps. Especially effective on isolation work for stubborn muscle groups.',
+    category: 'lifting_technique',
+    context: ['lift_day'],
+    tags: ['tempo', 'time under tension', 'hypertrophy']
+  },
+  {
+    id: 'ins-mind-muscle',
+    headline: 'Mind-muscle connection is measurable',
+    body: 'EMG studies show that focusing on the target muscle during isolation exercises increases its activation by 20-30%. Doesn\'t help on heavy compounds — save it for curls and laterals.',
+    category: 'lifting_technique',
+    context: ['lift_day'],
+    tags: ['mind-muscle', 'isolation', 'activation'],
+    source: 'Calatayud et al., 2016'
+  },
+  {
+    id: 'ins-warmup-ramp',
+    headline: 'Ramp sets > static stretching before lifting',
+    body: 'Warm up with progressively heavier sets of the exercise itself. Static stretching before heavy lifting can reduce force output by 5-8%. Save stretching for after.',
+    category: 'lifting_technique',
+    context: ['lift_day', 'morning'],
+    tags: ['warmup', 'stretching', 'preparation']
+  },
+
+  // ─── TRAINING MINDSET ─────────────────────────────────────────────────────
+  {
+    id: 'ins-consistency-beats-intensity',
+    headline: '80% effort × 100% consistency wins',
+    body: 'A moderate workout you actually do beats a perfect workout you skip. The biggest predictor of results isn\'t program design — it\'s showing up. Protect the habit above all.',
+    category: 'motivation',
+    context: ['any', 'low_readiness'],
+    tags: ['consistency', 'adherence', 'mindset']
+  },
+  {
+    id: 'ins-compare-yourself',
+    headline: 'You vs. you last month',
+    body: 'Comparing to others ignores genetics, training age, recovery resources, and life context. Track YOUR progressive overload, YOUR body composition, YOUR movement quality over time.',
+    category: 'motivation',
+    context: ['any'],
+    tags: ['mindset', 'comparison', 'self-improvement']
+  },
+  {
+    id: 'ins-discomfort-growth',
+    headline: 'Discomfort is the signal, not the enemy',
+    body: 'RPE 8-9 feels uncomfortable. The last 2-3 reps of an effective set should be hard. Learning to push through productive discomfort (not pain) is what separates intermediate from advanced.',
+    category: 'motivation',
+    context: ['lift_day'],
+    tags: ['effort', 'RPE', 'growth mindset']
+  },
+  {
+    id: 'ins-bad-workout',
+    headline: 'Bad workouts still count',
+    body: 'A session where every set felt heavy and slow still provided a training stimulus. You maintained the habit, preserved muscle, and practiced the skill. Some days are just hard — that\'s normal.',
+    category: 'motivation',
+    context: ['post_workout', 'low_readiness'],
+    tags: ['bad day', 'consistency', 'resilience']
+  },
+  {
+    id: 'ins-fight-nerves',
+    headline: 'Pre-fight anxiety is performance fuel',
+    body: 'The adrenaline from nervousness is chemically identical to excitement. Reframe "I\'m nervous" as "I\'m ready." Studies show this appraisal shift improves performance under pressure.',
+    category: 'motivation',
+    context: ['fight_camp', 'combat_day'],
+    tags: ['anxiety', 'reframing', 'performance psychology'],
+    source: 'Brooks, 2014'
+  },
+
+  // ─── GENERAL FITNESS & LONGEVITY ──────────────────────────────────────────
+  {
+    id: 'ins-zone2-base',
+    headline: 'Zone 2 cardio is the foundation of everything',
+    body: 'Low-intensity cardio (conversational pace) builds mitochondrial density, capillary networks, and fat oxidation capacity. 2-3 hours/week. It\'s boring — that\'s why it works as a filter.',
+    category: 'general_fitness',
+    context: ['rest_day', 'any'],
+    tags: ['zone 2', 'cardio', 'aerobic base'],
+    source: 'Dr. Iñigo San Millán'
+  },
+  {
+    id: 'ins-walking-underrated',
+    headline: '10k steps: the most underrated "supplement"',
+    body: 'Daily walking improves insulin sensitivity, enhances recovery, burns 300-500 calories, and reduces cortisol. It\'s low stress, requires no recovery, and stacks with any program.',
+    category: 'general_fitness',
+    context: ['rest_day', 'any'],
+    tags: ['walking', 'NEAT', 'recovery']
+  },
+  {
+    id: 'ins-mobility-aging',
+    headline: 'Mobility is the first thing you lose',
+    body: 'Range of motion decreases ~1% per year after 30 if not maintained. 10-15 minutes of daily mobility work (not just stretching — loaded movement through full ROM) preserves it indefinitely.',
+    category: 'general_fitness',
+    context: ['rest_day', 'morning'],
+    tags: ['mobility', 'aging', 'longevity']
+  },
+  {
+    id: 'ins-vo2max-longevity',
+    headline: 'VO2max predicts lifespan better than smoking status',
+    body: 'Elite-level cardiorespiratory fitness (top 2.3%) reduces all-cause mortality by 80% vs. the bottom 25%. Resistance training + cardio = the most powerful longevity intervention known.',
+    category: 'general_fitness',
+    context: ['any'],
+    tags: ['VO2max', 'longevity', 'mortality'],
+    source: 'Mandsager et al., 2018'
+  },
+
+  // ─── DIETING & BODY COMPOSITION ───────────────────────────────────────────
+  {
+    id: 'ins-deficit-rate',
+    headline: 'Cut too fast and you lose muscle',
+    body: 'Aim for 0.5-1% bodyweight loss per week during a cut. Faster than that increases lean mass loss, especially for lean individuals. Patience preserves your hard-earned muscle.',
+    category: 'dieting',
+    context: ['cutting'],
+    tags: ['cutting', 'rate of loss', 'muscle preservation'],
+    source: 'Helms et al., 2014'
+  },
+  {
+    id: 'ins-diet-breaks',
+    headline: 'Diet breaks make cuts more effective',
+    body: 'Taking 1-2 weeks at maintenance calories every 4-8 weeks of cutting reverses metabolic adaptation, restores hormones, and improves long-term adherence. The tortoise wins.',
+    category: 'dieting',
+    context: ['cutting'],
+    tags: ['diet break', 'metabolic adaptation', 'adherence'],
+    source: 'Byrne et al., 2018 (MATADOR study)'
+  },
+  {
+    id: 'ins-bulk-surplus',
+    headline: 'Lean bulking: 200-300 cal surplus is enough',
+    body: 'Muscle growth is slow — ~0.5-1kg per month for intermediates. Eating 500+ over maintenance just adds unnecessary fat. A small surplus maximizes the muscle:fat gain ratio.',
+    category: 'dieting',
+    context: ['bulking'],
+    tags: ['bulking', 'surplus', 'lean gains']
+  },
+  {
+    id: 'ins-refeed-leptin',
+    headline: 'Refeeds restore the hunger hormone',
+    body: 'Leptin (satiety hormone) drops during caloric restriction, increasing hunger. A 1-2 day carb-focused refeed at maintenance partially restores leptin, reduces hunger, and provides a psychological break.',
+    category: 'dieting',
+    context: ['cutting'],
+    tags: ['refeed', 'leptin', 'hormones']
+  },
+
+  // ─── INJURY PREVENTION ────────────────────────────────────────────────────
+  {
+    id: 'ins-injury-patterns',
+    headline: 'Most gym injuries are overuse, not accidents',
+    body: 'Tendinopathy, impingement, and strain happen from too much volume too fast. The acute:chronic workload ratio is your guide — don\'t spike volume more than 10% week over week.',
+    category: 'general_fitness',
+    context: ['injured', 'lift_day'],
+    tags: ['injury', 'ACWR', 'volume management']
+  },
+  {
+    id: 'ins-train-around-injury',
+    headline: 'Injured ≠ immobile',
+    body: 'An injured shoulder doesn\'t mean skip the gym. Train legs, core, and the other arm. Maintaining activity preserves muscle, boosts mood, and often speeds recovery of the injured area.',
+    category: 'general_fitness',
+    context: ['injured'],
+    tags: ['injury', 'modification', 'training around']
+  },
+];
 
 // Categories with descriptions
 export const categoryInfo: Record<ContentCategory, { name: string; description: string; icon: string }> = {

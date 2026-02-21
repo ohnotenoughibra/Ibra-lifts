@@ -227,6 +227,13 @@ interface AppState {
   confidenceLedger: ConfidenceLedgerEntry[];
   featureFeedback: FeatureFeedback[];
 
+  // Knowledge library
+  seenInsights: string[];
+  dismissedInsights: string[];
+  readArticles: string[];
+  bookmarkedArticles: string[];
+  lastInsightDate: string | null;
+
   // UI state
   showTip: boolean;
   currentTipId: string | null;
@@ -441,6 +448,13 @@ interface AppState {
   addConfidenceEntry: (entry: Omit<ConfidenceLedgerEntry, 'id'>) => void;
   deleteConfidenceEntry: (id: string) => void;
   addFeatureFeedback: (feature: string, rating: 'up' | 'down') => void;
+
+  // Knowledge library actions
+  markInsightSeen: (id: string) => void;
+  dismissInsight: (id: string) => void;
+  markArticleRead: (id: string) => void;
+  toggleBookmarkArticle: (id: string) => void;
+  setLastInsightDate: (date: string) => void;
 
   // UI actions
   setShowTip: (show: boolean) => void;

@@ -2258,72 +2258,78 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         nextBadgeDistance={nextBadgeDistance}
       />
 
-      {/* ─── Weekly Mental Digest — Fighter's Mind summary card ─── */}
-      {mentalCheckIns.length >= 3 && (() => {
+      {/* ─── Week in 10 Seconds — unified weekly snapshot card ─── */}
+      {synthesis.hasData && (() => {
+        const { stats, trends } = synthesis;
+        const trendIcon = (t: 'up' | 'down' | 'stable') => t === 'up' ? '↑' : t === 'down' ? '↓' : '→';
+        const trendColor = (t: 'up' | 'down' | 'stable') => t === 'up' ? 'text-emerald-400' : t === 'down' ? 'text-red-400' : 'text-grappler-400';
+
+        // Mental score (if check-ins exist this week)
         const now = Date.now();
         const weekMs = 7 * 24 * 60 * 60 * 1000;
-        const thisWeek = mentalCheckIns.filter(c => now - new Date(c.timestamp).getTime() < weekMs);
-        const prevWeek = mentalCheckIns.filter(c => {
-          const age = now - new Date(c.timestamp).getTime();
-          return age >= weekMs && age < weekMs * 2;
-        });
-        if (thisWeek.length === 0) return null;
-        const score = (c: { energy: number; focus: number; confidence: number; composure: number }) =>
-          Math.round(((c.energy + c.focus + c.confidence + c.composure) / 20) * 100);
-        const avgScore = Math.round(thisWeek.map(score).reduce((a, b) => a + b, 0) / thisWeek.length);
-        const prevAvgScore = prevWeek.length > 0
-          ? Math.round(prevWeek.map(score).reduce((a, b) => a + b, 0) / prevWeek.length) : null;
-        const delta = prevAvgScore !== null ? avgScore - prevAvgScore : null;
-        const dims = ['energy', 'focus', 'confidence', 'composure'] as const;
-        const strongest = dims.reduce((best, d) => {
-          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
-          return avg > best.avg ? { dim: d, avg } : best;
-        }, { dim: 'energy' as typeof dims[number], avg: 0 });
-        const weakest = dims.reduce((worst, d) => {
-          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
-          return avg < worst.avg ? { dim: d, avg } : worst;
-        }, { dim: 'energy' as typeof dims[number], avg: 6 });
-        const recentConfidence = confidenceLedger.filter(e => now - new Date(e.date).getTime() < weekMs).length;
+        const thisWeekMental = mentalCheckIns.filter(c => now - new Date(c.timestamp).getTime() < weekMs);
+        const mentalScore = thisWeekMental.length > 0
+          ? Math.round(thisWeekMental.map(c => ((c.energy + c.focus + c.confidence + c.composure) / 20) * 100).reduce((a, b) => a + b, 0) / thisWeekMental.length)
+          : null;
+
+        // Readiness
+        const readinessScore = directive.readinessScore ?? null;
+
+        // Coaching line — pick one insight or use narrative snippet
+        const coachLine = weeklyInsights.length > 0
+          ? weeklyInsights[0].text
+          : synthesis.narrative.split('.')[0] + '.';
 
         return (
-          <button
-            onClick={() => onNavigate('fighters_mind')}
-            className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 rounded-xl p-3.5 text-left active:scale-[0.99] transition-all"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-violet-400" />
-                <span className="text-xs font-bold text-violet-300 uppercase tracking-wide">Mental State</span>
+          <div className="w-full bg-grappler-800/50 border border-grappler-700/40 rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-grappler-300 uppercase tracking-wide">Week in 10 seconds</span>
+              {synthesis.isMidWeek && <span className="text-[10px] text-grappler-500 bg-grappler-700/40 px-1.5 py-0.5 rounded-full">mid-week</span>}
+            </div>
+
+            {/* Stat pills */}
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center">
+                <p className="text-lg font-black text-grappler-100">{stats.workouts}</p>
+                <p className="text-[10px] text-grappler-500">sessions</p>
+                <span className={cn('text-[10px] font-medium', trendColor(trends.consistency))}>{trendIcon(trends.consistency)}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className={cn('text-sm font-black', avgScore >= 70 ? 'text-emerald-400' : avgScore >= 50 ? 'text-yellow-400' : 'text-red-400')}>
-                  {avgScore}%
-                </span>
-                {delta !== null && delta !== 0 && (
-                  <span className={cn('text-xs font-medium', delta > 0 ? 'text-emerald-400' : 'text-red-400')}>
-                    {delta > 0 ? '+' : ''}{delta}
-                  </span>
+              <div className="text-center">
+                <p className={cn('text-lg font-black', stats.prs > 0 ? 'text-yellow-400' : 'text-grappler-100')}>{stats.prs}</p>
+                <p className="text-[10px] text-grappler-500">PRs</p>
+                <span className={cn('text-[10px] font-medium', trendColor(trends.prs))}>{trendIcon(trends.prs)}</span>
+              </div>
+              <div className="text-center">
+                <p className={cn('text-lg font-black', readinessScore !== null ? (readinessScore >= 70 ? 'text-emerald-400' : readinessScore >= 50 ? 'text-yellow-400' : 'text-red-400') : 'text-grappler-100')}>
+                  {readinessScore ?? '—'}
+                </p>
+                <p className="text-[10px] text-grappler-500">readiness</p>
+              </div>
+              <div className="text-center">
+                {mentalScore !== null ? (
+                  <>
+                    <p className={cn('text-lg font-black', mentalScore >= 70 ? 'text-violet-400' : mentalScore >= 50 ? 'text-yellow-400' : 'text-red-400')}>{mentalScore}</p>
+                    <p className="text-[10px] text-grappler-500">mental</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-black text-grappler-100">{stats.avgRPE > 0 ? stats.avgRPE.toFixed(1) : '—'}</p>
+                    <p className="text-[10px] text-grappler-500">avg RPE</p>
+                  </>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs text-grappler-400">
-              <span>{thisWeek.length} check-in{thisWeek.length !== 1 ? 's' : ''}</span>
-              <span className="text-grappler-600">·</span>
-              <span>Strongest: <span className="text-grappler-200 capitalize">{strongest.dim}</span></span>
-              {weakest.avg < 3 && (
-                <>
-                  <span className="text-grappler-600">·</span>
-                  <span>Watch: <span className="text-red-400 capitalize">{weakest.dim}</span></span>
-                </>
-              )}
-              {recentConfidence > 0 && (
-                <>
-                  <span className="text-grappler-600">·</span>
-                  <span>{recentConfidence} win{recentConfidence !== 1 ? 's' : ''}</span>
-                </>
-              )}
-            </div>
-          </button>
+
+            {/* Combat line if applicable */}
+            {stats.combatSessions > 0 && (
+              <p className="text-xs text-grappler-400">
+                {stats.combatSessions} mat session{stats.combatSessions !== 1 ? 's' : ''} · {stats.combatMinutes}min
+              </p>
+            )}
+
+            {/* Coach line */}
+            <p className="text-xs text-grappler-400 italic leading-relaxed">{coachLine}</p>
+          </div>
         );
       })()}
 

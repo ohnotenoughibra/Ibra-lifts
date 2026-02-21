@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Dumbbell, Layers, PlusSquare, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
-  Heart, Shield, Thermometer, Zap,
+  Heart, Shield, Thermometer, Zap, Watch,
   Apple, Grip, Flame, Gauge,
   Swords, Navigation, Move,
   Search, Clock, Pin, Check,
@@ -77,6 +77,7 @@ const CATEGORIES: Category[] = [
     accent: 'text-rose-400',
     tools: [
       { id: 'recovery', label: 'Recovery Hub', desc: 'Readiness & recovery tips', longDesc: 'Composite readiness score from sleep, stress, and soreness with personalized recovery recommendations', keywords: 'rest day off readiness soreness sore tired recover how do i feel ready sleep stress nap meditation relax nervous cns overtraining burnout advice tips', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
+      { id: 'wearable', label: 'Wearable', desc: 'Whoop sync & strain data', longDesc: 'Sync Whoop data, view strain and HR trends, auto-import combat sessions, and monitor recovery', keywords: 'whoop wearable heart rate sync strain recovery hrv connect watch garmin oura fitness tracker auto import combat session', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400', isPro: true },
       { id: 'hr_zones', label: 'HR Zones', desc: 'Heart rate training', longDesc: 'Zone calculator for cardio — from zone 2 aerobic to zone 5 VO2max', keywords: 'heart rate cardio aerobic anaerobic zone bpm pulse conditioning endurance vo2', icon: Activity, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
       { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'illness', label: 'Illness Log', desc: 'Log sick days', longDesc: 'Log sick days to track how illness affects your training and recovery', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },

@@ -96,6 +96,13 @@ const AutoThrottleInfo = dynamic(() => import('./AutoThrottleInfo'), { loading: 
 const CornerCoachInfo = dynamic(() => import('./CornerCoachInfo'), { loading: () => <OverlaySkeleton /> });
 const TrainingLoadDashboard = dynamic(() => import('./TrainingLoadDashboard'), { loading: () => <OverlaySkeleton /> });
 const WarmUpInfo = dynamic(() => import('./WarmUpInfo'), { loading: () => <OverlaySkeleton /> });
+const PlateCalculator = dynamic(() => import('./PlateCalculator'), { loading: () => <OverlaySkeleton /> });
+const CircuitBuilder = dynamic(() => import('./CircuitBuilder'), { loading: () => <OverlaySkeleton /> });
+const PhotoProgress = dynamic(() => import('./PhotoProgress'), { loading: () => <OverlaySkeleton /> });
+const BreathingProtocols = dynamic(() => import('./BreathingProtocols'), { loading: () => <OverlaySkeleton /> });
+const SplitAnalyzer = dynamic(() => import('./SplitAnalyzer'), { loading: () => <OverlaySkeleton /> });
+const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
+const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -122,6 +129,11 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   fatigue: 'advanced-analytics',
   fight_camp: 'fight-camp-nutrition',
   grappling: 'competition-prep',
+  circuit_builder: 'advanced-analytics',
+  photo_progress: 'advanced-analytics',
+  breathing: 'advanced-analytics',
+  split_analyzer: 'advanced-analytics',
+  conditioning: 'advanced-analytics',
 };
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
@@ -432,6 +444,13 @@ export default function Dashboard({
   if (overlayView === 'corner_coach') return <CornerCoachInfo onClose={() => setOverlayView(null)} />;
   if (overlayView === 'training_load') return <TrainingLoadDashboard onClose={() => setOverlayView(null)} />;
   if (overlayView === 'warm_up') return <WarmUpInfo onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'plate_calc') return <PlateCalculator onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'circuit_builder') return <CircuitBuilder onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'photo_progress') return <PhotoProgress onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'breathing') return <BreathingProtocols onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'split_analyzer') return <SplitAnalyzer onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'movement_library') return <MovementLibrary onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'conditioning') return <ConditioningSession onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

@@ -58,6 +58,87 @@ import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
+// ---------------------------------------------------------------------------
+// Mini Plate Calculator — shown during rest overlay
+// ---------------------------------------------------------------------------
+const PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
+const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
+const PLATE_COLORS: Record<number, string> = {
+  45: 'bg-red-500', 35: 'bg-blue-500', 25: 'bg-yellow-500', 20: 'bg-blue-500',
+  15: 'bg-yellow-500', 10: 'bg-green-500', 5: 'bg-white', 2.5: 'bg-gray-400', 1.25: 'bg-gray-400',
+};
+
+function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
+  const [expanded, setExpanded] = useState(false);
+  const barWeight = unit === 'kg' ? 20 : 45;
+  const plates = unit === 'kg' ? PLATES_KG : PLATES_LBS;
+
+  if (weight <= barWeight) return null;
+
+  const perSide = (weight - barWeight) / 2;
+  const loaded: number[] = [];
+  let remaining = perSide;
+  for (const plate of plates) {
+    while (remaining >= plate - 0.001) {
+      loaded.push(plate);
+      remaining -= plate;
+    }
+  }
+  const achievable = remaining > 0.01;
+
+  return (
+    <button
+      onClick={() => setExpanded(e => !e)}
+      className="mt-4 w-full max-w-sm mx-auto"
+    >
+      <div className="flex items-center justify-center gap-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors">
+        <Dumbbell className="w-3.5 h-3.5" />
+        <span className="font-medium">
+          {expanded ? 'Hide plates' : `Plates: ${loaded.length ? loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ') : 'bar only'} /side`}
+        </span>
+      </div>
+      {expanded && (
+        <div className="mt-2 bg-grappler-800/60 rounded-xl p-3 text-left" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-center gap-1 mb-2">
+            {/* Visual barbell */}
+            <div className="flex items-center gap-0.5">
+              {[...loaded].reverse().map((p, i) => (
+                <div
+                  key={i}
+                  className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
+                  style={{ width: 6, height: Math.max(16, Math.min(36, p * (unit === 'kg' ? 1.4 : 0.7))) }}
+                  title={`${p} ${unit}`}
+                />
+              ))}
+            </div>
+            <div className="w-16 h-2 bg-grappler-500 rounded-full" />
+            <div className="flex items-center gap-0.5">
+              {loaded.map((p, i) => (
+                <div
+                  key={i}
+                  className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
+                  style={{ width: 6, height: Math.max(16, Math.min(36, p * (unit === 'kg' ? 1.4 : 0.7))) }}
+                  title={`${p} ${unit}`}
+                />
+              ))}
+            </div>
+          </div>
+          <p className="text-center text-xs text-grappler-300 font-medium">
+            {loaded.length === 0
+              ? `Bar only (${barWeight} ${unit})`
+              : `${loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} per side`}
+          </p>
+          {achievable && (
+            <p className="text-center text-xs text-yellow-400 mt-1">
+              ~{(remaining * 2).toFixed(1)} {unit} unachievable with standard plates
+            </p>
+          )}
+        </div>
+      )}
+    </button>
+  );
+}
+
 export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
@@ -2809,6 +2890,11 @@ export default function ActiveWorkout() {
                 <Plus className="w-4 h-4" />
                 Add Extra Set — {activeWorkout.exerciseLogs[lastCompletedExerciseIndex]?.exerciseName}
               </button>
+            )}
+
+            {/* Mini Plate Calculator — shows plates to load for current weight */}
+            {currentSet.weight > 0 && !isTimeBased && (
+              <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
             )}
 
             {/* Corner Coach Messages during rest */}

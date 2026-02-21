@@ -8,7 +8,8 @@ import {
   Apple, Grip, Flame, Gauge,
   Swords, Navigation, Move,
   Search, Clock, Pin, Check,
-  Crown, Hammer, Eye,
+  Crown, Hammer, Eye, Wind,
+  Camera, PieChart, BookOpen, Timer, CircuitBoard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -44,6 +45,9 @@ const CATEGORIES: Category[] = [
       { id: 'custom_exercise', label: 'Custom Exercise', desc: 'Add your own moves', longDesc: 'Add exercises not in the database — custom machines, cables, or sport moves', keywords: 'create new exercise movement add custom machine cable dumbbell barbell', icon: PlusSquare, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
       { id: 'periodization', label: 'Periodization', desc: 'Plan training phases', longDesc: 'Plan mesocycles with deload weeks, peak phases, and volume waves', keywords: 'phase cycle calendar deload peak taper block mesocycle schedule week', icon: Calendar, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
       { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
+      { id: 'plate_calc', label: 'Plate Calculator', desc: 'What plates to load', longDesc: 'Enter a target weight and see exactly which plates to load on each side of the bar', keywords: 'plate calculator barbell loading weight plates per side warm up ramp', icon: Calculator, color: 'from-amber-500/20 to-amber-500/5 text-amber-400' },
+      { id: 'circuit_builder', label: 'Circuit Builder', desc: 'Build custom circuits', longDesc: 'Create custom EMOM, Tabata, AMRAP, and interval workouts with a built-in execution timer', keywords: 'circuit emom tabata amrap interval hiit conditioning timer builder custom create', icon: CircuitBoard, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
+      { id: 'movement_library', label: 'Movement Library', desc: 'Exercise reference', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives', keywords: 'exercise library reference form cues technique how to movement muscles', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
     ],
   },
   {
@@ -56,6 +60,7 @@ const CATEGORIES: Category[] = [
       { id: 'grip_strength', label: 'Grip Strength', desc: 'Grip training protocol', longDesc: 'Crush, pinch, and hang protocols for combat grip and deadlift lockout', keywords: 'grip hand forearm wrist crush pinch hang deadlift farmer carry hold squeeze', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400', isPro: true },
       { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', isPro: true },
       { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for competition', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
+      { id: 'conditioning', label: 'Conditioning', desc: 'Cardio & interval protocols', longDesc: 'Browse and run combat-sport conditioning templates — EMOM, Tabata, AMRAP, circuits, shark tanks, and intervals', keywords: 'conditioning cardio interval emom tabata amrap circuit shark tank gpp endurance stamina aerobic anaerobic', icon: Timer, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
     ],
   },
   {
@@ -69,6 +74,7 @@ const CATEGORIES: Category[] = [
       { id: 'volume_map', label: 'Volume Map', desc: 'Muscle group volume', longDesc: 'Weekly sets per muscle group against science-based volume landmarks', keywords: 'muscle group heatmap chest back legs arms shoulders volume sets weekly body part', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
       { id: 'training_load', label: 'Training Load', desc: 'ACWR & load tracking', longDesc: 'Acute:Chronic Workload Ratio — weekly load trends, 28-day heatmap, and injury risk zones', keywords: 'acwr load training volume weekly chronic acute ratio overtraining injury risk workload heatmap', icon: Gauge, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
       { id: 'fatigue', label: 'Fatigue', desc: 'Monitor fatigue levels', longDesc: 'Accumulated fatigue debt, smart deload recommendations, and recovery predictions', keywords: 'tired exhausted worn out energy low deload overtraining fatigue debt accumulated', icon: Zap, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400', isPro: true },
+      { id: 'split_analyzer', label: 'Split Analyzer', desc: 'Muscle group balance', longDesc: 'Analyze your training split for muscle group imbalances, push/pull ratios, and neglected areas', keywords: 'split balance muscle group ratio push pull upper lower neglected imbalance volume weekly sets', icon: PieChart, color: 'from-fuchsia-500/20 to-fuchsia-500/5 text-fuchsia-400', isPro: true },
     ],
   },
   {
@@ -82,6 +88,8 @@ const CATEGORIES: Category[] = [
       { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'illness', label: 'Illness Log', desc: 'Log sick days', longDesc: 'Log sick days to track how illness affects your training and recovery', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
+      { id: 'breathing', label: 'Breathing', desc: 'Guided breathing protocols', longDesc: 'Interactive breathing timers — box breathing, 4-7-8, Wim Hof, tactical breathing, and more for recovery and performance', keywords: 'breathing breathe meditation calm anxiety relax box wim hof tactical 4-7-8 recovery sleep', icon: Wind, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
+      { id: 'photo_progress', label: 'Photo Progress', desc: 'Visual body tracking', longDesc: 'Take progress photos, compare side-by-side, and track your physique transformation over time', keywords: 'photo progress picture body transformation before after compare physique visual', icon: Camera, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
     ],
   },
 ];

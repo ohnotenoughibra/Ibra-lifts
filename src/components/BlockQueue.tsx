@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { suggestNextBlock } from '@/lib/block-suggestion';
 import {
   Plus,
   X,
@@ -10,7 +11,6 @@ import {
   ChevronUp,
   ChevronDown,
   Layers,
-  Target,
   Zap,
   Dumbbell,
   Flame,
@@ -18,9 +18,19 @@ import {
   Calendar,
   Download,
   Upload,
+  Sparkles,
+  Wrench,
+  Check,
+  Brain,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { GoalFocus, PlannedMesocycle } from '@/lib/types';
+import type { GoalFocus, BlockFocus } from '@/lib/types';
 
 const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; color: string; desc: string }[] = [
   { value: 'strength', label: 'Strength', icon: <Dumbbell className="w-4 h-4" />, color: 'text-red-400 bg-red-500/20', desc: 'Heavy loads, low reps' },
@@ -35,17 +45,60 @@ const PERIODIZATION_OPTIONS: { value: 'linear' | 'undulating' | 'block'; label: 
   { value: 'block', label: 'Block' },
 ];
 
+// Map BlockFocus → GoalFocus for mesocycle queue
+const BLOCK_TO_GOAL: Record<BlockFocus, GoalFocus> = {
+  strength: 'strength',
+  hypertrophy: 'hypertrophy',
+  power: 'power',
+  deload: 'balanced',
+  peaking: 'strength',
+  base_building: 'balanced',
+};
+
+const AI_FOCUS_LABELS: Record<BlockFocus, { label: string; color: string; icon: React.ReactNode }> = {
+  strength: { label: 'Strength', color: 'text-red-400 bg-red-500/20 border-red-500/40', icon: <Dumbbell className="w-4 h-4" /> },
+  hypertrophy: { label: 'Hypertrophy', color: 'text-purple-400 bg-purple-500/20 border-purple-500/40', icon: <Flame className="w-4 h-4" /> },
+  power: { label: 'Power', color: 'text-blue-400 bg-blue-500/20 border-blue-500/40', icon: <Zap className="w-4 h-4" /> },
+  deload: { label: 'Deload', color: 'text-teal-400 bg-teal-500/20 border-teal-500/40', icon: <Shield className="w-4 h-4" /> },
+  peaking: { label: 'Peaking', color: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/40', icon: <TrendingUp className="w-4 h-4" /> },
+  base_building: { label: 'Base Building', color: 'text-sky-400 bg-sky-500/20 border-sky-500/40', icon: <Layers className="w-4 h-4" /> },
+};
+
 function getFocusMeta(focus: GoalFocus) {
   return FOCUS_OPTIONS.find(f => f.value === focus) || FOCUS_OPTIONS[0];
 }
 
+type AddMode = null | 'pick' | 'manual' | 'ai';
+
 export default function BlockQueue() {
-  const { mesocycleQueue, addToMesocycleQueue, removeFromMesocycleQueue, reorderMesocycleQueue, currentMesocycle } = useAppStore();
-  const [showAddForm, setShowAddForm] = useState(false);
+  const {
+    mesocycleQueue, addToMesocycleQueue, removeFromMesocycleQueue, reorderMesocycleQueue,
+    currentMesocycle,
+    // AI suggestion data
+    user, mesocycleHistory, workoutLogs, trainingSessions, injuryLog, wearableHistory, competitions,
+  } = useAppStore();
+
+  const [addMode, setAddMode] = useState<AddMode>(null);
   const [formFocus, setFormFocus] = useState<GoalFocus>('strength');
   const [formWeeks, setFormWeeks] = useState(5);
   const [formPeriodization, setFormPeriodization] = useState<'linear' | 'undulating' | 'block'>('undulating');
   const [formNotes, setFormNotes] = useState('');
+  const [aiQueued, setAiQueued] = useState<'main' | 'alt' | null>(null);
+
+  // AI suggestion — only compute when AI panel is open
+  const suggestion = useMemo(() => {
+    if (addMode !== 'ai') return null;
+    return suggestNextBlock({
+      user,
+      currentMesocycle,
+      mesocycleHistory,
+      workoutLogs,
+      trainingSessions,
+      injuryLog,
+      wearableHistory,
+      competitions: competitions.map((c: { date: Date; type: string }) => ({ date: new Date(c.date), type: c.type })),
+    });
+  }, [addMode, user, currentMesocycle, mesocycleHistory, workoutLogs, trainingSessions, injuryLog, wearableHistory, competitions]);
 
   const handleAdd = () => {
     const meta = getFocusMeta(formFocus);
@@ -56,8 +109,32 @@ export default function BlockQueue() {
       periodization: formPeriodization,
       notes: formNotes.trim() || undefined,
     });
-    setShowAddForm(false);
+    setAddMode(null);
     setFormNotes('');
+  };
+
+  const handleAiQueue = (focus: BlockFocus, weeks: number, which: 'main' | 'alt') => {
+    const meta = AI_FOCUS_LABELS[focus];
+    addToMesocycleQueue({
+      name: `${meta.label} Block`,
+      focus: BLOCK_TO_GOAL[focus],
+      weeks,
+      periodization: focus === 'strength' || focus === 'peaking' ? 'linear' : 'undulating',
+    });
+    setAiQueued(which);
+    setTimeout(() => {
+      setAiQueued(null);
+      setAddMode(null);
+    }, 1500);
+  };
+
+  const toggleAddMode = () => {
+    if (addMode !== null) {
+      setAddMode(null);
+      setAiQueued(null);
+    } else {
+      setAddMode('pick');
+    }
   };
 
   const moveUp = (i: number) => { if (i > 0) reorderMesocycleQueue(i, i - 1); };
@@ -108,12 +185,9 @@ export default function BlockQueue() {
       }
     };
     reader.readAsText(file);
-    // Reset so the same file can be imported again
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Estimate timeline — first queued mesocycle starts after current one ends,
-  // each subsequent one starts after the previous queued one ends
   const getEstimatedStart = (index: number): string => {
     let baseDate: Date;
     if (currentMesocycle?.endDate) {
@@ -121,7 +195,6 @@ export default function BlockQueue() {
     } else {
       baseDate = new Date();
     }
-
     let weeksOffset = 0;
     for (let i = 0; i < index; i++) {
       weeksOffset += mesocycleQueue[i].weeks;
@@ -138,7 +211,6 @@ export default function BlockQueue() {
     } else {
       baseDate = new Date();
     }
-
     let weeksOffset = 0;
     for (let i = 0; i <= index; i++) {
       weeksOffset += mesocycleQueue[i].weeks;
@@ -146,6 +218,12 @@ export default function BlockQueue() {
     const endDate = new Date(baseDate);
     endDate.setDate(endDate.getDate() + weeksOffset * 7);
     return endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
+    if (trend === 'up') return <TrendingUp className="w-3 h-3 text-green-400" />;
+    if (trend === 'down') return <TrendingDown className="w-3 h-3 text-red-400" />;
+    return <Minus className="w-3 h-3 text-grappler-400" />;
   };
 
   return (
@@ -180,13 +258,13 @@ export default function BlockQueue() {
             className="hidden"
           />
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={toggleAddMode}
             className={cn(
               'p-1.5 rounded-lg transition-colors',
-              showAddForm ? 'bg-grappler-700 text-grappler-200' : 'text-grappler-500 hover:text-primary-400 hover:bg-grappler-800'
+              addMode !== null ? 'bg-grappler-700 text-grappler-200' : 'text-grappler-500 hover:text-primary-400 hover:bg-grappler-800'
             )}
           >
-            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {addMode !== null ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           </button>
         </div>
       </div>
@@ -205,16 +283,64 @@ export default function BlockQueue() {
         )}
       </AnimatePresence>
 
-      {/* Add form */}
-      <AnimatePresence>
-        {showAddForm && (
+      {/* ─── Mode Picker ─── */}
+      <AnimatePresence mode="wait">
+        {addMode === 'pick' && (
           <motion.div
+            key="pick"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setAddMode('ai')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-b from-primary-500/15 to-primary-500/5 border border-primary-500/30 hover:border-primary-400 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 text-primary-400" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-grappler-100">AI Suggest</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">Based on your data</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setAddMode('manual')}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-b from-grappler-700/50 to-grappler-800/50 border border-grappler-600/50 hover:border-grappler-500 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-grappler-700/50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Wrench className="w-5 h-5 text-grappler-300" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-grappler-100">Build Manual</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">Custom block setup</p>
+                </div>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ─── Manual Form ─── */}
+        {addMode === 'manual' && (
+          <motion.div
+            key="manual"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
             <div className="bg-grappler-800/60 rounded-xl p-3 space-y-3 border border-grappler-700/50">
+              {/* Back to picker */}
+              <button
+                onClick={() => setAddMode('pick')}
+                className="flex items-center gap-1 text-xs text-grappler-400 hover:text-primary-400 transition-colors -mb-1"
+              >
+                <ChevronRight className="w-3 h-3 rotate-180" />
+                Back
+              </button>
+
               {/* Focus selector */}
               <div>
                 <label className="text-xs text-grappler-400 uppercase tracking-wide font-medium mb-1.5 block">Focus</label>
@@ -297,10 +423,163 @@ export default function BlockQueue() {
             </div>
           </motion.div>
         )}
+
+        {/* ─── AI Suggestion Panel ─── */}
+        {addMode === 'ai' && suggestion && (
+          <motion.div
+            key="ai"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-grappler-800/60 rounded-xl border border-grappler-700/50 overflow-hidden">
+              {/* Back + header */}
+              <div className="p-3 pb-0 flex items-center justify-between">
+                <button
+                  onClick={() => setAddMode('pick')}
+                  className="flex items-center gap-1 text-xs text-grappler-400 hover:text-primary-400 transition-colors"
+                >
+                  <ChevronRight className="w-3 h-3 rotate-180" />
+                  Back
+                </button>
+                <div className="flex items-center gap-1.5 text-xs text-primary-400">
+                  <Brain className="w-3.5 h-3.5" />
+                  <span className="font-medium">Smart Suggestion</span>
+                </div>
+              </div>
+
+              {/* Main recommendation */}
+              {(() => {
+                const focusMeta = AI_FOCUS_LABELS[suggestion.recommendedFocus];
+                return (
+                  <div className="p-3 space-y-3">
+                    {/* Recommendation header */}
+                    <div className={cn('rounded-lg p-3 border', focusMeta.color)}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className={cn('p-1.5 rounded-lg', focusMeta.color)}>
+                            {focusMeta.icon}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">{focusMeta.label} Block</p>
+                            <p className="text-xs opacity-70">{suggestion.suggestedWeeks} weeks</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold">{suggestion.confidence}%</p>
+                          <p className="text-xs opacity-50">confidence</p>
+                        </div>
+                      </div>
+
+                      {/* Queue button */}
+                      <button
+                        onClick={() => handleAiQueue(suggestion.recommendedFocus, suggestion.suggestedWeeks, 'main')}
+                        disabled={aiQueued === 'main'}
+                        className={cn(
+                          'w-full py-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 mt-2',
+                          aiQueued === 'main'
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                            : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                        )}
+                      >
+                        {aiQueued === 'main' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            Added to queue
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5" />
+                            Add to Queue
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Reasoning — show top 3 */}
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-grappler-300 flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-primary-400" />
+                        Why
+                      </p>
+                      {suggestion.reasoning.slice(0, 3).map((reason, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 text-xs text-grappler-300">
+                          <Check className="w-3 h-3 text-primary-400 mt-0.5 shrink-0" />
+                          <span>{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Key metrics — compact 2-col */}
+                    {suggestion.keyMetrics.length > 0 && (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {suggestion.keyMetrics.slice(0, 4).map((metric, idx) => (
+                          <div key={idx} className="bg-grappler-900/60 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                            <span className="text-xs text-grappler-400 truncate">{metric.label}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-grappler-200">{metric.value}</span>
+                              {getTrendIcon(metric.trend)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Weak/strong points */}
+                    {(suggestion.weakPoints.length > 0 || suggestion.strongPoints.length > 0) && (
+                      <div className="flex flex-wrap gap-1">
+                        {suggestion.strongPoints.slice(0, 3).map(m => (
+                          <span key={m} className="px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded text-xs capitalize">
+                            {m.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                        {suggestion.weakPoints.slice(0, 3).map(m => (
+                          <span key={m} className="px-1.5 py-0.5 bg-yellow-500/10 text-yellow-400 rounded text-xs capitalize">
+                            {m.replace(/_/g, ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Alternative */}
+                    {suggestion.alternativeFocus && suggestion.alternativeReason && (() => {
+                      const altMeta = AI_FOCUS_LABELS[suggestion.alternativeFocus];
+                      return (
+                        <div className="bg-grappler-900/40 rounded-lg p-2.5 border border-grappler-700/50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <RefreshCw className="w-3 h-3 text-grappler-400 shrink-0" />
+                              <span className="text-xs text-grappler-300 truncate">
+                                Alt: <strong>{altMeta.label}</strong> — {suggestion.alternativeReason}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleAiQueue(suggestion.alternativeFocus!, suggestion.suggestedWeeks, 'alt')}
+                              disabled={aiQueued === 'alt'}
+                              className={cn(
+                                'ml-2 px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0',
+                                aiQueued === 'alt'
+                                  ? 'bg-green-500/15 text-green-400'
+                                  : 'bg-grappler-700 hover:bg-grappler-600 text-grappler-200'
+                              )}
+                            >
+                              {aiQueued === 'alt' ? <Check className="w-3 h-3" /> : 'Queue'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              })()}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Queue list */}
-      {mesocycleQueue.length === 0 && !showAddForm ? (
+      {mesocycleQueue.length === 0 && addMode === null ? (
         <div className="text-center py-4">
           <Calendar className="w-8 h-8 text-grappler-700 mx-auto mb-2" />
           <p className="text-xs text-grappler-400">No mesocycles queued yet</p>

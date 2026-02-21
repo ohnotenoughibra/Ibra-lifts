@@ -96,10 +96,18 @@ const MAX_RECENT = 4;
 const MAX_PINNED = 4;
 const PIN_SYNC_EVENT = 'roots-pins-changed';
 
-/** Read pins fresh from localStorage — never stale */
+/** Read pins fresh from localStorage — filters out stale IDs that no longer exist in TOOL_MAP */
 export function readPins(): string[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_PINNED) || '[]') as string[]; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY_PINNED) || '[]') as string[];
+    const valid = raw.filter(id => TOOL_MAP.has(id));
+    // Auto-clean stale IDs from storage
+    if (valid.length !== raw.length) {
+      localStorage.setItem(STORAGE_KEY_PINNED, JSON.stringify(valid));
+    }
+    return valid;
+  }
   catch { return []; }
 }
 

@@ -293,7 +293,7 @@ function ExerciseDetailPanel({
 
   return (
     <motion.div
-      className="absolute inset-0 z-10 flex flex-col bg-grappler-950 overflow-hidden"
+      className="fixed inset-0 z-50 flex flex-col bg-grappler-950 overflow-hidden"
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}

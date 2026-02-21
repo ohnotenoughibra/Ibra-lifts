@@ -24,6 +24,7 @@ import type {
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
+import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 
 export type TodayType = 'lift' | 'combat' | 'both' | 'rest' | 'recovery';
 
@@ -175,7 +176,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     type: formatActivityType(s.type),
     category: s.category,
     duration: s.duration,
-    intensity: s.actualIntensity || s.plannedIntensity,
+    intensity: INTENSITY_LABELS[(s.actualIntensity || s.plannedIntensity) as TrainingIntensity] || (s.actualIntensity || s.plannedIntensity),
     logged: true,
   }));
   const hasLoggedCombatToday = todayCombatSessions.length > 0;
@@ -198,7 +199,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
         type: d.label || formatActivityType(d.intensity + ' session'),
         category: 'combat',
         duration: 0, // unknown until logged
-        intensity: d.intensity,
+        intensity: INTENSITY_LABELS[d.intensity as TrainingIntensity] || d.intensity,
         logged: false,
       });
     });
@@ -298,7 +299,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   // ─── Session label ───
   let sessionLabel: string | null = null;
   if (nextWorkoutInfo && currentMesocycle) {
-    sessionLabel = `W${nextWorkoutInfo.weekNumber}/D${nextWorkoutInfo.dayNumber}`;
+    sessionLabel = `Week ${nextWorkoutInfo.weekNumber} · Day ${nextWorkoutInfo.dayNumber}`;
   }
 
   // ─── Build headline ───
@@ -354,11 +355,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   } else if (todayType === 'combat') {
     const combatLabel = todayCombatSessions.map(s => `${s.type}${s.duration > 0 ? ` · ${s.duration}min` : ''}`).join(', ');
     actions.push(combatLabel);
-    if (nextSession && nextLiftDayLabel) {
-      actions.push(`Next lift ${nextLiftDayLabel}: ${nextSession.name}`);
-    } else if (nextSession) {
-      actions.push(`Next lift: ${nextSession.name}`);
-    }
+    // Next lift info is handled by forwardLook + the next-workout preview card
   } else if (todayType === 'recovery' && todayPerformance) {
     actions.push(`${todayPerformance.exerciseCount} exercises · ${todayPerformance.totalSets} sets${todayPerformance.avgRPE > 0 ? ` · RPE ${todayPerformance.avgRPE}` : ''}`);
     if (todayPerformance.topExercise) {
@@ -605,7 +602,7 @@ function buildSubline(
   if (todayType === 'combat' && combatSessions.length > 0) {
     const totalMin = combatSessions.reduce((s, c) => s + c.duration, 0);
     if (totalMin > 0) {
-      return `${ctx}${totalMin}min on the mats — no lifting today`;
+      return `${ctx}${totalMin}min on the mats`;
     }
     return `${ctx}${combatSessions.length} session${combatSessions.length > 1 ? 's' : ''} on the mats today`;
   }
@@ -789,7 +786,7 @@ function buildForwardLook(opts: {
   }
 
   if (todayType === 'combat') {
-    if (nextSession && nextLiftDayLabel) return `Next lift: ${nextSession.name} ${nextLiftDayLabel}`;
+    // Next lift is shown by the standalone preview card — no need to duplicate here
     return null;
   }
 

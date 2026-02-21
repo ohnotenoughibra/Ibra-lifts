@@ -1441,10 +1441,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 <span className="text-sm font-black tabular-nums">{currentStreak} day streak</span>
               </div>
             )}
-            {mesocycleProgress && mesocycleProgress.completed < mesocycleProgress.total && (
-              <span className="text-xs font-medium text-grappler-400 tabular-nums">
-                {directive.isDeload ? 'Deload' : directive.sessionLabel}
-              </span>
+            {directive.isDeload && (
+              <span className="text-xs font-medium text-amber-400 tabular-nums">Deload</span>
             )}
           </div>
         </div>
@@ -1479,7 +1477,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
         >
-          {/* Header: "Session Complete" + XP — fades in */}
+          {/* Header — celebrate, don't label */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1488,9 +1486,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           >
             <Check className="w-4 h-4 text-green-400" />
             <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
-            {currentStreak > 1 && (
-              <span className="text-xs text-green-400/50">{currentStreak} day streak</span>
-            )}
           </motion.div>
 
           {/* Grade stamp + verdict — grade stamps in from 3x scale */}
@@ -1640,6 +1635,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               transition={{ delay: 1.8, duration: 0.3 }}
               className="flex items-center gap-2 mt-3"
             >
+              <span className="text-[10px] text-grappler-500">Block</span>
               <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
               <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
             </motion.div>
@@ -1688,26 +1684,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               ? 'border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900'
               : 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'
           )}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-1">
-              <div className="flex items-center gap-2">
+            {/* Header — the session type IS the hero, not a status label */}
+            <div className="px-5 pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-1">
                 {allCombatLogged ? <Check className="w-4 h-4 text-green-400" /> : <Shield className="w-4 h-4 text-purple-400" />}
-                <span className="text-xs font-bold uppercase tracking-widest text-grappler-400">
-                  {allCombatLogged ? 'Sessions Complete' : 'Mat Day'}
-                </span>
-              </div>
-              {mesocycleProgress && (
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-purple-400/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} />
+                {mesocycleProgress && (
+                  <div className="flex items-center gap-2 ml-auto">
+                    <span className="text-[10px] text-grappler-500">Block</span>
+                    <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-400/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} />
+                    </div>
+                    <span className="text-xs text-grappler-400 tabular-nums">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
                   </div>
-                  <span className="text-xs text-grappler-400 tabular-nums">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Headline + subline */}
-            <div className="px-5 pb-3">
+                )}
+              </div>
               <h2 className="text-xl font-black text-grappler-50 leading-tight">{directive.headline}</h2>
               <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
             </div>
@@ -1732,9 +1722,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       <p className="text-sm font-semibold text-grappler-200">{s.type}</p>
                       <p className="text-xs text-grappler-400">{s.duration > 0 ? `${s.duration}min` : 'Open mat'}</p>
                     </div>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wide',
-                      s.intensity === 'high' ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
-                      s.intensity === 'moderate' ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
+                    <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold',
+                      /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+                      /moderate/i.test(s.intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
                       'bg-green-500/12 text-green-400 border border-green-500/20'
                     )}>{s.intensity}</span>
                     {!s.logged && (
@@ -1773,22 +1763,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               )}
             </div>
 
-            {/* Action items */}
-            {directive.actions.filter(a => !a.includes(directive.todayCombatSessions[0]?.type || '§')).length > 0 && (
-              <div className="mx-5 mb-3 space-y-1">
-                {directive.actions.filter(a => !a.includes(directive.todayCombatSessions[0]?.type || '§')).map((a, i) => (
-                  <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-400 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-400">{a}</p></div>
-                ))}
-              </div>
-            )}
-
-            {/* Forward look */}
-            {directive.forwardLook && (
-              <div className="mx-5 mb-4 flex items-center gap-2 pt-2 border-t border-grappler-700/40">
-                <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-                <p className="text-xs text-grappler-400">{directive.forwardLook}</p>
-              </div>
-            )}
+            {/* Action items — filter out combat session labels (already shown above) and protein (separate concern) */}
+            {(() => {
+              const filteredActions = directive.actions.filter(a =>
+                !a.includes(directive.todayCombatSessions[0]?.type || '§') &&
+                !/protein|next lift/i.test(a)
+              );
+              return filteredActions.length > 0 ? (
+                <div className="mx-5 mb-3 space-y-1">
+                  {filteredActions.map((a, i) => (
+                    <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-400 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-400">{a}</p></div>
+                  ))}
+                </div>
+              ) : null;
+            })()}
           </div>
             );
           })()}
@@ -1803,7 +1791,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 <p className="text-xs text-grappler-400 font-medium uppercase tracking-wide">
                   Next Strength{directive.nextLiftDayLabel ? ` · ${directive.nextLiftDayLabel}` : ''}
                 </p>
-                <p className="text-sm font-semibold text-grappler-300 truncate">{directive.sessionLabel && !nextWorkout.name.startsWith(directive.sessionLabel) ? `${directive.sessionLabel} — ` : ''}{nextWorkout.name}</p>
+                <p className="text-sm font-semibold text-grappler-300 truncate">{nextWorkout.name}</p>
                 <p className="text-xs text-grappler-400">{nextWorkout.exercises.length} exercises · ~{nextWorkout.estimatedDuration}m</p>
               </div>
               <button
@@ -1867,6 +1855,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               </div>
               {mesocycleProgress && (
                 <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-grappler-500">Block</span>
                   <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
                     <div className={cn('h-full rounded-full', directive.todayType === 'both' ? 'bg-purple-400/60' : 'bg-primary-400/60')} style={{ width: `${mesocycleProgress.percent}%` }} />
                   </div>
@@ -1878,6 +1867,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             {/* Workout name + subline */}
             <div className="px-5 pb-3">
               <h2 className="text-xl font-black text-grappler-50 leading-tight">{nextWorkout.name}</h2>
+              {directive.sessionLabel && (
+                <p className="text-[10px] text-grappler-500 mt-0.5">{directive.sessionLabel}</p>
+              )}
               <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
             </div>
 
@@ -1953,9 +1945,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                 <div key={i} className="flex items-center gap-2.5 bg-grappler-800/40 border border-purple-500/15 rounded-lg px-3 py-2">
                   {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400/60 flex-shrink-0" />}
                   <p className="text-xs text-grappler-300 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''}</p>
-                  <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium',
-                    s.intensity === 'high' ? 'bg-red-500/15 text-red-400' :
-                    s.intensity === 'moderate' ? 'bg-yellow-500/15 text-yellow-400' :
+                  <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                    /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400' :
+                    /moderate/i.test(s.intensity) ? 'bg-yellow-500/15 text-yellow-400' :
                     'bg-green-500/15 text-green-400'
                   )}>{s.intensity}</span>
                   {!s.logged && (

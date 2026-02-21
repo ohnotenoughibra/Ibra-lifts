@@ -51,6 +51,7 @@ type Phase = 'ask' | 'select' | 'time' | 'session';
 export default function SorenessCheck({ context, isCombatAthlete = true, onDismiss, onLog }: SorenessCheckProps) {
   const [phase, setPhase] = useState<Phase>('ask');
   const [selectedAreas, setSelectedAreas] = useState<Map<SorenessArea, SorenessSeverity>>(new Map());
+  const [hasLogged, setHasLogged] = useState(false);
 
   // Session state
   const [sessionPlan, setSessionPlan] = useState<MobilityDrill[]>([]);
@@ -95,9 +96,17 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     onDismiss();
   }, [onLog, onDismiss]);
 
-  const handlePickTime = useCallback((minutes: number) => {
+  // Log soreness when session finishes or component unmounts — NOT when picking time
+  // (calling onLog early triggers addQuickLog which sets alreadyLoggedSorenessToday=true,
+  //  which unmounts this component before the session phase ever renders)
+  const logSoreness = useCallback(() => {
+    if (hasLogged) return;
     const entries = Array.from(selectedAreas.entries()).map(([area, severity]) => ({ area, severity }));
     onLog(entries);
+    setHasLogged(true);
+  }, [selectedAreas, onLog, hasLogged]);
+
+  const handlePickTime = useCallback((minutes: number) => {
     const plan = buildTimedPlan(recommendations, minutes);
     setSessionPlan(plan);
     if (plan.length > 0) {
@@ -110,7 +119,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       setSessionDone(false);
       setPhase('session');
     }
-  }, [selectedAreas, recommendations, onLog]);
+  }, [recommendations]);
 
   // ─── Timer logic ───
   useEffect(() => {
@@ -421,7 +430,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
         </p>
         <p className="text-xs text-green-400/80 mb-4">Your body will thank you tomorrow.</p>
         <button
-          onClick={onDismiss}
+          onClick={() => { logSoreness(); onDismiss(); }}
           className="px-6 py-2.5 rounded-xl bg-green-500/20 border border-green-500/30 text-sm font-semibold text-green-300 active:scale-[0.97] transition-all"
         >
           Done
@@ -459,7 +468,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
         <span className="text-xs text-grappler-400 font-medium">
           {completedDrills.size}/{sessionPlan.length}
         </span>
-        <button onClick={onDismiss} className="p-0.5 text-grappler-600 hover:text-grappler-300">
+        <button onClick={() => { logSoreness(); onDismiss(); }} className="p-0.5 text-grappler-600 hover:text-grappler-300">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>

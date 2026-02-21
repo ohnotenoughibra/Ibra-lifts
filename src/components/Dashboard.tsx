@@ -103,6 +103,7 @@ const BreathingProtocols = dynamic(() => import('./BreathingProtocols'), { loadi
 const SplitAnalyzer = dynamic(() => import('./SplitAnalyzer'), { loading: () => <OverlaySkeleton /> });
 const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
+const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -134,6 +135,7 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   breathing: 'advanced-analytics',
   split_analyzer: 'advanced-analytics',
   conditioning: 'advanced-analytics',
+  fighters_mind: 'advanced-analytics',
 };
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
@@ -451,6 +453,7 @@ export default function Dashboard({
   if (overlayView === 'split_analyzer') return <SplitAnalyzer onClose={() => setOverlayView(null)} />;
   if (overlayView === 'movement_library') return <MovementLibrary onClose={() => setOverlayView(null)} />;
   if (overlayView === 'conditioning') return <ConditioningSession onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'fighters_mind') return <FightersMind onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

@@ -63,6 +63,8 @@ import {
   SupplementRecommendation,
   SupplementIntake,
   UserSupplement,
+  MentalCheckIn,
+  ConfidenceLedgerEntry,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
@@ -218,6 +220,10 @@ interface AppState {
 
   // Daily login bonus
   dailyLoginBonus: DailyLoginBonus;
+
+  // Fighter's Mind — mental check-ins & confidence ledger
+  mentalCheckIns: MentalCheckIn[];
+  confidenceLedger: ConfidenceLedgerEntry[];
 
   // UI state
   showTip: boolean;
@@ -427,6 +433,12 @@ interface AppState {
   // Daily login bonus actions
   claimDailyLoginBonus: () => { points: number; day: number; isMysteryDay: boolean } | null;
 
+  // Fighter's Mind actions
+  addMentalCheckIn: (checkIn: Omit<MentalCheckIn, 'id'>) => void;
+  deleteMentalCheckIn: (id: string) => void;
+  addConfidenceEntry: (entry: Omit<ConfidenceLedgerEntry, 'id'>) => void;
+  deleteConfidenceEntry: (id: string) => void;
+
   // UI actions
   setShowTip: (show: boolean) => void;
   setCurrentTipId: (id: string | null) => void;
@@ -555,6 +567,8 @@ export const useAppStore = create<AppState>()(
         consecutiveDays: 0,
         totalClaimed: 0,
       },
+      mentalCheckIns: [],
+      confidenceLedger: [],
       showTip: true,
       currentTipId: null,
 
@@ -2910,6 +2924,22 @@ export const useAppStore = create<AppState>()(
         return { points, day: newConsecutive, isMysteryDay };
       },
 
+      // Fighter's Mind actions
+      addMentalCheckIn: (checkIn) => {
+        const entry: MentalCheckIn = { ...checkIn, id: crypto.randomUUID() };
+        set({ mentalCheckIns: [...get().mentalCheckIns, entry] });
+      },
+      deleteMentalCheckIn: (id) => {
+        set({ mentalCheckIns: get().mentalCheckIns.filter(c => c.id !== id) });
+      },
+      addConfidenceEntry: (entry) => {
+        const full: ConfidenceLedgerEntry = { ...entry, id: crypto.randomUUID() };
+        set({ confidenceLedger: [...get().confidenceLedger, full] });
+      },
+      deleteConfidenceEntry: (id) => {
+        set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id) });
+      },
+
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
       setCurrentTipId: (id) => set({ currentTipId: id }),
@@ -2983,6 +3013,8 @@ export const useAppStore = create<AppState>()(
             consecutiveDays: 0,
             totalClaimed: 0,
           },
+          mentalCheckIns: [],
+          confidenceLedger: [],
           showTip: true,
           currentTipId: null
         })

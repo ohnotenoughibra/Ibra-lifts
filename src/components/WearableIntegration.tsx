@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, TrainingIntensity } from '@/lib/types';
+import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, ActivityCategory, TrainingIntensity } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -638,8 +638,110 @@ function strainToIntensity(strain: number | null): TrainingIntensity {
   return 'competition_prep';
 }
 
+/**
+ * Estimate RPE (1-10) from Whoop data using multiple physiological signals.
+ *
+ * First principles:
+ * - RPE reflects total perceived effort, not just cardiovascular load
+ * - Heart rate intensity ratio (avgHR/maxHR) is the strongest single predictor
+ *   of how hard someone is working moment-to-moment
+ * - Whoop strain is logarithmic (each point is exponentially harder) so a
+ *   linear mapping to RPE is fundamentally wrong
+ * - Duration matters: 90min at moderate HR feels harder than 15min at the same HR
+ * - HR zone distribution captures the time spent at redline intensities
+ * - Combat sports add isometric/neurological fatigue beyond what HR captures
+ *
+ * Signals are weighted and combined into a composite score:
+ *   40% HR intensity ratio  — how close to max on average
+ *   30% Strain (non-linear) — cumulative cardiovascular load
+ *   15% HR zone distribution — time spent at high zones
+ *   15% Duration             — session length context
+ *   +0.5 combat sport bonus  — neurological fatigue not captured by HR
+ */
+function estimateRPE(
+  strain: number | null,
+  avgHR: number | null,
+  maxHR: number | null,
+  durationMin: number,
+  zones: { zone: number; minutes: number }[],
+  isCombatSport: boolean,
+): number {
+  // No data at all → neutral default
+  if (strain == null && avgHR == null) return 5;
+
+  const signals: { value: number; weight: number }[] = [];
+
+  // --- Signal 1: HR Intensity Ratio (strongest predictor) ---
+  // Based on exercise physiology: %maxHR maps directly to perceived effort
+  if (avgHR != null && maxHR != null && maxHR > 100) {
+    const ratio = avgHR / maxHR;
+    let hrRPE: number;
+    if (ratio <= 0.55)      hrRPE = 1;
+    else if (ratio <= 0.65) hrRPE = 2 + (ratio - 0.55) / 0.10;       // 2–3
+    else if (ratio <= 0.72) hrRPE = 3 + (ratio - 0.65) / 0.07;       // 3–4
+    else if (ratio <= 0.78) hrRPE = 4 + (ratio - 0.72) / 0.06;       // 4–5
+    else if (ratio <= 0.83) hrRPE = 5 + ((ratio - 0.78) / 0.05) * 1.5; // 5–6.5
+    else if (ratio <= 0.88) hrRPE = 6.5 + ((ratio - 0.83) / 0.05) * 1.5; // 6.5–8
+    else if (ratio <= 0.93) hrRPE = 8 + (ratio - 0.88) / 0.05;       // 8–9
+    else                    hrRPE = 9 + Math.min(1, (ratio - 0.93) / 0.05); // 9–10
+    signals.push({ value: hrRPE, weight: 0.40 });
+  }
+
+  // --- Signal 2: Strain (non-linear / logarithmic mapping) ---
+  // Whoop strain is logarithmic 0-21: each point requires exponentially more effort.
+  // Piecewise mapping that respects this curve.
+  if (strain != null) {
+    let strainRPE: number;
+    if (strain <= 4)        strainRPE = 1 + (strain / 4) * 2;               // 1–3
+    else if (strain <= 8)   strainRPE = 3 + ((strain - 4) / 4) * 2;         // 3–5
+    else if (strain <= 12)  strainRPE = 5 + ((strain - 8) / 4) * 1.5;       // 5–6.5
+    else if (strain <= 16)  strainRPE = 6.5 + ((strain - 12) / 4) * 1.5;    // 6.5–8
+    else if (strain <= 19)  strainRPE = 8 + ((strain - 16) / 3) * 1.5;      // 8–9.5
+    else                    strainRPE = 9.5 + ((strain - 19) / 2) * 0.5;    // 9.5–10
+    signals.push({ value: Math.min(10, strainRPE), weight: 0.30 });
+  }
+
+  // --- Signal 3: HR Zone distribution ---
+  // Weighted average zone (higher zones → more effort). Zone 0-5 scale → RPE 1-10.
+  if (zones.length > 0) {
+    const totalMin = zones.reduce((s, z) => s + z.minutes, 0);
+    if (totalMin > 0) {
+      const avgZone = zones.reduce((s, z) => s + z.zone * z.minutes, 0) / totalMin;
+      const zoneRPE = 1 + (avgZone / 5) * 9; // 1–10
+      signals.push({ value: zoneRPE, weight: 0.15 });
+    }
+  }
+
+  // --- Signal 4: Duration context ---
+  // Longer sessions accumulate fatigue — same avg HR for 90min feels much harder than 15min.
+  if (durationMin > 0) {
+    let durationRPE: number;
+    if (durationMin <= 10)      durationRPE = 3;
+    else if (durationMin <= 20) durationRPE = 4;
+    else if (durationMin <= 40) durationRPE = 5;
+    else if (durationMin <= 60) durationRPE = 6;
+    else if (durationMin <= 90) durationRPE = 7;
+    else                        durationRPE = 8;
+    signals.push({ value: durationRPE, weight: 0.15 });
+  }
+
+  if (signals.length === 0) return 5;
+
+  const totalWeight = signals.reduce((s, sig) => s + sig.weight, 0);
+  let rpe = signals.reduce((s, sig) => s + sig.value * sig.weight, 0) / totalWeight;
+
+  // Combat sports: grappling/striking have neurological & isometric fatigue
+  // not reflected in HR data (grip fighting, bracing, adrenaline, etc.)
+  if (isCombatSport) {
+    rpe += 0.5;
+  }
+
+  return Math.max(1, Math.min(10, Math.round(rpe)));
+}
+
 interface AutoImportResult {
   imported: number;
+  updated: number;
   sessions: Array<{
     type: ActivityType;
     duration: number;
@@ -656,67 +758,93 @@ interface AutoImportResult {
  * 2. Name-based detection (matches keywords like "jiu jitsu", "grappling", etc.)
  * 3. Heuristic detection for generic "Workout" entries that match grappling patterns
  *
- * Only imports workouts that haven't already been imported (dedup by whoopWorkoutId).
- * Returns information about imported sessions for notification display.
+ * New workouts are imported; already-imported workouts are updated if Whoop
+ * re-scored them (strain, duration, HR can change after initial sync).
  */
 function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResult {
   const store = useAppStore.getState();
   const existingSessions = store.trainingSessions;
   const importedSessions: AutoImportResult['sessions'] = [];
+  let updatedCount = 0;
 
-  // Find combat sport workouts not yet imported
-  // Check sport ID, name patterns, AND heuristic detection
-  const combatWorkouts = whoopWorkouts.filter(w => {
-    // Skip if already imported
-    if (existingSessions.some(s => s.whoopWorkoutId === w.id)) {
-      return false;
-    }
-
-    // Method 1: Explicit sport ID mapping
-    if (WHOOP_COMBAT_SPORT_MAP[w.sportId]) {
-      return true;
-    }
-
-    // Method 2: Name-based detection (catches "Jiu Jitsu", "Grappling", etc.)
-    if (detectGrapplingFromName(w.sportName)) {
-      return true;
-    }
-
-    // Method 3: Heuristic detection for generic workouts
-    // This catches workouts labeled as "Workout", "Other", "Activity", etc.
-    // that have characteristics matching grappling/combat sports
-    if (isLikelyGrapplingWorkout(w)) {
-      return true;
-    }
-
+  /** Returns true if this Whoop workout qualifies as a combat sport session. */
+  function isCombatWorkout(w: WhoopWorkout): boolean {
+    if (WHOOP_COMBAT_SPORT_MAP[w.sportId]) return true;
+    if (detectGrapplingFromName(w.sportName)) return true;
+    if (isLikelyGrapplingWorkout(w)) return true;
     return false;
-  });
+  }
 
-  for (const ww of combatWorkouts) {
-    // Determine grappling type using priority: sport ID > name detection > heuristic
+  /** Derive shared fields from a Whoop workout. */
+  function deriveFields(ww: WhoopWorkout) {
     const typeFromId = WHOOP_COMBAT_SPORT_MAP[ww.sportId];
     const typeFromName = detectGrapplingFromName(ww.sportName);
     const grapplingType = typeFromId ?? typeFromName ?? inferActivityTypeFromWorkout(ww);
-
-    // Track detection method for notes
     const detectionMethod: 'id' | 'name' | 'heuristic' = typeFromId ? 'id' : typeFromName ? 'name' : 'heuristic';
-
     const durationMin = Math.round(
       (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
     );
-
     const intensity = strainToIntensity(ww.strain);
-
-    // Build descriptive note based on detection method
-    const notePrefix = detectionMethod === 'heuristic'
-      ? `Auto-detected from "${ww.sportName}" (based on strain/HR patterns)`
-      : `Auto-imported from Whoop (${ww.sportName})`;
-
-    // Determine category from activity type
-    const activityCategory = WHOOP_COMBAT_SPORT_MAP[ww.sportId]
+    const activityCategory: ActivityCategory = WHOOP_COMBAT_SPORT_MAP[ww.sportId]
       ? (['bjj_gi', 'bjj_nogi', 'wrestling', 'judo', 'sambo'].includes(grapplingType) ? 'grappling' :
          ['boxing', 'kickboxing', 'muay_thai'].includes(grapplingType) ? 'striking' : 'mma')
       : 'other';
+    const isCombat = ['grappling', 'striking', 'mma'].includes(activityCategory);
+    return { grapplingType, detectionMethod, durationMin, intensity, activityCategory, isCombat };
+  }
+
+  // --- Pass 1: Update already-imported sessions if Whoop data changed ---
+  for (const ww of whoopWorkouts) {
+    if (!isCombatWorkout(ww)) continue;
+    const existing = existingSessions.find(s => s.whoopWorkoutId === ww.id);
+    if (!existing) continue;
+
+    // Check if any key data has changed (Whoop re-scored the workout)
+    const newStrain = ww.strain ?? 0;
+    const newDuration = Math.round(
+      (new Date(ww.end).getTime() - new Date(ww.start).getTime()) / 60000
+    );
+    const oldStrain = existing.whoopHR?.strain ?? 0;
+    const oldDuration = existing.duration;
+    const oldAvgHR = existing.whoopHR?.avgHR ?? 0;
+    const oldMaxHR = existing.whoopHR?.maxHR ?? 0;
+
+    const strainChanged = Math.abs(newStrain - oldStrain) > 0.5;
+    const durationChanged = Math.abs(newDuration - oldDuration) > 2;
+    const hrChanged = (ww.avgHR != null && Math.abs((ww.avgHR ?? 0) - oldAvgHR) > 2)
+                   || (ww.maxHR != null && Math.abs((ww.maxHR ?? 0) - oldMaxHR) > 2);
+
+    if (strainChanged || durationChanged || hrChanged) {
+      const { durationMin, intensity, activityCategory, isCombat } = deriveFields(ww);
+      store.updateTrainingSession(existing.id, {
+        duration: durationMin,
+        plannedIntensity: intensity,
+        perceivedExertion: estimateRPE(
+          ww.strain, ww.avgHR, ww.maxHR, durationMin, ww.zones, isCombat,
+        ),
+        whoopHR: {
+          avgHR: ww.avgHR ?? 0,
+          maxHR: ww.maxHR ?? 0,
+          strain: ww.strain ?? 0,
+          calories: ww.calories ?? 0,
+          zones: ww.zones.length > 0 ? ww.zones : undefined,
+        },
+      });
+      updatedCount++;
+    }
+  }
+
+  // --- Pass 2: Import new combat workouts ---
+  const newWorkouts = whoopWorkouts.filter(w =>
+    isCombatWorkout(w) && !existingSessions.some(s => s.whoopWorkoutId === w.id)
+  );
+
+  for (const ww of newWorkouts) {
+    const { grapplingType, detectionMethod, durationMin, intensity, activityCategory, isCombat } = deriveFields(ww);
+
+    const notePrefix = detectionMethod === 'heuristic'
+      ? `Auto-detected from "${ww.sportName}" (based on strain/HR patterns)`
+      : `Auto-imported from Whoop (${ww.sportName})`;
 
     store.addTrainingSession({
       date: new Date(ww.start),
@@ -724,7 +852,9 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
       type: grapplingType,
       plannedIntensity: intensity,
       duration: durationMin,
-      perceivedExertion: ww.strain != null ? Math.min(10, Math.round(ww.strain / 2.1)) : 5,
+      perceivedExertion: estimateRPE(
+        ww.strain, ww.avgHR, ww.maxHR, durationMin, ww.zones, isCombat,
+      ),
       notes: notePrefix,
       whoopHR: {
         avgHR: ww.avgHR ?? 0,
@@ -736,7 +866,6 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
       whoopWorkoutId: ww.id,
     });
 
-    // Track imported session for notification
     importedSessions.push({
       type: grapplingType,
       duration: durationMin,
@@ -768,6 +897,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
 
   return {
     imported: importedSessions.length,
+    updated: updatedCount,
     sessions: importedSessions,
   };
 }
@@ -962,7 +1092,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         // Auto-import combat sport workouts as grappling sessions + HR sessions
         if (whoopWkts.length > 0) {
           const importResult = autoImportCombatWorkouts(whoopWkts);
-          if (importResult.imported > 0) {
+          if (importResult.imported > 0 || importResult.updated > 0) {
             setAutoImportResult(importResult);
           }
         }
@@ -1340,7 +1470,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
         )}
 
         {/* Auto-Import Success Banner */}
-        {autoImportResult && autoImportResult.imported > 0 && (
+        {autoImportResult && (autoImportResult.imported > 0 || autoImportResult.updated > 0) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1350,7 +1480,13 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <Shield className="w-5 h-5 text-lime-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-lime-300">
-                  {autoImportResult.imported} Grappling Session{autoImportResult.imported > 1 ? 's' : ''} Auto-Imported
+                  {autoImportResult.imported > 0
+                    ? `${autoImportResult.imported} Session${autoImportResult.imported > 1 ? 's' : ''} Imported`
+                    : ''}
+                  {autoImportResult.imported > 0 && autoImportResult.updated > 0 ? ', ' : ''}
+                  {autoImportResult.updated > 0
+                    ? `${autoImportResult.updated} Session${autoImportResult.updated > 1 ? 's' : ''} Updated`
+                    : ''}
                 </p>
                 <div className="mt-2 space-y-1.5">
                   {autoImportResult.sessions.map((session, idx) => (

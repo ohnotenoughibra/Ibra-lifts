@@ -2476,13 +2476,13 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           <div
             className={cn('relative rounded-2xl overflow-hidden transition-all duration-300 max-w-md mx-auto w-full', dockEditMode && 'ring-1 ring-primary-400/30')}
           >
-            {/* Glass background layer */}
-            <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.04] via-transparent to-white/[0.02]" />
-            <div className="absolute inset-[0.5px] rounded-2xl border border-white/[0.08]" />
+            {/* Glass background layer — pointer-events-none so taps reach buttons */}
+            <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.04] via-transparent to-white/[0.02] pointer-events-none" />
+            <div className="absolute inset-[0.5px] rounded-2xl border border-white/[0.08] pointer-events-none" />
 
-            {/* Content */}
-            <div className="relative px-4 pt-3 pb-3.5">
+            {/* Content — z-10 to ensure it's above glass layers */}
+            <div className="relative z-10 px-4 pt-3 pb-3.5">
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-1.5">
                   <div className="w-1 h-1 rounded-full bg-primary-400/60" />
@@ -2601,11 +2601,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               onClick={(e) => e.stopPropagation()}
               className="absolute bottom-0 left-0 right-0 max-h-[60vh] rounded-t-2xl overflow-hidden"
             >
-              {/* Picker glass background */}
-              <div className="absolute inset-0 bg-grappler-900/95 backdrop-blur-xl" />
-              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/[0.03]" />
+              {/* Picker glass background — pointer-events-none */}
+              <div className="absolute inset-0 bg-grappler-900/95 backdrop-blur-xl pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/[0.03] pointer-events-none" />
 
-              <div className="relative">
+              <div className="relative z-10">
                 {/* Handle + header */}
                 <div className="sticky top-0 z-10 pt-3 pb-2 px-4 border-b border-white/[0.06]">
                   <div className="w-8 h-1 rounded-full bg-grappler-600 mx-auto mb-3" />

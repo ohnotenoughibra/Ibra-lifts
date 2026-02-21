@@ -391,6 +391,135 @@
   body.light-mode .text-orange-400 { color: #ea580c; }
   body.light-mode .text-teal-400 { color: #0d9488; }
   body.light-mode .text-cyan-400 { color: #0891b2; }
+  body.light-mode .text-rose-300 { color: #e11d48; }
+  body.light-mode .text-yellow-300 { color: #ca8a04; }
+  body.light-mode .text-purple-300 { color: #7c3aed; }
+  body.light-mode .text-orange-300 { color: #ea580c; }
+
+  /* ── Colored text with opacity — MUST use darkened base ── */
+  body.light-mode .text-green-400\/80 { color: rgba(22,163,74,0.9); }
+  body.light-mode .text-green-400\/50 { color: rgba(22,163,74,0.65); }
+  body.light-mode .text-rose-400\/70 { color: rgba(225,29,72,0.8); }
+  body.light-mode .text-rose-400\/80 { color: rgba(225,29,72,0.9); }
+  body.light-mode .text-yellow-400\/70 { color: rgba(202,138,4,0.8); }
+  body.light-mode .text-sky-400\/80 { color: rgba(2,132,199,0.9); }
+  body.light-mode .text-pink-400\/70 { color: rgba(219,39,119,0.8); }
+  body.light-mode .text-blue-300\/70 { color: rgba(37,99,235,0.8); }
+  body.light-mode .text-primary-400\/60 { color: rgba(var(--p-600),0.75); }
+  body.light-mode .text-purple-400\/60 { color: rgba(147,51,234,0.75); }
+
+  /* ── Dark gradient endpoints — flip to light equivalents ──
+     On dark mode: gradient fades from dark surface to slightly tinted dark.
+     On light mode: surface flips to white, but -950 stays dark → ugly dark blob.
+     Fix: remap -950 endpoints to very light tints. */
+  body.light-mode .to-purple-950\/30 { --tw-gradient-to: rgba(147,51,234,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-primary-950\/20 { --tw-gradient-to: rgba(var(--p-300),0.15); --tw-gradient-to-position: ; }
+  body.light-mode .to-primary-950\/10 { --tw-gradient-to: rgba(var(--p-200),0.1); --tw-gradient-to-position: ; }
+
+  /* ── Colored semi-transparent borders — bump for visibility on white ── */
+  body.light-mode .border-green-500\/15 { border-color: rgba(22,163,74,0.2); }
+  body.light-mode .border-green-500\/20 { border-color: rgba(22,163,74,0.25); }
+  body.light-mode .border-green-500\/30 { border-color: rgba(22,163,74,0.3); }
+  body.light-mode .border-purple-500\/15 { border-color: rgba(147,51,234,0.2); }
+  body.light-mode .border-purple-500\/20 { border-color: rgba(147,51,234,0.22); }
+  body.light-mode .border-purple-500\/30 { border-color: rgba(147,51,234,0.28); }
+  body.light-mode .border-primary-500\/15 { border-color: rgba(var(--p-500),0.2); }
+  body.light-mode .border-primary-500\/20 { border-color: rgba(var(--p-500),0.22); }
+  body.light-mode .border-primary-500\/30 { border-color: rgba(var(--p-500),0.28); }
+  body.light-mode .border-red-500\/20 { border-color: rgba(220,38,38,0.25); }
+  body.light-mode .border-red-500\/30 { border-color: rgba(220,38,38,0.3); }
+  body.light-mode .border-yellow-500\/20 { border-color: rgba(202,138,4,0.25); }
+  body.light-mode .border-yellow-500\/30 { border-color: rgba(202,138,4,0.3); }
+  body.light-mode .border-orange-500\/20 { border-color: rgba(234,88,12,0.25); }
+  body.light-mode .border-orange-500\/25 { border-color: rgba(234,88,12,0.3); }
+  body.light-mode .border-amber-500\/25 { border-color: rgba(217,119,6,0.3); }
+  body.light-mode .border-amber-500\/30 { border-color: rgba(217,119,6,0.35); }
+  body.light-mode .border-blue-500\/30 { border-color: rgba(37,99,235,0.28); }
+  body.light-mode .border-sky-500\/30 { border-color: rgba(2,132,199,0.28); }
+  body.light-mode .border-pink-500\/30 { border-color: rgba(219,39,119,0.28); }
+  body.light-mode .border-violet-500\/30 { border-color: rgba(139,92,246,0.28); }
+  body.light-mode .border-rose-500\/30 { border-color: rgba(244,63,94,0.28); }
+
+  /* ── Colored semi-transparent backgrounds — subtle tints on white ──
+     On dark: color/10 creates barely-visible tint on near-black.
+     On white: same opacity is actually MORE visible (lighter tint), but
+     very low opacities (/5, /8) wash out. Bump the lowest ones. */
+  body.light-mode .bg-green-500\/5 { background-color: rgba(22,163,74,0.06); }
+  body.light-mode .bg-green-500\/8 { background-color: rgba(22,163,74,0.07); }
+  body.light-mode .bg-purple-500\/5 { background-color: rgba(147,51,234,0.05); }
+  body.light-mode .bg-purple-500\/8 { background-color: rgba(147,51,234,0.06); }
+  body.light-mode .bg-red-500\/8 { background-color: rgba(220,38,38,0.06); }
+  body.light-mode .bg-yellow-500\/8 { background-color: rgba(202,138,4,0.06); }
+  body.light-mode .bg-amber-500\/8 { background-color: rgba(217,119,6,0.06); }
+  body.light-mode .bg-blue-500\/8 { background-color: rgba(37,99,235,0.06); }
+  body.light-mode .bg-slate-500\/8 { background-color: rgba(100,116,139,0.06); }
+  body.light-mode .bg-primary-500\/10 { background-color: rgba(var(--p-500),0.08); }
+  body.light-mode .bg-primary-500\/15 { background-color: rgba(var(--p-500),0.1); }
+  body.light-mode .bg-primary-400\/20 { background-color: rgba(var(--p-400),0.15); }
+  body.light-mode .bg-yellow-400\/30 { background-color: rgba(202,138,4,0.15); }
+  body.light-mode .bg-green-400\/25 { background-color: rgba(22,163,74,0.12); }
+
+  /* ── Colored gradient from/to for Explore tool cards ──
+     Tool cards use from-{color}-500/20 to-{color}-500/5 gradients. */
+  body.light-mode .from-green-500\/10 { --tw-gradient-from: rgba(22,163,74,0.08); --tw-gradient-from-position: ; }
+  body.light-mode .from-green-500\/20 { --tw-gradient-from: rgba(22,163,74,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-purple-500\/15 { --tw-gradient-from: rgba(147,51,234,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-purple-500\/20 { --tw-gradient-from: rgba(147,51,234,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-red-500\/15 { --tw-gradient-from: rgba(220,38,38,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-red-500\/20 { --tw-gradient-from: rgba(220,38,38,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-blue-500\/15 { --tw-gradient-from: rgba(37,99,235,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-blue-500\/20 { --tw-gradient-from: rgba(37,99,235,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-yellow-500\/15 { --tw-gradient-from: rgba(202,138,4,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-yellow-500\/20 { --tw-gradient-from: rgba(202,138,4,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-amber-500\/15 { --tw-gradient-from: rgba(217,119,6,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-violet-500\/15 { --tw-gradient-from: rgba(139,92,246,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-violet-500\/20 { --tw-gradient-from: rgba(139,92,246,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-rose-500\/15 { --tw-gradient-from: rgba(244,63,94,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-rose-500\/20 { --tw-gradient-from: rgba(244,63,94,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-sky-500\/20 { --tw-gradient-from: rgba(2,132,199,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-pink-500\/15 { --tw-gradient-from: rgba(219,39,119,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-pink-500\/20 { --tw-gradient-from: rgba(219,39,119,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-slate-500\/15 { --tw-gradient-from: rgba(100,116,139,0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-slate-500\/20 { --tw-gradient-from: rgba(100,116,139,0.12); --tw-gradient-from-position: ; }
+  body.light-mode .from-primary-500\/10 { --tw-gradient-from: rgba(var(--p-500),0.08); --tw-gradient-from-position: ; }
+  body.light-mode .from-primary-500\/15 { --tw-gradient-from: rgba(var(--p-500),0.1); --tw-gradient-from-position: ; }
+  body.light-mode .from-primary-500\/20 { --tw-gradient-from: rgba(var(--p-500),0.12); --tw-gradient-from-position: ; }
+  body.light-mode .to-green-500\/5 { --tw-gradient-to: rgba(22,163,74,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-green-500\/10 { --tw-gradient-to: rgba(22,163,74,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-purple-500\/5 { --tw-gradient-to: rgba(147,51,234,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-purple-500\/10 { --tw-gradient-to: rgba(147,51,234,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-red-500\/5 { --tw-gradient-to: rgba(220,38,38,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-red-500\/10 { --tw-gradient-to: rgba(220,38,38,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-blue-500\/5 { --tw-gradient-to: rgba(37,99,235,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-blue-500\/10 { --tw-gradient-to: rgba(37,99,235,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-yellow-500\/5 { --tw-gradient-to: rgba(202,138,4,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-yellow-500\/10 { --tw-gradient-to: rgba(202,138,4,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-amber-500\/5 { --tw-gradient-to: rgba(217,119,6,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-amber-500\/10 { --tw-gradient-to: rgba(217,119,6,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-violet-500\/5 { --tw-gradient-to: rgba(139,92,246,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-violet-500\/10 { --tw-gradient-to: rgba(139,92,246,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-rose-500\/5 { --tw-gradient-to: rgba(244,63,94,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-rose-500\/10 { --tw-gradient-to: rgba(244,63,94,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-rose-500\/15 { --tw-gradient-to: rgba(244,63,94,0.08); --tw-gradient-to-position: ; }
+  body.light-mode .to-sky-500\/5 { --tw-gradient-to: rgba(2,132,199,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-sky-500\/10 { --tw-gradient-to: rgba(2,132,199,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-pink-500\/5 { --tw-gradient-to: rgba(219,39,119,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-pink-500\/10 { --tw-gradient-to: rgba(219,39,119,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-slate-500\/5 { --tw-gradient-to: rgba(100,116,139,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-slate-500\/10 { --tw-gradient-to: rgba(100,116,139,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-cyan-500\/5 { --tw-gradient-to: rgba(6,182,212,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-teal-500\/5 { --tw-gradient-to: rgba(13,148,136,0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-orange-500\/10 { --tw-gradient-to: rgba(234,88,12,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-emerald-500\/10 { --tw-gradient-to: rgba(5,150,105,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-gray-500\/10 { --tw-gradient-to: rgba(107,114,128,0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-primary-500\/5 { --tw-gradient-to: rgba(var(--p-500),0.04); --tw-gradient-to-position: ; }
+  body.light-mode .to-primary-500\/10 { --tw-gradient-to: rgba(var(--p-500),0.06); --tw-gradient-to-position: ; }
+  body.light-mode .to-accent-500\/20 { --tw-gradient-to: rgba(var(--a-500),0.12); --tw-gradient-to-position: ; }
+
+  /* ── Hover states for colored elements ── */
+  body.light-mode .hover\:text-primary-400:hover { color: rgb(var(--p-600)); }
+  body.light-mode .hover\:bg-primary-500\/10:hover { background-color: rgba(var(--p-500),0.1); }
+  body.light-mode .hover\:bg-green-500\/20:hover { background-color: rgba(22,163,74,0.15); }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {

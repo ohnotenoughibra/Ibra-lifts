@@ -1655,6 +1655,41 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
             </motion.div>
           )}
+
+          {/* Contextual tool suggestions — based on what just happened */}
+          {lastCompletedWorkout && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.0, duration: 0.3 }}
+              className="flex gap-2 mt-3 pt-3 border-t border-grappler-700/30 overflow-x-auto"
+            >
+              {(() => {
+                const suggestions: { id: string; label: string; icon: React.ElementType; reason: string }[] = [];
+                const log = lastCompletedWorkout.log;
+                const streak = lastCompletedWorkout.newStreak;
+                // High RPE → recovery
+                if (log.overallRPE >= 8) suggestions.push({ id: 'recovery', label: 'Recovery', icon: Shield, reason: 'Heavy session' });
+                // PR → strength analysis
+                if (lastCompletedWorkout.hadPR) suggestions.push({ id: 'strength', label: 'Strength', icon: TrendingUp, reason: 'New PR' });
+                // 5+ day streak → journal
+                if (streak >= 5) suggestions.push({ id: 'training_journal', label: 'Journal', icon: Calendar, reason: `${streak}d streak` });
+                // Always show fighters mind
+                suggestions.push({ id: 'fighters_mind', label: 'Mind', icon: Brain, reason: 'Reflect' });
+                return suggestions.slice(0, 3).map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => onNavigate(s.id as OverlayView)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-grappler-800/60 border border-grappler-700/30 hover:bg-grappler-800 transition-colors flex-shrink-0"
+                  >
+                    <s.icon className="w-3 h-3 text-grappler-400" />
+                    <span className="text-xs text-grappler-300">{s.label}</span>
+                    <span className="text-[10px] text-grappler-600">{s.reason}</span>
+                  </button>
+                ));
+              })()}
+            </motion.div>
+          )}
         </motion.div>
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (

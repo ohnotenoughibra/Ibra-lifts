@@ -449,49 +449,56 @@ export default function Dashboard({
     return <ActiveWorkout />;
   }
 
-  // Full-screen overlay views
-  if (overlayView === 'builder') return <WorkoutBuilder onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'nutrition') return <NutritionTracker onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'wearable') return <WearableIntegration onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'competition') return <CompetitionPrep onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'mobility') return <MobilityWorkouts onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'coach') return <WeeklyCoach onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'profiler') return <ExerciseProfiler onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'strength') return <StrengthAnalysis onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'periodization') return <PeriodizationCalendar onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'recovery') return <RecoveryDashboard onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'injury') return <InjuryLogger onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'overload') return <ProgressiveOverload onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'custom_exercise') return <CustomExerciseCreator onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'one_rm') return <OneRepMaxCalc onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'hr_zones') return <HRZoneTraining onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'templates') return <SessionTemplates onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'volume_map') return <VolumeHeatMap onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'grappling') return <GrapplingTracker onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'community_share') return <CommunityShare onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'quick_actions') return <QuickActions onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'grip_strength') return <GripStrengthModule onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'recovery_coach') return <RecoveryCoach onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'block_suggestion') return <BlockSuggestionView onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'user_guide') return <NewUserGuide onComplete={() => setOverlayView(null)} />;
-  if (overlayView === 'illness') return <IllnessLogger onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'cycle_tracking') return <CycleTracking onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'fatigue') return <FatigueOverlay onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'fight_camp') return <FightCampNutrition onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'badge_showcase') return <BadgeShowcase onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'auto_throttle') return <AutoThrottleInfo onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'corner_coach') return <CornerCoachInfo onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'training_load') return <TrainingLoadDashboard onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'warm_up') return <WarmUpInfo onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'plate_calc') return <PlateCalculator onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'circuit_builder') return <CircuitBuilder onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'photo_progress') return <PhotoProgress onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'breathing') return <BreathingProtocols onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'split_analyzer') return <SplitAnalyzer onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'movement_library') return <MovementLibrary onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'conditioning') return <ConditioningSession onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'fighters_mind') return <FightersMind onClose={() => setOverlayView(null)} />;
-  if (overlayView === 'training_journal') return <TrainingJournal onClose={() => setOverlayView(null)} />;
+  // Full-screen overlay views — wrapped in overlay-safe for status bar clearance
+  {
+    const closeOverlay = () => setOverlayView(null);
+    const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
+      builder: <WorkoutBuilder onClose={closeOverlay} />,
+      nutrition: <NutritionTracker onClose={closeOverlay} />,
+      wearable: <WearableIntegration onClose={closeOverlay} />,
+      competition: <CompetitionPrep onClose={closeOverlay} />,
+      mobility: <MobilityWorkouts onClose={closeOverlay} />,
+      coach: <WeeklyCoach onClose={closeOverlay} />,
+      profiler: <ExerciseProfiler onClose={closeOverlay} />,
+      strength: <StrengthAnalysis onClose={closeOverlay} />,
+      periodization: <PeriodizationCalendar onClose={closeOverlay} />,
+      recovery: <RecoveryDashboard onClose={closeOverlay} />,
+      injury: <InjuryLogger onClose={closeOverlay} />,
+      overload: <ProgressiveOverload onClose={closeOverlay} />,
+      custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
+      one_rm: <OneRepMaxCalc onClose={closeOverlay} />,
+      hr_zones: <HRZoneTraining onClose={closeOverlay} />,
+      templates: <SessionTemplates onClose={closeOverlay} />,
+      volume_map: <VolumeHeatMap onClose={closeOverlay} />,
+      grappling: <GrapplingTracker onClose={closeOverlay} />,
+      community_share: <CommunityShare onClose={closeOverlay} />,
+      quick_actions: <QuickActions onClose={closeOverlay} />,
+      grip_strength: <GripStrengthModule onClose={closeOverlay} />,
+      recovery_coach: <RecoveryCoach onClose={closeOverlay} />,
+      block_suggestion: <BlockSuggestionView onClose={closeOverlay} />,
+      user_guide: <NewUserGuide onComplete={closeOverlay} />,
+      illness: <IllnessLogger onClose={closeOverlay} />,
+      cycle_tracking: <CycleTracking onClose={closeOverlay} />,
+      fatigue: <FatigueOverlay onClose={closeOverlay} />,
+      fight_camp: <FightCampNutrition onClose={closeOverlay} />,
+      badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
+      auto_throttle: <AutoThrottleInfo onClose={closeOverlay} />,
+      corner_coach: <CornerCoachInfo onClose={closeOverlay} />,
+      training_load: <TrainingLoadDashboard onClose={closeOverlay} />,
+      warm_up: <WarmUpInfo onClose={closeOverlay} />,
+      plate_calc: <PlateCalculator onClose={closeOverlay} />,
+      circuit_builder: <CircuitBuilder onClose={closeOverlay} />,
+      photo_progress: <PhotoProgress onClose={closeOverlay} />,
+      breathing: <BreathingProtocols onClose={closeOverlay} />,
+      split_analyzer: <SplitAnalyzer onClose={closeOverlay} />,
+      movement_library: <MovementLibrary onClose={closeOverlay} />,
+      conditioning: <ConditioningSession onClose={closeOverlay} />,
+      fighters_mind: <FightersMind onClose={closeOverlay} />,
+      training_journal: <TrainingJournal onClose={closeOverlay} />,
+    };
+    const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
+    if (overlayContent) return <div className="overlay-safe">{overlayContent}</div>;
+  }
 
   // Mesocycle report overlay
   if (reportMesocycleId) {
@@ -501,6 +508,7 @@ export default function Dashboard({
       const targetIdx = allMesos.indexOf(targetMeso);
       const prevMeso = targetIdx > 0 ? allMesos[targetIdx - 1] : null;
       return (
+        <div className="overlay-safe">
         <MesocycleReportView
           mesocycle={targetMeso}
           workoutLogs={workoutLogs}
@@ -509,6 +517,7 @@ export default function Dashboard({
           onClose={() => setReportMesocycleId(null)}
           onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
         />
+        </div>
       );
     }
   }

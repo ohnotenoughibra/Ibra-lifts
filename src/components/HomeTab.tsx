@@ -147,8 +147,7 @@ function ReadinessCard() {
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const summary = useMemo(() => {
     return getReadinessSummary({
@@ -167,25 +166,8 @@ function ReadinessCard() {
 
   if (!summary) return null;
 
-  const scoreColor =
-    summary.level === 'peak' ? 'text-green-400' :
-    summary.level === 'good' ? 'text-blue-400' :
-    summary.level === 'moderate' ? 'text-yellow-400' :
-    summary.level === 'low' ? 'text-orange-400' : 'text-red-400';
-
-  const dotColor =
-    summary.level === 'peak' ? 'bg-green-400' :
-    summary.level === 'good' ? 'bg-blue-400' :
-    summary.level === 'moderate' ? 'bg-yellow-400' :
-    summary.level === 'low' ? 'bg-orange-400' : 'bg-red-400';
-
-  const levelLabels: Record<string, string> = {
-    peak: 'Peak',
-    good: 'Good',
-    moderate: 'Moderate',
-    low: 'Low',
-    critical: 'Rest Day',
-  };
+  const limiters = summary.allFactors.filter(f => f.score < 60);
+  const allGreen = limiters.length === 0;
 
   const getBarColor = (score: number) => {
     if (score >= 70) return 'bg-green-500';
@@ -195,41 +177,55 @@ function ReadinessCard() {
   };
 
   return (
-    <div className="px-3 pt-3 pb-1">
-      {/* Header — always visible, tappable to toggle details */}
-      <button
-        onClick={() => { setDetailsOpen(v => !v); if (detailsOpen) setExpandedFactor(null); }}
-        className="w-full flex items-center justify-between group"
-      >
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-grappler-400" />
-          <span className="text-sm font-semibold text-grappler-100">Readiness</span>
-          <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full bg-grappler-700/60', scoreColor)}>
-            {levelLabels[summary.level]}
-          </span>
+    <div className="px-1 pt-2 pb-1 space-y-2">
+      {/* Bottleneck section — what's limiting you */}
+      {allGreen ? (
+        <div className="flex items-center gap-2 px-2">
+          <span className="text-xs text-green-400 font-medium">All systems green.</span>
+          <span className="text-xs text-grappler-500">Push today.</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className={cn('w-2 h-2 rounded-full', dotColor)} />
-            <span className={cn('text-lg font-bold', scoreColor)}>{summary.score}</span>
-            <span className="text-xs text-grappler-400 font-medium">/100</span>
-          </div>
-          <span className="text-xs text-grappler-600 group-hover:text-grappler-400 transition-colors ml-1">
-            {detailsOpen ? '▴' : '▾'}
-          </span>
+      ) : (
+        <div className="space-y-1.5">
+          {limiters.map(f => {
+            const explainer = factorExplainers[f.source];
+            return (
+              <div key={f.source} className="flex items-start gap-2 px-2">
+                <span className="text-sm mt-px">{explainer?.icon || '⚡'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-grappler-200">{f.label}</span>
+                    <span className={cn(
+                      'text-[10px] font-bold tabular-nums',
+                      f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
+                    )}>{f.score}</span>
+                  </div>
+                  {explainer && (
+                    <p className="text-[11px] text-primary-400 leading-snug mt-0.5">{explainer.action}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </button>
+      )}
 
-      {/* Auto-adjustment pill — always visible when active */}
+      {/* Auto-adjustment pill */}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-xs text-grappler-400 mt-1 ml-6">
-          Volume {Math.round(summary.volumeModifier * 100)}% · Intensity {Math.round(summary.intensityModifier * 100)}%
+        <p className="text-[11px] text-grappler-400 px-2">
+          Auto-adjusted: Volume {Math.round(summary.volumeModifier * 100)}% · Intensity {Math.round(summary.intensityModifier * 100)}%
         </p>
       )}
 
-      {/* Collapsible factor details */}
+      {/* Show all toggle — for data nerds */}
+      <button
+        onClick={() => setShowAll(v => !v)}
+        className="text-[11px] text-grappler-500 hover:text-grappler-300 px-2 transition-colors"
+      >
+        {showAll ? 'Hide details ▴' : `All factors (${summary.allFactors.length}) ▾`}
+      </button>
+
       <AnimatePresence>
-        {detailsOpen && (
+        {showAll && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -237,61 +233,19 @@ function ReadinessCard() {
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="space-y-1 pt-3 pb-1">
-              {summary.allFactors.map(f => {
-                const explainer = factorExplainers[f.source];
-                const isExpanded = expandedFactor === f.source;
-
-                return (
-                  <div key={f.source}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setExpandedFactor(isExpanded ? null : f.source); }}
-                      className="w-full group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs w-[72px] text-left truncate text-grappler-400 group-hover:text-grappler-200 transition-colors">
-                          {f.label}
-                        </span>
-                        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.max(3, f.score)}%` }}
-                            transition={{ duration: 0.6, ease: 'easeOut' }}
-                            className={cn('h-full rounded-full', getBarColor(f.score))}
-                          />
-                        </div>
-                        <span className={cn(
-                          'text-xs font-mono w-6 text-right',
-                          f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
-                        )}>
-                          {f.score}
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Per-factor explainer */}
-                    <AnimatePresence>
-                      {isExpanded && explainer && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.15 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="ml-[72px] pl-2.5 mt-1 mb-1.5 border-l border-grappler-700/60 space-y-0.5">
-                            {f.detail && (
-                              <p className="text-xs text-grappler-300">{f.detail}</p>
-                            )}
-                            <p className="text-xs text-grappler-400">{explainer.what}</p>
-                            <p className="text-xs text-primary-400">{explainer.action}</p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+            <div className="space-y-0.5 pb-1">
+              {summary.allFactors.map(f => (
+                <div key={f.source} className="flex items-center gap-2 px-2">
+                  <span className="text-[11px] w-16 text-left truncate text-grappler-400">{f.label}</span>
+                  <div className="flex-1 h-1 rounded-full overflow-hidden bg-grappler-700/40">
+                    <div className={cn('h-full rounded-full transition-all', getBarColor(f.score))} style={{ width: `${Math.max(3, f.score)}%` }} />
                   </div>
-                );
-              })}
+                  <span className={cn(
+                    'text-[10px] font-mono w-5 text-right',
+                    f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
+                  )}>{f.score}</span>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -1427,20 +1381,36 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           ABOVE THE FOLD — Hero Section: 3-Second Rule
           Readiness ring + Start Workout + Streak counter
           ═══════════════════════════════════════════════════════════════════ */}
-      <section className="space-y-3">
-        {/* Hero row: Readiness Ring | Streak */}
+      <section className="space-y-2">
+        {/* Hero row: Readiness Ring + context | Streak */}
         <div className="flex items-center justify-between px-1">
-          <ReadinessRing
-            score={directive.readinessScore}
-            size={56}
-            strokeWidth={4}
-            onClick={() => setReadinessExpanded(v => !v)}
-          />
           <div className="flex items-center gap-3">
+            <ReadinessRing
+              score={directive.readinessScore}
+              onClick={() => setReadinessExpanded(v => !v)}
+            />
+            {/* Bottleneck callout — always visible, no tap needed */}
+            <div className="min-w-0">
+              {directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? (
+                <p className="text-xs text-green-400 font-medium">All green. Push today.</p>
+              ) : directive.readinessLevel === 'critical' ? (
+                <p className="text-xs text-red-400 font-medium">Take a rest day.</p>
+              ) : (
+                <p className="text-xs text-grappler-400">
+                  Tap ring for{' '}
+                  <span className={cn(
+                    'font-medium',
+                    directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400'
+                  )}>limiters</span>
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
             {currentStreak >= 1 && (
               <div className="flex items-center gap-1.5 text-orange-400">
                 <Flame className="w-4 h-4" />
-                <span className="text-sm font-black tabular-nums">{currentStreak} day streak</span>
+                <span className="text-sm font-black tabular-nums">{currentStreak}d</span>
               </div>
             )}
             {directive.isDeload && (

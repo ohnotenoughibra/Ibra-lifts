@@ -842,6 +842,23 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
+
+  /* Overlay safe area — pushes content below status bar and adjusts sticky headers */
+  .overlay-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .overlay-safe .sticky {
+    top: env(safe-area-inset-top);
+  }
+}
+
+/* Readiness ring pulse — subtle glow when peak/good */
+@keyframes ring-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+  50% { box-shadow: 0 0 12px 3px rgba(74, 222, 128, 0.15); }
+}
+.ring-pulse {
+  animation: ring-glow 3s ease-in-out infinite;
 }
 
 /* Animations */

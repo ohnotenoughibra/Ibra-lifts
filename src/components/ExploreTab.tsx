@@ -9,7 +9,7 @@ import {
   Swords, Navigation, Move,
   Search, Clock, Pin, Check,
   Crown, Hammer, Eye, Wind,
-  Camera, PieChart, BookOpen, Timer, CircuitBoard,
+  Camera, PieChart, BookOpen, Timer, CircuitBoard, Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -88,6 +88,8 @@ const CATEGORIES: Category[] = [
       { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'illness', label: 'Illness Log', desc: 'Log sick days', longDesc: 'Log sick days to track how illness affects your training and recovery', keywords: 'sick cold flu fever cough covid ill unwell doctor symptom medicine', icon: Thermometer, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
+      { id: 'fighters_mind', label: "Fighter's Mind", desc: 'Mental state & confidence', longDesc: 'Track mental state before and after training, surface patterns in your psychology, and build an evidence-based confidence ledger', keywords: 'mental mind psychology confidence focus composure anxiety stress self talk visualization brain check in mood emotion journal reflect', icon: Brain, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
+      { id: 'training_journal', label: 'Training Journal', desc: 'Browse your full history', longDesc: 'Chronological timeline of every workout, combat session, and mental check-in — searchable, filterable, all in one place', keywords: 'journal log history timeline diary record past training session workout search browse review reflect', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', isPro: true },
       { id: 'breathing', label: 'Breathing', desc: 'Guided breathing protocols', longDesc: 'Interactive breathing timers — box breathing, 4-7-8, Wim Hof, tactical breathing, and more for recovery and performance', keywords: 'breathing breathe meditation calm anxiety relax box wim hof tactical 4-7-8 recovery sleep', icon: Wind, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'photo_progress', label: 'Photo Progress', desc: 'Visual body tracking', longDesc: 'Take progress photos, compare side-by-side, and track your physique transformation over time', keywords: 'photo progress picture body transformation before after compare physique visual', icon: Camera, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
     ],
@@ -309,7 +311,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 style={{ touchAction: 'manipulation' }}
               >
                 <tool.icon className="w-5 h-5" />
-                <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
+                <span className="text-xs font-medium text-grappler-200 text-center leading-tight line-clamp-1">
                   {tool.label}
                 </span>
               </button>
@@ -338,7 +340,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 <tool.icon className="w-4 h-4" />
                 <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
                 {usageMap[tool.id] && (
-                  <span className="text-[10px] text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
+                  <span className="text-xs text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
                 )}
               </button>
             ))}
@@ -453,7 +455,7 @@ function ToolCard({ tool, isPinned, pinMode, onTap }: {
         {tool.label}
       </span>
       <span className={cn(
-        'text-[11px] text-center leading-tight line-clamp-2',
+        'text-xs text-center leading-tight line-clamp-2',
         pinMode ? (isPinned ? 'text-primary-400' : 'text-grappler-500') : 'text-grappler-400'
       )}>
         {pinMode ? (isPinned ? 'Pinned' : 'Tap to pin') : tool.desc}

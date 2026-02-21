@@ -183,7 +183,7 @@ export default function WeeklyMomentum(props: WeeklyMomentumProps) {
             {days.map((day, i) => (
               <div key={i} className="flex flex-col items-center gap-1.5">
                 <span className={cn(
-                  'text-[10px] font-semibold',
+                  'text-xs font-semibold',
                   day.isToday ? 'text-primary-400' : 'text-grappler-600'
                 )}>
                   {day.label}

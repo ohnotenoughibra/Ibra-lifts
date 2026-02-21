@@ -610,7 +610,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
                       >
                         {p.label}
                       </p>
-                      <p className="text-[11px] text-grappler-500 mt-0.5 leading-tight">
+                      <p className="text-xs text-grappler-500 mt-0.5 leading-tight">
                         {p.description}
                       </p>
                     </motion.button>

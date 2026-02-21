@@ -842,7 +842,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
                       className="w-full group/factor"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] w-[72px] text-left truncate text-grappler-400 group-hover/factor:text-grappler-200 transition-colors">
+                        <span className="text-xs w-[72px] text-left truncate text-grappler-400 group-hover/factor:text-grappler-200 transition-colors">
                           {item.label}
                         </span>
                         <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
@@ -853,7 +853,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
                             className={cn('h-full rounded-full', getBarColor(item.value))}
                           />
                         </div>
-                        <span className={cn('text-[11px] font-mono w-6 text-right', getColor(item.value))}>
+                        <span className={cn('text-xs font-mono w-6 text-right', getColor(item.value))}>
                           {item.value}
                         </span>
                       </div>
@@ -941,7 +941,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
               {strengthTrend.value > 0 ? '+' : ''}{strengthTrend.value}%
             </span>
           </div>
-          <p className="text-[10px] text-grappler-500 font-medium">Strength</p>
+          <p className="text-xs text-grappler-500 font-medium">Strength</p>
           <p className={cn('text-[9px] font-semibold',
             strengthTrend.direction === 'up' ? 'text-green-500' :
             strengthTrend.direction === 'down' ? 'text-red-500' : 'text-grappler-500'
@@ -953,7 +953,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
           <p className={cn('text-lg font-black', getZoneColor(volumeCapacity.zone))}>
             {volumeCapacity.pctOfMAV}%
           </p>
-          <p className="text-[10px] text-grappler-500 font-medium">Vol Capacity</p>
+          <p className="text-xs text-grappler-500 font-medium">Vol Capacity</p>
           <p className={cn('text-[9px] font-semibold', getZoneColor(volumeCapacity.zone))}>
             {getZoneLabel(volumeCapacity.zone)}
           </p>
@@ -968,7 +968,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
           )}>
             {fightReadiness.score}
           </p>
-          <p className="text-[10px] text-grappler-500 font-medium">Readiness</p>
+          <p className="text-xs text-grappler-500 font-medium">Readiness</p>
           <p className={cn('text-[9px] font-semibold',
             fightReadiness.score >= 80 ? 'text-green-500' :
             fightReadiness.score >= 60 ? 'text-primary-500' :
@@ -1034,14 +1034,14 @@ function PRTimelineCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
                   {pr.value} {weightUnit}
                 </span>
                 {pr.previousBest > 0 && (
-                  <span className="text-[10px] text-green-400 font-medium">
+                  <span className="text-xs text-green-400 font-medium">
                     +{pr.delta} ({pr.deltaPct > 0 ? `+${pr.deltaPct}%` : '—'})
                   </span>
                 )}
                 {getRecoveryBadge(pr.recoveryContext)}
               </div>
             </div>
-            <span className="text-[10px] text-grappler-600 flex-shrink-0">{formatDate(pr.date)}</span>
+            <span className="text-xs text-grappler-600 flex-shrink-0">{formatDate(pr.date)}</span>
           </div>
         ))}
       </div>
@@ -1092,9 +1092,9 @@ function VolumeDashboard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
           return (
             <div key={g.muscle} className="group">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] text-grappler-300 font-medium">{g.label}</span>
+                <span className="text-xs text-grappler-300 font-medium">{g.label}</span>
                 <div className="flex items-center gap-1.5">
-                  <span className={cn('text-[10px] font-bold', colors.text)}>{g.currentSets}</span>
+                  <span className={cn('text-xs font-bold', colors.text)}>{g.currentSets}</span>
                   <span className="text-[9px] text-grappler-600">/ {g.mav} MAV</span>
                 </div>
               </div>
@@ -1211,7 +1211,7 @@ function SyntheticRecoveryCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-[10px] text-grappler-500">
+        <p className="text-xs text-grappler-500">
           {recovery.score >= 75 ? 'Well recovered — push hard today' :
            recovery.score >= 50 ? 'Moderate recovery — train smart' :
            recovery.score >= 30 ? 'Fatigued — consider lighter session' :
@@ -1258,7 +1258,7 @@ function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
       <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-2 mb-3">
         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
         Plateau Alert
-        <span className="ml-auto text-amber-400 text-[10px] font-bold">{plateaus.length} stalled</span>
+        <span className="ml-auto text-amber-400 text-xs font-bold">{plateaus.length} stalled</span>
       </h3>
       <div className="space-y-2">
         {plateaus.map(p => (
@@ -1269,7 +1269,7 @@ function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
                 <span className="text-xs font-semibold text-grappler-200">{p.exerciseName}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-grappler-500">{p.currentE1RM} {weightUnit} e1RM</span>
+                <span className="text-xs text-grappler-500">{p.currentE1RM} {weightUnit} e1RM</span>
                 <span className="text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded font-medium">
                   {p.weeksStalled}w stalled
                 </span>
@@ -1284,7 +1284,7 @@ function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
               )}>
                 {getCauseLabel(p.rootCause)}
               </span>
-              <p className="text-[10px] text-grappler-400 leading-relaxed">{p.prescription}</p>
+              <p className="text-xs text-grappler-400 leading-relaxed">{p.prescription}</p>
             </div>
           </div>
         ))}
@@ -1329,7 +1329,7 @@ function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
           Combat Benchmarks
         </h3>
         {benchmarks[0] && (
-          <span className="text-[10px] text-grappler-500">{benchmarks[0].weightClass} class</span>
+          <span className="text-xs text-grappler-500">{benchmarks[0].weightClass} class</span>
         )}
       </div>
       <div className="space-y-2.5">
@@ -1339,7 +1339,7 @@ function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
               <span className="text-xs text-grappler-300 font-medium">{b.exerciseName}</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-grappler-100 font-bold">{b.current1RM} {weightUnit}</span>
-                <span className={cn('text-[10px] font-bold', getPercentileColor(b.percentile))}>
+                <span className={cn('text-xs font-bold', getPercentileColor(b.percentile))}>
                   P{b.percentile}
                 </span>
               </div>

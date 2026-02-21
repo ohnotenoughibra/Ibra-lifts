@@ -476,7 +476,7 @@ function GalleryTab({
                 {/* Pose badge */}
                 <span
                   className={cn(
-                    'absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide',
+                    'absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide',
                     POSE_COLORS[photo.pose]
                   )}
                 >
@@ -490,7 +490,7 @@ function GalleryTab({
                   {formatShortDate(photo.date)}
                 </p>
                 {photo.bodyweight != null && (
-                  <p className="text-[11px] text-grappler-500 mt-0.5 flex items-center gap-1">
+                  <p className="text-xs text-grappler-500 mt-0.5 flex items-center gap-1">
                     <Scale className="w-3 h-3" />
                     {photo.bodyweight} lbs
                   </p>
@@ -626,7 +626,7 @@ function CompareSlot({
 }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[11px] text-grappler-500 uppercase tracking-wider font-semibold mb-1.5 text-center">
+      <span className="text-xs text-grappler-500 uppercase tracking-wider font-semibold mb-1.5 text-center">
         {label}
       </span>
       {photo ? (
@@ -660,12 +660,12 @@ function CompareSlot({
           <div className="p-2 text-center">
             <p className="text-xs text-grappler-300">{formatShortDate(photo.date)}</p>
             {photo.bodyweight != null && (
-              <p className="text-[11px] text-grappler-500">{photo.bodyweight} lbs</p>
+              <p className="text-xs text-grappler-500">{photo.bodyweight} lbs</p>
             )}
           </div>
           <button
             onClick={onSelect}
-            className="absolute top-2 right-2 px-2 py-1 bg-black/60 hover:bg-black/80 rounded-md text-[10px] text-white font-medium transition-colors"
+            className="absolute top-2 right-2 px-2 py-1 bg-black/60 hover:bg-black/80 rounded-md text-xs text-white font-medium transition-colors"
           >
             Change
           </button>
@@ -755,7 +755,7 @@ function TimelineTab({
                     </p>
                     <span
                       className={cn(
-                        'px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase',
+                        'px-1.5 py-0.5 rounded text-xs font-semibold uppercase',
                         POSE_COLORS[photo.pose]
                       )}
                     >
@@ -784,7 +784,7 @@ function TimelineTab({
                 <div className="w-12 flex justify-center shrink-0">
                   <div className="w-1.5 h-1.5 rounded-full bg-grappler-700" />
                 </div>
-                <span className="text-[11px] text-grappler-600 italic">{gapText}</span>
+                <span className="text-xs text-grappler-600 italic">{gapText}</span>
               </div>
             )}
           </div>
@@ -1110,7 +1110,7 @@ function ViewPhotoModal({
           <span className="text-sm text-white font-medium">{formatFullDate(photo.date)}</span>
           <span
             className={cn(
-              'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase',
+              'px-2 py-0.5 rounded-full text-xs font-semibold uppercase',
               POSE_COLORS[photo.pose]
             )}
           >
@@ -1191,7 +1191,7 @@ function GalleryPickerModal({
                     />
                   </div>
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                    <p className="text-[10px] text-white font-medium text-center">
+                    <p className="text-xs text-white font-medium text-center">
                       {formatShortDate(photo.date)}
                     </p>
                   </div>

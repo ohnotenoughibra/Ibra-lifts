@@ -1334,7 +1334,7 @@ export default function ActiveWorkout() {
                 {/* Optional fine-tune toggle */}
                 <button
                   onClick={() => setShowCheckInDetail(!showCheckInDetail)}
-                  className="w-full mt-2 text-[11px] text-grappler-400 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
+                  className="w-full mt-2 text-xs text-grappler-400 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
                 >
                   Fine-tune
                   <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
@@ -1903,7 +1903,7 @@ export default function ActiveWorkout() {
                       </div>
                       <div className="text-left">
                         <p className="text-sm font-bold text-amber-300">Smart Warm-Up</p>
-                        <p className="text-[11px] text-grappler-400">
+                        <p className="text-xs text-grappler-400">
                           {warmUpProtocol.totalDuration} min · {warmUpProtocol.steps.length} steps · {warmUpProtocol.rampUpSets.length} ramp-up sets
                         </p>
                       </div>
@@ -1958,7 +1958,7 @@ export default function ActiveWorkout() {
                     <p className="text-xs font-bold text-violet-300">Superset Opportunities</p>
                   </div>
                   {supersetCandidates.map((pair, i) => (
-                    <p key={i} className="text-[11px] text-violet-300/80 mt-1">
+                    <p key={i} className="text-xs text-violet-300/80 mt-1">
                       {pair.reason}
                     </p>
                   ))}
@@ -2997,7 +2997,7 @@ export default function ActiveWorkout() {
                   />
                 </svg>
                 <span className={cn(
-                  'absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums',
+                  'absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums',
                   restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
                 )}>
                   {restTimer}
@@ -3218,7 +3218,7 @@ export default function ActiveWorkout() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-grappler-400 mt-0.5">
+            <p className="text-xs text-grappler-400 mt-0.5">
               {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} rest
             </p>
 

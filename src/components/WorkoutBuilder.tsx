@@ -609,7 +609,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="font-bold text-grappler-100 text-sm">{template.name}</h3>
                         <span className={cn(
-                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize',
+                          'text-xs px-1.5 py-0.5 rounded-full font-medium capitalize',
                           focusColors[template.focus]
                         )}>
                           {template.focus}
@@ -617,17 +617,17 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                       </div>
                       <p className="text-xs text-grappler-400 mb-2">{template.description}</p>
                       <div className="flex flex-wrap gap-1.5 mb-3">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
                           {template.sessions}x/week
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300">
                           {template.weeks}w block
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300 capitalize">
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/50 text-grappler-300 capitalize">
                           {template.periodization}
                         </span>
                         {template.tags.map((tag, i) => (
-                          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-grappler-700/30 text-grappler-400">
+                          <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/30 text-grappler-400">
                             {tag}
                           </span>
                         ))}

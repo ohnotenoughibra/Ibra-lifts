@@ -77,7 +77,7 @@ import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
-import { TOOL_MAP, PINNED_STORAGE_KEY, ALL_TOOLS } from './ExploreTab';
+import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
@@ -452,56 +452,51 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }, []),
   });
 
-  // ─── Pinned tools dock — synced with Explore tab via localStorage ───
+  // ─── Quick Access dock — event-synced with Explore tab ───
   const DOCK_SLOTS = 4;
-  const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[]; }
-    catch { return []; }
-  });
-  // Re-sync when tab becomes visible (user may pin/unpin in Explore)
-  useEffect(() => {
-    const sync = () => {
-      try {
-        const ids = JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[];
-        setPinnedIds(ids);
-      } catch { /* ignore */ }
-    };
-    window.addEventListener('focus', sync);
-    // Also listen for storage events from the same page
-    const interval = setInterval(sync, 2000);
-    return () => { window.removeEventListener('focus', sync); clearInterval(interval); };
-  }, []);
+  const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [dockEditMode, setDockEditMode] = useState(false);
   const [dockPickerOpen, setDockPickerOpen] = useState(false);
   const [dockPickerSlot, setDockPickerSlot] = useState<number | null>(null);
 
-  const savePinnedIds = useCallback((ids: string[]) => {
-    setPinnedIds(ids);
-    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(ids));
+  // Instant sync — no polling, no intervals, no stale data
+  useEffect(() => {
+    const sync = () => setPinnedIds(readPins());
+    window.addEventListener('roots-pins-changed', sync);
+    const onVisible = () => { if (!document.hidden) sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('roots-pins-changed', sync);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
+  // Every mutation reads fresh from localStorage — zero stale closures
   const handleDockRemove = useCallback((id: string) => {
     hapticMedium();
-    savePinnedIds(pinnedIds.filter(p => p !== id));
-  }, [pinnedIds, savePinnedIds]);
+    const fresh = readPins();
+    const next = fresh.filter(p => p !== id);
+    writePins(next);
+    setPinnedIds(next);
+  }, []);
 
   const handleDockAdd = useCallback((toolId: string) => {
     hapticMedium();
+    const fresh = readPins();
     const slot = dockPickerSlot;
-    if (slot != null && slot < pinnedIds.length) {
-      // Replace existing slot
-      const next = [...pinnedIds];
+    let next: string[];
+    if (slot != null && slot < fresh.length) {
+      next = [...fresh];
       next[slot] = toolId;
-      savePinnedIds(next);
     } else {
-      // Append
-      savePinnedIds([...pinnedIds.filter(id => id !== toolId), toolId].slice(0, DOCK_SLOTS));
+      next = [...fresh.filter(id => id !== toolId), toolId].slice(0, DOCK_SLOTS);
     }
+    writePins(next);
+    setPinnedIds(next);
     setDockPickerOpen(false);
     setDockPickerSlot(null);
     setDockEditMode(false);
-  }, [pinnedIds, dockPickerSlot, savePinnedIds]);
+  }, [dockPickerSlot]);
 
   // ─── Daily Directive — single mission for today ───
   const directive = useMemo(() => {
@@ -2464,198 +2459,151 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </AnimatePresence>
       </div>{/* end collapsible insights wrapper */}
 
-      {/* ─── PINNED TOOLS DOCK — always visible, outside collapsible ─── */}
-      {(() => {
-        const dockTools = pinnedIds
-          .slice(0, DOCK_SLOTS)
-          .map(id => TOOL_MAP.get(id))
-          .filter(Boolean) as { id: string; label: string; icon: React.ElementType; color: string }[];
-        const emptySlots = DOCK_SLOTS - dockTools.length;
+      {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
+      <div className={cn(
+        'rounded-2xl p-4 max-w-md mx-auto w-full',
+        'bg-grappler-850 border',
+        dockEditMode ? 'border-primary-500/40' : 'border-grappler-700/40'
+      )}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-semibold uppercase tracking-widest text-grappler-400">
+            {dockEditMode ? 'Edit Quick Access' : 'Quick Access'}
+          </span>
+          {dockEditMode ? (
+            <button
+              onClick={() => { setDockEditMode(false); setDockPickerOpen(false); setDockPickerSlot(null); }}
+              className="px-4 py-2 rounded-full bg-primary-500/20 border border-primary-500/30 text-sm font-semibold text-primary-400 active:bg-primary-500/40"
+              style={{ touchAction: 'manipulation' }}
+            >
+              Done
+            </button>
+          ) : (
+            <button
+              onClick={() => { hapticMedium(); setDockEditMode(true); }}
+              className="px-3 py-2 text-sm font-medium text-grappler-400 active:text-grappler-200 rounded-lg active:bg-grappler-700/50"
+              style={{ touchAction: 'manipulation' }}
+            >
+              Edit
+            </button>
+          )}
+        </div>
 
-        return (
-          <div
-            className={cn('relative rounded-2xl overflow-hidden transition-all duration-300 max-w-md mx-auto w-full', dockEditMode && 'ring-1 ring-primary-400/30')}
-          >
-            {/* Glass background layer — pointer-events-none so taps reach buttons */}
-            <div className="absolute inset-0 bg-gradient-to-br from-grappler-800/50 via-grappler-850/40 to-grappler-800/50 backdrop-blur-xl pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.04] via-transparent to-white/[0.02] pointer-events-none" />
-            <div className="absolute inset-[0.5px] rounded-2xl border border-white/[0.08] pointer-events-none" />
-
-            {/* Content — z-10 to ensure it's above glass layers */}
-            <div className="relative z-10 px-4 pt-3 pb-3.5">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1 h-1 rounded-full bg-primary-400/60" />
-                  <span className="text-xs font-semibold uppercase tracking-widest text-grappler-400">
-                    {dockEditMode ? 'Edit Quick Access' : 'Quick Access'}
-                  </span>
-                </div>
-                {dockEditMode ? (
+        {/* Tool grid — flat, no nesting tricks */}
+        <div className="grid grid-cols-4 gap-3">
+          {pinnedIds.slice(0, DOCK_SLOTS).map((id, idx) => {
+            const tool = TOOL_MAP.get(id);
+            if (!tool) return null;
+            const Icon = tool.icon;
+            const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
+            return (
+              <div key={id} className="relative flex flex-col items-center">
+                <button
+                  onClick={() => {
+                    if (dockEditMode) {
+                      setDockPickerSlot(idx);
+                      setDockPickerOpen(true);
+                    } else {
+                      onNavigate(tool.id as any);
+                    }
+                  }}
+                  className="flex flex-col items-center gap-1.5 w-full active:scale-90 transition-transform"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
+                    <Icon className={cn('w-5 h-5', textColor)} />
+                  </div>
+                  <span className="text-[11px] text-grappler-400 font-medium truncate w-full text-center">{tool.label}</span>
+                </button>
+                {dockEditMode && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setDockEditMode(false); setDockPickerOpen(false); setDockPickerSlot(null); }}
-                    className="px-3.5 py-1.5 rounded-full bg-primary-500/20 border border-primary-500/30 text-sm font-semibold text-primary-400 active:bg-primary-500/40 transition-colors"
-                    style={{ touchAction: 'manipulation', minHeight: 36 }}
+                    onClick={() => handleDockRemove(id)}
+                    className="absolute -top-2 -right-1 z-10 w-7 h-7 rounded-full bg-red-500 border-2 border-grappler-850 flex items-center justify-center shadow-md"
+                    style={{ touchAction: 'manipulation' }}
                   >
-                    Done
-                  </button>
-                ) : dockTools.length > 0 && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); hapticMedium(); setDockEditMode(true); }}
-                    className="px-3 py-1.5 text-sm font-medium text-grappler-400 active:text-grappler-200 transition-colors"
-                    style={{ touchAction: 'manipulation', minHeight: 36 }}
-                  >
-                    Edit
+                    <X className="w-3 h-3 text-white" />
                   </button>
                 )}
               </div>
+            );
+          })}
+          {Array.from({ length: DOCK_SLOTS - Math.min(pinnedIds.length, DOCK_SLOTS) }).map((_, i) => (
+            <button
+              key={`empty-${i}`}
+              onClick={() => {
+                setDockEditMode(true);
+                setDockPickerSlot(pinnedIds.length + i);
+                setDockPickerOpen(true);
+              }}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
+              style={{ touchAction: 'manipulation' }}
+            >
+              <div className={cn(
+                'w-12 h-12 rounded-2xl border-2 border-dashed flex items-center justify-center',
+                dockEditMode ? 'border-primary-400/40 bg-primary-500/5' : 'border-grappler-700/30'
+              )}>
+                <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
+              </div>
+              <span className="text-[11px] text-transparent select-none">&nbsp;</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
-                {dockTools.map((tool, idx) => {
-                  const Icon = tool.icon;
-                  const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
-                  return (
-                    <div key={tool.id} className="flex flex-col items-center gap-1.5 relative">
+      {/* ─── Tool Picker ─── no glass, no backdrop-blur, solid bg */}
+      {dockPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60"
+          onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-2xl bg-grappler-900 border-t border-grappler-700/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle + header */}
+            <div className="pt-3 pb-2 px-4 border-b border-grappler-700/30">
+              <div className="w-8 h-1 rounded-full bg-grappler-600 mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-grappler-200">
+                  {dockPickerSlot != null && dockPickerSlot < pinnedIds.length ? 'Replace Tool' : 'Add Tool'}
+                </span>
+                <button
+                  onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+                  className="w-10 h-10 rounded-full bg-grappler-800 flex items-center justify-center active:bg-grappler-700"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <X className="w-4 h-4 text-grappler-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Tool grid — scrollable */}
+            <div className="overflow-y-auto max-h-[calc(70vh-70px)] p-4 pb-safe">
+              <div className="grid grid-cols-3 gap-3">
+                {ALL_TOOLS
+                  .filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id))
+                  .map(tool => {
+                    const Icon = tool.icon;
+                    const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
+                    return (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (dockEditMode) {
-                            setDockPickerSlot(idx);
-                            setDockPickerOpen(true);
-                          } else {
-                            onNavigate(tool.id as any);
-                          }
-                        }}
-                        className={cn('flex flex-col items-center gap-1.5 w-full group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
-                        style={dockEditMode ? { animationDelay: `${idx * 0.05}s`, touchAction: 'manipulation' } : { touchAction: 'manipulation' }}
+                        key={tool.id}
+                        onClick={() => handleDockAdd(tool.id)}
+                        className="flex flex-col items-center gap-2 p-3 rounded-xl active:bg-grappler-800 active:scale-95 transition-all"
+                        style={{ touchAction: 'manipulation' }}
                       >
-                        <div className={cn(
-                          'relative w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
-                          'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
-                          'border border-white/[0.06]',
-                          !dockEditMode && 'group-active:scale-90',
-                          'shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)]',
-                        )}>
-                          <Icon className={cn('w-5 h-5 relative z-10', textColor)} />
+                        <div className="w-12 h-12 rounded-2xl bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
+                          <Icon className={cn('w-5 h-5', textColor)} />
                         </div>
-                        <span className="text-xs text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
+                        <span className="text-xs text-grappler-300 font-medium truncate w-full text-center">{tool.label}</span>
                       </button>
-                      {/* Remove badge — bigger touch target for mobile */}
-                      {dockEditMode && (
-                        <motion.button
-                          initial={{ opacity: 0, scale: 0 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                          onClick={(e) => { e.stopPropagation(); handleDockRemove(tool.id); }}
-                          className="absolute -top-2 -right-1 z-20 w-7 h-7 rounded-full bg-red-500 border-2 border-grappler-900 flex items-center justify-center shadow-lg"
-                          style={{ touchAction: 'manipulation', minWidth: 28, minHeight: 28 }}
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </motion.button>
-                      )}
-                    </div>
-                  );
-                })}
-                {Array.from({ length: emptySlots }).map((_, i) => (
-                  <button
-                    key={`empty-${i}`}
-                    onClick={() => {
-                      setDockEditMode(true);
-                      setDockPickerSlot(pinnedIds.length + i);
-                      setDockPickerOpen(true);
-                    }}
-                    className={cn('flex flex-col items-center gap-1.5 group', dockEditMode && 'animate-[dock-jiggle_0.3s_ease-in-out_infinite_alternate]')}
-                    style={dockEditMode ? { animationDelay: `${(dockTools.length + i) * 0.05}s`, touchAction: 'manipulation' } : { touchAction: 'manipulation' }}
-                  >
-                    <div className={cn(
-                      'w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200',
-                      'border border-dashed',
-                      dockEditMode ? 'border-primary-400/30 bg-primary-500/5' : 'border-white/[0.06]',
-                      'group-active:scale-90',
-                    )}>
-                      <Plus className={cn('w-4 h-4 transition-colors', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
-                    </div>
-                    <span className="text-xs text-grappler-600 leading-tight">&nbsp;</span>
-                  </button>
-                ))}
+                    );
+                  })}
               </div>
             </div>
           </div>
-        );
-      })()}
-
-      {/* ─── DOCK TOOL PICKER — slide-up sheet ─── */}
-      <AnimatePresence>
-        {dockPickerOpen && dockEditMode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-            onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-0 left-0 right-0 max-h-[60vh] rounded-t-2xl overflow-hidden"
-            >
-              {/* Picker glass background — pointer-events-none */}
-              <div className="absolute inset-0 bg-grappler-900/95 backdrop-blur-xl pointer-events-none" />
-              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white/[0.03] pointer-events-none" />
-
-              <div className="relative z-10">
-                {/* Handle + header */}
-                <div className="sticky top-0 z-10 pt-3 pb-2 px-4 border-b border-white/[0.06]">
-                  <div className="w-8 h-1 rounded-full bg-grappler-600 mx-auto mb-3" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-grappler-200">
-                      {dockPickerSlot != null && dockPickerSlot < pinnedIds.length ? 'Replace Tool' : 'Add Tool'}
-                    </span>
-                    <button
-                      onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
-                      className="w-9 h-9 rounded-full bg-grappler-800 flex items-center justify-center active:bg-grappler-700"
-                      style={{ touchAction: 'manipulation' }}
-                    >
-                      <X className="w-4 h-4 text-grappler-400" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tool grid */}
-                <div className="overflow-y-auto max-h-[calc(60vh-60px)] p-3 pb-safe">
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {ALL_TOOLS
-                      .filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id))
-                      .map(tool => {
-                        const Icon = tool.icon;
-                        const textColor = tool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-400';
-                        return (
-                          <button
-                            key={tool.id}
-                            onClick={() => handleDockAdd(tool.id)}
-                            className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl active:bg-white/[0.08] active:scale-95 transition-all"
-                            style={{ touchAction: 'manipulation' }}
-                          >
-                            <div className={cn(
-                              'w-12 h-12 rounded-[14px] flex items-center justify-center',
-                              'bg-gradient-to-br from-white/[0.08] to-white/[0.02]',
-                              'border border-white/[0.06]',
-                            )}>
-                              <Icon className={cn('w-5 h-5', textColor)} />
-                            </div>
-                            <span className="text-[10px] text-grappler-400 font-medium truncate w-full text-center leading-tight">{tool.label}</span>
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* ─── Dialogs ─── */}
 

@@ -342,29 +342,26 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
   onTogglePin: (id: string) => void;
   compact?: boolean;
 }) {
-  // Compact mode for pinned row — icon + label + unpin button
+  // Compact mode for pinned row — icon + label + unpin X
   if (compact) {
     return (
-      <div className="relative">
-        <button
-          onClick={() => onNavigate(tool.id)}
-          className={cn(
-            'relative w-full flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
-            'border-2 border-primary-500/40',
-            'hover:border-primary-500/60 active:scale-95 transition-all select-none',
-            tool.color
-          )}
-        >
-          <tool.icon className="w-5 h-5" />
-          <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
-            {tool.label}
-          </span>
-        </button>
-        {/* Unpin button — 44px touch target for mobile */}
+      <div
+        className={cn(
+          'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b cursor-pointer',
+          'border-2 border-primary-500/40 active:scale-95 transition-all select-none',
+          tool.color
+        )}
+        onClick={() => onNavigate(tool.id)}
+      >
+        <tool.icon className="w-5 h-5" />
+        <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
+          {tool.label}
+        </span>
+        {/* Unpin X — CHILD of the card, stopPropagation prevents navigate */}
         <button
           onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
           className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-red-500/80 border-2 border-grappler-900 flex items-center justify-center active:scale-90 transition-transform shadow-lg"
-          style={{ touchAction: 'manipulation', minWidth: 32, minHeight: 32 }}
+          style={{ touchAction: 'manipulation' }}
         >
           <X className="w-3 h-3 text-white" />
         </button>
@@ -372,45 +369,44 @@ function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
     );
   }
 
+  // Full card — pin button is INSIDE the card div, not a sibling
   return (
-    <div className="relative">
-      <button
-        onClick={() => onNavigate(tool.id)}
-        className={cn(
-          'w-full relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
-          'hover:border-grappler-700 active:scale-95 transition-all select-none',
-          isPinned
-            ? 'border-2 border-primary-500/40'
-            : 'border border-grappler-800/50',
-          tool.color
-        )}
-      >
-        {!isPinned && tool.isPro && (
-          <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
-            <Crown className="w-2.5 h-2.5" />
-            <span className="text-[8px] font-bold leading-none">PRO</span>
-          </span>
-        )}
-        <tool.icon className="w-5 h-5" />
-        <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
-          {tool.label}
+    <div
+      className={cn(
+        'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem] cursor-pointer',
+        'active:scale-95 transition-all select-none',
+        isPinned
+          ? 'border-2 border-primary-500/40'
+          : 'border border-grappler-800/50',
+        tool.color
+      )}
+      onClick={() => onNavigate(tool.id)}
+    >
+      {!isPinned && tool.isPro && (
+        <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
+          <Crown className="w-2.5 h-2.5" />
+          <span className="text-[8px] font-bold leading-none">PRO</span>
         </span>
-        <span className="text-[11px] text-grappler-400 text-center leading-tight line-clamp-2">
-          {tool.desc}
-        </span>
-      </button>
-      {/* Pin/unpin — always visible, 44px min touch target */}
+      )}
+      <tool.icon className="w-5 h-5" />
+      <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
+        {tool.label}
+      </span>
+      <span className="text-[11px] text-grappler-400 text-center leading-tight line-clamp-2">
+        {tool.desc}
+      </span>
+      {/* Pin button — CHILD of the card div, stopPropagation prevents navigate */}
       <button
         onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
         className={cn(
-          'absolute -top-1 -right-1 z-10 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-md',
+          'absolute -top-1 -right-1 z-10 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-md',
           isPinned
             ? 'bg-primary-500 border-2 border-primary-400'
-            : 'bg-grappler-700 border border-grappler-600'
+            : 'bg-grappler-700 border-2 border-grappler-500'
         )}
-        style={{ touchAction: 'manipulation', minWidth: 32, minHeight: 32 }}
+        style={{ touchAction: 'manipulation' }}
       >
-        <Pin className={cn('w-3.5 h-3.5', isPinned ? 'text-white' : 'text-grappler-300')} />
+        <Pin className={cn('w-3.5 h-3.5', isPinned ? 'text-white' : 'text-grappler-200')} />
       </button>
     </div>
   );

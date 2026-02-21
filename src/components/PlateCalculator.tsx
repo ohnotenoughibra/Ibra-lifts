@@ -208,6 +208,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
   const barWeight = unit === 'lbs' ? BAR_OPTIONS[barIndex].lbs : BAR_OPTIONS[barIndex].kg;
 
   const [targetWeight, setTargetWeight] = useState<number>(barWeight);
+  const [inputValue, setInputValue] = useState<string>(String(barWeight));
   const [showWarmup, setShowWarmup] = useState(false);
 
   const plates = useMemo(() => getAvailablePlates(unit), [unit]);
@@ -226,8 +227,9 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
   const adjustTarget = useCallback(
     (delta: number) => {
       setTargetWeight((prev) => {
-        const next = Math.round((prev + delta) * 100) / 100;
-        return Math.max(0, next);
+        const next = Math.max(0, Math.round((prev + delta) * 100) / 100);
+        setInputValue(String(next));
+        return next;
       });
     },
     [],
@@ -235,6 +237,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
 
   const resetTarget = useCallback(() => {
     setTargetWeight(barWeight);
+    setInputValue(String(barWeight));
   }, [barWeight]);
 
   // Core calculation
@@ -333,12 +336,17 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
             <div className="relative">
               <input
                 type="number"
+                inputMode="decimal"
                 min={0}
                 step={unit === 'lbs' ? 5 : 2.5}
-                value={targetWeight}
+                value={inputValue}
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => {
-                  const v = parseFloat(e.target.value);
+                  const raw = e.target.value;
+                  setInputValue(raw);
+                  const v = parseFloat(raw);
                   if (!isNaN(v)) setTargetWeight(Math.max(0, v));
+                  else if (raw === '') setTargetWeight(0);
                 }}
                 className={cn(
                   'w-36 text-center text-3xl font-bold py-3 rounded-xl border',

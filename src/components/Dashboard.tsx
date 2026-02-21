@@ -657,7 +657,7 @@ export default function Dashboard({
       <button
         onClick={() => setOverlayView('quick_actions')}
         aria-label="Quick log"
-        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform"
+        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-14 h-14 rounded-full shadow-xl shadow-primary-500/25 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform"
       >
         <Plus className="w-6 h-6" />
       </button>

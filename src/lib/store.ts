@@ -65,6 +65,7 @@ import {
   UserSupplement,
   MentalCheckIn,
   ConfidenceLedgerEntry,
+  FeatureFeedback,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
@@ -224,6 +225,7 @@ interface AppState {
   // Fighter's Mind — mental check-ins & confidence ledger
   mentalCheckIns: MentalCheckIn[];
   confidenceLedger: ConfidenceLedgerEntry[];
+  featureFeedback: FeatureFeedback[];
 
   // UI state
   showTip: boolean;
@@ -438,6 +440,7 @@ interface AppState {
   deleteMentalCheckIn: (id: string) => void;
   addConfidenceEntry: (entry: Omit<ConfidenceLedgerEntry, 'id'>) => void;
   deleteConfidenceEntry: (id: string) => void;
+  addFeatureFeedback: (feature: string, rating: 'up' | 'down') => void;
 
   // UI actions
   setShowTip: (show: boolean) => void;
@@ -569,6 +572,7 @@ export const useAppStore = create<AppState>()(
       },
       mentalCheckIns: [],
       confidenceLedger: [],
+      featureFeedback: [],
       showTip: true,
       currentTipId: null,
 
@@ -3004,6 +3008,9 @@ export const useAppStore = create<AppState>()(
       deleteConfidenceEntry: (id) => {
         set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id) });
       },
+      addFeatureFeedback: (feature, rating) => {
+        set({ featureFeedback: [...get().featureFeedback, { id: crypto.randomUUID(), feature, rating, timestamp: new Date().toISOString() }] });
+      },
 
       // UI actions
       setShowTip: (show) => set({ showTip: show }),
@@ -3080,6 +3087,7 @@ export const useAppStore = create<AppState>()(
           },
           mentalCheckIns: [],
           confidenceLedger: [],
+          featureFeedback: [],
           showTip: true,
           currentTipId: null
         })

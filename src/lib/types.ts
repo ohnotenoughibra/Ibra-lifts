@@ -1428,6 +1428,15 @@ export interface ConfidenceLedgerEntry {
   sourceId?: string;                // WorkoutLog.id or TrainingSession.id that triggered it
 }
 
+// ── Feature Feedback Signal ──────────────────────────────────────────────────
+
+export interface FeatureFeedback {
+  id: string;
+  feature: string;              // overlay ID or feature name
+  rating: 'up' | 'down';       // thumbs up/down
+  timestamp: string;            // ISO datetime
+}
+
 // ── New User Guide ──────────────────────────────────────────────────────────
 export interface GuideStep {
   id: string;

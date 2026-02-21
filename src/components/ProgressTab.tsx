@@ -51,7 +51,7 @@ import {
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
-import TrainingCalendar from './TrainingCalendar';
+
 
 const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), {
   loading: () => (
@@ -1747,7 +1747,7 @@ function OverviewSkeleton() {
 }
 
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
-  const [view, setView] = useState<'charts' | 'log' | 'calendar' | 'weight'>('charts');
+  const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
   const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore(
     useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats }))
   );
@@ -1821,9 +1821,9 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {/* Sub-navigation */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
         {[
-          { id: 'charts', label: 'Overview' },
+          { id: 'dashboard', label: 'Dashboard' },
+          { id: 'progress', label: 'Progress' },
           { id: 'log', label: 'History' },
-          { id: 'calendar', label: 'Calendar' },
           { id: 'weight', label: 'Body' },
         ].map((tab) => (
           <button
@@ -1922,49 +1922,39 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       </AnimatePresence>
 
       {/* Content */}
-      {view === 'charts' && !hydrated && <OverviewSkeleton />}
-      {view === 'charts' && hydrated && (
+      {view === 'dashboard' && !hydrated && <OverviewSkeleton />}
+      {view === 'dashboard' && hydrated && (
         <div className="space-y-4">
           {/* Post-workout session recap (visible for 2h after workout) */}
           <SessionRecapCard />
 
+          {/* E1RM Trends with goals — your lifts at a glance */}
+          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+
           {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
           <HardMetricsCard workoutLogs={workoutLogs} />
-
-          {/* Synthetic Recovery — no Whoop needed */}
-          <SyntheticRecoveryCard workoutLogs={workoutLogs} />
 
           {/* Current block performance — bridges program and progress */}
           <BlockPerformanceCard />
 
-          {/* Volume Dashboard — per-muscle MEV/MAV/MRV gauges */}
-          <VolumeDashboard workoutLogs={workoutLogs} />
-
-          {/* Engagement hooks — challenges, streak, trends */}
+          {/* Engagement hooks — challenges, streak */}
           <WeeklyChallengeCard gamificationStats={gamificationStats} />
           <StreakHeatmap workoutLogs={workoutLogs} />
-
-          {/* PR Timeline — full history with metadata */}
-          <PRTimelineCard workoutLogs={workoutLogs} />
-
-          {/* Plateau Analysis — root cause prescriptions */}
-          <PlateauAnalysisCard workoutLogs={workoutLogs} />
-
-          {/* Combat Benchmarks — weight-class percentiles */}
-          <CombatBenchmarksCard workoutLogs={workoutLogs} />
-
-          {/* Training timeline — block-over-block journey */}
-          <TrainingTimeline workoutLogs={workoutLogs} weightUnit={weightUnit} />
-
-          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
-          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
-
-          {/* Deep-dive charts */}
-          <ProgressCharts onViewReport={onViewReport} />
         </div>
       )}
+      {view === 'progress' && hydrated && (
+        <ProgressCharts onViewReport={onViewReport}>
+          {/* Context-paired analytics passed as children per sub-tab */}
+          <SyntheticRecoveryCard workoutLogs={workoutLogs} />
+          <VolumeDashboard workoutLogs={workoutLogs} />
+          <PRTimelineCard workoutLogs={workoutLogs} />
+          <PlateauAnalysisCard workoutLogs={workoutLogs} />
+          <CombatBenchmarksCard workoutLogs={workoutLogs} />
+          <TrainingTimeline workoutLogs={workoutLogs} weightUnit={weightUnit} />
+          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+        </ProgressCharts>
+      )}
       {view === 'log' && <WorkoutHistory />}
-      {view === 'calendar' && <TrainingCalendar />}
       {view === 'weight' && <BodyWeightTracker />}
     </div>
   );

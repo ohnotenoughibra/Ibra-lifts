@@ -559,7 +559,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
                 <div className="w-4 h-4 rounded bg-grappler-700/50 flex items-center justify-center text-[9px] text-grappler-500 font-bold">
                   {currentDrillIndex + i + 2}
                 </div>
-                <p className="text-[11px] text-grappler-400 flex-1 truncate">{d.name}</p>
+                <p className="text-xs text-grappler-400 flex-1 truncate">{d.name}</p>
                 <span className="text-xs text-grappler-600">{d.sets}&times;{d.duration}s</span>
               </div>
             ))}
@@ -595,7 +595,7 @@ function DrillDetails({ drill, onFormCheck }: { drill: MobilityDrill; onFormChec
           onClick={() => setExpanded(v => !v)}
           className="flex-1 flex items-center justify-between px-3 py-2"
         >
-          <span className="text-[11px] text-grappler-400">How to do this</span>
+          <span className="text-xs text-grappler-400">How to do this</span>
           {expanded ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" /> : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />}
         </button>
         <button
@@ -616,7 +616,7 @@ function DrillDetails({ drill, onFormCheck }: { drill: MobilityDrill; onFormChec
             className="overflow-hidden"
           >
             <div className="px-3 pb-2.5 space-y-1.5">
-              <p className="text-[11px] text-grappler-300 leading-relaxed">{drill.description}</p>
+              <p className="text-xs text-grappler-300 leading-relaxed">{drill.description}</p>
               {drill.breathingCue && (
                 <p className="text-xs text-blue-400/80 italic">Breathing: {drill.breathingCue}</p>
               )}

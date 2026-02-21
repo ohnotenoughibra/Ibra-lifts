@@ -127,7 +127,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
 
               {/* Name */}
               <p className={cn(
-                'text-[11px] font-semibold leading-tight',
+                'text-xs font-semibold leading-tight',
                 badge.earned ? 'text-grappler-200' : 'text-grappler-600'
               )}>
                 {badge.earned ? badge.name : '???'}

@@ -221,13 +221,13 @@ function ExerciseCard({
         </h3>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {exercise.grapplerFriendly && (
-            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-500/15 text-green-400 border border-green-500/30">
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold bg-green-500/15 text-green-400 border border-green-500/30">
               <Swords className="w-2.5 h-2.5" />
             </span>
           )}
           <span
             className={cn(
-              'px-2 py-0.5 rounded text-[10px] font-semibold border',
+              'px-2 py-0.5 rounded text-xs font-semibold border',
               CATEGORY_COLORS[exercise.category]
             )}
           >
@@ -240,7 +240,7 @@ function ExerciseCard({
         {exercise.primaryMuscles.map((m) => (
           <span
             key={m}
-            className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-grappler-700/50 text-grappler-300 border border-grappler-600/30"
+            className="px-1.5 py-0.5 rounded text-xs font-medium bg-grappler-700/50 text-grappler-300 border border-grappler-600/30"
           >
             {formatLabel(m)}
           </span>
@@ -250,7 +250,7 @@ function ExerciseCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-grappler-500">
           <PatternIcon className="w-3 h-3" />
-          <span className="text-[10px] font-medium">{formatLabel(exercise.movementPattern)}</span>
+          <span className="text-xs font-medium">{formatLabel(exercise.movementPattern)}</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -313,7 +313,7 @@ function ExerciseDetailPanel({
         </h1>
         <span
           className={cn(
-            'px-2 py-0.5 rounded text-[10px] font-semibold border flex-shrink-0',
+            'px-2 py-0.5 rounded text-xs font-semibold border flex-shrink-0',
             CATEGORY_COLORS[exercise.category]
           )}
         >
@@ -331,7 +331,7 @@ function ExerciseDetailPanel({
           </div>
           <div className="space-y-3">
             <div>
-              <h4 className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1.5">Primary</h4>
+              <h4 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1.5">Primary</h4>
               <div className="flex flex-wrap gap-1.5">
                 {exercise.primaryMuscles.map((m) => (
                   <span
@@ -345,7 +345,7 @@ function ExerciseDetailPanel({
             </div>
             {exercise.secondaryMuscles.length > 0 && (
               <div>
-                <h4 className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1.5">Secondary</h4>
+                <h4 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1.5">Secondary</h4>
                 <div className="flex flex-wrap gap-1.5">
                   {exercise.secondaryMuscles.map((m) => (
                     <span
@@ -490,7 +490,7 @@ function InfoCell({
 }) {
   return (
     <div className="bg-grappler-800/40 rounded-lg p-2.5">
-      <p className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-0.5">
+      <p className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-0.5">
         {label}
       </p>
       <p
@@ -608,7 +608,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
             >
               <Filter className="w-5 h-5" />
               {activeFilterCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-500 text-[10px] font-bold text-white flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-500 text-xs font-bold text-white flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -654,7 +654,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
                 <div className="px-4 pb-3 space-y-2.5">
                   {/* Category */}
                   <div>
-                    <p className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1">Category</p>
+                    <p className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1">Category</p>
                     <FilterChips
                       options={CATEGORY_OPTIONS}
                       value={categoryFilter}
@@ -663,7 +663,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
                   </div>
                   {/* Muscle */}
                   <div>
-                    <p className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1">Muscle</p>
+                    <p className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1">Muscle</p>
                     <FilterChips
                       options={MUSCLE_OPTIONS}
                       value={muscleFilter}
@@ -672,7 +672,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
                   </div>
                   {/* Pattern */}
                   <div>
-                    <p className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1">Pattern</p>
+                    <p className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1">Pattern</p>
                     <FilterChips
                       options={PATTERN_OPTIONS}
                       value={patternFilter}
@@ -681,7 +681,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
                   </div>
                   {/* Equipment */}
                   <div>
-                    <p className="text-[10px] font-semibold text-grappler-500 uppercase tracking-wider mb-1">Equipment</p>
+                    <p className="text-xs font-semibold text-grappler-500 uppercase tracking-wider mb-1">Equipment</p>
                     <FilterChips
                       options={EQUIPMENT_OPTIONS}
                       value={equipmentFilter}

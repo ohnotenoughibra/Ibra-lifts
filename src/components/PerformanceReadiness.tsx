@@ -221,7 +221,7 @@ export default function PerformanceReadiness() {
                           <div className="flex items-center gap-2">
                             <span className="flex items-center gap-1.5 w-20 text-left text-grappler-400 group-hover:text-grappler-200 transition-colors">
                               {COMPONENT_ICONS[key]}
-                              <span className="text-[11px] truncate">{COMPONENT_LABELS[key]}</span>
+                              <span className="text-xs truncate">{COMPONENT_LABELS[key]}</span>
                             </span>
                             <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-grappler-700/40">
                               <motion.div
@@ -232,7 +232,7 @@ export default function PerformanceReadiness() {
                               />
                             </div>
                             <span className={cn(
-                              'text-[11px] font-mono w-6 text-right',
+                              'text-xs font-mono w-6 text-right',
                               getScoreColor(value)
                             )}>
                               {value}

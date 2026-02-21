@@ -986,7 +986,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
                       <span className={cn('font-medium tabular-nums', getZoneTextColor(m.zone))}>
                         {m.avgWeeklySets} sets/wk
                       </span>
-                      <span className="text-grappler-500 text-[10px] w-16 text-right">
+                      <span className="text-grappler-500 text-xs w-16 text-right">
                         {getZoneLabel(m.zone)}
                       </span>
                     </div>
@@ -1019,7 +1019,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
                         style={{ width: `${Math.max(barPercent, 2)}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-[10px] text-grappler-600 px-0.5">
+                    <div className="flex justify-between text-xs text-grappler-600 px-0.5">
                       <span>0</span>
                       <span>MEV:{m.landmarks.mev}</span>
                       <span>MAV:{m.landmarks.mav}</span>
@@ -1086,7 +1086,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
                   >
                     {balanceScore}
                   </span>
-                  <span className="text-[10px] text-grappler-400">/ 100</span>
+                  <span className="text-xs text-grappler-400">/ 100</span>
                 </div>
               </div>
             </div>
@@ -1267,7 +1267,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
                     className="bg-grappler-800/60 border border-grappler-700 rounded-lg p-3 space-y-2"
                   >
                     <div className="flex items-start gap-2">
-                      <div className={cn('shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase', colors.bg, colors.text)}>
+                      <div className={cn('shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-xs font-semibold uppercase', colors.bg, colors.text)}>
                         {rec.impact}
                       </div>
                       <span className="text-sm font-medium text-grappler-100">{rec.title}</span>

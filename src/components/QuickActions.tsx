@@ -350,7 +350,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex gap-1.5 justify-center">
               {[250, 330, 500, 750, 1000].map(ml => (
-                <button key={ml} onClick={() => setWaterMl(ml)} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium transition-all", waterMl === ml ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={ml} onClick={() => setWaterMl(ml)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", waterMl === ml ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {ml >= 1000 ? `${ml / 1000}L` : `${ml}ml`}
                 </button>
               ))}
@@ -451,7 +451,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 { v: 'yoga' as ActivityType, l: 'Yoga' },
                 { v: 'other' as ActivityType, l: 'Other' },
               ]).map(({ v, l }) => (
-                <button key={v} onClick={() => setActivityType(v)} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium transition-all", activityType === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={v} onClick={() => setActivityType(v)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", activityType === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {l}
                 </button>
               ))}
@@ -463,7 +463,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 { v: 'hard_sparring' as TrainingIntensity, l: 'Hard' },
                 { v: 'competition_prep' as TrainingIntensity, l: 'Comp' },
               ]).map(({ v, l }) => (
-                <button key={v} onClick={() => setTrainingIntensity(v)} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium transition-all", trainingIntensity === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={v} onClick={() => setTrainingIntensity(v)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", trainingIntensity === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {l}
                 </button>
               ))}
@@ -475,7 +475,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 { v: 'after_lifting' as SessionTiming, l: 'Post-lift' },
                 { v: 'same_day_separate' as SessionTiming, l: 'Same day' },
               ]).map(({ v, l }) => (
-                <button key={v} onClick={() => setSessionTiming(v)} className={cn("px-2 py-1 rounded-lg text-[11px] font-medium transition-all", sessionTiming === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={v} onClick={() => setSessionTiming(v)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", sessionTiming === v ? "bg-lime-500/20 text-lime-400 ring-1 ring-lime-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {l}
                 </button>
               ))}
@@ -505,14 +505,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 { v: 'pre_workout' as MealType, l: 'Pre-WO' },
                 { v: 'post_workout' as MealType, l: 'Post-WO' },
               ]).map(({ v, l }) => (
-                <button key={v} onClick={() => setFoodMealType(v)} className={cn("px-2 py-1 rounded-lg text-[11px] font-medium transition-all", foodMealType === v ? "bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={v} onClick={() => setFoodMealType(v)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", foodMealType === v ? "bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {l}
                 </button>
               ))}
             </div>
             <div className="flex gap-1 flex-wrap">
               {QUICK_FOODS.map(food => (
-                <button key={food.name} onClick={() => { setFoodName(food.name); setFoodCal(food.cal); setFoodProtein(food.p); setFoodCarbs(food.c); setFoodFat(food.f); }} className={cn("px-2 py-1 rounded-lg text-[11px] transition-all", foodName === food.name ? "bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/30" : "bg-grappler-800/60 text-grappler-400")}>
+                <button key={food.name} onClick={() => { setFoodName(food.name); setFoodCal(food.cal); setFoodProtein(food.p); setFoodCarbs(food.c); setFoodFat(food.f); }} className={cn("px-3 py-1.5 rounded-lg text-xs transition-all", foodName === food.name ? "bg-orange-500/20 text-orange-400 ring-1 ring-orange-500/30" : "bg-grappler-800/60 text-grappler-400")}>
                   {food.name}
                 </button>
               ))}
@@ -592,7 +592,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             </div>
             <div className="flex gap-1.5 justify-center">
               {[5, 10, 15, 20, 30].map(min => (
-                <button key={min} onClick={() => setMobilityMinutes(min)} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium transition-all", mobilityMinutes === min ? "bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/30" : "bg-grappler-800 text-grappler-400")}>
+                <button key={min} onClick={() => setMobilityMinutes(min)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", mobilityMinutes === min ? "bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/30" : "bg-grappler-800 text-grappler-400")}>
                   {min}m
                 </button>
               ))}
@@ -697,7 +697,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5', a.bg)}>
                   <a.icon className={cn('w-4 h-4', a.color)} />
                 </div>
-                <p className="text-[11px] font-medium text-grappler-200">{a.label}</p>
+                <p className="text-xs font-medium text-grappler-200">{a.label}</p>
                 {a.stat && (
                   <p className={cn('text-xs mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-400')}>{a.stat}</p>
                 )}
@@ -741,7 +741,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                         <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5', a.bg)}>
                           <a.icon className={cn('w-4 h-4', a.color)} />
                         </div>
-                        <p className="text-[11px] font-medium text-grappler-200">{a.label}</p>
+                        <p className="text-xs font-medium text-grappler-200">{a.label}</p>
                         {a.stat && <p className={cn('text-xs mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-400')}>{a.stat}</p>}
                         {a.done && <Check className="w-3 h-3 text-green-400 absolute top-1.5 right-1.5" />}
                       </motion.button>

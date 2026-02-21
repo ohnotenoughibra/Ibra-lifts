@@ -104,6 +104,8 @@ const SplitAnalyzer = dynamic(() => import('./SplitAnalyzer'), { loading: () => 
 const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
 const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <OverlaySkeleton /> });
+const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
+const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -136,6 +138,7 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   split_analyzer: 'advanced-analytics',
   conditioning: 'advanced-analytics',
   fighters_mind: 'advanced-analytics',
+  training_journal: 'advanced-analytics',
 };
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
@@ -238,6 +241,8 @@ export default function Dashboard({
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
+  const [showReadyScreen, setShowReadyScreen] = useState(false);
+  const readyScreenSkipped = useRef(false);
   const setOverlayView = (view: OverlayView) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
@@ -387,6 +392,18 @@ export default function Dashboard({
     prevLevelRef.current = gamificationStats.level;
   }, [gamificationStats.level]);
 
+  // Show Ready for This when workout starts
+  const prevActiveWorkoutRef = useRef(activeWorkout);
+  useEffect(() => {
+    if (activeWorkout && !prevActiveWorkoutRef.current) {
+      setShowReadyScreen(true);
+    }
+    if (!activeWorkout) {
+      readyScreenSkipped.current = false; // Reset for next workout
+    }
+    prevActiveWorkoutRef.current = activeWorkout;
+  }, [activeWorkout]);
+
   // Streak at-risk detection
   const streakAtRisk = gamificationStats.currentStreak > 0 && (() => {
     const todayStr = new Date().toDateString();
@@ -409,6 +426,15 @@ export default function Dashboard({
   }
 
   if (activeWorkout) {
+    // Show "Ready for This" interstitial on workout start (unless skipped)
+    if (showReadyScreen && !readyScreenSkipped.current && !activeWorkout.preCheckIn) {
+      return (
+        <ReadyForThis
+          onProceed={() => setShowReadyScreen(false)}
+          onSkip={() => { readyScreenSkipped.current = true; setShowReadyScreen(false); }}
+        />
+      );
+    }
     return <ActiveWorkout />;
   }
 
@@ -454,6 +480,7 @@ export default function Dashboard({
   if (overlayView === 'movement_library') return <MovementLibrary onClose={() => setOverlayView(null)} />;
   if (overlayView === 'conditioning') return <ConditioningSession onClose={() => setOverlayView(null)} />;
   if (overlayView === 'fighters_mind') return <FightersMind onClose={() => setOverlayView(null)} />;
+  if (overlayView === 'training_journal') return <TrainingJournal onClose={() => setOverlayView(null)} />;
 
   // Mesocycle report overlay
   if (reportMesocycleId) {

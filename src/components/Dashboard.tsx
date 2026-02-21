@@ -474,7 +474,7 @@ export default function Dashboard({
 
   return (
     <ToastProvider>
-    <div className="min-h-screen bg-grappler-900 bg-mesh pb-16 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20 overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
         <div className="px-3 py-3 flex items-center justify-between gap-2 overflow-hidden">

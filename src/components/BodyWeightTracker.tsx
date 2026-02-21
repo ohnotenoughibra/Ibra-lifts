@@ -657,58 +657,82 @@ export default function BodyWeightTracker() {
             Body Composition
           </h4>
 
-          <div className="flex items-center gap-3">
-            {/* BMI display */}
-            <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-              <p className="text-xs text-grappler-400 mb-0.5">BMI</p>
-              {(latestSavedBMI || bmi) ? (() => {
+          {/* Body Fat first when available (more meaningful for athletes), BMI second */}
+          {latestBF != null ? (
+            <>
+              {/* Body Fat — primary metric */}
+              <div className="bg-grappler-700/50 rounded-lg p-3">
+                <p className="text-xs text-grappler-400 mb-1">Body Fat</p>
+                {(() => {
+                  const bfCat = getBodyFatCategory(latestBF, sex);
+                  return (
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-grappler-50">{latestBF}%</span>
+                        <span className={cn('text-sm font-semibold', bfCat.color)}>
+                          {bfCat.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-500 mt-0.5">Range: {bfCat.range}</p>
+                      <BodyFatScaleBar bf={latestBF} sex={sex} />
+                    </div>
+                  );
+                })()}
+              </div>
+              {/* BMI — secondary, compact */}
+              {(latestSavedBMI || bmi) && (() => {
                 const displayBMI = latestSavedBMI || bmi!;
                 const cat = getBMICategory(displayBMI);
                 return (
-                  <div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-bold text-grappler-50">{displayBMI}</span>
-                      <span className={cn('text-xs font-medium', cat.color)}>
-                        {cat.label}
-                      </span>
+                  <div className="bg-grappler-700/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xs text-grappler-500">BMI</span>
+                        <span className="text-sm font-bold text-grappler-300">{displayBMI}</span>
+                        <span className={cn('text-xs', cat.color)}>{cat.label}</span>
+                      </div>
+                      <span className="text-[10px] text-grappler-600">Less reliable for athletes</span>
                     </div>
-                    <p className="text-xs text-grappler-400 mt-0.5">Range: {cat.range}</p>
-                    <BMIScaleBar bmi={displayBMI} />
                   </div>
                 );
-              })() : (
-                <p className="text-xs text-grappler-400">Set height in settings</p>
-              )}
-            </div>
-
-            {/* Body Fat display */}
-            <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
-              <p className="text-xs text-grappler-400 mb-0.5">Body Fat</p>
-              {latestBF != null ? (() => {
-                const bfCat = getBodyFatCategory(latestBF, sex);
-                return (
-                  <div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-bold text-grappler-50">{latestBF}%</span>
-                      <span className={cn('text-xs font-medium', bfCat.color)}>
-                        {bfCat.label}
-                      </span>
+              })()}
+            </>
+          ) : (
+            /* No body fat — show BMI as primary, prompt for body fat */
+            <div className="flex items-center gap-3">
+              <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
+                <p className="text-xs text-grappler-400 mb-0.5">BMI</p>
+                {(latestSavedBMI || bmi) ? (() => {
+                  const displayBMI = latestSavedBMI || bmi!;
+                  const cat = getBMICategory(displayBMI);
+                  return (
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-lg font-bold text-grappler-50">{displayBMI}</span>
+                        <span className={cn('text-xs font-medium', cat.color)}>
+                          {cat.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-400 mt-0.5">Range: {cat.range}</p>
+                      <BMIScaleBar bmi={displayBMI} />
                     </div>
-                    <p className="text-xs text-grappler-400 mt-0.5">Range: {bfCat.range}</p>
-                    <BodyFatScaleBar bf={latestBF} sex={sex} />
-                  </div>
-                );
-              })() : (
+                  );
+                })() : (
+                  <p className="text-xs text-grappler-400">Set height in settings</p>
+                )}
+              </div>
+              <div className="flex-1 bg-grappler-700/50 rounded-lg p-2.5">
+                <p className="text-xs text-grappler-400 mb-0.5">Body Fat</p>
                 <p className="text-xs text-grappler-400">Log measurements below</p>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* BMI description (de-emphasized for athletes) */}
-          {(latestSavedBMI || bmi) && (
+          {/* BMI description — only when no body fat data and BMI is shown prominently */}
+          {latestBF == null && (latestSavedBMI || bmi) && (
             <p className="text-xs text-grappler-400 leading-relaxed">
               {getBMICategory(latestSavedBMI || bmi!).description}
-              {' '}BMI is less reliable for muscular athletes — body fat % is more meaningful.
+              {' '}BMI is less reliable for muscular athletes — log waist & neck measurements below for a body fat estimate.
             </p>
           )}
 

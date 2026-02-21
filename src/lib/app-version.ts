@@ -8,7 +8,7 @@
 
 // ── Version Constants ─────────────────────────────────────────────────────
 
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.2.0';
 export const APP_VERSION_KEY = 'roots-gains-version';
 export const UPGRADE_DISMISSED_KEY = 'roots-gains-upgrade-dismissed';
 
@@ -22,6 +22,21 @@ export interface VersionInfo {
 
 // Version history — newest first
 export const VERSION_HISTORY: VersionInfo[] = [
+  {
+    version: '2.2.0',
+    releasedAt: '2026-02-21',
+    highlights: [
+      'Profile tab redesigned from first principles — athlete identity card, not settings dump',
+      'SVG circular level ring with animated XP progress around your avatar',
+      'Achievement shelf — horizontal badge scroll with next milestone teaser',
+      'Strength Profile — visual bar chart of your baseline lifts with inline editing',
+      'Lifetime stats as 2x2 data cards with gradient backgrounds',
+      'Inline field editing — tap any value to edit, no global edit mode',
+      'Settings organized into collapsible sections (Body, Training, Wearable)',
+      'Danger zone and data recovery buried in Advanced section',
+    ],
+    breakingChanges: false,
+  },
   {
     version: '2.1.0',
     releasedAt: '2026-02-14',

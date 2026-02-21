@@ -17,6 +17,8 @@ import {
   Zap,
   Compass,
   Target,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
@@ -243,6 +245,9 @@ export default function Dashboard({
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
   const [showReadyScreen, setShowReadyScreen] = useState(false);
   const readyScreenSkipped = useRef(false);
+  const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
   const setOverlayView = (view: OverlayView) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
@@ -256,6 +261,12 @@ export default function Dashboard({
       }
       // Save scroll position before opening overlay
       scrollPositionRef.current = window.scrollY;
+    }
+    // Show feedback toast when closing a real overlay (not quick_actions or user_guide)
+    if (view === null && overlayView && overlayView !== 'quick_actions' && overlayView !== 'user_guide') {
+      setFeedbackOverlay(overlayView);
+      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
     }
     setOverlayViewRaw(view);
     if (view === null) {
@@ -506,7 +517,7 @@ export default function Dashboard({
     <ToastProvider>
     <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20 overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top">
         <div className="px-3 py-3 flex items-center justify-between gap-2 overflow-hidden">
           <div className="flex items-center gap-2 min-w-0 flex-shrink">
             <div className="w-8 h-8 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
@@ -570,7 +581,7 @@ export default function Dashboard({
             >
               <Star className="w-3.5 h-3.5 text-yellow-500" />
               <span className="text-xs font-medium text-grappler-200">
-                {formatNumber(gamificationStats.totalPoints)}
+                {pointsToNextLevel(gamificationStats.totalPoints)} to lvl
               </span>
             </button>
           </div>
@@ -707,6 +718,45 @@ export default function Dashboard({
             level={levelUpDisplay}
             onDismiss={() => setLevelUpDisplay(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Was This Worth It — Overlay Feedback Toast */}
+      <AnimatePresence>
+        {feedbackOverlay && (
+          <motion.div
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 safe-area-top"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          >
+            <div className="flex items-center gap-3 bg-grappler-800 border border-grappler-700/50 rounded-2xl px-4 py-2.5 shadow-2xl">
+              <span className="text-xs text-grappler-400 whitespace-nowrap">Worth it?</span>
+              <button
+                onClick={() => {
+                  hapticLight();
+                  addFeatureFeedback(feedbackOverlay, 'up');
+                  setFeedbackOverlay(null);
+                }}
+                className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-90 transition-all"
+                aria-label="Thumbs up"
+              >
+                <ThumbsUp className="w-4 h-4 text-emerald-400" />
+              </button>
+              <button
+                onClick={() => {
+                  hapticLight();
+                  addFeatureFeedback(feedbackOverlay, 'down');
+                  setFeedbackOverlay(null);
+                }}
+                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 active:scale-90 transition-all"
+                aria-label="Thumbs down"
+              >
+                <ThumbsDown className="w-4 h-4 text-red-400" />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

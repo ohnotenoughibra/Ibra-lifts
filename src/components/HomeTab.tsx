@@ -1684,10 +1684,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               ? 'border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900'
               : 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'
           )}>
-            {/* Header — the session type IS the hero, not a status label */}
+            {/* Header — the session type IS the hero */}
             <div className="px-5 pt-4 pb-3">
               <div className="flex items-center gap-2 mb-1">
                 {allCombatLogged ? <Check className="w-4 h-4 text-green-400" /> : <Shield className="w-4 h-4 text-purple-400" />}
+                {directive.todayCombatSessions.length === 1 && (
+                  <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-semibold ml-1',
+                    /hard|sparring|competition/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+                    /moderate/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
+                    'bg-green-500/12 text-green-400 border border-green-500/20'
+                  )}>{directive.todayCombatSessions[0].intensity}</span>
+                )}
                 {mesocycleProgress && (
                   <div className="flex items-center gap-2 ml-auto">
                     <span className="text-[10px] text-grappler-500">Block</span>
@@ -1702,8 +1709,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
             </div>
 
-            {/* Session cards */}
-            {directive.todayCombatSessions.length > 0 && (
+            {/* Session list — only shown for 2+ sessions (single session info is in the header) */}
+            {directive.todayCombatSessions.length > 1 && (
               <div className="mx-5 mb-3 space-y-2">
                 {directive.todayCombatSessions.map((s, i) => (
                   <div key={i} className={cn(
@@ -1712,12 +1719,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       ? 'bg-green-500/8 border-green-500/20'
                       : 'bg-grappler-900/50 border-grappler-700/40'
                   )}>
-                    <div className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                      s.logged ? 'bg-green-500/20' : 'bg-purple-500/15'
-                    )}>
-                      {s.logged ? <Check className="w-4 h-4 text-green-400" /> : <Shield className="w-4 h-4 text-purple-400" />}
-                    </div>
+                    {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-grappler-200">{s.type}</p>
                       <p className="text-xs text-grappler-400">{s.duration > 0 ? `${s.duration}min` : 'Open mat'}</p>
@@ -1746,22 +1748,42 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     )}
                   </div>
                 ))}
+
+                {/* Stats row — only useful for multi-session */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
+                    <Shield className="w-3 h-3 text-grappler-500" />
+                    <span className="text-xs text-grappler-300 font-medium">{loggedCount}/{directive.todayCombatSessions.length}</span>
+                  </div>
+                  {totalDuration > 0 && (
+                    <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
+                      <Clock className="w-3 h-3 text-grappler-500" />
+                      <span className="text-xs text-grappler-300 font-medium">{totalDuration}min</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Stats row — session count + total duration + progress */}
-            <div className="mx-5 mb-3 flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                <Shield className="w-3 h-3 text-grappler-500" />
-                <span className="text-xs text-grappler-300 font-medium">{loggedCount}/{directive.todayCombatSessions.length}</span>
+            {/* Single session skip button */}
+            {directive.todayCombatSessions.length === 1 && !directive.todayCombatSessions[0].logged && (
+              <div className="mx-5 mb-3">
+                <button
+                  onClick={() => {
+                    skipWorkout({
+                      date: new Date().toISOString().split('T')[0],
+                      scheduledSessionId: 'combat-0',
+                      reason: 'schedule_conflict' as SkipReason,
+                      rescheduled: false,
+                    });
+                    showToast(`Skipped ${directive.todayCombatSessions[0].type}`, 'info');
+                  }}
+                  className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+                >
+                  Skip session
+                </button>
               </div>
-              {totalDuration > 0 && (
-                <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                  <Clock className="w-3 h-3 text-grappler-500" />
-                  <span className="text-xs text-grappler-300 font-medium">{totalDuration}min</span>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Action items — filter out combat session labels (already shown above) and protein (separate concern) */}
             {(() => {

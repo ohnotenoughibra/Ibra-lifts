@@ -427,6 +427,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
   const cycleLogs = useAppStore(s => s.cycleLogs);
+  const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
+  const confidenceLedger = useAppStore(s => s.confidenceLedger);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
@@ -1615,6 +1617,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </motion.div>
           )}
 
+          {/* Mental check-in nudge */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.6, duration: 0.3 }}
+            onClick={() => onNavigate('fighters_mind')}
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 mb-2 bg-violet-500/10 border border-violet-500/20 text-left hover:bg-violet-500/15 transition-colors"
+          >
+            <Brain className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+            <p className="text-xs text-violet-300">How&apos;s the mind? Log a deeper check-in</p>
+            <ChevronRight className="w-3 h-3 text-violet-400/50 ml-auto flex-shrink-0" />
+          </motion.button>
+
           {/* Forward look */}
           {directive.forwardLook && (
             <motion.div
@@ -2207,6 +2222,75 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         weightUnit={weightUnit}
         nextBadgeDistance={nextBadgeDistance}
       />
+
+      {/* ─── Weekly Mental Digest — Fighter's Mind summary card ─── */}
+      {mentalCheckIns.length >= 3 && (() => {
+        const now = Date.now();
+        const weekMs = 7 * 24 * 60 * 60 * 1000;
+        const thisWeek = mentalCheckIns.filter(c => now - new Date(c.timestamp).getTime() < weekMs);
+        const prevWeek = mentalCheckIns.filter(c => {
+          const age = now - new Date(c.timestamp).getTime();
+          return age >= weekMs && age < weekMs * 2;
+        });
+        if (thisWeek.length === 0) return null;
+        const score = (c: { energy: number; focus: number; confidence: number; composure: number }) =>
+          Math.round(((c.energy + c.focus + c.confidence + c.composure) / 20) * 100);
+        const avgScore = Math.round(thisWeek.map(score).reduce((a, b) => a + b, 0) / thisWeek.length);
+        const prevAvgScore = prevWeek.length > 0
+          ? Math.round(prevWeek.map(score).reduce((a, b) => a + b, 0) / prevWeek.length) : null;
+        const delta = prevAvgScore !== null ? avgScore - prevAvgScore : null;
+        const dims = ['energy', 'focus', 'confidence', 'composure'] as const;
+        const strongest = dims.reduce((best, d) => {
+          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
+          return avg > best.avg ? { dim: d, avg } : best;
+        }, { dim: 'energy' as typeof dims[number], avg: 0 });
+        const weakest = dims.reduce((worst, d) => {
+          const avg = thisWeek.reduce((s, c) => s + c[d], 0) / thisWeek.length;
+          return avg < worst.avg ? { dim: d, avg } : worst;
+        }, { dim: 'energy' as typeof dims[number], avg: 6 });
+        const recentConfidence = confidenceLedger.filter(e => now - new Date(e.date).getTime() < weekMs).length;
+
+        return (
+          <button
+            onClick={() => onNavigate('fighters_mind')}
+            className="w-full bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 rounded-xl p-3.5 text-left active:scale-[0.99] transition-all"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-violet-400" />
+                <span className="text-xs font-bold text-violet-300 uppercase tracking-wide">Mental State</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn('text-sm font-black', avgScore >= 70 ? 'text-emerald-400' : avgScore >= 50 ? 'text-yellow-400' : 'text-red-400')}>
+                  {avgScore}%
+                </span>
+                {delta !== null && delta !== 0 && (
+                  <span className={cn('text-xs font-medium', delta > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-grappler-400">
+              <span>{thisWeek.length} check-in{thisWeek.length !== 1 ? 's' : ''}</span>
+              <span className="text-grappler-600">·</span>
+              <span>Strongest: <span className="text-grappler-200 capitalize">{strongest.dim}</span></span>
+              {weakest.avg < 3 && (
+                <>
+                  <span className="text-grappler-600">·</span>
+                  <span>Watch: <span className="text-red-400 capitalize">{weakest.dim}</span></span>
+                </>
+              )}
+              {recentConfidence > 0 && (
+                <>
+                  <span className="text-grappler-600">·</span>
+                  <span>{recentConfidence} win{recentConfidence !== 1 ? 's' : ''}</span>
+                </>
+              )}
+            </div>
+          </button>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════
           COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed, tools dock

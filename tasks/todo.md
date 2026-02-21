@@ -1,51 +1,41 @@
 # Current Tasks
 
-## Completed: First-Principles Audit
+## 1. Weekly Session Overflow — handle 9/8+ gracefully
+**Status:** Planned
 
-Full audit written to `tasks/audit.md`
+**Problem:** Counter shows 8/8 and "Week complete. Recovery earned." when the user exceeds planned sessions. No acknowledgment of the extra work. The bar caps at 100% and there's zero distinction between "hit target" and "crushed it."
 
-### Completed
-- [x] XP curve rebalanced (770k → 140k, achievable in ~2 years)
-- [x] "Legendary Grappler" → "Legendary Fighter" (sport-agnostic)
-- [x] "Grapplers are built in the weight room" → "Champions are built in the weight room"
-- [x] Updated pitch-deck and README references
-- [x] All 270 tests passing
+**Root cause:**
+- `WeeklyMomentum.tsx:131` — `Math.min(1, weekDone / weekTarget)` caps bar at 100%
+- `WeeklyMomentum.tsx:110` — headline hardcoded: "Week complete. Recovery earned." for ANY pct >= 1
+- The counter `{weekDone}/{weekTarget}` does show raw numbers (should display 9/8), but today's grappling dot may be hollow if session isn't reflected yet
 
-## Completed: Explorer Tab Redesign
+**Plan:**
+- [ ] Overflow headline: "Going beyond. {n} bonus session{s}." or "Extra credit earned."
+- [ ] Overflow visual: subtle glow/pulse on progress bar when weekDone > weekTarget
+- [ ] Show overflow fraction clearly: "9/8" with a small +1 badge
+- [ ] Ensure weekly dot updates immediately when a session is logged for today
 
-### Phase 1: Removed 8 non-tools
-- [x] Auto-Throttle, Smart Warm-Up, Corner Coach (info-only panels → live in ActiveWorkout)
-- [x] Weekly Coach (weekly check-in → should be Home screen card)
-- [x] Community Share (contextual action → post-workout/PR moment)
-- [x] Wearables (one-time setup → belongs in Profile/Settings)
+---
 
-### Phase 2: Merged overlapping tools
-- [x] Recovery Dashboard + Recovery Coach → "Recovery Hub" (readiness + recommendations in one)
-- [x] Competition Prep + Fight Camp Fuel → "Fight Prep" (peaking + weight management unified)
-- [x] Kept Progression (overload) separate from Strength Analysis (different tiers: free vs pro)
+## 2. Wearable Tools — bring back to Explore tab
+**Status:** Planned
 
-### Phase 3: Recategorized into 4 intent-based categories
-- [x] **Build** (6): Builder, Templates, AI Program, Custom Exercise, Periodization, 1RM Calculator
-- [x] **Track** (5): Grappling, Mobility, Grip Strength, Nutrition, Fight Prep
-- [x] **Analyze** (6): Progression, Strength Analysis, Exercise Profiler, Volume Map, Training Load, Fatigue
-- [x] **Body** (5): Recovery Hub, HR Zones, Injury Log, Illness Log, Cycle Tracking
+**Problem:** Wearable was removed during Explore Tab redesign (Phase 1) as "one-time setup → belongs in Profile/Settings." This was wrong — it's NOT just setup. After connecting Whoop, users need ongoing access to: sync data, view strain/HR/recovery trends, review auto-imported sessions, check sync status. Currently there is NO way to access WearableIntegration after the initial "Connect" CTA disappears.
 
-### Phase 4: Simplified UI chrome
-- [x] Removed "What's New" banner
-- [x] Removed "Suggested for You" section
-- [x] Removed category collapse/expand (all tools visible)
-- [x] Removed "Start here" empty state (handled by Home screen)
-- [x] Capped pinned tools at 4 (one clean row)
-- [x] Switched to 3-column grid
+**Plan:**
+- [ ] Add "Wearable" tool to Explore tab Body category (id: 'wearable')
+- [ ] Place between Recovery Hub and HR Zones
+- [ ] Make it pinnable to Quick Access dock
+- [ ] Keywords: whoop wearable heart rate sync strain recovery hrv connect watch
+- [ ] Desc: "Whoop sync, strain & HR data"
 
-### Phase 5: Compact card redesign
-- [x] Reduced card height (5.5rem → 4.5rem)
-- [x] Compact pinned cards (icon + label only, 4-column grid)
-- [x] Tighter padding and smaller badges
-- [x] Bumped time-ago text from 9px to 10px
+---
 
-### Result
-- 30 → 22 tools (8 removed, 2 merged)
-- 5 → 4 categories (balanced at 5-6 each)
-- All tools visible without collapse
-- Build passes clean
+## Completed
+- [x] RPE formula rewrite (multi-signal composite replacing naive strain/2.1)
+- [x] Stale Whoop data update on re-sync
+- [x] Stale pin IDs cleanup
+- [x] AI builder in BlockQueue New Block flow
+- [x] Explorer Tab Redesign (4 categories, 22 tools)
+- [x] XP curve rebalanced

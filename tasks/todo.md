@@ -88,8 +88,18 @@
 ### Medium Priority
 - [ ] Generate WebP versions of PNG icons
 - [ ] Add loading="lazy" to photo components
-- [ ] FAB safe-area-inset-right padding
+- [x] FAB center-aligned (was overlapping Profile tab)
 - [ ] Expand haptic feedback to more confirmatory actions
+
+---
+
+## In Progress: Knowledge Library
+
+### Design: "Unregrettable User Seconds"
+- [x] Knowledge engine — contextual insight picker
+- [x] InsightCard component — HomeTab integration
+- [x] Knowledge Library overlay — Explore tab tool
+- [x] Store additions — seen/read/bookmark tracking
 
 ---
 
@@ -114,3 +124,6 @@
 - [x] Explorer Tab Redesign (4 categories, 22 tools)
 - [x] XP curve rebalanced
 - [x] Session card redesign
+- [x] Readiness ring redesign
+- [x] Safe-area fix for all overlays
+- [x] FAB position fix (center-aligned)

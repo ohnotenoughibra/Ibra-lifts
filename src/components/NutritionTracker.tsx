@@ -211,18 +211,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     ? (latestWeight?.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
     : 175; // Default weight if none logged
 
-  const computedTargets = useMemo(() => {
-    if (!latestWeight || !user) return macroTargets;
-    const bw = latestWeight.unit === 'lbs' ? latestWeight.weight * 0.453592 : latestWeight.weight;
-    const goal = user.goalFocus;
-    if (goal === 'hypertrophy') {
-      return { calories: Math.round(bw * 35), protein: Math.round(bw * 2.2), carbs: Math.round(bw * 4), fat: Math.round(bw * 1) };
-    } else if (goal === 'strength') {
-      return { calories: Math.round(bw * 33), protein: Math.round(bw * 2), carbs: Math.round(bw * 3.5), fat: Math.round(bw * 1.1) };
-    }
-    return { calories: Math.round(bw * 32), protein: Math.round(bw * 2), carbs: Math.round(bw * 3.5), fat: Math.round(bw * 1) };
-  }, [latestWeight, user, macroTargets]);
-
   // ── Contextual nutrition based on today's training ──
   // Check today's workout logs instead of scheduled sessions
   const todaySession = useMemo(() => {
@@ -268,7 +256,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
 
   const contextualNutrition = useMemo<ContextualMacros>(() => {
     return getContextualNutrition(
-      computedTargets,
+      macroTargets,
       bodyWeightLbs,
       todaySession,
       todayTraining,
@@ -277,7 +265,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       activeIllness,
       daysToComp != null ? { daysToCompetition: daysToComp } : undefined,
     );
-  }, [computedTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user, activeIllness, daysToComp]);
+  }, [macroTargets, bodyWeightLbs, todaySession, todayTraining, latestWhoopData, user, activeIllness, daysToComp]);
 
   const supplements = useMemo(() => {
     return getSupplementRecommendations(contextualNutrition.dayType);

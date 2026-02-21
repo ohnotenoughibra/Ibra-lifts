@@ -309,7 +309,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 style={{ touchAction: 'manipulation' }}
               >
                 <tool.icon className="w-5 h-5" />
-                <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
+                <span className="text-xs font-medium text-grappler-200 text-center leading-tight line-clamp-1">
                   {tool.label}
                 </span>
               </button>
@@ -338,7 +338,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 <tool.icon className="w-4 h-4" />
                 <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
                 {usageMap[tool.id] && (
-                  <span className="text-[10px] text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
+                  <span className="text-xs text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
                 )}
               </button>
             ))}
@@ -453,7 +453,7 @@ function ToolCard({ tool, isPinned, pinMode, onTap }: {
         {tool.label}
       </span>
       <span className={cn(
-        'text-[11px] text-center leading-tight line-clamp-2',
+        'text-xs text-center leading-tight line-clamp-2',
         pinMode ? (isPinned ? 'text-primary-400' : 'text-grappler-500') : 'text-grappler-400'
       )}>
         {pinMode ? (isPinned ? 'Pinned' : 'Tap to pin') : tool.desc}

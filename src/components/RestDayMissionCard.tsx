@@ -200,7 +200,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
                   {m.label}
                 </span>
                 <span className={cn(
-                  'text-[11px]',
+                  'text-xs',
                   m.done ? 'text-green-400/60' : 'text-grappler-500',
                 )}>
                   {m.detail}
@@ -214,7 +214,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
         {!allComplete && props.forwardLook && (
           <div className="flex items-center gap-2 px-5 pb-2">
             <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-            <p className="text-[11px] text-grappler-400">{props.forwardLook}</p>
+            <p className="text-xs text-grappler-400">{props.forwardLook}</p>
           </div>
         )}
 

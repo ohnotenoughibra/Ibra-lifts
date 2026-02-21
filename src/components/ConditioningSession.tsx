@@ -662,14 +662,14 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
 
                     <div className="flex flex-wrap gap-1 mb-2">
                       {template.targetSport.map((sport) => (
-                        <span key={sport} className="px-1.5 py-0.5 rounded bg-grappler-800 text-[10px] text-grappler-400 uppercase">
+                        <span key={sport} className="px-1.5 py-0.5 rounded bg-grappler-800 text-xs text-grappler-400 uppercase">
                           {sport}
                         </span>
                       ))}
                     </div>
 
                     {template.equipmentNeeded.length > 0 && (
-                      <div className="flex items-center gap-1 text-[10px] text-grappler-400">
+                      <div className="flex items-center gap-1 text-xs text-grappler-400">
                         <Dumbbell size={10} />
                         {template.equipmentNeeded.slice(0, 3).join(', ')}
                         {template.equipmentNeeded.length > 3 && ` +${template.equipmentNeeded.length - 3}`}
@@ -986,7 +986,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             <span className="text-sm font-medium text-grappler-400 truncate">{activeTemplate.name}</span>
             <span
               className={cn(
-                'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase shrink-0',
+                'px-1.5 py-0.5 rounded text-xs font-bold uppercase shrink-0',
                 TYPE_COLORS[activeTemplate.type].bg,
                 TYPE_COLORS[activeTemplate.type].text
               )}
@@ -1058,7 +1058,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
           {currentEx && (phase === 'work' || phase === 'rest') && (
             <div className="w-full max-w-sm bg-grappler-900 rounded-xl p-4 border border-grappler-800 mb-3">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-6 h-6 rounded-full bg-grappler-800 flex items-center justify-center text-[10px] font-bold text-grappler-400">
+                <div className="w-6 h-6 rounded-full bg-grappler-800 flex items-center justify-center text-xs font-bold text-grappler-400">
                   {(activeTemplate.type === 'circuit' || activeTemplate.type === 'tabata')
                     ? currentExerciseIdx + 1
                     : currentRound}

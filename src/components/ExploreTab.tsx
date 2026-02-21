@@ -7,7 +7,7 @@ import {
   Heart, Shield, Thermometer, Zap,
   Apple, Grip, Flame, Gauge,
   Swords, Navigation, Move,
-  Search, Clock, Pin, X,
+  Search, Clock, Pin, Check,
   Crown, Hammer, Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -92,7 +92,6 @@ export const PINNED_STORAGE_KEY = 'roots-explore-pinned';
 const STORAGE_KEY_RECENT = 'roots-explore-recent';
 const STORAGE_KEY_PINNED = PINNED_STORAGE_KEY;
 const STORAGE_KEY_USAGE = 'roots-explore-usage';
-const STORAGE_KEY_PIN_HINT = 'roots-explore-pin-hint-shown';
 const MAX_RECENT = 4;
 const MAX_PINNED = 4;
 const PIN_SYNC_EVENT = 'roots-pins-changed';
@@ -138,7 +137,10 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
-  const [pinHintShown, setPinHintShown] = useState(() => readJson(STORAGE_KEY_PIN_HINT, false));
+
+  // PIN MODE — like iOS home screen jiggle mode
+  // When true, tapping ANY card toggles its pin. When false, tapping navigates.
+  const [pinMode, setPinMode] = useState(false);
 
   // Sync pins with HomeTab — event-based, no polling
   useEffect(() => {
@@ -151,8 +153,6 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
-
-  const shouldShowPinHint = !pinHintShown && recentIds.length >= 2 && pinnedIds.length === 0;
 
   const handleNavigate = useCallback((id: NonNullable<OverlayView>) => {
     setUsageMap(prev => {
@@ -177,11 +177,16 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       : [...current, id].slice(0, MAX_PINNED);
     writePins(next);
     setPinnedIds(next);
-    if (!pinHintShown) {
-      setPinHintShown(true);
-      localStorage.setItem(STORAGE_KEY_PIN_HINT, JSON.stringify(true));
+  }, []);
+
+  // Single handler: in pin mode toggles pin, in normal mode navigates
+  const handleCardTap = useCallback((id: NonNullable<OverlayView>) => {
+    if (pinMode) {
+      togglePin(id);
+    } else {
+      handleNavigate(id);
     }
-  }, [pinHintShown]);
+  }, [pinMode, togglePin, handleNavigate]);
 
   const recentTools = useMemo(() =>
     recentIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
@@ -220,46 +225,84 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold text-grappler-50">Explore</h2>
-        <p className="text-sm text-grappler-400">Your training toolkit</p>
+      {/* Header with pin mode toggle */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-grappler-50">Explore</h2>
+          <p className="text-sm text-grappler-400">Your training toolkit</p>
+        </div>
+        <button
+          onClick={() => { hapticMedium(); setPinMode(prev => !prev); }}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all',
+            'active:scale-95 select-none min-h-[40px]',
+            pinMode
+              ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+              : 'bg-grappler-800 text-grappler-300 border border-grappler-700'
+          )}
+          style={{ touchAction: 'manipulation' }}
+        >
+          <Pin className="w-3.5 h-3.5" />
+          {pinMode ? 'Done' : 'Edit Pins'}
+        </button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search tools..."
-          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50 text-sm text-grappler-200 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500/50 transition-colors"
-        />
-      </div>
-
-      {/* Pin onboarding hint */}
-      {!isSearching && shouldShowPinHint && (
-        <p className="text-xs text-grappler-400 px-1">
-          <span className="text-grappler-300 font-medium">Tip:</span> Tap the pin icon on any tool to add it to quick access
-        </p>
+      {/* Pin mode banner */}
+      {pinMode && (
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/30">
+          <p className="text-xs text-primary-300">
+            Tap any tool to pin/unpin it
+          </p>
+          <span className="text-xs font-bold text-primary-400">
+            {pinnedIds.length}/{MAX_PINNED}
+          </span>
+        </div>
       )}
 
-      {/* Pinned tools — max 4, one clean row */}
-      {!isSearching && pinnedTools.length > 0 && (
+      {/* Search — hidden in pin mode */}
+      {!pinMode && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tools..."
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50 text-sm text-grappler-200 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500/50 transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Pinned tools row — shown in normal mode only */}
+      {!pinMode && !isSearching && pinnedTools.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Pin className="w-3 h-3" /> Pinned
           </p>
           <div className="grid grid-cols-4 gap-2">
             {pinnedTools.map(tool => (
-              <ToolButton key={tool.id} tool={tool} onNavigate={handleNavigate} isPinned onTogglePin={togglePin} compact />
+              <button
+                key={tool.id}
+                onClick={() => handleNavigate(tool.id)}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
+                  'border-2 border-primary-500/40 active:scale-95 transition-all select-none',
+                  tool.color
+                )}
+                style={{ touchAction: 'manipulation' }}
+              >
+                <tool.icon className="w-5 h-5" />
+                <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
+                  {tool.label}
+                </span>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Recently used — horizontal scroll strip */}
-      {!isSearching && recentTools.length > 0 && (
+      {/* Recently used — horizontal scroll strip (normal mode only) */}
+      {!pinMode && !isSearching && recentTools.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Clock className="w-3 h-3" /> Recent
@@ -286,32 +329,32 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         </div>
       )}
 
-      {/* Search results */}
-      {isSearching && searchResults && searchResults.length > 0 && (
+      {/* Search results (normal mode only) */}
+      {!pinMode && isSearching && searchResults && searchResults.length > 0 && (
         <div>
           <p className="text-xs text-grappler-400 mb-2">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</p>
           <div className="grid grid-cols-3 gap-2">
             {searchResults.map(tool => (
-              <ToolButton
+              <ToolCard
                 key={tool.id}
                 tool={tool}
-                onNavigate={handleNavigate}
                 isPinned={pinnedIds.includes(tool.id)}
-                onTogglePin={togglePin}
+                pinMode={false}
+                onTap={handleCardTap}
               />
             ))}
           </div>
         </div>
       )}
 
-      {isSearching && searchResults && searchResults.length === 0 && (
+      {!pinMode && isSearching && searchResults && searchResults.length === 0 && (
         <div className="text-center py-8">
           <p className="text-sm text-grappler-500">No tools matching &ldquo;{search}&rdquo;</p>
         </div>
       )}
 
-      {/* Category grids — all tools visible, no collapse */}
-      {!isSearching && CATEGORIES.map(category => (
+      {/* Category grids */}
+      {(pinMode || !isSearching) && CATEGORIES.map(category => (
         <div key={category.title}>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <category.icon className={cn('w-3.5 h-3.5', category.accent)} />
@@ -320,12 +363,12 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
           </p>
           <div className="grid grid-cols-3 gap-2">
             {category.tools.map(tool => (
-              <ToolButton
+              <ToolCard
                 key={tool.id}
                 tool={tool}
-                onNavigate={handleNavigate}
                 isPinned={pinnedIds.includes(tool.id)}
-                onTogglePin={togglePin}
+                pinMode={pinMode}
+                onTap={handleCardTap}
               />
             ))}
           </div>
@@ -335,79 +378,69 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   );
 }
 
-function ToolButton({ tool, onNavigate, isPinned, onTogglePin, compact }: {
+/**
+ * ToolCard — a SINGLE <button> element. No overlapping elements. No absolute positioning.
+ * No stopPropagation. No event delegation. Just one button, one tap, one action.
+ *
+ * In pin mode: shows checkmark if pinned, tap toggles pin state.
+ * In normal mode: tap navigates to the tool.
+ */
+function ToolCard({ tool, isPinned, pinMode, onTap }: {
   tool: Tool;
-  onNavigate: (id: NonNullable<OverlayView>) => void;
   isPinned: boolean;
-  onTogglePin: (id: string) => void;
-  compact?: boolean;
+  pinMode: boolean;
+  onTap: (id: NonNullable<OverlayView>) => void;
 }) {
-  // Compact mode for pinned row — icon + label + unpin X
-  if (compact) {
-    return (
-      <div
-        className={cn(
-          'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b cursor-pointer',
-          'border-2 border-primary-500/40 active:scale-95 transition-all select-none',
-          tool.color
-        )}
-        onClick={() => onNavigate(tool.id)}
-      >
-        <tool.icon className="w-5 h-5" />
-        <span className="text-[11px] font-medium text-grappler-200 text-center leading-tight line-clamp-1">
-          {tool.label}
-        </span>
-        {/* Unpin X — CHILD of the card, stopPropagation prevents navigate */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
-          className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-red-500/80 border-2 border-grappler-900 flex items-center justify-center active:scale-90 transition-transform shadow-lg"
-          style={{ touchAction: 'manipulation' }}
-        >
-          <X className="w-3 h-3 text-white" />
-        </button>
-      </div>
-    );
-  }
-
-  // Full card — pin button is INSIDE the card div, not a sibling
   return (
-    <div
+    <button
+      onClick={() => onTap(tool.id)}
       className={cn(
-        'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem] cursor-pointer',
+        'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
         'active:scale-95 transition-all select-none',
-        isPinned
-          ? 'border-2 border-primary-500/40'
-          : 'border border-grappler-800/50',
+        // Pin mode visual states
+        pinMode && isPinned && 'border-2 border-primary-500 ring-2 ring-primary-500/30',
+        pinMode && !isPinned && 'border-2 border-dashed border-grappler-600',
+        // Normal mode visual states
+        !pinMode && isPinned && 'border-2 border-primary-500/40',
+        !pinMode && !isPinned && 'border border-grappler-800/50',
         tool.color
       )}
-      onClick={() => onNavigate(tool.id)}
+      style={{ touchAction: 'manipulation' }}
     >
-      {!isPinned && tool.isPro && (
-        <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
+      {/* Pin mode: checkmark badge (purely decorative, not interactive) */}
+      {pinMode && isPinned && (
+        <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center pointer-events-none">
+          <Check className="w-3 h-3 text-white" />
+        </span>
+      )}
+
+      {/* Normal mode: PRO badge (purely decorative, not interactive) */}
+      {!pinMode && !isPinned && tool.isPro && (
+        <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400 pointer-events-none">
           <Crown className="w-2.5 h-2.5" />
           <span className="text-[8px] font-bold leading-none">PRO</span>
         </span>
       )}
-      <tool.icon className="w-5 h-5" />
-      <span className="text-xs font-medium text-grappler-200 text-center leading-snug line-clamp-1">
+
+      {/* Pin mode: show pin icon instead of tool icon */}
+      {pinMode ? (
+        <Pin className={cn('w-5 h-5', isPinned ? 'text-primary-400' : 'text-grappler-500')} />
+      ) : (
+        <tool.icon className="w-5 h-5" />
+      )}
+
+      <span className={cn(
+        'text-xs font-medium text-center leading-snug line-clamp-1',
+        pinMode && !isPinned ? 'text-grappler-400' : 'text-grappler-200'
+      )}>
         {tool.label}
       </span>
-      <span className="text-[11px] text-grappler-400 text-center leading-tight line-clamp-2">
-        {tool.desc}
+      <span className={cn(
+        'text-[11px] text-center leading-tight line-clamp-2',
+        pinMode ? (isPinned ? 'text-primary-400' : 'text-grappler-500') : 'text-grappler-400'
+      )}>
+        {pinMode ? (isPinned ? 'Pinned' : 'Tap to pin') : tool.desc}
       </span>
-      {/* Pin button — CHILD of the card div, stopPropagation prevents navigate */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onTogglePin(tool.id); }}
-        className={cn(
-          'absolute -top-1 -right-1 z-10 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-all shadow-md',
-          isPinned
-            ? 'bg-primary-500 border-2 border-primary-400'
-            : 'bg-grappler-700 border-2 border-grappler-500'
-        )}
-        style={{ touchAction: 'manipulation' }}
-      >
-        <Pin className={cn('w-3.5 h-3.5', isPinned ? 'text-white' : 'text-grappler-200')} />
-      </button>
-    </div>
+    </button>
   );
 }

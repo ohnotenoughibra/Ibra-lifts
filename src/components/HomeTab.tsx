@@ -453,7 +453,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   });
 
   // ─── Pinned tools dock — synced with Explore tab via localStorage ───
-  const DOCK_SLOTS = 6;
+  const DOCK_SLOTS = 4;
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try { return JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]') as string[]; }

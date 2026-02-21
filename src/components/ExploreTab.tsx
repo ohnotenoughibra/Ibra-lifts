@@ -94,7 +94,7 @@ const STORAGE_KEY_PINNED = PINNED_STORAGE_KEY;
 const STORAGE_KEY_USAGE = 'roots-explore-usage';
 const STORAGE_KEY_PIN_HINT = 'roots-explore-pin-hint-shown';
 const MAX_RECENT = 4;
-const MAX_PINNED = 6;
+const MAX_PINNED = 4;
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;

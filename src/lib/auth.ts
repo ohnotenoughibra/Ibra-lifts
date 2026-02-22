@@ -159,8 +159,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               // Exponential backoff: 500ms, then 1500ms
               await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
             }
-            // On final failure, still allow sign-in — user gets provider's profile ID
-            // and DB user will be created on next successful sign-in
+            // On final failure, block sign-in — prevents ghost accounts with orphaned sync data
+            if (attempt >= 2) {
+              console.error(`[auth] OAuth sign-in failed after 3 attempts — blocking sign-in for ${user.email}`);
+              return false;
+            }
           }
         }
       }

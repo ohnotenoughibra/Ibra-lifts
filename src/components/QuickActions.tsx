@@ -21,6 +21,11 @@ import {
   Play,
   Pill,
   ChevronDown,
+  Undo2,
+  Swords,
+  ThermometerSun,
+  Brain,
+  Snowflake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,7 +45,7 @@ interface QuickActionsProps {
   onClose: () => void;
 }
 
-type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'training' | 'mobility' | 'food' | 'supplements' | null;
+type QuickLogType = 'water' | 'weight' | 'sleep' | 'energy' | 'training' | 'mobility' | 'food' | 'supplements' | 'sparring' | 'pain' | 'recovery' | 'mental' | null;
 
 const QUICK_FOODS = [
   { name: 'Protein Shake', cal: 160, p: 30, c: 8, f: 2 },
@@ -70,8 +75,13 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const removeSupplementIntake = useAppStore(s => s.removeSupplementIntake);
   const workoutLogs = useAppStore(s => s.workoutLogs);
   const activeWorkout = useAppStore(s => s.activeWorkout);
+  const injuryLog = useAppStore(s => s.injuryLog);
+  const addInjury = useAppStore(s => s.addInjury);
+  const addMentalCheckIn = useAppStore(s => s.addMentalCheckIn);
+  const latestWhoopData = useAppStore(s => s.latestWhoopData);
 
   const [activeLog, setActiveLog] = useState<QuickLogType>(null);
+  const [undoAction, setUndoAction] = useState<{ label: string; undo: () => void } | null>(null);
   const [waterMl, setWaterMl] = useState(250);
   const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || (user?.weightUnit === 'kg' ? 80 : 175);
   const [weightValue, setWeightValue] = useState(latestWeight);
@@ -100,6 +110,16 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     if (h < 18) return 'snack';
     return 'dinner';
   });
+  // Combat-specific state
+  const [sparringNotes, setSparringNotes] = useState('');
+  const [sparringRounds, setSparringRounds] = useState(5);
+  const [painLevel, setPainLevel] = useState<1 | 2 | 3 | 4 | 5>(2);
+  const [painLocation, setPainLocation] = useState('');
+  const [recoveryType, setRecoveryType] = useState<'ice_bath' | 'sauna' | 'massage' | 'contrast' | 'stretching'>('ice_bath');
+  const [recoveryMinutes, setRecoveryMinutes] = useState(15);
+  const [mentalRating, setMentalRating] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [mentalNotes, setMentalNotes] = useState('');
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [showMore, setShowMore] = useState(false);
@@ -176,32 +196,54 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const flash = useCallback((msg: string) => {
+  const flash = useCallback((msg: string, undoFn?: () => void) => {
     setSuccessMessage(msg);
     setShowSuccess(true);
     setActiveLog(null);
-    setTimeout(() => setShowSuccess(false), 2000);
+    if (undoFn) {
+      setUndoAction({ label: msg, undo: undoFn });
+    } else {
+      setUndoAction(null);
+    }
+    setTimeout(() => { setShowSuccess(false); setUndoAction(null); }, 3000);
   }, []);
+
+  const deleteQuickLog = useAppStore(s => s.deleteQuickLog);
+  const deleteTrainingSession = useAppStore(s => s.deleteTrainingSession);
+  const deleteMeal = useAppStore(s => s.deleteMeal);
+
+  // Helper: get the last item ID from a store array after an add
+  const getLastId = (field: 'quickLogs' | 'trainingSessions' | 'meals'): string | undefined => {
+    const arr = useAppStore.getState()[field] as Array<{ id: string }>;
+    return arr[arr.length - 1]?.id;
+  };
 
   const handleSaveLog = useCallback((type: QuickLogType) => {
     switch (type) {
-      case 'water':
+      case 'water': {
         addQuickLog({ type: 'water', value: waterMl, unit: 'ml', timestamp: new Date() });
-        flash(`+${waterMl}ml water`);
+        const id = getLastId('quickLogs');
+        flash(`+${waterMl}ml water`, id ? () => deleteQuickLog(id) : undefined);
         break;
-      case 'weight':
+      }
+      case 'weight': {
         addBodyWeight(weightValue);
         flash(`${weightValue}${weightUnit} logged`);
         break;
-      case 'sleep':
+      }
+      case 'sleep': {
         addQuickLog({ type: 'sleep', value: sleepHours, unit: 'hours', timestamp: new Date(), notes: `Quality: ${sleepQuality}/5` });
-        flash(`${sleepHours}h sleep (${sleepQuality}/5)`);
+        const id = getLastId('quickLogs');
+        flash(`${sleepHours}h sleep (${sleepQuality}/5)`, id ? () => deleteQuickLog(id) : undefined);
         break;
-      case 'energy':
+      }
+      case 'energy': {
         addQuickLog({ type: 'energy', value: energyLevel, timestamp: new Date() });
-        flash(`Energy: ${energyLevel}/5`);
+        const id = getLastId('quickLogs');
+        flash(`Energy: ${energyLevel}/5`, id ? () => deleteQuickLog(id) : undefined);
         break;
-      case 'training':
+      }
+      case 'training': {
         addTrainingSession({
           date: new Date(),
           category: ACTIVITY_CATEGORY_MAP[activityType] || 'other',
@@ -212,13 +254,17 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           perceivedExertion,
           notes: 'Quick logged',
         });
-        flash(`${trainingMinutes}min ${activityType.replace(/_/g, ' ')}`);
+        const id = getLastId('trainingSessions');
+        flash(`${trainingMinutes}min ${activityType.replace(/_/g, ' ')}`, id ? () => deleteTrainingSession(id) : undefined);
         break;
-      case 'mobility':
+      }
+      case 'mobility': {
         addQuickLog({ type: 'mobility', value: mobilityMinutes, unit: 'min', timestamp: new Date() });
-        flash(`${mobilityMinutes}min mobility`);
+        const id = getLastId('quickLogs');
+        flash(`${mobilityMinutes}min mobility`, id ? () => deleteQuickLog(id) : undefined);
         break;
-      case 'food':
+      }
+      case 'food': {
         if (!foodName.trim() || foodCal <= 0) return;
         addMeal({
           date: new Date(),
@@ -229,14 +275,82 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           carbs: Math.round(foodCarbs),
           fat: Math.round(foodFat),
         });
-        flash(`${foodName.trim()} — ${Math.round(foodCal)} cal`);
+        const id = getLastId('meals');
+        flash(`${foodName.trim()} — ${Math.round(foodCal)} cal`, id ? () => deleteMeal(id) : undefined);
         setFoodName(''); setFoodCal(0); setFoodProtein(0); setFoodCarbs(0); setFoodFat(0);
         break;
+      }
+      case 'sparring': {
+        addTrainingSession({
+          date: new Date(),
+          category: ACTIVITY_CATEGORY_MAP[defaultType] || 'grappling',
+          type: defaultType,
+          duration: sparringRounds * 6, // ~6 min per round
+          plannedIntensity: 'hard_sparring',
+          timing: 'standalone',
+          perceivedExertion: 7,
+          notes: `Sparring: ${sparringRounds} rounds${sparringNotes ? ` — ${sparringNotes}` : ''}`,
+        });
+        const id = getLastId('trainingSessions');
+        flash(`${sparringRounds} rounds sparring`, id ? () => deleteTrainingSession(id) : undefined);
+        setSparringNotes('');
+        break;
+      }
+      case 'pain': {
+        if (!painLocation.trim()) return;
+        const regionMap: Record<string, string> = {
+          'Shoulder': 'left_shoulder', 'Knee': 'left_knee', 'Lower Back': 'lower_back',
+          'Neck': 'neck', 'Elbow': 'left_elbow', 'Wrist': 'left_wrist',
+          'Hip': 'left_hip', 'Ankle': 'left_ankle',
+        };
+        addInjury({
+          bodyRegion: (regionMap[painLocation] || 'lower_back') as never,
+          severity: painLevel,
+          painType: painLevel >= 4 ? 'sharp' : 'dull',
+          date: new Date(),
+          notes: `Quick pain check: ${painLocation} ${painLevel}/5`,
+          resolved: false,
+        });
+        flash(`${painLocation} pain: ${painLevel}/5`);
+        setPainLocation('');
+        break;
+      }
+      case 'recovery': {
+        addQuickLog({
+          type: 'mobility',
+          value: recoveryMinutes,
+          unit: 'min',
+          timestamp: new Date(),
+          notes: `Recovery: ${recoveryType.replace(/_/g, ' ')}`,
+        });
+        const id = getLastId('quickLogs');
+        flash(`${recoveryMinutes}min ${recoveryType.replace(/_/g, ' ')}`, id ? () => deleteQuickLog(id) : undefined);
+        break;
+      }
+      case 'mental': {
+        addMentalCheckIn({
+          date: new Date().toISOString().split('T')[0],
+          timestamp: new Date().toISOString(),
+          context: 'standalone',
+          energy: mentalRating,
+          focus: mentalRating,
+          confidence: mentalRating,
+          composure: mentalRating,
+          selfTalk: mentalRating <= 2 ? 'negative' : mentalRating >= 4 ? 'positive' : 'neutral',
+          triggers: mentalNotes || undefined,
+        });
+        flash(`Mental: ${mentalRating}/5${mentalNotes ? ' — noted' : ''}`);
+        setMentalNotes('');
+        break;
+      }
     }
-  }, [addQuickLog, addBodyWeight, addTrainingSession, addMeal, flash,
+  }, [addQuickLog, addBodyWeight, addTrainingSession, addMeal, addInjury, addMentalCheckIn, flash,
+      deleteQuickLog, deleteTrainingSession, deleteMeal,
       waterMl, weightValue, weightUnit, sleepHours, sleepQuality, energyLevel,
       trainingMinutes, activityType, trainingIntensity, sessionTiming, perceivedExertion,
-      mobilityMinutes, foodName, foodCal, foodProtein, foodCarbs, foodFat, foodMealType]);
+      mobilityMinutes, foodName, foodCal, foodProtein, foodCarbs, foodFat, foodMealType,
+      sparringRounds, sparringNotes, defaultType, painLevel, painLocation,
+      recoveryType, recoveryMinutes, mentalRating, mentalNotes]);
 
   const handleLogSupplement = useCallback((suppId: string, name: string, macros: { calories: number; protein: number; carbs: number; fat: number } | null, servings: number) => {
     logSupplementIntake({
@@ -330,6 +444,46 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
         ? `${todayLogs.filter(l => l.type === 'mobility').reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0)}min`
         : null,
       done: todayLogs.filter(l => l.type === 'mobility').length > 0,
+    },
+  ];
+
+  // Combat-specific actions
+  const combatActions = [
+    {
+      id: 'sparring' as QuickLogType,
+      icon: Swords,
+      label: 'Sparring',
+      color: 'text-red-400',
+      bg: 'bg-red-500/15',
+      stat: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0 ? 'Logged' : null,
+      done: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0,
+    },
+    {
+      id: 'pain' as QuickLogType,
+      icon: ThermometerSun,
+      label: 'Pain Check',
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/15',
+      stat: null,
+      done: false,
+    },
+    {
+      id: 'recovery' as QuickLogType,
+      icon: Snowflake,
+      label: 'Recovery',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/15',
+      stat: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0 ? 'Logged' : null,
+      done: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0,
+    },
+    {
+      id: 'mental' as QuickLogType,
+      icon: Brain,
+      label: 'Mental',
+      color: 'text-violet-400',
+      bg: 'bg-violet-500/15',
+      stat: null,
+      done: false,
     },
   ];
 
@@ -600,6 +754,101 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           </div>
         );
 
+      case 'sparring':
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={() => setSparringRounds(Math.max(1, sparringRounds - 1))} className="w-9 h-9 rounded-lg bg-grappler-800 flex items-center justify-center">
+                <Minus className="w-4 h-4 text-grappler-300" />
+              </button>
+              <div className="text-3xl font-bold text-grappler-50 w-20 text-center tabular-nums">{sparringRounds}<span className="text-sm text-grappler-400 ml-0.5">rds</span></div>
+              <button onClick={() => setSparringRounds(sparringRounds + 1)} className="w-9 h-9 rounded-lg bg-grappler-800 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-grappler-300" />
+              </button>
+            </div>
+            <div className="flex gap-1.5 justify-center">
+              {[3, 5, 6, 8, 10].map(r => (
+                <button key={r} onClick={() => setSparringRounds(r)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", sparringRounds === r ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/30" : "bg-grappler-800 text-grappler-400")}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <input type="text" value={sparringNotes} onChange={e => setSparringNotes(e.target.value)} placeholder="Notes (partner, focus, etc.)" className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 border border-grappler-700 focus:border-primary-500 outline-none" />
+          </div>
+        );
+
+      case 'pain':
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-grappler-400 text-center">How bad is it?</p>
+            <div className="flex gap-2 justify-center">
+              {([1, 2, 3, 4, 5] as const).map(level => (
+                <button key={level} onClick={() => setPainLevel(level)} className={cn("w-12 h-12 rounded-xl flex flex-col items-center justify-center transition-all", painLevel === level ? "bg-amber-500/25 ring-2 ring-amber-400/50" : "bg-grappler-800")}>
+                  <span className={cn("text-lg", level <= 2 ? "text-green-400" : level <= 3 ? "text-yellow-400" : "text-red-400")}>{level}</span>
+                </button>
+              ))}
+            </div>
+            <input type="text" value={painLocation} onChange={e => setPainLocation(e.target.value)} placeholder="Body part (e.g. left knee, shoulder)" className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 border border-grappler-700 focus:border-primary-500 outline-none" />
+            <div className="flex gap-1.5 justify-center flex-wrap">
+              {['Shoulder', 'Knee', 'Lower Back', 'Neck', 'Elbow', 'Wrist', 'Hip', 'Ankle'].map(part => (
+                <button key={part} onClick={() => setPainLocation(part)} className={cn("px-2.5 py-1 rounded-lg text-xs transition-all", painLocation === part ? "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30" : "bg-grappler-800/60 text-grappler-400")}>
+                  {part}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'recovery':
+        return (
+          <div className="space-y-3">
+            <div className="flex gap-1.5 justify-center flex-wrap">
+              {([
+                { v: 'ice_bath' as const, l: 'Ice Bath' },
+                { v: 'sauna' as const, l: 'Sauna' },
+                { v: 'massage' as const, l: 'Massage' },
+                { v: 'contrast' as const, l: 'Contrast' },
+                { v: 'stretching' as const, l: 'Stretch' },
+              ]).map(({ v, l }) => (
+                <button key={v} onClick={() => setRecoveryType(v)} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", recoveryType === v ? "bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-500/30" : "bg-grappler-800 text-grappler-400")}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={() => setRecoveryMinutes(Math.max(5, recoveryMinutes - 5))} className="w-9 h-9 rounded-lg bg-grappler-800 flex items-center justify-center">
+                <Minus className="w-4 h-4 text-grappler-300" />
+              </button>
+              <div className="text-3xl font-bold text-grappler-50 w-20 text-center tabular-nums">{recoveryMinutes}<span className="text-sm text-grappler-400 ml-0.5">min</span></div>
+              <button onClick={() => setRecoveryMinutes(recoveryMinutes + 5)} className="w-9 h-9 rounded-lg bg-grappler-800 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-grappler-300" />
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'mental':
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-grappler-400 text-center">How&apos;s your head at?</p>
+            <div className="flex gap-2 justify-center">
+              {([
+                { v: 1 as const, l: 'Low' },
+                { v: 2 as const, l: 'Shaky' },
+                { v: 3 as const, l: 'Neutral' },
+                { v: 4 as const, l: 'Focused' },
+                { v: 5 as const, l: 'Locked In' },
+              ]).map(({ v, l }) => (
+                <button key={v} onClick={() => setMentalRating(v)} className={cn("px-2.5 py-2.5 rounded-xl flex flex-col items-center justify-center transition-all", mentalRating === v ? "bg-violet-500/25 ring-2 ring-violet-400/50" : "bg-grappler-800")}>
+                  <Brain className={cn("w-4 h-4 mb-0.5", v <= mentalRating ? "text-violet-400" : "text-grappler-600")} />
+                  <span className="text-xs text-grappler-400">{l}</span>
+                </button>
+              ))}
+            </div>
+            <input type="text" value={mentalNotes} onChange={e => setMentalNotes(e.target.value)} placeholder="Notes (optional)" className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 border border-grappler-700 focus:border-primary-500 outline-none" />
+          </div>
+        );
+
       default:
         return null;
     }
@@ -629,6 +878,14 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           >
             <Check className="w-4 h-4" />
             <span className="text-sm font-medium">{successMessage}</span>
+            {undoAction && (
+              <button
+                onClick={() => { undoAction.undo(); setShowSuccess(false); setUndoAction(null); }}
+                className="ml-2 px-2 py-0.5 rounded bg-green-500/20 text-green-300 text-xs font-medium hover:bg-green-500/30 transition-colors flex items-center gap-1"
+              >
+                <Undo2 className="w-3 h-3" /> Undo
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -664,6 +921,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           const hour = new Date().getHours();
           let prompt: { text: string; action: QuickLogType; color: string } | null = null;
           if (hour < 12 && !todayWeight) prompt = { text: 'Log fasted weight', action: 'weight', color: 'text-purple-400' };
+          else if (latestWhoopData && typeof latestWhoopData.recoveryScore === 'number' && latestWhoopData.recoveryScore < 33) prompt = { text: 'Recovery is low — try mobility or rest', action: 'recovery', color: 'text-cyan-400' };
           else if (todayTraining.length > 0 && todayCals < 500) prompt = { text: 'You trained — fuel up!', action: 'food', color: 'text-orange-400' };
           else if (todayWater < 1500 && hour >= 14) prompt = { text: 'Water intake is low', action: 'water', color: 'text-blue-400' };
           else if (hour >= 20 && !hasSleep) prompt = { text: 'Log last night\'s sleep', action: 'sleep', color: 'text-indigo-400' };
@@ -678,9 +936,9 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           );
         })()}
 
-        {/* ─── Primary tiles — 4 across ─── */}
+        {/* ─── Primary tiles — responsive grid ─── */}
         {!activeLog && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {primaryActions.map((a, i) => (
               <motion.button
                 key={a.id}
@@ -724,7 +982,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {secondaryActions.map((a, i) => (
                       <motion.button
                         key={a.id}
@@ -750,6 +1008,40 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* ─── Combat Actions ─── */}
+            {showMore && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                className="mt-2"
+              >
+                <p className="text-xs text-grappler-500 uppercase tracking-wide font-medium mb-1.5 px-1">Fighter Tools</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {combatActions.map((a, i) => (
+                    <motion.button
+                      key={a.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      onClick={() => setActiveLog(a.id)}
+                      whileTap={{ scale: 0.95 }}
+                      className={cn(
+                        'relative p-2.5 rounded-xl border text-center transition-all',
+                        a.done ? 'bg-grappler-800/50 border-grappler-600/40' : 'bg-grappler-900/40 border-grappler-700/30'
+                      )}
+                    >
+                      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5', a.bg)}>
+                        <a.icon className={cn('w-4 h-4', a.color)} />
+                      </div>
+                      <p className="text-xs font-medium text-grappler-200">{a.label}</p>
+                      {a.stat && <p className={cn('text-xs mt-0.5', a.done ? 'text-green-400/80' : 'text-grappler-400')}>{a.stat}</p>}
+                      {a.done && <Check className="w-3 h-3 text-green-400 absolute top-1.5 right-1.5" />}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </>
         )}
 
@@ -765,7 +1057,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
               {/* Compact header */}
               <div className="flex items-center gap-2 mb-3">
                 {(() => {
-                  const a = [...primaryActions, ...secondaryActions].find(x => x.id === activeLog);
+                  const a = [...primaryActions, ...secondaryActions, ...combatActions].find(x => x.id === activeLog);
                   if (!a) return null;
                   return (
                     <>

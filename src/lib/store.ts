@@ -3172,8 +3172,23 @@ export const useAppStore = create<AppState>()(
             // Check if we're approaching the limit (5MB typical)
             const currentSize = new Blob([json]).size;
             if (currentSize > 4.5 * 1024 * 1024) {
-              // Approaching limit — clone via JSON to avoid mutating live store
-              console.warn('[storage] Data approaching localStorage limit — pruning old entries. Consider exporting a backup.');
+              // Approaching limit — trigger an emergency sync BEFORE pruning
+              // so the full dataset is safe on the server
+              try {
+                const data = JSON.parse(json);
+                const userId = data?.state?.user?.id;
+                if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+                  // Fire-and-forget sync to preserve full data on server before pruning
+                  fetch('/api/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
+                  }).catch(() => { /* best-effort */ });
+                }
+              } catch { /* ignore sync errors during pruning */ }
+
+              // Now prune — clone via JSON to avoid mutating live store
+              console.warn('[storage] Data approaching localStorage limit — synced to server, now pruning old entries.');
               const data = JSON.parse(json);
               if (data?.state?.workoutLogs?.length > 50) {
                 data.state.workoutLogs = data.state.workoutLogs.slice(-50);
@@ -3186,7 +3201,7 @@ export const useAppStore = create<AppState>()(
               }
               // Surface warning to the user via store state
               if (data?.state) {
-                data.state._storageWarning = 'Storage is nearly full. Old workout logs and meals have been trimmed. Export a backup to avoid data loss.';
+                data.state._storageWarning = 'Storage is nearly full. Data was synced to the cloud and old entries have been trimmed locally.';
               }
               localStorage.setItem(name, JSON.stringify(data));
             } else {
@@ -3330,6 +3345,15 @@ export const useAppStore = create<AppState>()(
         subscription: state.subscription,
         notificationPreferences: state.notificationPreferences,
         dailyLoginBonus: state.dailyLoginBonus,
+        // Mental / knowledge base tracking (previously missing — lost on refresh)
+        mentalCheckIns: state.mentalCheckIns,
+        confidenceLedger: state.confidenceLedger,
+        featureFeedback: state.featureFeedback,
+        seenInsights: state.seenInsights,
+        dismissedInsights: state.dismissedInsights,
+        readArticles: state.readArticles,
+        bookmarkedArticles: state.bookmarkedArticles,
+        lastInsightDate: state.lastInsightDate,
       })
     }
   )

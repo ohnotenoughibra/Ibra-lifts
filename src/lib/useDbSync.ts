@@ -15,12 +15,18 @@ const RESTORE_FIELDS = [
   'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
   'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
   'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
-  'hrSessions', 'trainingSessions', 'themeMode', 'meals', 'macroTargets',
-  'waterLog', 'activeDietPhase', 'weeklyCheckIns', 'bodyComposition',
+  'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
+  'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
   'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
   'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
   'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
   'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
+  // Combat / nutrition / supplements
+  'weightCutPlans', 'combatNutritionProfile', 'fightCampPlans',
+  'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
+  // Mental / knowledge base tracking
+  'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
+  'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
 ];
 
 /**
@@ -370,6 +376,25 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       mealReminders: store.mealReminders,
       dailyLoginBonus: store.dailyLoginBonus,
       lastSyncAt: store.lastSyncAt,
+      // Combat / nutrition / supplements (previously missing from sync)
+      colorTheme: store.colorTheme,
+      dietPhaseHistory: store.dietPhaseHistory,
+      weightCutPlans: store.weightCutPlans,
+      combatNutritionProfile: store.combatNutritionProfile,
+      fightCampPlans: store.fightCampPlans,
+      activeSupplements: store.activeSupplements,
+      supplementStack: store.supplementStack,
+      supplementIntakes: store.supplementIntakes,
+      homeGymEquipment: store.homeGymEquipment,
+      // Mental / knowledge base tracking
+      mentalCheckIns: store.mentalCheckIns,
+      confidenceLedger: store.confidenceLedger,
+      featureFeedback: store.featureFeedback,
+      seenInsights: store.seenInsights,
+      dismissedInsights: store.dismissedInsights,
+      readArticles: store.readArticles,
+      bookmarkedArticles: store.bookmarkedArticles,
+      lastInsightDate: store.lastInsightDate,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
@@ -431,6 +456,25 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.mealReminders,
     store.dailyLoginBonus,
     store.lastSyncAt,
+    // Combat / nutrition / supplements
+    store.colorTheme,
+    store.dietPhaseHistory,
+    store.weightCutPlans,
+    store.combatNutritionProfile,
+    store.fightCampPlans,
+    store.activeSupplements,
+    store.supplementStack,
+    store.supplementIntakes,
+    store.homeGymEquipment,
+    // Mental / knowledge base tracking
+    store.mentalCheckIns,
+    store.confidenceLedger,
+    store.featureFeedback,
+    store.seenInsights,
+    store.dismissedInsights,
+    store.readArticles,
+    store.bookmarkedArticles,
+    store.lastInsightDate,
     deviceType,
   ]);
 

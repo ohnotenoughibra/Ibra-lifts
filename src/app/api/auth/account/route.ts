@@ -15,11 +15,16 @@ export async function DELETE() {
 
     await ensureAuthTables();
 
-    // Delete related tokens first
+    // Delete all user data — full cascade for GDPR compliance
+    // Order: dependent tables first, then auth record last
     await sql`DELETE FROM password_reset_tokens WHERE user_id = ${userId}`;
     await sql`DELETE FROM email_verification_tokens WHERE user_id = ${userId}`;
+    await sql`DELETE FROM user_store_backups WHERE user_id = ${userId}`;
+    await sql`DELETE FROM user_store WHERE user_id = ${userId}`;
+    await sql`DELETE FROM gamification_stats WHERE user_id = ${userId}`;
+    await sql`DELETE FROM subscriptions WHERE user_id = ${userId}`;
 
-    // Delete the user account
+    // Delete the user account last
     const { rowCount } = await sql`DELETE FROM auth_users WHERE id = ${userId}`;
 
     if (rowCount === 0) {

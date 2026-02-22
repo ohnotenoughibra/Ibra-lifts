@@ -1,7 +1,6 @@
 'use client';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Activity } from 'lucide-react';
 import WellnessXPDashboard from './WellnessXPDashboard';
-import DailyWellnessCheckin from './DailyWellnessCheckin';
 
 export default function WellnessXPDashboardOverlay({ onClose }: { onClose: () => void }) {
   return (
@@ -14,17 +13,16 @@ export default function WellnessXPDashboardOverlay({ onClose }: { onClose: () =>
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-100 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              Wellness XP
+              <Activity className="w-5 h-5 text-grappler-300" />
+              Wellness Tracking
             </h1>
-            <p className="text-xs text-grappler-400">Track habits, earn XP, multiply training gains</p>
+            <p className="text-xs text-grappler-400">Supplements, nutrition, sleep, mobility &mdash; your off-mat habits</p>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-4">
-        <DailyWellnessCheckin />
+      <div className="p-4">
         <WellnessXPDashboard />
       </div>
     </div>

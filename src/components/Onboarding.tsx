@@ -22,11 +22,16 @@ import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingD
 import { cn } from '@/lib/utils';
 import { CalendarDays, Check } from 'lucide-react';
 
-const TOTAL_STEPS = 4;
+// ─── 2-Step Onboarding ─────────────────────────────────────────────────────
+// Step 1: About You (identity + goal + stats — one scrollable card)
+// Step 2: Schedule + disclaimer → go
+const TOTAL_STEPS = 2;
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
   const currentStep = onboardingData.step || 1;
+  // Clamp legacy step values (users mid-onboarding on old 4-step flow)
+  const safeStep = Math.min(currentStep, TOTAL_STEPS);
   const setCurrentStep = (step: number) => updateOnboardingData({ step });
 
   // Apply smart defaults for deferred fields on mount
@@ -39,44 +44,42 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
     if (!onboardingData.sessionDurationMinutes) defaults.sessionDurationMinutes = 60;
     if (!onboardingData.mesoCycleWeeks) defaults.mesoCycleWeeks = 5;
     if (!onboardingData.weightUnit) defaults.weightUnit = 'kg';
+    // Clamp legacy step
+    if (currentStep > TOTAL_STEPS) defaults.step = TOTAL_STEPS;
     if (Object.keys(defaults).length > 0) updateOnboardingData(defaults);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const nextStep = () => {
-    if (currentStep < TOTAL_STEPS) {
-      setCurrentStep(currentStep + 1);
+    if (safeStep < TOTAL_STEPS) {
+      setCurrentStep(safeStep + 1);
     } else {
       completeOnboarding(authUserId);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+    if (safeStep > 1) {
+      setCurrentStep(safeStep - 1);
     }
   };
 
   const canProceed = () => {
-    switch (currentStep) {
+    switch (safeStep) {
       case 1:
-        // Identity + combat sport + goal
+        // Identity + goal + name + weight + sex
         if (!onboardingData.trainingIdentity) return false;
         if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
         if (!onboardingData.goalFocus) return false;
-        return true;
-      case 2:
-        // Name + bodyweight + sex
         if (onboardingData.name.length < 2) return false;
         if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
         if (!onboardingData.sex) return false;
         return true;
-      case 3:
-        // Sessions/week + lifting days
-        return (onboardingData.trainingDays?.length || 0) >= onboardingData.sessionsPerWeek;
-      case 4:
-        // Disclaimer acceptance
-        return !!onboardingData.disclaimerAccepted;
+      case 2:
+        // Schedule + disclaimer
+        if ((onboardingData.trainingDays?.length || 0) < onboardingData.sessionsPerWeek) return false;
+        if (!onboardingData.disclaimerAccepted) return false;
+        return true;
       default:
         return true;
     }
@@ -87,14 +90,14 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
       {/* Progress bar */}
       <div className="max-w-lg mx-auto mb-8">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-grappler-400">Step {currentStep} of {TOTAL_STEPS}</p>
-          <p className="text-xs text-grappler-400">{Math.round((currentStep / TOTAL_STEPS) * 100)}%</p>
+          <p className="text-xs text-grappler-400">Step {safeStep} of {TOTAL_STEPS}</p>
+          <p className="text-xs text-grappler-400">{Math.round((safeStep / TOTAL_STEPS) * 100)}%</p>
         </div>
         <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
             initial={{ width: 0 }}
-            animate={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
+            animate={{ width: `${(safeStep / TOTAL_STEPS) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
@@ -104,24 +107,18 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
       <div className="max-w-lg mx-auto">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentStep}
+            key={safeStep}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
             className="card p-6"
           >
-            {currentStep === 1 && (
-              <Step1_Identity data={onboardingData} update={updateOnboardingData} />
+            {safeStep === 1 && (
+              <Step1_AboutYou data={onboardingData} update={updateOnboardingData} />
             )}
-            {currentStep === 2 && (
-              <Step2_QuickStats data={onboardingData} update={updateOnboardingData} />
-            )}
-            {currentStep === 3 && (
-              <Step3_Schedule data={onboardingData} update={updateOnboardingData} />
-            )}
-            {currentStep === 4 && (
-              <Step4_Ready data={onboardingData} update={updateOnboardingData} />
+            {safeStep === 2 && (
+              <Step2_ScheduleAndGo data={onboardingData} update={updateOnboardingData} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -130,10 +127,10 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
         <div className="flex justify-between mt-6">
           <button
             onClick={prevStep}
-            disabled={currentStep === 1}
+            disabled={safeStep === 1}
             className={cn(
               'btn btn-secondary btn-md gap-2',
-              currentStep === 1 && 'opacity-0 pointer-events-none invisible'
+              safeStep === 1 && 'opacity-0 pointer-events-none invisible'
             )}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -144,7 +141,7 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
             disabled={!canProceed()}
             className="btn btn-primary btn-md gap-2"
           >
-            {currentStep === TOTAL_STEPS ? 'Start Training' : 'Continue'}
+            {safeStep === TOTAL_STEPS ? "Let's Go" : 'Continue'}
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -153,8 +150,8 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   );
 }
 
-// ─── Step 1: What Brings You Here? (Identity + Combat Sport + Goal) ─────────
-function Step1_Identity({
+// ─── Step 1: About You (Identity + Goal + Name + Weight + Sex + Experience) ──
+function Step1_AboutYou({
   data,
   update,
 }: {
@@ -217,8 +214,8 @@ function Step1_Identity({
         <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Target className="w-7 h-7 text-white" />
         </div>
-        <h2 className="text-xl font-bold text-grappler-50">What brings you here?</h2>
-        <p className="text-grappler-400 text-sm">Pick your path and goal</p>
+        <h2 className="text-xl font-bold text-grappler-50">About you</h2>
+        <p className="text-grappler-400 text-sm">Your path, goal, and starting point</p>
       </div>
 
       {/* Identity selection */}
@@ -343,131 +340,124 @@ function Step1_Identity({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
 
-// ─── Step 2: Quick Stats (Name + Weight + Sex + Experience) ─────────────────
-function Step2_QuickStats({
-  data,
-  update,
-}: {
-  data: OnboardingData;
-  update: (data: Partial<OnboardingData>) => void;
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Dumbbell className="w-7 h-7 text-white" />
-        </div>
-        <h2 className="text-xl font-bold text-grappler-50">Quick stats</h2>
-        <p className="text-grappler-400 text-sm">Used to calculate your starting weights</p>
-      </div>
-
-      {/* Name */}
-      <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Name</label>
-        <input
-          type="text"
-          value={data.name}
-          onChange={(e) => update({ name: e.target.value })}
-          placeholder="Your name"
-          className="input"
-          autoFocus
-          autoComplete="given-name"
-        />
-      </div>
-
-      {/* Bodyweight */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
-            Body weight
-          </label>
-          <button
-            type="button"
-            onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
-            className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+      {/* ── Quick Stats (inline, no separate step) ── */}
+      <AnimatePresence>
+        {data.trainingIdentity && data.goalFocus && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden space-y-4"
           >
-            {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
-          </button>
-        </div>
-        <input
-          type="number"
-          value={
-            data.bodyWeightKg
-              ? data.weightUnit === 'kg'
-                ? Math.round(data.bodyWeightKg)
-                : Math.round(data.bodyWeightKg * 2.205)
-              : ''
-          }
-          onChange={(e) => {
-            const val = parseFloat(e.target.value) || 0;
-            const kg = data.weightUnit === 'kg' ? val : val / 2.205;
-            update({ bodyWeightKg: kg > 0 ? Math.round(kg * 10) / 10 : undefined });
-          }}
-          placeholder={data.weightUnit === 'kg' ? '75' : '165'}
-          min={1}
-          className="input"
-          inputMode="decimal"
-        />
-      </div>
+            <div className="border-t border-grappler-700/50 pt-4">
+              <p className="text-xs font-medium text-grappler-400 uppercase tracking-wide mb-3">Quick stats</p>
+            </div>
 
-      {/* Sex */}
-      <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Biological sex</label>
-        <div className="grid grid-cols-2 gap-2">
-          {([
-            { value: 'male' as BiologicalSex, label: 'Male' },
-            { value: 'female' as BiologicalSex, label: 'Female' },
-          ]).map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => update({ sex: opt.value })}
-              className={cn(
-                'py-2.5 rounded-lg text-center transition-all border-2',
-                data.sex === opt.value
-                  ? 'bg-primary-500/10 border-primary-500 text-white'
-                  : 'bg-grappler-700 border-grappler-700 text-grappler-400'
-              )}
-            >
-              <p className="text-sm font-medium">{opt.label}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+            {/* Name */}
+            <div>
+              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Name</label>
+              <input
+                type="text"
+                value={data.name}
+                onChange={(e) => update({ name: e.target.value })}
+                placeholder="Your name"
+                className="input"
+                autoComplete="given-name"
+              />
+            </div>
 
-      {/* Experience */}
-      <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Lifting experience</label>
-        <div className="grid grid-cols-3 gap-2">
-          {([
-            { value: 'beginner' as ExperienceLevel, label: 'Beginner', desc: '<1 yr' },
-            { value: 'intermediate' as ExperienceLevel, label: 'Intermediate', desc: '1-3 yr' },
-            { value: 'advanced' as ExperienceLevel, label: 'Advanced', desc: '3+ yr' },
-          ]).map((level) => (
-            <button
-              key={level.value}
-              onClick={() => update({ experienceLevel: level.value })}
-              className={cn(
-                'py-2 rounded-lg text-center transition-all',
-                data.experienceLevel === level.value
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-grappler-700 text-grappler-400'
-              )}
-            >
-              <p className="text-xs font-medium">{level.label}</p>
-              <p className="text-xs opacity-70">{level.desc}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+            {/* Bodyweight */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
+                  Body weight
+                </label>
+                <button
+                  type="button"
+                  onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
+                  className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+                >
+                  {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
+                </button>
+              </div>
+              <input
+                type="number"
+                value={
+                  data.bodyWeightKg
+                    ? data.weightUnit === 'kg'
+                      ? Math.round(data.bodyWeightKg)
+                      : Math.round(data.bodyWeightKg * 2.205)
+                    : ''
+                }
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  const kg = data.weightUnit === 'kg' ? val : val / 2.205;
+                  update({ bodyWeightKg: kg > 0 ? Math.round(kg * 10) / 10 : undefined });
+                }}
+                placeholder={data.weightUnit === 'kg' ? '75' : '165'}
+                min={1}
+                className="input"
+                inputMode="decimal"
+              />
+            </div>
+
+            {/* Sex + Experience — side by side to save vertical space */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Sex</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { value: 'male' as BiologicalSex, label: 'M' },
+                    { value: 'female' as BiologicalSex, label: 'F' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => update({ sex: opt.value })}
+                      className={cn(
+                        'py-2.5 rounded-lg text-center transition-all border-2',
+                        data.sex === opt.value
+                          ? 'bg-primary-500/10 border-primary-500 text-white'
+                          : 'bg-grappler-700 border-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      <p className="text-sm font-medium">{opt.label}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Experience</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {([
+                    { value: 'beginner' as ExperienceLevel, label: '<1y' },
+                    { value: 'intermediate' as ExperienceLevel, label: '1-3y' },
+                    { value: 'advanced' as ExperienceLevel, label: '3y+' },
+                  ]).map((level) => (
+                    <button
+                      key={level.value}
+                      onClick={() => update({ experienceLevel: level.value })}
+                      className={cn(
+                        'py-2.5 rounded-lg text-center transition-all text-xs font-medium',
+                        data.experienceLevel === level.value
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-grappler-700 text-grappler-400'
+                      )}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ─── Step 3: When Do You Train? (Simplified Schedule) ───────────────────────
+// ─── Step 2: Schedule + Disclaimer → Go ──────────────────────────────────────
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function getRecommendedLiftingDays(sessionsPerWeek: number, identity?: TrainingIdentity): number[] {
@@ -508,7 +498,7 @@ function getRecommendedCombatDays(combatSport: CombatSport | undefined): CombatT
   ];
 }
 
-function Step3_Schedule({
+function Step2_ScheduleAndGo({
   data,
   update,
 }: {
@@ -595,7 +585,7 @@ function Step3_Schedule({
         <p className="text-xs text-grappler-400 mt-1.5 text-center">{getSplitLabel()}</p>
       </div>
 
-      {/* Week grid — simplified: tap to toggle lift days */}
+      {/* Week grid */}
       <div>
         <div className="grid grid-cols-7 gap-1">
           {DAY_NAMES.map((name, dayIdx) => {
@@ -655,172 +645,9 @@ function Step3_Schedule({
           Combat sessions are auto-optimized around your lifts. Fine-tune in Settings.
         </p>
       )}
-    </div>
-  );
-}
 
-// ─── Step 4: You're Ready (Summary + Disclaimer) ────────────────────────────
-function Step4_Ready({
-  data,
-  update,
-}: {
-  data: OnboardingData;
-  update: (data: Partial<OnboardingData>) => void;
-}) {
-  const getIdentityLabel = () => {
-    if (data.trainingIdentity === 'combat') {
-      const sportLabels: Record<string, string> = {
-        mma: 'MMA',
-        grappling_gi: 'Gi grappling',
-        grappling_nogi: 'No-Gi grappling',
-        striking: 'Striking',
-      };
-      return sportLabels[data.combatSport || 'mma'] || 'Combat';
-    }
-    if (data.trainingIdentity === 'recreational') return 'Lifting';
-    return 'Fitness';
-  };
-
-  const getGoalLabel = () => {
-    const isCombat = data.trainingIdentity === 'combat';
-    const labels: Record<GoalFocus, string> = {
-      balanced: isCombat ? 'sport performance' : 'balanced training',
-      strength: 'strength',
-      hypertrophy: 'muscle growth',
-      power: isCombat ? 'competition prep' : 'varied training',
-    };
-    return labels[data.goalFocus] || data.goalFocus;
-  };
-
-  const getSplitLabel = () => {
-    if (data.sessionsPerWeek <= 3) return 'Full Body';
-    if (data.sessionsPerWeek === 4) return 'Upper / Lower';
-    return 'Push / Pull / Legs';
-  };
-
-  const getPeriodizationLabel = () => {
-    const style = data.periodizationStyle ?? (data.experienceLevel === 'beginner' ? 'linear' : data.experienceLevel === 'advanced' ? 'block' : 'undulating');
-    if (style === 'linear') return 'Repeating';
-    if (style === 'block') return 'Block';
-    return 'Varied';
-  };
-
-  const weekCount = data.mesoCycleWeeks || 5;
-
-  return (
-    <div className="space-y-6">
-      {/* Hero reveal */}
-      <div className="text-center">
-        <motion.div
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', damping: 10, stiffness: 150, delay: 0.1 }}
-          className="w-20 h-20 bg-gradient-to-br from-primary-500 via-accent-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary-500/30"
-        >
-          <Sparkles className="w-10 h-10 text-white" />
-        </motion.div>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-xs font-bold uppercase tracking-widest text-primary-400 mb-2"
-        >
-          Built for you
-        </motion.p>
-        <motion.h2
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="text-2xl font-black text-grappler-50"
-        >
-          {data.name}&apos;s {getGoalLabel()} program
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="text-grappler-400 text-sm mt-2 max-w-xs mx-auto"
-        >
-          {weekCount}-week {getPeriodizationLabel().toLowerCase()} periodization, {data.sessionsPerWeek}x/week {getSplitLabel()} — tailored for {getIdentityLabel().toLowerCase()}
-        </motion.p>
-      </div>
-
-      {/* Program blueprint card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
-        className="bg-gradient-to-br from-primary-500/10 to-accent-500/5 border border-primary-500/20 rounded-2xl p-4"
-      >
-        <div className="grid grid-cols-3 gap-3 text-center mb-4">
-          <div>
-            <p className="text-2xl font-black text-primary-400">{data.sessionsPerWeek}</p>
-            <p className="text-xs text-grappler-400">Days/Week</p>
-          </div>
-          <div>
-            <p className="text-2xl font-black text-accent-400">{weekCount}</p>
-            <p className="text-xs text-grappler-400">Weeks</p>
-          </div>
-          <div>
-            <p className="text-2xl font-black text-grappler-100">{data.sessionDurationMinutes || 60}m</p>
-            <p className="text-xs text-grappler-400">Per Session</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-            <p className="text-sm font-bold text-grappler-100">{getSplitLabel()}</p>
-            <p className="text-xs text-grappler-400">Split</p>
-          </div>
-          <div className="bg-grappler-800/40 rounded-lg p-2.5 text-center">
-            <p className="text-sm font-bold text-grappler-100">{getPeriodizationLabel()}</p>
-            <p className="text-xs text-grappler-400">Periodization</p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Feature highlights */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-        className="space-y-2"
-      >
-        {[
-          data.trainingIdentity === 'combat'
-            ? `Sport-aware programming — lifts won't wreck your ${getIdentityLabel().toLowerCase()} sessions`
-            : 'Progressive overload built in — volume ramps each week',
-          `${data.experienceLevel === 'beginner' ? 'Beginner-friendly' : data.experienceLevel === 'advanced' ? 'Advanced' : 'Intermediate'} exercise selection`,
-          'Auto-adjusts to your recovery and readiness',
-        ].map((line, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8 + i * 0.1 }}
-            className="flex items-start gap-2.5"
-          >
-            <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Check className="w-3 h-3 text-primary-400" />
-            </div>
-            <p className="text-xs text-grappler-300">{line}</p>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Disclaimer — inline acceptance */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.1 }}
-      >
-        <div className="bg-grappler-800/40 rounded-xl p-3 mb-3">
-          <p className="text-xs text-grappler-400 leading-relaxed">
-            This app provides general fitness programming — not medical advice.
-            Consult a physician before starting any exercise program.
-            You exercise <span className="text-grappler-300">at your own risk</span>.
-          </p>
-        </div>
+      {/* Disclaimer — compact, inline */}
+      <div className="border-t border-grappler-700/50 pt-4">
         <button
           onClick={() => update({ disclaimerAccepted: !data.disclaimerAccepted })}
           className={cn(
@@ -837,16 +664,15 @@ function Step4_Ready({
               : 'border-grappler-600'
           )}>
             {data.disclaimerAccepted && (
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check className="w-4 h-4 text-white" />
             )}
           </div>
-          <span className="text-sm text-grappler-200">
-            I understand and accept — let&apos;s train
-          </span>
+          <div>
+            <span className="text-sm text-grappler-200">I train at my own risk</span>
+            <p className="text-xs text-grappler-500 mt-0.5">Not medical advice — consult a physician first</p>
+          </div>
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 }

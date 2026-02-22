@@ -149,22 +149,26 @@ export async function GET() {
       }));
     } catch { /* table may not exist */ }
 
-    // 3. Gamification stats (legacy table)
+    // 3. Gamification stats (dedicated table — now dual-written)
     let gamificationStats = null;
     try {
       const { rows } = await sql`SELECT * FROM gamification_stats WHERE user_id = ${userId}`;
       if (rows.length > 0) {
         const g = rows[0];
+        // Read badges from badges_json (dual-write column) or fall back to badges
+        const badgesRaw = g.badges_json || g.badges;
+        const badges = typeof badgesRaw === 'string' ? JSON.parse(badgesRaw) : (badgesRaw || []);
         gamificationStats = {
-          totalXP: g.total_xp || 0,
+          totalPoints: g.total_points || 0,
           level: g.level || 1,
           currentStreak: g.current_streak || 0,
           longestStreak: g.longest_streak || 0,
-          badges: typeof g.badges === 'string' ? JSON.parse(g.badges) : (g.badges || []),
+          badges,
           challengesCompleted: g.challenges_completed || 0,
           totalWorkouts: g.total_workouts || 0,
-          totalVolume: g.total_volume || 0,
-          lastWorkoutDate: g.last_workout_date || null,
+          totalVolume: Number(g.total_volume) || 0,
+          personalRecords: g.personal_records || 0,
+          lastActiveDate: g.last_workout_date || null,
         };
       }
     } catch { /* table may not exist */ }

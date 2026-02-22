@@ -173,6 +173,35 @@ export async function POST(request: Request) {
       DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
     `;
 
+    // ── Dual-write gamification to its dedicated table (fire-and-forget) ──
+    // Ensures recovery always has gamification data even if user_store is lost.
+    try {
+      const gam = data.gamificationStats as Record<string, unknown> | undefined;
+      if (gam && (Number(gam.totalPoints) > 0 || Number(gam.totalWorkouts) > 0)) {
+        const badgesJson = JSON.stringify(gam.badges || []);
+        await sql`
+          INSERT INTO gamification_stats (id, user_id, total_points, level, current_streak,
+            longest_streak, total_workouts, total_volume, personal_records, badges_json)
+          VALUES (${userId}, ${userId}, ${Number(gam.totalPoints) || 0}, ${Number(gam.level) || 1},
+            ${Number(gam.currentStreak) || 0}, ${Number(gam.longestStreak) || 0},
+            ${Number(gam.totalWorkouts) || 0}, ${Number(gam.totalVolume) || 0},
+            ${Number(gam.personalRecords) || 0}, ${badgesJson}::jsonb)
+          ON CONFLICT (user_id) DO UPDATE SET
+            total_points = EXCLUDED.total_points,
+            level = EXCLUDED.level,
+            current_streak = EXCLUDED.current_streak,
+            longest_streak = EXCLUDED.longest_streak,
+            total_workouts = EXCLUDED.total_workouts,
+            total_volume = EXCLUDED.total_volume,
+            personal_records = EXCLUDED.personal_records,
+            badges_json = EXCLUDED.badges_json,
+            updated_at = NOW()
+        `;
+      }
+    } catch {
+      // Non-fatal — gamification dual-write is a bonus safety net
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Sync POST error:', error);

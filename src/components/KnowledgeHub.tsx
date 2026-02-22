@@ -21,7 +21,7 @@ import {
 } from '@/lib/knowledge';
 import { ContentCategory, KnowledgeArticle, KnowledgeTip } from '@/lib/types';
 
-export default function KnowledgeHub() {
+export default function KnowledgeHub({ onClose }: { onClose?: () => void }) {
   const [selectedCategory, setSelectedCategory] = useState<ContentCategory | 'all'>('all');
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,9 +46,16 @@ export default function KnowledgeHub() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
-        <p className="text-sm text-grappler-400">Science-backed training wisdom</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
+          <p className="text-sm text-grappler-400">Science-backed training wisdom</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-2 -m-2 text-grappler-400 hover:text-grappler-200">
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Search */}

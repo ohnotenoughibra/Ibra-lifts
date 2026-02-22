@@ -655,16 +655,16 @@ export default function Dashboard({
         </AnimatePresence>
       </main>
 
-      {/* Single-action FAB — Quick Log */}
+      {/* Raised center "+" button — sits on top of nav bar like X/Twitter */}
       <button
         onClick={() => setOverlayView('quick_actions')}
         aria-label="Quick log"
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-14 h-14 rounded-full shadow-xl shadow-primary-500/25 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform"
+        className="fixed bottom-[52px] left-1/2 -translate-x-1/2 z-30 w-14 h-14 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900/95"
       >
         <Plus className="w-6 h-6" />
       </button>
 
-      {/* Bottom Navigation — 5 tabs */}
+      {/* Bottom Navigation — Home, Program, [spacer], Explore, Progress, Profile */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
         role="tablist"
@@ -672,7 +672,8 @@ export default function Dashboard({
         onKeyDown={handleTabKeyDown}
       >
         <div className="flex items-center justify-around py-2">
-          {TABS.map((tab) => (
+          {/* Left tabs: Home, Program */}
+          {TABS.slice(0, 2).map((tab) => (
             <button
               key={tab.id}
               onClick={() => switchTab(tab.id as TabType)}
@@ -682,14 +683,45 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
               )}
             >
               <tab.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
+              <span className="text-[10px] font-medium">{tab.label}</span>
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 w-10 h-0.5 bg-primary-500 rounded-full"
+                />
+              )}
+            </button>
+          ))}
+
+          {/* Center spacer — reserves space for the raised "+" button */}
+          <div className="w-14" />
+
+          {/* Right tabs: Explore, Progress, Profile */}
+          {TABS.slice(2).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => switchTab(tab.id as TabType)}
+              aria-label={tab.label}
+              aria-selected={activeTab === tab.id}
+              role="tab"
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              data-tab-id={tab.id}
+              className={cn(
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                activeTab === tab.id
+                  ? 'text-primary-400'
+                  : 'text-grappler-500 hover:text-grappler-300'
+              )}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"

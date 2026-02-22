@@ -66,6 +66,11 @@ export function resolveConflicts(
   const arrayFields = [
     'workoutLogs', 'meals', 'bodyWeightLog', 'bodyComposition',
     'injuryLog', 'hrSessions', 'trainingSessions', 'customExercises', 'sessionTemplates',
+    'quickLogs', 'gripTests', 'gripExerciseLogs', 'illnessLogs', 'workoutSkips',
+    'cycleLogs', 'weeklyCheckIns', 'competitions', 'supplementIntakes',
+    'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
+    'weightCutPlans', 'fightCampPlans', 'supplementStack', 'activeSupplements',
+    'dietPhaseHistory',
   ];
   for (const field of arrayFields) {
     const localArr = local[field];
@@ -210,15 +215,22 @@ export async function flushSyncQueue(): Promise<void> {
   const queue = loadQueueFromStorage();
   if (queue.length === 0) return;
 
-  // Only sync the latest entry per userId
-  const latestByUser = new Map<string, Record<string, unknown>>();
+  // Merge all queued entries per userId instead of keeping only the last one.
+  // This prevents data loss when multiple changes are queued while offline.
+  const mergedByUser = new Map<string, Record<string, unknown>>();
   for (const item of queue) {
-    latestByUser.set(item.userId, item.data);
+    const existing = mergedByUser.get(item.userId);
+    if (!existing) {
+      mergedByUser.set(item.userId, item.data);
+    } else {
+      // Merge: union arrays, prefer newer scalars
+      mergedByUser.set(item.userId, resolveConflicts(existing, item.data));
+    }
   }
 
   const failedQueue: Array<{ userId: string; data: Record<string, unknown> }> = [];
 
-  for (const [userId, data] of Array.from(latestByUser.entries())) {
+  for (const [userId, data] of Array.from(mergedByUser.entries())) {
     try {
       await fetch('/api/sync', {
         method: 'POST',

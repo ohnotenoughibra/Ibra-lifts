@@ -110,6 +110,7 @@ const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <O
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
+const WellnessXPDashboardOverlay = dynamic(() => import('./WellnessXPDashboardOverlay'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -485,6 +486,7 @@ export default function Dashboard({
       fatigue: <FatigueOverlay onClose={closeOverlay} />,
       fight_camp: <FightCampNutrition onClose={closeOverlay} />,
       badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
+      wellness_xp: <WellnessXPDashboardOverlay onClose={closeOverlay} />,
       auto_throttle: <AutoThrottleInfo onClose={closeOverlay} />,
       corner_coach: <CornerCoachInfo onClose={closeOverlay} />,
       training_load: <TrainingLoadDashboard onClose={closeOverlay} />,

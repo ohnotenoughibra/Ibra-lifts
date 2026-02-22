@@ -116,6 +116,22 @@ export function calculateReadiness(opts: {
   }
   overall = totalWeight > 0 ? Math.round(overall / totalWeight) : 70;
 
+  // ── Critical limiter cap ──────────────────────────────────────────────
+  // First principles: a single red-zone factor should override a "peak" signal.
+  // If you trained 9 sessions this week, it doesn't matter that you slept 9 hours —
+  // the overall score should NOT say "all green, push today."
+  const worstAvailableFactor = factors
+    .filter(f => f.available)
+    .reduce((worst, f) => f.score < worst.score ? f : worst, { score: 100 } as ReadinessFactor);
+
+  if (worstAvailableFactor.score < 40) {
+    // Cap overall at 69 max — prevents "peak" or "good" when a factor is in crisis
+    overall = Math.min(overall, 69);
+  } else if (worstAvailableFactor.score < 50) {
+    // Cap at 79 — prevents "peak" readiness
+    overall = Math.min(overall, 79);
+  }
+
   // Determine level
   const level = scoreToLevel(overall);
 

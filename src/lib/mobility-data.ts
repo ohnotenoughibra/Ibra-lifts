@@ -67,7 +67,7 @@ const MOBILITY_DRILLS: MobilityDrill[] = [
     duration: 20,
     sets: 3,
     bilateral: false,
-    description: 'Lie face down on bench with head off edge. Slowly lift head up against gravity, hold 2s, lower. Add light plate for progression.',
+    description: 'Lie face down on bench with head off edge. Slowly lift head up against gravity, hold 2s, lower. Add light plate for progression (max 5kg/10lb — cervical spine does not tolerate heavy loading safely).',
     combatBenefit: 'Builds neck endurance for defending chokes and maintaining posture in clinch',
     tags: ['neck', 'upper_back'],
   },

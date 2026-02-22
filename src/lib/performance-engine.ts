@@ -176,8 +176,9 @@ function assessSleep(
     const rem = wearable.remSleepMinutes ?? 0;
     const efficiency = wearable.sleepEfficiency ?? 80;
 
-    // Hours score: <5h=15, 5h=30, 6h=50, 7h=75, 8h=95, 9+=100
-    const hoursScore = Math.min(100, Math.max(0, (hours - 4) * 20));
+    // Sigmoid sleep scoring (Walker 2017): last 1-2h of 8h sleep contain disproportionate REM
+    // Inflection at 7h, steep penalty below 6h, diminishing returns above 8h
+    const hoursScore = Math.min(100, Math.max(0, Math.round(100 / (1 + Math.exp(-1.5 * (hours - 6.5))))));
 
     // Deep sleep: <20min=30, 30min=50, 45min=70, 60min=85, 90min+=100
     // Deep sleep is when GH is secreted (Dattilo 2011) — critical for muscle repair
@@ -203,7 +204,7 @@ function assessSleep(
     base.available = true;
     const hours = checkIn.sleepHours;
     const quality = checkIn.sleepQuality; // 1-5
-    const hoursScore = Math.min(100, Math.max(0, (hours - 4) * 20));
+    const hoursScore = Math.min(100, Math.max(0, Math.round(100 / (1 + Math.exp(-1.5 * (hours - 6.5))))));
     const qualityScore = (quality / 5) * 100;
     base.score = Math.round(hoursScore * 0.6 + qualityScore * 0.4);
     base.detail = `${hours}h, quality ${quality}/5`;
@@ -214,7 +215,7 @@ function assessSleep(
     if (sleepLog) {
       base.available = true;
       const hours = Number(sleepLog.value) || 7;
-      base.score = Math.min(100, Math.max(0, (hours - 4) * 20));
+      base.score = Math.min(100, Math.max(0, Math.round(100 / (1 + Math.exp(-1.5 * (hours - 6.5))))));
       base.detail = `${hours}h (quick log)`;
     }
   }
@@ -464,16 +465,27 @@ function assessAge(user: UserProfile | null): ReadinessFactor {
 
   // Fell & Williams 2008: masters athletes (40+) need ~20-40% more recovery time
   // Recovery capacity model: peaks at 18-25, gradual decline after 30
-  if (age < 25) base.score = 95;
-  else if (age < 30) base.score = 90;
-  else if (age < 35) base.score = 85;
-  else if (age < 40) base.score = 78;
-  else if (age < 45) base.score = 70;
-  else if (age < 50) base.score = 62;
-  else if (age < 55) base.score = 55;
-  else base.score = 48;
+  // Base score from chronological age (narrower range: 95→60 instead of 95→48)
+  let ageScore: number;
+  if (age < 25) ageScore = 95;
+  else if (age < 30) ageScore = 92;
+  else if (age < 35) ageScore = 88;
+  else if (age < 40) ageScore = 82;
+  else if (age < 45) ageScore = 75;
+  else if (age < 50) ageScore = 68;
+  else if (age < 55) ageScore = 62;
+  else ageScore = 56;
 
-  base.detail = `Age ${age} — ${age >= 40 ? 'extended recovery needed' : 'normal recovery capacity'}`;
+  // Training experience offsets age penalty — a well-trained 45yo recovers
+  // better than a sedentary 25yo. Intermediate+ training adaptations improve
+  // recovery capacity by 5-15 points (Tanaka & Seals 2008)
+  const experienceBonus =
+    user.experienceLevel === 'advanced' ? 12 :
+    user.experienceLevel === 'intermediate' ? 7 :
+    0; // beginners get no bonus
+
+  base.score = Math.min(95, ageScore + experienceBonus);
+  base.detail = `Age ${age}${experienceBonus > 0 ? ` (+${experienceBonus} training adaptation)` : ''} — ${age >= 40 ? 'extended recovery needed' : 'normal recovery capacity'}`;
 
   return base;
 }

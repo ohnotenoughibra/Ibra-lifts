@@ -224,19 +224,29 @@ export function getContextualNutrition(
       recommendations.push('Focus on whole foods for sustained energy');
       break;
 
-    case 'fight_week':
-      // During fight week — reduced training, weight manipulation active
+    case 'fight_week': {
+      // During fight week — graduated carb taper instead of cliff-edge depletion
+      // Sudden 60% carb cuts cause cognitive impairment and training quality collapse
+      const daysOut = combatContext?.daysToCompetition ?? 3;
       calorieMultiplier = 0.7;
       proteinMultiplier = 1.3; // preserve muscle at all costs
-      carbMultiplier = 0.4;     // glycogen depletion
+      // Graduated taper: day 7 = 0.85x, day 5-6 = 0.70x, day 3-4 = 0.55x, day 1-2 = 0.40x
+      if (daysOut >= 7) carbMultiplier = 0.85;
+      else if (daysOut >= 5) carbMultiplier = 0.70;
+      else if (daysOut >= 3) carbMultiplier = 0.55;
+      else carbMultiplier = 0.40;
       preworkoutTiming = 'Light session only — minimal fuel needed';
       postworkoutTiming = 'Protein shake, minimal carbs unless protocol allows';
-      carbCycleNote = 'Fight week: low carbs for glycogen depletion. Follow weight cut protocol.';
+      carbCycleNote = `Fight week day ${daysOut}: carbs at ${Math.round(carbMultiplier * 100)}% — gradual depletion protects cognition and training quality.`;
       recommendations.push('Follow the weight cut protocol checklist precisely');
       recommendations.push('Prioritize protein to preserve lean mass');
       recommendations.push('Reduce training to light technique only');
       recommendations.push('Monitor: weight, hydration, mood, energy, resting HR');
+      if (daysOut >= 5) {
+        recommendations.push('Carb taper is gradual — aggressive early cuts impair training and mental sharpness');
+      }
       break;
+    }
 
     case 'tournament_day':
       // Multiple matches in one day — sustained fueling is critical

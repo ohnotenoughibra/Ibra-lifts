@@ -17,6 +17,12 @@ export async function POST() {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `;
+
+    // Ensure gamification dual-write column exists
+    try {
+      await sql`ALTER TABLE gamification_stats ADD COLUMN IF NOT EXISTS badges_json JSONB DEFAULT '[]'::jsonb`;
+    } catch { /* table may not exist yet — that's fine, db.ts creates it */ }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('DB init error:', error);

@@ -242,11 +242,12 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ProfileSettings() {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment } = useAppStore(
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
       resetStore: s.resetStore, setUser: s.setUser, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
       colorTheme: s.colorTheme, setColorTheme: s.setColorTheme, homeGymEquipment: s.homeGymEquipment, setHomeGymEquipment: s.setHomeGymEquipment,
+      recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: s.workoutLogs.length,
     }))
   );
   const { data: session } = useSession();
@@ -383,6 +384,29 @@ export default function ProfileSettings() {
           // Apply to store (setState merges — triggers listeners & sync)
           useAppStore.setState(patch);
 
+          // Persist recovered data directly to server (bypass the 3s debounce)
+          // Without this, the page reload kills the pending debounce timer
+          // and the old stale data overwrites the recovery on next pull.
+          const userId = useAppStore.getState().user?.id || session?.user?.id;
+          if (userId) {
+            const fullState = useAppStore.getState();
+            const syncPayload: Record<string, unknown> = {};
+            for (const key of restoreFields) {
+              const val = (fullState as unknown as Record<string, unknown>)[key];
+              if (val !== undefined) syncPayload[key] = val;
+            }
+            syncPayload.isOnboarded = fullState.isOnboarded;
+            try {
+              await fetch('/api/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, data: syncPayload }),
+              });
+            } catch {
+              // Non-fatal — the store is already updated locally
+            }
+          }
+
           setRecoverStats(result.stats);
           setRecoverStatus('restored');
           showToast(`Data restored from ${result.source === 'backup' ? 'backup' : 'database'}! Refreshing...`, 'success');
@@ -402,7 +426,7 @@ export default function ProfileSettings() {
         setTimeout(() => window.location.reload(), 1500);
       } else { setRecoverStatus('nothing'); showToast(result.reason || 'No data to recover', 'error'); }
     } catch { setRecoverStatus('error'); showToast('Restore failed. Try again.', 'error'); }
-  }, [showToast]);
+  }, [showToast, session]);
 
   // ── Account deletion ───────────────────────────────────────────────────────
   const executeDeleteAccount = useCallback(async () => {
@@ -1150,10 +1174,23 @@ export default function ProfileSettings() {
               <p className="text-xs text-grappler-500 mb-2">Scan the database if your data disappeared.</p>
 
               {recoverStatus === 'idle' && (
-                <button onClick={handleScanForData}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-medium ring-1 ring-amber-500/20 hover:bg-amber-500/20 transition-colors">
-                  <RefreshCw className="w-3.5 h-3.5" /> Scan for Lost Data
-                </button>
+                <div className="space-y-2">
+                  <button onClick={handleScanForData}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-medium ring-1 ring-amber-500/20 hover:bg-amber-500/20 transition-colors">
+                    <RefreshCw className="w-3.5 h-3.5" /> Scan for Lost Data
+                  </button>
+                  {workoutLogCount > 0 && gamificationStats.totalWorkouts === 0 && (
+                    <button
+                      onClick={() => {
+                        hapticMedium();
+                        recalculateGamificationStats();
+                        showToast(`Recomputed stats from ${workoutLogCount} workouts!`, 'success');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 text-xs font-medium ring-1 ring-primary-500/20 hover:bg-primary-500/20 transition-colors">
+                      <Sparkles className="w-3.5 h-3.5" /> Recompute Stats from {workoutLogCount} Workouts
+                    </button>
+                  )}
+                </div>
               )}
               {recoverStatus === 'scanning' && (
                 <div className="flex items-center justify-center gap-2 py-2.5 text-amber-300 text-xs">
@@ -1196,7 +1233,22 @@ export default function ProfileSettings() {
                 </div>
               )}
               {recoverStatus === 'nothing' && (
-                <p className="text-xs text-grappler-500 py-1">No recoverable data found.</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-grappler-500 py-1">No backups or database records found.</p>
+                  {workoutLogCount > 0 && gamificationStats.totalWorkouts === 0 && (
+                    <button
+                      onClick={() => {
+                        hapticMedium();
+                        recalculateGamificationStats();
+                        showToast(`Recomputed from ${workoutLogCount} workouts!`, 'success');
+                        setRecoverStatus('restored');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 text-xs font-medium ring-1 ring-primary-500/20"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Recompute from {workoutLogCount} Workouts
+                    </button>
+                  )}
+                </div>
               )}
               {recoverStatus === 'error' && (
                 <div className="space-y-1">

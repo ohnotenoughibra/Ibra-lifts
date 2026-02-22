@@ -107,6 +107,7 @@ const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: ()
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
 const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <OverlaySkeleton /> });
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
+const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
@@ -495,6 +496,7 @@ export default function Dashboard({
       conditioning: <ConditioningSession onClose={closeOverlay} />,
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
+      knowledge_hub: <KnowledgeHub onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
     if (overlayContent) return <div className="overlay-safe">{overlayContent}</div>;

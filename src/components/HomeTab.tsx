@@ -77,6 +77,7 @@ import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
+import InsightCard from './InsightCard';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
@@ -2302,6 +2303,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           </div>
         );
       })()}
+
+      {/* ─── Daily Knowledge Insight — contextual, rotates daily ─── */}
+      <InsightCard
+        todayType={directive.todayType}
+        readinessScore={directive.readinessScore}
+        isDeload={directive.isDeload}
+        hasFightCamp={!!(fightCampPhase && fightCampPhase !== 'off_season')}
+        hasActiveInjury={injuryLog.some(i => !i.resolved)}
+        activeDietPhase={activeDietPhase?.isActive ? activeDietPhase.goal : null}
+        mesocycleWeek={currentMesocycle ? Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1) : null}
+        hasCompletedWorkoutToday={directive.todayPerformance != null}
+        onOpenLibrary={() => onNavigate('knowledge_hub')}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════
           COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed, tools dock

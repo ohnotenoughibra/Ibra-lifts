@@ -33,14 +33,14 @@ import { BlockTimeline, VolumeWave, AICoachInsight } from './MesocycleTimeline';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function WorkoutView() {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory } = useAppStore(
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
       swapProgramExercise: s.swapProgramExercise, user: s.user,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
-      injuryLog: s.injuryLog, wearableHistory: s.wearableHistory,
+      injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
     }))
   );
 
@@ -86,11 +86,22 @@ export default function WorkoutView() {
         user, currentMesocycle, mesocycleHistory,
         workoutLogs, trainingSessions, injuryLog,
         wearableHistory: wearableHistory || [],
-        competitions: [],
+        competitions: (competitions || []).map(c => ({ date: new Date(c.date), type: c.type })),
       });
     } catch { return null; }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMesocycle?.id, workoutLogs.length]);
+
+  // Fight countdown for combat athletes
+  const daysToCompetition = useMemo(() => {
+    if (!competitions || competitions.length === 0) return null;
+    const now = Date.now();
+    const upcoming = competitions
+      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    if (!upcoming) return null;
+    return Math.ceil((new Date(upcoming.date).getTime() - now) / (1000 * 60 * 60 * 24));
+  }, [competitions]);
 
   const [expandedWeek, setExpandedWeek] = useState<number | null>(nextUpSession?.weekIndex ?? 0);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
@@ -429,6 +440,7 @@ export default function WorkoutView() {
           current={currentMesocycle}
           suggestion={blockSuggestion}
           currentProgress={progressStats.percentage}
+          daysToCompetition={daysToCompetition}
           onAcceptSuggestion={() => setShowEmphasisPicker(true)}
         />
       )}

@@ -1153,25 +1153,50 @@ export function calculateWorkingWeight(
 }
 
 // Suggest next session adjustments based on feedback
+// Uses 3-session rolling average for RPE trending instead of single-session snapshot
+// Single-session RPE is noisy; trends over 3 sessions are signal
 export function suggestAdjustments(
   lastSessionRPE: number,
   soreness: number,
-  performanceRating: number
+  performanceRating: number,
+  recentSessionRPEs?: number[], // last 3 sessions' RPEs for trending
 ): { volumeAdjustment: number; intensityAdjustment: number; message: string } {
   let volumeAdjustment = 0;
   let intensityAdjustment = 0;
   let message = '';
 
+  // Use 3-session rolling average if available, fallback to single session
+  const rpeHistory = recentSessionRPEs && recentSessionRPEs.length >= 2
+    ? recentSessionRPEs : [lastSessionRPE];
+  const avgRPE = rpeHistory.reduce((s, r) => s + r, 0) / rpeHistory.length;
+
+  // Detect RPE trend direction (rising = accumulating fatigue)
+  const rpeTrend = rpeHistory.length >= 3
+    ? rpeHistory[rpeHistory.length - 1] - rpeHistory[0] // positive = rising
+    : 0;
+
+  // Chronic high RPE with rising trend = strong deload signal
+  if (avgRPE > 9 && rpeTrend > 0.5 && soreness > 5) {
+    volumeAdjustment = -0.20;
+    intensityAdjustment = -0.15;
+    message = 'RPE trending upward across recent sessions with high soreness. Backing off to prevent overreach.';
+  }
   // High RPE + high soreness = need to back off
-  if (lastSessionRPE > 9 && soreness > 7) {
-    volumeAdjustment = -0.15; // Reduce volume 15%
-    intensityAdjustment = -0.1; // Reduce intensity 10%
+  else if (avgRPE > 9 && soreness > 7) {
+    volumeAdjustment = -0.15;
+    intensityAdjustment = -0.1;
     message = 'Your body needs more recovery. Reducing load this session for optimal adaptation.';
   }
+  // Rising RPE trend even if individual sessions seem fine
+  else if (rpeTrend > 1.0 && avgRPE > 8) {
+    volumeAdjustment = -0.10;
+    intensityAdjustment = -0.05;
+    message = 'RPE creeping up across sessions — slight reduction to stay ahead of fatigue.';
+  }
   // Low RPE + low soreness = can progress
-  else if (lastSessionRPE < 7 && soreness < 4) {
-    volumeAdjustment = 0.05; // Increase volume 5%
-    intensityAdjustment = 0.05; // Increase intensity 5%
+  else if (avgRPE < 7 && soreness < 4) {
+    volumeAdjustment = 0.05;
+    intensityAdjustment = 0.05;
     message = 'Great recovery! Adding a bit more challenge this session.';
   }
   // Poor performance despite good recovery = possible overreach
@@ -1358,13 +1383,16 @@ export function autoregulateSession(
     return { session, message: 'No recent data — using planned prescription.' };
   }
 
-  // Use the most recent 1-2 logs for feedback signals
+  // Use the most recent 3 logs for feedback signals (3-session trending)
   const latest = recentLogs.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  ).slice(0, 2);
+  ).slice(0, 3);
 
   const avgRPE = latest.reduce((s, l) => s + l.overallRPE, 0) / latest.length;
   const avgSoreness = latest.reduce((s, l) => s + l.soreness, 0) / latest.length;
+
+  // Collect per-session RPEs for trend analysis (oldest to newest)
+  const recentSessionRPEs = latest.reverse().map(l => l.overallRPE);
 
   // Map postFeedback performance to a numeric score
   const perfMap: Record<string, number> = {
@@ -1380,7 +1408,7 @@ export function autoregulateSession(
     : 6;
 
   const { volumeAdjustment, intensityAdjustment, message } = suggestAdjustments(
-    avgRPE, avgSoreness, avgPerf
+    avgRPE, avgSoreness, avgPerf, recentSessionRPEs
   );
 
   // No adjustment needed

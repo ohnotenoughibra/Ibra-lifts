@@ -40,10 +40,11 @@ interface BlockTimelineProps {
   current: Mesocycle | null;
   suggestion: BlockSuggestion | null;
   currentProgress: number; // 0-100
+  daysToCompetition?: number | null; // fight countdown for combat athletes
   onAcceptSuggestion?: () => void;
 }
 
-export function BlockTimeline({ history, current, suggestion, currentProgress, onAcceptSuggestion }: BlockTimelineProps) {
+export function BlockTimeline({ history, current, suggestion, currentProgress, daysToCompetition, onAcceptSuggestion }: BlockTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to active block on mount
@@ -65,7 +66,20 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, o
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider">Training Journey</h3>
-        <span className="text-xs text-grappler-500">{history.length} block{history.length !== 1 ? 's' : ''} completed</span>
+        <div className="flex items-center gap-3">
+          {daysToCompetition != null && daysToCompetition > 0 && (
+            <span className={cn(
+              'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
+              daysToCompetition <= 7 ? 'bg-red-500/20 text-red-400' :
+              daysToCompetition <= 21 ? 'bg-amber-500/20 text-amber-400' :
+              'bg-blue-500/20 text-blue-400'
+            )}>
+              {daysToCompetition <= 7 ? `${daysToCompetition}d to fight` :
+               `${Math.ceil(daysToCompetition / 7)}w to fight`}
+            </span>
+          )}
+          <span className="text-xs text-grappler-500">{history.length} block{history.length !== 1 ? 's' : ''} completed</span>
+        </div>
       </div>
 
       <div ref={scrollRef} className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1 px-0.5">
@@ -175,6 +189,18 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, o
 
 // ── Volume Wave Chart ─────────────────────────────────────────────────
 
+// ── Phase Label Helper ────────────────────────────────────────────────
+// Determines training phase name based on position in mesocycle wave
+function getPhaseLabel(weekIndex: number, totalWeeks: number, isDeload: boolean, volume: number, maxVol: number): string {
+  if (isDeload) return 'Deload';
+  // Last non-deload week with high intensity = intensification
+  const ratio = volume / maxVol;
+  const position = weekIndex / (totalWeeks - 1);
+  if (position >= 0.7 && ratio >= 0.9) return 'Peak';
+  if (position >= 0.5) return 'Intensification';
+  return 'Accumulation';
+}
+
 interface VolumeWaveProps {
   weeks: Mesocycle['weeks'];
   currentWeekIndex: number; // -1 if all done
@@ -185,8 +211,8 @@ export function VolumeWave({ weeks, currentWeekIndex, completedSessionIds }: Vol
   if (weeks.length < 2) return null;
 
   const width = 280;
-  const height = 48;
-  const padding = { top: 4, bottom: 14, left: 8, right: 8 };
+  const height = 56; // taller to fit phase labels
+  const padding = { top: 12, bottom: 14, left: 8, right: 8 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 
@@ -219,10 +245,27 @@ export function VolumeWave({ weeks, currentWeekIndex, completedSessionIds }: Vol
   // Area path (fill under line)
   const areaPath = `${linePath} L${points[points.length - 1].x},${padding.top + chartH} L${points[0].x},${padding.top + chartH} Z`;
 
+  // Determine current phase label
+  const currentPhase = currentWeekIndex >= 0
+    ? getPhaseLabel(currentWeekIndex, data.length, data[currentWeekIndex].isDeload, data[currentWeekIndex].volume, maxVol)
+    : 'Complete';
+
+  const phaseColor = currentPhase === 'Deload' ? 'text-green-400' :
+    currentPhase === 'Peak' ? 'text-amber-400' :
+    currentPhase === 'Intensification' ? 'text-red-400' :
+    currentPhase === 'Accumulation' ? 'text-primary-400' : 'text-grappler-400';
+
   return (
     <div className="px-1">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] text-grappler-500 uppercase tracking-wider font-medium">Volume Wave</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-grappler-500 uppercase tracking-wider font-medium">Volume Wave</span>
+          {currentWeekIndex >= 0 && (
+            <span className={cn('text-[10px] font-bold uppercase tracking-wider', phaseColor)}>
+              {currentPhase}
+            </span>
+          )}
+        </div>
         <span className="text-[10px] text-grappler-500">
           {currentWeekIndex >= 0 ? `Week ${currentWeekIndex + 1} of ${weeks.length}` : 'Complete'}
         </span>

@@ -648,18 +648,22 @@ export const useAppStore = create<AppState>()(
       },
 
       completeOnboarding: (authUserId) => {
-        const { onboardingData } = get();
+        const { onboardingData, user: existingUser, gamificationStats: existingGam, baselineLifts: existingBaseline } = get();
+        const isReconfigure = !!(existingUser && existingGam && existingGam.totalWorkouts > 0);
 
-        // Create user profile — use auth user ID if available
+        // Preserve existing user ID on reconfigure, otherwise create new
+        const userId = isReconfigure ? existingUser.id : (authUserId || uuidv4());
+
         const user: UserProfile = {
-          id: authUserId || uuidv4(),
-          email: '', // Will be populated from session
+          ...(isReconfigure ? existingUser : {}),
+          id: userId,
+          email: existingUser?.email || '', // Will be populated from session
           name: onboardingData.name,
           age: onboardingData.age || 25,
           bodyWeightKg: onboardingData.bodyWeightKg,
           heightCm: onboardingData.heightCm,
           sex: onboardingData.sex,
-          disclaimerAcceptedAt: onboardingData.disclaimerAccepted ? new Date() : undefined,
+          disclaimerAcceptedAt: onboardingData.disclaimerAccepted ? new Date() : existingUser?.disclaimerAcceptedAt,
           experienceLevel: onboardingData.experienceLevel,
           equipment: onboardingData.equipment,
           availableEquipment: onboardingData.availableEquipment || DEFAULT_EQUIPMENT_PROFILES[0].equipment,
@@ -672,34 +676,31 @@ export const useAppStore = create<AppState>()(
           combatSports: onboardingData.combatSports,
           trainingDays: onboardingData.trainingDays,
           combatTrainingDays: onboardingData.combatTrainingDays,
-          // Wearable preferences
           wearableUsage: onboardingData.wearableUsage,
           wearableProvider: onboardingData.wearableProvider,
-          createdAt: new Date(),
+          createdAt: existingUser?.createdAt || new Date(),
           updatedAt: new Date()
         };
 
-        // Create baseline lifts — auto-estimate from body weight if not provided
+        // On reconfigure, keep existing baseline lifts if user didn't change them
         const bw = onboardingData.bodyWeightKg || 70;
         const baselineLifts: BaselineLifts = {
-          id: uuidv4(),
+          id: existingBaseline?.id || uuidv4(),
           userId: user.id,
-          squat: onboardingData.baselineLifts.squat || Math.round(bw * 0.5),
-          deadlift: onboardingData.baselineLifts.deadlift || Math.round(bw * 0.6),
-          benchPress: onboardingData.baselineLifts.benchPress || Math.round(bw * 0.4),
-          overheadPress: onboardingData.baselineLifts.overheadPress || Math.round(bw * 0.3),
-          barbellRow: onboardingData.baselineLifts.barbellRow || Math.round(bw * 0.4),
-          pullUp: onboardingData.baselineLifts.pullUp || null,
-          createdAt: new Date(),
+          squat: onboardingData.baselineLifts.squat || existingBaseline?.squat || Math.round(bw * 0.5),
+          deadlift: onboardingData.baselineLifts.deadlift || existingBaseline?.deadlift || Math.round(bw * 0.6),
+          benchPress: onboardingData.baselineLifts.benchPress || existingBaseline?.benchPress || Math.round(bw * 0.4),
+          overheadPress: onboardingData.baselineLifts.overheadPress || existingBaseline?.overheadPress || Math.round(bw * 0.3),
+          barbellRow: onboardingData.baselineLifts.barbellRow || existingBaseline?.barbellRow || Math.round(bw * 0.4),
+          pullUp: onboardingData.baselineLifts.pullUp || existingBaseline?.pullUp || null,
+          createdAt: existingBaseline?.createdAt || new Date(),
           updatedAt: new Date()
         };
 
-        // Initialize gamification
-        const gamificationStats: GamificationStats = {
-          ...initialGamificationStats,
-          id: uuidv4(),
-          userId: user.id
-        };
+        // On reconfigure, preserve existing gamification (XP, badges, streaks, etc.)
+        const gamificationStats: GamificationStats = isReconfigure
+          ? { ...existingGam, userId: user.id }
+          : { ...initialGamificationStats, id: uuidv4(), userId: user.id };
 
         set({
           user,

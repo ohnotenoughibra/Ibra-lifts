@@ -164,13 +164,31 @@ export const badges: Badge[] = [
     points: 1500
   },
   {
+    id: 'streak-120',
+    name: 'Quarter Year',
+    description: 'Maintain a 120-day training streak',
+    icon: '⚔️',
+    category: 'consistency',
+    requirement: 'streak >= 120',
+    points: 2000
+  },
+  {
     id: 'streak-180',
-    name: 'Half Year Hero',
+    name: 'Half Year',
     description: 'Maintain a 180-day training streak',
     icon: '🛡️',
     category: 'consistency',
     requirement: 'streak >= 180',
     points: 3000
+  },
+  {
+    id: 'streak-270',
+    name: 'Three Quarters',
+    description: 'Maintain a 270-day training streak',
+    icon: '🗡️',
+    category: 'consistency',
+    requirement: 'streak >= 270',
+    points: 4000
   },
   {
     id: 'streak-365',
@@ -1235,21 +1253,23 @@ export function getMotivationalMessage(stats: GamificationStats): string {
 
 export function calculateWellnessMultiplier(domainsCompleted: WellnessDomain[]): number {
   const count = domainsCompleted.length;
-  if (count >= 6) return 2.0;   // Beast Mode — all 6+ domains
-  if (count >= 5) return 1.75;
-  if (count >= 4) return 1.5;
-  if (count >= 3) return 1.3;
-  if (count >= 2) return 1.15;
+  // Capped at 1.35x to prevent XP economy inflation (2.0x halved time-to-max-level)
+  // The psychological nudge works at any multiplier > 1.0 — loss aversion doesn't need 2x
+  if (count >= 6) return 1.35;
+  if (count >= 5) return 1.30;
+  if (count >= 4) return 1.25;
+  if (count >= 3) return 1.20;
+  if (count >= 2) return 1.10;
   if (count >= 1) return 1.05;
   return 1.0;
 }
 
 export function getMultiplierLabel(multiplier: number): string {
-  if (multiplier >= 2.0) return 'BEAST MODE';
-  if (multiplier >= 1.75) return 'Locked In';
-  if (multiplier >= 1.5) return 'Dialed In';
-  if (multiplier >= 1.3) return 'Building';
-  if (multiplier >= 1.15) return 'Warming Up';
+  if (multiplier >= 1.35) return 'All Systems Go';
+  if (multiplier >= 1.30) return 'Locked In';
+  if (multiplier >= 1.25) return 'Dialed In';
+  if (multiplier >= 1.20) return 'Building';
+  if (multiplier >= 1.10) return 'Warming Up';
   if (multiplier >= 1.05) return 'Started';
   return 'Dormant';
 }

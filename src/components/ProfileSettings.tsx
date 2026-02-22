@@ -264,6 +264,7 @@ export default function ProfileSettings() {
     workoutLogs?: number; hasProfile?: boolean; mesocycles?: number;
     hasGamification?: boolean; storeEmpty?: boolean; storeUpdatedAt?: string | null;
     hasMesocycle?: boolean; mesocycleHistory?: number; hasBaselineLifts?: boolean; badges?: number;
+    source?: string; backupDate?: string | null;
   } | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void;
@@ -309,24 +310,88 @@ export default function ProfileSettings() {
     setRecoverStatus('scanning');
     setRecoverStats(null);
     try {
-      const res = await fetch('/api/debug/my-data');
+      // Use the backup-aware recovery endpoint — checks user_store_backups first
+      const res = await fetch('/api/sync/recover');
       if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      const logs = data.workout_logs?.total_count || 0;
-      const hasProfile = !!data.profiles;
-      const hasMeso = data.mesocycles?.count > 0;
-      const hasGamification = !!data.gamification_stats;
-      const storeEmpty = !data.user_store || data.user_store.workoutLogsCount === 0;
-      if (logs > 0 || hasProfile || hasMeso || hasGamification) {
-        setRecoverStats({ workoutLogs: logs, hasProfile, mesocycles: data.mesocycles?.count || 0, hasGamification, storeEmpty, storeUpdatedAt: data.user_store?.updated_at || null });
+      const result = await res.json();
+      if (result.recovered && result.data) {
+        setRecoverStats({
+          workoutLogs: result.stats?.workoutLogs || 0,
+          hasProfile: result.stats?.hasProfile || false,
+          mesocycles: result.stats?.mesocycleHistory || 0,
+          hasGamification: result.stats?.hasGamification || false,
+          storeEmpty: true,
+          storeUpdatedAt: null,
+          hasMesocycle: result.stats?.hasMesocycle || false,
+          mesocycleHistory: result.stats?.mesocycleHistory || 0,
+          hasBaselineLifts: result.stats?.hasBaselineLifts || false,
+          badges: result.stats?.badges || 0,
+          source: result.source || 'unknown',
+          backupDate: result.backupDate || null,
+        });
         setRecoverStatus('found');
-      } else { setRecoverStatus('nothing'); }
+      } else {
+        // Fallback: also check legacy tables via debug endpoint
+        const debugRes = await fetch('/api/debug/my-data');
+        if (debugRes.ok) {
+          const data = await debugRes.json();
+          const logs = data.workout_logs?.total_count || 0;
+          const hasProfile = !!data.profiles;
+          const hasMeso = data.mesocycles?.count > 0;
+          const hasGamification = !!data.gamification_stats;
+          if (logs > 0 || hasProfile || hasMeso || hasGamification) {
+            setRecoverStats({ workoutLogs: logs, hasProfile, mesocycles: data.mesocycles?.count || 0, hasGamification, storeEmpty: true, storeUpdatedAt: null });
+            setRecoverStatus('found');
+            return;
+          }
+        }
+        setRecoverStatus('nothing');
+      }
     } catch { setRecoverStatus('error'); }
   }, []);
 
   const handleRestoreData = useCallback(async () => {
     setRecoverStatus('restoring');
     try {
+      // First try backup-aware recovery
+      const recoverRes = await fetch('/api/sync/recover');
+      if (recoverRes.ok) {
+        const result = await recoverRes.json();
+        if (result.recovered && result.data) {
+          // Apply recovered data to the store
+          const store = useAppStore.getState();
+          const data = result.data as Record<string, unknown>;
+          // Merge all recovered fields into the store
+          const restoreFields = [
+            'user', 'isOnboarded', 'onboardingData', 'baselineLifts',
+            'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs',
+            'gamificationStats', 'bodyWeightLog', 'injuryLog', 'customExercises',
+            'sessionTemplates', 'hrSessions', 'trainingSessions', 'themeMode',
+            'meals', 'macroTargets', 'waterLog', 'activeDietPhase', 'weeklyCheckIns',
+            'bodyComposition', 'muscleEmphasis', 'competitions', 'subscription',
+            'quickLogs', 'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
+            'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
+            'mealReminders', 'dailyLoginBonus', 'featureFeedback',
+          ];
+          const patch: Record<string, unknown> = {};
+          for (const key of restoreFields) {
+            if (data[key] !== undefined && data[key] !== null) {
+              patch[key] = data[key];
+            }
+          }
+          if (data.isOnboarded) patch.isOnboarded = true;
+          // Apply to store (setState merges — triggers listeners & sync)
+          useAppStore.setState(patch);
+
+          setRecoverStats(result.stats);
+          setRecoverStatus('restored');
+          showToast(`Data restored from ${result.source === 'backup' ? 'backup' : 'database'}! Refreshing...`, 'success');
+          setTimeout(() => window.location.reload(), 1500);
+          return;
+        }
+      }
+
+      // Fallback to legacy restore
       const res = await fetch('/api/debug/restore', { method: 'POST' });
       if (!res.ok) throw new Error('Restore failed');
       const result = await res.json();
@@ -1098,11 +1163,21 @@ export default function ProfileSettings() {
               {recoverStatus === 'found' && recoverStats && (
                 <div className="space-y-2">
                   <div className="bg-grappler-900/50 rounded-xl p-2.5 space-y-1">
-                    <p className="text-xs font-medium text-green-400">Found:</p>
+                    <p className="text-xs font-medium text-green-400">
+                      Found{recoverStats.source === 'backup' ? ' (from backup)' : ''}:
+                    </p>
                     {recoverStats.hasProfile && <p className="text-xs text-grappler-300">&#10003; Profile</p>}
                     {(recoverStats.workoutLogs ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.workoutLogs} workout logs</p>}
-                    {(recoverStats.mesocycles ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.mesocycles} programs</p>}
-                    {recoverStats.hasGamification && <p className="text-xs text-grappler-300">&#10003; Gamification</p>}
+                    {recoverStats.hasMesocycle && <p className="text-xs text-grappler-300">&#10003; Current program</p>}
+                    {(recoverStats.mesocycleHistory ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.mesocycleHistory} past programs</p>}
+                    {recoverStats.hasGamification && <p className="text-xs text-grappler-300">&#10003; Gamification (XP, level, streaks)</p>}
+                    {(recoverStats.badges ?? 0) > 0 && <p className="text-xs text-grappler-300">&#10003; {recoverStats.badges} badges</p>}
+                    {recoverStats.hasBaselineLifts && <p className="text-xs text-grappler-300">&#10003; Baseline lifts</p>}
+                    {recoverStats.backupDate && (
+                      <p className="text-xs text-grappler-500 mt-1">
+                        Backup from {new Date(recoverStats.backupDate).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <button onClick={handleRestoreData}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-500/10 text-green-400 text-xs font-medium ring-1 ring-green-500/20">

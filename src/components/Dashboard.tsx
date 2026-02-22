@@ -33,6 +33,7 @@ import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSke
 import { hapticLight } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
+import type { ContentCategory } from '@/lib/types';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 // Core tabs — lazy loaded for smaller initial bundle
@@ -239,6 +240,7 @@ export default function Dashboard({
 }: DashboardProps = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
+  const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
   const scrollPositionRef = useRef(0);
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
@@ -248,7 +250,7 @@ export default function Dashboard({
   const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
-  const setOverlayView = (view: OverlayView) => {
+  const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
       const featureKey = OVERLAY_FEATURE_MAP[view];
@@ -269,6 +271,7 @@ export default function Dashboard({
       feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
     }
     setOverlayViewRaw(view);
+    setOverlayContext(view !== null ? context : undefined);
     if (view === null) {
       // Restore scroll position after closing overlay
       requestAnimationFrame(() => {
@@ -495,7 +498,7 @@ export default function Dashboard({
       conditioning: <ConditioningSession onClose={closeOverlay} />,
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
-      knowledge_hub: <KnowledgeHub onClose={closeOverlay} />,
+      knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
@@ -660,7 +663,7 @@ export default function Dashboard({
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}
       >
-        <div className="flex items-center justify-around py-2">
+        <div className="flex items-center justify-evenly py-1 max-w-md mx-auto">
           {/* Left tabs: Home, Program */}
           {TABS.slice(0, 2).map((tab) => (
             <button
@@ -672,7 +675,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -693,9 +696,9 @@ export default function Dashboard({
           <button
             onClick={() => setOverlayView('quick_actions')}
             aria-label="Quick log"
-            className="relative -top-5 w-14 h-14 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
+            className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-5 h-5" />
           </button>
 
           {/* Right tabs: Explore, Progress */}
@@ -709,7 +712,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'

@@ -78,7 +78,6 @@ import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import InsightCard from './InsightCard';
-import DailyWellnessCheckin from './DailyWellnessCheckin';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { getDockSuggestions } from '@/lib/tool-affinity';
 import { hapticMedium } from '@/lib/haptics';
@@ -1443,11 +1442,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           )}
         </AnimatePresence>
       </section>
-
-      {/* ─── DAILY WELLNESS — habits & multiplier ─── */}
-      <CardErrorBoundary>
-        <DailyWellnessCheckin />
-      </CardErrorBoundary>
 
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}
       {criticalAlerts.length > 0 && (

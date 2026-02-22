@@ -1,22 +1,11 @@
 'use client';
 import { useAppStore } from '@/lib/store';
-import { defaultWellnessStats, getWellnessTitle, calculateWellnessMultiplier, getMultiplierLabel, getBadgesByCategory } from '@/lib/gamification';
+import { defaultWellnessStats, getWellnessTitle, getBadgesByCategory } from '@/lib/gamification';
 import { WellnessDomain } from '@/lib/types';
-
-const DOMAIN_CONFIG: Record<WellnessDomain, { icon: string; label: string; color: string }> = {
-  supplements: { icon: '💊', label: 'Supps', color: 'text-purple-400' },
-  nutrition: { icon: '🍱', label: 'Nutrition', color: 'text-green-400' },
-  water: { icon: '💧', label: 'Water', color: 'text-blue-400' },
-  sleep: { icon: '😴', label: 'Sleep', color: 'text-indigo-400' },
-  mobility: { icon: '🤸', label: 'Mobility', color: 'text-amber-400' },
-  mental: { icon: '🧠', label: 'Mental', color: 'text-pink-400' },
-  breathing: { icon: '🌬️', label: 'Breath', color: 'text-cyan-400' },
-};
 
 export default function WellnessXPDashboard() {
   const { gamificationStats } = useAppStore();
   const ws = gamificationStats.wellnessStats || defaultWellnessStats;
-  const wellnessTitle = getWellnessTitle(ws.streaks.overall);
 
   // Get last 7 days of wellness data
   const last7Days = getLast7DaysData(ws.wellnessDays);
@@ -25,173 +14,174 @@ export default function WellnessXPDashboard() {
   const wellnessBadges = getBadgesByCategory('wellness');
   const earnedBadgeIds = new Set(gamificationStats.badges.map(b => b.badgeId));
   const earnedWellnessBadges = wellnessBadges.filter(b => earnedBadgeIds.has(b.id));
-  const nextBadge = wellnessBadges.find(b => !earnedBadgeIds.has(b.id));
 
   // Current streak data
   const streakEntries = [
-    { key: 'overall' as const, icon: '🔥', label: 'Wellness', value: ws.streaks.overall },
-    { key: 'supplements' as const, icon: '💊', label: 'Supps', value: ws.streaks.supplements },
-    { key: 'nutrition' as const, icon: '🍱', label: 'Nutrition', value: ws.streaks.nutrition },
-    { key: 'water' as const, icon: '💧', label: 'Water', value: ws.streaks.water },
-    { key: 'sleep' as const, icon: '😴', label: 'Sleep', value: ws.streaks.sleep },
-    { key: 'mobility' as const, icon: '🤸', label: 'Mobility', value: ws.streaks.mobility },
-    { key: 'mental' as const, icon: '🧠', label: 'Mental', value: ws.streaks.mental },
+    { key: 'overall' as const, label: 'Overall', value: ws.streaks.overall },
+    { key: 'supplements' as const, label: 'Supps', value: ws.streaks.supplements },
+    { key: 'nutrition' as const, label: 'Nutrition', value: ws.streaks.nutrition },
+    { key: 'water' as const, label: 'Water', value: ws.streaks.water },
+    { key: 'sleep' as const, label: 'Sleep', value: ws.streaks.sleep },
+    { key: 'mobility' as const, label: 'Mobility', value: ws.streaks.mobility },
+    { key: 'mental' as const, label: 'Mental', value: ws.streaks.mental },
   ];
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayDomains = ws.todayCompleted[today] || [];
+  const multiplier = todayDomains.length >= 6 ? 2.0
+    : todayDomains.length >= 5 ? 1.75
+    : todayDomains.length >= 4 ? 1.5
+    : todayDomains.length >= 3 ? 1.3
+    : todayDomains.length >= 2 ? 1.15
+    : todayDomains.length >= 1 ? 1.05
+    : 1.0;
 
   return (
     <div className="space-y-4">
-      {/* Wellness Overview Card */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+      {/* Today's status */}
+      <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-100">Wellness Level</h3>
-            <p className="text-xs text-zinc-500">{wellnessTitle}</p>
+            <h3 className="text-sm font-semibold text-grappler-100">Today</h3>
+            <p className="text-xs text-grappler-500">
+              {todayDomains.length > 0
+                ? `${todayDomains.length} habit${todayDomains.length !== 1 ? 's' : ''} tracked`
+                : 'Log supplements, meals, water, etc. to earn XP'}
+            </p>
           </div>
-          <div className="text-right">
-            <div className="text-lg font-black text-amber-400">{ws.totalWellnessXP.toLocaleString()}</div>
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Wellness XP</div>
-          </div>
+          {multiplier > 1.0 && (
+            <div className="text-right">
+              <div className="text-sm font-bold text-grappler-200">{multiplier.toFixed(2)}x</div>
+              <div className="text-[9px] text-grappler-500">training XP</div>
+            </div>
+          )}
         </div>
 
-        {/* 7-Day Heatmap */}
-        <div className="mt-3">
-          <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Last 7 Days</div>
-          <div className="flex gap-1.5">
-            {last7Days.map((day, i) => {
-              const intensity = day.domains.length;
-              return (
-                <div key={i} className="flex-1 text-center">
-                  <div
-                    className={`
-                      h-8 rounded-md flex items-center justify-center text-xs font-bold
-                      ${intensity >= 6
-                        ? 'bg-amber-600/40 text-amber-300 border border-amber-700/50'
-                        : intensity >= 4
-                          ? 'bg-blue-600/30 text-blue-300 border border-blue-700/50'
-                          : intensity >= 2
-                            ? 'bg-zinc-700/50 text-zinc-400 border border-zinc-700/50'
-                            : intensity >= 1
-                              ? 'bg-zinc-800/50 text-zinc-500 border border-zinc-800'
-                              : 'bg-zinc-900 text-zinc-700 border border-zinc-800/50'
-                      }
-                    `}
-                  >
-                    {intensity > 0 ? intensity : '-'}
-                  </div>
-                  <div className="text-[8px] text-zinc-600 mt-1">
-                    {day.dayLabel}
-                  </div>
-                </div>
-              );
-            })}
+        {/* What's been logged today */}
+        {todayDomains.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {todayDomains.map(d => (
+              <span key={d} className="text-[10px] bg-grappler-800 text-grappler-400 px-2 py-0.5 rounded-full capitalize">
+                {d}
+              </span>
+            ))}
           </div>
+        )}
+      </div>
+
+      {/* 7-Day Adherence */}
+      <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
+        <div className="text-[10px] text-grappler-500 uppercase tracking-wider mb-2">Last 7 Days</div>
+        <div className="flex gap-1.5">
+          {last7Days.map((day, i) => {
+            const intensity = day.domains.length;
+            return (
+              <div key={i} className="flex-1 text-center">
+                <div
+                  className={`
+                    h-8 rounded-md flex items-center justify-center text-xs font-medium
+                    ${intensity >= 4
+                      ? 'bg-grappler-700/60 text-grappler-200 border border-grappler-600/40'
+                      : intensity >= 2
+                        ? 'bg-grappler-800/60 text-grappler-400 border border-grappler-700/40'
+                        : intensity >= 1
+                          ? 'bg-grappler-800/30 text-grappler-500 border border-grappler-800/40'
+                          : 'bg-grappler-900/50 text-grappler-700 border border-grappler-800/30'
+                    }
+                  `}
+                >
+                  {intensity > 0 ? intensity : '-'}
+                </div>
+                <div className="text-[8px] text-grappler-600 mt-1">
+                  {day.dayLabel}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Streak Grid */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
-        <h3 className="text-sm font-semibold text-zinc-100 mb-3">Wellness Streaks</h3>
+      {/* Consistency Streaks */}
+      <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
+        <h3 className="text-sm font-semibold text-grappler-100 mb-3">Consistency</h3>
         <div className="grid grid-cols-4 gap-2">
-          {streakEntries.map(({ key, icon, label, value }) => (
+          {streakEntries.map(({ key, label, value }) => (
             <div
               key={key}
               className={`
                 text-center py-2 rounded-lg border
                 ${value > 0
-                  ? key === 'overall'
-                    ? 'bg-amber-900/20 border-amber-800/40'
-                    : 'bg-zinc-800/50 border-zinc-700/50'
-                  : 'bg-zinc-900/50 border-zinc-800/30'
+                  ? 'bg-grappler-800/50 border-grappler-700/50'
+                  : 'bg-grappler-900/50 border-grappler-800/30'
                 }
               `}
             >
-              <div className="text-sm">{icon}</div>
-              <div className={`text-sm font-bold ${value > 0 ? 'text-zinc-200' : 'text-zinc-600'}`}>
+              <div className={`text-sm font-bold ${value > 0 ? 'text-grappler-200' : 'text-grappler-700'}`}>
                 {value}
               </div>
-              <div className="text-[8px] text-zinc-500">{label}</div>
+              <div className="text-[8px] text-grappler-500">{label}</div>
             </div>
           ))}
         </div>
         {ws.streaks.longestOverall > 0 && (
-          <div className="mt-2 text-[10px] text-zinc-600 text-center">
-            Personal best: {ws.streaks.longestOverall} day wellness streak
+          <div className="mt-2 text-[10px] text-grappler-600 text-center">
+            Best: {ws.streaks.longestOverall} days
           </div>
         )}
       </div>
 
-      {/* Wellness Badges */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-zinc-100">Wellness Badges</h3>
-          <span className="text-[10px] text-zinc-500">{earnedWellnessBadges.length}/{wellnessBadges.length}</span>
-        </div>
-
-        {/* Badge grid */}
-        <div className="grid grid-cols-7 gap-2">
-          {wellnessBadges.map((badge) => {
-            const isEarned = earnedBadgeIds.has(badge.id);
-            return (
-              <div
-                key={badge.id}
-                className={`
-                  text-center py-1.5 rounded-lg
-                  ${isEarned
-                    ? 'bg-zinc-800/80'
-                    : 'bg-zinc-900/50 opacity-30'
-                  }
-                `}
-                title={`${badge.name}: ${badge.description}`}
-              >
-                <div className="text-lg">{badge.icon}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Next badge to earn */}
-        {nextBadge && (
-          <div className="mt-3 flex items-center gap-2 bg-zinc-800/30 rounded-lg p-2">
-            <span className="text-lg opacity-50">{nextBadge.icon}</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] text-zinc-400 font-medium truncate">{nextBadge.name}</div>
-              <div className="text-[9px] text-zinc-600 truncate">{nextBadge.description}</div>
-            </div>
-            <div className="text-[10px] text-amber-500 font-bold">+{nextBadge.points}</div>
+      {/* Badges */}
+      {earnedWellnessBadges.length > 0 && (
+        <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-grappler-100">Milestones</h3>
+            <span className="text-[10px] text-grappler-500">{earnedWellnessBadges.length}/{wellnessBadges.length}</span>
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-7 gap-2">
+            {wellnessBadges.map((badge) => {
+              const isEarned = earnedBadgeIds.has(badge.id);
+              return (
+                <div
+                  key={badge.id}
+                  className={`text-center py-1.5 rounded-lg ${isEarned ? 'bg-grappler-800/80' : 'opacity-20'}`}
+                  title={`${badge.name}: ${badge.description}`}
+                >
+                  <div className="text-lg">{badge.icon}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-      {/* How Multiplier Works */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
-        <h3 className="text-sm font-semibold text-zinc-100 mb-2">Training XP Multiplier</h3>
-        <p className="text-[10px] text-zinc-500 mb-3">
-          Complete wellness domains to multiply ALL training XP earned today
+      {/* Multiplier reference */}
+      <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
+        <h3 className="text-sm font-semibold text-grappler-100 mb-1">Training XP Multiplier</h3>
+        <p className="text-[10px] text-grappler-500 mb-3">
+          Log wellness habits throughout the day. Your training XP scales with how many you hit.
         </p>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {[
-            { domains: 1, mult: '1.05x', label: 'Started', color: 'text-zinc-500' },
-            { domains: 2, mult: '1.15x', label: 'Warming Up', color: 'text-zinc-400' },
-            { domains: 3, mult: '1.3x', label: 'Building', color: 'text-blue-400' },
-            { domains: 4, mult: '1.5x', label: 'Dialed In', color: 'text-blue-300' },
-            { domains: 5, mult: '1.75x', label: 'Locked In', color: 'text-cyan-400' },
-            { domains: 6, mult: '2.0x', label: 'BEAST MODE', color: 'text-amber-400' },
-          ].map(({ domains, mult, label, color }) => (
-            <div key={domains} className="flex items-center gap-2">
-              <div className="w-12 text-right">
-                <span className={`text-xs font-bold ${color}`}>{mult}</span>
-              </div>
-              <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            { n: 1, mult: '1.05x' },
+            { n: 2, mult: '1.15x' },
+            { n: 3, mult: '1.3x' },
+            { n: 4, mult: '1.5x' },
+            { n: 5, mult: '1.75x' },
+            { n: 6, mult: '2.0x' },
+          ].map(({ n, mult }) => (
+            <div key={n} className="flex items-center gap-2">
+              <span className={`text-xs w-10 text-right font-medium ${
+                n <= todayDomains.length ? 'text-grappler-200' : 'text-grappler-600'
+              }`}>{mult}</span>
+              <div className="flex-1 h-1 bg-grappler-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${
-                    domains <= (gamificationStats.wellnessStats?.todayCompleted[new Date().toISOString().split('T')[0]]?.length || 0)
-                      ? 'bg-gradient-to-r from-blue-500 to-amber-500'
-                      : 'bg-zinc-700/30'
+                    n <= todayDomains.length ? 'bg-grappler-500' : 'bg-grappler-800/30'
                   }`}
-                  style={{ width: `${(domains / 6) * 100}%` }}
+                  style={{ width: `${(n / 6) * 100}%` }}
                 />
               </div>
-              <span className="text-[9px] text-zinc-600 w-12">{domains} domain{domains !== 1 ? 's' : ''}</span>
+              <span className="text-[9px] text-grappler-600 w-16">{n} habit{n !== 1 ? 's' : ''}</span>
             </div>
           ))}
         </div>

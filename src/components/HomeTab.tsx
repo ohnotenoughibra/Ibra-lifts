@@ -361,7 +361,7 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
   );
 }
 
-export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onNavigate: (view: OverlayView) => void; onViewReport: (mesoId: string) => void; onSwitchTab?: (tab: TabType) => void }) {
+export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onNavigate: (view: OverlayView, context?: string) => void; onViewReport: (mesoId: string) => void; onSwitchTab?: (tab: TabType) => void }) {
   const {
     user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
@@ -2325,7 +2325,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         activeDietPhase={activeDietPhase?.isActive ? activeDietPhase.goal : null}
         mesocycleWeek={currentMesocycle ? Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1) : null}
         hasCompletedWorkoutToday={directive.todayPerformance != null}
-        onOpenLibrary={() => onNavigate('knowledge_hub')}
+        onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════

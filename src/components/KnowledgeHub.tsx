@@ -41,10 +41,11 @@ const CAT_STYLE: Record<string, { gradient: string; accent: string; bg: string }
 
 const fallbackStyle = { gradient: 'from-primary-500/20 to-accent-500/10', accent: 'text-primary-400', bg: 'bg-primary-500/10' };
 
-export default function KnowledgeHub({ onClose }: { onClose?: () => void }) {
+export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: () => void; initialCategory?: ContentCategory }) {
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const categoryRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const { readArticles, bookmarkedArticles, markArticleRead, toggleBookmarkArticle } = useAppStore(
     useShallow(s => ({
@@ -81,6 +82,16 @@ export default function KnowledgeHub({ onClose }: { onClose?: () => void }) {
   }, [searchQuery]);
 
   const featured = useMemo(() => getFeaturedArticle(), []);
+
+  // Scroll to the target category on mount
+  useEffect(() => {
+    if (initialCategory) {
+      requestAnimationFrame(() => {
+        const el = categoryRefs.current.get(initialCategory);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [initialCategory]);
 
   const handleOpenArticle = useCallback((article: KnowledgeArticle) => {
     setSelectedArticle(article);
@@ -204,7 +215,7 @@ export default function KnowledgeHub({ onClose }: { onClose?: () => void }) {
             const style = CAT_STYLE[cat] || fallbackStyle;
             if (!info) return null;
             return (
-              <div key={cat}>
+              <div key={cat} ref={el => { if (el) categoryRefs.current.set(cat, el); }}>
                 {/* Category header */}
                 <div className="flex items-center gap-2 mb-2 px-1">
                   <span className="text-base">{info.icon}</span>

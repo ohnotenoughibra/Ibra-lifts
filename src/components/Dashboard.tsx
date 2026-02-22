@@ -33,6 +33,7 @@ import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSke
 import { hapticLight } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
+import type { ContentCategory } from '@/lib/types';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 // Core tabs — lazy loaded for smaller initial bundle
@@ -239,6 +240,7 @@ export default function Dashboard({
 }: DashboardProps = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
+  const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
   const scrollPositionRef = useRef(0);
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
@@ -248,7 +250,7 @@ export default function Dashboard({
   const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
-  const setOverlayView = (view: OverlayView) => {
+  const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
       const featureKey = OVERLAY_FEATURE_MAP[view];
@@ -269,6 +271,7 @@ export default function Dashboard({
       feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
     }
     setOverlayViewRaw(view);
+    setOverlayContext(view !== null ? context : undefined);
     if (view === null) {
       // Restore scroll position after closing overlay
       requestAnimationFrame(() => {
@@ -495,7 +498,7 @@ export default function Dashboard({
       conditioning: <ConditioningSession onClose={closeOverlay} />,
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
-      knowledge_hub: <KnowledgeHub onClose={closeOverlay} />,
+      knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;

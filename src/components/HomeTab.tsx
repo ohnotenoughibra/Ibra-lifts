@@ -113,7 +113,7 @@ const factorExplainers: Record<string, { icon: string; what: string; action: str
   training_load: {
     icon: '📊',
     what: 'Sessions per week + consecutive training days. Sweet spot is 4-6/week.',
-    action: 'Take a rest day — overtraining kills gains faster than undertraining.',
+    action: '', // Dynamic — set per score in rendering
   },
   hydration: {
     icon: '💧',
@@ -189,6 +189,13 @@ function ReadinessCard() {
         <div className="space-y-1.5">
           {limiters.map(f => {
             const explainer = factorExplainers[f.source];
+            // Dynamic action text based on actual score
+            let actionText = explainer?.action || '';
+            if (f.source === 'training_load') {
+              if (f.score < 30) actionText = 'Take a full rest day — your body needs recovery before more volume.';
+              else if (f.score < 50) actionText = 'Elevated load. Consider a rest day or deload session.';
+              else actionText = 'Training load is creeping up. Plan a lighter day soon.';
+            }
             return (
               <div key={f.source} className="flex items-start gap-2 px-2">
                 <span className="text-sm mt-px">{explainer?.icon || '⚡'}</span>
@@ -200,8 +207,8 @@ function ReadinessCard() {
                       f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
                     )}>{f.score}</span>
                   </div>
-                  {explainer && (
-                    <p className="text-[11px] text-primary-400 leading-snug mt-0.5">{explainer.action}</p>
+                  {actionText && (
+                    <p className="text-[11px] text-primary-400 leading-snug mt-0.5">{actionText}</p>
                   )}
                 </div>
               </div>

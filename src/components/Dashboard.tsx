@@ -663,7 +663,7 @@ export default function Dashboard({
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}
       >
-        <div className="flex items-center justify-evenly py-1 max-w-md mx-auto">
+        <div className="grid grid-cols-5 items-center py-1 px-2 sm:px-4 max-w-lg mx-auto">
           {/* Left tabs: Home, Program */}
           {TABS.slice(0, 2).map((tab) => (
             <button
@@ -675,7 +675,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -693,13 +693,15 @@ export default function Dashboard({
           ))}
 
           {/* Center: raised "+" button anchored in-flow, protruding above */}
-          <button
-            onClick={() => setOverlayView('quick_actions')}
-            aria-label="Quick log"
-            className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="flex justify-center">
+            <button
+              onClick={() => setOverlayView('quick_actions')}
+              aria-label="Quick log"
+              className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Right tabs: Explore, Progress */}
           {TABS.slice(2).map((tab) => (
@@ -712,7 +714,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'

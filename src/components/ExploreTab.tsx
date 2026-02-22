@@ -223,6 +223,32 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       .filter(Boolean) as Tool[];
   }, [featureFeedback]);
 
+  // ─── Unified "For You" strip ───
+  // Merges RECENT + TOP TOOLS, excludes anything already pinned, dedupes.
+  // Each entry carries a reason tag so the UI can show why it's here.
+  const forYouTools = useMemo(() => {
+    const pinSet = new Set(pinnedIds);
+    const seen = new Set<string>();
+    const result: { tool: Tool; reason: 'recent' | 'loved' | 'both' }[] = [];
+
+    // Loved tools (from affinity) — check if also recent
+    const recentSet = new Set(recentIds);
+    for (const tool of topTools) {
+      if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
+      seen.add(tool.id);
+      result.push({ tool, reason: recentSet.has(tool.id) ? 'both' : 'loved' });
+    }
+
+    // Recent tools not already added
+    for (const tool of recentTools) {
+      if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
+      seen.add(tool.id);
+      result.push({ tool, reason: 'recent' });
+    }
+
+    return result.slice(0, 6);
+  }, [pinnedIds, recentIds, recentTools, topTools]);
+
   const pinnedTools = useMemo(() =>
     pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
     [pinnedIds]
@@ -331,14 +357,14 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         </div>
       )}
 
-      {/* Recently used — horizontal scroll strip (normal mode only) */}
-      {!pinMode && !isSearching && recentTools.length > 0 && (
+      {/* For You — unified strip: recent + loved, pinned excluded, zero duplicates */}
+      {!pinMode && !isSearching && forYouTools.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Clock className="w-3 h-3" /> Recent
+            <Zap className="w-3 h-3 text-amber-400" /> For You
           </p>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {recentTools.map(tool => (
+            {forYouTools.map(({ tool, reason }) => (
               <button
                 key={tool.id}
                 onClick={() => handleNavigate(tool.id)}
@@ -350,34 +376,15 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
               >
                 <tool.icon className="w-4 h-4" />
                 <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
-                {usageMap[tool.id] && (
+                {reason === 'recent' && usageMap[tool.id] && (
                   <span className="text-xs text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
                 )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Your Top Tools — tools you've thumbs-upped (normal mode only) */}
-      {!pinMode && !isSearching && topTools.length >= 2 && (
-        <div>
-          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Heart className="w-3 h-3 text-pink-400" /> Your Top Tools
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {topTools.map(tool => (
-              <button
-                key={tool.id}
-                onClick={() => handleNavigate(tool.id)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-b border border-grappler-800/50 whitespace-nowrap flex-shrink-0',
-                  'hover:border-grappler-700 active:scale-95 transition-all',
-                  tool.color
+                {reason === 'loved' && (
+                  <Heart className="w-3 h-3 text-pink-400/60" />
                 )}
-              >
-                <tool.icon className="w-4 h-4" />
-                <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
+                {reason === 'both' && (
+                  <Heart className="w-3 h-3 text-pink-400/60" />
+                )}
               </button>
             ))}
           </div>

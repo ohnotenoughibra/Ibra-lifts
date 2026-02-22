@@ -47,7 +47,7 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
-import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType } from '@/lib/types';
+import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge } from '@/lib/types';
 import type { ColorTheme } from '@/lib/types';
 import { useToast } from './Toast';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
@@ -269,6 +269,7 @@ export default function ProfileSettings() {
     title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void;
   } | null>(null);
   const [showAllBadges, setShowAllBadges] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<{ badge: Badge; earned: boolean; earnedAt?: Date } | null>(null);
   const [editingLift, setEditingLift] = useState<string | null>(null);
   const [liftDraft, setLiftDraft] = useState('');
 
@@ -477,13 +478,17 @@ export default function ProfileSettings() {
               showAllBadges ? 'grid grid-cols-4 sm:grid-cols-5 gap-3' : 'flex gap-3 overflow-x-auto pb-2 scrollbar-hide'
             )}>
               {(showAllBadges ? gamificationStats.badges : gamificationStats.badges.slice(0, 8)).map((ub) => (
-                <div key={ub.id} className={cn('text-center', !showAllBadges && 'flex-shrink-0')}>
+                <button
+                  key={ub.id}
+                  onClick={() => { hapticLight(); setSelectedBadge({ badge: ub.badge, earned: true, earnedAt: ub.earnedAt }); }}
+                  className={cn('text-center active:scale-95 transition-transform', !showAllBadges && 'flex-shrink-0')}
+                >
                   <div className="w-14 h-14 bg-grappler-700/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl ring-1 ring-grappler-600/50">
                     {ub.badge.icon}
                   </div>
                   <p className="text-xs text-grappler-300 truncate max-w-[60px] mx-auto">{ub.badge.name}</p>
                   <p className="text-xs text-primary-400 font-medium">+{ub.badge.points}</p>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
@@ -500,12 +505,16 @@ export default function ProfileSettings() {
               <p className="text-xs text-grappler-500 mb-3">Locked</p>
               <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
                 {badges.filter(b => !earnedBadgeIds.has(b.id)).map((badge) => (
-                  <div key={badge.id} className="text-center opacity-40">
+                  <button
+                    key={badge.id}
+                    onClick={() => { hapticLight(); setSelectedBadge({ badge, earned: false }); }}
+                    className="text-center opacity-40 active:scale-95 active:opacity-60 transition-all"
+                  >
                     <div className="w-14 h-14 bg-grappler-800/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">
                       {badge.icon}
                     </div>
                     <p className="text-xs text-grappler-500 truncate max-w-[60px] mx-auto">{badge.name}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1160,6 +1169,82 @@ export default function ProfileSettings() {
 
       {/* ── CONFIRM DIALOG ──────────────────────────────────────────────── */}
       <AnimatePresence>
+        {/* ── Badge Detail Modal ──────────────────────────────────────── */}
+        {selectedBadge && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
+            onClick={() => setSelectedBadge(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg rounded-t-2xl bg-grappler-900 border-t border-grappler-700/50 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="pt-3 pb-6 px-5">
+                {/* Handle */}
+                <div className="w-8 h-1 rounded-full bg-grappler-600 mx-auto mb-5" />
+
+                {/* Badge icon + name */}
+                <div className="text-center mb-5">
+                  <div className={cn(
+                    'w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-3 text-4xl',
+                    selectedBadge.earned
+                      ? 'bg-grappler-700/60 ring-2 ring-primary-500/40'
+                      : 'bg-grappler-800/60 grayscale opacity-60'
+                  )}>
+                    {selectedBadge.badge.icon}
+                  </div>
+                  <h3 className="text-lg font-bold text-grappler-50">{selectedBadge.badge.name}</h3>
+                  <p className="text-sm text-grappler-400 mt-1">{selectedBadge.badge.description}</p>
+                </div>
+
+                {/* Details grid */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                    <p className="text-lg font-bold text-primary-400">+{selectedBadge.badge.points}</p>
+                    <p className="text-xs text-grappler-500">XP Reward</p>
+                  </div>
+                  <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                    <p className="text-sm font-semibold text-grappler-200 capitalize">{selectedBadge.badge.category}</p>
+                    <p className="text-xs text-grappler-500">Category</p>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className={cn(
+                  'rounded-xl p-3 text-center',
+                  selectedBadge.earned ? 'bg-green-500/10 border border-green-500/20' : 'bg-grappler-800/50 border border-grappler-700/30'
+                )}>
+                  {selectedBadge.earned ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="text-sm text-green-400 font-medium">
+                        Earned {selectedBadge.earnedAt ? new Date(selectedBadge.earnedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-grappler-400">Not yet earned — keep pushing</p>
+                  )}
+                </div>
+
+                {/* Close button */}
+                <button
+                  onClick={() => setSelectedBadge(null)}
+                  className="w-full mt-4 py-3 rounded-xl bg-grappler-800 text-sm font-medium text-grappler-300 active:bg-grappler-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {confirmDialog && (
           <motion.div
             key="confirm-backdrop"

@@ -66,12 +66,14 @@ import {
   MentalCheckIn,
   ConfidenceLedgerEntry,
   FeatureFeedback,
+  WellnessDomain,
+  WellnessStats,
 } from './types';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
-import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak } from './gamification';
+import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
@@ -207,6 +209,7 @@ interface AppState {
     hadPR: boolean;
     newStreak: number;
     newBadges: { id: string; name: string; icon: string; points: number }[];
+    wellnessMultiplier?: number;
   } | null;
 
   // Sync conflict resolution
@@ -293,6 +296,16 @@ interface AppState {
   awardSmartRest: () => { awarded: boolean; points: number };
   ensureWeeklyChallenge: () => void;
   checkAndAwardBadges: () => void;
+
+  // Wellness gamification actions
+  awardWellnessXP: (domain: WellnessDomain, details?: {
+    supplementCount?: number;
+    stackSize?: number;
+    mealsLogged?: number;
+    macrosHit?: boolean;
+  }) => { points: number; breakdown: { reason: string; points: number }[]; newMultiplier: number };
+  getWellnessMultiplier: () => number;
+  getTodayWellnessDomains: () => WellnessDomain[];
 
   // Workout log editing
   updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
@@ -509,6 +522,7 @@ const initialGamificationStats: GamificationStats = {
   lastActiveDate: null,
   smartRestDays: 0,
   lastSmartRestDate: null,
+  wellnessStats: defaultWellnessStats,
 };
 
 export const useAppStore = create<AppState>()(
@@ -929,6 +943,15 @@ export const useAppStore = create<AppState>()(
             autoLoggedToMeals,
             mealEntryId,
           }],
+        });
+
+        // Award wellness XP for supplement logging
+        const today = intake.date;
+        const todayIntakes = get().supplementIntakes.filter(i => i.date === today);
+        const stackSize = get().supplementStack.length;
+        get().awardWellnessXP('supplements', {
+          supplementCount: todayIntakes.length,
+          stackSize,
         });
       },
 
@@ -1853,12 +1876,21 @@ export const useAppStore = create<AppState>()(
           : (gamificationStats.dualTrainingDays || 0);
 
         // Calculate points (with comeback bonus)
-        const { points, breakdown } = calculateWorkoutPoints(
+        const { points: rawPoints, breakdown } = calculateWorkoutPoints(
           workoutLog,
           hadPR,
           newStreak,
           isComeback
         );
+
+        // Apply wellness multiplier to training XP
+        const wellnessMultiplier = get().getWellnessMultiplier();
+        const points = wellnessMultiplier > 1.0
+          ? Math.round(rawPoints * wellnessMultiplier)
+          : rawPoints;
+        if (wellnessMultiplier > 1.0) {
+          breakdown.push({ reason: `Wellness ${wellnessMultiplier.toFixed(1)}x multiplier`, points: points - rawPoints });
+        }
 
         // Update stats
         const newTotalWorkouts = gamificationStats.totalWorkouts + 1;
@@ -2003,6 +2035,7 @@ export const useAppStore = create<AppState>()(
             hadPR,
             newStreak: newStreak,
             newBadges: [], // Will be populated by checkAndAwardBadges
+            wellnessMultiplier: wellnessMultiplier > 1.0 ? wellnessMultiplier : undefined,
           },
           gamificationStats: {
             ...gamificationStats,
@@ -2366,6 +2399,138 @@ export const useAppStore = create<AppState>()(
         }
       },
 
+      // ═══ Wellness Gamification Actions ═══
+
+      awardWellnessXP: (domain, details) => {
+        const { gamificationStats } = get();
+        const today = new Date().toISOString().split('T')[0];
+        const ws = gamificationStats.wellnessStats || defaultWellnessStats;
+        const todayCompleted = { ...ws.todayCompleted };
+        const existingDomains = todayCompleted[today] || [];
+
+        // Skip if this domain was already awarded today
+        if (existingDomains.includes(domain)) {
+          const currentMultiplier = calculateWellnessMultiplier(existingDomains);
+          return { points: 0, breakdown: [], newMultiplier: currentMultiplier };
+        }
+
+        // Calculate XP for this domain
+        const { points, breakdown } = calculateWellnessXP(domain, details);
+
+        // Update today's completed domains
+        const updatedDomains: WellnessDomain[] = [...existingDomains, domain];
+        todayCompleted[today] = updatedDomains;
+
+        // Calculate new multiplier
+        const newMultiplier = calculateWellnessMultiplier(updatedDomains);
+
+        // Full wellness day bonus (4+ domains, award once)
+        let fullDayBonus = 0;
+        if (updatedDomains.length >= 4 && existingDomains.length < 4) {
+          fullDayBonus = pointRewards.fullWellnessDay;
+          breakdown.push({ reason: 'Full wellness day!', points: fullDayBonus });
+        }
+
+        // Wellness streak bonus
+        const streakBonus = Math.min(
+          (ws.streaks.overall || 0) * pointRewards.wellnessStreakBonus,
+          50
+        );
+        if (streakBonus > 0 && updatedDomains.length >= 4 && existingDomains.length < 4) {
+          breakdown.push({ reason: `${ws.streaks.overall} day wellness streak`, points: streakBonus });
+        }
+
+        const totalPoints = points + fullDayBonus + (updatedDomains.length >= 4 && existingDomains.length < 4 ? streakBonus : 0);
+
+        // Update wellness streaks
+        const newStreaks = updateWellnessStreaks(ws.streaks, updatedDomains, ws.lastWellnessDate);
+
+        // Build wellness day record
+        const existingDayIndex = ws.wellnessDays.findIndex(d => d.date === today);
+        const wellnessDay = {
+          date: today,
+          domains: updatedDomains,
+          multiplier: newMultiplier,
+          xpEarned: (existingDayIndex >= 0 ? ws.wellnessDays[existingDayIndex].xpEarned : 0) + totalPoints,
+        };
+        const updatedDays = existingDayIndex >= 0
+          ? ws.wellnessDays.map((d, i) => i === existingDayIndex ? wellnessDay : d)
+          : [...ws.wellnessDays.slice(-90), wellnessDay]; // Keep last 90 days
+
+        const newWellnessStats: WellnessStats = {
+          streaks: newStreaks,
+          totalWellnessXP: ws.totalWellnessXP + totalPoints,
+          wellnessDays: updatedDays,
+          lastWellnessDate: today,
+          currentMultiplier: newMultiplier,
+          todayCompleted,
+        };
+
+        const newTotalPoints = gamificationStats.totalPoints + totalPoints;
+
+        set({
+          gamificationStats: {
+            ...gamificationStats,
+            totalPoints: newTotalPoints,
+            level: calculateLevel(newTotalPoints),
+            wellnessStats: newWellnessStats,
+          },
+        });
+
+        // Check wellness badges
+        const beastModeDays = (ws.wellnessDays || []).filter(d => d.multiplier >= 2.0).length
+          + (newMultiplier >= 2.0 && existingDayIndex < 0 ? 1 : 0);
+
+        const wellnessBadges = checkWellnessBadges(get().gamificationStats, {
+          wellnessDaysCount: updatedDays.filter(d => d.domains.length >= 4).length,
+          wellnessStreak: newStreaks.overall,
+          supplementStreak: newStreaks.supplements,
+          nutritionStreak: newStreaks.nutrition,
+          sleepStreak: newStreaks.sleep,
+          mobilityStreak: newStreaks.mobility,
+          waterStreak: newStreaks.water,
+          mentalStreak: newStreaks.mental,
+          beastModeDays,
+        });
+
+        if (wellnessBadges.length > 0) {
+          const currentStats = get().gamificationStats;
+          const newUserBadges = wellnessBadges.map(badge => ({
+            id: uuidv4(),
+            userId: currentStats.userId,
+            badgeId: badge.id,
+            earnedAt: new Date(),
+            badge,
+          }));
+          const badgePoints = wellnessBadges.reduce((sum, b) => sum + b.points, 0);
+          set({
+            gamificationStats: {
+              ...currentStats,
+              badges: [...currentStats.badges, ...newUserBadges],
+              totalPoints: currentStats.totalPoints + badgePoints,
+              level: calculateLevel(currentStats.totalPoints + badgePoints),
+            },
+          });
+        }
+
+        return { points: totalPoints, breakdown, newMultiplier };
+      },
+
+      getWellnessMultiplier: () => {
+        const { gamificationStats } = get();
+        const ws = gamificationStats.wellnessStats || defaultWellnessStats;
+        const today = new Date().toISOString().split('T')[0];
+        const todayDomains = ws.todayCompleted[today] || [];
+        return calculateWellnessMultiplier(todayDomains);
+      },
+
+      getTodayWellnessDomains: () => {
+        const { gamificationStats } = get();
+        const ws = gamificationStats.wellnessStats || defaultWellnessStats;
+        const today = new Date().toISOString().split('T')[0];
+        return ws.todayCompleted[today] || [];
+      },
+
       // Workout log editing
       updateWorkoutLog: (logId, updates) => {
         const { workoutLogs } = get();
@@ -2465,6 +2630,22 @@ export const useAppStore = create<AppState>()(
               },
             });
           }
+        }
+
+        // Award wellness XP based on quick log type
+        if (log.type === 'water') {
+          // Check if water target hit (8 glasses = 2000ml)
+          const dateStr = new Date(log.timestamp).toISOString().split('T')[0];
+          const totalWater = updatedQuickLogs
+            .filter(l => l.type === 'water' && new Date(l.timestamp).toISOString().split('T')[0] === dateStr)
+            .reduce((sum, l) => sum + (typeof l.value === 'number' ? l.value : 0), 0);
+          if (totalWater >= 2000) { // 2000ml = ~8 glasses
+            get().awardWellnessXP('water');
+          }
+        } else if (log.type === 'sleep') {
+          get().awardWellnessXP('sleep');
+        } else if (log.type === 'mobility') {
+          get().awardWellnessXP('mobility');
         }
       },
 
@@ -2759,8 +2940,34 @@ export const useAppStore = create<AppState>()(
 
       // Nutrition actions
       addMeal: (meal) => {
-        const { meals } = get();
-        set({ meals: [...meals, { ...meal, id: uuidv4() }] });
+        const { meals, macroTargets } = get();
+        const newMeals = [...meals, { ...meal, id: uuidv4() }];
+        set({ meals: newMeals });
+
+        // Award wellness XP for nutrition logging
+        const today = new Date().toISOString().split('T')[0];
+        const todayMeals = newMeals.filter(m => {
+          const mealDate = new Date(m.date).toISOString().split('T')[0];
+          return mealDate === today;
+        });
+        const todayTotals = todayMeals.reduce((acc, m) => ({
+          calories: acc.calories + (m.calories || 0),
+          protein: acc.protein + (m.protein || 0),
+          carbs: acc.carbs + (m.carbs || 0),
+          fat: acc.fat + (m.fat || 0),
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+        // Check if macros are within 10% of targets
+        const macrosHit = macroTargets.protein > 0 &&
+          Math.abs(todayTotals.protein - macroTargets.protein) / macroTargets.protein <= 0.10 &&
+          Math.abs(todayTotals.calories - macroTargets.calories) / macroTargets.calories <= 0.10;
+
+        if (todayMeals.length >= 2) { // Award after 2+ meals to avoid noise
+          get().awardWellnessXP('nutrition', {
+            mealsLogged: todayMeals.length,
+            macrosHit,
+          });
+        }
       },
 
       updateMeal: (id, updates) => {
@@ -3017,6 +3224,8 @@ export const useAppStore = create<AppState>()(
       addMentalCheckIn: (checkIn) => {
         const entry: MentalCheckIn = { ...checkIn, id: crypto.randomUUID() };
         set({ mentalCheckIns: [...get().mentalCheckIns, entry] });
+        // Award wellness XP for mental check-in
+        get().awardWellnessXP('mental');
       },
       deleteMentalCheckIn: (id) => {
         set({ mentalCheckIns: get().mentalCheckIns.filter(c => c.id !== id) });

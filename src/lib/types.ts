@@ -276,7 +276,38 @@ export interface WorkoutLog {
 }
 
 // Gamification Types
-export type BadgeCategory = 'strength' | 'consistency' | 'volume' | 'milestone' | 'special';
+export type BadgeCategory = 'strength' | 'consistency' | 'volume' | 'milestone' | 'special' | 'wellness';
+
+// Wellness tracking types
+export type WellnessDomain = 'supplements' | 'nutrition' | 'water' | 'sleep' | 'mobility' | 'mental' | 'breathing';
+
+export interface WellnessStreaks {
+  supplements: number;    // Consecutive days logging all supplements
+  nutrition: number;      // Consecutive days logging meals + hitting macros
+  water: number;          // Consecutive days hitting water target
+  sleep: number;          // Consecutive days logging sleep
+  mobility: number;       // Consecutive days doing mobility work
+  mental: number;         // Consecutive days doing mental check-in
+  overall: number;        // Consecutive days completing 4+ domains
+  longestOverall: number; // Best overall wellness streak ever
+}
+
+export interface WellnessDay {
+  date: string;           // ISO date
+  domains: WellnessDomain[];  // Which domains were completed
+  multiplier: number;     // The multiplier earned that day
+  xpEarned: number;       // Total wellness XP earned that day
+}
+
+export interface WellnessStats {
+  streaks: WellnessStreaks;
+  totalWellnessXP: number;
+  wellnessDays: WellnessDay[];       // History of daily wellness completions
+  lastWellnessDate: string | null;   // ISO date of last wellness XP award
+  currentMultiplier: number;         // Today's training XP multiplier (1.0 - 2.0)
+  // Per-domain daily tracking to prevent double-awards
+  todayCompleted: Record<string, WellnessDomain[]>; // dateStr -> domains completed
+}
 
 export interface Badge {
   id: string;
@@ -317,6 +348,8 @@ export interface GamificationStats {
   lastActiveDate: string | null;  // ISO date string of last activity
   smartRestDays: number;          // Total smart rest days (rested when readiness low)
   lastSmartRestDate: string | null; // Prevents double-awarding same day
+  // Wellness gamification
+  wellnessStats: WellnessStats;
 }
 
 // Weekly Challenge system

@@ -6,6 +6,7 @@ import {
   Clock, Repeat, ChevronRight, CheckCircle2, Waves,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -171,6 +172,7 @@ function estimateDuration(protocol: BreathingProtocol, cycles: number): number {
 // ---------------------------------------------------------------------------
 
 export default function BreathingProtocols({ onClose }: { onClose: () => void }) {
+  const awardWellnessXP = useAppStore(s => s.awardWellnessXP);
   const [mode, setMode] = useState<Mode>('select');
   const [selectedProtocol, setSelectedProtocol] = useState<BreathingProtocol | null>(null);
   const [cycles, setCycles] = useState(0);
@@ -182,6 +184,18 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
   const [isPaused, setIsPaused] = useState(false);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [totalBreaths, setTotalBreaths] = useState(0);
+
+  // Award wellness XP when breathing session completes
+  const breathingXPAwarded = useRef(false);
+  useEffect(() => {
+    if (mode === 'complete' && !breathingXPAwarded.current) {
+      breathingXPAwarded.current = true;
+      awardWellnessXP('breathing');
+    }
+    if (mode !== 'complete') {
+      breathingXPAwarded.current = false;
+    }
+  }, [mode, awardWellnessXP]);
 
   // Wim Hof specific
   const [whStage, setWhStage] = useState<WimHofStage>('rapid');

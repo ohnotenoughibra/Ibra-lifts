@@ -655,16 +655,7 @@ export default function Dashboard({
         </AnimatePresence>
       </main>
 
-      {/* Raised center "+" button — sits on top of nav bar like X/Twitter */}
-      <button
-        onClick={() => setOverlayView('quick_actions')}
-        aria-label="Quick log"
-        className="fixed bottom-[52px] left-1/2 -translate-x-1/2 z-30 w-14 h-14 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900/95"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
-
-      {/* Bottom Navigation — Home, Program, [spacer], Explore, Progress, Profile */}
+      {/* Bottom Navigation — Home, Program, [+], Explore, Progress, Profile */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
         role="tablist"
@@ -700,8 +691,14 @@ export default function Dashboard({
             </button>
           ))}
 
-          {/* Center spacer — reserves space for the raised "+" button */}
-          <div className="w-14" />
+          {/* Center: raised "+" button anchored in-flow, protruding above */}
+          <button
+            onClick={() => setOverlayView('quick_actions')}
+            aria-label="Quick log"
+            className="relative -top-5 w-14 h-14 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
 
           {/* Right tabs: Explore, Progress, Profile */}
           {TABS.slice(2).map((tab) => (

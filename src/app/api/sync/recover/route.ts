@@ -5,12 +5,15 @@ import { auth } from '@/lib/auth';
 /**
  * GET /api/sync/recover
  *
- * Deep recovery: when user_store is empty but the individual DB tables
- * (workout_logs, profiles, gamification_stats, etc.) still have data,
- * reconstruct the user's state from those tables.
+ * Deep recovery — checks ALL possible data sources in priority order:
  *
- * This handles the case where a blank-state sync overwrote user_store
- * but the individual tables were never touched.
+ * 1. user_store_backups  — hourly snapshots of the full store (richest source)
+ * 2. user_store          — current blob (may already have partial data)
+ * 3. Individual tables   — legacy workout_logs, profiles, etc.
+ *
+ * If the current user_store already has rich data, recovery is skipped.
+ * Otherwise, the richest backup is returned — complete with gamification,
+ * workout logs, mesocycles, and everything else.
  */
 export async function GET() {
   try {
@@ -21,24 +24,101 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // Check if user_store already has data — if so, no recovery needed
+    // ── Richness scorer — how much useful data does a store blob contain? ──
+    const richness = (d: Record<string, unknown>) => {
+      let score = 0;
+      if (d.isOnboarded) score += 5;
+      if (d.user) score += 5;
+      if (d.baselineLifts) score += 3;
+      if (d.currentMesocycle) score += 3;
+      score += (Array.isArray(d.workoutLogs) ? d.workoutLogs.length : 0) * 2;
+      score += (Array.isArray(d.meals) ? d.meals.length : 0);
+      score += (Array.isArray(d.mesocycleHistory) ? d.mesocycleHistory.length : 0) * 2;
+      score += (Array.isArray(d.trainingSessions) ? d.trainingSessions.length : 0);
+      score += (Array.isArray(d.bodyWeightLog) ? d.bodyWeightLog.length : 0);
+      const gam = d.gamificationStats as Record<string, unknown> | undefined;
+      if (gam) {
+        score += (Number(gam.totalXP) || Number(gam.totalPoints) || 0) > 0 ? 5 : 0;
+        score += (Number(gam.totalWorkouts) || 0) > 0 ? 3 : 0;
+        const badges = (gam.badges as unknown[]);
+        score += Array.isArray(badges) ? badges.length : 0;
+      }
+      return score;
+    };
+
+    // ── Check current user_store ──
+    let currentData: Record<string, unknown> | null = null;
+    let currentScore = 0;
     try {
-      const { rows: storeRows } = await sql`
-        SELECT data FROM user_store WHERE user_id = ${userId}
+      const { rows } = await sql`SELECT data FROM user_store WHERE user_id = ${userId}`;
+      if (rows.length > 0 && rows[0].data) {
+        currentData = rows[0].data as Record<string, unknown>;
+        currentScore = richness(currentData);
+      }
+    } catch { /* table may not exist */ }
+
+    // ── Check user_store_backups (the gold mine) ──
+    let bestBackup: Record<string, unknown> | null = null;
+    let bestBackupScore = 0;
+    let bestBackupDate: string | null = null;
+    let backupCount = 0;
+    try {
+      // Get all backups, ordered by workout_count (richest first), then most recent
+      const { rows: backupRows } = await sql`
+        SELECT data, workout_count, created_at
+        FROM user_store_backups
+        WHERE user_id = ${userId}
+        ORDER BY workout_count DESC, created_at DESC
+        LIMIT 20
       `;
-      if (storeRows.length > 0 && storeRows[0].data) {
-        const storeData = storeRows[0].data as Record<string, unknown>;
-        const hasLogs = Array.isArray(storeData.workoutLogs) && storeData.workoutLogs.length > 0;
-        const hasProfile = storeData.isOnboarded === true && storeData.user;
-        if (hasLogs || hasProfile) {
-          return NextResponse.json({ recovered: false, reason: 'user_store has data' });
+      backupCount = backupRows.length;
+      for (const row of backupRows) {
+        const data = row.data as Record<string, unknown>;
+        const score = richness(data);
+        if (score > bestBackupScore) {
+          bestBackup = data;
+          bestBackupScore = score;
+          bestBackupDate = row.created_at;
         }
       }
-    } catch {
-      // Table might not exist — continue with recovery
+    } catch { /* table may not exist */ }
+
+    // ── If current store is already richer than any backup, skip ──
+    if (currentScore > 10 && currentScore >= bestBackupScore) {
+      return NextResponse.json({
+        recovered: false,
+        reason: 'user_store has data',
+        currentScore,
+        backupsAvailable: backupCount,
+      });
     }
 
-    // ── Attempt recovery from individual tables ──
+    // ── If we have a rich backup, use it — this is the main recovery path ──
+    if (bestBackup && bestBackupScore > currentScore) {
+      return NextResponse.json({
+        recovered: true,
+        source: 'backup',
+        backupDate: bestBackupDate,
+        backupsScanned: backupCount,
+        currentScore,
+        backupScore: bestBackupScore,
+        data: bestBackup,
+        stats: {
+          hasProfile: !!bestBackup.user && bestBackup.isOnboarded === true,
+          workoutLogs: Array.isArray(bestBackup.workoutLogs) ? bestBackup.workoutLogs.length : 0,
+          hasGamification: !!bestBackup.gamificationStats,
+          hasMesocycle: !!bestBackup.currentMesocycle,
+          mesocycleHistory: Array.isArray(bestBackup.mesocycleHistory) ? bestBackup.mesocycleHistory.length : 0,
+          hasBaselineLifts: !!bestBackup.baselineLifts,
+          badges: (() => {
+            const gam = bestBackup.gamificationStats as Record<string, unknown> | undefined;
+            return Array.isArray(gam?.badges) ? (gam.badges as unknown[]).length : 0;
+          })(),
+        },
+      });
+    }
+
+    // ── Fallback: attempt recovery from individual legacy tables ──
 
     // 1. Profile
     let profile = null;
@@ -47,7 +127,7 @@ export async function GET() {
       if (rows.length > 0) profile = rows[0];
     } catch { /* table may not exist */ }
 
-    // 2. Workout logs (get ALL of them)
+    // 2. Workout logs
     let workoutLogs: unknown[] = [];
     try {
       const { rows } = await sql`
@@ -69,7 +149,7 @@ export async function GET() {
       }));
     } catch { /* table may not exist */ }
 
-    // 3. Gamification stats
+    // 3. Gamification stats (legacy table)
     let gamificationStats = null;
     try {
       const { rows } = await sql`SELECT * FROM gamification_stats WHERE user_id = ${userId}`;
@@ -106,10 +186,8 @@ export async function GET() {
         SELECT * FROM mesocycles WHERE user_id = ${userId} ORDER BY created_at DESC
       `;
       if (rows.length > 0) {
-        // Most recent is current
         const latest = rows[0];
         currentMesocycle = typeof latest.data === 'string' ? JSON.parse(latest.data) : latest.data;
-        // Rest are history
         for (let i = 1; i < rows.length; i++) {
           const m = rows[i];
           mesocycleHistory.push(typeof m.data === 'string' ? JSON.parse(m.data) : m.data);
@@ -117,16 +195,7 @@ export async function GET() {
       }
     } catch { /* table may not exist */ }
 
-    // 6. Strength progress
-    let strengthProgress: unknown[] = [];
-    try {
-      const { rows } = await sql`
-        SELECT * FROM strength_progress WHERE user_id = ${userId} ORDER BY date DESC
-      `;
-      strengthProgress = rows;
-    } catch { /* table may not exist */ }
-
-    // 7. Subscription
+    // 6. Subscription
     let subscription = null;
     try {
       const { rows } = await sql`SELECT * FROM subscriptions WHERE user_id = ${userId}`;
@@ -141,7 +210,7 @@ export async function GET() {
       }
     } catch { /* table may not exist */ }
 
-    // ── Build recovered user profile from profiles table ──
+    // Build recovered user profile
     let user = null;
     if (profile) {
       user = {
@@ -161,13 +230,16 @@ export async function GET() {
       };
     }
 
-    // ── Determine what was recovered ──
     const hasAnything = user || workoutLogs.length > 0 || gamificationStats || currentMesocycle;
     if (!hasAnything) {
-      return NextResponse.json({ recovered: false, reason: 'no data found in any table' });
+      return NextResponse.json({
+        recovered: false,
+        reason: 'no data found in any source',
+        sourcesChecked: ['user_store_backups', 'user_store', 'profiles', 'workout_logs', 'gamification_stats', 'mesocycles', 'baseline_lifts', 'subscriptions'],
+        backupsScanned: backupCount,
+      });
     }
 
-    // Build the recovery payload (matching the Zustand store shape)
     const recoveredData: Record<string, unknown> = {};
     if (user) {
       recoveredData.user = user;
@@ -182,6 +254,7 @@ export async function GET() {
 
     return NextResponse.json({
       recovered: true,
+      source: 'legacy_tables',
       data: recoveredData,
       stats: {
         hasProfile: !!user,
@@ -189,7 +262,7 @@ export async function GET() {
         hasGamification: !!gamificationStats,
         hasMesocycle: !!currentMesocycle,
         mesocycleHistory: mesocycleHistory.length,
-        strengthEntries: strengthProgress.length,
+        hasBaselineLifts: !!baselineLifts,
         hasSubscription: !!subscription,
       },
     });

@@ -3,6 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Viewport Height Fix ──
+     Mobile browsers change the visible viewport on orientation change and
+     when the address bar shows/hides.  Tailwind's `min-h-screen` = 100vh
+     which is the *maximum* viewport on iOS/Chrome — it doesn't shrink when
+     the browser chrome is visible.  100dvh (dynamic viewport height) tracks
+     the actual visible area.  We override at the base layer so every
+     component using min-h-screen, h-screen, etc. gets the fix for free. */
+  :root {
+    /* JS fallback (set by layout.tsx <script>) for browsers without dvh */
+    --app-h: 100vh;
+  }
+  @supports (min-height: 100dvh) {
+    :root { --app-h: 100dvh; }
+  }
+
+  /* Override Tailwind viewport-height utilities globally */
+  .min-h-screen { min-height: var(--app-h) !important; }
+  .h-screen     { height: var(--app-h) !important; }
+  .max-h-screen { max-height: var(--app-h) !important; }
+
   /* ── Color Theme Variables ──
      Default = Steel (blue). Overridden via [data-theme] on <html>. */
   :root {

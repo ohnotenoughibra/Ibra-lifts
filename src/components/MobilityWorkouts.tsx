@@ -202,11 +202,25 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         navigator.vibrate([100, 50, 100]);
       }
     } else {
+      // Skipping the last exercise — still counts as completing the routine
       setTimerActive(false);
       setTimerPaused(false);
       setTimerCompleted(true);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([300, 150, 300, 150, 500]);
+      }
+      const totalMin = Math.round(
+        selectedRoutine.exercises.reduce((s, ex) => s + ex.duration * ex.sets, 0) / 60
+      );
+      addQuickLog({
+        type: 'mobility',
+        value: totalMin,
+        unit: 'min',
+        timestamp: new Date(),
+        notes: selectedRoutine.name,
+      });
     }
-  }, [selectedRoutine, currentExerciseIndex]);
+  }, [selectedRoutine, currentExerciseIndex, addQuickLog]);
 
   // Timer countdown effect
   useEffect(() => {

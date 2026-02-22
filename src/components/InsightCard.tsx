@@ -20,7 +20,7 @@ interface InsightCardProps {
   activeDietPhase: 'cut' | 'bulk' | 'maintain' | null;
   mesocycleWeek: number | null;
   hasCompletedWorkoutToday: boolean;
-  onOpenLibrary?: () => void;
+  onOpenLibrary?: (category: string) => void;
 }
 
 export default function InsightCard({
@@ -140,7 +140,7 @@ export default function InsightCard({
           {!insight.source && <span />}
           {onOpenLibrary && (
             <button
-              onClick={onOpenLibrary}
+              onClick={() => onOpenLibrary(insight.category)}
               className="flex items-center gap-1 text-xs text-primary-400 font-medium hover:text-primary-300 transition-colors"
             >
               <BookOpen className="w-3 h-3" />

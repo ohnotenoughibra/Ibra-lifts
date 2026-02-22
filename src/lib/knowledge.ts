@@ -2031,6 +2031,671 @@ Never increase total training load (lifting + sport) by more than 10% per week. 
 4. Recovery is when adaptation happens
 5. Track everything — including sport training load
 `
+  },
+  // ── NEW ARTICLES: First Principles & Unregretted User Minutes ──────────────
+  {
+    id: 'article-mental-toughness',
+    title: 'Mental Toughness: The Skill Nobody Trains',
+    category: 'motivation',
+    tags: ['mindset', 'psychology', 'performance', 'combat'],
+    readTime: 7,
+    publishedAt: new Date('2025-03-01'),
+    source: 'Based on sport psychology research and elite athlete protocols',
+    content: `
+## Why Mindset Is a Trainable Skill
+
+Most fighters and lifters treat mental toughness like a personality trait — you either have it or you don't. That's wrong. Mental resilience is a skill, and like any skill, it develops through deliberate practice.
+
+## The Three Pillars of Mental Toughness
+
+### 1. Process Over Outcome
+Elite performers don't think "I need to win." They think "I need to execute the next rep / the next technique." This isn't positive thinking — it's attentional control.
+
+**How to train it:**
+- Before each set, name ONE cue (e.g., "drive through heels")
+- After each set, rate execution quality, not just weight moved
+- In sparring, focus on implementing one technique, not "winning rounds"
+
+### 2. Discomfort Tolerance
+The ability to stay composed when things hurt. The last 3 reps of a hard set. Round 3 of sparring when you're gassed. This is where adaptation happens — and where most people quit.
+
+**How to train it:**
+- Deliberately choose the harder option when both work (barbell over machine, free sparring over drills)
+- Practice "one more" — when you want to stop, do one more rep, one more round
+- Cold exposure, breath holds, and tempo training all build this capacity
+
+### 3. Identity Alignment
+You don't rise to the level of your goals. You fall to the level of your identity. If you see yourself as "someone who trains," showing up stops being a decision.
+
+**How to train it:**
+- Never miss twice in a row — one skip is life, two is a new habit
+- Track consistency, not just performance. The streak matters
+- Surround yourself with people who train. Environment > willpower
+
+## The Plateau Protocol
+
+Every athlete hits plateaus. Here's the evidence-based sequence:
+1. **First 2 weeks:** Stay the course. Most plateaus are noise
+2. **Week 3-4:** Change ONE variable (exercise selection, rep range, or training order)
+3. **Week 5-6:** Take a full deload, then return with a new mesocycle
+4. **If still stuck:** Honest assessment — are you sleeping enough? Eating enough? Is life stress too high?
+
+## The Pre-Competition Mindset
+
+Research from sport psychology shows that anxiety and excitement have nearly identical physiological signatures. The difference is the label you put on it.
+
+- Reframe "I'm nervous" → "I'm ready"
+- Visualize successful execution (not winning — executing)
+- Have a physical pre-competition routine that signals "game time"
+
+## Daily Practice
+
+Mental toughness isn't built in big moments. It's built in small daily decisions:
+- Training when you don't feel like it (but not when injured)
+- Logging your workouts honestly (no ego numbers)
+- Going to bed on time instead of scrolling
+- Eating according to your plan, not your cravings
+`
+  },
+  {
+    id: 'article-sleep-performance',
+    title: 'Sleep: The Performance Multiplier You\'re Ignoring',
+    category: 'recovery',
+    tags: ['sleep', 'recovery', 'hormones', 'performance'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-10'),
+    source: 'Walker (2017), Mah et al. (2011), Dattilo et al. (2020)',
+    content: `
+## Why Sleep Is Non-Negotiable
+
+Sleep isn't rest. It's when your body actually builds muscle, consolidates motor skills, and regulates the hormones that drive performance. Cutting sleep is cutting gains — literally.
+
+## What Happens During Sleep
+
+### Growth Hormone Release
+~75% of daily GH is released during deep sleep (stages 3-4). GH drives muscle repair, fat metabolism, and connective tissue recovery. Less sleep = less GH = slower recovery.
+
+### Testosterone Production
+Men who sleep 5 hours instead of 8 show a 10-15% drop in testosterone. That's equivalent to aging 10-15 years. For women, similar disruptions affect estrogen and recovery hormones.
+
+### Motor Skill Consolidation
+Learned movement patterns (technique, form) are consolidated during REM sleep. A study on basketball players found that extending sleep to 10 hours improved free-throw accuracy by 9% and sprint times by 5%.
+
+### Inflammation Regulation
+Sleep deprivation increases inflammatory markers (IL-6, TNF-alpha) that delay muscle recovery and increase injury risk. One night of poor sleep can increase inflammation for 48+ hours.
+
+## The Combat Athlete's Sleep Problem
+
+Fighters and combat athletes face unique sleep challenges:
+- **Evening training** elevates cortisol and core temperature, delaying sleep onset
+- **Weight cuts** disrupt sleep architecture (less deep sleep, more waking)
+- **Competition anxiety** causes fragmented sleep before events
+- **Impact sports** can cause micro-concussions that affect sleep quality
+
+## Practical Sleep Protocol
+
+### The 10-3-2-1-0 Rule
+- **10 hours before bed:** No caffeine
+- **3 hours before bed:** No heavy meals or alcohol
+- **2 hours before bed:** No hard training
+- **1 hour before bed:** No screens
+- **0:** Number of times you hit snooze
+
+### Environment
+- Room temperature: 65-68°F (18-20°C)
+- Complete darkness (blackout curtains or eye mask)
+- Consistent wake time — even weekends (±30 min max)
+
+### After Evening Training
+- Cold shower (2-3 minutes) to drop core temperature
+- Magnesium glycinate (200-400mg) — the one supplement with actual sleep evidence
+- 10 minutes of gentle stretching or breathing
+- Low lighting immediately after training
+
+## Minimum Effective Sleep
+
+For strength and hypertrophy maintenance: **7 hours minimum**
+For optimal recovery and performance: **8-9 hours**
+For athletes in hard training blocks: **9+ hours** (naps count)
+
+If you're doing everything right in training and nutrition but not progressing, sleep is almost always the bottleneck.
+`
+  },
+  {
+    id: 'article-stress-management',
+    title: 'Managing Life Stress as a Training Variable',
+    category: 'recovery',
+    tags: ['stress', 'recovery', 'cortisol', 'adaptation', 'allostatic load'],
+    readTime: 5,
+    publishedAt: new Date('2025-03-15'),
+    source: 'Selye stress model; Halson (2014) overtraining research',
+    content: `
+## Your Body Has One Stress Budget
+
+Your nervous system doesn't distinguish between a hard squat session, a work deadline, a fight with your partner, or poor sleep. It all draws from the same recovery pool.
+
+This is called **allostatic load** — the total stress your body is managing at any given time.
+
+## Why This Matters for Training
+
+When allostatic load is high:
+- Strength output drops 5-15% (CNS fatigue)
+- Recovery takes 50-100% longer
+- Injury risk spikes (ACWR becomes unreliable)
+- Sleep quality deteriorates (even with the same hours)
+- Motivation tanks (not laziness — cortisol)
+
+## The Practical Framework
+
+### Low Life Stress = Push Training Hard
+- High volume, high intensity
+- New exercises and challenging progressions
+- Extra training sessions are productive
+- This is when PRs happen
+
+### Moderate Life Stress = Train Smart
+- Maintain volume but back off intensity slightly
+- Stick to familiar exercises
+- Autoregulate based on RPE (don't chase programmed numbers)
+- Prioritize sleep over extra sessions
+
+### High Life Stress = Protect the Habit
+- Reduce volume by 30-50%
+- Keep intensity moderate (RPE 6-7 max)
+- Shorten sessions (30-40 min is enough)
+- The goal is maintenance and stress relief, not progression
+- SHOWING UP matters more than what you do
+
+## Signs Your Stress Budget Is Overspent
+
+- HRV drops below personal baseline for 3+ days
+- Resting heart rate elevated 5+ bpm above normal
+- Strength regression on lifts you've been progressing
+- Persistent DOMS that doesn't resolve in 48 hours
+- Poor sleep despite good sleep hygiene
+- Loss of training motivation that lasts >1 week
+
+## The Counterintuitive Truth
+
+During high-stress periods, the athletes who reduce training volume actually come out stronger than those who grind through. Why? Because they avoid digging a recovery hole that takes weeks to climb out of.
+
+Training is a stimulus. Recovery is when you adapt. If recovery is compromised, more stimulus just makes things worse.
+`
+  },
+  {
+    id: 'article-nutrition-fundamentals',
+    title: 'Nutrition First Principles: What Actually Matters',
+    category: 'nutrition',
+    tags: ['nutrition', 'macros', 'fundamentals', 'hierarchy'],
+    readTime: 6,
+    publishedAt: new Date('2025-03-20'),
+    source: 'Helms et al. Nutrition Pyramid; Aragon & Schoenfeld, 2020',
+    content: `
+## The Nutrition Hierarchy (In Order of Impact)
+
+Stop obsessing over meal timing and supplements. Here's what actually moves the needle, ranked by importance:
+
+### 1. Calories (70% of results)
+Energy balance determines weight change. Period. No food is "fattening" in isolation — surplus causes fat gain, deficit causes fat loss.
+
+- **To lose fat:** ~500 cal deficit/day = ~0.5kg/week loss
+- **To gain muscle:** ~200-300 cal surplus/day
+- **To maintain:** Match intake to expenditure
+
+### 2. Protein (20% of results)
+The only macro with a real minimum target for athletes:
+- **1.6-2.2g per kg bodyweight** for muscle building/preservation
+- **2.2-2.7g per kg** during aggressive cuts (to preserve muscle)
+- Spread across 3-5 meals, ~30-50g per feeding
+
+### 3. Carbs & Fats (8% of results)
+After calories and protein are set, carbs and fats are largely interchangeable for body composition. But for performance:
+- **Fighters/grapplers:** Favor carbs (fuel for high-intensity work)
+- **Minimum fats:** ~0.5g/kg bodyweight (hormonal health)
+- Fill remaining calories as you prefer
+
+### 4. Micronutrients, Timing, Supplements (2% of results)
+Important for health, nearly irrelevant for body composition:
+- Eat vegetables and fruit daily (fiber + micronutrients)
+- Protein timing: within a few hours of training (the "window" is wide)
+- Only supplements with real evidence: creatine, caffeine, vitamin D (if deficient)
+
+## Common Mistakes Combat Athletes Make
+
+### 1. Under-eating on training days
+High-volume training days require MORE food, not less. Underfueling training is underfueling recovery.
+
+### 2. Protein too low during cuts
+The leaner you are and the harder you cut, the MORE protein you need. This is when most people eat less of everything — including protein.
+
+### 3. Ignoring fiber
+25-40g/day of fiber fills you up, feeds gut bacteria, and makes cutting dramatically easier. Most athletes get less than 15g.
+
+### 4. Supplement obsession
+No supplement replaces sleep, sufficient protein, or a calorie target hit consistently. Creatine works. Most other supplements don't justify their cost.
+
+## The 80/20 Rule
+
+Get 80% of your calories from whole, minimally processed foods. The other 20% can be whatever you want. This approach is sustainable, socially compatible, and equally effective as "clean eating" for body composition.
+
+Adherence beats perfection. The best diet is the one you can follow for months, not days.
+`
+  },
+  {
+    id: 'article-overtraining-vs-underrecovery',
+    title: 'You\'re Not Overtrained — You\'re Under-Recovered',
+    category: 'recovery',
+    tags: ['overtraining', 'recovery', 'fatigue', 'deload'],
+    readTime: 5,
+    publishedAt: new Date('2025-04-01'),
+    source: 'Kreher & Schwartz (2012); Meeusen et al. (2013)',
+    content: `
+## True Overtraining Is Extremely Rare
+
+Overtraining Syndrome (OTS) takes months of extreme training with inadequate recovery. It's seen in elite endurance athletes, rarely in recreational lifters or combat athletes.
+
+What most people call "overtraining" is actually one of these:
+
+### 1. Functional Overreaching (Normal)
+- Performance temporarily drops after hard training
+- Recovers fully with 1-2 weeks of deload
+- **This is actually necessary for adaptation**
+
+### 2. Non-Functional Overreaching (Warning)
+- Performance drops and doesn't recover with normal rest
+- Takes 2-4 weeks to recover
+- Signs: persistent fatigue, mood changes, sleep disruption
+- **Usually caused by insufficient recovery, not too much training**
+
+### 3. Overtraining Syndrome (Rare)
+- Months of recovery needed
+- Hormonal disruption, immune suppression, chronic fatigue
+- Requires medical intervention
+- **Almost never happens to recreational athletes**
+
+## The Real Problem: Under-Recovery
+
+When you feel overtrained, audit these first:
+
+1. **Sleep:** Getting less than 7 hours consistently? Fix this first
+2. **Nutrition:** In a caloric deficit? Under-eating protein? This directly limits recovery
+3. **Life stress:** Job pressure, relationships, financial worry all compete with training recovery
+4. **Training monotony:** Same exercises, same intensity, no variation — CNS fatigue accumulates
+5. **No deloads:** Every 4-6 weeks, reduce volume by 40-60% for one week
+
+## The Deload Decision Tree
+
+- **Planned deload every 4-6 weeks:** Reduces accumulated fatigue before it becomes a problem
+- **Reactive deload when:** RPE ratings spike on normal weights, HRV drops 3+ days, motivation is consistently low
+- **How to deload:** Keep frequency, reduce volume 40-60%, reduce intensity 10-15%. Don't skip the gym — just go lighter
+
+## Recovery Is Training
+
+The adaptation model is simple:
+- Training provides the stimulus (stress)
+- Recovery provides the adaptation (growth)
+- Without adequate recovery, more training makes things worse
+
+If you're stuck in a plateau and tempted to train MORE, try training LESS with better recovery first. You might be surprised.
+`
+  },
+  {
+    id: 'article-striking-conditioning',
+    title: 'Conditioning for Strikers: Energy Systems Explained',
+    category: 'striking',
+    tags: ['striking', 'conditioning', 'energy systems', 'boxing', 'muay thai'],
+    readTime: 7,
+    publishedAt: new Date('2025-04-10'),
+    source: 'Guidetti et al. (2002); Del Vecchio et al. (2011)',
+    content: `
+## Why Strikers Gas Out
+
+A 3-minute boxing round demands all three energy systems simultaneously. Understanding this is the key to never gassing out again.
+
+### The Three Energy Systems
+
+**1. Phosphagen (ATP-CP) — 0-10 seconds**
+Powers explosive combinations, slips, and power shots. Like a phone battery that drains fast but recharges fast.
+- Trained by: Short sprints, heavy bag power rounds, explosive medicine ball throws
+- Recovery: 2-3 minutes between efforts
+
+**2. Glycolytic — 10 seconds to 2 minutes**
+Sustains extended exchanges and high-pressure sequences. The "burn" you feel in round 2 is lactate accumulation from this system.
+- Trained by: Pad work intervals (30s on/30s off), battle ropes, assault bike intervals
+- This is where most fights are won or lost
+
+**3. Aerobic — 2+ minutes**
+Your base. Determines how fast you recover between exchanges and between rounds. Fighters with a strong aerobic base appear to have endless cardio.
+- Trained by: Long runs, swimming, cycling at Zone 2 (conversational pace), shadowboxing at low intensity
+
+## The Striker's Conditioning Hierarchy
+
+### 1. Build the Aerobic Base (Off-Season)
+3-4 sessions/week of Zone 2 cardio, 30-60 minutes. This isn't sexy but it's the foundation everything else builds on.
+
+### 2. Add Lactate Tolerance (Pre-Camp)
+2-3 sessions/week of high-intensity intervals:
+- 30s max effort / 30s rest x 6-10 rounds
+- Heavy bag rounds: 10s burst / 20s pace x 3 minutes
+- Shark tank sparring: fresh opponent every 30-60 seconds
+
+### 3. Sport-Specific Peaking (Fight Camp)
+Conditioning should mirror fight demands:
+- Round-length intervals matching your sport (2 min for Muay Thai, 3 min for boxing)
+- Simulate fatigue then decision making (technical drills while tired)
+- Taper conditioning volume 7-10 days before competition
+
+## Strength Training for Striking Power
+
+Punching power is primarily:
+- **Lower body force production** (ground reaction force)
+- **Core rotational stiffness** (force transfer)
+- **Upper body rate of force development** (snap)
+
+Key exercises:
+- Trap bar deadlift / squat (lower body power)
+- Medicine ball rotational throws (core transfer)
+- Plyometric push-ups (upper body snap)
+- Heavy farmer carries (grip endurance + whole-body stability)
+`
+  },
+  {
+    id: 'article-mma-weight-management',
+    title: 'Weight Management for MMA: Fight Week to Off-Season',
+    category: 'mma',
+    tags: ['mma', 'weight cut', 'fight week', 'nutrition', 'rehydration'],
+    readTime: 8,
+    publishedAt: new Date('2025-04-15'),
+    source: 'Reale et al. (2017); Artioli et al. (2016)',
+    content: `
+## The Reality of Weight Cutting in MMA
+
+Weight cutting is part of MMA. But the difference between smart cutting and dangerous cutting can mean the difference between a dominant performance and a hospital visit.
+
+## Off-Season Body Composition
+
+The goal off-season is to be within **8-12% of your competition weight** at fight-camp start. If you're walking around 20%+ over your weight class, you're either in the wrong weight class or not managing off-season nutrition.
+
+### Off-Season Strategy
+- Eat at slight surplus (200-300 cal/day) to build muscle
+- Protein at 2g/kg bodyweight minimum
+- Strength train 3-4x/week
+- Gradual lean mass accrual only — no dirty bulks
+
+## Fight Camp (8-12 Weeks Out)
+
+### Phase 1: Chronic Weight Loss (8-4 Weeks Out)
+- 500 cal/day deficit maximum
+- High protein (2.2-2.7g/kg) to preserve muscle
+- Time carbs around training sessions
+- Target: lose 0.5-0.7% bodyweight per week
+
+### Phase 2: Acute Weight Cut (Fight Week)
+Water manipulation for the final 3-5% of bodyweight:
+- **5-7 days out:** Water load (8-10L/day)
+- **3 days out:** Reduce water to 4L
+- **2 days out:** Reduce to 2L
+- **1 day out:** Sip only
+- **Weigh-in day:** Minimal to no water until after weigh-in
+
+## Rehydration Protocol (After Weigh-In)
+
+### First 2 Hours
+- Oral rehydration solution (ORS) — not just water
+- Small, frequent sips (1-1.5L per hour max)
+- Electrolytes: sodium, potassium, magnesium
+- Light, easily digestible carbs (white rice, bananas, honey)
+
+### 2-12 Hours Before Fight
+- Continue hydrating (aim to replace 150% of weight lost)
+- Moderate carb-rich meals (glycogen replenishment)
+- Avoid high-fat and high-fiber foods (slow digestion)
+
+## Red Flags: When a Cut Is Too Much
+
+Stop the cut and reassess if:
+- Heart rate at rest exceeds 100 bpm
+- Severe cramping or dizziness
+- Dark brown urine that doesn't lighten with fluids
+- More than 8% bodyweight being cut via water manipulation
+
+No fight is worth permanent organ damage. Move up a weight class if cuts are consistently brutal.
+`
+  },
+  {
+    id: 'article-injury-prevention',
+    title: 'Injury Prevention: The Principles That Actually Work',
+    category: 'general_fitness',
+    tags: ['injury', 'prevention', 'prehab', 'mobility', 'longevity'],
+    readTime: 6,
+    publishedAt: new Date('2025-04-20'),
+    source: 'Lauersen et al. (2014) meta-analysis; Gabbett (2016) ACWR',
+    content: `
+## Most Injuries Are Preventable
+
+A landmark meta-analysis by Lauersen et al. found that strength training reduced sports injuries by 66% and overuse injuries by nearly 50%. Stretching alone? Nearly zero benefit.
+
+## The Four Pillars of Injury Prevention
+
+### 1. Manage Training Load (Most Important)
+The acute:chronic workload ratio (ACWR) is your guardrail:
+- **Sweet spot:** 0.8-1.3
+- **Danger zone:** >1.5 (you spiked volume too fast)
+- **Rule of thumb:** Never increase weekly volume by more than 10%
+
+### 2. Strength Through Full Range of Motion
+- Train exercises to full ROM (ATG squats, full-stretch RDLs)
+- Include eccentric-emphasis work (3-4 second lowering phases)
+- Strengthen commonly weak areas: rotator cuff, hip flexors, ankle dorsiflexion
+
+### 3. Address Asymmetries
+A >15% strength difference between limbs doubles injury risk:
+- Include unilateral work (split squats, single-leg RDLs, single-arm rows)
+- Test bilateral differences periodically
+
+### 4. Adequate Recovery
+Under-recovered athletes get injured. Period.
+- Sleep 7+ hours, nutrition matches training demands
+- Deload every 4-6 weeks
+
+## Combat Sport-Specific Prehab
+
+### For Grapplers
+- **Neck strengthening:** Isometric holds, plate-loaded neck curls
+- **Grip endurance:** Dead hangs, farmer walks
+- **Shoulder stability:** Face pulls, external rotation work
+
+### For Strikers
+- **Wrist/hand conditioning:** Knuckle push-ups, wrist curls
+- **Rotator cuff:** Band pull-aparts, Cuban presses
+- **Ankle mobility:** Banded ankle mobilizations
+
+## When Injury Happens
+1. **First 48 hours:** PEACE (Protect, Elevate, Avoid anti-inflammatories, Compress, Educate)
+2. **After 48 hours:** LOVE (Load, Optimism, Vascularization, Exercise)
+3. **Key principle:** Early, pain-free movement beats complete rest
+4. **Train around it:** Injured shoulder? Train legs, core, other arm
+`
+  },
+  {
+    id: 'article-motivation-consistency',
+    title: 'Consistency > Motivation: Building Unbreakable Training Habits',
+    category: 'motivation',
+    tags: ['motivation', 'habits', 'consistency', 'psychology', 'discipline'],
+    readTime: 5,
+    publishedAt: new Date('2025-05-01'),
+    source: 'Clear (2018) Atomic Habits; Duckworth (2016) Grit research',
+    content: `
+## Motivation Is Unreliable. Systems Aren't.
+
+Motivation is an emotion. It comes and goes like weather. The athletes who succeed long-term aren't more motivated — they have better systems.
+
+## The Hierarchy of Behavior Change
+
+### 1. Environment Design (Strongest)
+Make training the path of least resistance:
+- Pack your gym bag the night before
+- Train at the same time daily (becomes automatic in ~6 weeks)
+- Remove friction: gym clothes out, pre-workout ready, route planned
+- Train at a gym near work/home (every extra 10 min commute = 20% more skipped sessions)
+
+### 2. Identity-Based Habits
+Stop saying "I'm trying to get fit." Start saying "I'm an athlete who trains." When faced with "should I train today?" — athletes train. Decision made.
+
+### 3. The Two-Minute Rule
+On low-motivation days, commit to just showing up for 2 minutes. Put on gym clothes. Walk through the door.
+
+~90% of the time, once you start, you finish. And the times you don't? You still maintained the habit chain.
+
+### 4. Never Miss Twice
+One missed session is life. Two missed sessions is the start of a new pattern. This single rule prevents the "I already missed Monday so I'll start again next week" spiral.
+
+## The Motivation Traps
+
+### Trap 1: Waiting for inspiration
+"I'll train when I feel like it." You'll eventually train 0-1 days a week.
+
+### Trap 2: All-or-nothing thinking
+A 20-minute session beats zero. A maintenance workout beats no workout. Imperfect action > perfect inaction.
+
+### Trap 3: Comparing yourself to others
+Your only valid comparison is you vs. you from last month.
+
+### Trap 4: Novelty addiction
+Program hopping every 3 weeks kills progress. Run a program for its full duration before judging it.
+
+## When Motivation Tanks
+
+If you've lost motivation for 2+ weeks:
+1. **Overreached:** Take a deload week
+2. **Goals are stale:** Set a new short-term target
+3. **Training is monotonous:** Change secondary exercises, not the program structure
+4. **Life stress is high:** Scale back volume, protect the habit
+5. **Burnout:** Take a full week off. Muscle memory will bring you back fast
+`
+  },
+  {
+    id: 'article-grappling-conditioning',
+    title: 'Grappling Conditioning: Build a Gas Tank That Never Quits',
+    category: 'grappling',
+    tags: ['grappling', 'conditioning', 'bjj', 'wrestling', 'cardio'],
+    readTime: 7,
+    publishedAt: new Date('2025-05-10'),
+    source: 'Andreato et al. (2017); James et al. (2016)',
+    content: `
+## Why Grapplers Gas Out
+
+Grappling demands sustained isometric contractions (grip, pins, frames) while simultaneously requiring explosive bursts (takedowns, sweeps, submissions). This combination destroys athletes without proper conditioning.
+
+## The Grappling Energy Demands
+
+Research shows a competitive BJJ match uses:
+- **Aerobic system:** 55-65% of energy
+- **Glycolytic system:** 25-35% (sustained scrambles)
+- **Phosphagen system:** 10-15% (explosive takedowns, submissions)
+
+Your aerobic base is MORE important than you think.
+
+## The Grappling Conditioning Pyramid
+
+### Base: Aerobic Capacity (Build Year-Round)
+**3-4x per week, 30-60 minutes:**
+- Zone 2 cardio (can hold a conversation)
+- Best modalities: cycling, swimming, rowing (low joint impact)
+- Target: maintain conversation while working
+
+### Middle: Muscular Endurance
+**2-3x per week, 15-25 minutes:**
+- Grip endurance: dead hangs (work up to 2 min), gi pull-ups, towel hangs
+- Core endurance: planks, hollow holds, Pallof presses (all for time)
+- Higher rep ranges in the gym (12-20 reps for accessory work)
+
+### Top: Sport-Specific Intervals
+**1-2x per week (not on sparring days):**
+- Match simulation: 30s max effort / 30s rest x 10 rounds
+- Positional sparring with fresh partners rotating every 60s
+- Assault bike or rower intervals: 20s sprint / 40s recovery x 8-12
+
+## The Secret: Efficiency > Engine
+
+Elite grapplers don't just have better cardio. They're more efficient:
+- They use structure (frames, wedges) instead of muscle to hold positions
+- They breathe continuously instead of holding breath during exchanges
+- They relax in dominant positions and save energy for transitions
+
+## Weekly Template (Competition Prep)
+
+- **Monday:** Mat training (technical) + Zone 2 cardio (30 min)
+- **Tuesday:** Strength training (lower focus) + grip work
+- **Wednesday:** Mat training (hard sparring)
+- **Thursday:** Zone 2 cardio (45 min) + core endurance
+- **Friday:** Strength training (upper focus) + sport-specific intervals
+- **Saturday:** Mat training (competition rounds)
+- **Sunday:** Full rest or light Zone 2 (20 min walk/swim)
+`
+  },
+  {
+    id: 'article-mobility-combat',
+    title: 'Mobility for Combat Athletes: Move Better, Fight Better',
+    category: 'general_fitness',
+    tags: ['mobility', 'flexibility', 'movement', 'combat', 'longevity'],
+    readTime: 5,
+    publishedAt: new Date('2025-05-15'),
+    source: 'Behm et al. (2021) stretching review; Afonso et al. (2021)',
+    content: `
+## Mobility vs. Flexibility
+
+**Flexibility** = passive range of motion (someone pushes your leg up)
+**Mobility** = active range of motion under load (you can USE that range)
+
+For combat athletes, flexibility without strength is a liability. You need mobility.
+
+## The Combat Athlete's Mobility Priorities
+
+### 1. Hip Mobility (Highest Priority)
+Every combat sport demands hip mobility: guard play, high kicks, level changes, sprawls.
+
+**Key movements:**
+- 90/90 switches (2 min daily)
+- Deep squat holds (accumulate 5 min/day)
+- Cossack squats (loaded, 8-10 per side)
+- Hip CARs (controlled articular rotations)
+
+### 2. Thoracic Spine
+Rotation power comes from the T-spine. Limited T-spine = compensating with lumbar spine = back pain.
+
+**Key movements:** Open books, cat-cow with rotation, foam roller T-spine extensions
+
+### 3. Shoulders
+Grapplers need overhead and behind-the-back range. Strikers need full extension.
+
+**Key movements:** Wall slides, band dislocates, prone Y-T-W raises, hanging
+
+### 4. Ankles
+Poor ankle dorsiflexion limits squat depth, sprawl ability, and single-leg stability.
+
+**Key movements:** Wall ankle mobilizations (banded), heel-elevated squat holds
+
+## When to Mobilize
+
+### Before Training (5-10 min)
+- CARs for joints you'll load. Dynamic movements. NO long static stretching
+
+### After Training (5-10 min)
+- Static stretching is fine here. Focus on restricted areas
+
+### Dedicated Sessions (15-20 min, 2-3x/week)
+- Where real gains happen. Loaded stretching at end-range, 60-120 second holds
+
+## The Minimum Effective Dose
+
+If you do nothing else:
+1. **Deep squat hold:** 2 minutes daily (hips + ankles)
+2. **Dead hang:** 1 minute daily (shoulders + thoracic spine)
+3. **90/90 hip switches:** 1 minute per side daily (hip rotation)
+
+That's 5 minutes. Zero excuses.
+`
   }
 ];
 
@@ -2511,6 +3176,160 @@ export const insights: Insight[] = [
     category: 'general_fitness',
     context: ['injured'],
     tags: ['injury', 'modification', 'training around']
+  },
+
+  // ─── NEW INSIGHTS: First Principles ─────────────────────────────────────────
+  {
+    id: 'ins-allostatic-load',
+    headline: 'Your body has one stress budget',
+    body: 'Work deadlines, poor sleep, and hard training all draw from the same recovery pool. When life stress is high, reduce training volume — you\'ll actually progress faster than grinding through.',
+    category: 'recovery',
+    context: ['any', 'lift_day'],
+    tags: ['stress', 'recovery', 'allostatic load'],
+    source: 'Selye general adaptation syndrome model'
+  },
+  {
+    id: 'ins-sleep-gh',
+    headline: '75% of growth hormone is released during deep sleep',
+    body: 'Cutting sleep from 8 to 6 hours doesn\'t just make you tired — it directly reduces muscle repair, fat metabolism, and connective tissue recovery. Sleep is where gains are built.',
+    category: 'recovery',
+    context: ['any', 'rest_day'],
+    tags: ['sleep', 'hormones', 'growth hormone'],
+    source: 'Van Cauter et al., 2000'
+  },
+  {
+    id: 'ins-calorie-hierarchy',
+    headline: 'Calories are 70% of your nutrition results',
+    body: 'Energy balance drives body composition more than food quality, meal timing, or supplements. Get calories and protein right first — everything else is fine-tuning.',
+    category: 'nutrition',
+    context: ['any', 'cutting', 'bulking'],
+    tags: ['calories', 'fundamentals', 'hierarchy']
+  },
+  {
+    id: 'ins-environment-beats-willpower',
+    headline: 'Environment beats willpower every time',
+    body: 'Pack your gym bag the night before. Train at the same time daily. Every extra 10 min of commute = 20% more skipped sessions. Make training the path of least resistance.',
+    category: 'motivation',
+    context: ['any'],
+    tags: ['habits', 'environment', 'consistency'],
+    source: 'Clear, Atomic Habits (2018)'
+  },
+  {
+    id: 'ins-never-miss-twice',
+    headline: 'The one rule that prevents all spirals',
+    body: 'Never miss twice. One skipped session is life. Two is a new pattern. This single rule prevents the "I\'ll start again Monday" spiral that kills more programs than any injury.',
+    category: 'motivation',
+    context: ['any'],
+    tags: ['consistency', 'habits', 'mindset']
+  },
+  {
+    id: 'ins-process-over-outcome',
+    headline: 'Focus on execution, not the scoreboard',
+    body: 'Elite performers think "execute the next rep" not "I need to hit a PR." Before each set, name ONE cue. After each set, rate execution quality. This is how real progress happens.',
+    category: 'motivation',
+    context: ['lift_day', 'combat_day'],
+    tags: ['mindset', 'process', 'performance']
+  },
+  {
+    id: 'ins-aerobic-base-grappling',
+    headline: 'Your grappling cardio problem is aerobic, not anaerobic',
+    body: 'Research shows 55-65% of grappling energy comes from the aerobic system. The athlete with "endless cardio" isn\'t doing more sprints — they have a better aerobic base. Zone 2 work is the foundation.',
+    category: 'grappling',
+    context: ['combat_day', 'rest_day'],
+    tags: ['conditioning', 'aerobic', 'cardio'],
+    source: 'Andreato et al., 2017'
+  },
+  {
+    id: 'ins-strength-training-prevents-injury',
+    headline: 'Strength training cuts injury risk by 66%',
+    body: 'A meta-analysis of 26,000+ athletes found strength training reduced sports injuries by 66%. Stretching alone showed nearly zero benefit. Strong muscles protect joints and connective tissue.',
+    category: 'general_fitness',
+    context: ['lift_day', 'any'],
+    tags: ['injury prevention', 'strength', 'evidence'],
+    source: 'Lauersen et al., 2014 meta-analysis'
+  },
+  {
+    id: 'ins-overtraining-rare',
+    headline: 'You\'re probably not overtrained — you\'re under-recovered',
+    body: 'True overtraining syndrome takes months of extreme training. What most people call "overtraining" is actually poor sleep, insufficient food, or high life stress. Fix recovery before cutting training.',
+    category: 'recovery',
+    context: ['any'],
+    tags: ['overtraining', 'recovery', 'fatigue'],
+    source: 'Kreher & Schwartz, 2012'
+  },
+  {
+    id: 'ins-glycolytic-fight',
+    headline: 'Most fights are won or lost in the glycolytic zone',
+    body: 'The 10-second to 2-minute energy system powers sustained exchanges. Train it with 30s on/30s off intervals, pad work bursts, and heavy bag rounds. This is your fight-finishing engine.',
+    category: 'striking',
+    context: ['combat_day', 'any'],
+    tags: ['energy systems', 'conditioning', 'striking']
+  },
+  {
+    id: 'ins-hip-mobility-5min',
+    headline: '5 minutes of mobility covers 80% of what you need',
+    body: 'Deep squat hold (2 min) + dead hang (1 min) + 90/90 hip switches (1 min per side). These three movements address the most common mobility deficits in combat athletes. No excuses.',
+    category: 'general_fitness',
+    context: ['rest_day', 'any'],
+    tags: ['mobility', 'minimum effective dose', 'movement']
+  },
+  {
+    id: 'ins-grappling-efficiency',
+    headline: 'Efficient grapplers use structure, not muscle',
+    body: 'Elite grapplers conserve energy by using frames, wedges, and skeletal structure instead of muscular force to hold positions. Breathe continuously, relax in dominant positions, grip strategically.',
+    category: 'grappling',
+    context: ['combat_day'],
+    tags: ['efficiency', 'technique', 'energy conservation']
+  },
+  {
+    id: 'ins-asymmetry-injury',
+    headline: '15% strength difference between limbs doubles injury risk',
+    body: 'Include unilateral work: split squats, single-leg RDLs, single-arm rows. Test bilateral differences periodically and don\'t just train your dominant side harder — equalize.',
+    category: 'general_fitness',
+    context: ['lift_day'],
+    tags: ['asymmetry', 'injury prevention', 'unilateral']
+  },
+  {
+    id: 'ins-anxiety-is-fuel',
+    headline: 'Anxiety and excitement are the same signal',
+    body: 'Research shows pre-competition anxiety and excitement have nearly identical physiological signatures. The only difference is the label you apply. Reframe "I\'m nervous" to "I\'m ready."',
+    category: 'motivation',
+    context: ['combat_day'],
+    tags: ['mindset', 'competition', 'anxiety'],
+    source: 'Brooks (2014) reappraisal research'
+  },
+  {
+    id: 'ins-weight-class-reality',
+    headline: 'Walking 20%+ above fight weight? Wrong weight class',
+    body: 'You should be within 8-12% of competition weight at fight-camp start. Bigger cuts mean more muscle lost, worse performance, and dangerous dehydration. Move up before you hurt yourself.',
+    category: 'mma',
+    context: ['cutting', 'any'],
+    tags: ['weight class', 'weight cut', 'safety']
+  },
+  {
+    id: 'ins-eccentric-power',
+    headline: 'The lowering phase is where the magic happens',
+    body: 'Emphasizing the eccentric (3-4 sec lowering) produces more hypertrophy per set, stronger tendons, and better injury prevention. Most people rush through the most valuable part of every rep.',
+    category: 'lifting_technique',
+    context: ['lift_day'],
+    tags: ['eccentric', 'technique', 'hypertrophy'],
+    source: 'Schoenfeld et al., 2017'
+  },
+  {
+    id: 'ins-punching-power-ground',
+    headline: 'Punching power starts at your feet',
+    body: 'The kinetic chain for a punch: feet push ground → hips rotate → core stiffens → arm extends. Weak legs or core leaks = weaker punches. Deadlifts and med ball throws build knockout power.',
+    category: 'striking',
+    context: ['combat_day', 'lift_day'],
+    tags: ['power', 'kinetic chain', 'striking']
+  },
+  {
+    id: 'ins-80-20-nutrition',
+    headline: '80% whole food, 20% whatever you want',
+    body: 'This approach is sustainable, socially compatible, and equally effective as "clean eating" for body composition. Adherence beats perfection. The best diet is one you can follow for months, not days.',
+    category: 'nutrition',
+    context: ['any', 'cutting', 'bulking'],
+    tags: ['adherence', 'flexible dieting', 'sustainability']
   },
 ];
 

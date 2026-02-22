@@ -306,7 +306,7 @@ function ArticleReader({
   const style = CAT_STYLE[article.category] || fallbackStyle;
 
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-900 flex flex-col">
+    <div className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top">
       {/* Reading progress bar */}
       <div className="h-0.5 bg-grappler-800 flex-shrink-0">
         <motion.div

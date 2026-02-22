@@ -222,7 +222,7 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // MAIN COMPONENT
 // ═════════════════════════════════════════════════════════════════════════════
 
-export default function ProfileSettings() {
+export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
@@ -471,15 +471,20 @@ export default function ProfileSettings() {
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
-  // ── Settings sub-screen ──────────────────────────────────────────────────
+  // ── Settings sub-screen (slides in from right) ─────────────────────────
   if (settingsOpen) {
     return (
-      <div className="space-y-3 pb-4">
+      <motion.div
+        initial={{ opacity: 0, x: 60 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        className="space-y-3 pb-4"
+      >
         {/* Settings Header */}
         <div className="flex items-center gap-3 mb-1">
           <button
             onClick={() => { setSettingsOpen(false); hapticLight(); }}
-            className="w-9 h-9 rounded-xl bg-grappler-800 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
+            className="w-9 h-9 rounded-xl bg-grappler-800/80 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
           >
             <ArrowLeft className="w-4 h-4 text-grappler-300" />
           </button>
@@ -913,7 +918,7 @@ export default function ProfileSettings() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     );
   }
 
@@ -933,6 +938,17 @@ export default function ProfileSettings() {
         <div className="relative bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent px-4 pt-6 pb-8">
           {/* Decorative glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary-500/8 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Close button (overlay mode) */}
+          {onClose && (
+            <button
+              onClick={() => { onClose(); hapticLight(); }}
+              className="absolute top-4 left-4 w-9 h-9 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 text-grappler-400" />
+            </button>
+          )}
 
           {/* Gear icon */}
           <button
@@ -1017,7 +1033,7 @@ export default function ProfileSettings() {
 
           {gamificationStats.badges.length > 0 ? (
             <div className={cn(
-              showAllBadges ? 'grid grid-cols-4 sm:grid-cols-5 gap-3' : 'flex gap-3 overflow-x-auto pb-2 scrollbar-hide'
+              showAllBadges ? 'grid grid-cols-4 sm:grid-cols-5 gap-3' : 'flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-1 px-1'
             )}>
               {(showAllBadges ? gamificationStats.badges : gamificationStats.badges.slice(0, 8)).map((ub) => (
                 <button
@@ -1025,20 +1041,26 @@ export default function ProfileSettings() {
                   onClick={() => { hapticLight(); setSelectedBadge({ badge: ub.badge, earned: true, earnedAt: ub.earnedAt }); }}
                   className={cn('text-center active:scale-95 transition-transform', !showAllBadges && 'flex-shrink-0')}
                 >
-                  <div className="w-14 h-14 bg-grappler-700/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl ring-1 ring-grappler-600/50">
-                    {ub.badge.icon}
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-gradient-to-br from-grappler-700/80 to-grappler-800/80 rounded-2xl flex items-center justify-center mx-auto mb-1.5 text-2xl ring-1 ring-primary-500/30 shadow-lg shadow-primary-500/10">
+                      {ub.badge.icon}
+                    </div>
+                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    </div>
                   </div>
-                  <p className="text-xs text-grappler-300 truncate max-w-[60px] mx-auto">{ub.badge.name}</p>
-                  <p className="text-xs text-primary-400 font-medium">+{ub.badge.points}</p>
+                  <p className="text-xs font-medium text-grappler-200 truncate max-w-[64px] mx-auto">{ub.badge.name}</p>
+                  <p className="text-[10px] text-primary-400 font-semibold">+{ub.badge.points}</p>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 bg-grappler-700/40 rounded-2xl flex items-center justify-center mx-auto mb-2 text-xl opacity-50">
+            <div className="text-center py-6">
+              <div className="w-16 h-16 bg-grappler-800/60 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl opacity-40 ring-1 ring-grappler-700/50">
                 🏆
               </div>
-              <p className="text-xs text-grappler-500">Complete workouts to earn badges</p>
+              <p className="text-sm text-grappler-500 font-medium">No badges yet</p>
+              <p className="text-xs text-grappler-600 mt-0.5">Complete workouts to start earning</p>
             </div>
           )}
 
@@ -1063,15 +1085,15 @@ export default function ProfileSettings() {
           )}
 
           {nextBadge && !showAllBadges && (
-            <div className="mt-3 flex items-center gap-2.5 bg-grappler-800/50 rounded-xl p-2.5">
-              <div className="w-8 h-8 bg-grappler-700/60 rounded-lg flex items-center justify-center text-base grayscale opacity-60">
+            <div className="mt-3 flex items-center gap-3 bg-gradient-to-r from-primary-500/10 to-accent-500/10 rounded-xl p-3 ring-1 ring-primary-500/20">
+              <div className="w-10 h-10 bg-grappler-800/80 rounded-xl flex items-center justify-center text-lg grayscale opacity-50 flex-shrink-0">
                 {nextBadge.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-grappler-300 font-medium truncate">Next: {nextBadge.name}</p>
-                <p className="text-xs text-grappler-500 truncate">{nextBadge.description}</p>
+                <p className="text-xs text-primary-300 font-semibold truncate">Up next: {nextBadge.name}</p>
+                <p className="text-xs text-grappler-500 truncate mt-0.5">{nextBadge.description}</p>
               </div>
-              <Zap className="w-3.5 h-3.5 text-primary-500/50 flex-shrink-0" />
+              <Zap className="w-4 h-4 text-primary-400 flex-shrink-0" />
             </div>
           )}
         </div>
@@ -1118,11 +1140,11 @@ export default function ProfileSettings() {
 
             <div className="space-y-3">
               {([
-                { key: 'squat', label: 'Squat', value: baselineLifts?.squat, color: 'bg-red-500' },
-                { key: 'deadlift', label: 'Deadlift', value: baselineLifts?.deadlift, color: 'bg-orange-500' },
-                { key: 'benchPress', label: 'Bench', value: baselineLifts?.benchPress, color: 'bg-blue-500' },
-                { key: 'overheadPress', label: 'OHP', value: baselineLifts?.overheadPress, color: 'bg-purple-500' },
-                { key: 'barbellRow', label: 'Row', value: baselineLifts?.barbellRow, color: 'bg-emerald-500' },
+                { key: 'squat', label: 'Squat', value: baselineLifts?.squat, color: 'from-red-500 to-red-400', bg: 'bg-red-500/10' },
+                { key: 'deadlift', label: 'Deadlift', value: baselineLifts?.deadlift, color: 'from-orange-500 to-amber-400', bg: 'bg-orange-500/10' },
+                { key: 'benchPress', label: 'Bench', value: baselineLifts?.benchPress, color: 'from-blue-500 to-sky-400', bg: 'bg-blue-500/10' },
+                { key: 'overheadPress', label: 'OHP', value: baselineLifts?.overheadPress, color: 'from-purple-500 to-violet-400', bg: 'bg-purple-500/10' },
+                { key: 'barbellRow', label: 'Row', value: baselineLifts?.barbellRow, color: 'from-emerald-500 to-green-400', bg: 'bg-emerald-500/10' },
               ] as const).map((lift) => {
                 const maxLift = Math.max(
                   baselineLifts?.squat || 0, baselineLifts?.deadlift || 0,
@@ -1158,19 +1180,20 @@ export default function ProfileSettings() {
                           onClick={() => { setEditingLift(lift.key); setLiftDraft(lift.value ? String(lift.value) : ''); }}
                           className="flex items-center gap-1 group"
                         >
-                          <span className="text-xs font-bold text-grappler-100 tabular-nums">
-                            {lift.value ? `${lift.value} ${weightUnit}` : '—'}
+                          <span className="text-sm font-black text-grappler-50 tabular-nums">
+                            {lift.value ? `${lift.value}` : '—'}
+                            {lift.value && <span className="text-xs font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
                           </span>
                           <Pencil className="w-2.5 h-2.5 text-grappler-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       )}
                     </div>
-                    <div className="h-1.5 bg-grappler-800/60 rounded-full overflow-hidden">
+                    <div className={cn('h-2.5 rounded-full overflow-hidden', lift.bg)}>
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className={cn('h-full rounded-full', lift.color)}
+                        className={cn('h-full rounded-full bg-gradient-to-r', lift.color)}
                       />
                     </div>
                   </div>
@@ -1200,14 +1223,14 @@ export default function ProfileSettings() {
             })()}
           </div>
 
-          <div className="flex gap-2 justify-between">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day, i) => {
+          <div className="flex justify-between px-1">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => {
               const isLift = user.trainingDays?.includes(i) ?? false;
               const hasCombat = (user.combatTrainingDays || []).some(d => d.day === i);
               const isBoth = isLift && hasCombat;
               return (
                 <button
-                  key={day}
+                  key={i}
                   onClick={() => {
                     const current = user.trainingDays || [];
                     const next = isLift ? current.filter(d => d !== i) : [...current, i].sort();
@@ -1221,33 +1244,40 @@ export default function ProfileSettings() {
                       : [...current, { day: i, intensity: 'moderate' as const }];
                     updateUser({ combatTrainingDays: next });
                   }}
-                  className={cn(
-                    'w-10 h-10 rounded-xl text-xs font-semibold transition-all active:scale-90',
-                    isBoth ? 'bg-gradient-to-br from-green-500 to-purple-500 text-white shadow-lg shadow-green-500/20'
-                      : isLift ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
-                      : hasCombat ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30'
-                      : 'bg-grappler-800/60 text-grappler-500'
-                  )}
+                  className="flex flex-col items-center gap-1.5"
                 >
-                  {day}
+                  <span className="text-[10px] text-grappler-500 font-medium">{day}</span>
+                  <div className={cn(
+                    'w-8 h-8 rounded-full transition-all active:scale-90 flex items-center justify-center',
+                    isBoth ? 'bg-gradient-to-br from-green-500 to-purple-500 shadow-md shadow-green-500/20'
+                      : isLift ? 'bg-green-500/25 ring-2 ring-green-500/40'
+                      : hasCombat ? 'bg-purple-500/25 ring-2 ring-purple-500/40'
+                      : 'bg-grappler-800/40 ring-1 ring-grappler-700/40'
+                  )}>
+                    {(isLift || hasCombat) && (
+                      <div className={cn(
+                        'w-1.5 h-1.5 rounded-full',
+                        isBoth ? 'bg-white' : isLift ? 'bg-green-400' : 'bg-purple-400'
+                      )} />
+                    )}
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          <div className="flex items-center justify-center gap-4 mt-3">
+          <div className="flex items-center justify-center gap-4 mt-2.5">
             {[
               { color: 'bg-green-500/30 ring-1 ring-green-500/50', label: 'Lift' },
               { color: 'bg-purple-500/30 ring-1 ring-purple-500/50', label: 'Combat' },
               { color: 'bg-gradient-to-br from-green-500 to-purple-500', label: 'Both' },
             ].map(l => (
-              <div key={l.label} className="flex items-center gap-1.5 text-xs text-grappler-400">
-                <div className={cn('w-2 h-2 rounded', l.color)} />
+              <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-grappler-500">
+                <div className={cn('w-2 h-2 rounded-full', l.color)} />
                 {l.label}
               </div>
             ))}
           </div>
-          <p className="text-xs text-grappler-600 text-center mt-1.5">Tap = lift · Long-press = combat</p>
         </motion.div>
       )}
 

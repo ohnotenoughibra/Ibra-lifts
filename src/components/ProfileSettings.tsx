@@ -415,8 +415,14 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
     setDeleteLoading(true);
     try {
       const res = await fetch('/api/auth/account', { method: 'DELETE' });
-      if (res.ok) { resetStore(); signOut({ callbackUrl: '/' }); }
-      else showToast('Failed to delete account. Please try again.', 'error');
+      if (res.ok) {
+        // Only clear local data AFTER server confirms deletion succeeded
+        resetStore();
+        signOut({ callbackUrl: '/' });
+      } else {
+        const body = await res.json().catch(() => ({}));
+        showToast(body.error || 'Failed to delete account. Please try again.', 'error');
+      }
     } catch { showToast('Something went wrong. Please try again.', 'error'); }
     finally { setDeleteLoading(false); }
   }, [resetStore, showToast]);

@@ -10,7 +10,6 @@ import {
   Dumbbell,
   Calendar,
   BarChart3,
-  User,
   Plus,
   Flame,
   Star,
@@ -19,6 +18,7 @@ import {
   Target,
   ThumbsUp,
   ThumbsDown,
+  Settings,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
@@ -220,7 +220,6 @@ const TABS = [
   { id: 'program', icon: Calendar, label: 'Program' },
   { id: 'explore', icon: Compass, label: 'Explore' },
   { id: 'progress', icon: BarChart3, label: 'Progress' },
-  { id: 'profile', icon: User, label: 'Profile' },
 ] as const;
 
 interface DashboardProps {
@@ -497,6 +496,7 @@ export default function Dashboard({
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} />,
+      profile_settings: <ProfileSettings onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
     if (overlayContent) return <div className="overlay-safe">{overlayContent}</div>;
@@ -595,6 +595,14 @@ export default function Dashboard({
                 {pointsToNextLevel(gamificationStats.totalPoints)} to lvl
               </span>
             </button>
+            <button
+              onClick={() => setOverlayView('profile_settings')}
+              className="w-8 h-8 rounded-full bg-grappler-800 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
+              title="Profile & Settings"
+              aria-label="Profile & Settings"
+            >
+              <Settings className="w-4 h-4 text-grappler-300" />
+            </button>
           </div>
         </div>
       </header>
@@ -642,20 +650,10 @@ export default function Dashboard({
               <ProgressAndHistoryTab onViewReport={setReportMesocycleId} />
             </motion.div>
           )}
-          {activeTab === 'profile' && (
-            <motion.div
-              key="profile"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <ProfileSettings />
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
 
-      {/* Bottom Navigation — Home, Program, [+], Explore, Progress, Profile */}
+      {/* Bottom Navigation — Home, Program, [+], Explore, Progress */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
         role="tablist"
@@ -700,7 +698,7 @@ export default function Dashboard({
             <Plus className="w-6 h-6" />
           </button>
 
-          {/* Right tabs: Explore, Progress, Profile */}
+          {/* Right tabs: Explore, Progress */}
           {TABS.slice(2).map((tab) => (
             <button
               key={tab.id}

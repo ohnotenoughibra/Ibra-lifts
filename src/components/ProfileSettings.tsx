@@ -222,7 +222,7 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // MAIN COMPONENT
 // ═════════════════════════════════════════════════════════════════════════════
 
-export default function ProfileSettings() {
+export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
@@ -938,6 +938,17 @@ export default function ProfileSettings() {
         <div className="relative bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent px-4 pt-6 pb-8">
           {/* Decorative glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary-500/8 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Close button (overlay mode) */}
+          {onClose && (
+            <button
+              onClick={() => { onClose(); hapticLight(); }}
+              className="absolute top-4 left-4 w-9 h-9 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 text-grappler-400" />
+            </button>
+          )}
 
           {/* Gear icon */}
           <button

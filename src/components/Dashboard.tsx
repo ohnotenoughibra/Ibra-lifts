@@ -264,8 +264,8 @@ export default function Dashboard({
       // Save scroll position before opening overlay
       scrollPositionRef.current = window.scrollY;
     }
-    // Show feedback toast when closing a real overlay (not quick_actions or user_guide)
-    if (view === null && overlayView && overlayView !== 'quick_actions' && overlayView !== 'user_guide') {
+    // Show feedback toast when closing a real overlay (not user_guide)
+    if (view === null && overlayView && overlayView !== 'user_guide') {
       setFeedbackOverlay(overlayView);
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
       feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);

@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
@@ -123,10 +123,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Backup: snapshot existing data before overwriting ──
-    // Keeps up to 30 days of hourly backups so data is always recoverable.
+    // ── Atomic write: backup + upsert + gamification in a single transaction ──
+    // Prevents inconsistent state if the server crashes mid-write.
+    const client = await db.connect();
     try {
-      await sql`
+      await client.sql`BEGIN`;
+
+      // Ensure backup table exists
+      await client.sql`
         CREATE TABLE IF NOT EXISTS user_store_backups (
           id SERIAL PRIMARY KEY,
           user_id TEXT NOT NULL,
@@ -135,51 +139,46 @@ export async function POST(request: Request) {
           created_at TIMESTAMPTZ DEFAULT NOW()
         )
       `;
-      // Re-use the existing data we already fetched for the regression check
+
+      // Backup: snapshot existing data before overwriting
       if (existingRows.length > 0 && existingRows[0].data) {
         const existingData = existingRows[0].data as Record<string, unknown>;
         const existingLogs = Array.isArray(existingData.workoutLogs) ? existingData.workoutLogs.length : 0;
         const existingHasProfile = existingData.isOnboarded === true && existingData.user;
         if (existingLogs > 0 || existingHasProfile) {
-          const { rows: recentBackup } = await sql`
+          const { rows: recentBackup } = await client.sql`
             SELECT id FROM user_store_backups
             WHERE user_id = ${userId} AND created_at > NOW() - INTERVAL '1 hour'
             LIMIT 1
           `;
           if (recentBackup.length === 0) {
             const existingJson = JSON.stringify(existingRows[0].data);
-            await sql`
+            await client.sql`
               INSERT INTO user_store_backups (user_id, data, workout_count)
               VALUES (${userId}, ${existingJson}::jsonb, ${existingLogs})
             `;
             // Prune backups older than 30 days
-            await sql`
+            await client.sql`
               DELETE FROM user_store_backups
               WHERE user_id = ${userId} AND created_at < NOW() - INTERVAL '30 days'
             `;
           }
         }
       }
-    } catch (backupErr) {
-      // Backup failure should never block the sync write
-      console.error('[sync] Backup failed (non-fatal):', backupErr);
-    }
 
-    // Upsert data
-    await sql`
-      INSERT INTO user_store (user_id, data, updated_at)
-      VALUES (${userId}, ${jsonData}::jsonb, NOW())
-      ON CONFLICT (user_id)
-      DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
-    `;
+      // Upsert data
+      await client.sql`
+        INSERT INTO user_store (user_id, data, updated_at)
+        VALUES (${userId}, ${jsonData}::jsonb, NOW())
+        ON CONFLICT (user_id)
+        DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
+      `;
 
-    // ── Dual-write gamification to its dedicated table (fire-and-forget) ──
-    // Ensures recovery always has gamification data even if user_store is lost.
-    try {
+      // Dual-write gamification to its dedicated table
       const gam = data.gamificationStats as Record<string, unknown> | undefined;
       if (gam && (Number(gam.totalPoints) > 0 || Number(gam.totalWorkouts) > 0)) {
         const badgesJson = JSON.stringify(gam.badges || []);
-        await sql`
+        await client.sql`
           INSERT INTO gamification_stats (id, user_id, total_points, level, current_streak,
             longest_streak, total_workouts, total_volume, personal_records, badges_json)
           VALUES (${userId}, ${userId}, ${Number(gam.totalPoints) || 0}, ${Number(gam.level) || 1},
@@ -198,8 +197,13 @@ export async function POST(request: Request) {
             updated_at = NOW()
         `;
       }
-    } catch {
-      // Non-fatal — gamification dual-write is a bonus safety net
+
+      await client.sql`COMMIT`;
+    } catch (txErr) {
+      await client.sql`ROLLBACK`;
+      throw txErr;
+    } finally {
+      client.release();
     }
 
     return NextResponse.json({ success: true });

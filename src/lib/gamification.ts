@@ -1,4 +1,4 @@
-import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog } from './types';
+import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog, WellnessDomain, WellnessStats, WellnessStreaks } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Badge definitions — 52 total badges across 5 categories
@@ -529,6 +529,136 @@ export const badges: Badge[] = [
     requirement: 'challenges_completed >= 52',
     points: 3000
   },
+
+  // ═══════════════════════════════════════════
+  // WELLNESS BADGES (14)
+  // ═══════════════════════════════════════════
+  {
+    id: 'wellness-first-day',
+    name: 'Day One',
+    description: 'Complete your first full wellness day (4+ domains)',
+    icon: '🌅',
+    category: 'wellness',
+    requirement: 'wellness_days >= 1',
+    points: 50
+  },
+  {
+    id: 'wellness-week',
+    name: 'Wellness Week',
+    description: '7 consecutive full wellness days',
+    icon: '🧘',
+    category: 'wellness',
+    requirement: 'wellness_streak >= 7',
+    points: 200
+  },
+  {
+    id: 'wellness-month',
+    name: 'Wellness Machine',
+    description: '30 consecutive full wellness days',
+    icon: '💊',
+    category: 'wellness',
+    requirement: 'wellness_streak >= 30',
+    points: 750
+  },
+  {
+    id: 'wellness-90',
+    name: 'Wellness Warrior',
+    description: '90 consecutive full wellness days',
+    icon: '🛡️',
+    category: 'wellness',
+    requirement: 'wellness_streak >= 90',
+    points: 2000
+  },
+  {
+    id: 'supplement-streak-7',
+    name: 'Stack Discipline',
+    description: 'Log all supplements for 7 consecutive days',
+    icon: '💉',
+    category: 'wellness',
+    requirement: 'supplement_streak >= 7',
+    points: 150
+  },
+  {
+    id: 'supplement-streak-30',
+    name: 'Supplement Centurion',
+    description: 'Log all supplements for 30 consecutive days',
+    icon: '🧬',
+    category: 'wellness',
+    requirement: 'supplement_streak >= 30',
+    points: 500
+  },
+  {
+    id: 'nutrition-streak-7',
+    name: 'Macro Tracker',
+    description: 'Log meals for 7 consecutive days',
+    icon: '🥗',
+    category: 'wellness',
+    requirement: 'nutrition_streak >= 7',
+    points: 150
+  },
+  {
+    id: 'nutrition-streak-30',
+    name: 'Nutrition Architect',
+    description: 'Log meals for 30 consecutive days',
+    icon: '🍱',
+    category: 'wellness',
+    requirement: 'nutrition_streak >= 30',
+    points: 500
+  },
+  {
+    id: 'sleep-streak-14',
+    name: 'Sleep Protocol',
+    description: 'Log sleep for 14 consecutive days',
+    icon: '😴',
+    category: 'wellness',
+    requirement: 'sleep_streak >= 14',
+    points: 200
+  },
+  {
+    id: 'mobility-streak-14',
+    name: 'Limber Fighter',
+    description: 'Do mobility work 14 consecutive days',
+    icon: '🤸',
+    category: 'wellness',
+    requirement: 'mobility_streak >= 14',
+    points: 250
+  },
+  {
+    id: 'beast-mode-1',
+    name: 'Beast Mode Unlocked',
+    description: 'Earn the 2x training multiplier for the first time',
+    icon: '⚡',
+    category: 'wellness',
+    requirement: 'beast_mode_days >= 1',
+    points: 100
+  },
+  {
+    id: 'beast-mode-7',
+    name: 'Beast Mode Week',
+    description: 'Maintain 2x multiplier for 7 days straight',
+    icon: '🔥',
+    category: 'wellness',
+    requirement: 'beast_mode_days >= 7',
+    points: 400
+  },
+  {
+    id: 'hydration-streak-14',
+    name: 'Hydration King',
+    description: 'Hit your water target 14 consecutive days',
+    icon: '💧',
+    category: 'wellness',
+    requirement: 'water_streak >= 14',
+    points: 200
+  },
+  {
+    id: 'mental-streak-7',
+    name: 'Mind Over Matter',
+    description: 'Complete mental check-ins for 7 consecutive days',
+    icon: '🧠',
+    category: 'wellness',
+    requirement: 'mental_streak >= 7',
+    points: 200
+  },
 ];
 
 // Level thresholds — 50 levels
@@ -605,6 +735,19 @@ export const pointRewards = {
   comebackBonus: 100,       // First workout back after 7+ day absence
   trainingSession: 30,      // Logging a training session
   smartRest: 25,            // Resting when readiness is low/critical
+
+  // ═══ Wellness XP — the boring stuff that wins fights ═══
+  supplementLog: 5,          // Per individual supplement taken
+  supplementFullStack: 20,   // Bonus for logging ALL supplements in your stack
+  mealLog: 5,               // Per meal logged
+  macroTarget: 25,           // Bonus for hitting macro targets (within 10%)
+  waterTarget: 15,           // Hit daily water goal
+  sleepLog: 10,              // Log sleep
+  mobilitySession: 30,       // Complete a mobility session
+  mentalCheckIn: 10,         // Mental/confidence check-in
+  breathingSession: 15,      // Complete a breathing protocol
+  wellnessStreakBonus: 5,    // Per day of wellness streak (capped at 50)
+  fullWellnessDay: 25,       // Bonus for completing 4+ wellness domains in a day
 };
 
 // Calculate level from total points
@@ -1082,6 +1225,236 @@ export function getMotivationalMessage(stats: GamificationStats): string {
 
   const allMessages = messages.length > 0 ? messages : defaults;
   return allMessages[Math.floor(Math.random() * allMessages.length)];
+}
+
+// ═══════════════════════════════════════════
+// WELLNESS MULTIPLIER SYSTEM
+// ═══════════════════════════════════════════
+// The multiplier amplifies training XP based on wellness habits completed today.
+// This uses loss aversion: you're always "leaving XP on the table" if you skip wellness.
+
+export function calculateWellnessMultiplier(domainsCompleted: WellnessDomain[]): number {
+  const count = domainsCompleted.length;
+  if (count >= 6) return 2.0;   // Beast Mode — all 6+ domains
+  if (count >= 5) return 1.75;
+  if (count >= 4) return 1.5;
+  if (count >= 3) return 1.3;
+  if (count >= 2) return 1.15;
+  if (count >= 1) return 1.05;
+  return 1.0;
+}
+
+export function getMultiplierLabel(multiplier: number): string {
+  if (multiplier >= 2.0) return 'BEAST MODE';
+  if (multiplier >= 1.75) return 'Locked In';
+  if (multiplier >= 1.5) return 'Dialed In';
+  if (multiplier >= 1.3) return 'Building';
+  if (multiplier >= 1.15) return 'Warming Up';
+  if (multiplier >= 1.05) return 'Started';
+  return 'Dormant';
+}
+
+// Calculate wellness XP for a specific domain action
+export function calculateWellnessXP(
+  domain: WellnessDomain,
+  details?: {
+    supplementCount?: number;  // How many supplements logged
+    stackSize?: number;        // Total supplements in stack
+    mealsLogged?: number;      // Number of meals logged today
+    macrosHit?: boolean;       // Within 10% of targets
+  }
+): { points: number; breakdown: { reason: string; points: number }[] } {
+  const breakdown: { reason: string; points: number }[] = [];
+  let totalPoints = 0;
+
+  switch (domain) {
+    case 'supplements': {
+      const count = details?.supplementCount || 1;
+      const perSuppPts = count * pointRewards.supplementLog;
+      totalPoints += perSuppPts;
+      breakdown.push({ reason: `${count} supplement${count !== 1 ? 's' : ''} logged`, points: perSuppPts });
+
+      if (details?.stackSize && details.stackSize > 0 && count >= details.stackSize) {
+        totalPoints += pointRewards.supplementFullStack;
+        breakdown.push({ reason: 'Full stack completed!', points: pointRewards.supplementFullStack });
+      }
+      break;
+    }
+    case 'nutrition': {
+      const meals = details?.mealsLogged || 1;
+      const mealPts = meals * pointRewards.mealLog;
+      totalPoints += mealPts;
+      breakdown.push({ reason: `${meals} meal${meals !== 1 ? 's' : ''} logged`, points: mealPts });
+
+      if (details?.macrosHit) {
+        totalPoints += pointRewards.macroTarget;
+        breakdown.push({ reason: 'Macro targets hit!', points: pointRewards.macroTarget });
+      }
+      break;
+    }
+    case 'water':
+      totalPoints += pointRewards.waterTarget;
+      breakdown.push({ reason: 'Water target hit', points: pointRewards.waterTarget });
+      break;
+    case 'sleep':
+      totalPoints += pointRewards.sleepLog;
+      breakdown.push({ reason: 'Sleep logged', points: pointRewards.sleepLog });
+      break;
+    case 'mobility':
+      totalPoints += pointRewards.mobilitySession;
+      breakdown.push({ reason: 'Mobility session', points: pointRewards.mobilitySession });
+      break;
+    case 'mental':
+      totalPoints += pointRewards.mentalCheckIn;
+      breakdown.push({ reason: 'Mental check-in', points: pointRewards.mentalCheckIn });
+      break;
+    case 'breathing':
+      totalPoints += pointRewards.breathingSession;
+      breakdown.push({ reason: 'Breathing protocol', points: pointRewards.breathingSession });
+      break;
+  }
+
+  return { points: totalPoints, breakdown };
+}
+
+// Update wellness streaks based on today's completed domains
+export function updateWellnessStreaks(
+  currentStreaks: WellnessStreaks,
+  todayDomains: WellnessDomain[],
+  lastWellnessDate: string | null,
+): WellnessStreaks {
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const isConsecutive = lastWellnessDate === today || lastWellnessDate === yesterday;
+
+  const domainSet = new Set(todayDomains);
+
+  const streakFor = (domain: WellnessDomain, current: number): number => {
+    if (!domainSet.has(domain)) return 0;
+    return isConsecutive ? current + 1 : 1;
+  };
+
+  // Only increment if this is a new day (prevent double-counting)
+  if (lastWellnessDate === today) {
+    // Same day — update domain set but don't increment streaks
+    return {
+      ...currentStreaks,
+      supplements: domainSet.has('supplements') ? Math.max(currentStreaks.supplements, 1) : currentStreaks.supplements,
+      nutrition: domainSet.has('nutrition') ? Math.max(currentStreaks.nutrition, 1) : currentStreaks.nutrition,
+      water: domainSet.has('water') ? Math.max(currentStreaks.water, 1) : currentStreaks.water,
+      sleep: domainSet.has('sleep') ? Math.max(currentStreaks.sleep, 1) : currentStreaks.sleep,
+      mobility: domainSet.has('mobility') ? Math.max(currentStreaks.mobility, 1) : currentStreaks.mobility,
+      mental: domainSet.has('mental') ? Math.max(currentStreaks.mental, 1) : currentStreaks.mental,
+      overall: todayDomains.length >= 4 ? Math.max(currentStreaks.overall, 1) : currentStreaks.overall,
+      longestOverall: currentStreaks.longestOverall,
+    };
+  }
+
+  const newOverall = todayDomains.length >= 4
+    ? (isConsecutive ? currentStreaks.overall + 1 : 1)
+    : 0;
+
+  return {
+    supplements: streakFor('supplements', currentStreaks.supplements),
+    nutrition: streakFor('nutrition', currentStreaks.nutrition),
+    water: streakFor('water', currentStreaks.water),
+    sleep: streakFor('sleep', currentStreaks.sleep),
+    mobility: streakFor('mobility', currentStreaks.mobility),
+    mental: streakFor('mental', currentStreaks.mental),
+    overall: newOverall,
+    longestOverall: Math.max(currentStreaks.longestOverall, newOverall),
+  };
+}
+
+// Check wellness-specific badges
+export function checkWellnessBadges(
+  stats: GamificationStats,
+  wellnessMetrics: {
+    wellnessDaysCount: number;
+    wellnessStreak: number;
+    supplementStreak: number;
+    nutritionStreak: number;
+    sleepStreak: number;
+    mobilityStreak: number;
+    waterStreak: number;
+    mentalStreak: number;
+    beastModeDays: number;
+  }
+): Badge[] {
+  const earnedBadgeIds = new Set(stats.badges.map(b => b.badgeId));
+  const newBadges: Badge[] = [];
+
+  for (const badge of badges) {
+    if (earnedBadgeIds.has(badge.id)) continue;
+    if (badge.category !== 'wellness') continue;
+
+    let earned = false;
+    const req = badge.requirement;
+
+    if (req.includes('wellness_days')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.wellnessDaysCount >= threshold;
+    } else if (req.includes('wellness_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.wellnessStreak >= threshold;
+    } else if (req.includes('supplement_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.supplementStreak >= threshold;
+    } else if (req.includes('nutrition_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.nutritionStreak >= threshold;
+    } else if (req.includes('sleep_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.sleepStreak >= threshold;
+    } else if (req.includes('mobility_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.mobilityStreak >= threshold;
+    } else if (req.includes('water_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.waterStreak >= threshold;
+    } else if (req.includes('mental_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.mentalStreak >= threshold;
+    } else if (req.includes('beast_mode_days')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.beastModeDays >= threshold;
+    }
+
+    if (earned) newBadges.push(badge);
+  }
+
+  return newBadges;
+}
+
+// Default empty wellness stats
+export const defaultWellnessStats: WellnessStats = {
+  streaks: {
+    supplements: 0,
+    nutrition: 0,
+    water: 0,
+    sleep: 0,
+    mobility: 0,
+    mental: 0,
+    overall: 0,
+    longestOverall: 0,
+  },
+  totalWellnessXP: 0,
+  wellnessDays: [],
+  lastWellnessDate: null,
+  currentMultiplier: 1.0,
+  todayCompleted: {},
+};
+
+// Get wellness level title
+export function getWellnessTitle(overallStreak: number): string {
+  if (overallStreak >= 180) return 'Wellness Legend';
+  if (overallStreak >= 90) return 'Wellness Warrior';
+  if (overallStreak >= 60) return 'Wellness Master';
+  if (overallStreak >= 30) return 'Wellness Machine';
+  if (overallStreak >= 14) return 'Wellness Apprentice';
+  if (overallStreak >= 7) return 'Wellness Seeker';
+  if (overallStreak >= 1) return 'Getting Started';
+  return 'Untapped Potential';
 }
 
 // Level titles based on level (extended to 50)

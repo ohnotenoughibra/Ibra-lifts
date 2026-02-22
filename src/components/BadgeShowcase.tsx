@@ -14,6 +14,7 @@ const CATEGORIES: { id: BadgeCategory; label: string; color: string }[] = [
   { id: 'volume', label: 'Volume', color: 'text-blue-400' },
   { id: 'milestone', label: 'Milestones', color: 'text-yellow-400' },
   { id: 'special', label: 'Special', color: 'text-purple-400' },
+  { id: 'wellness', label: 'Wellness', color: 'text-cyan-400' },
 ];
 
 export default function BadgeShowcase({ onClose }: { onClose: () => void }) {

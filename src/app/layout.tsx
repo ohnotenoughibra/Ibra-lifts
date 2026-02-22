@@ -60,6 +60,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen bg-grappler-900 bg-mesh">
+        {/* Viewport height JS fallback — runs before paint so there's no flash.
+            Updates --app-h on resize/orientation change for browsers without dvh support. */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            if(CSS.supports&&CSS.supports('min-height','100dvh'))return;
+            function u(){document.documentElement.style.setProperty('--app-h',window.innerHeight+'px')}
+            u();window.addEventListener('resize',u);
+          })();
+        ` }} />
         <Providers>
           <div className="relative min-h-screen">
             {children}

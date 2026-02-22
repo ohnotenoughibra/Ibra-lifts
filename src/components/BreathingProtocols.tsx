@@ -690,7 +690,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
 
       {/* ===== ACTIVE MODE ===== */}
       {mode === 'active' && selectedProtocol && colors && (
-        <div className="flex flex-col items-center justify-between min-h-[calc(100vh-64px)] p-4">
+        <div className="flex flex-col items-center justify-between min-h-[calc(var(--app-h)-64px)] p-4">
           {/* Phase + cycle info */}
           <div className="text-center space-y-2 pt-4">
             <div className="text-sm text-grappler-400">
@@ -849,7 +849,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
 
       {/* ===== COMPLETE MODE ===== */}
       {mode === 'complete' && selectedProtocol && colors && (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] p-6 text-center">
+        <div className="flex flex-col items-center justify-center min-h-[calc(var(--app-h)-64px)] p-6 text-center">
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
             style={{ backgroundColor: colors.circle + '20' }}

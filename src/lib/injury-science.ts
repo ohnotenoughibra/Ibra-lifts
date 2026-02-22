@@ -189,7 +189,7 @@ function getLoadingGuidelines(
     guidelines.push('Avoid aggravating movements — pain-free ROM only');
     if (tissue === 'muscle') {
       guidelines.push('Light isometric contractions within pain-free range after 48h');
-      guidelines.push('Avoid stretching — early stretching delays muscle healing');
+      guidelines.push('Gentle pain-free ROM is encouraged — complete immobilization delays healing (BJSM 2019). Avoid aggressive or weighted stretching in the first 48-72h');
     }
     if (tissue === 'tendon') {
       guidelines.push('Isometric holds (30-45s) can provide pain relief (Rio et al. 2015)');
@@ -209,10 +209,12 @@ function getLoadingGuidelines(
     if (tissue === 'muscle') {
       guidelines.push('Begin eccentric training at light load (Heiderscheit 2010)');
       guidelines.push('Gradually increase ROM through controlled movements');
+      guidelines.push('Pain monitoring: exercise pain should stay below 4/10 and settle within 24h — if not, reduce load');
     }
     if (tissue === 'tendon') {
       guidelines.push('Heavy Slow Resistance (HSR) protocol: 3×15→12→10→8 over weeks (Kongsgaard 2009)');
       guidelines.push('Eccentric loading 2×/day for lower limb tendons');
+      guidelines.push('Monitor pain using VAS: acceptable training pain ≤3/10, must return to baseline within 24h (Silbernagel 2007)');
     }
     if (tissue === 'ligament') {
       guidelines.push('Controlled ROM exercises, proprioception training');

@@ -218,7 +218,7 @@ export const SUPPLEMENT_DATABASE: SupplementRecommendation[] = [
     evidence: 'Wankhede et al. 2015 — improved strength and recovery. Salve et al. 2019 — reduced cortisol by 11-32%.',
     combatNotes: 'Best used during fight camp when stress/cortisol is highest. Use KSM-66 extract specifically (most studied). Stop 2 weeks before drug testing if concerned (some banned substance lists are overly broad).',
     bannedSubstanceRisk: false,
-    contraindications: ['Thyroid conditions (may increase thyroid hormones)'],
+    contraindications: ['Pre-existing thyroid conditions — consult your doctor (limited case-report evidence of thyroid hormone elevation; healthy individuals unaffected)'],
   },
   {
     id: 'zinc',

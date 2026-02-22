@@ -314,8 +314,8 @@ function avgSleepInRange(
     if (w.sleepScore != null) {
       total += w.sleepScore;
     } else if (w.sleepHours != null) {
-      // Convert hours to 0-100 scale: <5h=20, 6h=50, 7h=70, 8h=90, 9+=100
-      total += Math.min(100, Math.max(0, (w.sleepHours - 4) * 20));
+      // Sigmoid sleep scoring: steep penalty below 6h, diminishing returns above 8h
+      total += Math.min(100, Math.max(0, Math.round(100 / (1 + Math.exp(-1.5 * (w.sleepHours - 6.5))))));
     }
   });
 
@@ -447,10 +447,12 @@ export function calculateFatigueDebt(
     // 1. Training volume component (0-100)
     const volScore = weeklyVolumeScore(weekLogs);
 
-    // 2. RPE trend component (0-100): higher RPE = more fatigue
+    // 2. RPE trend component (0-100): higher RPE = exponentially more fatigue
+    // RPE 8 vs 9 is a much bigger fatigue difference than RPE 6 vs 7
     const avgRPE = weeklyAvgRPE(weekLogs);
-    // Map RPE 5-10 to fatigue 0-100 (sub-5 RPE = negligible fatigue)
-    const rpeScore = Math.min(100, Math.max(0, (avgRPE - 5) * 20));
+    // Exponential mapping: RPE 5→0, 7→16, 8→36, 9→64, 10→100
+    const normalizedRPE = Math.max(0, (avgRPE - 5) / 5); // 0-1 range
+    const rpeScore = Math.min(100, Math.max(0, Math.round(Math.pow(normalizedRPE, 2) * 100)));
 
     // 3. Recovery score component (0-100): lower recovery = more fatigue
     const avgRecovery = avgRecoveryInRange(wearableHistory, weekKey, weekEnd);

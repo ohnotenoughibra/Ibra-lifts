@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
+import { useAppStore } from '@/lib/store';
+import { getTopTools } from '@/lib/tool-affinity';
 import type { OverlayView } from './dashboard-types';
 
 export interface Tool {
@@ -212,6 +214,15 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     [recentIds]
   );
 
+  // Tool affinity — surfaces tools the user has thumbs-upped
+  const featureFeedback = useAppStore(s => s.featureFeedback);
+  const topTools = useMemo(() => {
+    const top = getTopTools(featureFeedback, 6);
+    return top
+      .map(t => TOOL_MAP.get(t.toolId))
+      .filter(Boolean) as Tool[];
+  }, [featureFeedback]);
+
   const pinnedTools = useMemo(() =>
     pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
     [pinnedIds]
@@ -342,6 +353,31 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 {usageMap[tool.id] && (
                   <span className="text-xs text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Your Top Tools — tools you've thumbs-upped (normal mode only) */}
+      {!pinMode && !isSearching && topTools.length >= 2 && (
+        <div>
+          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Heart className="w-3 h-3 text-pink-400" /> Your Top Tools
+          </p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {topTools.map(tool => (
+              <button
+                key={tool.id}
+                onClick={() => handleNavigate(tool.id)}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-b border border-grappler-800/50 whitespace-nowrap flex-shrink-0',
+                  'hover:border-grappler-700 active:scale-95 transition-all',
+                  tool.color
+                )}
+              >
+                <tool.icon className="w-4 h-4" />
+                <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
               </button>
             ))}
           </div>

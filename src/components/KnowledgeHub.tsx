@@ -1,342 +1,451 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
   Lightbulb,
-  ChevronRight,
+  ChevronLeft,
   Clock,
-  Tag,
   X,
-  Search
+  Search,
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   knowledgeArticles,
-  workoutTips,
   categoryInfo,
-  getArticlesByCategory,
-  getFeaturedArticle
+  getFeaturedArticle,
 } from '@/lib/knowledge';
-import { ContentCategory, KnowledgeArticle, KnowledgeTip } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
+import type { ContentCategory, KnowledgeArticle } from '@/lib/types';
+
+// ── Category gradient map — gives each topic a visual identity ───────────
+const CAT_STYLE: Record<string, { gradient: string; accent: string; bg: string }> = {
+  muscle_science:    { gradient: 'from-blue-500/20 to-cyan-500/10',    accent: 'text-blue-400',    bg: 'bg-blue-500/10' },
+  lifting_technique: { gradient: 'from-amber-500/20 to-orange-500/10', accent: 'text-amber-400',   bg: 'bg-amber-500/10' },
+  periodization:     { gradient: 'from-violet-500/20 to-purple-500/10',accent: 'text-violet-400',  bg: 'bg-violet-500/10' },
+  recovery:          { gradient: 'from-green-500/20 to-emerald-500/10',accent: 'text-green-400',   bg: 'bg-green-500/10' },
+  nutrition:         { gradient: 'from-red-500/20 to-rose-500/10',     accent: 'text-red-400',     bg: 'bg-red-500/10' },
+  dieting:           { gradient: 'from-yellow-500/20 to-amber-500/10', accent: 'text-yellow-400',  bg: 'bg-yellow-500/10' },
+  grappling:         { gradient: 'from-indigo-500/20 to-blue-500/10',  accent: 'text-indigo-400',  bg: 'bg-indigo-500/10' },
+  motivation:        { gradient: 'from-pink-500/20 to-rose-500/10',    accent: 'text-pink-400',    bg: 'bg-pink-500/10' },
+  striking:          { gradient: 'from-orange-500/20 to-red-500/10',   accent: 'text-orange-400',  bg: 'bg-orange-500/10' },
+  mma:               { gradient: 'from-red-600/20 to-orange-500/10',   accent: 'text-red-400',     bg: 'bg-red-500/10' },
+  general_fitness:   { gradient: 'from-teal-500/20 to-cyan-500/10',    accent: 'text-teal-400',    bg: 'bg-teal-500/10' },
+};
+
+const fallbackStyle = { gradient: 'from-primary-500/20 to-accent-500/10', accent: 'text-primary-400', bg: 'bg-primary-500/10' };
 
 export default function KnowledgeHub({ onClose }: { onClose?: () => void }) {
-  const [selectedCategory, setSelectedCategory] = useState<ContentCategory | 'all'>('all');
   const [selectedArticle, setSelectedArticle] = useState<KnowledgeArticle | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const categories = Object.entries(categoryInfo) as [ContentCategory, typeof categoryInfo[ContentCategory]][];
+  const { readArticles, bookmarkedArticles, markArticleRead, toggleBookmarkArticle } = useAppStore(
+    useShallow(s => ({
+      readArticles: s.readArticles,
+      bookmarkedArticles: s.bookmarkedArticles,
+      markArticleRead: s.markArticleRead,
+      toggleBookmarkArticle: s.toggleBookmarkArticle,
+    }))
+  );
 
-  const filteredArticles = knowledgeArticles.filter(article => {
-    const matchesCategory = selectedCategory === 'all' || article.category === selectedCategory;
-    const matchesSearch = searchQuery === '' ||
-      article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      article.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+  const readSet = useMemo(() => new Set(readArticles), [readArticles]);
+  const bookmarkSet = useMemo(() => new Set(bookmarkedArticles), [bookmarkedArticles]);
 
-  const featuredArticle = getFeaturedArticle();
+  // Group articles by category
+  const grouped = useMemo(() => {
+    const map = new Map<ContentCategory, KnowledgeArticle[]>();
+    for (const a of knowledgeArticles) {
+      const list = map.get(a.category) || [];
+      list.push(a);
+      map.set(a.category, list);
+    }
+    return map;
+  }, []);
 
-  // Get random tips
-  const randomTips = workoutTips
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3);
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return knowledgeArticles.filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      a.tags.some(t => t.toLowerCase().includes(q)) ||
+      (categoryInfo[a.category]?.name || '').toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
 
+  const featured = useMemo(() => getFeaturedArticle(), []);
+
+  const handleOpenArticle = useCallback((article: KnowledgeArticle) => {
+    setSelectedArticle(article);
+    markArticleRead(article.id);
+  }, [markArticleRead]);
+
+  // ─── ARTICLE READER VIEW ────────────────────────────────────────────
+  if (selectedArticle) {
+    return (
+      <ArticleReader
+        article={selectedArticle}
+        isBookmarked={bookmarkSet.has(selectedArticle.id)}
+        onToggleBookmark={() => toggleBookmarkArticle(selectedArticle.id)}
+        onBack={() => setSelectedArticle(null)}
+      />
+    );
+  }
+
+  // ─── LIBRARY VIEW ────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
-          <p className="text-sm text-grappler-400">Science-backed training wisdom</p>
+          <h2 className="text-lg font-bold text-grappler-50">Knowledge Hub</h2>
+          <p className="text-xs text-grappler-500 mt-0.5">Science-backed training wisdom</p>
         </div>
-        {onClose && (
-          <button onClick={onClose} className="p-2 -m-2 text-grappler-400 hover:text-grappler-200">
-            <X className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-grappler-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search articles and topics..."
-          className="input pl-10"
-        />
-      </div>
-
-      {/* Quick Tips */}
-      <div className="card p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Lightbulb className="w-5 h-5 text-yellow-500" />
-          <h3 className="font-medium text-grappler-200">Quick Tips</h3>
-        </div>
-        <div className="space-y-3">
-          {randomTips.map((tip) => (
-            <motion.div
-              key={tip.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-sm text-grappler-300 bg-grappler-800/50 rounded-lg p-3"
-            >
-              <p>{tip.content}</p>
-              <p className="text-xs text-grappler-400 mt-1 capitalize">
-                {categoryInfo[tip.category]?.name || tip.category}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Categories */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        <button
-          onClick={() => setSelectedCategory('all')}
-          className={cn(
-            'px-4 py-2 rounded-lg whitespace-nowrap transition-all',
-            selectedCategory === 'all'
-              ? 'bg-primary-500 text-white'
-              : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
-          )}
-        >
-          All Topics
-        </button>
-        {categories.map(([key, info]) => (
+        <div className="flex items-center gap-2">
           <button
-            key={key}
-            onClick={() => setSelectedCategory(key)}
+            onClick={() => setSearchOpen(v => !v)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
-              selectedCategory === key
-                ? 'bg-primary-500 text-white'
-                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+              'p-2 rounded-xl transition-colors',
+              searchOpen ? 'bg-primary-500/20 text-primary-400' : 'text-grappler-400 hover:text-grappler-200'
             )}
           >
-            <span>{info.icon}</span>
-            {info.name}
+            <Search className="w-5 h-5" />
           </button>
-        ))}
-      </div>
-
-      {/* Featured Article */}
-      {selectedCategory === 'all' && searchQuery === '' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card p-6 bg-gradient-to-br from-primary-500/20 to-accent-500/20 border-primary-500/30"
-        >
-          <span className="text-xs text-primary-400 font-medium uppercase tracking-wide">
-            Featured Article
-          </span>
-          <h3 className="text-lg font-bold text-grappler-50 mt-2 mb-2">
-            {featuredArticle.title}
-          </h3>
-          <div className="flex items-center gap-3 text-sm text-grappler-400 mb-4">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {featuredArticle.readTime} min read
-            </span>
-            <span className="flex items-center gap-1">
-              <Tag className="w-4 h-4" />
-              {categoryInfo[featuredArticle.category]?.name}
-            </span>
-          </div>
-          <button
-            onClick={() => setSelectedArticle(featuredArticle)}
-            className="btn btn-primary btn-sm gap-2"
-          >
-            Read Article
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </motion.div>
-      )}
-
-      {/* Article List */}
-      <div className="space-y-3">
-        {filteredArticles.map((article, i) => (
-          <motion.button
-            key={article.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={() => setSelectedArticle(article)}
-            className="w-full card p-4 text-left hover:bg-grappler-700/50 transition-colors"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{categoryInfo[article.category]?.icon}</span>
-                  <span className="text-xs text-grappler-400 capitalize">
-                    {categoryInfo[article.category]?.name}
-                  </span>
-                </div>
-                <h4 className="font-medium text-grappler-100 mb-1">{article.title}</h4>
-                <div className="flex items-center gap-3 text-xs text-grappler-400">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {article.readTime} min
-                  </span>
-                  <div className="flex gap-1">
-                    {article.tags.slice(0, 2).map(tag => (
-                      <span key={tag} className="bg-grappler-700 px-2 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-grappler-500 flex-shrink-0" />
-            </div>
-          </motion.button>
-        ))}
-      </div>
-
-      {filteredArticles.length === 0 && (
-        <div className="text-center py-12 text-grappler-500">
-          <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No articles found matching your search.</p>
+          {onClose && (
+            <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200">
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Article Modal */}
+      {/* Collapsible search */}
       <AnimatePresence>
-        {selectedArticle && (
+        {searchOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-grappler-900/95 overflow-y-auto"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
           >
-            <div className="min-h-screen px-4 py-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6 sticky top-0 bg-grappler-900/90 backdrop-blur-xl py-2 -mx-4 px-4">
-                <button
-                  onClick={() => setSelectedArticle(null)}
-                  className="btn btn-ghost btn-sm"
-                >
-                  <X className="w-5 h-5" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search articles..."
+                className="w-full bg-grappler-800 border border-grappler-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm text-grappler-100 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500/50"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500">
+                  <X className="w-4 h-4" />
                 </button>
-                <div className="flex items-center gap-2 text-sm text-grappler-400">
-                  <Clock className="w-4 h-4" />
-                  {selectedArticle.readTime} min read
-                </div>
-              </div>
-
-              {/* Article Content */}
-              <article className="max-w-2xl mx-auto">
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl">{categoryInfo[selectedArticle.category]?.icon}</span>
-                    <span className="text-sm text-grappler-400 capitalize">
-                      {categoryInfo[selectedArticle.category]?.name}
-                    </span>
-                  </div>
-                  <h1 className="text-2xl font-bold text-grappler-50 mb-4">
-                    {selectedArticle.title}
-                  </h1>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedArticle.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className="bg-grappler-800 text-grappler-400 px-3 py-1 rounded-full text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Markdown Content */}
-                <div className="prose prose-invert prose-primary max-w-none">
-                  <ArticleContent content={selectedArticle.content} />
-                </div>
-
-                {selectedArticle.source && (
-                  <div className="mt-8 pt-4 border-t border-grappler-700">
-                    <p className="text-xs text-grappler-400">
-                      Source: {selectedArticle.source}
-                    </p>
-                  </div>
-                )}
-              </article>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Search results */}
+      {searchQuery.trim() ? (
+        <div className="space-y-2">
+          <p className="text-xs text-grappler-500 px-1">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}</p>
+          {searchResults.length > 0 ? (
+            searchResults.map(a => (
+              <ArticleRow key={a.id} article={a} isRead={readSet.has(a.id)} onTap={handleOpenArticle} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-grappler-500">
+              <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No articles match that search.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Featured article — hero card */}
+          <button
+            onClick={() => handleOpenArticle(featured)}
+            className="w-full text-left"
+          >
+            <div className={cn(
+              'rounded-2xl p-5 border border-primary-500/20 bg-gradient-to-br',
+              CAT_STYLE[featured.category]?.gradient || fallbackStyle.gradient,
+            )}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary-400" />
+                <span className="text-xs font-semibold text-primary-400 uppercase tracking-wider">Featured</span>
+              </div>
+              <h3 className="text-base font-bold text-grappler-50 leading-snug">
+                {featured.title}
+              </h3>
+              <div className="flex items-center gap-3 mt-2.5 text-xs text-grappler-400">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {featured.readTime} min
+                </span>
+                <span>{categoryInfo[featured.category]?.icon} {categoryInfo[featured.category]?.name}</span>
+              </div>
+            </div>
+          </button>
+
+          {/* Category sections — each category is a horizontal scrollable row */}
+          {Array.from(grouped.entries()).map(([cat, articles]) => {
+            const info = categoryInfo[cat];
+            const style = CAT_STYLE[cat] || fallbackStyle;
+            if (!info) return null;
+            return (
+              <div key={cat}>
+                {/* Category header */}
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-base">{info.icon}</span>
+                  <h3 className="text-sm font-semibold text-grappler-200">{info.name}</h3>
+                  <span className="text-xs text-grappler-600">{articles.length}</span>
+                </div>
+
+                {/* Horizontal card scroll */}
+                <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                  {articles.map(a => {
+                    const isRead = readSet.has(a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => handleOpenArticle(a)}
+                        className={cn(
+                          'flex-shrink-0 w-56 rounded-xl p-3.5 text-left border transition-all active:scale-[0.97]',
+                          'bg-grappler-800/60 border-grappler-700/40 hover:border-grappler-600/60',
+                        )}
+                      >
+                        <h4 className="text-sm font-medium text-grappler-100 leading-snug line-clamp-2">
+                          {a.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-grappler-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {a.readTime}m
+                          </span>
+                          {isRead && (
+                            <span className="flex items-center gap-0.5 text-green-500">
+                              <Check className="w-3 h-3" />
+                              Read
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
 
-// Simple markdown-like renderer for article content
+// ── Article Row (search results) ───────────────────────────────────────
+function ArticleRow({ article, isRead, onTap }: { article: KnowledgeArticle; isRead: boolean; onTap: (a: KnowledgeArticle) => void }) {
+  const info = categoryInfo[article.category];
+  return (
+    <button
+      onClick={() => onTap(article)}
+      className="w-full rounded-xl p-3 text-left bg-grappler-800/40 border border-grappler-700/30 hover:border-grappler-600/50 transition-all active:scale-[0.98]"
+    >
+      <div className="flex items-start gap-3">
+        <span className="text-lg mt-0.5">{info?.icon}</span>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-medium text-grappler-100 leading-snug">{article.title}</h4>
+          <div className="flex items-center gap-2 mt-1 text-xs text-grappler-500">
+            <span>{info?.name}</span>
+            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{article.readTime}m</span>
+            {isRead && <span className="text-green-500 flex items-center gap-0.5"><Check className="w-3 h-3" />Read</span>}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── Article Reader — full-screen, magazine-quality ─────────────────────
+function ArticleReader({
+  article,
+  isBookmarked,
+  onToggleBookmark,
+  onBack,
+}: {
+  article: KnowledgeArticle;
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
+  onBack: () => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handler = () => {
+      const pct = el.scrollTop / (el.scrollHeight - el.clientHeight);
+      setScrollProgress(Math.min(1, Math.max(0, pct)));
+    };
+    el.addEventListener('scroll', handler, { passive: true });
+    return () => el.removeEventListener('scroll', handler);
+  }, []);
+
+  const info = categoryInfo[article.category];
+  const style = CAT_STYLE[article.category] || fallbackStyle;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-grappler-900 flex flex-col">
+      {/* Reading progress bar */}
+      <div className="h-0.5 bg-grappler-800 flex-shrink-0">
+        <motion.div
+          className="h-full bg-primary-500"
+          style={{ width: `${scrollProgress * 100}%` }}
+          transition={{ duration: 0.1 }}
+        />
+      </div>
+
+      {/* Sticky header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800/50 flex-shrink-0">
+        <button onClick={onBack} className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 py-1">
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleBookmark}
+            className={cn(
+              'p-2 rounded-xl transition-colors',
+              isBookmarked ? 'text-primary-400' : 'text-grappler-500 hover:text-grappler-300'
+            )}
+          >
+            {isBookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-5 pt-6 pb-16">
+          {/* Article header */}
+          <div className="mb-8">
+            <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium mb-4', style.bg, style.accent)}>
+              <span>{info?.icon}</span>
+              {info?.name}
+            </div>
+            <h1 className="text-2xl font-bold text-grappler-50 leading-tight">
+              {article.title}
+            </h1>
+            <div className="flex items-center gap-3 mt-3 text-xs text-grappler-500">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {article.readTime} min read
+              </span>
+              {article.source && (
+                <span className="truncate max-w-[50%]">{article.source}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Article body */}
+          <ArticleContent content={article.content} />
+
+          {/* Footer */}
+          <div className="mt-12 pt-6 border-t border-grappler-800">
+            <div className="flex items-center gap-3 flex-wrap">
+              {article.tags.map(tag => (
+                <span key={tag} className="text-xs text-grappler-500 bg-grappler-800 px-2.5 py-1 rounded-lg">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            {article.source && (
+              <p className="text-xs text-grappler-600 mt-4">Source: {article.source}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Inline text parser — handles **bold** inside any line ─────────────
+function renderInlineMarkup(text: string) {
+  if (!text.includes('**')) return text;
+  const parts = text.split(/\*\*([^*]+)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <strong key={i} className="text-grappler-100 font-semibold">{part}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+// ── Article content renderer — proper markdown → JSX ──────────────────
 function ArticleContent({ content }: { content: string }) {
   const lines = content.trim().split('\n');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {lines.map((line, i) => {
         const trimmed = line.trim();
-
         if (!trimmed) return null;
 
-        // Headers
+        // ## Heading 2
         if (trimmed.startsWith('## ')) {
           return (
-            <h2 key={i} className="text-xl font-bold text-grappler-100 mt-6 mb-3">
+            <h2 key={i} className="text-lg font-bold text-grappler-100 mt-8 mb-1 first:mt-0">
               {trimmed.slice(3)}
             </h2>
           );
         }
+
+        // ### Heading 3
         if (trimmed.startsWith('### ')) {
           return (
-            <h3 key={i} className="text-lg font-semibold text-grappler-200 mt-4 mb-2">
+            <h3 key={i} className="text-base font-semibold text-grappler-200 mt-5 mb-1">
               {trimmed.slice(4)}
             </h3>
           );
         }
 
-        // List items
+        // Unordered list
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
           return (
-            <li key={i} className="text-grappler-300 ml-4 list-disc">
-              {trimmed.slice(2)}
-            </li>
+            <div key={i} className="flex gap-2.5 pl-1">
+              <span className="text-primary-500 mt-1.5 text-xs flex-shrink-0">{'●'}</span>
+              <p className="text-sm text-grappler-300 leading-relaxed">{renderInlineMarkup(trimmed.slice(2))}</p>
+            </div>
           );
         }
+
+        // Ordered list
         if (/^\d+\.\s/.test(trimmed)) {
+          const num = trimmed.match(/^(\d+)\./)?.[1];
           return (
-            <li key={i} className="text-grappler-300 ml-4 list-decimal">
-              {trimmed.replace(/^\d+\.\s/, '')}
-            </li>
+            <div key={i} className="flex gap-2.5 pl-1">
+              <span className="text-primary-400 font-semibold text-sm w-5 text-right flex-shrink-0">{num}.</span>
+              <p className="text-sm text-grappler-300 leading-relaxed">{renderInlineMarkup(trimmed.replace(/^\d+\.\s/, ''))}</p>
+            </div>
           );
         }
 
-        // Bold text
-        if (trimmed.includes('**')) {
-          const parts = trimmed.split(/\*\*([^*]+)\*\*/g);
-          return (
-            <p key={i} className="text-grappler-300">
-              {parts.map((part, j) =>
-                j % 2 === 1 ? (
-                  <strong key={j} className="text-grappler-100 font-semibold">
-                    {part}
-                  </strong>
-                ) : (
-                  part
-                )
-              )}
-            </p>
-          );
-        }
-
-        // Regular paragraph
+        // Regular paragraph (with inline bold support)
         return (
-          <p key={i} className="text-grappler-300 leading-relaxed">
-            {trimmed}
+          <p key={i} className="text-sm text-grappler-300 leading-relaxed">
+            {renderInlineMarkup(trimmed)}
           </p>
         );
       })}

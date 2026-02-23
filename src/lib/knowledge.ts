@@ -692,6 +692,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
   {
     id: 'article-undulating-periodization',
     title: 'Why Undulating Periodization Works for Grapplers',
+    tldr: 'Vary intensity within each week to build strength, power, and endurance from just 2-3 lifting sessions.',
     category: 'periodization',
     tags: ['programming', 'science', 'grappling'],
     readTime: 5,
@@ -728,6 +729,7 @@ This ensures you're always fresh enough for your main sport while still progress
   {
     id: 'article-hypertrophy-science',
     title: 'The Science of Building Muscle in 2025',
+    tldr: 'Mechanical tension, eccentric emphasis, and 10-20 sets/muscle/week — the three levers that actually drive growth.',
     category: 'muscle_science',
     tags: ['hypertrophy', 'science', 'training'],
     readTime: 7,
@@ -778,6 +780,7 @@ Going above MAV doesn't add growth and increases injury risk.
   {
     id: 'article-strength-adaptations',
     title: 'How Strength Actually Develops',
+    tldr: 'Your brain adapts before your muscles do — neural recruitment, rate coding, and why heavy training is non-negotiable.',
     category: 'muscle_science',
     tags: ['strength', 'science', 'neural'],
     readTime: 6,
@@ -829,6 +832,7 @@ For grapplers, the 4-8 rep range offers the best of both worlds.
   {
     id: 'article-grappling-strength',
     title: 'Strength Training for Grapplers: The Complete Guide',
+    tldr: 'The 6 movement patterns every grappler needs, a sample 3-day split, and how to never let lifting hurt mat time.',
     category: 'grappling',
     tags: ['grappling', 'BJJ', 'wrestling', 'programming'],
     readTime: 10,
@@ -911,6 +915,7 @@ Never train legs heavy the day before competition or hard sparring. Plan your we
   {
     id: 'article-eccentric-training',
     title: 'Eccentric Training: The Secret Weapon for Muscle Growth',
+    tldr: '3-4 second eccentrics produce 15% more hypertrophy per set. Here\'s how to implement them.',
     category: 'lifting_technique',
     tags: ['technique', 'hypertrophy', 'eccentric'],
     readTime: 5,
@@ -961,6 +966,7 @@ Use a tempo notation like "3-1-2-0":
   {
     id: 'article-grip-training',
     title: 'Grip Strength: The Grappler\'s Secret Weapon',
+    tldr: 'Four types of grip strength, a 5-exercise circuit, and gi vs no-gi training differences.',
     category: 'grappling',
     tags: ['grip', 'grappling', 'forearms'],
     readTime: 4,
@@ -1014,6 +1020,7 @@ Grip work is taxing on the forearms and can affect your grappling. Schedule grip
   {
     id: 'article-recovery-science',
     title: 'Recovery Science: What Actually Works',
+    tldr: 'Sleep and protein are Tier 1. Cold water immersion is Tier 2. BCAAs and compression gear are marketing.',
     category: 'recovery',
     tags: ['recovery', 'sleep', 'science'],
     readTime: 6,
@@ -1079,6 +1086,7 @@ Not all recovery methods are created equal. Here is what the research actually s
   {
     id: 'article-weight-management',
     title: 'Weight Management for Grapplers',
+    tldr: 'Fat loss vs water cut — two different processes. Training day vs rest day nutrition, and the only 4 supplements worth buying.',
     category: 'nutrition',
     tags: ['nutrition', 'weight', 'grappling', 'competition'],
     readTime: 7,
@@ -1128,6 +1136,7 @@ Everything else is marketing.
   {
     id: 'article-training-longevity',
     title: 'Training for Longevity: Lifting in Your 30s and Beyond',
+    tldr: 'Recovery slows, joints need more warm-up, but smart programming means you can train harder at 40 than most do at 25.',
     category: 'lifting_technique',
     tags: ['longevity', 'injury-prevention', 'programming'],
     readTime: 6,
@@ -1181,6 +1190,7 @@ The goal is not to peak at 35. It is to be training at 55. Every session should 
   {
     id: 'article-autoregulation',
     title: 'Autoregulation: Training Smarter with RPE and Readiness',
+    tldr: 'RPE-based training adapts to your daily readiness. Green/yellow/red light system for when to push and when to back off.',
     category: 'periodization',
     tags: ['RPE', 'autoregulation', 'programming', 'science'],
     readTime: 5,
@@ -1239,6 +1249,7 @@ This app uses your pre-workout check-in, wearable recovery data, and per-exercis
   {
     id: 'article-hrv-baselines',
     title: 'Understanding Your HRV & RHR Baselines',
+    tldr: 'Your HRV is only meaningful relative to YOU. How to build a 14-day baseline and interpret daily readings.',
     category: 'recovery',
     tags: ['HRV', 'recovery', 'wearables', 'readiness', 'science'],
     readTime: 6,
@@ -1284,6 +1295,7 @@ For accurate baselines:
   {
     id: 'article-acwr-injury',
     title: 'ACWR: The Injury Prevention Framework',
+    tldr: 'It\'s not high load that causes injuries — it\'s spikes in load. The 10% rule that prevents most training injuries.',
     category: 'periodization',
     tags: ['injury', 'ACWR', 'periodization', 'science', 'grappling'],
     readTime: 7,
@@ -1322,6 +1334,7 @@ Never increase total weekly load by more than 10%. This single rule prevents mos
   {
     id: 'article-grappling-recovery',
     title: 'Recovery Protocol for Combat Athletes',
+    tldr: 'Grip recovery, neck health protocols, and the 48-hour rule after hard sparring or competition.',
     category: 'grappling',
     tags: ['grappling', 'recovery', 'BJJ', 'wrestling', 'MMA'],
     readTime: 6,
@@ -1369,6 +1382,7 @@ After hard grappling (competition-style rounds or tournament):
   {
     id: 'article-striking-strength',
     title: 'Strength Training for Strikers',
+    tldr: 'Rotational power, hip extension, shoulder endurance, and core anti-rotation — the 4 pillars of knockout power.',
     category: 'striking',
     tags: ['striking', 'boxing', 'kickboxing', 'power'],
     readTime: 6,
@@ -1447,6 +1461,7 @@ Your core must resist rotation to transfer power efficiently and absorb body sho
   {
     id: 'article-mma-programming',
     title: 'Strength & Conditioning for MMA',
+    tldr: 'All three energy systems, concurrent training splits for off-season vs fight camp, and the 4 common programming mistakes.',
     category: 'mma',
     tags: ['MMA', 'fighting', 'conditioning', 'programming'],
     readTime: 8,
@@ -1536,6 +1551,7 @@ MMA is brutal on the body. You cannot out-train bad recovery:
   {
     id: 'article-general-strength',
     title: 'Building Strength: A Beginner\'s Complete Guide',
+    tldr: 'The Big 5 movement patterns, rep ranges by experience level, and the 80/20 of getting results.',
     category: 'general_fitness',
     tags: ['beginner', 'strength', 'programming', 'basics'],
     readTime: 7,
@@ -1621,6 +1637,7 @@ The key to getting stronger: gradually increase demands over time.
   {
     id: 'article-progressive-overload',
     title: 'Progressive Overload: Beyond Just Adding Weight',
+    tldr: '7 ways to progress when adding weight stalls — reps, sets, tempo, ROM, technique, density, and when to use each.',
     category: 'general_fitness',
     tags: ['progression', 'programming', 'intermediate', 'plateau'],
     readTime: 5,
@@ -1704,6 +1721,7 @@ This app tracks all of this automatically. Use it.
   {
     id: 'article-dieting-training-integration',
     title: 'How Your Diet Phase Should Change Your Training',
+    tldr: 'Cutting? Drop volume, keep intensity. Bulking? Push volume harder. The research on why most people get this backwards.',
     category: 'dieting',
     tags: ['dieting', 'training', 'cut', 'bulk', 'programming'],
     readTime: 7,
@@ -1753,6 +1771,7 @@ Train normally. This is your baseline programming.
   {
     id: 'article-cutting-guide',
     title: 'The Evidence-Based Guide to Cutting Weight',
+    tldr: '0.5-0.7% BW/week, protein up not down, fat floors for hormone health, and red flags that mean stop immediately.',
     category: 'dieting',
     tags: ['dieting', 'cut', 'fat-loss', 'muscle-retention'],
     readTime: 8,
@@ -1818,6 +1837,7 @@ These are signs of Relative Energy Deficiency. Return to maintenance immediately
   {
     id: 'article-bulking-guide',
     title: 'Smart Bulking: Maximize Muscle, Minimize Fat',
+    tldr: 'A 10-12% surplus builds the same muscle as 15% with way less fat. Optimal rates, macro splits, and when to stop.',
     category: 'dieting',
     tags: ['dieting', 'bulk', 'muscle-gain', 'surplus'],
     readTime: 6,
@@ -1878,6 +1898,7 @@ After this, a maintenance phase (4-6 weeks) helps stabilize new weight before de
   {
     id: 'article-women-nutrition',
     title: 'Nutrition for Female Athletes: What the Science Says',
+    tldr: 'Energy availability thresholds, RED-S warning signs, higher fat minimums, and why slower cuts are physiologically necessary.',
     category: 'dieting',
     tags: ['dieting', 'women', 'hormones', 'RED-S', 'nutrition'],
     readTime: 8,
@@ -1947,6 +1968,7 @@ However, the research is still evolving. The most important factor is overall en
   {
     id: 'article-combat-sport-periodization',
     title: 'Periodization for Combat Sports Athletes',
+    tldr: 'Annual planning from off-season to fight week, sport-specific priorities, and a weekly structure that protects mat time.',
     category: 'periodization',
     tags: ['periodization', 'combat', 'MMA', 'grappling', 'striking', 'competition'],
     readTime: 7,
@@ -2036,6 +2058,7 @@ Never increase total training load (lifting + sport) by more than 10% per week. 
   {
     id: 'article-mental-toughness',
     title: 'Mental Toughness: The Skill Nobody Trains',
+    tldr: 'Process focus, discomfort tolerance, and identity alignment — three trainable skills that separate elite from average.',
     category: 'motivation',
     tags: ['mindset', 'psychology', 'performance', 'combat'],
     readTime: 7,
@@ -2100,6 +2123,7 @@ Mental toughness isn't built in big moments. It's built in small daily decisions
   {
     id: 'article-sleep-performance',
     title: 'Sleep: The Performance Multiplier You\'re Ignoring',
+    tldr: '75% of growth hormone is released during deep sleep. 5 hours instead of 8 drops testosterone 10-15%. The 10-3-2-1-0 rule.',
     category: 'recovery',
     tags: ['sleep', 'recovery', 'hormones', 'performance'],
     readTime: 6,
@@ -2164,6 +2188,7 @@ If you're doing everything right in training and nutrition but not progressing, 
   {
     id: 'article-stress-management',
     title: 'Managing Life Stress as a Training Variable',
+    tldr: 'Your body has one stress budget — work, sleep, relationships, and training all draw from the same pool.',
     category: 'recovery',
     tags: ['stress', 'recovery', 'cortisol', 'adaptation', 'allostatic load'],
     readTime: 5,
@@ -2225,6 +2250,7 @@ Training is a stimulus. Recovery is when you adapt. If recovery is compromised, 
   {
     id: 'article-nutrition-fundamentals',
     title: 'Nutrition First Principles: What Actually Matters',
+    tldr: 'Calories are 70% of results, protein is 20%, everything else is 10%. The hierarchy most people get completely inverted.',
     category: 'nutrition',
     tags: ['nutrition', 'macros', 'fundamentals', 'hierarchy'],
     readTime: 6,
@@ -2284,6 +2310,7 @@ Adherence beats perfection. The best diet is the one you can follow for months, 
   {
     id: 'article-overtraining-vs-underrecovery',
     title: 'You\'re Not Overtrained — You\'re Under-Recovered',
+    tldr: 'True overtraining is extremely rare. What you have is bad sleep, low protein, or no deloads. Fix those first.',
     category: 'recovery',
     tags: ['overtraining', 'recovery', 'fatigue', 'deload'],
     readTime: 5,
@@ -2342,6 +2369,7 @@ If you're stuck in a plateau and tempted to train MORE, try training LESS with b
   {
     id: 'article-striking-conditioning',
     title: 'Conditioning for Strikers: Energy Systems Explained',
+    tldr: 'Three energy systems, all used within a single round. Build aerobic base first, add lactate tolerance, then peak.',
     category: 'striking',
     tags: ['striking', 'conditioning', 'energy systems', 'boxing', 'muay thai'],
     readTime: 7,
@@ -2402,6 +2430,7 @@ Key exercises:
   {
     id: 'article-mma-weight-management',
     title: 'Weight Management for MMA: Fight Week to Off-Season',
+    tldr: 'Walk around within 8-12% of fight weight. Chronic fat loss then acute water cut. Rehydration protocol post-weigh-in.',
     category: 'mma',
     tags: ['mma', 'weight cut', 'fight week', 'nutrition', 'rehydration'],
     readTime: 8,
@@ -2465,6 +2494,7 @@ No fight is worth permanent organ damage. Move up a weight class if cuts are con
   {
     id: 'article-injury-prevention',
     title: 'Injury Prevention: The Principles That Actually Work',
+    tldr: 'Strength training cuts injuries 66%. Stretching alone? Nearly zero. Load management, full ROM, and fixing asymmetries.',
     category: 'general_fitness',
     tags: ['injury', 'prevention', 'prehab', 'mobility', 'longevity'],
     readTime: 6,
@@ -2520,6 +2550,7 @@ Under-recovered athletes get injured. Period.
   {
     id: 'article-motivation-consistency',
     title: 'Consistency > Motivation: Building Unbreakable Training Habits',
+    tldr: 'Motivation is an emotion — it comes and goes. Systems, environment design, and the "never miss twice" rule.',
     category: 'motivation',
     tags: ['motivation', 'habits', 'consistency', 'psychology', 'discipline'],
     readTime: 5,
@@ -2577,6 +2608,7 @@ If you've lost motivation for 2+ weeks:
   {
     id: 'article-grappling-conditioning',
     title: 'Grappling Conditioning: Build a Gas Tank That Never Quits',
+    tldr: 'Aerobic system provides 55-65% of energy in a BJJ match. Build the base, add grip endurance, then sport-specific intervals.',
     category: 'grappling',
     tags: ['grappling', 'conditioning', 'bjj', 'wrestling', 'cardio'],
     readTime: 7,
@@ -2637,6 +2669,7 @@ Elite grapplers don't just have better cardio. They're more efficient:
   {
     id: 'article-mobility-combat',
     title: 'Mobility for Combat Athletes: Move Better, Fight Better',
+    tldr: 'Flexibility without strength is a liability. Hip, T-spine, shoulder, and ankle priorities — 5 minutes daily, zero excuses.',
     category: 'general_fitness',
     tags: ['mobility', 'flexibility', 'movement', 'combat', 'longevity'],
     readTime: 5,
@@ -2695,6 +2728,638 @@ If you do nothing else:
 3. **90/90 hip switches:** 1 minute per side daily (hip rotation)
 
 That's 5 minutes. Zero excuses.
+`
+  },
+  {
+    id: 'article-creatine',
+    title: 'Creatine: The Most Researched Supplement in History',
+    tldr: '3-5g/day of creatine monohydrate boosts power, repeated sprint ability, and cognition — with a spotless safety record across 700+ studies.',
+    category: 'nutrition',
+    tags: ['creatine', 'supplementation', 'performance', 'science', 'combat'],
+    readTime: 7,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Kreider et al. 2017; Branch 2003; Rawson & Volek 2003; Hultman et al. 1996; Rae et al. 2003',
+    content: `
+## 700+ Studies. One Consistent Finding.
+
+No supplement in existence has been studied more than creatine monohydrate. Over 700 peer-reviewed papers spanning three decades have examined its effects on performance, body composition, and health. The verdict is not ambiguous: creatine works, it's safe, and most athletes are leaving performance on the table by not using it.
+
+## How Creatine Actually Works
+
+### Phosphocreatine Resynthesis
+
+Your muscles store energy as **ATP** (adenosine triphosphate). During explosive efforts — a double-leg takedown, a heavy clean, a flurry of punches — ATP is broken down into ADP, releasing energy. The problem: your muscles only store about 5-8 seconds of ATP at maximal effort.
+
+**Creatine phosphate** donates its phosphate group to ADP, rapidly regenerating ATP. More stored creatine = faster ATP resynthesis = more capacity for repeated high-intensity efforts. This is the **phosphocreatine energy system**, and it's the dominant fuel source for efforts lasting 0-10 seconds.
+
+### Cell Volumization
+
+Creatine draws water into muscle cells through osmosis. This **intracellular hydration** isn't cosmetic filler — it creates an anabolic environment. Cellular swelling has been shown to upregulate protein synthesis and reduce protein breakdown (Haussinger et al. 1993). The muscle looks fuller because it literally is fuller, at the cellular level.
+
+## The Effective Dose
+
+The research is remarkably consistent here. **3-5 grams of creatine monohydrate per day**, every day, is the effective dose. That's it.
+
+**Loading protocols** (20g/day for 5-7 days) will saturate your muscles faster — within a week rather than 3-4 weeks — but Hultman et al. (1996) demonstrated that chronic low-dose supplementation (3g/day) reaches the same saturation point. Loading causes GI distress in some people. It's unnecessary.
+
+**Key dosing facts:**
+- Take it at any time of day — timing doesn't matter for chronic supplementation
+- Mix it in water, coffee, a shake — the vehicle doesn't matter
+- Creatine monohydrate is the gold standard. HCL, ethyl ester, buffered — none have outperformed monohydrate in head-to-head research (Jager et al. 2011)
+- Don't cycle it. Continuous use maintains saturation without downregulation
+
+## The Weight Gain "Myth"
+
+New creatine users typically gain 1-3 kg in the first 1-2 weeks. This predictably triggers panic. Here's the reality:
+
+**This is intracellular water, not fat.** The water is stored inside the muscle cell, not subcutaneously. You won't look puffy or bloated — you'll look slightly fuller. The scale moves, but the mirror doesn't lie.
+
+For combat athletes with weight classes, this matters contextually. If you're supplementing year-round, this water weight becomes your baseline. It only creates a problem if you start creatine close to a weigh-in. Begin supplementation in the offseason, and your weight-cut strategy accounts for your creatine-loaded bodyweight as normal.
+
+Branch (2003) conducted a comprehensive meta-analysis confirming that creatine-associated weight gain is lean mass and water — **not adipose tissue**.
+
+## Cognitive Benefits: The Lesser-Known Effect
+
+Rae et al. (2003) gave creatine to vegetarians (who have lower baseline creatine stores) and found significant improvements in working memory and processing speed. The brain is a massive consumer of ATP, and creatine supplementation supports neural energy metabolism.
+
+Subsequent research extended these findings to sleep-deprived individuals and high-stress cognitive tasks — both extremely relevant to combat athletes managing training camps, weight cuts, and fight-week stress.
+
+**For fighters:** cognitive sharpness under fatigue is not optional. If creatine provides even a marginal edge in decision-making during the later rounds, that's worth the negligible cost and zero downside.
+
+## Safety Profile: Kidney Concerns Debunked
+
+The "creatine damages kidneys" claim persists in gyms despite being thoroughly disproven. It originates from a misunderstanding: creatine increases **creatinine** levels in blood tests. Creatinine is a marker used to estimate kidney function. Higher creatinine from creatine supplementation reflects increased creatine metabolism, not kidney damage.
+
+Kreider et al. (2017) reviewed the entire body of long-term safety data and concluded: **creatine monohydrate is safe for healthy individuals at recommended doses**, with no adverse effects on renal, hepatic, or cardiac function. Studies extending up to 5 years of continuous use show no issues.
+
+**Caveat:** If you have pre-existing kidney disease, consult your nephrologist. For everyone else, the concern is unfounded.
+
+## Combat Sport Relevance
+
+Creatine's benefits map directly onto combat sport demands:
+
+- **Repeated sprint ability:** Scrambles, exchanges, and transitions require repeated bursts of maximal effort with incomplete recovery. Rawson & Volek (2003) found creatine improved repeated sprint performance by 5-15%
+- **Power output:** Single-effort power (a knockout punch, an explosive takedown entry) improves with greater phosphocreatine availability
+- **Training volume tolerance:** More ATP resynthesis between sets means more high-quality reps in the weight room, which means faster strength development
+- **Recovery between rounds:** Faster phosphocreatine replenishment during rest periods supports sustained output across a 3 or 5-round fight
+
+## The Bottom Line
+
+**The protocol:**
+1. Take **3-5g creatine monohydrate daily** — no loading, no cycling
+2. Any time of day, mixed in anything
+3. Start in the offseason to establish your baseline bodyweight
+4. Expect 1-3 kg of intramuscular water gain initially
+5. Continue indefinitely — there is no reason to stop
+
+Creatine is cheap, effective, extensively studied, and safe. It improves both physical performance and cognitive function under fatigue. If you're a combat athlete not taking it, you're conceding a free advantage.
+`
+  },
+  {
+    id: 'article-caffeine',
+    title: "Caffeine: The Athlete's Drug",
+    tldr: '3-6 mg/kg caffeine boosts strength, power, and focus — but the half-life means evening doses silently wreck your sleep and recovery.',
+    category: 'nutrition',
+    tags: ['caffeine', 'supplementation', 'performance', 'pre-workout', 'combat'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Goldstein et al. 2010; Grgic et al. 2020; Pickering & Kiely 2019; Beaumont et al. 2017',
+    content: `
+## The Most Widely Used Psychoactive Substance on Earth Also Happens to Be Ergogenic
+
+Caffeine isn't just a morning ritual. It's a legitimate performance-enhancing substance with decades of controlled trial data behind it. The International Society of Sports Nutrition position stand (Goldstein et al. 2010) is unambiguous: caffeine enhances endurance, strength, power, and cognitive performance in trained athletes.
+
+## How It Actually Works
+
+### Adenosine Receptor Antagonism
+
+Throughout the day, a molecule called **adenosine** accumulates in your brain as a byproduct of neural activity. Adenosine binds to its receptors and produces drowsiness — it's your body's built-in fatigue signal.
+
+Caffeine is structurally similar to adenosine. It fits into the same receptors but **doesn't activate them**, effectively blocking adenosine's signal. The result: reduced perception of effort, increased alertness, and enhanced motor unit recruitment. You don't have more energy — you have less awareness of your fatigue.
+
+Caffeine also increases circulating catecholamines (adrenaline, noradrenaline), enhances calcium release from the sarcoplasmic reticulum in muscle fibers, and may improve fat oxidation during prolonged efforts.
+
+## The Dose-Response Relationship
+
+Grgic et al. (2020) conducted a comprehensive meta-analysis establishing the effective range:
+
+- **3-6 mg/kg bodyweight** is the ergogenic sweet spot
+- For a 75 kg fighter, that's **225-450 mg** — roughly 2-4 cups of coffee
+- Below 3 mg/kg, effects become inconsistent
+- Above 6 mg/kg, side effects (anxiety, GI distress, tremor) escalate without proportional performance gains
+- **Timing:** 30-60 minutes pre-training for peak plasma concentration
+
+**Practical dosing for combat athletes:**
+- 60 kg athlete: 180-360 mg
+- 75 kg athlete: 225-450 mg
+- 90 kg athlete: 270-540 mg
+
+Start at the low end. More is not better — it's jittery.
+
+## Does Habitual Use Kill the Effect?
+
+This is where it gets nuanced. Beaumont et al. (2017) found that habitual caffeine consumers still experienced ergogenic benefits from acute dosing, though the magnitude may be slightly reduced compared to non-habitual users.
+
+**The current evidence suggests:**
+- Tolerance develops to caffeine's subjective effects (you feel less "wired") but the **performance-enhancing effects largely persist**
+- Daily users may need to be at the higher end of the dosing range (5-6 mg/kg)
+- Complete tolerance to ergogenic effects has not been convincingly demonstrated in well-designed studies
+- Caffeine withdrawal (48-72 hours) followed by acute re-dosing can amplify the effect for competition
+
+**For daily users:** you don't need to quit coffee to benefit from pre-training caffeine. But you may be getting less of a boost than you think.
+
+## The Hidden Training Cost: Sleep
+
+Here's where most athletes sabotage themselves. Caffeine has a **half-life of 5-6 hours** in most people (CYP1A2 enzyme dependent — some people metabolize it faster or slower).
+
+If you consume 300 mg of caffeine at 4 PM for an evening training session, you still have approximately 150 mg circulating at 10 PM. That's equivalent to a strong cup of coffee — in your system when you're trying to sleep.
+
+**Sleep disruption from caffeine:**
+- Increased sleep latency (takes longer to fall asleep)
+- Reduced total sleep time
+- Decreased **slow-wave sleep** (the most restorative phase)
+- Blunted nocturnal growth hormone release
+
+Pickering & Kiely (2019) emphasized this trade-off: the acute performance boost from caffeine is real, but if it costs you quality sleep, the net training effect over weeks and months becomes negative. **One great session isn't worth five nights of degraded recovery.**
+
+**The rule:** Set a caffeine curfew at minimum 6 hours before bed. For evening trainers, this means morning caffeine only, or accepting that pre-training caffeine will cost you sleep.
+
+## Pre-Competition Protocol
+
+For fighters approaching competition, caffeine can be strategically manipulated:
+
+1. **2-3 weeks out:** Begin reducing daily caffeine intake by 50%
+2. **7 days out:** Drop to minimal intake (one small coffee or none)
+3. **48-72 hours pre-fight:** Full caffeine withdrawal (expect headaches — they pass)
+4. **Fight day:** Acute dose of 4-6 mg/kg, 45-60 minutes before the bout
+
+This protocol restores full sensitivity to caffeine's ergogenic effects. The performance boost on competition day is maximized because your adenosine receptors are upregulated from the withdrawal period.
+
+**Warning:** Never trial a new caffeine dose on competition day. Test your protocol in training first.
+
+## The Bottom Line
+
+**Daily training protocol:**
+- 3-5 mg/kg caffeine, 30-60 min pre-session
+- Hard cutoff 6+ hours before bed
+- Coffee, caffeine pills, or pre-workout — the source doesn't matter (but know your dose)
+
+**Competition protocol:**
+- Taper caffeine 2-3 weeks out
+- Withdraw fully 48-72 hours pre-fight
+- Acute dose of 4-6 mg/kg on fight day
+
+Caffeine works. But it's a tool with trade-offs. Respect the half-life, protect your sleep, and use withdrawal strategically for competition. The athletes who manage caffeine intelligently get both the acute boost and the long-term recovery.
+`
+  },
+  {
+    id: 'article-cold-exposure',
+    title: 'Cold Exposure: What the Science Actually Shows',
+    tldr: 'Cold water immersion helps tournament recovery but blunts hypertrophy when used after training. Use it strategically, not habitually.',
+    category: 'recovery',
+    tags: ['cold-exposure', 'recovery', 'cryotherapy', 'sauna', 'adaptation', 'combat'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Roberts et al. 2015; Leeder et al. 2012; Laukkanen et al. 2015; Huberman overreach critique',
+    content: `
+## Cold Plunges Are Everywhere. The Evidence Is More Complicated Than Your Feed Suggests.
+
+Cold exposure has become a wellness identity. But behind the influencer content and the breathwork hype, there's a genuine body of research — and it tells a more nuanced story than "cold good, always."
+
+The honest answer on cold exposure for combat athletes: **it depends on what you're trying to achieve, and when.**
+
+## Cold Water Immersion vs. Whole-Body Cryotherapy
+
+**Cold water immersion (CWI):** Submerging the body (typically waist- or chest-deep) in water at 10-15 degrees C for 10-15 minutes. This is the most studied modality with the strongest evidence base.
+
+**Whole-body cryotherapy (WBC):** Standing in a chamber at -110 to -140 degrees C for 2-3 minutes. Despite the dramatic temperatures, WBC has a **weaker evidence base** than CWI. Air is a poor conductor of heat compared to water, so the actual tissue cooling is less pronounced than the chamber temperature implies.
+
+Leeder et al. (2012) meta-analyzed the recovery literature and found CWI produced meaningful reductions in muscle soreness and perceived fatigue at 24, 48, and 96 hours post-exercise. WBC showed less consistent results.
+
+**Bottom line on modality:** If you're choosing between the two, cold water wins on evidence per dollar spent.
+
+## The Acute Recovery Benefits
+
+CWI after intense training or competition does provide measurable benefits:
+
+- **Reduced perceived muscle soreness** (small-to-moderate effect sizes)
+- **Lower subjective fatigue** in subsequent sessions
+- **Reduced limb swelling** via hydrostatic pressure and vasoconstriction
+- **Parasympathetic nervous system activation** — the cold triggers a vagal response that shifts you from sympathetic (fight-or-flight) to parasympathetic (rest-and-digest) dominance
+
+For tournament fighters competing multiple times in a day, or for athletes in brutal training camps with two-a-days, these acute recovery effects are genuinely valuable. Getting from "destroyed" to "functional" in 12-18 hours matters when you fight again tomorrow.
+
+## The Adaptation Interference Problem
+
+Here's where it gets uncomfortable for cold plunge enthusiasts.
+
+Roberts et al. (2015) published a landmark study showing that regular post-exercise CWI **blunted long-term muscle hypertrophy and strength gains** compared to active recovery. The mechanism: cold exposure suppresses the inflammatory signaling cascade and satellite cell activity that are required for muscle adaptation.
+
+**The inflammatory response to training is not a bug — it's a feature.** The soreness, swelling, and localized inflammation after hard training are part of the signaling process that triggers muscle protein synthesis, satellite cell proliferation, and structural remodeling. When you ice that process, you're muting the adaptation signal.
+
+### What this means practically:
+
+- Post-exercise cold exposure may reduce your gains from strength and hypertrophy training
+- The interference is dose-dependent — more frequent CWI = greater blunting
+- The effect appears most pronounced for hypertrophy; strength and power outcomes show less consistent interference
+
+## When to Use Cold Exposure (and When Not To)
+
+### Use it:
+- **Tournament recovery:** Between fights or matches in a competition setting
+- **Fight week:** When adaptation isn't the goal — survival is
+- **Overreaching periods:** Late in a training camp when managing accumulated fatigue outweighs building new adaptations
+- **Acute injury management:** The first 48-72 hours after an acute soft tissue injury
+
+### Avoid it:
+- **After strength/hypertrophy sessions** where the goal is long-term adaptation
+- **During early/mid training camp** when you're still building qualities
+- **As a daily habit** during training blocks — this is where the adaptation interference accumulates
+
+### The gray zone:
+- **After sport-specific sessions** (sparring, rolling) — the research is less clear here. If you're not trying to hypertrophy from these sessions, cold exposure is less likely to interfere with your primary adaptation goals
+
+## Practical CWI Protocol
+
+If you're going to use cold water immersion:
+
+1. **Temperature:** 10-15 degrees C (50-59 degrees F). Colder is not meaningfully better and increases cold shock risk
+2. **Duration:** 10-15 minutes. Diminishing returns beyond this
+3. **Depth:** At minimum waist-deep; chest-deep is better for the hydrostatic pressure benefit
+4. **Timing:** At least 4 hours after training if you want to minimize adaptation interference while still getting recovery benefits (though this reduces the recovery effect too)
+
+## Heat Exposure: The Other Side
+
+Sauna use has a separate and compelling evidence base. Laukkanen et al. followed over 2,000 Finnish men for 20+ years and found that frequent sauna use (4-7 sessions/week) was associated with significantly reduced cardiovascular mortality and all-cause mortality.
+
+The mechanisms are distinct from cold:
+- **Heat shock protein (HSP) upregulation** — HSPs protect cellular proteins from damage and support repair
+- **Cardiovascular conditioning** — heart rate elevates to 120-150 bpm, providing a mild cardiovascular training stimulus
+- **Growth hormone release** — acute spikes in GH (though the long-term significance is debated)
+- **Improved arterial compliance** — blood vessels become more elastic
+
+Unlike CWI, there's no strong evidence that heat exposure interferes with training adaptations. Sauna after training appears to be additive rather than counterproductive.
+
+**Sauna protocol:** 15-20 minutes at 80-100 degrees C, 2-4 sessions per week. Hydrate aggressively.
+
+## The Bottom Line
+
+**Competition/tournament day:** Cold water immersion at 10-15 degrees C for 10-15 minutes between bouts. This is where CWI earns its keep.
+
+**Training blocks:** Skip the cold plunge after lifting sessions. Use sauna instead — you get recovery benefits without blunting adaptation.
+
+**Daily cold plunges as a lifestyle habit:** If you enjoy them for the mental discipline and mood boost, go ahead — but know that you may be paying a small adaptation tax. Whether that trade-off is worth it is your call.
+
+Stop treating cold exposure as universally good or universally bad. It's a tool. Use it when the context matches.
+`
+  },
+  {
+    id: 'article-alcohol-performance',
+    title: 'Alcohol and Athletic Performance: The Honest Data',
+    tldr: 'Alcohol suppresses MPS by up to 37%, wrecks sleep architecture, and tanks testosterone — but the dose-response curve is steep. 1-2 drinks and a binge are different universes.',
+    category: 'recovery',
+    tags: ['alcohol', 'recovery', 'muscle-protein-synthesis', 'sleep', 'performance'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Parr et al. 2014; Barnes et al. 2010; Lakicevic et al. 2019',
+    content: `
+## This Isn't a Lecture. It's Biochemistry.
+
+Athletes drink. Some frequently, some occasionally, some never. This article isn't here to moralize — it's here to lay out what alcohol actually does to the physiological processes you're training to optimize, so you can make informed decisions.
+
+The data is clear. What you do with it is your business.
+
+## Muscle Protein Synthesis Suppression
+
+The headline finding: Parr et al. (2014) showed that alcohol consumption after resistance exercise **reduced muscle protein synthesis (MPS) by 24% when consumed with protein, and by 37% when consumed without protein.**
+
+This study used a dose of approximately 1.5 g/kg of alcohol (roughly 8-12 standard drinks for a 75 kg person — a genuine binge). Participants performed resistance exercise, then consumed either alcohol + protein, alcohol + carbohydrate, or protein alone.
+
+**Key takeaways:**
+- Even when adequate protein (25g whey) was consumed alongside alcohol, MPS was still suppressed by ~24%
+- Without protein, the suppression was worse (~37%)
+- The suppression window extended for several hours post-consumption
+- The mechanism involves interference with mTOR signaling — the master regulator of muscle protein synthesis
+
+**For combat athletes:** If you trained hard today and then drink heavily tonight, you are measurably undermining the adaptation you worked for. The workout still happened, but the recovery from it is compromised.
+
+## Sleep Architecture Destruction
+
+Alcohol is a sedative, not a sleep aid. There's a critical difference.
+
+While alcohol reduces **sleep latency** (you fall asleep faster), it devastates sleep quality through multiple mechanisms:
+
+- **REM sleep suppression:** Alcohol disproportionately reduces REM sleep, the phase most associated with memory consolidation, motor learning, and emotional regulation. For combat athletes learning new techniques, this is directly relevant
+- **Sleep fragmentation:** Alcohol increases awakenings in the second half of the night as your body metabolizes it and rebounds from the sedative effect
+- **Blunted growth hormone release:** The largest pulse of growth hormone occurs during the first cycle of slow-wave sleep. Alcohol suppresses this pulse by up to 75% (Van Cauter et al. 2000)
+- **Increased sympathetic nervous system activity:** Heart rate and core temperature remain elevated, reducing the restorative depth of sleep
+
+Barnes et al. (2010) demonstrated that alcohol consumption the evening after exercise resulted in measurable performance decrements the following day — reduced power output, slower reaction times, and impaired decision-making.
+
+**For fighters:** A single night of alcohol-disrupted sleep can compromise the next 1-2 training sessions. Motor skill acquisition from the previous day's practice is also impaired.
+
+## Testosterone and Hormonal Disruption
+
+Acute alcohol intake above **0.5 g/kg** (roughly 3-4 standard drinks for a 75 kg person) produces measurable testosterone suppression. Higher doses suppress testosterone more dramatically, with effects lasting 24-48 hours.
+
+The mechanisms include:
+- Direct testicular toxicity — alcohol is metabolized to acetaldehyde, which damages Leydig cells
+- Increased aromatase activity — converting more testosterone to estradiol
+- Blunted luteinizing hormone (LH) pulsatility — reducing the hormonal signal for testosterone production
+
+Lakicevic et al. (2019) reviewed the full hormonal impact and noted that chronic heavy drinking produces sustained hormonal disruption, while occasional moderate intake (1-2 drinks) produces minimal and transient effects.
+
+## Dehydration and Next-Day Performance
+
+Alcohol is a diuretic — it suppresses antidiuretic hormone (ADH/vasopressin), increasing urine output. The dehydration effect is dose-dependent and compounded by the fact that most people don't compensate with adequate water intake while drinking.
+
+**Dehydration effects relevant to combat athletes:**
+- Reduced plasma volume = impaired cardiovascular performance
+- Decreased reaction time and coordination
+- Increased perceived exertion at the same workloads
+- Greater risk of muscle cramps and strains
+- Impaired thermoregulation — dangerous for athletes cutting weight
+
+A 2% reduction in body water has been shown to impair endurance performance by 7-10%. For a fighter who's already managing hydration around training and weight management, alcohol-induced dehydration adds an unnecessary deficit.
+
+## The Dose-Response Reality
+
+This is where nuance matters. The studies generating the scariest headlines (Parr et al., Barnes et al.) used **binge-level doses** — 1.0-1.5 g/kg, equivalent to 6-12+ drinks.
+
+**1-2 standard drinks:**
+- Minimal measurable impact on MPS
+- Negligible hormonal disruption
+- Minor sleep effects (mostly in sensitive individuals)
+- Easily compensated with adequate hydration
+
+**3-5 drinks:**
+- Moderate MPS suppression begins
+- Sleep architecture noticeably disrupted
+- Testosterone dip measurable but transient
+- Next-day training quality likely reduced
+
+**6+ drinks (binge):**
+- Significant MPS suppression (24-37%)
+- Severe sleep disruption lasting the entire night
+- Pronounced hormonal suppression for 24-48 hours
+- Next-day performance substantially impaired
+- Recovery timeline extended by 48-72 hours
+
+**One glass of wine at dinner is not the same physiological event as a night out.** Treating them as equivalent is scientifically illiterate.
+
+## The Practical Framework
+
+### When it matters least:
+- Rest days with no training the following morning
+- Offseason periods without active training goals
+- 1-2 drinks with food, well-hydrated, early in the evening
+
+### When it matters most:
+- After hard training sessions (you're suppressing the adaptation you just stimulated)
+- During training camp or fight preparation (every recovery variable is amplified)
+- Before morning training sessions (impaired performance is guaranteed)
+- During weight cuts (dehydration compounding on dehydration)
+
+## The Bottom Line
+
+**If you choose to drink:**
+1. Keep it to 1-2 drinks when possible — the dose-response curve is steep
+2. Never after key training sessions — protect the adaptation
+3. Eat protein before/during — it partially buffers MPS suppression
+4. Hydrate aggressively — match each drink with a full glass of water
+5. Avoid alcohol within 4 weeks of competition
+6. Front-load it early in the evening to minimize sleep disruption
+
+The goal isn't abstinence guilt. It's informed decision-making. Know the cost, decide if it's worth paying, and never pay it when the stakes are highest.
+`
+  },
+  {
+    id: 'article-soreness-not-progress',
+    title: 'Why Soreness Is Not a Progress Indicator',
+    tldr: 'DOMS reflects novelty, not growth stimulus. The repeated bout effect means less soreness over time while hypertrophy increases — they are independent processes.',
+    category: 'muscle_science',
+    tags: ['DOMS', 'soreness', 'muscle-science', 'recovery', 'training'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Schoenfeld & Contreras 2013; Nosaka 2008; Damas et al. 2018',
+    content: `
+## If Soreness Meant Growth, Your First Week in the Gym Would Have Been Your Best.
+
+Every lifter remembers their first squat session — the days of agony that followed, the struggle with stairs, the waddling. By that logic, those untrained, technique-less, light-weight squats should have produced the most muscle growth of your entire career. They didn't. Soreness and hypertrophy are poorly correlated, and chasing one to achieve the other is a mistake that costs athletes productive training time.
+
+## What DOMS Actually Is
+
+**Delayed Onset Muscle Soreness (DOMS)** — the stiffness and tenderness that peaks 24-72 hours after exercise — is not a simple indicator of muscle damage or growth. It's a complex inflammatory and neurological response.
+
+### The cascade:
+1. **Mechanical disruption:** Exercise, particularly the eccentric (lengthening) phase, creates microscopic disruption in sarcomeres and connective tissue
+2. **Inflammatory response:** Neutrophils and macrophages infiltrate the damaged tissue, releasing inflammatory mediators (prostaglandins, bradykinin, cytokines)
+3. **Nerve sensitization:** These inflammatory molecules sensitize type III and IV afferent nerve fibers — pain receptors. The tissue isn't necessarily more damaged at 48 hours than at 24 hours; your nerves are more sensitive to it
+4. **Edema:** Fluid accumulates in the interstitial space, contributing to stiffness and swelling
+
+Nosaka (2008) emphasized that DOMS magnitude does not reliably predict the extent of muscle damage, nor does it correlate with the adaptive response to training.
+
+## Why Novel Stimuli Cause the Most Soreness
+
+The exercises that make you the most sore are typically:
+- **New movements** you haven't performed before
+- **Eccentric-emphasized exercises** (Romanian deadlifts, Nordic curls, slow negatives)
+- **Exercises at unfamiliar muscle lengths** (stretch-position movements)
+- **Training after a layoff**
+
+Notice what these have in common: **novelty**. Your body is encountering a stimulus it hasn't adapted to. This doesn't mean the stimulus is better — it means it's unfamiliar.
+
+A grappler who has been squatting consistently for months will experience minimal soreness from squats, even as they continue to gain strength and muscle. Switch them to Bulgarian split squats for the first time, and they'll be devastated for three days. That doesn't mean split squats are superior — it means they're new.
+
+## The Repeated Bout Effect
+
+This is the key concept that dismantles the soreness-as-progress myth.
+
+The **repeated bout effect** (RBE) describes how a single exposure to a novel exercise confers significant protection against muscle damage and soreness from subsequent exposures to the same exercise — even weeks later.
+
+Damas et al. (2018) tracked muscle damage markers, soreness, and actual hypertrophy across a resistance training program. Their findings were striking:
+
+- **Early in training:** High muscle damage markers, high soreness, **minimal hypertrophy**
+- **Later in training:** Low muscle damage markers, low soreness, **significant hypertrophy**
+
+The adaptation that reduces soreness is not the same adaptation that produces muscle growth. Soreness decreases because your muscle and connective tissue become more resilient to mechanical disruption. Hypertrophy increases because the contractile machinery is being progressively overloaded and rebuilt.
+
+**They are independent processes.** Less soreness does not mean less growth.
+
+## Training Through Soreness vs. Waiting
+
+Schoenfeld & Contreras (2013) addressed this directly: training a muscle that is still sore is generally safe and may even accelerate recovery through increased blood flow and gentle loading.
+
+**Guidelines for training through DOMS:**
+- **Mild soreness (2-4/10):** Train normally. The warm-up will reduce perceived soreness, and performance is minimally impacted
+- **Moderate soreness (5-6/10):** Train at reduced intensity or volume. Use the session as a recovery stimulus — lighter loads, higher reps, focus on blood flow
+- **Severe soreness (7+/10):** This is rare in trained athletes performing familiar movements. If it occurs, rest or do a completely different movement pattern. Severe DOMS indicates either excessive novelty or excessive volume — both programming errors
+
+**For combat athletes:** You can't skip mat time because your legs are sore from squats. Learning to train effectively at varying levels of discomfort is a skill. Moderate soreness is a normal part of athletic life, not a red flag.
+
+## Why Chasing Soreness Is Counterproductive
+
+Athletes who use soreness as their training barometer tend to:
+
+1. **Constantly rotate exercises** to maintain novelty — this undermines progressive overload, which requires consistency on movements long enough to track progress
+2. **Train to excessive failure and volume** — more isn't better; it's just more damage and longer recovery
+3. **Add unnecessary eccentric emphasis** — which increases muscle damage without proportional hypertrophy benefit
+4. **Misinterpret good training as bad** — "I'm not sore, so it didn't work" leads to abandoning effective programs
+5. **Ignore actual progress markers** — strength increases, rep PRs, and body composition changes are real indicators; soreness is noise
+
+### What to track instead:
+- **Progressive overload:** Are you lifting more weight or doing more reps over time?
+- **Performance in your sport:** Are you faster, more powerful, more resilient on the mat or in the ring?
+- **Body composition:** Do you look and measure differently?
+- **Recovery quality:** Are you sleeping well, maintaining energy, and avoiding injury?
+
+## The Bottom Line
+
+**Soreness tells you one thing:** your muscles encountered an unfamiliar stimulus. It tells you nothing reliable about the quality of your training or the magnitude of your adaptation.
+
+**Stop chasing it.** Stick to your program, progressively overload over time, and judge your training by the metrics that actually matter — strength gained, skills developed, and performance delivered. The best training programs in the world produce less and less soreness as you adapt to them. That's not a flaw. That's the entire point.
+`
+  },
+  {
+    id: 'article-warmup-protocol',
+    title: "The Warm-Up You're Probably Skipping",
+    tldr: '10 minutes of general movement, dynamic stretching, and ramp sets prevents injuries and improves working-set performance. No exceptions.',
+    category: 'general_fitness',
+    tags: ['warm-up', 'injury-prevention', 'performance', 'mobility', 'combat'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Behm & Chaouachi 2011; Tillin & Bishop 2009; McCrary et al. 2015; Behm et al. 2016',
+    content: `
+## Your First Working Set Should Not Be a Surprise to Your Nervous System.
+
+Walk into most gyms and you'll see athletes load up the bar and start repping. Walk into most martial arts academies and you'll see athletes step onto the mat and start drilling. Both are skipping the single cheapest performance and injury-prevention tool available: a structured warm-up.
+
+This isn't about jogging on a treadmill for 10 minutes. It's about systematically preparing your neuromuscular system to produce force safely and effectively.
+
+## Neural Priming: The Real Purpose of Warming Up
+
+The warm-up serves two primary functions, and neither is "breaking a sweat."
+
+### 1. Increase Tissue Temperature
+Warmer muscles contract faster, produce more force, and are more compliant (resistant to tearing). Warmer synovial fluid reduces joint friction. Core temperature elevation of 1-2 degrees C improves nerve conduction velocity — your muscles literally receive signals faster.
+
+### 2. Neural Activation
+This is the more important and more often neglected function. Your nervous system doesn't go from "off" to "maximal output" instantly. It requires a ramp — progressively increasing motor unit recruitment, refining coordination patterns, and calibrating proprioceptive feedback.
+
+Tillin & Bishop (2009) demonstrated that warm-up protocols incorporating progressive intensity loading enhanced subsequent maximal force production. The mechanism: **post-activation potentiation (PAP)** — prior submaximal contractions enhance the force-producing capacity of subsequent maximal efforts by increasing calcium sensitivity in muscle fibers and improving motor unit synchronization.
+
+## Post-Activation Potentiation: Real but Misapplied
+
+PAP is a genuine physiological phenomenon, but it's frequently misunderstood:
+
+- **What it is:** A brief enhancement of maximal force output following a near-maximal conditioning contraction
+- **What it requires:** The conditioning activity must be heavy enough to potentiate (>80% 1RM) but not so fatiguing that fatigue outweighs potentiation
+- **The trade-off:** PAP and fatigue coexist. The net effect depends on the balance — which is why **rest interval** after the conditioning set matters (typically 3-7 minutes)
+
+**For practical purposes:** You don't need to chase PAP with complex contrast protocols. What you need is **ramp sets** — progressively heavier sets that prepare your neuromuscular system for your working weight.
+
+## Dynamic vs. Static Stretching: The Evidence
+
+Behm & Chaouachi (2011) and the updated review by Behm et al. (2016) settled this debate:
+
+### Static stretching before training:
+- Holding stretches >60 seconds reduces maximal force production by 4-7%
+- The effect is most pronounced for strength and power activities
+- Short static stretches (<30 seconds) show minimal negative effect but also minimal benefit
+- **Verdict:** Avoid long static stretches before lifting or explosive training
+
+### Dynamic stretching before training:
+- Actively moving through full range of motion improves force production, rate of force development, and jump height
+- Enhances coordination and proprioception for the movements about to be performed
+- Increases heart rate and tissue temperature simultaneously
+- **Verdict:** Dynamic stretching is the clear winner for pre-training preparation
+
+### Static stretching after training:
+- No performance detriment (the workout is over)
+- May improve long-term flexibility when performed consistently
+- Can activate the parasympathetic nervous system and aid the transition to recovery
+- **Verdict:** Fine and potentially beneficial post-session
+
+## Movement Preparation: The Three Components
+
+McCrary et al. (2015) outlined an evidence-based warm-up framework that applies directly to combat athletes:
+
+### 1. General Warm-Up (3-4 minutes)
+Raise core temperature and heart rate with low-intensity full-body movement.
+- Jump rope (the combat athlete's default)
+- Rowing machine
+- Light shadow boxing or movement flows
+- Bodyweight squats with arm reaches
+
+### 2. Dynamic Mobility (3-4 minutes)
+Move actively through ranges of motion relevant to the training session.
+
+**For lower body sessions:**
+- Leg swings (forward/back, lateral) — 10 each direction per leg
+- Walking lunges with rotation — 8 per side
+- Cossack squats — 6 per side
+- Inchworms — 5 reps
+
+**For upper body sessions:**
+- Arm circles (progressive) — 10 each direction
+- Band pull-aparts — 15 reps
+- Push-up to downward dog — 8 reps
+- Scapular wall slides — 10 reps
+
+**For combat training:**
+- Hip CARs (controlled articular rotations) — 5 per side
+- Thoracic rotation reaches — 8 per side
+- Neck CARs (slow, controlled) — 3 per direction
+- Shoulder dislocates with band — 10 reps
+
+### 3. Ramp Sets (3-5 minutes)
+Progressive loading toward your working weight. This is the most commonly skipped and most impactful component.
+
+**Example for a 100 kg squat working weight:**
+- Set 1: Bar only (20 kg) x 8 reps — focus on movement quality
+- Set 2: 40 kg x 5 reps — increase speed
+- Set 3: 60 kg x 3 reps — dial in bracing
+- Set 4: 80 kg x 2 reps — approach working intensity
+- Set 5: 90 kg x 1 rep — final neural prime
+- Begin working sets at 100 kg
+
+**The ramp set rules:**
+- Never jump more than 20-25% of your working weight between sets
+- Decrease reps as weight increases — the warm-up shouldn't fatigue you
+- Focus on speed and quality, not grinding
+- The last ramp set should feel fast and confident
+
+## Why "I'll Warm Up on the Mat" Isn't Enough for Lifting
+
+Combat sport warm-ups (flow rolling, light drilling, movement) prepare you for mat-based activities. They increase core temperature and activate sport-specific motor patterns. But they **do not prepare your tissues for heavy axial loading**.
+
+If your training session includes heavy squats, deadlifts, or presses after mat time, you still need ramp sets. Your nervous system may be activated for grappling patterns, but it hasn't been primed for loaded bilateral hip extension under a barbell. These are different neuromuscular demands.
+
+## The 10-Minute Universal Warm-Up for Combat Athletes
+
+**Minutes 0-3: General**
+- Jump rope — 2 minutes at conversational pace
+- 10 bodyweight squats, 10 push-ups, 10 hip bridges
+
+**Minutes 3-7: Dynamic Mobility**
+- Leg swings (forward/back + lateral): 10 each, each leg
+- Walking lunge with thoracic rotation: 8 per side
+- Inchworms: 5 reps
+- Band pull-aparts: 15 reps
+- Hip CARs: 5 per side
+
+**Minutes 7-10: Ramp Sets**
+- 3-5 progressively heavier sets of your first exercise
+- Decreasing reps as weight increases
+- Final ramp set at 85-90% of working weight for 1-2 reps
+
+**Total time:** 10 minutes. Non-negotiable.
+
+## The Bottom Line
+
+A proper warm-up costs 10 minutes and pays for itself in injury prevention, better performance on your working sets, and longer training career. Skip it, and you're gambling with cold tissues, unprepared neural pathways, and sub-optimal force production.
+
+**The protocol:** General movement, dynamic stretching, ramp sets. Every session. No exceptions.
 `
   }
 ];

@@ -199,6 +199,9 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
               <h3 className="text-base font-bold text-grappler-50 leading-snug">
                 {featured.title}
               </h3>
+              {featured.tldr && (
+                <p className="text-xs text-grappler-300 mt-1.5 leading-relaxed">{featured.tldr}</p>
+              )}
               <div className="flex items-center gap-3 mt-2.5 text-xs text-grappler-400">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
@@ -228,8 +231,6 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
                   {articles.map(a => {
                     const isRead = readSet.has(a.id);
                     const isBookmarked = bookmarkSet.has(a.id);
-                    // Extract first meaningful line of content for preview
-                    const preview = a.content.split('\n').find(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('-'))?.trim().slice(0, 120) || '';
                     return (
                       <button
                         key={a.id}
@@ -245,8 +246,8 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
                             <h4 className="text-sm font-semibold text-grappler-50 leading-snug">
                               {a.title}
                             </h4>
-                            {preview && (
-                              <p className="text-xs text-grappler-400 mt-1.5 line-clamp-2 leading-relaxed">{preview}</p>
+                            {a.tldr && (
+                              <p className="text-xs text-grappler-400 mt-1.5 line-clamp-2 leading-relaxed">{a.tldr}</p>
                             )}
                             <div className="flex items-center gap-3 mt-2.5 text-[11px] text-grappler-500">
                               <span className="flex items-center gap-1">
@@ -375,6 +376,11 @@ function ArticleReader({
             <h1 className="text-2xl font-bold text-grappler-50 leading-tight">
               {article.title}
             </h1>
+            {article.tldr && (
+              <p className="text-sm text-grappler-300 mt-2 leading-relaxed bg-grappler-800/40 rounded-lg px-3 py-2 border-l-2 border-primary-500/50">
+                {article.tldr}
+              </p>
+            )}
             <div className="flex items-center gap-3 mt-3 text-xs text-grappler-500">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5" />

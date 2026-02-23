@@ -47,120 +47,32 @@ function getDeviceType(): 'phone' | 'tablet' | 'desktop' {
 function applyRemoteData(
   dbData: Record<string, unknown>,
   isResync: boolean,
+  serverUpdatedAt?: string | null,
 ): boolean {
   const store = useAppStore.getState();
-  const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
-  const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
   const localIsEmpty = !store.isOnboarded && !store.user;
   const dbHasProfile = dbData.isOnboarded === true && dbData.user;
 
-  // Check for conflicts (skip if local is empty)
-  if (!localIsEmpty) {
-    const localLogs = store.workoutLogs || [];
-    const remoteLogs = Array.isArray(dbData.workoutLogs) ? dbData.workoutLogs : [];
-    const hasLocalUniqueData = localLogs.some(
-      l => !remoteLogs.find((r: Record<string, unknown>) => r.id === l.id)
-    );
-    const hasRemoteUniqueData = remoteLogs.some(
-      (r: Record<string, unknown>) => !localLogs.find(l => l.id === r.id)
-    );
+  // Use reliable server-side DB timestamp (set on every push from any device)
+  const serverTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
 
-    if (hasLocalUniqueData && hasRemoteUniqueData) {
-      const localData: Record<string, unknown> = {
-        workoutLogs: store.workoutLogs,
-        gamificationStats: store.gamificationStats,
-        currentMesocycle: store.currentMesocycle,
-        sessionTemplates: store.sessionTemplates,
-        bodyWeightLog: store.bodyWeightLog,
-      };
-      const remoteData: Record<string, unknown> = {
-        workoutLogs: dbData.workoutLogs,
-        gamificationStats: dbData.gamificationStats,
-        currentMesocycle: dbData.currentMesocycle,
-        sessionTemplates: dbData.sessionTemplates,
-        bodyWeightLog: dbData.bodyWeightLog,
-      };
-      const conflictFields = buildConflictFields(localData, remoteData);
-
-      if (conflictFields.length > 0) {
-        useAppStore.setState({
-          syncConflict: {
-            localData,
-            remoteData,
-            localUpdatedAt: new Date(localUpdated),
-            remoteUpdatedAt: new Date(dbUpdated),
-            conflictFields,
-          },
-          pendingRemoteData: dbData,
-        });
-        return false;
-      }
-    }
-
-    // Remote has data that local is missing (and local has nothing unique) —
-    // safe to take remote regardless of initial load or re-sync
-    if (hasRemoteUniqueData && !hasLocalUniqueData) {
-      const merged = resolveConflicts(
-        { workoutLogs: localLogs, lastSyncAt: store.lastSyncAt || 0 },
-        dbData,
-      );
-      const fieldsToMerge: Record<string, unknown> = {};
-      for (const field of RESTORE_FIELDS) {
-        if (merged[field] !== undefined) fieldsToMerge[field] = merged[field];
-      }
-      if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
-      if (Object.keys(fieldsToMerge).length > 0) {
-        useAppStore.setState(fieldsToMerge);
-      }
-      return true;
-    }
-
-    // Local is "onboarded" but has no real data, while server has substantial data
-    // (e.g. after data recovery — local has profile shell but server has the full state)
-    const localMeals = Array.isArray(store.meals) ? store.meals.length : 0;
-    const remoteMeals = Array.isArray(dbData.meals) ? (dbData.meals as unknown[]).length : 0;
-    const localGamLevel = (store.gamificationStats as unknown as Record<string, unknown>)?.level || 0;
-    const remoteGamLevel = (dbData.gamificationStats as Record<string, unknown>)?.level || 0;
-    const remoteIsStrictlyRicher =
-      (remoteLogs.length > localLogs.length) ||
-      (remoteMeals > localMeals && remoteMeals > 0) ||
-      (Number(remoteGamLevel) > Number(localGamLevel));
-
-    if (remoteIsStrictlyRicher && !hasLocalUniqueData) {
-      // Server has more data than local in every dimension — take it all
-      const fieldsToMerge: Record<string, unknown> = {};
-      for (const field of RESTORE_FIELDS) {
-        if (dbData[field] !== undefined) fieldsToMerge[field] = dbData[field];
-      }
-      if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
-      if (Object.keys(fieldsToMerge).length > 0) {
-        useAppStore.setState(fieldsToMerge);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[db-sync] Server is strictly richer — restored all fields');
-        }
-      }
-      return true;
-    }
-  }
-
-  // Force-restore: if local is empty but DB has a completed profile, always restore
-  // Also restore normally when DB is newer than local
-  if ((localIsEmpty && dbHasProfile) || dbUpdated > localUpdated) {
+  // Helper: apply all RESTORE_FIELDS from source into the store
+  const applyFields = (source: Record<string, unknown>, label: string) => {
     const fieldsToMerge: Record<string, unknown> = {};
     for (const field of RESTORE_FIELDS) {
-      if (dbData[field] !== undefined) fieldsToMerge[field] = dbData[field];
+      if (source[field] !== undefined) fieldsToMerge[field] = source[field];
     }
-    if (dbData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = dbData.isOnboarded;
+    if (source.isOnboarded !== undefined) fieldsToMerge.isOnboarded = source.isOnboarded;
 
     if (Object.keys(fieldsToMerge).length > 0) {
       useAppStore.setState(fieldsToMerge);
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[db-sync] Loaded data from database (${localIsEmpty ? 'local was empty' : 'DB was newer'})`);
+        console.log(`[db-sync] ${label}`);
       }
     }
 
     // Restore Whoop tokens from DB backup if local tokens are missing
-    const whoopTokens = dbData._whoopTokens as Record<string, string> | undefined;
+    const whoopTokens = source._whoopTokens as Record<string, string> | undefined;
     if (whoopTokens && typeof window !== 'undefined') {
       if (!localStorage.getItem('whoop_access_token') && whoopTokens.accessToken) {
         localStorage.setItem('whoop_access_token', whoopTokens.accessToken);
@@ -168,8 +80,109 @@ function applyRemoteData(
         if (whoopTokens.tokenExpires) localStorage.setItem('whoop_token_expires', whoopTokens.tokenExpires);
       }
     }
-  } else if (process.env.NODE_ENV === 'development') {
-    console.log('[db-sync] Local data is current, no merge needed');
+
+    // Restore Quick Access pins from server if present
+    const remotePins = source._quickAccessPins;
+    if (Array.isArray(remotePins) && remotePins.length > 0 && typeof window !== 'undefined') {
+      const localRaw = localStorage.getItem('roots-explore-pinned') || '[]';
+      // Apply server pins if they differ from local (server reflects latest from any device)
+      if (JSON.stringify(remotePins) !== localRaw) {
+        localStorage.setItem('roots-explore-pinned', JSON.stringify(remotePins));
+        window.dispatchEvent(new Event('roots-pins-changed'));
+      }
+    }
+  };
+
+  // Force-restore: if local is empty but DB has a completed profile
+  if (localIsEmpty && dbHasProfile) {
+    applyFields(dbData, 'Local was empty — restored from server');
+    return true;
+  }
+
+  // Skip conflict checks if local is empty (nothing to conflict with)
+  if (localIsEmpty) {
+    return true;
+  }
+
+  const localLogs = store.workoutLogs || [];
+  const remoteLogs = Array.isArray(dbData.workoutLogs) ? dbData.workoutLogs : [];
+  const hasLocalUniqueData = localLogs.some(
+    l => !remoteLogs.find((r: Record<string, unknown>) => r.id === l.id)
+  );
+  const hasRemoteUniqueData = remoteLogs.some(
+    (r: Record<string, unknown>) => !localLogs.find(l => l.id === r.id)
+  );
+
+  // ── CONFLICT: Both sides have unique workout logs ──
+  if (hasLocalUniqueData && hasRemoteUniqueData) {
+    const localData: Record<string, unknown> = {
+      workoutLogs: store.workoutLogs,
+      gamificationStats: store.gamificationStats,
+      currentMesocycle: store.currentMesocycle,
+      sessionTemplates: store.sessionTemplates,
+      bodyWeightLog: store.bodyWeightLog,
+    };
+    const remoteData: Record<string, unknown> = {
+      workoutLogs: dbData.workoutLogs,
+      gamificationStats: dbData.gamificationStats,
+      currentMesocycle: dbData.currentMesocycle,
+      sessionTemplates: dbData.sessionTemplates,
+      bodyWeightLog: dbData.bodyWeightLog,
+    };
+    const conflictFields = buildConflictFields(localData, remoteData);
+
+    if (conflictFields.length > 0) {
+      const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
+      const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
+      useAppStore.setState({
+        syncConflict: {
+          localData,
+          remoteData,
+          localUpdatedAt: new Date(localUpdated),
+          remoteUpdatedAt: new Date(dbUpdated),
+          conflictFields,
+        },
+        pendingRemoteData: dbData,
+      });
+      return false;
+    }
+  }
+
+  // ── NO LOCAL-UNIQUE DATA: Server is authoritative ──
+  // When local has nothing the server doesn't know about, always apply
+  // server state. This handles: new workout logs from other devices,
+  // scalar-only changes (mesocycle day, gamification level, settings),
+  // and identical-state refreshes (harmless no-op).
+  // Safe because: pulls only happen on mount (no pending local changes)
+  // or on visibility change (after flushPendingSync pushed local state).
+  if (!hasLocalUniqueData) {
+    const merged = resolveConflicts(
+      { workoutLogs: localLogs, lastSyncAt: store.lastSyncAt || 0 },
+      dbData,
+    );
+    applyFields(merged, hasRemoteUniqueData
+      ? 'Applied server data (remote has new entries)'
+      : 'Applied server data (scalar sync from other device)');
+    return true;
+  }
+
+  // ── LOCAL HAS UNIQUE DATA, server doesn't ──
+  // Local has workouts the server doesn't know about. This can happen
+  // when the device was offline. Don't overwrite local data — let the
+  // debounced push send it to the server.
+  // But if the server was updated more recently by another device,
+  // still apply non-conflicting server fields (like gamification, settings).
+  if (serverTs > 0) {
+    const merged = resolveConflicts(
+      {
+        workoutLogs: localLogs,
+        gamificationStats: store.gamificationStats,
+        currentMesocycle: store.currentMesocycle,
+        lastSyncAt: store.lastSyncAt || 0,
+      },
+      dbData,
+    );
+    applyFields(merged, 'Merged server changes with local-unique data');
   }
 
   return true;
@@ -218,9 +231,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     }
     setSyncStatus('syncing');
     try {
-      const dbData = await loadFromDatabase(userId);
-      if (dbData) {
-        applyRemoteData(dbData, isResync);
+      const result = await loadFromDatabase(userId);
+      if (result) {
+        applyRemoteData(result.data, isResync, result.serverUpdatedAt);
       }
 
       // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
@@ -379,6 +392,10 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       lastInsightDate: s.lastInsightDate,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
+      // Quick Access pins (stored in localStorage, not Zustand)
+      _quickAccessPins: typeof window !== 'undefined'
+        ? (() => { try { return JSON.parse(localStorage.getItem('roots-explore-pinned') || '[]'); } catch { return []; } })()
+        : [],
     };
   }, [deviceType]);
 
@@ -480,7 +497,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
     };
 
-    // Backup Whoop tokens so they survive cache clears
+    // Backup Whoop tokens and Quick Access pins so they survive cache clears
     if (typeof window !== 'undefined') {
       const whoopAccess = localStorage.getItem('whoop_access_token');
       if (whoopAccess) {
@@ -490,6 +507,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
           tokenExpires: localStorage.getItem('whoop_token_expires') || '',
         };
       }
+      try {
+        const pins = JSON.parse(localStorage.getItem('roots-explore-pinned') || '[]');
+        if (Array.isArray(pins) && pins.length > 0) {
+          syncData._quickAccessPins = pins;
+        }
+      } catch { /* ignore */ }
     }
 
     const fingerprint = JSON.stringify(syncData);

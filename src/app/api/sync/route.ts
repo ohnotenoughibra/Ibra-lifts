@@ -24,14 +24,17 @@ export async function GET(request: Request) {
     }
 
     const { rows } = await sql`
-      SELECT data FROM user_store WHERE user_id = ${userId}
+      SELECT data, updated_at FROM user_store WHERE user_id = ${userId}
     `;
 
     if (rows.length === 0) {
       return NextResponse.json({ data: null });
     }
 
-    return NextResponse.json({ data: rows[0].data });
+    return NextResponse.json({
+      data: rows[0].data,
+      serverUpdatedAt: rows[0].updated_at,
+    });
   } catch (error: any) {
     // If table doesn't exist yet, return null (first use)
     if (error.message?.includes('does not exist')) {

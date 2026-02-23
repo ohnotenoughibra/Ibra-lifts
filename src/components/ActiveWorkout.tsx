@@ -640,6 +640,7 @@ export default function ActiveWorkout() {
       if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
         setCurrentExerciseIndex(currentExerciseIndex + 1);
         setCurrentSetIndex(0);
+        setWeightSuggestion(null); // Clear stale suggestion from previous exercise
       }
     } else {
       // Set-level auto-regulation: suggest weight adjustment for next set
@@ -935,9 +936,9 @@ export default function ActiveWorkout() {
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
       if (ex && ex.sets.length > 0) {
-        const bestSet = ex.sets
-          .filter(s => s.completed)
-          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
         return { weight: bestSet.weight, reps: bestSet.reps, date: new Date(log.date) };
       }
     }
@@ -951,9 +952,9 @@ export default function ActiveWorkout() {
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
       if (ex && ex.sets.length > 0) {
-        const bestSet = ex.sets
-          .filter(s => s.completed)
-          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
         return {
           weight: bestSet.weight,
           reps: bestSet.reps,

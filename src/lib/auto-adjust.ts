@@ -455,8 +455,12 @@ export function getSuggestedWeight(
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
-      // Get the working weight (highest weight used)
-      const maxWeight = exerciseLog.sets.reduce((max, s) => Math.max(max, s.weight), 0);
+      // Only consider completed sets to avoid pre-filled/carry-over weights
+      const completedSets = exerciseLog.sets.filter(s => s.completed);
+      if (completedSets.length === 0) continue;
+
+      // Get the working weight (highest weight from completed sets)
+      const maxWeight = completedSets.reduce((max, s) => Math.max(max, s.weight), 0);
 
       // If they had feedback
       if (exerciseLog.feedback) {

@@ -37,6 +37,7 @@ import {
   ArrowDown,
   ArrowUp,
   Info,
+  Pause,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
@@ -129,14 +130,14 @@ function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
 
 export default function ActiveWorkout() {
   const {
-    activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout,
+    activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout, pauseWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts
   } = useAppStore(
     useShallow(s => ({
       activeWorkout: s.activeWorkout, user: s.user, updateExerciseLog: s.updateExerciseLog,
-      completeWorkout: s.completeWorkout, cancelWorkout: s.cancelWorkout,
+      completeWorkout: s.completeWorkout, cancelWorkout: s.cancelWorkout, pauseWorkout: s.pauseWorkout,
       setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
       swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
@@ -639,6 +640,7 @@ export default function ActiveWorkout() {
       if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
         setCurrentExerciseIndex(currentExerciseIndex + 1);
         setCurrentSetIndex(0);
+        setWeightSuggestion(null); // Clear stale suggestion from previous exercise
       }
     } else {
       // Set-level auto-regulation: suggest weight adjustment for next set
@@ -934,9 +936,9 @@ export default function ActiveWorkout() {
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
       if (ex && ex.sets.length > 0) {
-        const bestSet = ex.sets
-          .filter(s => s.completed)
-          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
         return { weight: bestSet.weight, reps: bestSet.reps, date: new Date(log.date) };
       }
     }
@@ -950,9 +952,9 @@ export default function ActiveWorkout() {
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
       if (ex && ex.sets.length > 0) {
-        const bestSet = ex.sets
-          .filter(s => s.completed)
-          .reduce((best, s) => (s.weight > best.weight ? s : best), ex.sets[0]);
+        const completedSets = ex.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
         return {
           weight: bestSet.weight,
           reps: bestSet.reps,
@@ -3819,22 +3821,29 @@ export default function ActiveWorkout() {
               exit={{ scale: 0.9, opacity: 0 }}
               className="card p-6 w-full max-w-sm text-center"
             >
-              <h2 className="text-lg font-bold text-grappler-50 mb-2">Cancel Workout?</h2>
-              <p className="text-sm text-grappler-400 mb-6">
-                You have {completedSets} completed set{completedSets !== 1 ? 's' : ''}. All progress will be lost.
+              <h2 className="text-lg font-bold text-grappler-50 mb-2">Leave Workout?</h2>
+              <p className="text-sm text-grappler-400 mb-5">
+                You have {completedSets} completed set{completedSets !== 1 ? 's' : ''}.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setShowCancelConfirm(false)}
-                  className="btn btn-secondary btn-md flex-1"
+                  className="btn btn-primary btn-md w-full"
                 >
                   Keep Going
                 </button>
                 <button
-                  onClick={() => { setShowCancelConfirm(false); cancelWorkout(); }}
-                  className="btn btn-md flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  onClick={() => { setShowCancelConfirm(false); pauseWorkout(); }}
+                  className="btn btn-md w-full bg-grappler-700 hover:bg-grappler-600 text-grappler-50 flex items-center justify-center gap-2"
                 >
-                  Discard
+                  <Pause className="w-4 h-4" />
+                  Pause & Browse App
+                </button>
+                <button
+                  onClick={() => { setShowCancelConfirm(false); cancelWorkout(); }}
+                  className="btn btn-md w-full bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                >
+                  Discard Workout
                 </button>
               </div>
             </motion.div>

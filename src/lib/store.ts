@@ -106,6 +106,7 @@ interface AppState {
     startTime: Date;
     preCheckIn?: PreWorkoutCheckIn;
   } | null;
+  workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
 
   // Gamification
@@ -287,6 +288,8 @@ interface AppState {
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback; durationOverride?: number }) => void;
   cancelWorkout: () => void;
+  pauseWorkout: () => void;
+  resumeWorkout: () => void;
   getWeightUnit: () => WeightUnit;
   convertWeight: (weight: number, to: WeightUnit) => number;
 
@@ -541,6 +544,7 @@ export const useAppStore = create<AppState>()(
       mesocycleHistory: [],
       mesocycleQueue: [],
       activeWorkout: null,
+      workoutMinimized: false,
       workoutLogs: [],
       gamificationStats: initialGamificationStats,
       bodyWeightLog: [],
@@ -1511,7 +1515,8 @@ export const useAppStore = create<AppState>()(
             baseSession: JSON.parse(JSON.stringify(session)), // Deep clone original as immutable base
             exerciseLogs,
             startTime: new Date()
-          }
+          },
+          workoutMinimized: false,
         });
       },
 
@@ -1807,8 +1812,9 @@ export const useAppStore = create<AppState>()(
         }, 0);
 
         // Calculate duration — use override if provided (retroactive logging)
+        // Wrap startTime in new Date() because localStorage deserializes it as a string
         const duration = feedback.durationOverride ?? Math.round(
-          (new Date().getTime() - activeWorkout.startTime.getTime()) / 1000 / 60
+          (new Date().getTime() - new Date(activeWorkout.startTime).getTime()) / 1000 / 60
         );
 
         // Check for PRs
@@ -2029,6 +2035,7 @@ export const useAppStore = create<AppState>()(
 
         set({
           activeWorkout: null,
+          workoutMinimized: false,
           workoutLogs: [...workoutLogs, workoutLog],
           mentalCheckIns: [...get().mentalCheckIns, ...mentalAutoEntries],
           confidenceLedger: [...get().confidenceLedger, ...autoConfidenceEntries],
@@ -2062,7 +2069,11 @@ export const useAppStore = create<AppState>()(
         get().checkAndAwardBadges();
       },
 
-      cancelWorkout: () => set({ activeWorkout: null }),
+      cancelWorkout: () => set({ activeWorkout: null, workoutMinimized: false }),
+
+      pauseWorkout: () => set({ workoutMinimized: true }),
+
+      resumeWorkout: () => set({ workoutMinimized: false }),
 
       getWeightUnit: () => {
         const { user } = get();
@@ -3341,6 +3352,7 @@ export const useAppStore = create<AppState>()(
           mesocycleHistory: [],
           mesocycleQueue: [],
           activeWorkout: null,
+          workoutMinimized: false,
           workoutLogs: [],
           gamificationStats: initialGamificationStats,
           bodyWeightLog: [],
@@ -3581,6 +3593,7 @@ export const useAppStore = create<AppState>()(
         mesocycleHistory: state.mesocycleHistory,
         mesocycleQueue: state.mesocycleQueue,
         activeWorkout: state.activeWorkout,
+        workoutMinimized: state.workoutMinimized,
         workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,
         bodyWeightLog: state.bodyWeightLog,

@@ -560,7 +560,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
   // ========================= BROWSE MODE =========================
   if (mode === 'browse') {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
           <h1 className="text-lg font-bold text-grappler-50">Conditioning</h1>

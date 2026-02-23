@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
@@ -307,6 +307,29 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [effectiveUserId, pullFromCloud]);
 
+  // ── Flush pending sync when app goes to background (prevents data loss) ──
+  useEffect(() => {
+    const handlePageHide = () => {
+      flushPendingSync();
+    };
+
+    // visibilitychange fires when user switches apps, locks phone, or switches tabs
+    const handleHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPendingSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleHidden);
+    // pagehide is the modern replacement for beforeunload, more reliable on mobile
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleHidden);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, []);
+
   // ── Update sync status on online/offline changes ──────────────
   useEffect(() => {
     const handleOnline = () => setSyncStatus(prev => prev === 'offline' ? 'idle' : prev);
@@ -320,12 +343,69 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     };
   }, []);
 
-  // Manual force-sync function for the UI
-  const forceSync = useCallback(() => {
+  // Build sync payload from current store state (shared between auto-sync and force-sync)
+  const buildSyncPayload = useCallback((): Record<string, unknown> | null => {
+    const s = useAppStore.getState();
+    const hasRealData = s.isOnboarded && s.user && (s.workoutLogs?.length > 0 || s.trainingSessions?.length > 0);
+    if (!hasRealData) return null;
+
+    return {
+      user: s.user, isOnboarded: s.isOnboarded, isAuthenticated: s.isAuthenticated,
+      onboardingData: s.onboardingData, baselineLifts: s.baselineLifts,
+      currentMesocycle: s.currentMesocycle, mesocycleHistory: s.mesocycleHistory,
+      mesocycleQueue: s.mesocycleQueue, workoutLogs: s.workoutLogs,
+      gamificationStats: s.gamificationStats, bodyWeightLog: s.bodyWeightLog,
+      injuryLog: s.injuryLog, customExercises: s.customExercises,
+      sessionTemplates: s.sessionTemplates, hrSessions: s.hrSessions,
+      trainingSessions: s.trainingSessions, themeMode: s.themeMode,
+      meals: s.meals, macroTargets: s.macroTargets, waterLog: s.waterLog,
+      activeDietPhase: s.activeDietPhase, weeklyCheckIns: s.weeklyCheckIns,
+      bodyComposition: s.bodyComposition, muscleEmphasis: s.muscleEmphasis,
+      competitions: s.competitions, subscription: s.subscription,
+      quickLogs: s.quickLogs, gripTests: s.gripTests, gripExerciseLogs: s.gripExerciseLogs,
+      activeEquipmentProfile: s.activeEquipmentProfile,
+      notificationPreferences: s.notificationPreferences,
+      workoutSkips: s.workoutSkips, illnessLogs: s.illnessLogs,
+      cycleLogs: s.cycleLogs, mealReminders: s.mealReminders,
+      dailyLoginBonus: s.dailyLoginBonus, lastSyncAt: s.lastSyncAt,
+      colorTheme: s.colorTheme, dietPhaseHistory: s.dietPhaseHistory,
+      weightCutPlans: s.weightCutPlans, combatNutritionProfile: s.combatNutritionProfile,
+      fightCampPlans: s.fightCampPlans, activeSupplements: s.activeSupplements,
+      supplementStack: s.supplementStack, supplementIntakes: s.supplementIntakes,
+      homeGymEquipment: s.homeGymEquipment, mentalCheckIns: s.mentalCheckIns,
+      confidenceLedger: s.confidenceLedger, featureFeedback: s.featureFeedback,
+      seenInsights: s.seenInsights, dismissedInsights: s.dismissedInsights,
+      readArticles: s.readArticles, bookmarkedArticles: s.bookmarkedArticles,
+      lastInsightDate: s.lastInsightDate,
+      _lastDevice: deviceType,
+      _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
+    };
+  }, [deviceType]);
+
+  // Manual force-sync: push local data to server FIRST, then pull latest
+  const forceSync = useCallback(async () => {
     if (!effectiveUserId) return;
     lastResyncAt.current = Date.now();
-    pullFromCloud(effectiveUserId, true);
-  }, [effectiveUserId, pullFromCloud]);
+    setSyncStatus('syncing');
+
+    try {
+      // Step 1: Push local data to cloud
+      const payload = buildSyncPayload();
+      if (payload) {
+        await forcePushToCloud(effectiveUserId, payload);
+      }
+
+      // Step 2: Pull latest from cloud (merges any data from other devices)
+      await pullFromCloud(effectiveUserId, true);
+      setSyncStatus('success');
+      setLastSyncedAt(new Date());
+      setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+    } catch (err) {
+      console.error('[db-sync] Force sync failed:', err);
+      setSyncStatus('error');
+      setTimeout(() => setSyncStatus(prev => prev === 'error' ? 'idle' : prev), 5000);
+    }
+  }, [effectiveUserId, pullFromCloud, buildSyncPayload]);
 
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {

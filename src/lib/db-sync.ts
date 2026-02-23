@@ -34,12 +34,13 @@ function saveQueueToStorage(queue: Array<{ userId: string; data: Record<string, 
   }
 }
 
-export async function loadFromDatabase(userId: string): Promise<Record<string, unknown> | null> {
+export async function loadFromDatabase(userId: string): Promise<{ data: Record<string, unknown>; serverUpdatedAt: string | null } | null> {
   try {
     const res = await fetch(`/api/sync?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) return null;
-    const { data } = await res.json();
-    return data;
+    const json = await res.json();
+    if (!json.data) return null;
+    return { data: json.data, serverUpdatedAt: json.serverUpdatedAt || null };
   } catch {
     // DB not configured or network error - that's fine, use localStorage
     if (process.env.NODE_ENV === 'development') {

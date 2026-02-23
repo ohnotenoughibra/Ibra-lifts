@@ -231,6 +231,7 @@ interface DashboardProps {
   deviceType?: 'phone' | 'tablet' | 'desktop';
   isAuthenticated?: boolean;
   onForceSync?: () => void;
+  syncFailureCount?: number;
 }
 
 export default function Dashboard({
@@ -239,6 +240,7 @@ export default function Dashboard({
   deviceType = 'desktop',
   isAuthenticated = false,
   onForceSync,
+  syncFailureCount = 0,
 }: DashboardProps = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
@@ -620,6 +622,7 @@ export default function Dashboard({
             deviceType={deviceType}
             isAuthenticated={isAuthenticated}
             onForceSync={onForceSync || (() => {})}
+            syncFailureCount={syncFailureCount}
           />
         </div>
       </header>

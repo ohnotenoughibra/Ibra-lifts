@@ -19,8 +19,10 @@ import {
   ThumbsUp,
   ThumbsDown,
   Settings,
+  Play,
+  Timer,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, formatTime } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import VersionUpgradePopup from './VersionUpgradePopup';
@@ -282,13 +284,14 @@ export default function Dashboard({
   };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const {
-    user, gamificationStats, currentMesocycle, activeWorkout,
+    user, gamificationStats, currentMesocycle, activeWorkout, workoutMinimized, resumeWorkout,
     workoutLogs, mesocycleHistory, deleteMesocycle,
     syncConflict, resolveSyncConflict, dismissSyncConflict,
     ensureWeeklyChallenge, lastCompletedWorkout,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, currentMesocycle: s.currentMesocycle, activeWorkout: s.activeWorkout,
+      workoutMinimized: s.workoutMinimized, resumeWorkout: s.resumeWorkout,
       workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory, deleteMesocycle: s.deleteMesocycle,
       syncConflict: s.syncConflict, resolveSyncConflict: s.resolveSyncConflict, dismissSyncConflict: s.dismissSyncConflict,
       ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
@@ -440,7 +443,7 @@ export default function Dashboard({
     return <NewUserGuide onComplete={handleGuideComplete} />;
   }
 
-  if (activeWorkout) {
+  if (activeWorkout && !workoutMinimized) {
     // Show "Ready for This" interstitial on workout start (unless skipped)
     if (showReadyScreen && !readyScreenSkipped.current && !activeWorkout.preCheckIn) {
       return (
@@ -657,6 +660,34 @@ export default function Dashboard({
           )}
         </AnimatePresence>
       </main>
+
+      {/* Paused Workout Resume Banner */}
+      {activeWorkout && workoutMinimized && (
+        <button
+          onClick={resumeWorkout}
+          className="fixed bottom-[68px] left-3 right-3 z-30 safe-area-bottom"
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between bg-primary-500 hover:bg-primary-600 active:scale-[0.98] transition-all rounded-2xl px-4 py-3 shadow-lg shadow-primary-500/30"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                <Play className="w-5 h-5 text-white fill-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-white">{activeWorkout.session.name}</p>
+                <p className="text-xs text-white/70 flex items-center gap-1">
+                  <Timer className="w-3 h-3" />
+                  {formatTime(Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 60000))} elapsed
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-semibold text-white/90">Resume</span>
+          </motion.div>
+        </button>
+      )}
 
       {/* Bottom Navigation — Home, Program, [+], Explore, Progress */}
       <nav

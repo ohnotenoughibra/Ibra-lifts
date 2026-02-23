@@ -69,7 +69,6 @@ const PLATE_COLORS: Record<number, string> = {
 };
 
 function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
-  const [expanded, setExpanded] = useState(false);
   const barWeight = unit === 'kg' ? 20 : 45;
   const plates = unit === 'kg' ? PLATES_KG : PLATES_LBS;
 
@@ -86,56 +85,45 @@ function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
   }
   const achievable = remaining > 0.01;
 
+  if (loaded.length === 0) return null;
+
   return (
-    <button
-      onClick={() => setExpanded(e => !e)}
-      className="mt-4 w-full max-w-sm mx-auto"
-    >
-      <div className="flex items-center justify-center gap-2 text-xs text-grappler-400 hover:text-grappler-200 transition-colors">
-        <Dumbbell className="w-3.5 h-3.5" />
-        <span className="font-medium">
-          {expanded ? 'Hide plates' : `Plates: ${loaded.length ? loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ') : 'bar only'} /side`}
-        </span>
-      </div>
-      {expanded && (
-        <div className="mt-2 bg-grappler-800/60 rounded-xl p-3 text-left" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-center gap-1 mb-2">
-            {/* Visual barbell */}
-            <div className="flex items-center gap-0.5">
-              {[...loaded].reverse().map((p, i) => (
-                <div
-                  key={i}
-                  className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
-                  style={{ width: 6, height: Math.max(16, Math.min(36, p * (unit === 'kg' ? 1.4 : 0.7))) }}
-                  title={`${p} ${unit}`}
-                />
-              ))}
-            </div>
-            <div className="w-16 h-2 bg-grappler-500 rounded-full" />
-            <div className="flex items-center gap-0.5">
-              {loaded.map((p, i) => (
-                <div
-                  key={i}
-                  className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
-                  style={{ width: 6, height: Math.max(16, Math.min(36, p * (unit === 'kg' ? 1.4 : 0.7))) }}
-                  title={`${p} ${unit}`}
-                />
-              ))}
-            </div>
-          </div>
-          <p className="text-center text-xs text-grappler-300 font-medium">
-            {loaded.length === 0
-              ? `Bar only (${barWeight} ${unit})`
-              : `${loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} per side`}
-          </p>
-          {achievable && (
-            <p className="text-center text-xs text-yellow-400 mt-1">
-              ~{(remaining * 2).toFixed(1)} {unit} unachievable with standard plates
-            </p>
-          )}
+    <div className="mt-3">
+      {/* Visual barbell with plates */}
+      <div className="flex items-center justify-center gap-0.5 mb-1.5">
+        <div className="flex items-center gap-0.5">
+          {[...loaded].reverse().map((p, i) => (
+            <div
+              key={i}
+              className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
+              style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
+              title={`${p} ${unit}`}
+            />
+          ))}
         </div>
+        <div className="w-14 h-2.5 bg-grappler-500 rounded-full" />
+        <div className="flex items-center gap-0.5">
+          {loaded.map((p, i) => (
+            <div
+              key={i}
+              className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
+              style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
+              title={`${p} ${unit}`}
+            />
+          ))}
+        </div>
+      </div>
+      {/* Text breakdown */}
+      <p className="text-center text-xs text-grappler-300 font-medium">
+        <Dumbbell className="w-3 h-3 inline mr-1 text-grappler-400" />
+        {loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} {unit} each side
+      </p>
+      {achievable && (
+        <p className="text-center text-[10px] text-yellow-400 mt-0.5">
+          ~{(remaining * 2).toFixed(1)} {unit} off with standard plates
+        </p>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -2619,7 +2607,7 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
+      <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => {
             if (completedSets > 0) {
@@ -2892,10 +2880,7 @@ export default function ActiveWorkout() {
               </button>
             )}
 
-            {/* Mini Plate Calculator — shows plates to load for current weight */}
-            {currentSet.weight > 0 && !isTimeBased && (
-              <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
-            )}
+            {/* Plate calc moved to weight input section */}
 
             {/* Corner Coach Messages during rest */}
             {coachMessages.length > 0 && (
@@ -3471,6 +3456,10 @@ export default function ActiveWorkout() {
                   </button>
                 ))}
               </div>
+              {/* Plate breakdown — always visible below weight input */}
+              {currentSet.weight > 0 && !isTimeBased && (
+                <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
+              )}
             </div>
 
             {/* Reps */}

@@ -196,10 +196,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
   // ── Handlers ────────────────────────────────────────────────────────────
-  const flash = useCallback((msg: string, undoFn?: () => void) => {
+  const flash = useCallback((msg: string, undoFn?: () => void, closeForm = false) => {
     setSuccessMessage(msg);
     setShowSuccess(true);
-    setActiveLog(null);
+    if (closeForm) setActiveLog(null);
     if (undoFn) {
       setUndoAction({ label: msg, undo: undoFn });
     } else {
@@ -228,19 +228,19 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       }
       case 'weight': {
         addBodyWeight(weightValue);
-        flash(`${weightValue}${weightUnit} logged`);
+        flash(`${weightValue}${weightUnit} logged`, undefined, true);
         break;
       }
       case 'sleep': {
         addQuickLog({ type: 'sleep', value: sleepHours, unit: 'hours', timestamp: new Date(), notes: `Quality: ${sleepQuality}/5` });
         const id = getLastId('quickLogs');
-        flash(`${sleepHours}h sleep (${sleepQuality}/5)`, id ? () => deleteQuickLog(id) : undefined);
+        flash(`${sleepHours}h sleep (${sleepQuality}/5)`, id ? () => deleteQuickLog(id) : undefined, true);
         break;
       }
       case 'energy': {
         addQuickLog({ type: 'energy', value: energyLevel, timestamp: new Date() });
         const id = getLastId('quickLogs');
-        flash(`Energy: ${energyLevel}/5`, id ? () => deleteQuickLog(id) : undefined);
+        flash(`Energy: ${energyLevel}/5`, id ? () => deleteQuickLog(id) : undefined, true);
         break;
       }
       case 'training': {
@@ -255,13 +255,13 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           notes: 'Quick logged',
         });
         const id = getLastId('trainingSessions');
-        flash(`${trainingMinutes}min ${activityType.replace(/_/g, ' ')}`, id ? () => deleteTrainingSession(id) : undefined);
+        flash(`${trainingMinutes}min ${activityType.replace(/_/g, ' ')}`, id ? () => deleteTrainingSession(id) : undefined, true);
         break;
       }
       case 'mobility': {
         addQuickLog({ type: 'mobility', value: mobilityMinutes, unit: 'min', timestamp: new Date() });
         const id = getLastId('quickLogs');
-        flash(`${mobilityMinutes}min mobility`, id ? () => deleteQuickLog(id) : undefined);
+        flash(`${mobilityMinutes}min mobility`, id ? () => deleteQuickLog(id) : undefined, true);
         break;
       }
       case 'food': {
@@ -292,7 +292,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           notes: `Sparring: ${sparringRounds} rounds${sparringNotes ? ` — ${sparringNotes}` : ''}`,
         });
         const id = getLastId('trainingSessions');
-        flash(`${sparringRounds} rounds sparring`, id ? () => deleteTrainingSession(id) : undefined);
+        flash(`${sparringRounds} rounds sparring`, id ? () => deleteTrainingSession(id) : undefined, true);
         setSparringNotes('');
         break;
       }
@@ -311,7 +311,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           notes: `Quick pain check: ${painLocation} ${painLevel}/5`,
           resolved: false,
         });
-        flash(`${painLocation} pain: ${painLevel}/5`);
+        flash(`${painLocation} pain: ${painLevel}/5`, undefined, true);
         setPainLocation('');
         break;
       }
@@ -324,7 +324,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           notes: `Recovery: ${recoveryType.replace(/_/g, ' ')}`,
         });
         const id = getLastId('quickLogs');
-        flash(`${recoveryMinutes}min ${recoveryType.replace(/_/g, ' ')}`, id ? () => deleteQuickLog(id) : undefined);
+        flash(`${recoveryMinutes}min ${recoveryType.replace(/_/g, ' ')}`, id ? () => deleteQuickLog(id) : undefined, true);
         break;
       }
       case 'mental': {
@@ -339,7 +339,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
           selfTalk: mentalRating <= 2 ? 'negative' : mentalRating >= 4 ? 'positive' : 'neutral',
           triggers: mentalNotes || undefined,
         });
-        flash(`Mental: ${mentalRating}/5${mentalNotes ? ' — noted' : ''}`);
+        flash(`Mental: ${mentalRating}/5${mentalNotes ? ' — noted' : ''}`, undefined, true);
         setMentalNotes('');
         break;
       }

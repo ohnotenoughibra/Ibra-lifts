@@ -28,17 +28,23 @@ export async function GET(request: Request) {
     `;
 
     if (rows.length === 0) {
-      return NextResponse.json({ data: null });
+      return NextResponse.json({ data: null }, {
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      });
     }
 
     return NextResponse.json({
       data: rows[0].data,
       serverUpdatedAt: rows[0].updated_at,
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (error: any) {
     // If table doesn't exist yet, return null (first use)
     if (error.message?.includes('does not exist')) {
-      return NextResponse.json({ data: null });
+      return NextResponse.json({ data: null }, {
+        headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+      });
     }
     console.error('Sync GET error:', error);
     return NextResponse.json({ error: 'Database error' }, { status: 500 });

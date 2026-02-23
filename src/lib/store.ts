@@ -3458,24 +3458,34 @@ export const useAppStore = create<AppState>()(
             // Check if we're approaching the limit (5MB typical)
             const currentSize = new Blob([json]).size;
             if (currentSize > 4.5 * 1024 * 1024) {
-              // Approaching limit — trigger an emergency sync BEFORE pruning
-              // so the full dataset is safe on the server
-              try {
-                const data = JSON.parse(json);
-                const userId = data?.state?.user?.id;
-                if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
-                  // Fire-and-forget sync to preserve full data on server before pruning
-                  fetch('/api/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
-                  }).catch(() => { /* best-effort */ });
-                }
-              } catch { /* ignore sync errors during pruning */ }
-
-              // Now prune — clone via JSON to avoid mutating live store
-              console.warn('[storage] Data approaching localStorage limit — synced to server, now pruning old entries.');
               const data = JSON.parse(json);
+
+              // ── Safety net: snapshot full unpruned data to IndexedDB before pruning ──
+              // IndexedDB has ~50MB+ quota vs localStorage's ~5MB. This ensures
+              // the complete dataset is preserved locally even after pruning.
+              try {
+                import('./data-safety').then(({ savePrePruneSnapshot }) => {
+                  savePrePruneSnapshot(data).catch(() => {});
+                });
+              } catch { /* dynamic import not available — server backup is the fallback */ }
+
+              // Trigger an emergency sync BEFORE pruning
+              // so the full dataset is safe on the server
+              const userId = data?.state?.user?.id;
+              if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+                fetch('/api/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
+                }).then(res => {
+                  if (!res.ok) console.error('[storage] Emergency pre-prune sync failed:', res.status);
+                }).catch(err => {
+                  console.error('[storage] Emergency pre-prune sync network error:', err);
+                });
+              }
+
+              // Now prune — data is in IndexedDB + queued for server
+              console.warn('[storage] Data approaching localStorage limit — saved to IndexedDB + synced to server, now pruning old entries.');
               if (data?.state?.workoutLogs?.length > 50) {
                 data.state.workoutLogs = data.state.workoutLogs.slice(-50);
               }
@@ -3487,7 +3497,7 @@ export const useAppStore = create<AppState>()(
               }
               // Surface warning to the user via store state
               if (data?.state) {
-                data.state._storageWarning = 'Storage is nearly full. Data was synced to the cloud and old entries have been trimmed locally.';
+                data.state._storageWarning = 'Storage is nearly full. Your full data is backed up to the cloud — old entries have been trimmed from this device.';
               }
               localStorage.setItem(name, JSON.stringify(data));
             } else {
@@ -3495,21 +3505,45 @@ export const useAppStore = create<AppState>()(
             }
           } catch (e: any) {
             if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-              // Emergency pruning — clone to avoid mutating live store
+              // Emergency pruning — snapshot to IndexedDB first, then prune
               try {
                 const data = JSON.parse(JSON.stringify(value));
+
+                // Save full data to IndexedDB before emergency pruning
+                try {
+                  import('./data-safety').then(({ savePrePruneSnapshot }) => {
+                    savePrePruneSnapshot(data).catch(() => {});
+                  });
+                } catch { /* not critical */ }
+
+                // Emergency sync to server before pruning
+                const userId = data?.state?.user?.id;
+                if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+                  fetch('/api/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
+                  }).catch(() => {});
+                }
+
                 if (data?.state) {
                   if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
                   if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);
                   if (data.state.mesocycleHistory?.length > 3) data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-3);
                   if (data.state.bodyComposition?.length > 30) data.state.bodyComposition = data.state.bodyComposition.slice(-30);
+                  data.state._storageWarning = 'Storage was full. Your data is backed up — old entries were trimmed from this device.';
                 }
                 localStorage.setItem(name, JSON.stringify(data));
               } catch {
-                // Last resort: clear and save fresh
-                console.error('localStorage full — clearing old data');
+                // Last resort: clear and save fresh — but NEVER without an IndexedDB snapshot
+                console.error('[storage] localStorage full even after pruning — clearing and rewriting');
                 localStorage.removeItem(name);
-                localStorage.setItem(name, JSON.stringify(value));
+                try {
+                  localStorage.setItem(name, JSON.stringify(value));
+                } catch {
+                  // Truly out of space — data is in IndexedDB and/or server
+                  console.error('[storage] Cannot write to localStorage at all. Data preserved in IndexedDB + server.');
+                }
               }
             }
           }

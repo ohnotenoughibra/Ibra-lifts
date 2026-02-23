@@ -100,6 +100,12 @@ export async function POST(request: Request) {
         score += (Array.isArray(d.trainingSessions) ? d.trainingSessions.length : 0);
         score += (Array.isArray(d.bodyWeightLog) ? d.bodyWeightLog.length : 0);
         score += (Array.isArray(d.quickLogs) ? d.quickLogs.length : 0);
+        // Additional data types for more comprehensive scoring
+        score += (Array.isArray(d.bodyComposition) ? d.bodyComposition.length : 0);
+        score += (Array.isArray(d.injuryLog) ? d.injuryLog.length : 0);
+        score += (Array.isArray(d.supplementIntakes) ? d.supplementIntakes.length : 0);
+        score += (Array.isArray(d.mentalCheckIns) ? d.mentalCheckIns.length : 0);
+        score += (Array.isArray(d.weeklyCheckIns) ? d.weeklyCheckIns.length : 0);
         const gam = d.gamificationStats as Record<string, unknown> | undefined;
         if (gam) score += (Number(gam.totalXP) || Number(gam.totalPoints) || 0) > 0 ? 5 : 0;
         if (d.waterLog && typeof d.waterLog === 'object') score += Object.keys(d.waterLog).length;
@@ -109,9 +115,9 @@ export async function POST(request: Request) {
       const serverScore = richness(serverData);
       const incomingScore = richness(data);
 
-      // Block if incoming data loses more than 30% of the server's richness
+      // Block if incoming data loses more than 20% of the server's richness
       // (allows small fluctuations from normal edits but catches data wipes)
-      if (serverScore > 10 && incomingScore < serverScore * 0.7) {
+      if (serverScore > 10 && incomingScore < serverScore * 0.8) {
         console.warn(
           `[sync] BLOCKED data regression for user ${userId}: ` +
           `server score ${serverScore} → incoming score ${incomingScore}`

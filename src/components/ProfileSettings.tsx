@@ -934,22 +934,21 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   return (
     <div className="space-y-4 pb-4">
 
-      {/* ── 1. IMMERSIVE HERO ─────────────────────────────────────────── */}
+      {/* ── 1. COMPACT HERO ─────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative -mx-4 -mt-4 overflow-hidden"
       >
-        {/* Gradient background */}
-        <div className="relative bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent px-4 pt-6 pb-8">
-          {/* Decorative glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-primary-500/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative bg-gradient-to-b from-primary-500/15 via-primary-500/5 to-transparent px-4 pt-5 pb-4">
+          {/* Decorative glow — smaller */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-primary-500/8 rounded-full blur-3xl pointer-events-none" />
 
           {/* Close button (overlay mode) */}
           {onClose && (
             <button
               onClick={() => { onClose(); hapticLight(); }}
-              className="absolute top-4 left-4 w-9 h-9 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
+              className="absolute top-3 left-3 w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
               aria-label="Close"
             >
               <X className="w-4 h-4 text-grappler-400" />
@@ -959,55 +958,56 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
           {/* Gear icon */}
           <button
             onClick={() => { setSettingsOpen(true); hapticLight(); }}
-            className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
+            className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
           >
             <Settings className="w-4 h-4 text-grappler-400" />
           </button>
 
-          {/* Level Ring + Identity */}
-          <div className="relative flex flex-col items-center">
-            <LevelRing progress={progress} level={gamificationStats.level} />
+          {/* Horizontal layout: Ring left, Identity right */}
+          <div className="relative flex items-center gap-4 pt-1">
+            <LevelRing progress={progress} level={gamificationStats.level} size={88} stroke={4} />
 
-            <h2 className="text-2xl font-black text-grappler-50 mt-4 tracking-tight">
-              {user?.name || 'Athlete'}
-            </h2>
-
-            <div className="flex items-center gap-1.5 mt-1">
-              <Crown className="w-3.5 h-3.5 text-primary-400" />
-              <span className="text-sm text-primary-400 font-semibold">
-                {getLevelTitle(gamificationStats.level)}
-              </span>
-            </div>
-
-            {/* XP bar */}
-            <div className="w-full max-w-[280px] mt-5">
-              <div className="h-2 bg-grappler-800/60 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-                  className="h-full rounded-full bg-gradient-to-r from-primary-500 to-accent-500"
-                />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-black text-grappler-50 tracking-tight truncate">
+                {user?.name || 'Athlete'}
+              </h2>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Crown className="w-3 h-3 text-primary-400" />
+                <span className="text-xs text-primary-400 font-semibold">
+                  {getLevelTitle(gamificationStats.level)}
+                </span>
               </div>
-              <div className="flex justify-between text-[10px] text-grappler-500 mt-1.5 tabular-nums">
-                <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
-                <span>{formatNumber(pointsNeeded)} to next</span>
+
+              {/* XP bar — inline */}
+              <div className="mt-2.5">
+                <div className="h-1.5 bg-grappler-800/60 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+                    className="h-full rounded-full bg-gradient-to-r from-primary-500 to-accent-500"
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-grappler-500 mt-1 tabular-nums">
+                  <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
+                  <span>{formatNumber(pointsNeeded)} to next</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Banner — bold numbers */}
-        <div className="grid grid-cols-4 divide-x divide-grappler-700/30 px-2 -mt-1">
+        {/* Stats Banner — compact */}
+        <div className="grid grid-cols-4 divide-x divide-grappler-700/30 px-2">
           {([
             { value: gamificationStats.totalWorkouts, label: 'Workouts' },
             { value: gamificationStats.personalRecords, label: 'PRs' },
             { value: gamificationStats.currentStreak, label: 'Streak' },
             { value: gamificationStats.badges.length, label: 'Badges' },
           ]).map((s) => (
-            <div key={s.label} className="text-center py-3">
-              <span className="text-2xl font-black text-grappler-50 tabular-nums block leading-none">{s.value}</span>
-              <span className="text-[10px] text-grappler-500 uppercase tracking-widest mt-1 block">{s.label}</span>
+            <div key={s.label} className="text-center py-2">
+              <span className="text-xl font-black text-grappler-50 tabular-nums block leading-none">{s.value}</span>
+              <span className="text-[9px] text-grappler-500 uppercase tracking-widest mt-0.5 block">{s.label}</span>
             </div>
           ))}
         </div>
@@ -1020,17 +1020,17 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         transition={{ delay: 0.1 }}
         className="card overflow-hidden"
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-yellow-500" />
-              <h3 className="text-sm font-semibold text-grappler-100">Achievements</h3>
-              <span className="text-xs text-grappler-500">{gamificationStats.badges.length}/{badges.length}</span>
+        <div className="p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+              <h3 className="text-xs font-semibold text-grappler-100">Achievements</h3>
+              <span className="text-[10px] text-grappler-500">{gamificationStats.badges.length}/{badges.length}</span>
             </div>
             {gamificationStats.badges.length > 0 && (
               <button
                 onClick={() => { setShowAllBadges(!showAllBadges); hapticLight(); }}
-                className="text-xs text-primary-400 hover:text-primary-300 font-medium"
+                className="text-[10px] text-primary-400 hover:text-primary-300 font-medium"
               >
                 {showAllBadges ? 'Less' : 'See all'}
               </button>
@@ -1039,7 +1039,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
           {gamificationStats.badges.length > 0 ? (
             <div className={cn(
-              showAllBadges ? 'grid grid-cols-4 sm:grid-cols-5 gap-3' : 'flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-1 px-1'
+              showAllBadges ? 'grid grid-cols-5 gap-2' : 'flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-0.5 px-0.5'
             )}>
               {(showAllBadges ? gamificationStats.badges : gamificationStats.badges.slice(0, 8)).map((ub) => (
                 <button
@@ -1048,42 +1048,42 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   className={cn('text-center active:scale-95 transition-transform', !showAllBadges && 'flex-shrink-0')}
                 >
                   <div className="relative">
-                    <div className="w-16 h-16 bg-gradient-to-br from-grappler-700/80 to-grappler-800/80 rounded-2xl flex items-center justify-center mx-auto mb-1.5 text-2xl ring-1 ring-primary-500/30 shadow-lg shadow-primary-500/10">
+                    <div className="w-12 h-12 bg-gradient-to-br from-grappler-700/80 to-grappler-800/80 rounded-xl flex items-center justify-center mx-auto mb-1 text-lg ring-1 ring-primary-500/30 shadow-md shadow-primary-500/10">
                       {ub.badge.icon}
                     </div>
-                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
-                      <Check className="w-2.5 h-2.5 text-white" />
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2 h-2 text-white" />
                     </div>
                   </div>
-                  <p className="text-xs font-medium text-grappler-200 truncate max-w-[64px] mx-auto">{ub.badge.name}</p>
-                  <p className="text-[10px] text-primary-400 font-semibold">+{ub.badge.points}</p>
+                  <p className="text-[10px] font-medium text-grappler-200 truncate max-w-[52px] mx-auto">{ub.badge.name}</p>
+                  <p className="text-[9px] text-primary-400 font-semibold">+{ub.badge.points}</p>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-grappler-800/60 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl opacity-40 ring-1 ring-grappler-700/50">
+            <div className="text-center py-4">
+              <div className="w-12 h-12 bg-grappler-800/60 rounded-xl flex items-center justify-center mx-auto mb-2 text-xl opacity-40 ring-1 ring-grappler-700/50">
                 🏆
               </div>
-              <p className="text-sm text-grappler-500 font-medium">No badges yet</p>
-              <p className="text-xs text-grappler-600 mt-0.5">Complete workouts to start earning</p>
+              <p className="text-xs text-grappler-500 font-medium">No badges yet</p>
+              <p className="text-[10px] text-grappler-600 mt-0.5">Complete workouts to start earning</p>
             </div>
           )}
 
           {showAllBadges && (
-            <div className="mt-4 pt-3 border-t border-grappler-700/50">
-              <p className="text-xs text-grappler-500 mb-3">Locked</p>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+            <div className="mt-3 pt-2 border-t border-grappler-700/50">
+              <p className="text-[10px] text-grappler-500 mb-2">Locked</p>
+              <div className="grid grid-cols-5 gap-2">
                 {badges.filter(b => !earnedBadgeIds.has(b.id)).map((badge) => (
                   <button
                     key={badge.id}
                     onClick={() => { hapticLight(); setSelectedBadge({ badge, earned: false }); }}
                     className="text-center opacity-40 active:scale-95 active:opacity-60 transition-all"
                   >
-                    <div className="w-14 h-14 bg-grappler-800/60 rounded-2xl flex items-center justify-center mx-auto mb-1 text-2xl grayscale">
+                    <div className="w-11 h-11 bg-grappler-800/60 rounded-xl flex items-center justify-center mx-auto mb-0.5 text-lg grayscale">
                       {badge.icon}
                     </div>
-                    <p className="text-xs text-grappler-500 truncate max-w-[60px] mx-auto">{badge.name}</p>
+                    <p className="text-[10px] text-grappler-500 truncate max-w-[48px] mx-auto">{badge.name}</p>
                   </button>
                 ))}
               </div>
@@ -1091,15 +1091,15 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
           )}
 
           {nextBadge && !showAllBadges && (
-            <div className="mt-3 flex items-center gap-3 bg-gradient-to-r from-primary-500/10 to-accent-500/10 rounded-xl p-3 ring-1 ring-primary-500/20">
-              <div className="w-10 h-10 bg-grappler-800/80 rounded-xl flex items-center justify-center text-lg grayscale opacity-50 flex-shrink-0">
+            <div className="mt-2 flex items-center gap-2.5 bg-gradient-to-r from-primary-500/10 to-accent-500/10 rounded-lg p-2.5 ring-1 ring-primary-500/20">
+              <div className="w-8 h-8 bg-grappler-800/80 rounded-lg flex items-center justify-center text-sm grayscale opacity-50 flex-shrink-0">
                 {nextBadge.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-primary-300 font-semibold truncate">Up next: {nextBadge.name}</p>
-                <p className="text-xs text-grappler-500 truncate mt-0.5">{nextBadge.description}</p>
+                <p className="text-[10px] text-primary-300 font-semibold truncate">Up next: {nextBadge.name}</p>
+                <p className="text-[10px] text-grappler-500 truncate">{nextBadge.description}</p>
               </div>
-              <Zap className="w-4 h-4 text-primary-400 flex-shrink-0" />
+              <Zap className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
             </div>
           )}
         </div>
@@ -1110,7 +1110,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-2 gap-1.5"
       >
         {([
           { icon: Dumbbell, label: 'Total Volume', value: formatNumber(gamificationStats.totalVolume), suffix: weightUnit, color: 'from-primary-500/15 to-primary-500/5' },
@@ -1118,13 +1118,15 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
           { icon: Star, label: 'Total Points', value: formatNumber(gamificationStats.totalPoints), suffix: '', color: 'from-yellow-500/15 to-yellow-500/5' },
           { icon: Medal, label: 'Current Streak', value: `${gamificationStats.currentStreak}`, suffix: 'days', color: 'from-accent-500/15 to-accent-500/5' },
         ] as const).map((stat) => (
-          <div key={stat.label} className={cn('card p-3.5 bg-gradient-to-br', stat.color)}>
-            <stat.icon className="w-4 h-4 text-grappler-400 mb-2" />
-            <p className="text-lg font-bold text-grappler-50 tabular-nums">
+          <div key={stat.label} className={cn('card p-2.5 bg-gradient-to-br', stat.color)}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <stat.icon className="w-3 h-3 text-grappler-400" />
+              <p className="text-[10px] text-grappler-400 uppercase tracking-wider">{stat.label}</p>
+            </div>
+            <p className="text-base font-bold text-grappler-50 tabular-nums leading-tight">
               {stat.value}
-              {stat.suffix && <span className="text-xs text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
+              {stat.suffix && <span className="text-[10px] text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
             </p>
-            <p className="text-xs text-grappler-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
           </div>
         ))}
       </motion.div>

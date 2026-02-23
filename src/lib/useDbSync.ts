@@ -4,11 +4,15 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
 import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
+import { saveLatestSnapshot, loadSnapshot, onSyncFailure } from './data-safety';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 
 // Minimum interval between re-syncs on focus (30 seconds)
 const RESYNC_COOLDOWN_MS = 30_000;
+
+// Heartbeat: push to server every 5 minutes as a safety net
+const HEARTBEAT_INTERVAL_MS = 5 * 60_000;
 
 // Fields to restore from the database
 const RESTORE_FIELDS = [
@@ -580,6 +584,80 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     deviceType,
   ]);
 
+  // ── Heartbeat sync: push to server every 5 minutes as a safety net ──────
+  // Ensures data reaches the server even if change-based sync misses something
+  useEffect(() => {
+    if (!effectiveUserId || !initialLoadDone.current) return;
+
+    const heartbeat = setInterval(() => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      const payload = buildSyncPayload();
+      if (payload) {
+        forcePushToCloud(effectiveUserId, payload).catch(() => {
+          // Heartbeat failure is logged by recordSyncFailure in doSync
+        });
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+
+    return () => clearInterval(heartbeat);
+  }, [effectiveUserId, buildSyncPayload]);
+
+  // ── IndexedDB snapshot: save known-good state every 5 minutes ──────────
+  // Survives localStorage clears — second line of defense after server backup
+  useEffect(() => {
+    if (!initialLoadDone.current) return;
+
+    const snapshotInterval = setInterval(() => {
+      const payload = buildSyncPayload();
+      if (payload) {
+        saveLatestSnapshot(payload).catch(() => {});
+      }
+    }, HEARTBEAT_INTERVAL_MS);
+
+    // Also save an initial snapshot once load is complete
+    const payload = buildSyncPayload();
+    if (payload) {
+      saveLatestSnapshot(payload).catch(() => {});
+    }
+
+    return () => clearInterval(snapshotInterval);
+  }, [isInitialLoadComplete, buildSyncPayload]);
+
+  // ── IndexedDB recovery: if localStorage was empty, try IndexedDB before server ──
+  useEffect(() => {
+    if (!initialLoadDone.current || !isInitialLoadComplete) return;
+    const s = useAppStore.getState();
+    const stillEmpty = !s.isOnboarded && !s.user;
+    if (!stillEmpty) return;
+
+    // localStorage was empty — check IndexedDB for a recent snapshot
+    loadSnapshot().then(snapshot => {
+      if (!snapshot?.data) return;
+      const data = snapshot.data as Record<string, unknown>;
+      if (!data.isOnboarded || !data.user) return;
+
+      console.log('[db-sync] Recovering from IndexedDB snapshot (localStorage was empty)');
+      const fieldsToMerge: Record<string, unknown> = {};
+      for (const field of RESTORE_FIELDS) {
+        if (data[field] !== undefined) fieldsToMerge[field] = data[field];
+      }
+      if (data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = data.isOnboarded;
+      if (Object.keys(fieldsToMerge).length > 0) {
+        useAppStore.setState(fieldsToMerge);
+      }
+    }).catch(() => {});
+  }, [isInitialLoadComplete]);
+
+  // ── Sync failure listener: surface persistent failures to user ──────────
+  const [syncFailureCount, setSyncFailureCount] = useState(0);
+  useEffect(() => {
+    const unsubscribe = onSyncFailure((failures) => {
+      setSyncFailureCount(failures);
+      setSyncStatus('error');
+    });
+    return unsubscribe;
+  }, []);
+
   return {
     isInitialLoadComplete,
     syncStatus,
@@ -587,5 +665,6 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     deviceType,
     forceSync,
     isAuthenticated: !!effectiveUserId,
+    syncFailureCount,
   };
 }

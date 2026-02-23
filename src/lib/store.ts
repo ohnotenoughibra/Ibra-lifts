@@ -1812,8 +1812,9 @@ export const useAppStore = create<AppState>()(
         }, 0);
 
         // Calculate duration — use override if provided (retroactive logging)
+        // Wrap startTime in new Date() because localStorage deserializes it as a string
         const duration = feedback.durationOverride ?? Math.round(
-          (new Date().getTime() - activeWorkout.startTime.getTime()) / 1000 / 60
+          (new Date().getTime() - new Date(activeWorkout.startTime).getTime()) / 1000 / 60
         );
 
         // Check for PRs

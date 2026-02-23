@@ -38,7 +38,9 @@ function saveQueueToStorage(queue: Array<{ userId: string; data: Record<string, 
 
 export async function loadFromDatabase(userId: string): Promise<{ data: Record<string, unknown>; serverUpdatedAt: string | null } | null> {
   try {
-    const res = await fetch(`/api/sync?userId=${encodeURIComponent(userId)}`);
+    const res = await fetch(`/api/sync?userId=${encodeURIComponent(userId)}`, {
+      cache: 'no-store',
+    });
     if (!res.ok) return null;
     const json = await res.json();
     if (!json.data) return null;

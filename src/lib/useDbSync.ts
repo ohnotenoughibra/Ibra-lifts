@@ -244,7 +244,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       const stillEmpty = !storeAfterPull.isOnboarded && !storeAfterPull.user;
       if (stillEmpty && !isResync) {
         try {
-          const recoverRes = await fetch('/api/sync/recover');
+          const recoverRes = await fetch('/api/sync/recover', { cache: 'no-store' });
           if (recoverRes.ok) {
             const recovery = await recoverRes.json();
             if (recovery.recovered && recovery.data) {

@@ -89,8 +89,8 @@ function LevelRing({ progress, level, size = 128, stroke = 5 }: {
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[42px] font-black text-grappler-50 leading-none tabular-nums">{level}</span>
-        <span className="text-[10px] text-grappler-400 uppercase tracking-[0.2em] mt-0.5">Level</span>
+        <span className="text-[32px] font-black text-grappler-50 leading-none tabular-nums">{level}</span>
+        <span className="text-[9px] text-grappler-400 uppercase tracking-[0.2em] mt-0.5">Level</span>
       </div>
     </div>
   );
@@ -964,8 +964,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
           </button>
 
           {/* Horizontal layout: Ring left, Identity right */}
-          <div className="relative flex items-center gap-4 pt-1">
-            <LevelRing progress={progress} level={gamificationStats.level} size={88} stroke={4} />
+          <div className="relative flex items-center gap-3 pt-1">
+            <LevelRing progress={progress} level={gamificationStats.level} size={72} stroke={4} />
 
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-black text-grappler-50 tracking-tight truncate">

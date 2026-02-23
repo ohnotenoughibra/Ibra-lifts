@@ -49,8 +49,12 @@ self.addEventListener('fetch', (event) => {
 
   // API routes: network-first, queue POST/PUT for offline replay
   if (url.pathname.startsWith('/api/')) {
+    // NEVER cache /api/sync — must always return fresh data from Postgres
+    if (url.pathname.startsWith('/api/sync')) {
+      return; // Let it pass through to network without SW interception
+    }
     if (request.method === 'GET') {
-      // Cache GET API responses for offline reads
+      // Cache other GET API responses for offline reads
       event.respondWith(
         fetch(request)
           .then((response) => {

@@ -3361,6 +3361,1438 @@ A proper warm-up costs 10 minutes and pays for itself in injury prevention, bett
 
 **The protocol:** General movement, dynamic stretching, ramp sets. Every session. No exceptions.
 `
+  },
+  {
+    id: 'article-power-development',
+    title: 'The Science of Power Development',
+    tldr: 'Power is force x velocity — RFD, the kinetic chain, and ballistic training matter more than max strength for punch impact.',
+    category: 'striking',
+    tags: ['power', 'RFD', 'plyometrics', 'fast-twitch', 'striking', 'programming'],
+    readTime: 7,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Haff & Nimphius (2012); Suchomel et al. (2016); Loturco et al. (2022)',
+    content: `
+## Why the Hardest Punchers Aren't Always the Strongest Lifters
+
+A fighter who deadlifts 250 kg but can't crack an egg with his jab has a power problem. **Power is force multiplied by velocity** — and in striking, velocity dominates. Loturco et al. (2022) found that among elite boxers and MMA fighters, performance on jump squat and bench throw tests predicted punch impact far better than maximal strength alone. The fastest athletes hit the hardest, not the strongest.
+
+## Rate of Force Development: The Real Metric
+
+**Rate of force development (RFD)** — how quickly you can produce force from zero — is the single most important neuromuscular quality for strikers. A punch takes 80–120 milliseconds to land. Maximal strength peaks around 300+ ms. You never reach peak force in a punch; you reach whatever force you can generate in that narrow window.
+
+Haff & Nimphius (2012) demonstrated that RFD is trainable and partially independent of maximal strength. Two athletes with identical squats can have wildly different RFDs based on their training history and fiber-type distribution.
+
+### Ground Reaction Forces and the Kinetic Chain
+
+Every punch starts at the floor. Ground reaction forces travel through the ankle, knee, and hip, rotate through the trunk, and accelerate through the shoulder and fist. Weak links anywhere in this **kinetic chain** bleed energy. A boxer generating 2,000 N of ground reaction force but losing 40% through a weak core delivers less impact than a fighter generating 1,500 N with an airtight chain.
+
+This is why isolated arm training does almost nothing for punch power. The arms are the last link — they transmit force; they don't create it.
+
+## The Speed-Strength Continuum
+
+Suchomel et al. (2016) laid out the continuum that governs all athletic power:
+
+1. **Absolute Strength** (>90% 1RM, slow) — the foundation
+2. **Strength-Speed** (70–90% 1RM, moderate velocity) — heavy power cleans, loaded jumps
+3. **Speed-Strength** (30–60% 1RM, high velocity) — jump squats, bench throws, medicine ball work
+4. **Absolute Speed** (<30% 1RM or bodyweight, maximal velocity) — plyometrics, unloaded strikes
+
+Striking lives in zones 3 and 4. But you can't express speed-strength without a strength base underneath it. A fighter who never trains above zone 4 eventually plateaus because there's no force to accelerate. A fighter who only trains zone 1 is strong but slow.
+
+**The sweet spot**: build a strength floor (1.5–2x bodyweight squat), then spend most of your power work in zones 3 and 4.
+
+## Fast-Twitch Recruitment and Ballistic Training
+
+Type II (fast-twitch) muscle fibers produce 2–4x more force per cross-sectional area than Type I fibers and contract significantly faster. The problem: your nervous system only recruits them under high-force or high-velocity demands. Slow, grinding reps barely touch them.
+
+**Ballistic movements** — where you accelerate through the entire range of motion and release the load — are the gold standard for fast-twitch recruitment. Unlike a squat where you decelerate at the top, a jump squat or medicine ball throw demands acceleration from start to finish.
+
+Key ballistic exercises for strikers:
+- **Jump squats** (30–40% 1RM, 3–5 reps) — lower body power
+- **Medicine ball rotational throws** (3–5 kg, maximal intent) — rotational power for hooks and crosses
+- **Bench throws on Smith machine** (30–40% 1RM) — upper body pushing power
+- **Plyometric push-ups** (clap or explosive) — bodyweight upper body RFD
+
+### Plyometrics: The Free Speed Upgrade
+
+Plyometrics exploit the **stretch-shortening cycle (SSC)** — a rapid eccentric contraction followed immediately by a concentric contraction. The elastic energy stored in tendons and the myotatic reflex combine to produce forces you can't generate from a dead start.
+
+For fighters:
+- **Depth jumps** (30–50 cm box) — the most potent lower body plyometric; limit to 40 contacts per session
+- **Bounding** — horizontal power transfer for closing distance
+- **Overhead medicine ball slams** — full-body SSC training
+
+Ground contact time matters. If your depth jump looks like a squat, the box is too high. Aim for <250 ms ground contact — reactive, not muscular.
+
+## Programming Power Alongside Skill Training
+
+This is where most fighters get it wrong. Power work is neurally demanding. Stacking it on top of hard sparring creates central nervous system fatigue that degrades both your power training and your skill work.
+
+### Practical Framework
+
+**Phase 1: General Prep (8–12 weeks out from fight)**
+- 2 strength sessions/week (build the force base)
+- 1 power session/week (introduce ballistics)
+- Full sport training schedule
+
+**Phase 2: Specific Prep (4–8 weeks out)**
+- 1 strength maintenance session
+- 2 power sessions (shift to speed-strength and plyometrics)
+- Peak sport training
+
+**Phase 3: Taper (1–2 weeks out)**
+- Power work only: low volume, high intensity, full recovery
+- Reduce strength work to zero
+- CNS freshness is the goal
+
+### Session Structure for Power Days
+
+1. **Plyometrics first** (when freshest): 3–4 sets of 3–5 reps, full recovery (2–3 min)
+2. **Ballistic lifts second**: jump squats or throws, 4–5 sets of 3–5 reps
+3. **Strength work last** (if included): 2–3 compound sets, moderate volume
+
+Never do power work fatigued. If you had a brutal sparring session, skip the power day and do recovery work instead.
+
+## The Bottom Line
+
+- **Power is force x velocity.** Train both, but emphasize velocity for striking.
+- Build a **strength floor** (1.5–2x BW squat), then shift focus to ballistic and plyometric work.
+- **RFD, not max strength,** determines punch impact. Train with maximal intent on every rep.
+- Respect the **kinetic chain**: ground reaction forces, hip rotation, and core stiffness matter more than arm strength.
+- Program power work when fresh — never after hard sparring — and taper it into fight week.
+`
+  },
+  {
+    id: 'article-neck-strength-fighters',
+    title: 'Neck Strength: The Most Neglected Training for Fighters',
+    tldr: 'Each pound of neck strength reduces concussion odds by 5%. Train all four directions with isometrics and dynamic work.',
+    category: 'mma',
+    tags: ['neck', 'concussion', 'prehab', 'injury-prevention', 'mma', 'striking'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Eckner et al. (2014); Collins et al. (2014); Catenaccio et al. (2017)',
+    content: `
+## One Muscle Group Separates Getting Rocked from Staying Standing
+
+When a punch lands on the jaw, the head whips into rotation. The brain, floating in cerebrospinal fluid, slams against the inside of the skull. The angular acceleration of the head — not the linear force — is the primary mechanism of concussion. Your neck muscles are the only active structure that resists this rotation.
+
+Yet walk into any MMA gym and count how many fighters train their necks with any seriousness. You'll run out of fingers on one hand.
+
+## The Evidence: Neck Strength Reduces Concussion Risk
+
+Collins et al. (2014) studied over 6,700 athletes and found that **for every one pound increase in neck strength, odds of concussion decreased by 5%**. Athletes with the weakest necks were significantly more likely to sustain concussions across multiple sports.
+
+Eckner et al. (2014) demonstrated that greater neck strength directly reduced head acceleration after impact. Stronger necks don't prevent the head from moving — they limit how fast it moves. This reduction in angular velocity is the difference between a flash knockdown and lights out.
+
+Catenaccio et al. (2017) confirmed this relationship using accelerometers: athletes with weaker necks experienced greater head impact magnitudes during identical forces.
+
+### Cervical Spine Biomechanics Under Impact
+
+The cervical spine has seven vertebrae supporting a 4.5–5 kg head. Under a cross or hook, the neck must resist:
+- **Lateral flexion** (hook from the side)
+- **Rotation** (hook catching the chin)
+- **Extension** (uppercut snapping the head back)
+- **Combined loading** (real punches are never a single plane)
+
+The deep cervical flexors (longus colli, longus capitis) and extensors (semispinalis, splenius) provide the primary stabilization. The sternocleidomastoid and upper trapezius assist but are insufficient alone. Most people only train the latter — which is why shrugs don't protect your brain.
+
+## Flexor/Extensor Ratio: The Imbalance Problem
+
+Healthy neck strength ratios should be approximately:
+- **Flexion-to-extension ratio:** 0.6–0.7 (extensors should be stronger)
+- **Lateral flexion:** roughly symmetrical left to right (within 10%)
+
+Fighters who do nothing but shrugs and deadlifts develop strong extensors but weak flexors. This imbalance actually increases injury risk because the neck can't decelerate rotation in all directions.
+
+### Isometric vs. Dynamic Training
+
+**Isometric neck training** (pushing against an immovable resistance) develops the anticipatory stiffness that braces for impact. When you see a punch coming, your neck muscles contract isometrically before contact. This is the most sport-specific modality.
+
+**Dynamic neck training** (moving through range of motion against resistance) builds the muscular cross-sectional area and endurance needed for repeated impacts over 15–25 minutes of fighting.
+
+Both are necessary. Isometric work trains the reactive brace. Dynamic work builds the tissue that enables it.
+
+## Practical Protocols
+
+### The 4-Way Neck Machine (Gold Standard)
+
+If your gym has one:
+- **Flexion, extension, left lateral, right lateral** — hit all four directions
+- 2–3 sets of 12–20 reps per direction, 2–3x/week
+- Start embarrassingly light. The cervical spine has small muscles with limited training history. Ego lifting here causes real injury
+- Progress by 1–2 kg increments, not 5 kg jumps
+
+### Manual Resistance (Partner-Based)
+
+A training partner applies force while you resist:
+- Partner places hand on forehead; you resist flexion and extension
+- Partner places hand on side of head; you resist lateral flexion
+- 3 sets of 8–10 second holds per direction
+- The partner controls intensity — they should apply gradually increasing force
+- Excellent for fighters because it mimics unpredictable loading
+
+### Neck Harness Work
+
+- Attach weight to a head harness, perform controlled nodding motions
+- 2–3 sets of 15–25 reps for flexion and extension
+- Keep loads light (5–15 kg) and movements controlled
+- Never jerk or use momentum — cervical disc injuries are career-ending
+
+### Isometric Protocol (Can Do Daily)
+
+- **Forehead against palm:** Push forward, resist for 10 seconds. 3 sets.
+- **Back of head against palm:** Push backward, resist for 10 seconds. 3 sets.
+- **Side of head against palm:** Push laterally, resist for 10 seconds each side. 3 sets.
+- Total time: under 5 minutes. No equipment needed.
+
+## Why Fighters Skip This (And Why They Shouldn't)
+
+The excuses are always the same: "I don't have time," "it looks weird," "I've never been knocked out." The first two are trivially addressed by the 5-minute isometric protocol above. The third is survivorship bias — by the time you get knocked out, you're already behind on years of neck development.
+
+**Neck strength takes months to build but seconds to need.** A well-developed neck won't make you invincible, but it demonstrably reduces the severity and likelihood of concussions. For a sport where brain health is the single greatest long-term risk, spending 10 minutes per week on neck training is the highest-ROI injury prevention work a fighter can do.
+
+## The Bottom Line
+
+- **Neck strength directly reduces concussion risk** — each pound of force you can resist meaningfully reduces head acceleration on impact.
+- Train **all four directions**: flexion, extension, left lateral, right lateral. Imbalances increase vulnerability.
+- Use **isometric holds** for reactive stiffness and **dynamic reps** for tissue capacity.
+- Start light, progress slowly, and stay consistent — 10 minutes, 2–3x/week is sufficient.
+- No equipment? The hand-resistance isometric protocol takes 5 minutes and works anywhere.
+`
+  },
+  {
+    id: 'article-energy-system-development',
+    title: 'Conditioning for Combat: Energy System Development',
+    tldr: 'Fighters need all 3 energy systems. Build the aerobic base first, use polarized training, and periodize across camp.',
+    category: 'general_fitness',
+    tags: ['conditioning', 'energy-systems', 'aerobic', 'anaerobic', 'intervals', 'cardio'],
+    readTime: 8,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Buchheit & Laursen (2013); Seiler (2010); Franchini et al. (2011)',
+    content: `
+## Every Second of a Fight Uses a Different Fuel System — and Most Fighters Only Train One
+
+Watch a round of MMA: a 10-second scramble (phosphagen), 30 seconds of sustained cage work (glycolytic), a minute of circling and feinting (oxidative), then another explosive takedown attempt (phosphagen again). Combat sports are the ultimate mixed-energy-system demand. Training only "cardio" — or worse, doing everything at a moderate intensity — leaves critical systems underdeveloped.
+
+## The Three Energy Systems
+
+### 1. Phosphagen System (ATP-PCr) — The First 10 Seconds
+
+This system provides immediate, maximal power. It fuels explosive takedowns, knockout combinations, and scrambles. The fuel — phosphocreatine stored in muscle — depletes within 6–10 seconds of all-out effort and takes 3–5 minutes to fully replenish.
+
+**In a fight:** Every explosive exchange draws on this system. Fighters who gas after repeated scrambles have a phosphagen recovery problem, not a "cardio" problem.
+
+**How to train it:**
+- All-out efforts of 5–10 seconds with full recovery (3–5 min rest)
+- Examples: heavy bag max power bursts, sled sprints, explosive repeats on the mat
+- 6–10 reps per session, 1–2x/week
+
+### 2. Glycolytic System — The 10-Second to 2-Minute Window
+
+When the phosphagen system empties, glycolysis takes over, breaking down glucose for energy. It's fast but produces hydrogen ions (the "burn") and lactate as byproducts. This system sustains the sustained grappling exchanges, extended combinations, and clinch battles that define a fight.
+
+**In a fight:** That third-round fatigue where your arms feel like concrete? Glycolytic byproduct accumulation combined with inadequate clearance capacity.
+
+**How to train it:**
+- High-intensity intervals of 20–90 seconds with incomplete rest (1:1 to 1:3 work:rest)
+- Examples: 30-second Assault Bike sprints with 60-second rest, pad rounds with sustained output
+- 6–12 intervals per session, 1–2x/week
+
+### 3. Oxidative System — The Endurance Engine
+
+The aerobic system metabolizes fats and carbohydrates with oxygen. It's the slowest to produce ATP but virtually unlimited in capacity. Critically, it's also responsible for **recovering between efforts** — clearing lactate, replenishing phosphocreatine, and restoring homeostasis.
+
+**In a fight:** Your aerobic system determines how quickly you recover between exchanges, between rounds, and how well you maintain technique when fatigued. A fighter with a poor aerobic base doesn't just tire faster — they lose fine motor control, reaction time, and decision-making first.
+
+## Why Your Aerobic Base Is the Foundation
+
+Seiler (2010) studied world-class endurance athletes across sports and found that elite performers consistently train using a **polarized model**: approximately 80% of training at low intensity (Zone 1–2) and 20% at high intensity (Zone 4–5), with very little time in the moderate "gray zone" (Zone 3).
+
+This applies directly to combat athletes. Franchini et al. (2011) found that elite judo athletes had significantly higher VO2max values than their sub-elite counterparts, and that aerobic capacity was the best predictor of repeated high-intensity performance during matches.
+
+### What the Aerobic Base Actually Does
+
+1. **Increases cardiac output** — your heart pumps more blood per beat (stroke volume), delivering more oxygen to working muscles
+2. **Improves capillary density** — more blood vessels surrounding each muscle fiber means better oxygen delivery and waste removal
+3. **Enhances mitochondrial density** — more cellular "power plants" to produce aerobic ATP
+4. **Accelerates phosphocreatine recovery** — your aerobic system directly replenishes the phosphagen system between bursts
+5. **Improves lactate clearance** — better buffering and recycling of glycolytic byproducts
+
+Without this base, high-intensity interval training produces diminishing returns. You're building a sports car engine with a bicycle fuel delivery system.
+
+### Building Cardiac Output
+
+**Cardiac output training** targets stroke volume — training the heart to pump more blood per beat.
+
+Protocol (Buchheit & Laursen, 2013):
+- **Intensity:** 120–150 BPM (or conversational pace)
+- **Duration:** 30–60 minutes continuous
+- **Modality:** Running, cycling, swimming, rowing — anything that doesn't beat up your joints
+- **Frequency:** 2–4 sessions/week in the off-season; 1–2 during camp
+- **Key rule:** If you can't hold a conversation, you're going too hard
+
+## Anaerobic Capacity: Intervals That Transfer
+
+Once the aerobic base is established, layer in targeted interval work.
+
+### Glycolytic Power Intervals
+
+These train peak glycolytic output and tolerance to acidosis:
+- **30/30 intervals:** 30 seconds hard / 30 seconds easy, 10–20 rounds
+- **Tabata-style:** 20 seconds all-out / 10 seconds rest, 6–8 rounds (true Tabata, not the group fitness version — this should be nauseating)
+- **Tempo rounds:** 3–5 minute rounds at 85–90% effort on pads or in drilling, with 1-minute rest
+
+### Repeat Sprint Ability (RSA)
+
+This most closely mimics the demands of actual fighting:
+- 6-second all-out sprint / 24-second active rest, repeated 10–15 times
+- Tests and develops the phosphagen-aerobic interface — your ability to recover between explosive efforts
+- Perform on bike, rower, or as actual sprints
+
+### The Fight-Specific Simulation
+
+- **5-minute rounds** alternating 10 seconds of all-out effort (sprawl + strike combos) with 20 seconds of light movement (circling, feinting)
+- 1-minute rest between rounds
+- 3–5 rounds
+- This pattern mirrors actual fight pacing and trains all three systems in context
+
+## The Cardinal Mistake: "Moderate Intensity Everything"
+
+The most common conditioning error among fighters is spending all training time at 70–80% effort — too hard to build the aerobic base, too easy to challenge the glycolytic system. Buchheit & Laursen (2013) call this the "black hole" of training intensity.
+
+Symptoms of black hole training:
+- Always feeling "kind of tired" but never fresh
+- Performance plateaus despite training hard
+- Getting through rounds but without pop in your strikes
+- Chronic low-grade overtraining
+
+**The fix:** Go truly easy on easy days (can hold a conversation, feels "too easy") and truly hard on hard days (can barely speak, questioning life choices). Eliminate the middle.
+
+## Periodizing Energy System Work Across a Camp
+
+| Phase | Aerobic | Glycolytic | Phosphagen |
+|-------|---------|------------|------------|
+| Off-season | 3–4x/week | 1x/week | Minimal |
+| Early camp | 2–3x/week | 2x/week | 1x/week |
+| Mid camp | 1–2x/week | 2x/week | 1–2x/week |
+| Late camp / peak | 1x/week (maintain) | 1x/week (sharp) | Integrated with skill |
+| Fight week | Light only | None | None |
+
+## The Bottom Line
+
+- Combat sports demand **all three energy systems**; train them deliberately, not accidentally.
+- Build the **aerobic base first** — it's the recovery engine that powers everything else. Target 2–4 cardiac output sessions per week in the off-season.
+- Use **polarized training**: 80% easy, 20% hard. Eliminate "moderate intensity everything."
+- Layer in **glycolytic intervals** (30/30s, Tabatas, tempo rounds) and **phosphagen work** (short sprints, explosive repeats) as competition approaches.
+- Periodize across your camp: **base → capacity → sharpening → taper**.
+`
+  },
+  {
+    id: 'article-fight-week-protocol',
+    title: 'Fight Week: A Science-Based Protocol',
+    tldr: 'A day-by-day fight week timeline: water loading, glycogen depletion, taper, and post-weigh-in refueling done right.',
+    category: 'mma',
+    tags: ['fight-week', 'weight-cut', 'water-loading', 'taper', 'refueling', 'competition'],
+    readTime: 8,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Reale et al. (2017); Barley et al. (2018); Artioli et al. (2016)',
+    content: `
+## The 7 Days Before a Fight Determine More Than the 7 Weeks of Camp Before Them
+
+A perfectly executed training camp means nothing if fight week is botched. Dehydrate too aggressively and your chin evaporates. Refuel poorly and your gas tank is half empty. Taper wrong and you're flat or overtrained. This is the most consequential week of a fighter's preparation, yet most approach it with guesswork and gym folklore.
+
+Here's what the evidence actually supports.
+
+## The 7-Day Timeline
+
+### Day 7 (Sunday): Final Hard Session + Water Loading Begins
+
+**Training:** This is your last intense session. Keep it short (30–45 min), technically sharp, and fully recovered from. No sparring. Skill work at pace with controlled output.
+
+**Water loading begins.** Reale et al. (2017) established the protocol: increase water intake to **8–10 liters/day** (yes, this is uncomfortable) for 3–4 days. The purpose is to upregulate renal water excretion — your kidneys "learn" to flush water at a high rate. When you cut water intake later, the kidneys keep flushing for 12–24 hours, creating passive water loss.
+
+**Sodium:** Maintain normal or slightly elevated sodium intake (5–7 g/day) during water loading. This helps maintain extracellular fluid balance and prevents early hyponatremia.
+
+### Days 6–5 (Monday–Tuesday): Water Loading Continues + Training Taper
+
+**Training:** Light technical drilling, visualization, game-planning. Intensity drops to 50–60% of normal. Volume drops by 50–70%. The goal is dissipating residual fatigue while maintaining neuromuscular sharpness.
+
+**Water:** Continue 8–10 L/day. Monitor urine color — it should be nearly clear. You'll urinate frequently. This is the protocol working.
+
+**Nutrition:** If a weight cut is needed, begin a moderate caloric deficit. Reduce carbohydrates to 2–3 g/kg bodyweight to begin glycogen depletion. Maintain protein at 2.2–2.5 g/kg to preserve muscle tissue. Keep fats moderate.
+
+### Day 4 (Wednesday): Water Reduction Begins
+
+**Water:** Drop to 4–5 liters. Your kidneys are still excreting at the high-volume rate from days of loading. You'll notice significant weight drops from this day forward.
+
+**Training:** 20–30 minutes maximum. Technique only. Shadowboxing, light pad work, visualization.
+
+**Nutrition:** Continue reduced carbohydrates (1–2 g/kg). Begin reducing sodium to <1.5 g/day. Avoid processed foods (hidden sodium). Switch to simple, controlled meals.
+
+### Day 3 (Thursday): Glycogen Depletion + Further Water Reduction
+
+**Water:** Drop to 1–2 liters, consumed in small sips throughout the day.
+
+**Nutrition:** Reduce carbs to <50 g total. Each gram of stored glycogen holds 3–4 g of water. Depleting glycogen stores can yield 1–2 kg of additional water loss. Maintain protein intake.
+
+**Training:** Optional light movement only — a 15-minute walk, gentle stretching. No training intensity whatsoever.
+
+### Day 2 (Friday — Typical Weigh-In Eve): Final Water Manipulation
+
+**Water:** Minimal intake — sips only as needed. Some fighters go completely dry for the final 12–16 hours. Barley et al. (2018) found that acute dehydration of **3–5% bodyweight** can be achieved safely with water loading protocols, though beyond 5% the risks escalate significantly.
+
+**Nutrition:** Very low carb, low sodium, low residue. Small protein-based meals. Some fighters use sugar-free gum to manage dry mouth.
+
+**Hot bath / sauna (if needed):** If still over target, a passive sweat session can drop 0.5–1.5 kg. Limit to 20–30 minutes. Monitor cognition and coordination — these are early warning signs of dangerous dehydration.
+
+### Day 1 (Saturday Morning): Weigh-In + Refueling
+
+**Weigh-in first.** Then the most important phase begins: **refueling.**
+
+## Post-Weigh-In Refueling Protocol
+
+You typically have 24–30 hours between weigh-in and fight. The goal: restore glycogen, rehydrate, and optimize electrolyte balance without gastrointestinal distress.
+
+### Hour 0–2 (Immediately Post-Weigh-In)
+
+- **Fluid:** Begin with an oral rehydration solution (ORS) — water with sodium (1–1.5 g/L), potassium, and glucose. Pedialyte or similar. Drink 500 mL in the first 30 minutes, then 250 mL every 15–20 minutes
+- **Sodium is critical.** Reale et al. (2017) showed that sodium-containing fluids restore plasma volume significantly faster than water alone. Plain water dilutes blood sodium, triggering more urination — you lose what you drink
+- **Food:** A moderate meal combining simple carbs and protein. White rice, lean protein, light sauce. Nothing high in fiber or fat (slow digestion)
+
+### Hours 2–12
+
+- **Fluid:** Continue steady intake — target 1–1.5 L per hour. Switch between ORS and regular water. Total target: 125–150% of fluid lost
+- **Carbohydrates:** 8–10 g/kg bodyweight over the refueling period. Prioritize high-glycemic sources: white rice, white bread, pancakes, fruit juice, gummy candy. This is one day where "clean eating" takes a back seat to glycogen replenishment
+- **Protein:** 1.5–2 g/kg spread across meals
+- **Sodium:** 3–5 g supplemental sodium across the refueling period (added to food, in ORS, or as salt capsules)
+
+### Hours 12–24 (Evening Through Fight Morning)
+
+- **Dinner:** Large carb-heavy meal. Pasta, rice, potatoes. Familiar foods — not the time to try the hotel's exotic buffet
+- **Pre-bed snack:** Slow-digesting carb + protein (oatmeal with casein, or rice with chicken)
+- **Fight morning:** Familiar pre-training meal, 3–4 hours before fight time. Moderate carbs, moderate protein, low fat, low fiber
+
+## The Brain Cost: Cognitive Function During Dehydration
+
+This is the part fighters ignore at their peril. Barley et al. (2018) documented that **even 3% dehydration significantly impairs reaction time, short-term memory, and executive decision-making**. At 5%, cognitive performance drops are measurable and substantial.
+
+In a sport decided by millisecond reactions and split-second tactical decisions, walking into the cage with a dehydrated brain is giving your opponent a neurological advantage. Artioli et al. (2016) found that fighters who cut more than 5% bodyweight via dehydration showed impaired performance even after 24 hours of rehydration.
+
+**This is why the refueling protocol matters as much as the cut.** A fighter who makes weight but refuels poorly still fights impaired.
+
+## What the UFC Performance Institute Recommends
+
+The UFC PI advises fighters to:
+- Keep weight cuts to **<5% of bodyweight** via acute water manipulation
+- Manage the remaining gap through chronic body composition management during camp
+- Water load for 3 days minimum before cutting
+- Use sodium-containing beverages for rehydration (not just water)
+- Refuel with high-glycemic carbohydrates at 8–10 g/kg
+- Have a **practiced** weight cut protocol — never experiment on fight week
+
+## The Bottom Line
+
+| Day | Water | Carbs | Sodium | Training |
+|-----|-------|-------|--------|----------|
+| 7 | 8–10 L (load) | Normal | Normal–high | Last hard session |
+| 6–5 | 8–10 L (load) | 2–3 g/kg (reduce) | Normal | Light technical |
+| 4 | 4–5 L (reduce) | 1–2 g/kg | <1.5 g (reduce) | Minimal |
+| 3 | 1–2 L (restrict) | <50 g (deplete) | Minimal | Optional light walk |
+| 2 | Sips only | Low carb, low residue | Minimal | Nothing |
+| 1 (weigh-in) | Rehydrate aggressively | 8–10 g/kg reload | 3–5 g supplement | Nothing |
+| 0 (fight) | Maintain hydration | Pre-fight meal 3–4 hrs out | Normal | Compete |
+
+Execute this methodically, practice it in training camps before lesser-stakes events, and never deviate on fight week. The process should feel boring and routine — that's how you know it's dialed in.
+`
+  },
+  {
+    id: 'article-making-weight-science',
+    title: 'The Science of Making Weight',
+    tldr: 'Chronic fat loss during camp is safe; acute water cuts should stay under 5% bodyweight. Bigger cuts mean worse performance.',
+    category: 'mma',
+    tags: ['weight-cut', 'body-composition', 'dehydration', 'weight-class', 'nutrition', 'health'],
+    readTime: 7,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Crighton et al. (2016); Reale et al. (2017); Morton et al. (2010)',
+    content: `
+## The Fighter Who Cuts 15 Pounds in a Week and the Fighter Who Cuts 15 Pounds Over 12 Weeks Are Playing Entirely Different Games
+
+Weight cutting in combat sports is ubiquitous, poorly understood, and frequently dangerous. The core confusion: fighters conflate **chronic weight management** (body composition changes over weeks) with **acute weight manipulation** (water and gut content reduction over days). These are fundamentally different physiological processes with different risks, mechanisms, and limits.
+
+## Chronic vs. Acute Weight Management
+
+### Chronic: The Slow Cut (Weeks to Months)
+
+This is actual fat loss and, to a lesser extent, strategic muscle mass management. It happens during training camp through a sustained caloric deficit.
+
+**Mechanisms:**
+- **Caloric deficit of 300–500 kcal/day** produces ~0.25–0.5 kg of fat loss per week
+- Protein kept high (2.2–2.7 g/kg) to preserve lean mass (Morton et al., 2010)
+- Resistance training maintained to send muscle-preserving signals
+- Over a 10–12 week camp, a fighter can realistically lose 3–6 kg of body fat
+
+**The advantage:** Every kilogram lost chronically is a kilogram you don't have to cut acutely. Fat loss doesn't impair performance. Dehydration does.
+
+Crighton et al. (2016) found that fighters who maintained lower body fat year-round required smaller acute cuts and performed better on fight night than those who relied primarily on dehydration.
+
+### Acute: Water Manipulation (Days)
+
+This is the dramatic weight drop that happens during fight week — water loading, sodium manipulation, glycogen depletion, and fluid restriction. (See the companion article on Fight Week protocols.)
+
+**Mechanisms:**
+- **Water loading + restriction:** Exploits renal overshoot to passively excrete excess water
+- **Glycogen depletion:** Each gram of glycogen holds 3–4 g of water; depleting stores yields 1–2 kg
+- **Sodium restriction:** Reduces extracellular fluid retention
+- **Gut content reduction:** Low-residue diet reduces fecal and food mass by 0.5–1 kg
+
+Acute manipulation can safely drop **3–5% of bodyweight** in trained individuals using proper protocols (Reale et al., 2017). Beyond that, the risk-benefit equation collapses.
+
+## The Dose-Response of Dehydration: Where the Danger Starts
+
+Not all weight cuts are equal. The magnitude matters enormously.
+
+### 1–3% Bodyweight Loss (Low Risk)
+- Minimal performance impact if refueled properly
+- Achievable primarily through glycogen depletion and gut content
+- Most fighters can do this with water loading alone
+
+### 3–5% Bodyweight Loss (Moderate Risk)
+- Noticeable cognitive and physical impairment prior to rehydration
+- Requires disciplined water loading and sodium manipulation
+- Full recovery possible with 24-hour refueling window
+- This is the practical upper limit for most fighters
+
+### 5–8% Bodyweight Loss (High Risk)
+- Significant cardiovascular strain — heart rate increases, stroke volume decreases
+- Cognitive impairment persists even after rehydration (Artioli et al., 2016)
+- Thermoregulation impaired — increased risk of heat-related illness
+- Barley et al. (2018) documented measurable performance decrements at this range even with optimal refueling
+
+### >8% Bodyweight Loss (Dangerous)
+- **Renal stress becomes a genuine medical concern.** Concentrated urine, reduced kidney perfusion, and electrolyte derangement can cause acute kidney injury
+- Multiple deaths in combat sports have occurred at this level
+- Cardiac arrhythmia risk increases due to potassium and magnesium depletion
+- No amount of refueling fully reverses the damage within 24 hours
+
+Crighton et al. (2016) reviewed the evidence and concluded that **cuts exceeding 5% bodyweight through dehydration provide no competitive advantage** once performance decrements are accounted for. You may weigh in lighter, but you fight worse.
+
+## Weight Class Selection: Fight Weight vs. Walk-Around Weight
+
+This is the strategic decision that should precede all cutting discussions.
+
+### The Formula
+
+**Optimal fight weight class = Walk-around weight in lean condition (10–15% body fat for males, 18–23% for females) minus 3–5% for acute water manipulation.**
+
+Example: A male fighter who walks around at 80 kg at 12% body fat:
+- Lean off-season weight: 80 kg
+- Acute cut potential (5%): 4 kg
+- Target weight class: 76 kg / 170 lbs
+
+If making that weight class requires losing more than 5% acutely, either:
+1. Get leaner during camp (chronic approach), or
+2. Fight at a higher weight class
+
+### The Case Against Large Cuts
+
+The conventional wisdom — "everyone cuts, so I have to cut more to keep up" — creates a race to the bottom. The evidence contradicts it:
+
+- **Impaired chin:** Dehydrated brain tissue is more susceptible to concussion. You're bigger but more vulnerable.
+- **Reduced power output:** Muscle force production drops 2–3% per 1% of dehydration beyond 3%.
+- **Worse cardio:** Dehydration reduces blood volume, meaning less oxygen delivery and faster fatigue.
+- **Cognitive decline:** Reaction time, decision-making, and pattern recognition all degrade.
+
+Morton et al. (2010) found that fighters who competed closer to their natural weight had longer careers, fewer injuries, and — counterintuitively — similar win rates to heavy cutters in the same division.
+
+### How to Know If You're in the Wrong Weight Class
+
+Signs you're cutting too much:
+- You feel significantly weakened on fight night despite refueling
+- You've been hospitalized or needed medical intervention during a cut
+- Your walk-around weight is >15% above your division limit
+- You need more than 5 days of water manipulation to make weight
+- Your training suffers in the last 3+ weeks of camp due to dieting
+
+## Body Composition Manipulation During Camp
+
+The goal: arrive at fight week as lean as possible so the acute cut is minimal.
+
+### Practical Approach
+
+**Weeks 12–4 (Slow Cut Phase):**
+- Caloric deficit: 300–500 kcal/day (no more — you're training hard)
+- Protein: 2.5–2.7 g/kg bodyweight (Morton et al., 2010 showed this maximizes lean mass retention)
+- Carbohydrates: Timed around training sessions. 3–5 g/kg on training days, 2–3 g/kg on rest days
+- Fat: Minimum 0.8 g/kg for hormonal health
+- Weigh daily, track weekly averages. Target 0.3–0.5 kg loss per week
+
+**Weeks 4–2 (Stabilization):**
+- Reduce deficit to maintenance or slight deficit
+- Prioritize performance in training — this is final preparation, not weight loss time
+- Fine-tune remaining weight gap for fight week manipulation
+
+**Week 1 (Fight Week):**
+- Acute water manipulation for remaining 3–5%
+- See fight week protocol
+
+### What Not to Do
+
+- **Crash dieting in the last 3 weeks:** Destroys training quality, metabolic rate, and hormonal function
+- **Sauna suits during training:** Creates dehydration that impairs training adaptation. You get worse at fighting to get lighter.
+- **Skipping meals to "bank" calories:** Leads to muscle loss, binge-restrict cycles, and poor nutrient timing
+- **Diuretics:** Banned in most organizations, medically dangerous, and unpredictable in effect
+
+## The Bottom Line
+
+- **Chronic body composition management** (getting lean over weeks) is safe, sustainable, and performance-preserving. Do the work during camp.
+- **Acute water manipulation** (fight week) should be limited to **3–5% of bodyweight** maximum. Beyond this, you're trading performance for a number on the scale.
+- Cuts exceeding 8% bodyweight carry **genuine medical risks** including renal damage and cardiac events.
+- Choose your weight class based on your **lean walk-around weight minus 3–5%** — not on how much suffering you can tolerate.
+- The best fighters make weight **routinely and unremarkably**. If your cut is the hardest part of fight week, you're in the wrong division.
+`
+  },
+  {
+    id: 'article-shoulder-durability-strikers',
+    title: "Shoulder Durability: A Striker's Blueprint",
+    tldr: 'Punching is an overhead sport. Maintain a 3:4 external-to-internal rotation ratio, fix scapular dyskinesis, and cap bag work volume.',
+    category: 'striking',
+    tags: ['shoulder', 'prehab', 'rotator-cuff', 'injury-prevention', 'striking', 'mobility'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Reinold et al. (2010); Wilk et al. (2009); Kibler et al. (2013)',
+    content: `
+## Throwing 500 Punches a Session Is an Overhead Sport — Your Shoulders Just Don't Know It Yet
+
+Baseball pitchers get shoulder prehab protocols, physical therapy budgets, and pitch counts. Fighters throw more repetitions at higher variety and get nothing. A single pad session can involve 300–500 punches. A heavy bag session adds hundreds more. Over a training camp, that's tens of thousands of ballistic shoulder movements with zero structured recovery.
+
+The result: rotator cuff tendinopathy, labral irritation, and shoulder impingement are endemic among strikers. Most don't address it until something tears.
+
+## Why Striker Shoulders Fail
+
+### The Biomechanics of Throwing Punches
+
+A cross or hook involves:
+1. **Rapid internal rotation** of the humerus (the actual punching motion)
+2. **Forceful horizontal adduction** (bringing the arm across the body)
+3. **Violent deceleration** at end range (stopping the arm after the punch lands or misses)
+
+Phase 3 is where injuries happen. The **posterior rotator cuff** (infraspinatus, teres minor) and **posterior deltoid** must eccentrically decelerate the arm. Every missed punch — where the fist travels through air instead of stopping against a target — amplifies this deceleration demand.
+
+Reinold et al. (2010) showed that the deceleration phase generates the highest forces on the shoulder joint, exceeding the forces of the acceleration phase. The muscles that stop a punch work harder than the muscles that throw it.
+
+### The Rotator Cuff Is a Dynamic Stabilizer, Not a Prime Mover
+
+The four rotator cuff muscles (supraspinatus, infraspinatus, teres minor, subscapularis) exist to **center the humeral head in the glenoid socket** during movement. They don't generate punching power — the pecs, lats, and deltoids do that. But without cuff stability, the larger muscles pull the humeral head out of position, creating impingement, labral fraying, and eventually tears.
+
+Think of it like wheel alignment. The rotator cuff keeps the ball in the socket. When it fails, bone grinds on soft tissue with every repetition.
+
+## Internal/External Rotation Ratio
+
+Wilk et al. (2009) established that healthy shoulder function requires a specific **internal-to-external rotation strength ratio**. In throwers, external rotators should be **at least 66–75% as strong as internal rotators** (a 3:4 ratio).
+
+Strikers are typically far more imbalanced. Punching aggressively trains internal rotation. Heavy bag work trains internal rotation. Bench pressing trains internal rotation. Almost nothing in a typical fighter's program trains external rotation with comparable volume.
+
+**The result:** Internal rotators overpower external rotators, the humeral head migrates anteriorly and superiorly, the supraspinatus gets pinched under the acromion, and impingement begins. Left unchecked, this progresses to tendinopathy, partial tears, and eventually full tears.
+
+### Testing Your Ratio
+
+Practical self-test: Using a resistance band at elbow height, compare your internal rotation strength to your external rotation strength. If external rotation feels significantly weaker (less than ~60% of internal), you have work to do.
+
+## Scapular Dyskinesis: The Hidden Problem
+
+Kibler et al. (2013) identified **scapular dyskinesis** — abnormal scapular movement — as a primary driver of shoulder pathology in overhead athletes. The scapula must upwardly rotate, posteriorly tilt, and externally rotate as the arm elevates. When these movements are restricted or poorly timed, the subacromial space narrows and impingement worsens.
+
+**Heavy bag work is a perfect scapular dyskinesis generator.** The impact drives the scapula into protraction and anterior tilt thousands of times. The serratus anterior fatigues, the lower trapezius weakens, and the scapula begins to "wing" — losing its stable platform function.
+
+Signs of scapular dyskinesis in fighters:
+- Shoulder blade "winging" (medial border lifts off the ribcage)
+- Asymmetric shoulder blade position at rest
+- Clicking or catching during arm elevation
+- Pain at the top of the shoulder during hooks or uppercuts
+
+## The Prehab Protocol
+
+Perform this 3x/week, either as a warm-up before upper body training or as a standalone session (15–20 minutes).
+
+### Band Pull-Aparts — Posterior Cuff + Rhomboids
+
+- Hold a light resistance band at arm's length, shoulder height
+- Pull apart until hands are wide, squeezing shoulder blades together
+- 3 sets of 15–20 reps
+- Focus: scapular retraction and external rotation
+
+### Face Pulls — External Rotators + Lower Traps
+
+- Cable or band at face height. Pull toward the face, then externally rotate the hands upward
+- 3 sets of 15–20 reps
+- The external rotation at the end is critical — don't skip it
+- This is the single best exercise for correcting the striker's internal rotation dominance
+
+### YTWLs — Scapular Stabilization Complex
+
+Perform prone (face down on a bench) or standing with light dumbbells (1–3 kg):
+- **Y:** Arms overhead at 45 degrees, thumbs up. 10 reps.
+- **T:** Arms out to the sides, thumbs up. 10 reps.
+- **W:** Elbows bent 90 degrees, externally rotate. 10 reps.
+- **L:** Elbows at sides, externally rotate. 10 reps.
+- 2 rounds through. Light weight — if you need more than 3 kg, you're compensating with larger muscles.
+
+### Turkish Get-Ups — Shoulder Stability Under Load
+
+- Full Turkish get-up with a kettlebell, focusing on keeping the arm vertical and the shoulder packed throughout
+- 3 reps per side with a moderate weight
+- This trains reflexive shoulder stabilization through multiple planes — the closest gym exercise to the unpredictable demands of striking
+
+### Serratus Wall Slides — Scapular Upward Rotation
+
+- Stand facing a wall, forearms flat against it
+- Slide arms upward while pressing into the wall, protracting the scapulae
+- 2 sets of 10 reps
+- Targets the serratus anterior, the most important scapular stabilizer for fighters
+
+## Volume Management for Bag Work
+
+The prehab protocol above is necessary but insufficient if training volume is uncontrolled.
+
+**Guidelines:**
+- **Cap heavy bag rounds** at 6–8 per session. Endless bag work past fatigue trains sloppy mechanics and fatigued stabilizers — a recipe for injury
+- **Balance punching volume with pulling volume.** For every pushing/punching session, include a pulling session with rows, pull-ups, and face pulls
+- **Monitor for warning signs:** Anterior shoulder aching after training, pain when sleeping on the affected side, decreased punching power, or clicking during arm circles all warrant a deload
+- **Weekly volume:** Track total punching rounds across all modalities (pads, bag, sparring, shadowboxing). If shoulder soreness appears, reduce total volume by 30% before adding prehab — you can't out-prehab overuse
+
+## The Bottom Line
+
+- Striker shoulders face **throwing-sport demands** without throwing-sport injury prevention programs. Close this gap.
+- The rotator cuff is a **stabilizer, not a mover**. Neglect it and the bigger muscles slowly destroy the joint.
+- Maintain **external rotation strength at 66–75% of internal rotation strength.** Face pulls and band work are non-negotiable.
+- Watch for **scapular dyskinesis** — heavy bag work systematically degrades scapular mechanics unless counteracted.
+- Perform the prehab protocol **3x/week** (15–20 min) and manage punching volume with hard caps and pulling balance.
+- Shoulder injuries end careers slowly, then suddenly. Five minutes of prehab per session buys years of pain-free striking.
+`
+  },
+  {
+    id: 'article-caffeine-performance',
+    title: 'Caffeine and Athletic Performance: The Complete Playbook',
+    tldr: '3-6 mg/kg caffeine 30-60 minutes pre-training enhances power, reaction time, and pain tolerance — but habitual use blunts the effect and evening doses sabotage recovery.',
+    category: 'nutrition',
+    tags: ['caffeine', 'supplementation', 'performance', 'combat', 'pre-workout', 'sleep'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Goldstein et al. 2010; Grgic et al. 2020; Guest et al. 2021; Pickering & Kiely 2019',
+    content: `
+## Most Athletes Use Caffeine. Almost None Use It Correctly.
+
+Coffee before training is universal. Structured caffeine periodization is rare. The difference between the two is the difference between a vague buzz and a measurable ergogenic edge. The evidence base here is enormous — hundreds of controlled trials — and the consensus is clear: caffeine works, but dosing, timing, and cycling determine whether it works *for you*.
+
+## Optimal Dosing: The 3-6 mg/kg Window
+
+The International Society of Sports Nutrition position stand (Goldstein et al. 2010) established 3-6 mg/kg body mass as the effective ergogenic range. For a 75 kg athlete, that's 225-450 mg — roughly 2-4 cups of strong coffee. Grgic et al. (2020) confirmed in their meta-analysis that doses within this range improve maximal strength by 2-7% and muscular endurance by 6-12%.
+
+**Critical nuance:** More is not better. Doses above 6 mg/kg increase anxiety, heart rate, and GI distress without additional performance benefit. Guest et al. (2021) showed that genetic variation in the CYP1A2 gene means roughly 50% of the population are "slow metabolizers" who get jittery and anxious at doses that work perfectly for fast metabolizers. If 3 mg/kg makes you feel wired, you're likely a slow metabolizer — stay at the lower end.
+
+### Timing
+
+Peak plasma concentration occurs 30-60 minutes post-ingestion. Take your caffeine 45 minutes before your first working set, not while walking into the gym.
+
+## Habituation and Cycling
+
+Daily caffeine use builds tolerance within 7-14 days. Habitual consumers (3+ cups/day) show blunted ergogenic responses compared to naive users (Beaumont et al. 2017). The practical solution:
+
+- **Wash-out protocol:** 7-10 days caffeine-free before a competition or key training block restores full sensitivity
+- **Cycling approach:** Limit caffeine to training days only (3-4 days/week), keeping doses at 3 mg/kg on non-competition days
+- **Strategic escalation:** Use 2-3 mg/kg for regular training, reserve 5-6 mg/kg for competition or max-effort sessions
+
+## Sleep: The Hidden Cost
+
+Caffeine's half-life is 5-6 hours in most adults. A 300 mg dose at 2 PM still leaves ~150 mg circulating at 8 PM — enough to reduce slow-wave sleep by 20% even if you fall asleep normally (Goldstein et al. 2010). Since slow-wave sleep drives growth hormone release and tissue repair, afternoon caffeine quietly undermines the recovery your training demands.
+
+**Hard rule:** No caffeine after 1 PM if you train in the morning. If you train in the evening, use caffeine only for morning sessions and rely on warm-up intensity for evening performance.
+
+## Combat Sport Specifics
+
+For fighters, caffeine's benefits extend beyond raw strength:
+
+- **Reaction time:** Grgic et al. (2020) found 4-8% faster reaction times at 3-6 mg/kg — meaningful when slipping punches or shooting takedowns
+- **Power output:** 3-5% improvement in peak power, translating to harder strikes and more explosive entries
+- **Pain perception:** Caffeine blocks adenosine receptors that modulate pain signaling, increasing pain tolerance by 10-15%. This matters in late rounds and during grueling sparring sessions
+- **Sustained cognitive function:** Decision-making under fatigue degrades 15-25% slower with caffeine, per Guest et al. (2021)
+
+## The Bottom Line
+
+- Dose at **3-6 mg/kg**, taken **45 minutes pre-training**. Start low if you're unsure of your metabolism.
+- **Cycle your use.** Daily consumption builds tolerance. Reserve full doses for key sessions and competitions.
+- **Respect the half-life.** No caffeine after early afternoon. Sleep quality is non-negotiable for adaptation.
+- **Fighters benefit beyond strength:** faster reactions, higher pain tolerance, and sustained decision-making under fatigue.
+- **Wash out for 7-10 days** before major competitions to restore full ergogenic response.
+`
+  },
+  {
+    id: 'article-science-of-warming-up',
+    title: 'The Science of Warming Up',
+    tldr: 'The RAMP protocol — Raise, Activate, Mobilize, Potentiate — systematically prepares your nervous system for peak output and dramatically cuts injury risk.',
+    category: 'general_fitness',
+    tags: ['warm-up', 'injury-prevention', 'performance', 'RAMP', 'combat', 'mobility'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Fradkin et al. 2010; Behm & Chaouachi 2011; Bishop 2003; Tillin & Bishop 2009',
+    content: `
+## A Cold Muscle Is a Slow, Weak, Injury-Prone Muscle. Full Stop.
+
+Fradkin et al. (2010) analyzed 32 studies on warm-up and injury incidence. The conclusion was unambiguous: structured warm-ups reduce injury risk by over 50% across virtually all sports. Yet most athletes still "warm up" by doing a lighter version of their workout — or worse, skipping it entirely. A proper warm-up is not optional filler. It is the highest-ROI 10-15 minutes of your session.
+
+## The RAMP Protocol
+
+Bishop (2003) proposed and subsequent research validated a four-phase warm-up structure that systematically prepares every relevant system:
+
+### Raise (3-5 minutes)
+Elevate heart rate, core temperature, and blood flow. Jump rope, rowing, light jogging, or bodyweight circuits at 50-60% effort. The goal is a light sweat and elevated breathing rate. Muscle temperature increases of 1-2°C improve nerve conduction velocity by 2-5% per degree (Bishop 2003) — your muscles literally contract faster when warm.
+
+### Activate (2-3 minutes)
+Target the specific stabilizer muscles that govern joint integrity during your session. For upper body days: band pull-aparts, scapular push-ups, external rotations. For lower body: glute bridges, clamshells, single-leg balance work. These muscles need deliberate activation because they're inhibited by sitting and daily posture.
+
+### Mobilize (2-3 minutes)
+Take working joints through their full range of motion dynamically. Leg swings, hip circles, thoracic rotations, deep bodyweight squats. This is where Behm & Chaouachi (2011) made a critical distinction:
+
+- **Dynamic stretching before training:** Improves ROM without performance decrements. Use it.
+- **Static stretching before training:** Reduces maximal strength by 5-8% and power output by 2-3% when held longer than 60 seconds. Avoid it pre-session. Save it for post-training or dedicated mobility work.
+
+Short static holds (<30 seconds) show minimal performance loss, but dynamic work is still superior for pre-training preparation.
+
+### Potentiate (2-4 minutes)
+Post-activation potentiation (PAP) primes the nervous system for heavy output. Perform 2-3 submaximal sets of your primary exercise pattern at increasing intensity (50%, 70%, 85% of working weight). For power athletes, include 3-5 explosive reps — box jumps, medicine ball throws, or explosive push-ups — at near-maximal intent.
+
+PAP works by increasing motor unit recruitment and rate coding. Tillin & Bishop (2009) showed that a potentiation protocol improved subsequent power output by 3-8% compared to traditional ramp sets alone.
+
+## Combat Sport-Specific Warm-Up
+
+Fighters have unique demands. A combat-specific warm-up should include:
+
+- **Raise:** 3 rounds of shadowboxing at 50-70% intensity (also grooves technique)
+- **Activate:** Rotator cuff work (fighters throw hundreds of punches), hip activation (sprawls, level changes)
+- **Mobilize:** Neck circles, thoracic rotations, hip openers, ankle mobility (essential for stance work)
+- **Potentiate:** 5-8 explosive combinations on pads at 90% power, 2-3 explosive sprawl-to-shot sequences
+
+This takes 12-15 minutes. It prevents injuries, sharpens early-round performance, and ensures your nervous system isn't playing catch-up during sparring.
+
+## The Bottom Line
+
+- Use the **RAMP protocol**: Raise temperature, Activate stabilizers, Mobilize joints, Potentiate the nervous system.
+- **Dynamic stretching beats static stretching** pre-training. Static stretching >60 seconds reduces strength and power output.
+- **Post-activation potentiation** adds 3-8% to subsequent power output — do explosive ramp sets before heavy work.
+- **12-15 minutes** is all it takes. The injury risk reduction alone (>50% per Fradkin et al.) makes this non-negotiable.
+- **Fighters:** Shadowboxing is your Raise phase. Add rotator cuff activation and explosive pad work to complete the protocol.
+`
+  },
+  {
+    id: 'article-training-through-injuries',
+    title: 'Training Through Injuries: Evidence-Based Modifications',
+    tldr: 'Pain does not equal harm. Load management and intelligent movement substitutions outperform complete rest for nearly every musculoskeletal injury.',
+    category: 'general_fitness',
+    tags: ['injury', 'rehabilitation', 'pain-management', 'load-management', 'combat', 'modifications'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Lehman 2017; Smith et al. 2017; Glasgow et al. 2015; Khan & Scott 2009',
+    content: `
+## The Worst Advice in Fitness Is "Just Rest It."
+
+Complete rest was the standard recommendation for musculoskeletal pain for decades. The evidence now overwhelmingly shows that prolonged rest deconditions tissue, delays recovery, and increases the likelihood of re-injury upon return (Glasgow et al. 2015). The modern approach is clear: find a tolerable training load and maintain it. Pain is information, not a stop sign.
+
+## Pain vs. Harm: A Critical Distinction
+
+Smith et al. (2017) established a practical framework that every athlete needs to internalize:
+
+- **Pain ≠ harm.** A sore knee during squats does not mean you are damaging the joint. Most musculoskeletal pain reflects tissue sensitivity, not tissue damage.
+- **Acceptable pain during training:** 0-3/10 on a visual analog scale. If pain stays in this range during and after exercise, you are loading the tissue within its adaptive capacity.
+- **Warning signs of actual harm:** Pain above 5/10 during movement, pain that worsens progressively within a session, swelling that increases after training, or pain that is significantly worse 24 hours post-session than it was before.
+
+This distinction changes everything. Most athletes with knee pain, shoulder pain, or back pain can and should continue training — with modifications.
+
+## Load Management Over Rest
+
+Glasgow et al. (2015) demonstrated that tendons, muscles, and joints adapt to load through mechanotransduction — the biological process by which cells convert mechanical stimulus into cellular response. Remove the stimulus entirely and the tissue weakens. The clinical evidence supports:
+
+- **Reduce load to a tolerable level** rather than eliminating it. A sore shoulder that hurts bench pressing 100 kg at full ROM may be pain-free pressing 60 kg to a shortened ROM.
+- **Gradually increase load** as symptoms allow. Lehman (2017) recommends 10-15% weekly load increases during return-to-training phases.
+- **Isometric holds** at painful angles reduce pain acutely and stimulate tendon adaptation. 5 sets of 45-second isometric holds at 70% maximal voluntary contraction is the gold standard protocol for tendinopathy.
+
+## Movement Substitution Patterns
+
+When a specific movement hurts, don't abandon the movement pattern — modify it:
+
+### Knee Pain
+- **Swap:** Back squats → belt squats, leg press with limited ROM, box squats to parallel
+- **Shift to hip-dominant:** Romanian deadlifts, hip thrusts, Nordic curls load the posterior chain without knee flexion stress
+- **Reduce moment arm:** Goblet squats and front squats reduce shear forces on the knee versus back squats
+
+### Shoulder Pain
+- **Swap:** Barbell bench press → neutral-grip dumbbell press, floor press (limits ROM)
+- **Shift emphasis:** Overhead pressing → landmine press (arcing path reduces impingement risk)
+- **Modify grip:** Pronated grip → neutral grip on rows, presses, and pull-ups. This externally rotates the humerus and opens the subacromial space
+
+### Low Back Pain
+- **Swap:** Conventional deadlift → trap bar deadlift, sumo stance, or rack pulls
+- **Reduce spinal load:** Bilateral squats → split squats and lunges (lower absolute load, same stimulus)
+- **Core stability:** McGill Big 3 (curl-up, side plank, bird dog) daily — these build spinal endurance without provocative flexion/extension
+
+## When to Actually Stop Training
+
+Despite the "train through it" approach, certain presentations demand medical evaluation and genuine rest:
+
+- **Acute traumatic injury:** Joint dislocations, suspected fractures, acute muscle tears with visible bruising
+- **Neurological symptoms:** Radiating pain, numbness, tingling, or weakness in extremities
+- **Joint locking or giving way:** Mechanical symptoms suggesting meniscal tear or ligament instability
+- **Night pain and rest pain:** Pain that wakes you from sleep suggests inflammatory or systemic pathology, not mechanical overload
+- **No improvement after 2-3 weeks** of modified training — something else is going on
+
+## The Bottom Line
+
+- **Pain is not the same as harm.** Most musculoskeletal pain is safe to train through at reduced loads (0-3/10 pain scale).
+- **Complete rest deconditions tissue** and delays recovery. Maintain tolerable loading.
+- **Substitute movements, don't eliminate patterns.** Knee pain → hip-dominant; shoulder pain → neutral grip; back pain → reduced spinal load.
+- **Isometric holds** (5×45s at 70% MVC) are the best acute pain-reduction tool for tendon issues.
+- **Stop training for:** fractures, neurological symptoms, joint locking, night pain, or failure to improve after 2-3 weeks of modification.
+- **Increase load by 10-15% per week** during return phases. Patience here prevents re-injury.
+`
+  },
+  {
+    id: 'article-concurrent-training',
+    title: 'Concurrent Training: Strength + Cardio Without Compromise',
+    tldr: 'The interference effect is real but manageable — separate sessions by 6-8 hours, prioritize strength before cardio, and accept that combat athletes will always live with some interference.',
+    category: 'periodization',
+    tags: ['concurrent-training', 'interference-effect', 'strength', 'cardio', 'combat', 'programming'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Wilson et al. 2012; Fyfe et al. 2014; Murach & Bagley 2016; Hickson 1980',
+    content: `
+## You Cannot Specialize When Your Sport Demands Everything.
+
+Powerlifters only lift. Marathoners only run. Fighters have to do both — and grapple, and drill, and spar. The "interference effect" — the blunted strength adaptation that occurs when endurance training is layered on top of resistance training — was first documented by Hickson (1980) and has haunted concurrent training programming ever since. But the research has matured. The interference is real, quantifiable, and *manageable* if you understand the mechanisms.
+
+## The Molecular Conflict: AMPK vs. mTOR
+
+At the cellular level, strength and endurance training activate opposing signaling pathways (Fyfe et al. 2014):
+
+- **Resistance training** activates **mTOR** (mechanistic target of rapamycin), the master switch for muscle protein synthesis and hypertrophy.
+- **Endurance training** activates **AMPK** (AMP-activated protein kinase), an energy sensor that upregulates mitochondrial biogenesis and oxidative capacity — but simultaneously **inhibits mTOR signaling**.
+
+When both pathways are activated in close temporal proximity, AMPK suppresses mTOR. The result: attenuated hypertrophy and strength gains. Wilson et al. (2012) quantified this in their meta-analysis — concurrent training reduced strength gains by ~15% and hypertrophy by ~28% compared to resistance training alone. Power development was the most affected quality, with reductions exceeding 30%.
+
+### Not All Cardio Is Equal
+
+The type of endurance work matters enormously:
+
+- **Running** causes the greatest interference due to eccentric muscle damage and the mechanical mismatch with strength training patterns
+- **Cycling** causes moderate interference — less eccentric damage, but still significant AMPK activation
+- **Combat-specific conditioning** (pad work, grappling rounds, sparring) sits in a middle ground — it activates AMPK but also involves high-force contractions that partially stimulate mTOR
+
+## Practical Minimization Strategies
+
+Murach & Bagley (2016) synthesized the literature into actionable guidelines:
+
+### Temporal Separation
+Separate strength and endurance sessions by **6-8 hours minimum**. This allows mTOR signaling from resistance training to peak (at ~3-4 hours post-session) before AMPK activation from endurance work blunts it. Morning strength, evening cardio is the classic template.
+
+### Priority Sequencing
+When same-day training is unavoidable: **strength before cardio, always.** Performing endurance work first depletes glycogen and elevates AMPK before you even touch a barbell, guaranteeing suboptimal strength stimulus. Strength first ensures maximal motor unit recruitment and mTOR activation.
+
+### Modality Selection
+- Replace running with **cycling or rowing** for base conditioning when possible — less eccentric damage means less interference
+- Use **high-intensity intervals** (10-30 seconds) over long steady-state — shorter bouts cause less AMPK activation per unit of conditioning benefit
+- **Sled pushes and drags** are the gold standard "cardio" for strength athletes — high metabolic demand with zero eccentric component
+
+### Volume Management
+- Keep dedicated cardio sessions to **2-3 per week** during strength-focused blocks
+- Total weekly training volume (all modalities combined) should not exceed what you can recover from — the interference effect is amplified when overall volume outpaces recovery capacity
+
+## The Combat Athlete's Reality
+
+Here's the uncomfortable truth: **fighters cannot fully eliminate the interference effect.** Sparring is endurance work. Drilling is endurance work. Pad rounds are endurance work. A fighter training 4-5 martial arts sessions per week is already performing 4-8 hours of endurance activity before any dedicated conditioning is added.
+
+This means:
+
+- **Strength sessions must be brutally efficient.** 3-4 compound lifts, 3-5 sets of 3-6 reps, heavy loads, full recovery between sets. Get the mTOR stimulus and get out.
+- **Accept slower hypertrophy gains.** A fighter gaining 1-2 kg of lean mass per year while maintaining sport skill is making excellent progress.
+- **Periodize around competition.** During fight camps, reduce strength volume to maintenance (2 sessions/week, 2-3 sets per exercise) and accept the interference from increased sport-specific work.
+- **Off-season is for building.** When sport volume drops, push strength and hypertrophy hard. This is when fighters make their biggest physical gains.
+
+## Programming Template: Fighter's Week
+
+| Day | AM Session | PM Session |
+|-----|-----------|------------|
+| Mon | Strength (upper) | Skill/sparring |
+| Tue | Skill/drilling | — |
+| Wed | Strength (lower) | Conditioning (intervals) |
+| Thu | Skill/sparring | — |
+| Fri | Strength (full body, power) | Skill/drilling |
+| Sat | Conditioning or active recovery | — |
+| Sun | Off | — |
+
+## The Bottom Line
+
+- The **interference effect reduces strength gains by ~15% and hypertrophy by ~28%** when endurance training is concurrent. Power is most affected (~30% reduction).
+- **AMPK from cardio suppresses mTOR from strength training.** Separate sessions by 6-8 hours to minimize this conflict.
+- **Strength before cardio, always.** Never enter a strength session glycogen-depleted from prior endurance work.
+- **Cycling and sled work** interfere less than running. Choose your conditioning modality strategically.
+- **Fighters cannot avoid interference** — martial arts training IS endurance work. Accept it, keep strength sessions short and heavy, and use the off-season to build.
+`
+  },
+  {
+    id: 'article-knee-health-athletes',
+    title: 'Knee Health for Athletes: Prevention and Longevity',
+    tldr: 'Deep squats protect knees, not destroy them. VMO and hamstring strength, full ROM training, and targeted ACL prevention protocols keep fighters pivoting and changing levels for decades.',
+    category: 'general_fitness',
+    tags: ['knee', 'injury-prevention', 'squat', 'ACL', 'tendinopathy', 'combat', 'longevity'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Hartmann et al. 2013; Hewett et al. 2005; Lian et al. 2005; Schoenfeld 2010',
+    content: `
+## The Knee Is Not Fragile. Your Training Program Probably Is.
+
+The fitness industry has spent decades telling athletes to avoid deep squats, limit knee-over-toe movement, and "protect" their joints with partial ranges of motion. The research says the opposite. Hartmann et al. (2013) reviewed the biomechanical literature and concluded that deep squats produce lower peak retropatellar compressive forces than half squats, develop the posterior cruciate ligament, and build more resilient cartilage through progressive loading. Avoiding full ROM is not protecting your knees — it's leaving them underdeveloped.
+
+## Knee Anatomy, Simplified
+
+Understanding knee health requires knowing four structures:
+
+- **Quadriceps (especially VMO):** The vastus medialis oblique is the terminal knee extensor. It's the muscle that keeps your kneecap tracking properly during cutting, pivoting, and level changes. Weak VMO = patellar maltracking = anterior knee pain.
+- **Hamstrings:** The primary dynamic ACL protector. During deceleration and pivoting, the hamstrings pull the tibia posteriorly, reducing ACL strain. Hewett et al. (2005) showed that athletes with hamstring-to-quadriceps strength ratios below 0.6 were 2.5x more likely to suffer ACL tears.
+- **ACL (anterior cruciate ligament):** Prevents anterior tibial translation and rotational instability. Fighters are at high risk due to constant pivoting, level changes, and lateral movement in stances.
+- **Patellar tendon:** Connects the kneecap to the tibia. Absorbs enormous forces during jumping, squatting, and kicking. The most common overuse injury in strength-trained combat athletes is patellar tendinopathy.
+
+## VMO and Posterior Chain Training
+
+The VMO activates most powerfully in the last 30 degrees of knee extension and during deep knee flexion. This is why:
+
+- **Full-depth squats** (below parallel) develop the VMO far more than half squats (Schoenfeld 2010)
+- **Terminal knee extensions** (TKEs) with a band isolate VMO activation at the range where it matters most
+- **Step-downs** from a 6-8 inch box force eccentric VMO control through the exact range that causes patellar tracking problems
+- **Split squats with a rear foot elevated** challenge single-leg VMO and hip stability simultaneously
+
+For the posterior chain:
+
+- **Nordic hamstring curls** reduce hamstring injury risk by 51% (meta-analysis data). They also build eccentric hamstring strength that directly protects the ACL.
+- **Romanian deadlifts** develop the hamstrings at long muscle lengths — the position where tears actually occur during sprinting and kicking
+- **Glute-ham raises** combine hip extension and knee flexion, the two primary hamstring functions
+
+## Full ROM Squatting Is Protective
+
+Hartmann et al. (2013) dismantled the myth that deep squats harm knees:
+
+- **Compressive forces peak at 90 degrees**, not at full depth. Going deeper actually distributes forces across more joint surface area.
+- **Deep squats develop the posterior cruciate ligament** through progressive tensile loading. Half squats do not.
+- **Articular cartilage adapts to loading.** Regular full-depth squatting increases cartilage thickness and resilience over time. Avoiding depth leaves cartilage thin and vulnerable.
+- **Wrapping forces stabilize the knee** in deep flexion. The soft tissues behind the knee compress and create a natural "braking" mechanism that limits shear force.
+
+**Practical application:** Squat as deep as your mobility allows with controlled form. Ass-to-grass is the goal, not parallel. Build depth gradually if mobility is limited — goblet squats are the entry point.
+
+## ACL Injury Prevention for Fighters
+
+Combat athletes face severe ACL risk. Pivoting during kicks, sudden direction changes, and takedown scrambles place enormous rotational stress on the knee. Hewett et al. (2005) developed and validated a neuromuscular prevention protocol that reduced ACL injuries by 72% in high-risk athletes:
+
+### The Protocol (3x/week, 15 minutes)
+1. **Single-leg balance work:** 3×30 seconds per leg on unstable surface, eyes open then closed
+2. **Lateral bounds:** 3×8 per side, focusing on sticking the landing with knee over toe (not collapsing inward)
+3. **Drop jumps with proper landing mechanics:** 3×5 from a 30 cm box, emphasizing soft landings with knees tracking over toes
+4. **Single-leg Romanian deadlifts:** 3×8 per leg, developing eccentric hamstring control on one leg
+5. **Perturbation training:** Partner pushes during single-leg stance, training reactive knee stability
+
+**The key cue for all exercises:** Knee tracks over the second toe. Never let it collapse medially (valgus). This movement error is the primary mechanism of non-contact ACL tears.
+
+## Patellar Tendinopathy Management
+
+Lian et al. (2005) showed that patellar tendinopathy affects up to 45% of athletes in jumping and power sports. The evidence-based management protocol:
+
+- **Heavy slow resistance training:** 4×8 squats at 70-80% 1RM with a 3-second eccentric, 3x/week. This is superior to eccentric-only protocols (Kongsgaard et al. 2009).
+- **Isometric holds for acute pain relief:** 5×45-second single-leg wall sits at 70% effort. Provides immediate pain reduction lasting 45+ minutes — use pre-training.
+- **Load management, not rest.** Tendons weaken with rest and strengthen with progressive load. Reduce total jumping and plyometric volume, but maintain heavy slow resistance work.
+- **Monitor morning stiffness.** If the first 10 steps out of bed are painful, yesterday's training volume was too high. Reduce by 20%.
+
+## The Bottom Line
+
+- **Deep squats are protective, not harmful.** Compressive forces peak at 90 degrees; full depth distributes load and builds cartilage (Hartmann et al. 2013).
+- **Build VMO strength** with full-depth squats, TKEs, step-downs, and split squats. Weak VMO means patellar tracking problems.
+- **Hamstring-to-quad ratio must be ≥0.6.** Below this threshold, ACL injury risk increases 2.5x. Nordic curls are non-negotiable.
+- **ACL prevention protocols reduce tear risk by 72%.** Single-leg balance, lateral bounds, drop jumps — 15 minutes, 3x/week.
+- **Patellar tendinopathy responds to heavy slow resistance training**, not rest. Isometric holds provide acute pain relief before sessions.
+- **Fighters:** Your sport demands constant pivoting and level changes. Knee preparation is career insurance, not optional accessory work.
+`
+  },
+  {
+    id: 'article-grip-endurance-grapplers',
+    title: 'Grip Endurance for Grapplers: Beyond Farmer\'s Walks',
+    tldr: 'Gi and no-gi grips demand different training — build sport-specific forearm endurance with targeted protocols, not generic grip work.',
+    category: 'grappling',
+    tags: ['grip strength', 'grappling', 'forearm endurance', 'injury prevention', 'BJJ', 'isometric training'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Dias et al. 2012, Leyk et al. 2007, Cronin et al. 2017',
+    content: `
+## The Grip Problem Nobody Trains Correctly
+
+**Your forearms are the weakest link in your grappling chain, and farmer's walks won't fix them.** The grip demands of grappling are radically different from anything in conventional strength training. A 6-minute round of gi jiu-jitsu requires sustained isometric contractions at 40–60% of maximal voluntary contraction — repeated dozens of times with incomplete recovery. No barbell exercise replicates this.
+
+## Gi vs No-Gi: Two Different Grip Worlds
+
+Gi grappling is dominated by **isometric crushing grip** — grabbing fabric and holding on while your opponent tries to strip your grips. Dias et al. (2012) found that competitive gi grapplers maintain individual grip efforts for 3–12 seconds, accumulating 15–20 minutes of total grip work in a single match. This is sustained isometric endurance under fatigue.
+
+No-gi grappling demands **dynamic grip** — wrist control, overhooks, underhooks, and collar ties that require constant adjustment. The forearm flexors and extensors work in rapid alternation rather than sustained contraction. Leyk et al. (2007) demonstrated that isometric and dynamic grip fatigue follow different physiological pathways, which means training one does not adequately prepare you for the other.
+
+### The Practical Implication
+
+If you train gi, your grip program must emphasize **sustained isometric holds at submaximal intensity**. If you train no-gi, you need **rapid grip-release cycling and wrist dexterity under fatigue**. Most grapplers do neither — they do deadlifts and hope for the best.
+
+## Flexor Endurance vs Maximal Strength
+
+Here's the distinction most fighters miss: **grip endurance and grip maximal strength are poorly correlated above a baseline threshold.** Cronin et al. (2017) showed that once an athlete can produce approximately 50 kg on a hand dynamometer, further maximal strength gains contribute minimally to repeated-effort grip performance. What matters is the percentage of max you can sustain over time — your **endurance ratio**.
+
+A grappler who can crush 70 kg but fatigues to 30 kg after 90 seconds of repeated gripping is less effective than one who peaks at 55 kg but maintains 40 kg throughout a round.
+
+## Sport-Specific Grip Protocols
+
+### For Gi Grapplers
+- **Dead hangs on a thick bar or gi draped over a pull-up bar:** 3–5 sets of max hold, rest 60 seconds. Target: 45+ seconds per set
+- **Gi pull-ups:** 3 sets of 6–10 reps, gripping the gi lapel. Slow negatives (4 seconds)
+- **Towel hangs:** Drape two towels over a bar, grip one in each hand, hang. Progress from two-hand to one-hand assisted
+
+### For No-Gi Grapplers
+- **Rapid grip cycling on a stress ball or grip trainer:** 30 seconds max reps, 30 seconds rest, 5 rounds
+- **Wrist roller (both directions):** 3 sets to failure, emphasizing both flexion and extension
+- **Plate pinch transfers:** Hold a 10 kg plate in a pinch grip, pass hand to hand for 60 seconds
+
+### Universal
+- **Rice bucket work:** Plunge hands into a deep bucket of rice and perform extension, flexion, and rotation movements. 3 minutes per session. This is the single best forearm prehab tool that exists.
+
+## Forearm Recovery and Tendinopathy Prevention
+
+Grapplers develop **medial epicondylitis** (golfer's elbow) at alarming rates. The mechanism is straightforward: repetitive high-load finger flexion without adequate extensor balance or recovery.
+
+**Prevention protocol:**
+- Train grip **2–3x per week maximum**, never on consecutive days
+- Include **wrist extensor work** in every grip session — reverse wrist curls, band extensions, rice bucket
+- If forearm soreness persists beyond 48 hours post-training, **reduce grip volume by 50%** before it becomes tendinopathy
+- Eccentric wrist flexion exercises (Tyler twist protocol) at the first sign of medial elbow pain — do not train through it
+
+**Frequency matters more than intensity.** Three moderate grip sessions per week beat one crushing session. The forearm flexor tendons have poor blood supply and recover slowly — respect this biology.
+
+## The Bottom Line
+
+- Gi and no-gi grips are **physiologically different** — train accordingly with isometric holds vs dynamic cycling
+- After a baseline of ~50 kg crush strength, **endurance ratio matters more than peak force**
+- Dead hangs, gi pull-ups, and towel work build sport-specific gi grip; plate pinches and rapid cycling build no-gi grip
+- **Rice bucket work** is non-negotiable prehab for every grappler
+- Train grip 2–3x/week max and always include **extensor work** to prevent medial epicondylitis
+- If your forearms are the reason you lose grips in the later rounds, this is a trainable problem — but farmer's walks alone won't solve it
+`
+  },
+  {
+    id: 'article-sleep-architecture-athletes',
+    title: 'Sleep Architecture for Athletes: Beyond "Get 8 Hours"',
+    tldr: 'Sleep quality trumps quantity — understand sleep stages, optimize your environment, and use strategic napping to maximize recovery.',
+    category: 'recovery',
+    tags: ['sleep', 'recovery', 'performance', 'SWS', 'REM', 'napping', 'sleep hygiene'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Mah et al. 2011, Watson 2017, Vitale et al. 2019',
+    content: `
+## Your Sleep Is Probably Broken (Even If You Get 8 Hours)
+
+**Eight hours of fragmented, poorly-timed sleep is worse than six hours of consolidated, high-quality sleep.** The fitness industry reduced sleep to a single number — hours in bed — and ignored everything that actually drives recovery. Sleep is not a monolith. It's a precisely orchestrated sequence of neurological stages, each with distinct recovery functions. Screw up the architecture and the hours become meaningless.
+
+## Sleep Stages and What They Actually Do
+
+Your brain cycles through four stages roughly every 90 minutes:
+
+### Stage N1–N2 (Light Sleep)
+Transition stages. Heart rate drops, body temperature falls. These stages dominate early cycles and increase as total sleep extends. They serve a preparatory role but provide minimal direct recovery benefit.
+
+### Stage N3 — Slow-Wave Sleep (SWS)
+**This is where physical recovery happens.** Growth hormone secretion peaks during SWS — up to 75% of daily GH release occurs in these stages (Watson 2017). Tissue repair, glycogen resynthesis, and immune function restoration concentrate here. SWS dominates the first half of the night, which is why the hours before midnight matter disproportionately for athletes.
+
+### REM Sleep
+**This is where motor learning consolidates.** Mah et al. (2011) demonstrated that extended sleep in basketball players — allowing more REM cycles — improved sprint times by 4% and free throw accuracy by 9%. REM sleep replays and consolidates the technique work, sparring patterns, and movement sequences you practiced during the day. Cut REM short and yesterday's training partially evaporates. REM dominates the second half of the night, peaking in the final 2–3 hours.
+
+### The Practical Takeaway
+An athlete who goes to bed at midnight and wakes at 8am gets decent REM but suboptimal SWS timing. An athlete who sleeps 10pm–6am gets strong SWS in the first half and solid REM in the second. **Same duration, different recovery outcomes.**
+
+## Why Quality Beats Quantity
+
+Vitale et al. (2019) identified that **sleep efficiency** — the percentage of time in bed actually spent asleep — is a stronger predictor of next-day performance than total sleep time. An efficiency below 85% means you're spending too much time awake in bed, fragmenting your cycles.
+
+**Common quality destroyers:**
+- Alcohol (suppresses SWS by 20–40% even at moderate doses)
+- Late caffeine (half-life is 5–6 hours — a 2pm coffee is still 25% active at midnight)
+- Blue light after sunset (delays melatonin onset by 60–90 minutes)
+- Irregular sleep timing (shifts your circadian phase, reducing SWS density)
+- Warm bedroom temperature (core temp must drop 1–2°F to initiate deep sleep)
+
+## Evidence-Based Sleep Optimization
+
+### Temperature
+The single most impactful environmental variable. Target **65–68°F (18–20°C)** in your bedroom. Your core temperature must decline to trigger SWS. A hot room fights this process directly. Consider a hot shower 90 minutes before bed — the subsequent rapid cooling actually accelerates the core temperature drop.
+
+### Light
+Dim lights 60–90 minutes before bed. Use blue-light blocking glasses if screens are unavoidable. Morning sunlight exposure within 30 minutes of waking is equally critical — it sets your circadian clock and ensures melatonin rises at the correct time later.
+
+### Timing Consistency
+Go to bed and wake up within a **30-minute window** every day, including weekends. Watson (2017) emphasized that circadian rhythm regularity is more impactful than occasional extra sleep. Sleeping in on weekends creates "social jet lag" that degrades Monday and Tuesday performance.
+
+## Napping Protocols for Heavy Training Loads
+
+Strategic naps are a legitimate performance tool, not a sign of laziness.
+
+- **Power nap (20 min):** Stage N1–N2 only. Improves alertness and reaction time without sleep inertia. Ideal between training sessions.
+- **Full cycle nap (90 min):** Completes one full sleep cycle including SWS and REM. Best for athletes in heavy training blocks or those sleeping less than 7 hours at night. Time it before 3pm to avoid disrupting nighttime sleep.
+- **Avoid 40–60 minute naps.** You'll wake mid-SWS with severe grogginess that lasts 30+ minutes.
+
+## Sleep Tracking: What Actually Matters
+
+Consumer wearables cannot accurately measure individual sleep stages — don't obsess over your "deep sleep" percentage. What they CAN reliably track:
+
+- **Total sleep time** — aim for 7–9 hours for most athletes
+- **Sleep efficiency** — target 85%+ (time asleep / time in bed)
+- **Sleep timing consistency** — standard deviation of bedtime should be under 30 minutes
+- **Resting heart rate trends** — elevated RHR during sleep signals incomplete recovery
+
+Ignore the stage breakdowns. Focus on the metrics above and how you feel during your first training session of the day.
+
+## The Bottom Line
+
+- SWS drives **physical recovery** (first half of night); REM drives **motor learning** (second half). You need both.
+- Sleep **efficiency above 85%** matters more than raw hours
+- Bedroom at **65–68°F**, lights dimmed 90 minutes pre-bed, consistent timing within 30 minutes daily
+- **20-minute or 90-minute naps** only — avoid the 40–60 minute dead zone
+- Track total time, efficiency, and timing consistency — ignore consumer-grade stage data
+- Alcohol is the single biggest sleep quality destroyer that athletes routinely underestimate
+`
+  },
+  {
+    id: 'article-visualization-motor-imagery',
+    title: 'Visualization and Motor Imagery in Combat Sports',
+    tldr: 'Mental rehearsal activates the same motor circuits as physical practice — structured visualization measurably improves technique and competition performance.',
+    category: 'motivation',
+    tags: ['visualization', 'motor imagery', 'mental training', 'PETTLEP', 'combat sports', 'competition prep'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Jeannerod 2001, Holmes & Collins 2001, Ridderinkhof & Brass 2015',
+    content: `
+## Your Brain Can't Tell the Difference
+
+**When you vividly imagine throwing a rear cross, your motor cortex fires in the same pattern as when you actually throw it.** This isn't motivational fluff — it's functional neuroanatomy. Jeannerod (2001) demonstrated through fMRI studies that motor imagery activates the premotor cortex, supplementary motor area, and cerebellum with remarkable overlap to actual movement execution. The primary difference is downstream inhibition preventing the muscles from contracting. The neural rehearsal, however, is real.
+
+Ridderinkhof & Brass (2015) expanded on this, showing that repeated mental practice strengthens the same synaptic pathways as physical repetitions — albeit at roughly 50–70% of the magnitude. This means visualization is not a replacement for training, but it is a legitimate supplement that stacks on top of physical practice.
+
+## The PETTLEP Model: Visualization That Actually Works
+
+Most athletes "visualize" by vaguely imagining winning. This is daydreaming, not training. Holmes & Collins (2001) developed the **PETTLEP model** — a framework for motor imagery that maximizes neural overlap with real performance:
+
+- **P — Physical:** Adopt the physical position you'd be in during the skill. Stand in your fighting stance. Wear your training gear. Physical state affects imagery quality.
+- **E — Environment:** Visualize in an environment that matches competition. If possible, practice imagery at the venue. At minimum, use video or audio from competition settings.
+- **T — Task:** Imagine the specific task at the correct difficulty. Don't just imagine a takedown — imagine a specific setup against a resisting opponent at your competition level.
+- **T — Timing:** Perform the imagery in **real time**. Slow-motion imagery activates different neural patterns. Your mental double-leg should take exactly as long as your physical one.
+- **L — Learning:** Update your imagery as your skills improve. If you've refined your jab setup, your visualization must reflect the current version, not last month's.
+- **E — Emotion:** Include the emotional state of competition — the adrenaline, the crowd noise, the pressure. Emotionally flat imagery has significantly less transfer.
+- **P — Perspective:** First-person (internal) imagery is generally superior for motor tasks. See through your own eyes, not as a spectator watching yourself.
+
+## Pre-Competition Visualization Protocol
+
+Use this structured approach in the 48 hours before competition:
+
+### Day Before
+- **10 minutes, evening:** Visualize your warm-up routine, walking to the mat/ring, and the first 30 seconds of competition. Focus on feeling **calm, controlled, and aggressive.** Run through 3–5 specific techniques you plan to implement, each in real-time with full PETTLEP elements.
+
+### Competition Day
+- **5 minutes during warm-up:** Eyes closed, standing in stance. Visualize your game plan's first two exchanges. Feel the grip, the distance, the timing. Include the crowd noise and referee commands.
+- **Between rounds/matches:** Brief 30-second visualizations of specific adjustments. "I will underhook left side, snap down, front headlock." Precise, time-accurate, first-person.
+
+### What to Visualize
+- **Process, not outcomes.** Don't imagine the referee raising your hand. Imagine executing the ankle pick that leads to the finish. Outcome imagery creates anxiety; process imagery builds confidence.
+- **Adversity responses.** Visualize getting taken down and immediately executing your recovery sequence. Visualize getting rocked and clinching effectively. Rehearsing responses to adversity is more valuable than imagining everything going perfectly.
+
+## Technique Rehearsal During Injury Layoffs
+
+This is where visualization's value becomes undeniable. Athletes sidelined with injuries who perform structured motor imagery **retain significantly more skill** than those who simply rest.
+
+**Protocol for injured athletes:**
+- 3 sessions per day, 10 minutes each
+- Use PETTLEP framework in full
+- Focus on the techniques most at risk of degradation — complex sequences, timing-dependent skills
+- Include conditioning imagery: visualize the fatigue state of late rounds and executing technique under duress
+
+Multiple studies confirm that athletes returning from injury with consistent imagery practice require **30–50% less time** to return to pre-injury skill levels compared to controls.
+
+## The Bottom Line
+
+- Motor imagery activates the **same neural circuits** as physical practice at 50–70% magnitude — this is neuroscience, not wishful thinking
+- Use the **PETTLEP model**: match physical state, environment, task difficulty, real-time speed, current skill level, competitive emotion, and first-person perspective
+- Visualize **process over outcomes** and include **adversity responses** — rehearse getting hit, not just hitting
+- Pre-competition imagery should be **5–10 minutes**, highly specific, in real-time
+- During injury layoffs, **3 daily sessions of 10 minutes** significantly preserve motor skill
+- The best fighters in the world do this systematically — the rest think it's soft
+`
+  },
+  {
+    id: 'article-female-athlete-menstrual-cycle',
+    title: 'Female Athlete Considerations: Training Through the Menstrual Cycle',
+    tldr: 'Hormonal fluctuations across the menstrual cycle affect performance — smart programming adjustments (not overhauls) can optimize training outcomes.',
+    category: 'general_fitness',
+    tags: ['female athletes', 'menstrual cycle', 'hormones', 'periodization', 'RED-S', 'programming'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'McNulty et al. 2020, Sung et al. 2014, Mountjoy et al. 2018',
+    content: `
+## The Research Gap That's Costing Female Athletes
+
+**Until 2010, fewer than 6% of sport science studies included female participants.** The entire foundation of training theory — periodization, recovery timelines, nutritional recommendations — was built on male physiology. Female athletes have been training on borrowed science, and it shows. The menstrual cycle creates a recurring hormonal environment that measurably affects strength, power, recovery, and injury risk. Ignoring it isn't "treating everyone equally" — it's leaving performance on the table.
+
+## Follicular vs Luteal Phase Physiology
+
+The menstrual cycle averages 28 days (range: 21–35) and divides into two primary phases:
+
+### Follicular Phase (Days 1–14)
+Begins with menstruation. Estrogen rises progressively, peaking just before ovulation around day 14. Progesterone remains low. This hormonal environment is associated with:
+- **Higher pain tolerance** and improved recovery from muscle damage
+- **Greater force production capacity** — estrogen has anabolic properties and enhances neuromuscular function
+- **Better insulin sensitivity** — carbohydrate utilization is more efficient
+- **Lower core temperature** — thermoregulation during training is easier
+
+### Luteal Phase (Days 15–28)
+Post-ovulation. Progesterone rises sharply and estrogen has a secondary, smaller peak. This environment produces:
+- **Elevated core temperature** by 0.3–0.5°C — heat dissipation is slightly impaired
+- **Increased protein catabolism** — progesterone is mildly catabolic
+- **Shifted fuel utilization** toward fat oxidation, reduced carbohydrate efficiency
+- **Greater perceived exertion** at the same workloads
+- **Increased ligament laxity** — ACL injury risk peaks during the late luteal/early follicular transition (Sung et al. 2014)
+
+## Strength and Power Across the Cycle
+
+McNulty et al. (2020) conducted a meta-analysis of 78 studies examining exercise performance across menstrual cycle phases. Key findings:
+
+- **Strength and power are modestly but significantly higher in the mid-to-late follicular phase** (effect size: 0.07–0.15). This is small but real.
+- **The early follicular phase (menstruation, days 1–5) shows the most variable performance.** Some women perform normally; others experience significant decrements from pain, fatigue, and low hormone levels.
+- **Luteal phase performance is not catastrophically impaired** — the average reduction is 3–5%, mostly in maximal efforts. Submaximal training is minimally affected.
+
+### What This Means Practically
+The follicular phase is a slightly better window for **PRs, intensity peaks, and heavy singles**. The luteal phase is better suited for **volume accumulation, technique work, and moderate-intensity training**. But these are optimizations, not rules — individual variation is enormous.
+
+## Practical Programming Adjustments (Not Overhauls)
+
+The goal is **small, evidence-based modifications** — not restructuring your entire program around your cycle.
+
+### Late Follicular Phase (Days 8–14) — Push Performance
+- Schedule **heavy strength sessions, 1RM attempts, and high-intensity intervals** here when possible
+- Capitalize on improved neuromuscular function and recovery capacity
+- Higher carbohydrate intake supports the favorable insulin sensitivity
+
+### Luteal Phase (Days 15–28) — Manage Load
+- **Maintain training intensity but consider reducing total volume by 10–15%** if recovery feels impaired
+- Slightly increase protein intake (additional 5–10g/day) to offset progesterone's catabolic effects
+- Increase sodium and fluid intake to compensate for elevated core temperature
+- **Do not skip training** — the performance decrements are small and the psychological benefits of consistency outweigh the marginal physiological costs
+
+### Menstruation (Days 1–5) — Listen and Adjust
+- **Train normally if you feel normal.** Many athletes perform well during menstruation.
+- If cramps or fatigue are significant, reduce intensity by one tier (e.g., heavy to moderate) rather than skipping entirely
+- NSAIDs (ibuprofen) taken pre-training effectively manage menstrual pain without impairing training adaptations at standard doses
+- Iron-rich foods or supplementation during heavy flow prevents the gradual hemoglobin decline that sabotages endurance over months
+
+## RED-S: The Danger of Under-Fueling
+
+Relative Energy Deficiency in Sport (RED-S), formally defined by Mountjoy et al. (2018), occurs when energy intake chronically fails to meet training expenditure. Female athletes are disproportionately affected, and the consequences extend far beyond weight loss:
+
+- **Menstrual dysfunction** — cycle irregularity or amenorrhea (loss of period) is the most visible warning sign
+- **Bone stress injuries** — low estrogen from amenorrhea directly impairs bone mineral density. Stress fractures become 2–4x more likely
+- **Impaired training adaptation** — the body downregulates protein synthesis, glycogen storage, and immune function
+- **Cardiovascular compromise** — endothelial dysfunction and unfavorable lipid profiles emerge within months
+
+**If your period disappears, this is not a sign of fitness.** It is a clinical red flag indicating insufficient energy availability. The threshold is typically below 30 kcal/kg of fat-free mass per day. The solution is increasing caloric intake, not reducing training.
+
+## The Bottom Line
+
+- The follicular phase (days 1–14) generally favors **peak strength and power output**; the luteal phase favors **volume and moderate work**
+- Performance differences between phases average **3–5%** — meaningful for optimization, not an excuse to skip training
+- Adjust **volume down 10–15% in the luteal phase** if recovery is impaired; push **intensity in the late follicular phase**
+- Individual variation is massive — **track your own patterns** for 3–4 cycles before making programming changes
+- **Lost menstrual cycle = RED-S until proven otherwise.** Increase calories, consult a sports medicine professional
+- Female athletes deserve evidence-based programming, not male protocols with pink branding
+`
+  },
+  {
+    id: 'article-rpe-autoregulation',
+    title: 'RPE and Autoregulation: Training by Feel, Backed by Science',
+    tldr: 'RPE and RIR give athletes a systematic way to adjust training intensity in real-time — matching the plan to the day instead of forcing the day to match the plan.',
+    category: 'periodization',
+    tags: ['RPE', 'RIR', 'autoregulation', 'programming', 'periodization', 'fatigue management'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Helms et al. 2016, Zourdos et al. 2016, Hackett et al. 2012',
+    content: `
+## Your Program Is Wrong on Any Given Day
+
+**A percentage-based program assumes your 1RM is constant. It isn't.** On any given training day, your true maximal capacity fluctuates by 5–15% based on sleep quality, nutrition, psychological stress, accumulated fatigue, and training history. A program that prescribes 85% of your tested 1RM might be 80% on a great day and 92% on a terrible one. Autoregulation solves this by adjusting intensity to your actual capacity in real time.
+
+## The RPE Scale for Resistance Training
+
+The original Borg RPE scale (6–20) was designed for cardiovascular exercise. The modified RPE scale for resistance training, popularized by Mike Tuchscherer and validated by Zourdos et al. (2016), simplifies this to a 1–10 scale anchored to proximity to failure:
+
+| RPE | Description |
+|-----|------------|
+| 10 | Maximum effort. No reps left. Failure. |
+| 9.5 | Could not do more reps, but could add slight load |
+| 9 | 1 rep remaining (could do 1 more) |
+| 8.5 | 1–2 reps remaining (definitely 1, maybe 2) |
+| 8 | 2 reps remaining |
+| 7.5 | 2–3 reps remaining |
+| 7 | 3 reps remaining |
+| 6 | 4+ reps remaining (light effort) |
+
+Helms et al. (2016) demonstrated that trained lifters can accurately estimate RPE within 0.5 points after 4–6 weeks of practice. Untrained lifters tend to overestimate effort — they think RPE 8 when it's actually RPE 6. **Calibration requires practice.**
+
+## RIR: The Practical Translation
+
+Reps in Reserve (RIR) is the inverse of RPE and often more intuitive: RPE 8 = 2 RIR. Asking "how many reps could I have done?" is easier for most athletes than assigning a number on a scale.
+
+Zourdos et al. (2016) found that **RIR-based training produced equivalent or superior strength gains** compared to percentage-based programming over 8-week blocks, primarily because it prevented both under-stimulation on good days and overreaching on bad days.
+
+### How to Use RIR in Practice
+- **Hypertrophy work:** Target 1–3 RIR (RPE 7–9). This keeps sets stimulative without excessive fatigue accumulation
+- **Strength work:** Target 1–2 RIR (RPE 8–9) for working sets. Hit RPE 9.5–10 only on test days
+- **Power and speed work:** Target 3–5 RIR (RPE 5–7). Power output drops sharply near failure — grinding reps trains the wrong quality
+
+## When to Autoregulate vs Stick to the Plan
+
+Autoregulation is powerful but not universally appropriate. Hackett et al. (2012) outlined conditions where each approach excels:
+
+### Autoregulate When:
+- **Daily readiness varies significantly** — athletes with irregular schedules, high life stress, or concurrent sport demands (combat athletes training skill + strength)
+- **Training age is intermediate or advanced** — you have the self-awareness to rate effort accurately
+- **During intensification phases** — when loads are heavy and the cost of overshooting is injury or CNS burnout
+- **Returning from illness, travel, or disrupted sleep** — your percentage-based numbers are temporarily meaningless
+
+### Stick to the Plan When:
+- **You're a beginner** — you don't yet know what "2 reps in reserve" feels like. Use fixed progressions until you build calibration
+- **During volume accumulation phases** — RPE-based volume tends to undershoot because athletes avoid discomfort. Fixed set/rep schemes ensure minimum effective volume
+- **Peaking for competition** — the final 2–3 weeks before a meet or fight should follow a predetermined taper, not daily autoregulation
+
+## RPE for Combat Athletes: The Unique Challenge
+
+Combat athletes face a problem that pure lifters don't: **strength training exists alongside skill training, sparring, and conditioning.** A fighter who sparred hard on Tuesday walks into Wednesday's squat session with accumulated fatigue that a percentage-based program cannot account for.
+
+**Practical framework for combat athletes:**
+
+1. **Rate daily readiness before the session.** A simple 1–5 scale: 1 = terrible, 5 = fully recovered. If readiness is 1–2, drop working RPE targets by 1 point (e.g., RPE 8 becomes RPE 7).
+2. **Cap RPE at 8.5 during fight camp.** Grinding out RPE 10 sets while simultaneously sparring 3x per week is a recipe for overtraining. Leave the max-effort work for off-season strength blocks.
+3. **Use RPE to manage session duration.** If your first working set is RPE 9 when it should be RPE 7, that's a signal. Reduce volume by 20–30% and leave. The sparring and skill work take priority — strength training supports the sport, it doesn't override it.
+4. **Track RPE-to-load relationships over time.** If your squat at RPE 8 drops from 140 kg to 125 kg over three weeks, cumulative fatigue is winning. Deload or reduce non-lifting training volume.
+
+## The Bottom Line
+
+- Your true daily max fluctuates **5–15%** — percentage-based programs can't account for this
+- RPE 8 (2 RIR) is the sweet spot for most working sets: stimulative without excessive fatigue
+- **Calibration takes 4–6 weeks** of honest practice — beginners should use fixed percentages until then
+- Autoregulate during **high-stress periods and intensification**; follow fixed plans during **volume accumulation and peaking**
+- Combat athletes should **cap RPE at 8.5 during fight camp** and use readiness ratings to adjust daily targets
+- Track your RPE-to-load relationship over time — declining loads at the same RPE is the earliest warning of accumulated fatigue
+`
   }
 ];
 

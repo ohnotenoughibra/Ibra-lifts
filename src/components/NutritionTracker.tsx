@@ -1005,6 +1005,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   // Edit meal inline
   const [editingMeal, setEditingMeal] = useState<{
     id: string; name: string; calories: string; protein: string; carbs: string; fat: string; portion: string;
+    _origCal: number; _origP: number; _origC: number; _origF: number; _origGrams: number | undefined;
   } | null>(null);
 
   const startEditMeal = (meal: MealEntry) => {
@@ -1016,6 +1017,11 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       carbs: String(meal.carbs),
       fat: String(meal.fat),
       portion: meal.portion || '',
+      _origCal: meal.calories,
+      _origP: meal.protein,
+      _origC: meal.carbs,
+      _origF: meal.fat,
+      _origGrams: extractGrams(meal.portion || ''),
     });
     setMovingMealId(null);
   };
@@ -2258,7 +2264,25 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                                 />
                                 <input
                                   value={editingMeal.portion}
-                                  onChange={e => setEditingMeal({ ...editingMeal, portion: e.target.value })}
+                                  onChange={e => {
+                                    const newPortion = e.target.value;
+                                    const newGrams = extractGrams(newPortion);
+                                    const origGrams = editingMeal._origGrams;
+                                    // Auto-scale macros when both old and new portions have gram values
+                                    if (newGrams && origGrams && origGrams > 0) {
+                                      const ratio = newGrams / origGrams;
+                                      setEditingMeal({
+                                        ...editingMeal,
+                                        portion: newPortion,
+                                        calories: String(Math.round(editingMeal._origCal * ratio)),
+                                        protein: String(Math.round(editingMeal._origP * ratio * 10) / 10),
+                                        carbs: String(Math.round(editingMeal._origC * ratio * 10) / 10),
+                                        fat: String(Math.round(editingMeal._origF * ratio * 10) / 10),
+                                      });
+                                    } else {
+                                      setEditingMeal({ ...editingMeal, portion: newPortion });
+                                    }
+                                  }}
                                   className="w-20 bg-grappler-900 border border-grappler-600 rounded-lg px-2 py-1.5 text-sm text-grappler-100 focus-visible:border-primary-500 outline-none"
                                   placeholder="Portion"
                                   onKeyDown={e => { if (e.key === 'Enter') saveEditMeal(); if (e.key === 'Escape') setEditingMeal(null); }}

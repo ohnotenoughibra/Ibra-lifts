@@ -1,6 +1,8 @@
 // Database sync utility - syncs Zustand store with Vercel Postgres
 // Falls back gracefully to localStorage-only when DB is not configured
 
+import { recordSyncSuccess, recordSyncFailure } from './data-safety';
+
 const SYNC_DEBOUNCE_MS = 3000; // Debounce saves to avoid hammering the DB
 const SYNC_MAX_WAIT_MS = 15000; // Max wait before forcing a sync (prevents starvation)
 const SYNC_QUEUE_KEY = 'roots-gains-sync-queue-v1'; // localStorage key for queue persistence
@@ -209,9 +211,15 @@ async function doSync(userId: string, data: Record<string, unknown>): Promise<vo
     if (body.blocked) {
       console.warn(`[db-sync] Sync BLOCKED by server (${body.reason || 'safety guard'}) — ` +
         `server score: ${body.serverScore}, incoming: ${body.incomingScore}`);
-    } else if (process.env.NODE_ENV === 'development') {
-      console.log('[db-sync] Data synced to database');
+      recordSyncFailure();
+    } else {
+      recordSyncSuccess();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[db-sync] Data synced to database');
+      }
     }
+  } else {
+    recordSyncFailure();
   }
 }
 

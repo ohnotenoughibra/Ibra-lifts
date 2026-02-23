@@ -23,6 +23,7 @@ interface SyncStatusIndicatorProps {
   deviceType: 'phone' | 'tablet' | 'desktop';
   isAuthenticated: boolean;
   onForceSync: () => void;
+  syncFailureCount?: number;
 }
 
 function getRelativeTime(date: Date): string {
@@ -48,6 +49,7 @@ export default function SyncStatusIndicator({
   deviceType,
   isAuthenticated,
   onForceSync,
+  syncFailureCount = 0,
 }: SyncStatusIndicatorProps) {
   const [showDetail, setShowDetail] = useState(false);
 
@@ -150,6 +152,15 @@ export default function SyncStatusIndicator({
                     <span className="text-xs text-grappler-200 capitalize">{deviceType}</span>
                   </div>
                 </div>
+
+                {/* Sync failure warning */}
+                {syncFailureCount >= 3 && (
+                  <div className="bg-red-900/30 border border-red-500/30 rounded-xl p-3 mt-2">
+                    <p className="text-xs text-red-300 leading-relaxed font-medium">
+                      Sync has failed {syncFailureCount} times. Your data is saved locally and backed up — tap &quot;Sync Now&quot; to retry.
+                    </p>
+                  </div>
+                )}
 
                 {/* Info text */}
                 <div className="bg-grappler-800/50 rounded-xl p-3 mt-2">

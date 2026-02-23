@@ -78,6 +78,7 @@ import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, m
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
+import { calculateCompositeWellnessScore } from './wellness-score';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -255,7 +256,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
-  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block') => void;
+  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => void;
   completeMesocycle: () => void;
   undoValidateBlock: (mesocycleId: string) => boolean;
   deleteMesocycle: (mesocycleId: string) => void;
@@ -306,6 +307,8 @@ interface AppState {
   }) => { points: number; breakdown: { reason: string; points: number }[]; newMultiplier: number };
   getWellnessMultiplier: () => number;
   getTodayWellnessDomains: () => WellnessDomain[];
+  /** Composite wellness score (0-100) from all dimensions. */
+  getCompositeWellnessScore: () => import('./wellness-score').CompositeWellnessScore;
 
   // Workout log editing
   updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
@@ -1083,7 +1086,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block') => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
         // Fall back to user's stored preference if no explicit duration passed
@@ -2295,7 +2298,41 @@ export const useAppStore = create<AppState>()(
       },
 
       checkAndAwardBadges: () => {
-        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout, trainingSessions } = get();
+        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout, trainingSessions, user } = get();
+
+        // Count weeks where all planned sessions were completed
+        const planned = user?.sessionsPerWeek || 3;
+        const weekMap = new Map<string, number>();
+        for (const log of workoutLogs) {
+          const d = new Date(log.date);
+          const day = d.getDay();
+          const monday = new Date(d);
+          monday.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+          const key = monday.toISOString().split('T')[0];
+          weekMap.set(key, (weekMap.get(key) || 0) + 1);
+        }
+        const weeklyCompletions = Array.from(weekMap.values()).filter(count => count >= planned).length;
+
+        // Count 30-day windows with balanced training (all major patterns hit)
+        // Balanced = push, pull, hinge, squat, carry/core all trained in rolling 30 days
+        let balancedTrainingDays = 0;
+        if (workoutLogs.length >= 4) {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const recentLogs = workoutLogs.filter(l => new Date(l.date) >= thirtyDaysAgo);
+          const patterns = new Set<string>();
+          for (const log of recentLogs) {
+            for (const ex of log.exercises) {
+              const name = (ex.exerciseName || '').toLowerCase();
+              if (name.includes('bench') || name.includes('push') || name.includes('press') && !name.includes('leg')) patterns.add('push');
+              if (name.includes('row') || name.includes('pull') || name.includes('lat') || name.includes('curl')) patterns.add('pull');
+              if (name.includes('deadlift') || name.includes('rdl') || name.includes('hinge') || name.includes('good morning')) patterns.add('hinge');
+              if (name.includes('squat') || name.includes('lunge') || name.includes('leg press')) patterns.add('squat');
+              if (name.includes('carry') || name.includes('plank') || name.includes('crunch') || name.includes('ab') || name.includes('core') || name.includes('pallof')) patterns.add('core');
+            }
+          }
+          if (patterns.size >= 5) balancedTrainingDays = 30;
+        }
 
         const metrics = {
           personalRecords: gamificationStats.personalRecords,
@@ -2313,6 +2350,8 @@ export const useAppStore = create<AppState>()(
           dualTrainingDays: gamificationStats.dualTrainingDays || 0,
           comebackCount: gamificationStats.comebackCount || 0,
           challengesCompleted: gamificationStats.challengesCompleted || 0,
+          weeklyCompletions,
+          balancedTrainingDays,
         };
 
         const newBadges = checkNewBadges(gamificationStats, metrics);
@@ -2478,8 +2517,10 @@ export const useAppStore = create<AppState>()(
         });
 
         // Check wellness badges
-        const beastModeDays = (ws.wellnessDays || []).filter(d => d.multiplier >= 2.0).length
-          + (newMultiplier >= 2.0 && existingDayIndex < 0 ? 1 : 0);
+        // Beast Mode = all 7 wellness domains completed in a day (not multiplier-based)
+        const allDomainCount = 7; // supplements, nutrition, water, sleep, mobility, mental, breathing
+        const beastModeDays = (ws.wellnessDays || []).filter(d => d.domains.length >= allDomainCount).length
+          + (updatedDomains.length >= allDomainCount && existingDayIndex < 0 ? 1 : 0);
 
         const wellnessBadges = checkWellnessBadges(get().gamificationStats, {
           wellnessDaysCount: updatedDays.filter(d => d.domains.length >= 4).length,
@@ -2490,6 +2531,7 @@ export const useAppStore = create<AppState>()(
           mobilityStreak: newStreaks.mobility,
           waterStreak: newStreaks.water,
           mentalStreak: newStreaks.mental,
+          breathingStreak: newStreaks.breathing ?? 0,
           beastModeDays,
         });
 
@@ -2529,6 +2571,29 @@ export const useAppStore = create<AppState>()(
         const ws = gamificationStats.wellnessStats || defaultWellnessStats;
         const today = new Date().toISOString().split('T')[0];
         return ws.todayCompleted[today] || [];
+      },
+
+      getCompositeWellnessScore: () => {
+        const { gamificationStats, wearableHistory } = get();
+        const ws = gamificationStats.wellnessStats || defaultWellnessStats;
+        const today = new Date().toISOString().split('T')[0];
+        const todayDomains = ws.todayCompleted[today] || [];
+        const recentDays = (ws.wellnessDays || []).slice(-14);
+
+        // Get latest wearable recovery if available
+        const latestWearable = (wearableHistory || []).length > 0
+          ? (wearableHistory as Array<{ recovery?: number; hrvDeviation?: number; rhrDelta?: number }>)[(wearableHistory as unknown[]).length - 1]
+          : null;
+
+        return calculateCompositeWellnessScore({
+          domainsCompleted: todayDomains,
+          sleepScore: null, // Will be populated when sleep score is logged
+          wearableRecovery: latestWearable?.recovery ?? null,
+          hrvDeviationPct: latestWearable?.hrvDeviation ?? null,
+          rhrDelta: latestWearable?.rhrDelta ?? null,
+          streaks: ws.streaks,
+          recentDays,
+        });
       },
 
       // Workout log editing

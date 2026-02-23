@@ -644,7 +644,7 @@ export const badges: Badge[] = [
   {
     id: 'beast-mode-1',
     name: 'Beast Mode Unlocked',
-    description: 'Earn the 2x training multiplier for the first time',
+    description: 'Complete all 7 wellness domains in a single day',
     icon: '⚡',
     category: 'wellness',
     requirement: 'beast_mode_days >= 1',
@@ -653,7 +653,7 @@ export const badges: Badge[] = [
   {
     id: 'beast-mode-7',
     name: 'Beast Mode Week',
-    description: 'Maintain 2x multiplier for 7 days straight',
+    description: 'Complete all 7 wellness domains for 7 days',
     icon: '🔥',
     category: 'wellness',
     requirement: 'beast_mode_days >= 7',
@@ -676,6 +676,26 @@ export const badges: Badge[] = [
     category: 'wellness',
     requirement: 'mental_streak >= 7',
     points: 200
+  },
+  // Breathing streak badges — Zaccaro et al. 2018: slow breathing improves HRV,
+  // reduces cortisol, and enhances parasympathetic recovery
+  {
+    id: 'breathing-streak-7',
+    name: 'Breath Control',
+    description: 'Complete breathing protocols for 7 consecutive days',
+    icon: '🌬️',
+    category: 'wellness',
+    requirement: 'breathing_streak >= 7',
+    points: 200
+  },
+  {
+    id: 'breathing-streak-30',
+    name: 'Breath Master',
+    description: 'Complete breathing protocols for 30 consecutive days',
+    icon: '🫁',
+    category: 'wellness',
+    requirement: 'breathing_streak >= 30',
+    points: 500
   },
 ];
 
@@ -873,6 +893,8 @@ export function checkNewBadges(
     dualTrainingDays: number;
     comebackCount: number;
     challengesCompleted: number;
+    weeklyCompletions?: number;
+    balancedTrainingDays?: number;
   }
 ): Badge[] {
   const earnedBadgeIds = new Set(stats.badges.map(b => b.badgeId));
@@ -953,11 +975,12 @@ export function checkNewBadges(
       earned = userMetrics.challengesCompleted >= threshold;
     }
     else if (req.includes('weekly_completion')) {
-      // Still handled externally
-      earned = false;
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = (userMetrics.weeklyCompletions ?? 0) >= threshold;
     }
     else if (req.includes('balanced_training')) {
-      earned = false; // Future implementation
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = (userMetrics.balancedTrainingDays ?? 0) >= threshold;
     }
 
     if (earned) {
@@ -1365,6 +1388,7 @@ export function updateWellnessStreaks(
       sleep: domainSet.has('sleep') ? Math.max(currentStreaks.sleep, 1) : currentStreaks.sleep,
       mobility: domainSet.has('mobility') ? Math.max(currentStreaks.mobility, 1) : currentStreaks.mobility,
       mental: domainSet.has('mental') ? Math.max(currentStreaks.mental, 1) : currentStreaks.mental,
+      breathing: domainSet.has('breathing') ? Math.max(currentStreaks.breathing ?? 0, 1) : (currentStreaks.breathing ?? 0),
       overall: todayDomains.length >= 4 ? Math.max(currentStreaks.overall, 1) : currentStreaks.overall,
       longestOverall: currentStreaks.longestOverall,
     };
@@ -1381,6 +1405,7 @@ export function updateWellnessStreaks(
     sleep: streakFor('sleep', currentStreaks.sleep),
     mobility: streakFor('mobility', currentStreaks.mobility),
     mental: streakFor('mental', currentStreaks.mental),
+    breathing: streakFor('breathing', currentStreaks.breathing ?? 0),
     overall: newOverall,
     longestOverall: Math.max(currentStreaks.longestOverall, newOverall),
   };
@@ -1398,6 +1423,7 @@ export function checkWellnessBadges(
     mobilityStreak: number;
     waterStreak: number;
     mentalStreak: number;
+    breathingStreak: number;
     beastModeDays: number;
   }
 ): Badge[] {
@@ -1435,6 +1461,9 @@ export function checkWellnessBadges(
     } else if (req.includes('mental_streak')) {
       const threshold = parseInt(req.split('>=')[1].trim());
       earned = wellnessMetrics.mentalStreak >= threshold;
+    } else if (req.includes('breathing_streak')) {
+      const threshold = parseInt(req.split('>=')[1].trim());
+      earned = wellnessMetrics.breathingStreak >= threshold;
     } else if (req.includes('beast_mode_days')) {
       const threshold = parseInt(req.split('>=')[1].trim());
       earned = wellnessMetrics.beastModeDays >= threshold;
@@ -1455,6 +1484,7 @@ export const defaultWellnessStats: WellnessStats = {
     sleep: 0,
     mobility: 0,
     mental: 0,
+    breathing: 0,
     overall: 0,
     longestOverall: 0,
   },

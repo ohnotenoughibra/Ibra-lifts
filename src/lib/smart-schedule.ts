@@ -402,3 +402,187 @@ export function getEnhancedRecommendation(
 
   return baseRecommendation;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONCURRENT TRAINING INTERFERENCE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Science:
+// - Hickson 1980: Original concurrent training interference finding
+// - Wilson et al. 2012: Meta-analysis — strength + endurance concurrent
+//   training impairs max strength gain by ~15% and power by ~18%
+// - Murlasits et al. 2018: 6-8 hours between sessions eliminates
+//   most interference for strength outcomes
+// - Robineau et al. 2016: Endurance before strength within 6h impairs
+//   strength more than strength-before-endurance
+// - Sale et al. 1990: Residual fatigue from one modality lasts 4-8h
+//
+// Application: Combat athletes training gym + mat on the same day need
+// optimal ordering and minimum rest intervals.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type SessionOrder = 'gym_first' | 'mat_first' | 'separate_days';
+
+export interface DualSessionPlan {
+  /** Recommended order when gym and mat are on the same day. */
+  order: SessionOrder;
+  /** Minimum hours between sessions for recovery. */
+  minHoursBetween: number;
+  /** Ideal hours between sessions. */
+  idealHoursBetween: number;
+  /** Reasoning. */
+  reason: string;
+  /** Specific tips for the session order. */
+  tips: string[];
+}
+
+/**
+ * Determine optimal session order when gym and mat sessions fall on the same day.
+ *
+ * Decision logic based on Wilson et al. 2012 & Robineau et al. 2016:
+ * - If the gym session is STRENGTH (>85% 1RM): gym first, mat second
+ *   Reason: max strength output requires fresh CNS
+ * - If the gym session is HYPERTROPHY: either order works (metabolic, not neural)
+ * - If the gym session is POWER: gym first (explosive quality degrades with fatigue)
+ * - If mat session is HARD sparring: separate by 8+ hours or different days
+ *
+ * @param gymType - Type of gym session planned
+ * @param matIntensity - Intensity of combat training session
+ * @param goalFocus - Athlete's primary training goal
+ */
+export function planDualSessionDay(
+  gymType: WorkoutType,
+  matIntensity: CombatIntensity,
+  goalFocus?: 'strength' | 'hypertrophy' | 'power' | 'balanced',
+): DualSessionPlan {
+  // Hard sparring + heavy lifting = high interference risk
+  if (matIntensity === 'hard' && (gymType === 'strength' || gymType === 'power')) {
+    return {
+      order: 'separate_days',
+      minHoursBetween: 8,
+      idealHoursBetween: 24,
+      reason: 'Hard sparring + heavy lifting on the same day creates significant CNS interference (Wilson 2012). Split to different days if possible.',
+      tips: [
+        'If you must do both: lift in the morning, spar in the evening (8h gap minimum)',
+        'Keep the gym session to compounds only — skip isolation work',
+        'Extra 20-30g protein between sessions',
+        'Prioritize 8+ hours sleep tonight',
+      ],
+    };
+  }
+
+  // Strength/power gym: always gym first (Robineau 2016)
+  if (gymType === 'strength' || gymType === 'power') {
+    return {
+      order: 'gym_first',
+      minHoursBetween: 6,
+      idealHoursBetween: 8,
+      reason: `${gymType === 'strength' ? 'Strength' : 'Power'} work requires a fresh CNS — do it first. Mat training after allows the nervous system to recover its explosive capacity.`,
+      tips: [
+        `Lift first (morning/early), ${matIntensity} mat session later`,
+        'Keep 6-8 hours between sessions (Murlasits 2018)',
+        'Fast-digesting protein + carbs between sessions',
+        matIntensity === 'moderate'
+          ? 'Mat session: focus on technique over intensity'
+          : 'Light drilling is fine after lifting',
+      ],
+    };
+  }
+
+  // Hypertrophy gym: order is flexible (metabolic, not neural)
+  if (gymType === 'hypertrophy') {
+    if (matIntensity === 'hard') {
+      return {
+        order: 'gym_first',
+        minHoursBetween: 6,
+        idealHoursBetween: 8,
+        reason: 'Hypertrophy before hard sparring — you need joint stability and muscle pump for injury protection during rolling/sparring.',
+        tips: [
+          'Morning pump session, evening hard training',
+          'Focus on pulling work and core stability before mat',
+          'Extra hydration between sessions',
+        ],
+      };
+    }
+
+    // Light/moderate mat: either order
+    return {
+      order: matIntensity === 'light' ? 'mat_first' : 'gym_first',
+      minHoursBetween: 4,
+      idealHoursBetween: 6,
+      reason: matIntensity === 'light'
+        ? 'Light drilling first is fine — it warms you up without taxing recovery. Lift after.'
+        : 'Hypertrophy first, then moderate mat work. The pump won\'t impair technique drilling.',
+      tips: [
+        '4-6 hours between sessions is sufficient',
+        'Carb-rich meal between sessions for glycogen replenishment',
+        'If you feel flat in the second session, reduce volume by 20%',
+      ],
+    };
+  }
+
+  // Default
+  return {
+    order: 'gym_first',
+    minHoursBetween: 6,
+    idealHoursBetween: 8,
+    reason: 'Default: lift first for neuromuscular quality, then sport training.',
+    tips: ['6-8 hour gap between sessions', 'Protein between sessions'],
+  };
+}
+
+/**
+ * Score how well the current weekly schedule manages concurrent training
+ * interference. Returns 0-100 with specific improvement suggestions.
+ */
+export function scoreScheduleInterference(plan: WeekPlan): {
+  score: number;
+  issues: string[];
+  suggestions: string[];
+} {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  let score = 100;
+
+  for (const day of plan.days) {
+    if (!day.isLiftDay) continue;
+
+    // Same-day dual sessions
+    if (day.combatTraining) {
+      if (day.combatTraining.intensity === 'hard') {
+        score -= 20;
+        issues.push(`${day.dayName}: Heavy lifting + hard sparring on the same day`);
+        suggestions.push(`Move either the lift or sparring from ${day.dayName} to a different day`);
+      } else if (day.combatTraining.intensity === 'moderate') {
+        score -= 8;
+        issues.push(`${day.dayName}: Lifting + moderate training on the same day`);
+        suggestions.push(`On ${day.dayName}, ensure 6+ hours between sessions`);
+      }
+    }
+
+    // Back-to-back days with high total load
+    const prevDay = day.day === 0 ? 6 : day.day - 1;
+    const prevPlan = plan.days.find(d => d.day === prevDay);
+    if (prevPlan?.isLiftDay || (prevPlan?.combatTraining?.intensity === 'hard')) {
+      score -= 10;
+      issues.push(`${day.dayName}: Training after ${prevPlan.dayName} high load`);
+    }
+  }
+
+  // Check for rest day distribution
+  const restDays = plan.days.filter(d => d.isRestDay);
+  if (restDays.length === 0) {
+    score -= 25;
+    issues.push('No rest days this week');
+    suggestions.push('Add at least 1 complete rest day for CNS recovery');
+  } else if (restDays.length === 1) {
+    score -= 10;
+    suggestions.push('Two rest days per week is optimal for combat athletes');
+  }
+
+  return {
+    score: Math.max(0, score),
+    issues,
+    suggestions,
+  };
+}

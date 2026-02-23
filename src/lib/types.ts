@@ -179,7 +179,7 @@ export interface PlannedMesocycle {
   name: string;
   focus: GoalFocus;
   weeks: number;
-  periodization?: 'linear' | 'undulating' | 'block';
+  periodization?: 'linear' | 'undulating' | 'block' | 'conjugate';
   sessionsPerWeek?: SessionsPerWeek;
   sessionDurationMinutes?: number;
   notes?: string;
@@ -288,6 +288,7 @@ export interface WellnessStreaks {
   sleep: number;          // Consecutive days logging sleep
   mobility: number;       // Consecutive days doing mobility work
   mental: number;         // Consecutive days doing mental check-in
+  breathing: number;      // Consecutive days doing breathing protocols
   overall: number;        // Consecutive days completing 4+ domains
   longestOverall: number; // Best overall wellness streak ever
 }
@@ -1246,7 +1247,7 @@ export interface OnboardingData {
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
   // Periodization style choice (auto-selected by default based on experience)
-  periodizationStyle?: 'linear' | 'undulating' | 'block';
+  periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate';
 }
 
 // ── Performance Engine Types ────────────────────────────────────────────────

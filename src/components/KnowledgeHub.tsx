@@ -112,12 +112,12 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
 
   // ─── LIBRARY VIEW ────────────────────────────────────────────────────
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-grappler-50">Knowledge Hub</h2>
-          <p className="text-xs text-grappler-500 mt-0.5">Science-backed training wisdom</p>
+          <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
+          <p className="text-xs text-grappler-500 mt-1">Science-backed training wisdom</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -209,46 +209,63 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
             </div>
           </button>
 
-          {/* Category sections — each category is a horizontal scrollable row */}
+          {/* Category sections — vertical card grid */}
           {Array.from(grouped.entries()).map(([cat, articles]) => {
             const info = categoryInfo[cat];
             const style = CAT_STYLE[cat] || fallbackStyle;
             if (!info) return null;
             return (
-              <div key={cat} ref={el => { if (el) categoryRefs.current.set(cat, el); }}>
+              <div key={cat} ref={el => { if (el) categoryRefs.current.set(cat, el); }} className="space-y-3">
                 {/* Category header */}
-                <div className="flex items-center gap-2 mb-2 px-1">
-                  <span className="text-base">{info.icon}</span>
-                  <h3 className="text-sm font-semibold text-grappler-200">{info.name}</h3>
-                  <span className="text-xs text-grappler-600">{articles.length}</span>
+                <div className="flex items-center gap-2.5 px-1">
+                  <span className="text-lg">{info.icon}</span>
+                  <h3 className="text-base font-bold text-grappler-100">{info.name}</h3>
+                  <span className="text-xs text-grappler-500 bg-grappler-800 px-2 py-0.5 rounded-full">{articles.length}</span>
                 </div>
 
-                {/* Horizontal card scroll */}
-                <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                {/* Vertical card list */}
+                <div className="space-y-2.5">
                   {articles.map(a => {
                     const isRead = readSet.has(a.id);
+                    const isBookmarked = bookmarkSet.has(a.id);
+                    // Extract first meaningful line of content for preview
+                    const preview = a.content.split('\n').find(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('-'))?.trim().slice(0, 120) || '';
                     return (
                       <button
                         key={a.id}
                         onClick={() => handleOpenArticle(a)}
                         className={cn(
-                          'flex-shrink-0 w-56 rounded-xl p-3.5 text-left border transition-all active:scale-[0.97]',
-                          'bg-grappler-800/60 border-grappler-700/40 hover:border-grappler-600/60',
+                          'w-full rounded-2xl p-4 text-left border transition-all active:scale-[0.98]',
+                          'bg-gradient-to-br border-grappler-700/30 hover:border-grappler-600/50',
+                          style.gradient,
                         )}
                       >
-                        <h4 className="text-sm font-medium text-grappler-100 leading-snug line-clamp-2">
-                          {a.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-grappler-500">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {a.readTime}m
-                          </span>
-                          {isRead && (
-                            <span className="flex items-center gap-0.5 text-green-500">
-                              <Check className="w-3 h-3" />
-                              Read
-                            </span>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-grappler-50 leading-snug">
+                              {a.title}
+                            </h4>
+                            {preview && (
+                              <p className="text-xs text-grappler-400 mt-1.5 line-clamp-2 leading-relaxed">{preview}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-2.5 text-[11px] text-grappler-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {a.readTime} min read
+                              </span>
+                              {a.tags.length > 0 && (
+                                <span className="truncate">{a.tags.slice(0, 2).join(' · ')}</span>
+                              )}
+                              {isRead && (
+                                <span className="flex items-center gap-0.5 text-green-500 ml-auto flex-shrink-0">
+                                  <Check className="w-3 h-3" />
+                                  Read
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {isBookmarked && (
+                            <BookmarkCheck className="w-4 h-4 text-primary-400 flex-shrink-0 mt-0.5" />
                           )}
                         </div>
                       </button>

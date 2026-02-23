@@ -312,7 +312,7 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
           exit="exit"
         >
           {/* Top bar */}
-          <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-grappler-900/95 backdrop-blur-md border-b border-grappler-700/40">
+          <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-grappler-900/95 backdrop-blur-md border-b border-grappler-700/40 safe-area-top">
             <button
               onClick={onClose}
               className="p-2 rounded-lg text-grappler-400 hover:text-grappler-100 hover:bg-grappler-800 transition-colors"

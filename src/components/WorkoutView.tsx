@@ -395,7 +395,7 @@ export default function WorkoutView() {
   return (
     <div className="space-y-6">
       {/* Header with Progress Ring */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
         <div className="flex items-center gap-4">
           {/* Progress Ring */}
           <div className="relative w-14 h-14 flex-shrink-0">
@@ -417,8 +417,8 @@ export default function WorkoutView() {
               {progressStats.percentage}%
             </span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-grappler-50">{currentMesocycle.name}</h2>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-grappler-50 truncate">{currentMesocycle.name}</h2>
             <p className="text-sm text-grappler-400">
               {progressStats.completed}/{progressStats.total} sessions • {currentMesocycle.goalFocus} focus
             </p>
@@ -426,7 +426,7 @@ export default function WorkoutView() {
         </div>
         <button
           onClick={() => setShowEmphasisPicker(true)}
-          className="btn btn-secondary btn-sm gap-2"
+          className="btn btn-secondary btn-sm gap-2 w-full"
         >
           <SlidersHorizontal className="w-4 h-4" />
           New Block

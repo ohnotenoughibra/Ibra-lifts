@@ -1201,7 +1201,7 @@ export default function ActiveWorkout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
+            className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
             role="dialog"
             aria-modal="true"
           >

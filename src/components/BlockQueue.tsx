@@ -39,10 +39,11 @@ const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; c
   { value: 'balanced', label: 'Balanced', icon: <Shield className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Mix of strength & hypertrophy' },
 ];
 
-const PERIODIZATION_OPTIONS: { value: 'linear' | 'undulating' | 'block'; label: string }[] = [
+const PERIODIZATION_OPTIONS: { value: 'linear' | 'undulating' | 'block' | 'conjugate'; label: string }[] = [
   { value: 'linear', label: 'Linear' },
   { value: 'undulating', label: 'Undulating (DUP)' },
   { value: 'block', label: 'Block' },
+  { value: 'conjugate', label: 'Conjugate (ME/DE/RE)' },
 ];
 
 // Map BlockFocus → GoalFocus for mesocycle queue
@@ -81,7 +82,7 @@ export default function BlockQueue() {
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [formFocus, setFormFocus] = useState<GoalFocus>('strength');
   const [formWeeks, setFormWeeks] = useState(5);
-  const [formPeriodization, setFormPeriodization] = useState<'linear' | 'undulating' | 'block'>('undulating');
+  const [formPeriodization, setFormPeriodization] = useState<'linear' | 'undulating' | 'block' | 'conjugate'>('undulating');
   const [formNotes, setFormNotes] = useState('');
   const [aiQueued, setAiQueued] = useState<'main' | 'alt' | null>(null);
 

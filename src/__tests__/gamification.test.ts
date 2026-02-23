@@ -610,8 +610,8 @@ describe('badge lookup', () => {
     strengthBadges.forEach(b => expect(b.category).toBe('strength'));
   });
 
-  it('has 56 total badges', () => {
-    expect(badges.length).toBe(56);
+  it('has 74 total badges', () => {
+    expect(badges.length).toBe(74);
   });
 
   it('has 50 level thresholds', () => {

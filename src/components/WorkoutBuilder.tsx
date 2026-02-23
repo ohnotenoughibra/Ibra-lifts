@@ -55,7 +55,7 @@ interface MesocycleTemplate {
   sessions: number;
   weeks: number;
   focus: 'strength' | 'hypertrophy' | 'balanced' | 'power';
-  periodization: 'undulating' | 'block' | 'linear';
+  periodization: 'undulating' | 'block' | 'linear' | 'conjugate';
   category: TemplateCategory;
   tags: string[];
   icon: string;
@@ -211,6 +211,30 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
     category: 'strength',
     tags: ['Intermediate+', 'Periodized'],
     icon: '📊'
+  },
+  {
+    id: 'conjugate_method',
+    name: 'Conjugate Method',
+    description: 'Max Effort + Dynamic Effort + Repetition Effort every week. Train strength, speed, and size simultaneously — ideal for fighters who need all qualities.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'strength',
+    periodization: 'conjugate',
+    category: 'strength',
+    tags: ['Advanced', 'Westside', 'All Qualities'],
+    icon: '⚡'
+  },
+  {
+    id: 'conjugate_combat',
+    name: 'Fighter Conjugate',
+    description: 'Conjugate method adapted for combat athletes. Heavy lifts, explosive work, and GPP in every training week. Builds fight-ready strength without peaking one quality.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'power',
+    periodization: 'conjugate',
+    category: 'combat',
+    tags: ['Advanced', 'MMA', 'BJJ'],
+    icon: '🥊'
   },
   {
     id: 'strength_skill',

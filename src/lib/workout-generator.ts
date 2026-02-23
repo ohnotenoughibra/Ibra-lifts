@@ -287,6 +287,60 @@ const BLOCK_SCHEMES: Record<number, WorkoutType[][]> = {
   ],
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONJUGATE / CONCURRENT PERIODIZATION
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Science:
+// - Simmons 2007 (Westside Barbell): Three qualities trained every week:
+//   Max Effort (ME) = work to 1-3RM on rotating exercises
+//   Dynamic Effort (DE) = speed work at 50-60% with maximal acceleration
+//   Repetition Effort (RE) = moderate-heavy reps for hypertrophy/GPP
+// - Swinton et al. 2009: Concurrent training of multiple qualities maintains
+//   all fitness components simultaneously
+// - Baker 2001: Mixed methods produce strength gains comparable to linear
+//   periodization with better retention of explosive qualities
+//
+// Why for combat athletes: fighters need strength, speed, and endurance
+// simultaneously — they can't "peak" one quality at the expense of others
+// because their sport demands all three on the same night.
+//
+// Implementation: Each session type maps to a conjugate quality.
+//   strength → Max Effort (1-3RM on rotating lifts)
+//   power    → Dynamic Effort (50-65% with speed, bands/chains if available)
+//   hypertrophy → Repetition Effort (moderate loads, higher reps)
+//
+// Every week includes all three qualities regardless of session count.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CONJUGATE_SCHEMES: Record<number, WorkoutType[]> = {
+  // ME = strength, DE = power, RE = hypertrophy
+  1: ['strength'],                              // ME only (limited sessions)
+  2: ['strength', 'power'],                     // ME + DE
+  3: ['strength', 'power', 'hypertrophy'],      // ME + DE + RE (classic)
+  4: ['strength', 'power', 'hypertrophy', 'strength'],  // 2× ME + DE + RE
+  5: ['strength', 'power', 'hypertrophy', 'strength', 'power'],  // 2× ME + 2× DE + RE
+  6: ['strength', 'power', 'hypertrophy', 'strength', 'power', 'hypertrophy'],  // 2× each
+};
+
+/**
+ * Conjugate-specific volume/intensity multipliers.
+ *
+ * Unlike linear/undulating, conjugate doesn't wave load week-to-week.
+ * Instead, exercise SELECTION rotates (different ME lift each week)
+ * while volume/intensity stay relatively stable.
+ *
+ * The slight weekly progression is autoregulated via RPE.
+ */
+function getConjugateMultipliers(weekNumber: number, totalWeeks: number): { volume: number; intensity: number } {
+  // Stable progression with slight intensification toward end of block
+  const fraction = Math.min(1, (weekNumber - 1) / Math.max(1, totalWeeks - 2));
+  return {
+    volume: 1.0 + fraction * 0.04,       // +0-4% volume over block
+    intensity: 1.0 + fraction * 0.03,     // +0-3% intensity over block
+  };
+}
+
 // Exercise selection per workout type
 const EXERCISE_PRIORITIES: Record<WorkoutType, {
   compounds: number;
@@ -345,7 +399,7 @@ interface GeneratorOptions {
   sessionsPerWeek: 1 | 2 | 3 | 4 | 5 | 6;
   weeks: number;
   baselineLifts?: BaselineLifts;
-  periodizationType?: 'linear' | 'undulating' | 'block';
+  periodizationType?: 'linear' | 'undulating' | 'block' | 'conjugate';
   muscleEmphasis?: MuscleGroupConfig;
   sessionDurationMinutes?: number;
   trainingIdentity?: TrainingIdentity;
@@ -889,7 +943,7 @@ function generateMesocycleWeek(
   sessionsPerWeek: number,
   equipment: Equipment,
   goalFocus: GoalFocus,
-  periodizationType: 'linear' | 'undulating' | 'block' = 'undulating',
+  periodizationType: 'linear' | 'undulating' | 'block' | 'conjugate' = 'undulating',
   weekIndex: number = 0,
   muscleEmphasis?: MuscleGroupConfig,
   availableEquipment?: EquipmentType[],
@@ -911,6 +965,10 @@ function generateMesocycleWeek(
     workoutTypes = Array(sessionsPerWeek).fill(linearType);
   } else if (periodizationType === 'block') {
     workoutTypes = BLOCK_SCHEMES[sessionsPerWeek]?.[weekIndex] || UNDULATING_SCHEMES[sessionsPerWeek];
+  } else if (periodizationType === 'conjugate') {
+    // Conjugate: all three qualities every week (ME + DE + RE)
+    // Every week uses the same session-type distribution — exercise selection rotates, not type
+    workoutTypes = CONJUGATE_SCHEMES[sessionsPerWeek] || CONJUGATE_SCHEMES[3];
   } else {
     // Undulating: use goal-specific schemes when goal is focused,
     // DUP rotation only for 'balanced' goal
@@ -945,6 +1003,11 @@ function generateMesocycleWeek(
     // 3% per week for beginners (was 5% — too aggressive for novices)
     volumeMultiplier = 1 + (weekNumber - 1) * 0.03;
     intensityMultiplier = 1 + (weekNumber - 1) * 0.015;
+  } else if (periodizationType === 'conjugate') {
+    // Conjugate: stable progression, autoregulated via RPE (Simmons 2007)
+    const conj = getConjugateMultipliers(weekNumber, totalWeeks);
+    volumeMultiplier = conj.volume;
+    intensityMultiplier = conj.intensity;
   } else {
     // DUP / Block: wave loading — undulating volume & intensity
     const wave = getWaveMultipliers(weekNumber);
@@ -1066,7 +1129,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   const mesocycleWeeks: MesocycleWeek[] = [];
 
   // Auto-select periodization by experience level if not explicitly set
-  let periodizationType: 'linear' | 'undulating' | 'block';
+  let periodizationType: 'linear' | 'undulating' | 'block' | 'conjugate';
   if (options.periodizationType) {
     periodizationType = options.periodizationType;
   } else if (experienceLevel === 'beginner') {

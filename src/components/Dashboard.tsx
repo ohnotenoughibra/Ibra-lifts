@@ -251,7 +251,16 @@ export default function Dashboard({
   const readyScreenSkipped = useRef(false);
   const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackShownThisSession = useRef(false);
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
+  const featureFeedback = useAppStore(s => s.featureFeedback);
+
+  // Routine overlays that never need feedback — these are core utilities
+  const ROUTINE_OVERLAYS = new Set([
+    'quick_actions', 'nutrition', 'profile_settings', 'builder', 'injury',
+    'user_guide', 'plate_calc', 'one_rm', 'wearable',
+  ]);
+
   const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
@@ -266,11 +275,18 @@ export default function Dashboard({
       // Save scroll position before opening overlay
       scrollPositionRef.current = window.scrollY;
     }
-    // Show feedback toast when closing a real overlay (not user_guide)
-    if (view === null && overlayView && overlayView !== 'user_guide') {
-      setFeedbackOverlay(overlayView);
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
+    // Smart feedback — only ask when it's actually useful
+    if (view === null && overlayView && !ROUTINE_OVERLAYS.has(overlayView) && !feedbackShownThisSession.current) {
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const alreadyRatedRecently = featureFeedback.some(
+        f => f.feature === overlayView && new Date(f.timestamp).getTime() > weekAgo
+      );
+      if (!alreadyRatedRecently) {
+        feedbackShownThisSession.current = true;
+        setFeedbackOverlay(overlayView);
+        if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+        feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
+      }
     }
     setOverlayViewRaw(view);
     setOverlayContext(view !== null ? context : undefined);

@@ -249,6 +249,49 @@ export async function flushSyncQueue(): Promise<void> {
   saveQueueToStorage(failedQueue);
 }
 
+/**
+ * Immediately flush any pending debounced sync.
+ * Called when the page is about to be hidden (app backgrounded, tab closed, etc.)
+ * so we don't lose data that was waiting on the debounce timer.
+ */
+export function flushPendingSync(): void {
+  if (!pendingPayload) return;
+  const { userId, data } = pendingPayload;
+  pendingPayload = null;
+
+  // Clear debounce timers
+  if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
+  if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
+
+  // Use sendBeacon for reliability during page hide (fetch may be cancelled)
+  if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+    const payload = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
+    const sent = navigator.sendBeacon('/api/sync', new Blob([payload], { type: 'application/json' }));
+    if (sent) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[db-sync] Flushed pending sync via sendBeacon');
+      }
+      return;
+    }
+  }
+
+  // Fallback: fire-and-forget fetch (may or may not complete)
+  doSync(userId, data).catch(() => queueForBackgroundSync(userId, data));
+}
+
+/**
+ * Force-push current data to cloud immediately (non-debounced).
+ * Used by the manual "Sync Now" button to ensure local data reaches the server.
+ */
+export async function forcePushToCloud(userId: string, data: Record<string, unknown>): Promise<void> {
+  // Cancel any pending debounced sync since we're pushing now
+  if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
+  if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
+  pendingPayload = null;
+
+  await doSync(userId, data);
+}
+
 export async function initDatabase(): Promise<boolean> {
   try {
     const res = await fetch('/api/sync/init', { method: 'POST' });

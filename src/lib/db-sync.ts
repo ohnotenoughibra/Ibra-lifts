@@ -52,7 +52,11 @@ export async function loadFromDatabase(userId: string): Promise<{ data: Record<s
 
 /**
  * Resolve conflicts between local and remote data.
- * Strategy: merge arrays by union on IDs, prefer newest for scalars via lastSyncAt.
+ *
+ * Strategy:
+ *   - Array fields: ALWAYS union merge by ID (never drop entries from either side)
+ *   - Object fields (waterLog): ALWAYS deep merge (keep all date keys from both sides)
+ *   - Scalar fields: prefer whichever side has the newer lastSyncAt
  */
 export function resolveConflicts(
   local: Record<string, unknown>,
@@ -63,7 +67,7 @@ export function resolveConflicts(
 
   const merged: Record<string, unknown> = { ...remote };
 
-  // For array fields, merge by ID (union), preferring entries with newer dates
+  // ── Array fields: union merge by ID — entries from BOTH sides are kept ──
   const arrayFields = [
     'workoutLogs', 'meals', 'bodyWeightLog', 'bodyComposition',
     'injuryLog', 'hrSessions', 'trainingSessions', 'customExercises', 'sessionTemplates',
@@ -72,25 +76,42 @@ export function resolveConflicts(
     'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
     'weightCutPlans', 'fightCampPlans', 'supplementStack', 'activeSupplements',
     'dietPhaseHistory',
+    // Previously missing — remote silently overwrote local:
+    'mesocycleHistory', 'mesocycleQueue',
+    'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles',
   ];
+
   for (const field of arrayFields) {
     const localArr = local[field];
     const remoteArr = remote[field];
     if (Array.isArray(localArr) && Array.isArray(remoteArr)) {
+      // Primitive arrays (string[], number[]): Set union
+      if (remoteArr.length > 0 && typeof remoteArr[0] !== 'object') {
+        merged[field] = Array.from(new Set([...remoteArr, ...localArr]));
+        continue;
+      }
+      if (localArr.length > 0 && typeof localArr[0] !== 'object') {
+        merged[field] = Array.from(new Set([...remoteArr, ...localArr]));
+        continue;
+      }
+      // Object arrays: union by ID, prefer newer entry for conflicts
       const map = new Map<string, Record<string, unknown>>();
+      const getKey = (item: Record<string, unknown>): string =>
+        item.id != null ? String(item.id) : JSON.stringify(item);
       for (const item of remoteArr as Array<Record<string, unknown>>) {
-        map.set(item.id as string, item);
+        map.set(getKey(item), item);
       }
       for (const item of localArr as Array<Record<string, unknown>>) {
-        const existing = map.get(item.id as string);
+        const key = getKey(item);
+        const existing = map.get(key);
         if (!existing) {
-          map.set(item.id as string, item);
+          map.set(key, item);
         } else {
           // Prefer the newer entry
           const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
           const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
           if (localDate > remoteDate) {
-            map.set(item.id as string, item);
+            map.set(key, item);
           }
         }
       }
@@ -100,15 +121,35 @@ export function resolveConflicts(
     }
   }
 
-  // For scalar fields, prefer the data with the later lastSyncAt
+  // ── Object fields (date-keyed): ALWAYS deep merge both sides ──
+  // Keeps all date keys from both devices. For same-date conflicts,
+  // the newer side wins (by lastSyncAt).
+  const objectFields = ['waterLog'];
   const localSync = (local.lastSyncAt || 0) as number;
   const remoteSync = (remote.lastSyncAt || 0) as number;
+  for (const field of objectFields) {
+    const localObj = local[field];
+    const remoteObj = remote[field];
+    if (localObj && typeof localObj === 'object' && !Array.isArray(localObj) &&
+        remoteObj && typeof remoteObj === 'object' && !Array.isArray(remoteObj)) {
+      // Newer side goes last (overwrites conflicts)
+      merged[field] = localSync > remoteSync
+        ? { ...remoteObj as object, ...localObj as object }
+        : { ...localObj as object, ...remoteObj as object };
+    } else if (localObj && typeof localObj === 'object' && !Array.isArray(localObj)) {
+      merged[field] = localObj;
+    }
+  }
+
+  // ── Scalar fields: prefer whichever side synced last ──
+  // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
+  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt']);
   if (localSync > remoteSync) {
-    merged.user = local.user || merged.user;
-    merged.currentMesocycle = local.currentMesocycle || merged.currentMesocycle;
-    merged.gamificationStats = local.gamificationStats || merged.gamificationStats;
-    merged.macroTargets = local.macroTargets || merged.macroTargets;
-    merged.waterLog = { ...(merged.waterLog as object || {}), ...(local.waterLog as object || {}) };
+    for (const key of Object.keys(local)) {
+      if (!specialFields.has(key) && local[key] !== undefined) {
+        merged[key] = local[key];
+      }
+    }
   }
 
   return merged;

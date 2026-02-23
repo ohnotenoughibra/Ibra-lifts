@@ -4069,6 +4069,353 @@ The prehab protocol above is necessary but insufficient if training volume is un
 - Perform the prehab protocol **3x/week** (15–20 min) and manage punching volume with hard caps and pulling balance.
 - Shoulder injuries end careers slowly, then suddenly. Five minutes of prehab per session buys years of pain-free striking.
 `
+  },
+  {
+    id: 'article-caffeine-performance',
+    title: 'Caffeine and Athletic Performance: The Complete Playbook',
+    tldr: '3-6 mg/kg caffeine 30-60 minutes pre-training enhances power, reaction time, and pain tolerance — but habitual use blunts the effect and evening doses sabotage recovery.',
+    category: 'nutrition',
+    tags: ['caffeine', 'supplementation', 'performance', 'combat', 'pre-workout', 'sleep'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Goldstein et al. 2010; Grgic et al. 2020; Guest et al. 2021; Pickering & Kiely 2019',
+    content: `
+## Most Athletes Use Caffeine. Almost None Use It Correctly.
+
+Coffee before training is universal. Structured caffeine periodization is rare. The difference between the two is the difference between a vague buzz and a measurable ergogenic edge. The evidence base here is enormous — hundreds of controlled trials — and the consensus is clear: caffeine works, but dosing, timing, and cycling determine whether it works *for you*.
+
+## Optimal Dosing: The 3-6 mg/kg Window
+
+The International Society of Sports Nutrition position stand (Goldstein et al. 2010) established 3-6 mg/kg body mass as the effective ergogenic range. For a 75 kg athlete, that's 225-450 mg — roughly 2-4 cups of strong coffee. Grgic et al. (2020) confirmed in their meta-analysis that doses within this range improve maximal strength by 2-7% and muscular endurance by 6-12%.
+
+**Critical nuance:** More is not better. Doses above 6 mg/kg increase anxiety, heart rate, and GI distress without additional performance benefit. Guest et al. (2021) showed that genetic variation in the CYP1A2 gene means roughly 50% of the population are "slow metabolizers" who get jittery and anxious at doses that work perfectly for fast metabolizers. If 3 mg/kg makes you feel wired, you're likely a slow metabolizer — stay at the lower end.
+
+### Timing
+
+Peak plasma concentration occurs 30-60 minutes post-ingestion. Take your caffeine 45 minutes before your first working set, not while walking into the gym.
+
+## Habituation and Cycling
+
+Daily caffeine use builds tolerance within 7-14 days. Habitual consumers (3+ cups/day) show blunted ergogenic responses compared to naive users (Beaumont et al. 2017). The practical solution:
+
+- **Wash-out protocol:** 7-10 days caffeine-free before a competition or key training block restores full sensitivity
+- **Cycling approach:** Limit caffeine to training days only (3-4 days/week), keeping doses at 3 mg/kg on non-competition days
+- **Strategic escalation:** Use 2-3 mg/kg for regular training, reserve 5-6 mg/kg for competition or max-effort sessions
+
+## Sleep: The Hidden Cost
+
+Caffeine's half-life is 5-6 hours in most adults. A 300 mg dose at 2 PM still leaves ~150 mg circulating at 8 PM — enough to reduce slow-wave sleep by 20% even if you fall asleep normally (Goldstein et al. 2010). Since slow-wave sleep drives growth hormone release and tissue repair, afternoon caffeine quietly undermines the recovery your training demands.
+
+**Hard rule:** No caffeine after 1 PM if you train in the morning. If you train in the evening, use caffeine only for morning sessions and rely on warm-up intensity for evening performance.
+
+## Combat Sport Specifics
+
+For fighters, caffeine's benefits extend beyond raw strength:
+
+- **Reaction time:** Grgic et al. (2020) found 4-8% faster reaction times at 3-6 mg/kg — meaningful when slipping punches or shooting takedowns
+- **Power output:** 3-5% improvement in peak power, translating to harder strikes and more explosive entries
+- **Pain perception:** Caffeine blocks adenosine receptors that modulate pain signaling, increasing pain tolerance by 10-15%. This matters in late rounds and during grueling sparring sessions
+- **Sustained cognitive function:** Decision-making under fatigue degrades 15-25% slower with caffeine, per Guest et al. (2021)
+
+## The Bottom Line
+
+- Dose at **3-6 mg/kg**, taken **45 minutes pre-training**. Start low if you're unsure of your metabolism.
+- **Cycle your use.** Daily consumption builds tolerance. Reserve full doses for key sessions and competitions.
+- **Respect the half-life.** No caffeine after early afternoon. Sleep quality is non-negotiable for adaptation.
+- **Fighters benefit beyond strength:** faster reactions, higher pain tolerance, and sustained decision-making under fatigue.
+- **Wash out for 7-10 days** before major competitions to restore full ergogenic response.
+`
+  },
+  {
+    id: 'article-science-of-warming-up',
+    title: 'The Science of Warming Up',
+    tldr: 'The RAMP protocol — Raise, Activate, Mobilize, Potentiate — systematically prepares your nervous system for peak output and dramatically cuts injury risk.',
+    category: 'general_fitness',
+    tags: ['warm-up', 'injury-prevention', 'performance', 'RAMP', 'combat', 'mobility'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Fradkin et al. 2010; Behm & Chaouachi 2011; Bishop 2003; Tillin & Bishop 2009',
+    content: `
+## A Cold Muscle Is a Slow, Weak, Injury-Prone Muscle. Full Stop.
+
+Fradkin et al. (2010) analyzed 32 studies on warm-up and injury incidence. The conclusion was unambiguous: structured warm-ups reduce injury risk by over 50% across virtually all sports. Yet most athletes still "warm up" by doing a lighter version of their workout — or worse, skipping it entirely. A proper warm-up is not optional filler. It is the highest-ROI 10-15 minutes of your session.
+
+## The RAMP Protocol
+
+Bishop (2003) proposed and subsequent research validated a four-phase warm-up structure that systematically prepares every relevant system:
+
+### Raise (3-5 minutes)
+Elevate heart rate, core temperature, and blood flow. Jump rope, rowing, light jogging, or bodyweight circuits at 50-60% effort. The goal is a light sweat and elevated breathing rate. Muscle temperature increases of 1-2°C improve nerve conduction velocity by 2-5% per degree (Bishop 2003) — your muscles literally contract faster when warm.
+
+### Activate (2-3 minutes)
+Target the specific stabilizer muscles that govern joint integrity during your session. For upper body days: band pull-aparts, scapular push-ups, external rotations. For lower body: glute bridges, clamshells, single-leg balance work. These muscles need deliberate activation because they're inhibited by sitting and daily posture.
+
+### Mobilize (2-3 minutes)
+Take working joints through their full range of motion dynamically. Leg swings, hip circles, thoracic rotations, deep bodyweight squats. This is where Behm & Chaouachi (2011) made a critical distinction:
+
+- **Dynamic stretching before training:** Improves ROM without performance decrements. Use it.
+- **Static stretching before training:** Reduces maximal strength by 5-8% and power output by 2-3% when held longer than 60 seconds. Avoid it pre-session. Save it for post-training or dedicated mobility work.
+
+Short static holds (<30 seconds) show minimal performance loss, but dynamic work is still superior for pre-training preparation.
+
+### Potentiate (2-4 minutes)
+Post-activation potentiation (PAP) primes the nervous system for heavy output. Perform 2-3 submaximal sets of your primary exercise pattern at increasing intensity (50%, 70%, 85% of working weight). For power athletes, include 3-5 explosive reps — box jumps, medicine ball throws, or explosive push-ups — at near-maximal intent.
+
+PAP works by increasing motor unit recruitment and rate coding. Tillin & Bishop (2009) showed that a potentiation protocol improved subsequent power output by 3-8% compared to traditional ramp sets alone.
+
+## Combat Sport-Specific Warm-Up
+
+Fighters have unique demands. A combat-specific warm-up should include:
+
+- **Raise:** 3 rounds of shadowboxing at 50-70% intensity (also grooves technique)
+- **Activate:** Rotator cuff work (fighters throw hundreds of punches), hip activation (sprawls, level changes)
+- **Mobilize:** Neck circles, thoracic rotations, hip openers, ankle mobility (essential for stance work)
+- **Potentiate:** 5-8 explosive combinations on pads at 90% power, 2-3 explosive sprawl-to-shot sequences
+
+This takes 12-15 minutes. It prevents injuries, sharpens early-round performance, and ensures your nervous system isn't playing catch-up during sparring.
+
+## The Bottom Line
+
+- Use the **RAMP protocol**: Raise temperature, Activate stabilizers, Mobilize joints, Potentiate the nervous system.
+- **Dynamic stretching beats static stretching** pre-training. Static stretching >60 seconds reduces strength and power output.
+- **Post-activation potentiation** adds 3-8% to subsequent power output — do explosive ramp sets before heavy work.
+- **12-15 minutes** is all it takes. The injury risk reduction alone (>50% per Fradkin et al.) makes this non-negotiable.
+- **Fighters:** Shadowboxing is your Raise phase. Add rotator cuff activation and explosive pad work to complete the protocol.
+`
+  },
+  {
+    id: 'article-training-through-injuries',
+    title: 'Training Through Injuries: Evidence-Based Modifications',
+    tldr: 'Pain does not equal harm. Load management and intelligent movement substitutions outperform complete rest for nearly every musculoskeletal injury.',
+    category: 'general_fitness',
+    tags: ['injury', 'rehabilitation', 'pain-management', 'load-management', 'combat', 'modifications'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Lehman 2017; Smith et al. 2017; Glasgow et al. 2015; Khan & Scott 2009',
+    content: `
+## The Worst Advice in Fitness Is "Just Rest It."
+
+Complete rest was the standard recommendation for musculoskeletal pain for decades. The evidence now overwhelmingly shows that prolonged rest deconditions tissue, delays recovery, and increases the likelihood of re-injury upon return (Glasgow et al. 2015). The modern approach is clear: find a tolerable training load and maintain it. Pain is information, not a stop sign.
+
+## Pain vs. Harm: A Critical Distinction
+
+Smith et al. (2017) established a practical framework that every athlete needs to internalize:
+
+- **Pain ≠ harm.** A sore knee during squats does not mean you are damaging the joint. Most musculoskeletal pain reflects tissue sensitivity, not tissue damage.
+- **Acceptable pain during training:** 0-3/10 on a visual analog scale. If pain stays in this range during and after exercise, you are loading the tissue within its adaptive capacity.
+- **Warning signs of actual harm:** Pain above 5/10 during movement, pain that worsens progressively within a session, swelling that increases after training, or pain that is significantly worse 24 hours post-session than it was before.
+
+This distinction changes everything. Most athletes with knee pain, shoulder pain, or back pain can and should continue training — with modifications.
+
+## Load Management Over Rest
+
+Glasgow et al. (2015) demonstrated that tendons, muscles, and joints adapt to load through mechanotransduction — the biological process by which cells convert mechanical stimulus into cellular response. Remove the stimulus entirely and the tissue weakens. The clinical evidence supports:
+
+- **Reduce load to a tolerable level** rather than eliminating it. A sore shoulder that hurts bench pressing 100 kg at full ROM may be pain-free pressing 60 kg to a shortened ROM.
+- **Gradually increase load** as symptoms allow. Lehman (2017) recommends 10-15% weekly load increases during return-to-training phases.
+- **Isometric holds** at painful angles reduce pain acutely and stimulate tendon adaptation. 5 sets of 45-second isometric holds at 70% maximal voluntary contraction is the gold standard protocol for tendinopathy.
+
+## Movement Substitution Patterns
+
+When a specific movement hurts, don't abandon the movement pattern — modify it:
+
+### Knee Pain
+- **Swap:** Back squats → belt squats, leg press with limited ROM, box squats to parallel
+- **Shift to hip-dominant:** Romanian deadlifts, hip thrusts, Nordic curls load the posterior chain without knee flexion stress
+- **Reduce moment arm:** Goblet squats and front squats reduce shear forces on the knee versus back squats
+
+### Shoulder Pain
+- **Swap:** Barbell bench press → neutral-grip dumbbell press, floor press (limits ROM)
+- **Shift emphasis:** Overhead pressing → landmine press (arcing path reduces impingement risk)
+- **Modify grip:** Pronated grip → neutral grip on rows, presses, and pull-ups. This externally rotates the humerus and opens the subacromial space
+
+### Low Back Pain
+- **Swap:** Conventional deadlift → trap bar deadlift, sumo stance, or rack pulls
+- **Reduce spinal load:** Bilateral squats → split squats and lunges (lower absolute load, same stimulus)
+- **Core stability:** McGill Big 3 (curl-up, side plank, bird dog) daily — these build spinal endurance without provocative flexion/extension
+
+## When to Actually Stop Training
+
+Despite the "train through it" approach, certain presentations demand medical evaluation and genuine rest:
+
+- **Acute traumatic injury:** Joint dislocations, suspected fractures, acute muscle tears with visible bruising
+- **Neurological symptoms:** Radiating pain, numbness, tingling, or weakness in extremities
+- **Joint locking or giving way:** Mechanical symptoms suggesting meniscal tear or ligament instability
+- **Night pain and rest pain:** Pain that wakes you from sleep suggests inflammatory or systemic pathology, not mechanical overload
+- **No improvement after 2-3 weeks** of modified training — something else is going on
+
+## The Bottom Line
+
+- **Pain is not the same as harm.** Most musculoskeletal pain is safe to train through at reduced loads (0-3/10 pain scale).
+- **Complete rest deconditions tissue** and delays recovery. Maintain tolerable loading.
+- **Substitute movements, don't eliminate patterns.** Knee pain → hip-dominant; shoulder pain → neutral grip; back pain → reduced spinal load.
+- **Isometric holds** (5×45s at 70% MVC) are the best acute pain-reduction tool for tendon issues.
+- **Stop training for:** fractures, neurological symptoms, joint locking, night pain, or failure to improve after 2-3 weeks of modification.
+- **Increase load by 10-15% per week** during return phases. Patience here prevents re-injury.
+`
+  },
+  {
+    id: 'article-concurrent-training',
+    title: 'Concurrent Training: Strength + Cardio Without Compromise',
+    tldr: 'The interference effect is real but manageable — separate sessions by 6-8 hours, prioritize strength before cardio, and accept that combat athletes will always live with some interference.',
+    category: 'periodization',
+    tags: ['concurrent-training', 'interference-effect', 'strength', 'cardio', 'combat', 'programming'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Wilson et al. 2012; Fyfe et al. 2014; Murach & Bagley 2016; Hickson 1980',
+    content: `
+## You Cannot Specialize When Your Sport Demands Everything.
+
+Powerlifters only lift. Marathoners only run. Fighters have to do both — and grapple, and drill, and spar. The "interference effect" — the blunted strength adaptation that occurs when endurance training is layered on top of resistance training — was first documented by Hickson (1980) and has haunted concurrent training programming ever since. But the research has matured. The interference is real, quantifiable, and *manageable* if you understand the mechanisms.
+
+## The Molecular Conflict: AMPK vs. mTOR
+
+At the cellular level, strength and endurance training activate opposing signaling pathways (Fyfe et al. 2014):
+
+- **Resistance training** activates **mTOR** (mechanistic target of rapamycin), the master switch for muscle protein synthesis and hypertrophy.
+- **Endurance training** activates **AMPK** (AMP-activated protein kinase), an energy sensor that upregulates mitochondrial biogenesis and oxidative capacity — but simultaneously **inhibits mTOR signaling**.
+
+When both pathways are activated in close temporal proximity, AMPK suppresses mTOR. The result: attenuated hypertrophy and strength gains. Wilson et al. (2012) quantified this in their meta-analysis — concurrent training reduced strength gains by ~15% and hypertrophy by ~28% compared to resistance training alone. Power development was the most affected quality, with reductions exceeding 30%.
+
+### Not All Cardio Is Equal
+
+The type of endurance work matters enormously:
+
+- **Running** causes the greatest interference due to eccentric muscle damage and the mechanical mismatch with strength training patterns
+- **Cycling** causes moderate interference — less eccentric damage, but still significant AMPK activation
+- **Combat-specific conditioning** (pad work, grappling rounds, sparring) sits in a middle ground — it activates AMPK but also involves high-force contractions that partially stimulate mTOR
+
+## Practical Minimization Strategies
+
+Murach & Bagley (2016) synthesized the literature into actionable guidelines:
+
+### Temporal Separation
+Separate strength and endurance sessions by **6-8 hours minimum**. This allows mTOR signaling from resistance training to peak (at ~3-4 hours post-session) before AMPK activation from endurance work blunts it. Morning strength, evening cardio is the classic template.
+
+### Priority Sequencing
+When same-day training is unavoidable: **strength before cardio, always.** Performing endurance work first depletes glycogen and elevates AMPK before you even touch a barbell, guaranteeing suboptimal strength stimulus. Strength first ensures maximal motor unit recruitment and mTOR activation.
+
+### Modality Selection
+- Replace running with **cycling or rowing** for base conditioning when possible — less eccentric damage means less interference
+- Use **high-intensity intervals** (10-30 seconds) over long steady-state — shorter bouts cause less AMPK activation per unit of conditioning benefit
+- **Sled pushes and drags** are the gold standard "cardio" for strength athletes — high metabolic demand with zero eccentric component
+
+### Volume Management
+- Keep dedicated cardio sessions to **2-3 per week** during strength-focused blocks
+- Total weekly training volume (all modalities combined) should not exceed what you can recover from — the interference effect is amplified when overall volume outpaces recovery capacity
+
+## The Combat Athlete's Reality
+
+Here's the uncomfortable truth: **fighters cannot fully eliminate the interference effect.** Sparring is endurance work. Drilling is endurance work. Pad rounds are endurance work. A fighter training 4-5 martial arts sessions per week is already performing 4-8 hours of endurance activity before any dedicated conditioning is added.
+
+This means:
+
+- **Strength sessions must be brutally efficient.** 3-4 compound lifts, 3-5 sets of 3-6 reps, heavy loads, full recovery between sets. Get the mTOR stimulus and get out.
+- **Accept slower hypertrophy gains.** A fighter gaining 1-2 kg of lean mass per year while maintaining sport skill is making excellent progress.
+- **Periodize around competition.** During fight camps, reduce strength volume to maintenance (2 sessions/week, 2-3 sets per exercise) and accept the interference from increased sport-specific work.
+- **Off-season is for building.** When sport volume drops, push strength and hypertrophy hard. This is when fighters make their biggest physical gains.
+
+## Programming Template: Fighter's Week
+
+| Day | AM Session | PM Session |
+|-----|-----------|------------|
+| Mon | Strength (upper) | Skill/sparring |
+| Tue | Skill/drilling | — |
+| Wed | Strength (lower) | Conditioning (intervals) |
+| Thu | Skill/sparring | — |
+| Fri | Strength (full body, power) | Skill/drilling |
+| Sat | Conditioning or active recovery | — |
+| Sun | Off | — |
+
+## The Bottom Line
+
+- The **interference effect reduces strength gains by ~15% and hypertrophy by ~28%** when endurance training is concurrent. Power is most affected (~30% reduction).
+- **AMPK from cardio suppresses mTOR from strength training.** Separate sessions by 6-8 hours to minimize this conflict.
+- **Strength before cardio, always.** Never enter a strength session glycogen-depleted from prior endurance work.
+- **Cycling and sled work** interfere less than running. Choose your conditioning modality strategically.
+- **Fighters cannot avoid interference** — martial arts training IS endurance work. Accept it, keep strength sessions short and heavy, and use the off-season to build.
+`
+  },
+  {
+    id: 'article-knee-health-athletes',
+    title: 'Knee Health for Athletes: Prevention and Longevity',
+    tldr: 'Deep squats protect knees, not destroy them. VMO and hamstring strength, full ROM training, and targeted ACL prevention protocols keep fighters pivoting and changing levels for decades.',
+    category: 'general_fitness',
+    tags: ['knee', 'injury-prevention', 'squat', 'ACL', 'tendinopathy', 'combat', 'longevity'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Hartmann et al. 2013; Hewett et al. 2005; Lian et al. 2005; Schoenfeld 2010',
+    content: `
+## The Knee Is Not Fragile. Your Training Program Probably Is.
+
+The fitness industry has spent decades telling athletes to avoid deep squats, limit knee-over-toe movement, and "protect" their joints with partial ranges of motion. The research says the opposite. Hartmann et al. (2013) reviewed the biomechanical literature and concluded that deep squats produce lower peak retropatellar compressive forces than half squats, develop the posterior cruciate ligament, and build more resilient cartilage through progressive loading. Avoiding full ROM is not protecting your knees — it's leaving them underdeveloped.
+
+## Knee Anatomy, Simplified
+
+Understanding knee health requires knowing four structures:
+
+- **Quadriceps (especially VMO):** The vastus medialis oblique is the terminal knee extensor. It's the muscle that keeps your kneecap tracking properly during cutting, pivoting, and level changes. Weak VMO = patellar maltracking = anterior knee pain.
+- **Hamstrings:** The primary dynamic ACL protector. During deceleration and pivoting, the hamstrings pull the tibia posteriorly, reducing ACL strain. Hewett et al. (2005) showed that athletes with hamstring-to-quadriceps strength ratios below 0.6 were 2.5x more likely to suffer ACL tears.
+- **ACL (anterior cruciate ligament):** Prevents anterior tibial translation and rotational instability. Fighters are at high risk due to constant pivoting, level changes, and lateral movement in stances.
+- **Patellar tendon:** Connects the kneecap to the tibia. Absorbs enormous forces during jumping, squatting, and kicking. The most common overuse injury in strength-trained combat athletes is patellar tendinopathy.
+
+## VMO and Posterior Chain Training
+
+The VMO activates most powerfully in the last 30 degrees of knee extension and during deep knee flexion. This is why:
+
+- **Full-depth squats** (below parallel) develop the VMO far more than half squats (Schoenfeld 2010)
+- **Terminal knee extensions** (TKEs) with a band isolate VMO activation at the range where it matters most
+- **Step-downs** from a 6-8 inch box force eccentric VMO control through the exact range that causes patellar tracking problems
+- **Split squats with a rear foot elevated** challenge single-leg VMO and hip stability simultaneously
+
+For the posterior chain:
+
+- **Nordic hamstring curls** reduce hamstring injury risk by 51% (meta-analysis data). They also build eccentric hamstring strength that directly protects the ACL.
+- **Romanian deadlifts** develop the hamstrings at long muscle lengths — the position where tears actually occur during sprinting and kicking
+- **Glute-ham raises** combine hip extension and knee flexion, the two primary hamstring functions
+
+## Full ROM Squatting Is Protective
+
+Hartmann et al. (2013) dismantled the myth that deep squats harm knees:
+
+- **Compressive forces peak at 90 degrees**, not at full depth. Going deeper actually distributes forces across more joint surface area.
+- **Deep squats develop the posterior cruciate ligament** through progressive tensile loading. Half squats do not.
+- **Articular cartilage adapts to loading.** Regular full-depth squatting increases cartilage thickness and resilience over time. Avoiding depth leaves cartilage thin and vulnerable.
+- **Wrapping forces stabilize the knee** in deep flexion. The soft tissues behind the knee compress and create a natural "braking" mechanism that limits shear force.
+
+**Practical application:** Squat as deep as your mobility allows with controlled form. Ass-to-grass is the goal, not parallel. Build depth gradually if mobility is limited — goblet squats are the entry point.
+
+## ACL Injury Prevention for Fighters
+
+Combat athletes face severe ACL risk. Pivoting during kicks, sudden direction changes, and takedown scrambles place enormous rotational stress on the knee. Hewett et al. (2005) developed and validated a neuromuscular prevention protocol that reduced ACL injuries by 72% in high-risk athletes:
+
+### The Protocol (3x/week, 15 minutes)
+1. **Single-leg balance work:** 3×30 seconds per leg on unstable surface, eyes open then closed
+2. **Lateral bounds:** 3×8 per side, focusing on sticking the landing with knee over toe (not collapsing inward)
+3. **Drop jumps with proper landing mechanics:** 3×5 from a 30 cm box, emphasizing soft landings with knees tracking over toes
+4. **Single-leg Romanian deadlifts:** 3×8 per leg, developing eccentric hamstring control on one leg
+5. **Perturbation training:** Partner pushes during single-leg stance, training reactive knee stability
+
+**The key cue for all exercises:** Knee tracks over the second toe. Never let it collapse medially (valgus). This movement error is the primary mechanism of non-contact ACL tears.
+
+## Patellar Tendinopathy Management
+
+Lian et al. (2005) showed that patellar tendinopathy affects up to 45% of athletes in jumping and power sports. The evidence-based management protocol:
+
+- **Heavy slow resistance training:** 4×8 squats at 70-80% 1RM with a 3-second eccentric, 3x/week. This is superior to eccentric-only protocols (Kongsgaard et al. 2009).
+- **Isometric holds for acute pain relief:** 5×45-second single-leg wall sits at 70% effort. Provides immediate pain reduction lasting 45+ minutes — use pre-training.
+- **Load management, not rest.** Tendons weaken with rest and strengthen with progressive load. Reduce total jumping and plyometric volume, but maintain heavy slow resistance work.
+- **Monitor morning stiffness.** If the first 10 steps out of bed are painful, yesterday's training volume was too high. Reduce by 20%.
+
+## The Bottom Line
+
+- **Deep squats are protective, not harmful.** Compressive forces peak at 90 degrees; full depth distributes load and builds cartilage (Hartmann et al. 2013).
+- **Build VMO strength** with full-depth squats, TKEs, step-downs, and split squats. Weak VMO means patellar tracking problems.
+- **Hamstring-to-quad ratio must be ≥0.6.** Below this threshold, ACL injury risk increases 2.5x. Nordic curls are non-negotiable.
+- **ACL prevention protocols reduce tear risk by 72%.** Single-leg balance, lateral bounds, drop jumps — 15 minutes, 3x/week.
+- **Patellar tendinopathy responds to heavy slow resistance training**, not rest. Isometric holds provide acute pain relief before sessions.
+- **Fighters:** Your sport demands constant pivoting and level changes. Knee preparation is career insurance, not optional accessory work.
+`
   }
 ];
 

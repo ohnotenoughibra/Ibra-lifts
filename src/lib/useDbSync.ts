@@ -56,6 +56,18 @@ function applyRemoteData(
   // Use reliable server-side DB timestamp (set on every push from any device)
   const serverTs = serverUpdatedAt ? new Date(serverUpdatedAt).getTime() : 0;
 
+  // Helper: build full local state snapshot for merge (prevents data loss)
+  const buildFullLocal = (): Record<string, unknown> => {
+    const s = useAppStore.getState();
+    const result: Record<string, unknown> = {};
+    for (const field of RESTORE_FIELDS) {
+      const val = (s as unknown as Record<string, unknown>)[field];
+      if (val !== undefined) result[field] = val;
+    }
+    result.isOnboarded = s.isOnboarded;
+    return result;
+  };
+
   // Helper: apply all RESTORE_FIELDS from source into the store
   const applyFields = (source: Record<string, unknown>, label: string) => {
     const fieldsToMerge: Record<string, unknown> = {};
@@ -148,18 +160,14 @@ function applyRemoteData(
     }
   }
 
-  // ── NO LOCAL-UNIQUE DATA: Server is authoritative ──
-  // When local has nothing the server doesn't know about, always apply
-  // server state. This handles: new workout logs from other devices,
-  // scalar-only changes (mesocycle day, gamification level, settings),
-  // and identical-state refreshes (harmless no-op).
-  // Safe because: pulls only happen on mount (no pending local changes)
-  // or on visibility change (after flushPendingSync pushed local state).
+  // ── NO LOCAL-UNIQUE WORKOUT LOGS: merge server + full local ──
+  // Even though local has no unique *workout logs*, it may have unique
+  // meals, bodyWeight entries, waterLog data, supplement intakes, etc.
+  // Previously this passed only { workoutLogs, lastSyncAt } to the merge,
+  // which silently dropped ALL other local data. Now we pass full state.
   if (!hasLocalUniqueData) {
-    const merged = resolveConflicts(
-      { workoutLogs: localLogs, lastSyncAt: store.lastSyncAt || 0 },
-      dbData,
-    );
+    const fullLocal = buildFullLocal();
+    const merged = resolveConflicts(fullLocal, dbData);
     applyFields(merged, hasRemoteUniqueData
       ? 'Applied server data (remote has new entries)'
       : 'Applied server data (scalar sync from other device)');
@@ -168,20 +176,11 @@ function applyRemoteData(
 
   // ── LOCAL HAS UNIQUE DATA, server doesn't ──
   // Local has workouts the server doesn't know about. This can happen
-  // when the device was offline. Don't overwrite local data — let the
-  // debounced push send it to the server.
-  // But if the server was updated more recently by another device,
-  // still apply non-conflicting server fields (like gamification, settings).
+  // when the device was offline. Pass full local state to the merge so
+  // no local data (meals, supplements, etc.) is silently dropped.
   if (serverTs > 0) {
-    const merged = resolveConflicts(
-      {
-        workoutLogs: localLogs,
-        gamificationStats: store.gamificationStats,
-        currentMesocycle: store.currentMesocycle,
-        lastSyncAt: store.lastSyncAt || 0,
-      },
-      dbData,
-    );
+    const fullLocal = buildFullLocal();
+    const merged = resolveConflicts(fullLocal, dbData);
     applyFields(merged, 'Merged server changes with local-unique data');
   }
 
@@ -359,7 +358,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   // Build sync payload from current store state (shared between auto-sync and force-sync)
   const buildSyncPayload = useCallback((): Record<string, unknown> | null => {
     const s = useAppStore.getState();
-    const hasRealData = s.isOnboarded && s.user && (s.workoutLogs?.length > 0 || s.trainingSessions?.length > 0);
+    const hasRealData = s.isOnboarded && s.user && (s.workoutLogs?.length > 0 || s.trainingSessions?.length > 0 || s.meals?.length > 0);
     if (!hasRealData) return null;
 
     return {
@@ -429,7 +428,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     if (!effectiveUserId || !initialLoadDone.current) return;
 
     // Safety: never push empty/fresh state that could overwrite real server data
-    const hasRealData = store.isOnboarded && store.user && (store.workoutLogs?.length > 0 || store.trainingSessions?.length > 0);
+    const hasRealData = store.isOnboarded && store.user && (store.workoutLogs?.length > 0 || store.trainingSessions?.length > 0 || store.meals?.length > 0);
     if (!hasRealData) {
       return; // Don't push blank state — wait until user has real data
     }

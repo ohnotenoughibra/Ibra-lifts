@@ -411,6 +411,7 @@ export type ContentCategory =
 export interface KnowledgeArticle {
   id: string;
   title: string;
+  tldr: string; // One-line summary shown on cards and article headers
   content: string;
   category: ContentCategory;
   tags: string[];

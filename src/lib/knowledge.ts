@@ -692,6 +692,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
   {
     id: 'article-undulating-periodization',
     title: 'Why Undulating Periodization Works for Grapplers',
+    tldr: 'Vary intensity within each week to build strength, power, and endurance from just 2-3 lifting sessions.',
     category: 'periodization',
     tags: ['programming', 'science', 'grappling'],
     readTime: 5,
@@ -728,6 +729,7 @@ This ensures you're always fresh enough for your main sport while still progress
   {
     id: 'article-hypertrophy-science',
     title: 'The Science of Building Muscle in 2025',
+    tldr: 'Mechanical tension, eccentric emphasis, and 10-20 sets/muscle/week — the three levers that actually drive growth.',
     category: 'muscle_science',
     tags: ['hypertrophy', 'science', 'training'],
     readTime: 7,
@@ -778,6 +780,7 @@ Going above MAV doesn't add growth and increases injury risk.
   {
     id: 'article-strength-adaptations',
     title: 'How Strength Actually Develops',
+    tldr: 'Your brain adapts before your muscles do — neural recruitment, rate coding, and why heavy training is non-negotiable.',
     category: 'muscle_science',
     tags: ['strength', 'science', 'neural'],
     readTime: 6,
@@ -829,6 +832,7 @@ For grapplers, the 4-8 rep range offers the best of both worlds.
   {
     id: 'article-grappling-strength',
     title: 'Strength Training for Grapplers: The Complete Guide',
+    tldr: 'The 6 movement patterns every grappler needs, a sample 3-day split, and how to never let lifting hurt mat time.',
     category: 'grappling',
     tags: ['grappling', 'BJJ', 'wrestling', 'programming'],
     readTime: 10,
@@ -911,6 +915,7 @@ Never train legs heavy the day before competition or hard sparring. Plan your we
   {
     id: 'article-eccentric-training',
     title: 'Eccentric Training: The Secret Weapon for Muscle Growth',
+    tldr: '3-4 second eccentrics produce 15% more hypertrophy per set. Here\'s how to implement them.',
     category: 'lifting_technique',
     tags: ['technique', 'hypertrophy', 'eccentric'],
     readTime: 5,
@@ -961,6 +966,7 @@ Use a tempo notation like "3-1-2-0":
   {
     id: 'article-grip-training',
     title: 'Grip Strength: The Grappler\'s Secret Weapon',
+    tldr: 'Four types of grip strength, a 5-exercise circuit, and gi vs no-gi training differences.',
     category: 'grappling',
     tags: ['grip', 'grappling', 'forearms'],
     readTime: 4,
@@ -1014,6 +1020,7 @@ Grip work is taxing on the forearms and can affect your grappling. Schedule grip
   {
     id: 'article-recovery-science',
     title: 'Recovery Science: What Actually Works',
+    tldr: 'Sleep and protein are Tier 1. Cold water immersion is Tier 2. BCAAs and compression gear are marketing.',
     category: 'recovery',
     tags: ['recovery', 'sleep', 'science'],
     readTime: 6,
@@ -1079,6 +1086,7 @@ Not all recovery methods are created equal. Here is what the research actually s
   {
     id: 'article-weight-management',
     title: 'Weight Management for Grapplers',
+    tldr: 'Fat loss vs water cut — two different processes. Training day vs rest day nutrition, and the only 4 supplements worth buying.',
     category: 'nutrition',
     tags: ['nutrition', 'weight', 'grappling', 'competition'],
     readTime: 7,
@@ -1128,6 +1136,7 @@ Everything else is marketing.
   {
     id: 'article-training-longevity',
     title: 'Training for Longevity: Lifting in Your 30s and Beyond',
+    tldr: 'Recovery slows, joints need more warm-up, but smart programming means you can train harder at 40 than most do at 25.',
     category: 'lifting_technique',
     tags: ['longevity', 'injury-prevention', 'programming'],
     readTime: 6,
@@ -1181,6 +1190,7 @@ The goal is not to peak at 35. It is to be training at 55. Every session should 
   {
     id: 'article-autoregulation',
     title: 'Autoregulation: Training Smarter with RPE and Readiness',
+    tldr: 'RPE-based training adapts to your daily readiness. Green/yellow/red light system for when to push and when to back off.',
     category: 'periodization',
     tags: ['RPE', 'autoregulation', 'programming', 'science'],
     readTime: 5,
@@ -1239,6 +1249,7 @@ This app uses your pre-workout check-in, wearable recovery data, and per-exercis
   {
     id: 'article-hrv-baselines',
     title: 'Understanding Your HRV & RHR Baselines',
+    tldr: 'Your HRV is only meaningful relative to YOU. How to build a 14-day baseline and interpret daily readings.',
     category: 'recovery',
     tags: ['HRV', 'recovery', 'wearables', 'readiness', 'science'],
     readTime: 6,
@@ -1284,6 +1295,7 @@ For accurate baselines:
   {
     id: 'article-acwr-injury',
     title: 'ACWR: The Injury Prevention Framework',
+    tldr: 'It\'s not high load that causes injuries — it\'s spikes in load. The 10% rule that prevents most training injuries.',
     category: 'periodization',
     tags: ['injury', 'ACWR', 'periodization', 'science', 'grappling'],
     readTime: 7,
@@ -1322,6 +1334,7 @@ Never increase total weekly load by more than 10%. This single rule prevents mos
   {
     id: 'article-grappling-recovery',
     title: 'Recovery Protocol for Combat Athletes',
+    tldr: 'Grip recovery, neck health protocols, and the 48-hour rule after hard sparring or competition.',
     category: 'grappling',
     tags: ['grappling', 'recovery', 'BJJ', 'wrestling', 'MMA'],
     readTime: 6,
@@ -1369,6 +1382,7 @@ After hard grappling (competition-style rounds or tournament):
   {
     id: 'article-striking-strength',
     title: 'Strength Training for Strikers',
+    tldr: 'Rotational power, hip extension, shoulder endurance, and core anti-rotation — the 4 pillars of knockout power.',
     category: 'striking',
     tags: ['striking', 'boxing', 'kickboxing', 'power'],
     readTime: 6,
@@ -1447,6 +1461,7 @@ Your core must resist rotation to transfer power efficiently and absorb body sho
   {
     id: 'article-mma-programming',
     title: 'Strength & Conditioning for MMA',
+    tldr: 'All three energy systems, concurrent training splits for off-season vs fight camp, and the 4 common programming mistakes.',
     category: 'mma',
     tags: ['MMA', 'fighting', 'conditioning', 'programming'],
     readTime: 8,
@@ -1536,6 +1551,7 @@ MMA is brutal on the body. You cannot out-train bad recovery:
   {
     id: 'article-general-strength',
     title: 'Building Strength: A Beginner\'s Complete Guide',
+    tldr: 'The Big 5 movement patterns, rep ranges by experience level, and the 80/20 of getting results.',
     category: 'general_fitness',
     tags: ['beginner', 'strength', 'programming', 'basics'],
     readTime: 7,
@@ -1621,6 +1637,7 @@ The key to getting stronger: gradually increase demands over time.
   {
     id: 'article-progressive-overload',
     title: 'Progressive Overload: Beyond Just Adding Weight',
+    tldr: '7 ways to progress when adding weight stalls — reps, sets, tempo, ROM, technique, density, and when to use each.',
     category: 'general_fitness',
     tags: ['progression', 'programming', 'intermediate', 'plateau'],
     readTime: 5,
@@ -1704,6 +1721,7 @@ This app tracks all of this automatically. Use it.
   {
     id: 'article-dieting-training-integration',
     title: 'How Your Diet Phase Should Change Your Training',
+    tldr: 'Cutting? Drop volume, keep intensity. Bulking? Push volume harder. The research on why most people get this backwards.',
     category: 'dieting',
     tags: ['dieting', 'training', 'cut', 'bulk', 'programming'],
     readTime: 7,
@@ -1753,6 +1771,7 @@ Train normally. This is your baseline programming.
   {
     id: 'article-cutting-guide',
     title: 'The Evidence-Based Guide to Cutting Weight',
+    tldr: '0.5-0.7% BW/week, protein up not down, fat floors for hormone health, and red flags that mean stop immediately.',
     category: 'dieting',
     tags: ['dieting', 'cut', 'fat-loss', 'muscle-retention'],
     readTime: 8,
@@ -1818,6 +1837,7 @@ These are signs of Relative Energy Deficiency. Return to maintenance immediately
   {
     id: 'article-bulking-guide',
     title: 'Smart Bulking: Maximize Muscle, Minimize Fat',
+    tldr: 'A 10-12% surplus builds the same muscle as 15% with way less fat. Optimal rates, macro splits, and when to stop.',
     category: 'dieting',
     tags: ['dieting', 'bulk', 'muscle-gain', 'surplus'],
     readTime: 6,
@@ -1878,6 +1898,7 @@ After this, a maintenance phase (4-6 weeks) helps stabilize new weight before de
   {
     id: 'article-women-nutrition',
     title: 'Nutrition for Female Athletes: What the Science Says',
+    tldr: 'Energy availability thresholds, RED-S warning signs, higher fat minimums, and why slower cuts are physiologically necessary.',
     category: 'dieting',
     tags: ['dieting', 'women', 'hormones', 'RED-S', 'nutrition'],
     readTime: 8,
@@ -1947,6 +1968,7 @@ However, the research is still evolving. The most important factor is overall en
   {
     id: 'article-combat-sport-periodization',
     title: 'Periodization for Combat Sports Athletes',
+    tldr: 'Annual planning from off-season to fight week, sport-specific priorities, and a weekly structure that protects mat time.',
     category: 'periodization',
     tags: ['periodization', 'combat', 'MMA', 'grappling', 'striking', 'competition'],
     readTime: 7,
@@ -2036,6 +2058,7 @@ Never increase total training load (lifting + sport) by more than 10% per week. 
   {
     id: 'article-mental-toughness',
     title: 'Mental Toughness: The Skill Nobody Trains',
+    tldr: 'Process focus, discomfort tolerance, and identity alignment — three trainable skills that separate elite from average.',
     category: 'motivation',
     tags: ['mindset', 'psychology', 'performance', 'combat'],
     readTime: 7,
@@ -2100,6 +2123,7 @@ Mental toughness isn't built in big moments. It's built in small daily decisions
   {
     id: 'article-sleep-performance',
     title: 'Sleep: The Performance Multiplier You\'re Ignoring',
+    tldr: '75% of growth hormone is released during deep sleep. 5 hours instead of 8 drops testosterone 10-15%. The 10-3-2-1-0 rule.',
     category: 'recovery',
     tags: ['sleep', 'recovery', 'hormones', 'performance'],
     readTime: 6,
@@ -2164,6 +2188,7 @@ If you're doing everything right in training and nutrition but not progressing, 
   {
     id: 'article-stress-management',
     title: 'Managing Life Stress as a Training Variable',
+    tldr: 'Your body has one stress budget — work, sleep, relationships, and training all draw from the same pool.',
     category: 'recovery',
     tags: ['stress', 'recovery', 'cortisol', 'adaptation', 'allostatic load'],
     readTime: 5,
@@ -2225,6 +2250,7 @@ Training is a stimulus. Recovery is when you adapt. If recovery is compromised, 
   {
     id: 'article-nutrition-fundamentals',
     title: 'Nutrition First Principles: What Actually Matters',
+    tldr: 'Calories are 70% of results, protein is 20%, everything else is 10%. The hierarchy most people get completely inverted.',
     category: 'nutrition',
     tags: ['nutrition', 'macros', 'fundamentals', 'hierarchy'],
     readTime: 6,
@@ -2284,6 +2310,7 @@ Adherence beats perfection. The best diet is the one you can follow for months, 
   {
     id: 'article-overtraining-vs-underrecovery',
     title: 'You\'re Not Overtrained — You\'re Under-Recovered',
+    tldr: 'True overtraining is extremely rare. What you have is bad sleep, low protein, or no deloads. Fix those first.',
     category: 'recovery',
     tags: ['overtraining', 'recovery', 'fatigue', 'deload'],
     readTime: 5,
@@ -2342,6 +2369,7 @@ If you're stuck in a plateau and tempted to train MORE, try training LESS with b
   {
     id: 'article-striking-conditioning',
     title: 'Conditioning for Strikers: Energy Systems Explained',
+    tldr: 'Three energy systems, all used within a single round. Build aerobic base first, add lactate tolerance, then peak.',
     category: 'striking',
     tags: ['striking', 'conditioning', 'energy systems', 'boxing', 'muay thai'],
     readTime: 7,
@@ -2402,6 +2430,7 @@ Key exercises:
   {
     id: 'article-mma-weight-management',
     title: 'Weight Management for MMA: Fight Week to Off-Season',
+    tldr: 'Walk around within 8-12% of fight weight. Chronic fat loss then acute water cut. Rehydration protocol post-weigh-in.',
     category: 'mma',
     tags: ['mma', 'weight cut', 'fight week', 'nutrition', 'rehydration'],
     readTime: 8,
@@ -2465,6 +2494,7 @@ No fight is worth permanent organ damage. Move up a weight class if cuts are con
   {
     id: 'article-injury-prevention',
     title: 'Injury Prevention: The Principles That Actually Work',
+    tldr: 'Strength training cuts injuries 66%. Stretching alone? Nearly zero. Load management, full ROM, and fixing asymmetries.',
     category: 'general_fitness',
     tags: ['injury', 'prevention', 'prehab', 'mobility', 'longevity'],
     readTime: 6,
@@ -2520,6 +2550,7 @@ Under-recovered athletes get injured. Period.
   {
     id: 'article-motivation-consistency',
     title: 'Consistency > Motivation: Building Unbreakable Training Habits',
+    tldr: 'Motivation is an emotion — it comes and goes. Systems, environment design, and the "never miss twice" rule.',
     category: 'motivation',
     tags: ['motivation', 'habits', 'consistency', 'psychology', 'discipline'],
     readTime: 5,
@@ -2577,6 +2608,7 @@ If you've lost motivation for 2+ weeks:
   {
     id: 'article-grappling-conditioning',
     title: 'Grappling Conditioning: Build a Gas Tank That Never Quits',
+    tldr: 'Aerobic system provides 55-65% of energy in a BJJ match. Build the base, add grip endurance, then sport-specific intervals.',
     category: 'grappling',
     tags: ['grappling', 'conditioning', 'bjj', 'wrestling', 'cardio'],
     readTime: 7,
@@ -2637,6 +2669,7 @@ Elite grapplers don't just have better cardio. They're more efficient:
   {
     id: 'article-mobility-combat',
     title: 'Mobility for Combat Athletes: Move Better, Fight Better',
+    tldr: 'Flexibility without strength is a liability. Hip, T-spine, shoulder, and ankle priorities — 5 minutes daily, zero excuses.',
     category: 'general_fitness',
     tags: ['mobility', 'flexibility', 'movement', 'combat', 'longevity'],
     readTime: 5,

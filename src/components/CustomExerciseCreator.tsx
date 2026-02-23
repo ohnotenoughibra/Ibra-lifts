@@ -159,7 +159,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-grappler-950 pb-24"
+      className="min-h-screen bg-grappler-950 pb-24 safe-area-top"
     >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">

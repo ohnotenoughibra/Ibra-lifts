@@ -527,7 +527,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -40 }}
-      className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto safe-area-top"
     >
       {/* Flash overlay */}
       <AnimatePresence>

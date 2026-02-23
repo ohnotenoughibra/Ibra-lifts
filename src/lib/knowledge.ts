@@ -4416,6 +4416,383 @@ Lian et al. (2005) showed that patellar tendinopathy affects up to 45% of athlet
 - **Patellar tendinopathy responds to heavy slow resistance training**, not rest. Isometric holds provide acute pain relief before sessions.
 - **Fighters:** Your sport demands constant pivoting and level changes. Knee preparation is career insurance, not optional accessory work.
 `
+  },
+  {
+    id: 'article-grip-endurance-grapplers',
+    title: 'Grip Endurance for Grapplers: Beyond Farmer\'s Walks',
+    tldr: 'Gi and no-gi grips demand different training — build sport-specific forearm endurance with targeted protocols, not generic grip work.',
+    category: 'grappling',
+    tags: ['grip strength', 'grappling', 'forearm endurance', 'injury prevention', 'BJJ', 'isometric training'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Dias et al. 2012, Leyk et al. 2007, Cronin et al. 2017',
+    content: `
+## The Grip Problem Nobody Trains Correctly
+
+**Your forearms are the weakest link in your grappling chain, and farmer's walks won't fix them.** The grip demands of grappling are radically different from anything in conventional strength training. A 6-minute round of gi jiu-jitsu requires sustained isometric contractions at 40–60% of maximal voluntary contraction — repeated dozens of times with incomplete recovery. No barbell exercise replicates this.
+
+## Gi vs No-Gi: Two Different Grip Worlds
+
+Gi grappling is dominated by **isometric crushing grip** — grabbing fabric and holding on while your opponent tries to strip your grips. Dias et al. (2012) found that competitive gi grapplers maintain individual grip efforts for 3–12 seconds, accumulating 15–20 minutes of total grip work in a single match. This is sustained isometric endurance under fatigue.
+
+No-gi grappling demands **dynamic grip** — wrist control, overhooks, underhooks, and collar ties that require constant adjustment. The forearm flexors and extensors work in rapid alternation rather than sustained contraction. Leyk et al. (2007) demonstrated that isometric and dynamic grip fatigue follow different physiological pathways, which means training one does not adequately prepare you for the other.
+
+### The Practical Implication
+
+If you train gi, your grip program must emphasize **sustained isometric holds at submaximal intensity**. If you train no-gi, you need **rapid grip-release cycling and wrist dexterity under fatigue**. Most grapplers do neither — they do deadlifts and hope for the best.
+
+## Flexor Endurance vs Maximal Strength
+
+Here's the distinction most fighters miss: **grip endurance and grip maximal strength are poorly correlated above a baseline threshold.** Cronin et al. (2017) showed that once an athlete can produce approximately 50 kg on a hand dynamometer, further maximal strength gains contribute minimally to repeated-effort grip performance. What matters is the percentage of max you can sustain over time — your **endurance ratio**.
+
+A grappler who can crush 70 kg but fatigues to 30 kg after 90 seconds of repeated gripping is less effective than one who peaks at 55 kg but maintains 40 kg throughout a round.
+
+## Sport-Specific Grip Protocols
+
+### For Gi Grapplers
+- **Dead hangs on a thick bar or gi draped over a pull-up bar:** 3–5 sets of max hold, rest 60 seconds. Target: 45+ seconds per set
+- **Gi pull-ups:** 3 sets of 6–10 reps, gripping the gi lapel. Slow negatives (4 seconds)
+- **Towel hangs:** Drape two towels over a bar, grip one in each hand, hang. Progress from two-hand to one-hand assisted
+
+### For No-Gi Grapplers
+- **Rapid grip cycling on a stress ball or grip trainer:** 30 seconds max reps, 30 seconds rest, 5 rounds
+- **Wrist roller (both directions):** 3 sets to failure, emphasizing both flexion and extension
+- **Plate pinch transfers:** Hold a 10 kg plate in a pinch grip, pass hand to hand for 60 seconds
+
+### Universal
+- **Rice bucket work:** Plunge hands into a deep bucket of rice and perform extension, flexion, and rotation movements. 3 minutes per session. This is the single best forearm prehab tool that exists.
+
+## Forearm Recovery and Tendinopathy Prevention
+
+Grapplers develop **medial epicondylitis** (golfer's elbow) at alarming rates. The mechanism is straightforward: repetitive high-load finger flexion without adequate extensor balance or recovery.
+
+**Prevention protocol:**
+- Train grip **2–3x per week maximum**, never on consecutive days
+- Include **wrist extensor work** in every grip session — reverse wrist curls, band extensions, rice bucket
+- If forearm soreness persists beyond 48 hours post-training, **reduce grip volume by 50%** before it becomes tendinopathy
+- Eccentric wrist flexion exercises (Tyler twist protocol) at the first sign of medial elbow pain — do not train through it
+
+**Frequency matters more than intensity.** Three moderate grip sessions per week beat one crushing session. The forearm flexor tendons have poor blood supply and recover slowly — respect this biology.
+
+## The Bottom Line
+
+- Gi and no-gi grips are **physiologically different** — train accordingly with isometric holds vs dynamic cycling
+- After a baseline of ~50 kg crush strength, **endurance ratio matters more than peak force**
+- Dead hangs, gi pull-ups, and towel work build sport-specific gi grip; plate pinches and rapid cycling build no-gi grip
+- **Rice bucket work** is non-negotiable prehab for every grappler
+- Train grip 2–3x/week max and always include **extensor work** to prevent medial epicondylitis
+- If your forearms are the reason you lose grips in the later rounds, this is a trainable problem — but farmer's walks alone won't solve it
+`
+  },
+  {
+    id: 'article-sleep-architecture-athletes',
+    title: 'Sleep Architecture for Athletes: Beyond "Get 8 Hours"',
+    tldr: 'Sleep quality trumps quantity — understand sleep stages, optimize your environment, and use strategic napping to maximize recovery.',
+    category: 'recovery',
+    tags: ['sleep', 'recovery', 'performance', 'SWS', 'REM', 'napping', 'sleep hygiene'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Mah et al. 2011, Watson 2017, Vitale et al. 2019',
+    content: `
+## Your Sleep Is Probably Broken (Even If You Get 8 Hours)
+
+**Eight hours of fragmented, poorly-timed sleep is worse than six hours of consolidated, high-quality sleep.** The fitness industry reduced sleep to a single number — hours in bed — and ignored everything that actually drives recovery. Sleep is not a monolith. It's a precisely orchestrated sequence of neurological stages, each with distinct recovery functions. Screw up the architecture and the hours become meaningless.
+
+## Sleep Stages and What They Actually Do
+
+Your brain cycles through four stages roughly every 90 minutes:
+
+### Stage N1–N2 (Light Sleep)
+Transition stages. Heart rate drops, body temperature falls. These stages dominate early cycles and increase as total sleep extends. They serve a preparatory role but provide minimal direct recovery benefit.
+
+### Stage N3 — Slow-Wave Sleep (SWS)
+**This is where physical recovery happens.** Growth hormone secretion peaks during SWS — up to 75% of daily GH release occurs in these stages (Watson 2017). Tissue repair, glycogen resynthesis, and immune function restoration concentrate here. SWS dominates the first half of the night, which is why the hours before midnight matter disproportionately for athletes.
+
+### REM Sleep
+**This is where motor learning consolidates.** Mah et al. (2011) demonstrated that extended sleep in basketball players — allowing more REM cycles — improved sprint times by 4% and free throw accuracy by 9%. REM sleep replays and consolidates the technique work, sparring patterns, and movement sequences you practiced during the day. Cut REM short and yesterday's training partially evaporates. REM dominates the second half of the night, peaking in the final 2–3 hours.
+
+### The Practical Takeaway
+An athlete who goes to bed at midnight and wakes at 8am gets decent REM but suboptimal SWS timing. An athlete who sleeps 10pm–6am gets strong SWS in the first half and solid REM in the second. **Same duration, different recovery outcomes.**
+
+## Why Quality Beats Quantity
+
+Vitale et al. (2019) identified that **sleep efficiency** — the percentage of time in bed actually spent asleep — is a stronger predictor of next-day performance than total sleep time. An efficiency below 85% means you're spending too much time awake in bed, fragmenting your cycles.
+
+**Common quality destroyers:**
+- Alcohol (suppresses SWS by 20–40% even at moderate doses)
+- Late caffeine (half-life is 5–6 hours — a 2pm coffee is still 25% active at midnight)
+- Blue light after sunset (delays melatonin onset by 60–90 minutes)
+- Irregular sleep timing (shifts your circadian phase, reducing SWS density)
+- Warm bedroom temperature (core temp must drop 1–2°F to initiate deep sleep)
+
+## Evidence-Based Sleep Optimization
+
+### Temperature
+The single most impactful environmental variable. Target **65–68°F (18–20°C)** in your bedroom. Your core temperature must decline to trigger SWS. A hot room fights this process directly. Consider a hot shower 90 minutes before bed — the subsequent rapid cooling actually accelerates the core temperature drop.
+
+### Light
+Dim lights 60–90 minutes before bed. Use blue-light blocking glasses if screens are unavoidable. Morning sunlight exposure within 30 minutes of waking is equally critical — it sets your circadian clock and ensures melatonin rises at the correct time later.
+
+### Timing Consistency
+Go to bed and wake up within a **30-minute window** every day, including weekends. Watson (2017) emphasized that circadian rhythm regularity is more impactful than occasional extra sleep. Sleeping in on weekends creates "social jet lag" that degrades Monday and Tuesday performance.
+
+## Napping Protocols for Heavy Training Loads
+
+Strategic naps are a legitimate performance tool, not a sign of laziness.
+
+- **Power nap (20 min):** Stage N1–N2 only. Improves alertness and reaction time without sleep inertia. Ideal between training sessions.
+- **Full cycle nap (90 min):** Completes one full sleep cycle including SWS and REM. Best for athletes in heavy training blocks or those sleeping less than 7 hours at night. Time it before 3pm to avoid disrupting nighttime sleep.
+- **Avoid 40–60 minute naps.** You'll wake mid-SWS with severe grogginess that lasts 30+ minutes.
+
+## Sleep Tracking: What Actually Matters
+
+Consumer wearables cannot accurately measure individual sleep stages — don't obsess over your "deep sleep" percentage. What they CAN reliably track:
+
+- **Total sleep time** — aim for 7–9 hours for most athletes
+- **Sleep efficiency** — target 85%+ (time asleep / time in bed)
+- **Sleep timing consistency** — standard deviation of bedtime should be under 30 minutes
+- **Resting heart rate trends** — elevated RHR during sleep signals incomplete recovery
+
+Ignore the stage breakdowns. Focus on the metrics above and how you feel during your first training session of the day.
+
+## The Bottom Line
+
+- SWS drives **physical recovery** (first half of night); REM drives **motor learning** (second half). You need both.
+- Sleep **efficiency above 85%** matters more than raw hours
+- Bedroom at **65–68°F**, lights dimmed 90 minutes pre-bed, consistent timing within 30 minutes daily
+- **20-minute or 90-minute naps** only — avoid the 40–60 minute dead zone
+- Track total time, efficiency, and timing consistency — ignore consumer-grade stage data
+- Alcohol is the single biggest sleep quality destroyer that athletes routinely underestimate
+`
+  },
+  {
+    id: 'article-visualization-motor-imagery',
+    title: 'Visualization and Motor Imagery in Combat Sports',
+    tldr: 'Mental rehearsal activates the same motor circuits as physical practice — structured visualization measurably improves technique and competition performance.',
+    category: 'motivation',
+    tags: ['visualization', 'motor imagery', 'mental training', 'PETTLEP', 'combat sports', 'competition prep'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Jeannerod 2001, Holmes & Collins 2001, Ridderinkhof & Brass 2015',
+    content: `
+## Your Brain Can't Tell the Difference
+
+**When you vividly imagine throwing a rear cross, your motor cortex fires in the same pattern as when you actually throw it.** This isn't motivational fluff — it's functional neuroanatomy. Jeannerod (2001) demonstrated through fMRI studies that motor imagery activates the premotor cortex, supplementary motor area, and cerebellum with remarkable overlap to actual movement execution. The primary difference is downstream inhibition preventing the muscles from contracting. The neural rehearsal, however, is real.
+
+Ridderinkhof & Brass (2015) expanded on this, showing that repeated mental practice strengthens the same synaptic pathways as physical repetitions — albeit at roughly 50–70% of the magnitude. This means visualization is not a replacement for training, but it is a legitimate supplement that stacks on top of physical practice.
+
+## The PETTLEP Model: Visualization That Actually Works
+
+Most athletes "visualize" by vaguely imagining winning. This is daydreaming, not training. Holmes & Collins (2001) developed the **PETTLEP model** — a framework for motor imagery that maximizes neural overlap with real performance:
+
+- **P — Physical:** Adopt the physical position you'd be in during the skill. Stand in your fighting stance. Wear your training gear. Physical state affects imagery quality.
+- **E — Environment:** Visualize in an environment that matches competition. If possible, practice imagery at the venue. At minimum, use video or audio from competition settings.
+- **T — Task:** Imagine the specific task at the correct difficulty. Don't just imagine a takedown — imagine a specific setup against a resisting opponent at your competition level.
+- **T — Timing:** Perform the imagery in **real time**. Slow-motion imagery activates different neural patterns. Your mental double-leg should take exactly as long as your physical one.
+- **L — Learning:** Update your imagery as your skills improve. If you've refined your jab setup, your visualization must reflect the current version, not last month's.
+- **E — Emotion:** Include the emotional state of competition — the adrenaline, the crowd noise, the pressure. Emotionally flat imagery has significantly less transfer.
+- **P — Perspective:** First-person (internal) imagery is generally superior for motor tasks. See through your own eyes, not as a spectator watching yourself.
+
+## Pre-Competition Visualization Protocol
+
+Use this structured approach in the 48 hours before competition:
+
+### Day Before
+- **10 minutes, evening:** Visualize your warm-up routine, walking to the mat/ring, and the first 30 seconds of competition. Focus on feeling **calm, controlled, and aggressive.** Run through 3–5 specific techniques you plan to implement, each in real-time with full PETTLEP elements.
+
+### Competition Day
+- **5 minutes during warm-up:** Eyes closed, standing in stance. Visualize your game plan's first two exchanges. Feel the grip, the distance, the timing. Include the crowd noise and referee commands.
+- **Between rounds/matches:** Brief 30-second visualizations of specific adjustments. "I will underhook left side, snap down, front headlock." Precise, time-accurate, first-person.
+
+### What to Visualize
+- **Process, not outcomes.** Don't imagine the referee raising your hand. Imagine executing the ankle pick that leads to the finish. Outcome imagery creates anxiety; process imagery builds confidence.
+- **Adversity responses.** Visualize getting taken down and immediately executing your recovery sequence. Visualize getting rocked and clinching effectively. Rehearsing responses to adversity is more valuable than imagining everything going perfectly.
+
+## Technique Rehearsal During Injury Layoffs
+
+This is where visualization's value becomes undeniable. Athletes sidelined with injuries who perform structured motor imagery **retain significantly more skill** than those who simply rest.
+
+**Protocol for injured athletes:**
+- 3 sessions per day, 10 minutes each
+- Use PETTLEP framework in full
+- Focus on the techniques most at risk of degradation — complex sequences, timing-dependent skills
+- Include conditioning imagery: visualize the fatigue state of late rounds and executing technique under duress
+
+Multiple studies confirm that athletes returning from injury with consistent imagery practice require **30–50% less time** to return to pre-injury skill levels compared to controls.
+
+## The Bottom Line
+
+- Motor imagery activates the **same neural circuits** as physical practice at 50–70% magnitude — this is neuroscience, not wishful thinking
+- Use the **PETTLEP model**: match physical state, environment, task difficulty, real-time speed, current skill level, competitive emotion, and first-person perspective
+- Visualize **process over outcomes** and include **adversity responses** — rehearse getting hit, not just hitting
+- Pre-competition imagery should be **5–10 minutes**, highly specific, in real-time
+- During injury layoffs, **3 daily sessions of 10 minutes** significantly preserve motor skill
+- The best fighters in the world do this systematically — the rest think it's soft
+`
+  },
+  {
+    id: 'article-female-athlete-menstrual-cycle',
+    title: 'Female Athlete Considerations: Training Through the Menstrual Cycle',
+    tldr: 'Hormonal fluctuations across the menstrual cycle affect performance — smart programming adjustments (not overhauls) can optimize training outcomes.',
+    category: 'general_fitness',
+    tags: ['female athletes', 'menstrual cycle', 'hormones', 'periodization', 'RED-S', 'programming'],
+    readTime: 6,
+    publishedAt: new Date('2026-02-23'),
+    source: 'McNulty et al. 2020, Sung et al. 2014, Mountjoy et al. 2018',
+    content: `
+## The Research Gap That's Costing Female Athletes
+
+**Until 2010, fewer than 6% of sport science studies included female participants.** The entire foundation of training theory — periodization, recovery timelines, nutritional recommendations — was built on male physiology. Female athletes have been training on borrowed science, and it shows. The menstrual cycle creates a recurring hormonal environment that measurably affects strength, power, recovery, and injury risk. Ignoring it isn't "treating everyone equally" — it's leaving performance on the table.
+
+## Follicular vs Luteal Phase Physiology
+
+The menstrual cycle averages 28 days (range: 21–35) and divides into two primary phases:
+
+### Follicular Phase (Days 1–14)
+Begins with menstruation. Estrogen rises progressively, peaking just before ovulation around day 14. Progesterone remains low. This hormonal environment is associated with:
+- **Higher pain tolerance** and improved recovery from muscle damage
+- **Greater force production capacity** — estrogen has anabolic properties and enhances neuromuscular function
+- **Better insulin sensitivity** — carbohydrate utilization is more efficient
+- **Lower core temperature** — thermoregulation during training is easier
+
+### Luteal Phase (Days 15–28)
+Post-ovulation. Progesterone rises sharply and estrogen has a secondary, smaller peak. This environment produces:
+- **Elevated core temperature** by 0.3–0.5°C — heat dissipation is slightly impaired
+- **Increased protein catabolism** — progesterone is mildly catabolic
+- **Shifted fuel utilization** toward fat oxidation, reduced carbohydrate efficiency
+- **Greater perceived exertion** at the same workloads
+- **Increased ligament laxity** — ACL injury risk peaks during the late luteal/early follicular transition (Sung et al. 2014)
+
+## Strength and Power Across the Cycle
+
+McNulty et al. (2020) conducted a meta-analysis of 78 studies examining exercise performance across menstrual cycle phases. Key findings:
+
+- **Strength and power are modestly but significantly higher in the mid-to-late follicular phase** (effect size: 0.07–0.15). This is small but real.
+- **The early follicular phase (menstruation, days 1–5) shows the most variable performance.** Some women perform normally; others experience significant decrements from pain, fatigue, and low hormone levels.
+- **Luteal phase performance is not catastrophically impaired** — the average reduction is 3–5%, mostly in maximal efforts. Submaximal training is minimally affected.
+
+### What This Means Practically
+The follicular phase is a slightly better window for **PRs, intensity peaks, and heavy singles**. The luteal phase is better suited for **volume accumulation, technique work, and moderate-intensity training**. But these are optimizations, not rules — individual variation is enormous.
+
+## Practical Programming Adjustments (Not Overhauls)
+
+The goal is **small, evidence-based modifications** — not restructuring your entire program around your cycle.
+
+### Late Follicular Phase (Days 8–14) — Push Performance
+- Schedule **heavy strength sessions, 1RM attempts, and high-intensity intervals** here when possible
+- Capitalize on improved neuromuscular function and recovery capacity
+- Higher carbohydrate intake supports the favorable insulin sensitivity
+
+### Luteal Phase (Days 15–28) — Manage Load
+- **Maintain training intensity but consider reducing total volume by 10–15%** if recovery feels impaired
+- Slightly increase protein intake (additional 5–10g/day) to offset progesterone's catabolic effects
+- Increase sodium and fluid intake to compensate for elevated core temperature
+- **Do not skip training** — the performance decrements are small and the psychological benefits of consistency outweigh the marginal physiological costs
+
+### Menstruation (Days 1–5) — Listen and Adjust
+- **Train normally if you feel normal.** Many athletes perform well during menstruation.
+- If cramps or fatigue are significant, reduce intensity by one tier (e.g., heavy to moderate) rather than skipping entirely
+- NSAIDs (ibuprofen) taken pre-training effectively manage menstrual pain without impairing training adaptations at standard doses
+- Iron-rich foods or supplementation during heavy flow prevents the gradual hemoglobin decline that sabotages endurance over months
+
+## RED-S: The Danger of Under-Fueling
+
+Relative Energy Deficiency in Sport (RED-S), formally defined by Mountjoy et al. (2018), occurs when energy intake chronically fails to meet training expenditure. Female athletes are disproportionately affected, and the consequences extend far beyond weight loss:
+
+- **Menstrual dysfunction** — cycle irregularity or amenorrhea (loss of period) is the most visible warning sign
+- **Bone stress injuries** — low estrogen from amenorrhea directly impairs bone mineral density. Stress fractures become 2–4x more likely
+- **Impaired training adaptation** — the body downregulates protein synthesis, glycogen storage, and immune function
+- **Cardiovascular compromise** — endothelial dysfunction and unfavorable lipid profiles emerge within months
+
+**If your period disappears, this is not a sign of fitness.** It is a clinical red flag indicating insufficient energy availability. The threshold is typically below 30 kcal/kg of fat-free mass per day. The solution is increasing caloric intake, not reducing training.
+
+## The Bottom Line
+
+- The follicular phase (days 1–14) generally favors **peak strength and power output**; the luteal phase favors **volume and moderate work**
+- Performance differences between phases average **3–5%** — meaningful for optimization, not an excuse to skip training
+- Adjust **volume down 10–15% in the luteal phase** if recovery is impaired; push **intensity in the late follicular phase**
+- Individual variation is massive — **track your own patterns** for 3–4 cycles before making programming changes
+- **Lost menstrual cycle = RED-S until proven otherwise.** Increase calories, consult a sports medicine professional
+- Female athletes deserve evidence-based programming, not male protocols with pink branding
+`
+  },
+  {
+    id: 'article-rpe-autoregulation',
+    title: 'RPE and Autoregulation: Training by Feel, Backed by Science',
+    tldr: 'RPE and RIR give athletes a systematic way to adjust training intensity in real-time — matching the plan to the day instead of forcing the day to match the plan.',
+    category: 'periodization',
+    tags: ['RPE', 'RIR', 'autoregulation', 'programming', 'periodization', 'fatigue management'],
+    readTime: 5,
+    publishedAt: new Date('2026-02-23'),
+    source: 'Helms et al. 2016, Zourdos et al. 2016, Hackett et al. 2012',
+    content: `
+## Your Program Is Wrong on Any Given Day
+
+**A percentage-based program assumes your 1RM is constant. It isn't.** On any given training day, your true maximal capacity fluctuates by 5–15% based on sleep quality, nutrition, psychological stress, accumulated fatigue, and training history. A program that prescribes 85% of your tested 1RM might be 80% on a great day and 92% on a terrible one. Autoregulation solves this by adjusting intensity to your actual capacity in real time.
+
+## The RPE Scale for Resistance Training
+
+The original Borg RPE scale (6–20) was designed for cardiovascular exercise. The modified RPE scale for resistance training, popularized by Mike Tuchscherer and validated by Zourdos et al. (2016), simplifies this to a 1–10 scale anchored to proximity to failure:
+
+| RPE | Description |
+|-----|------------|
+| 10 | Maximum effort. No reps left. Failure. |
+| 9.5 | Could not do more reps, but could add slight load |
+| 9 | 1 rep remaining (could do 1 more) |
+| 8.5 | 1–2 reps remaining (definitely 1, maybe 2) |
+| 8 | 2 reps remaining |
+| 7.5 | 2–3 reps remaining |
+| 7 | 3 reps remaining |
+| 6 | 4+ reps remaining (light effort) |
+
+Helms et al. (2016) demonstrated that trained lifters can accurately estimate RPE within 0.5 points after 4–6 weeks of practice. Untrained lifters tend to overestimate effort — they think RPE 8 when it's actually RPE 6. **Calibration requires practice.**
+
+## RIR: The Practical Translation
+
+Reps in Reserve (RIR) is the inverse of RPE and often more intuitive: RPE 8 = 2 RIR. Asking "how many reps could I have done?" is easier for most athletes than assigning a number on a scale.
+
+Zourdos et al. (2016) found that **RIR-based training produced equivalent or superior strength gains** compared to percentage-based programming over 8-week blocks, primarily because it prevented both under-stimulation on good days and overreaching on bad days.
+
+### How to Use RIR in Practice
+- **Hypertrophy work:** Target 1–3 RIR (RPE 7–9). This keeps sets stimulative without excessive fatigue accumulation
+- **Strength work:** Target 1–2 RIR (RPE 8–9) for working sets. Hit RPE 9.5–10 only on test days
+- **Power and speed work:** Target 3–5 RIR (RPE 5–7). Power output drops sharply near failure — grinding reps trains the wrong quality
+
+## When to Autoregulate vs Stick to the Plan
+
+Autoregulation is powerful but not universally appropriate. Hackett et al. (2012) outlined conditions where each approach excels:
+
+### Autoregulate When:
+- **Daily readiness varies significantly** — athletes with irregular schedules, high life stress, or concurrent sport demands (combat athletes training skill + strength)
+- **Training age is intermediate or advanced** — you have the self-awareness to rate effort accurately
+- **During intensification phases** — when loads are heavy and the cost of overshooting is injury or CNS burnout
+- **Returning from illness, travel, or disrupted sleep** — your percentage-based numbers are temporarily meaningless
+
+### Stick to the Plan When:
+- **You're a beginner** — you don't yet know what "2 reps in reserve" feels like. Use fixed progressions until you build calibration
+- **During volume accumulation phases** — RPE-based volume tends to undershoot because athletes avoid discomfort. Fixed set/rep schemes ensure minimum effective volume
+- **Peaking for competition** — the final 2–3 weeks before a meet or fight should follow a predetermined taper, not daily autoregulation
+
+## RPE for Combat Athletes: The Unique Challenge
+
+Combat athletes face a problem that pure lifters don't: **strength training exists alongside skill training, sparring, and conditioning.** A fighter who sparred hard on Tuesday walks into Wednesday's squat session with accumulated fatigue that a percentage-based program cannot account for.
+
+**Practical framework for combat athletes:**
+
+1. **Rate daily readiness before the session.** A simple 1–5 scale: 1 = terrible, 5 = fully recovered. If readiness is 1–2, drop working RPE targets by 1 point (e.g., RPE 8 becomes RPE 7).
+2. **Cap RPE at 8.5 during fight camp.** Grinding out RPE 10 sets while simultaneously sparring 3x per week is a recipe for overtraining. Leave the max-effort work for off-season strength blocks.
+3. **Use RPE to manage session duration.** If your first working set is RPE 9 when it should be RPE 7, that's a signal. Reduce volume by 20–30% and leave. The sparring and skill work take priority — strength training supports the sport, it doesn't override it.
+4. **Track RPE-to-load relationships over time.** If your squat at RPE 8 drops from 140 kg to 125 kg over three weeks, cumulative fatigue is winning. Deload or reduce non-lifting training volume.
+
+## The Bottom Line
+
+- Your true daily max fluctuates **5–15%** — percentage-based programs can't account for this
+- RPE 8 (2 RIR) is the sweet spot for most working sets: stimulative without excessive fatigue
+- **Calibration takes 4–6 weeks** of honest practice — beginners should use fixed percentages until then
+- Autoregulate during **high-stress periods and intensification**; follow fixed plans during **volume accumulation and peaking**
+- Combat athletes should **cap RPE at 8.5 during fight camp** and use readiness ratings to adjust daily targets
+- Track your RPE-to-load relationship over time — declining loads at the same RPE is the earliest warning of accumulated fatigue
+`
   }
 ];
 

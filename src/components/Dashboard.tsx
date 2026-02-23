@@ -15,7 +15,6 @@ import {
   Star,
   Zap,
   Compass,
-  Target,
   ThumbsUp,
   ThumbsDown,
   Settings,
@@ -29,7 +28,7 @@ import VersionUpgradePopup from './VersionUpgradePopup';
 import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import UpgradePrompt from './UpgradePrompt';
-import ThemeToggle from './ThemeToggle';
+// ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
 import { hapticLight } from '@/lib/haptics';
@@ -537,81 +536,75 @@ export default function Dashboard({
     <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20 overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top">
-        <div className="px-3 py-3 flex items-center justify-between gap-2 overflow-hidden">
-          <div className="flex items-center gap-2 min-w-0 flex-shrink">
-            <div className="w-8 h-8 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-              <Dumbbell className="w-4 h-4 text-white" />
+        {/* Row 1: Identity + Key Actions */}
+        <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+              <Dumbbell className="w-5 h-5 text-white" />
             </div>
-            <div className="min-w-0">
-              <h1 className="font-bold text-sm text-grappler-50 truncate">Roots Gains</h1>
-              <div className="flex items-center gap-1.5">
-                <p className="text-xs text-grappler-400 whitespace-nowrap">
-                  Lv.{gamificationStats.level}
-                </p>
-                <div className="w-14 h-1 bg-grappler-700 rounded-full overflow-hidden flex-shrink-0" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
-                  <div className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all" style={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }} />
-                </div>
-              </div>
+            <div>
+              <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
+              <p className="text-[11px] text-grappler-400">{getLevelTitle(gamificationStats.level)}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <SyncStatusIndicator
-              syncStatus={syncStatus}
-              lastSyncedAt={lastSyncedAt}
-              deviceType={deviceType}
-              isAuthenticated={isAuthenticated}
-              onForceSync={onForceSync || (() => {})}
-            />
-            <ThemeToggle />
-            {/* Weekly Challenge mini-badge */}
-            {gamificationStats.weeklyChallenge && (() => {
-              const goals = gamificationStats.weeklyChallenge.goals;
-              const completed = goals.filter(g => g.current >= g.target).length;
-              return (
-                <div className="flex items-center gap-0.5 bg-grappler-800 px-1.5 py-1 rounded-full" title={`Weekly: ${completed}/${goals.length} goals done`}>
-                  <Target className="w-3 h-3 text-accent-400" />
-                  <span className="text-xs font-semibold text-grappler-200">{completed}/{goals.length}</span>
-                </div>
-              );
-            })()}
+          <div className="flex items-center gap-2">
+            {/* Streak — the hero motivator */}
             <div className={cn(
-              'flex items-center gap-0.5 px-1.5 py-1 rounded-full transition-colors',
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-colors',
               gamificationStats.currentStreak >= 7
                 ? 'bg-orange-500/20 border border-orange-500/30'
                 : streakAtRisk
                   ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
-                  : 'bg-grappler-800'
+                  : 'bg-grappler-800/80'
             )}>
               <Flame className={cn(
-                'w-3.5 h-3.5',
-                gamificationStats.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-blue-500'
+                'w-4 h-4',
+                gamificationStats.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
               )} />
               <span className={cn(
-                'text-xs font-medium',
-                gamificationStats.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-200'
+                'text-sm font-bold tabular-nums',
+                gamificationStats.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
               )}>
                 {gamificationStats.currentStreak}
               </span>
             </div>
-            <button
-              onClick={() => setOverlayView('badge_showcase')}
-              className="flex items-center gap-0.5 bg-grappler-800 px-1.5 py-1 rounded-full hover:bg-grappler-700 transition-colors"
-              title="View badges"
-            >
-              <Star className="w-3.5 h-3.5 text-yellow-500" />
-              <span className="text-xs font-medium text-grappler-200">
-                {pointsToNextLevel(gamificationStats.totalPoints)} to lvl
-              </span>
-            </button>
+            {/* Settings */}
             <button
               onClick={() => setOverlayView('profile_settings')}
-              className="w-8 h-8 rounded-full bg-grappler-800 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
+              className="w-9 h-9 rounded-xl bg-grappler-800/80 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
               title="Profile & Settings"
               aria-label="Profile & Settings"
             >
-              <Settings className="w-4 h-4 text-grappler-300" />
+              <Settings className="w-[18px] h-[18px] text-grappler-400" />
             </button>
           </div>
+        </div>
+        {/* Row 2: Level progress — full width, compact */}
+        <div className="px-4 pb-2.5 flex items-center gap-2.5">
+          <button
+            onClick={() => setOverlayView('badge_showcase')}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors flex-shrink-0"
+            title="View badges"
+          >
+            <Star className="w-3 h-3 text-yellow-500" />
+            <span className="text-[11px] font-bold text-grappler-300">Lv.{gamificationStats.level}</span>
+          </button>
+          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
+            <motion.div
+              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+              initial={false}
+              animate={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            />
+          </div>
+          <span className="text-[11px] text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(pointsToNextLevel(gamificationStats.totalPoints))} XP</span>
+          <SyncStatusIndicator
+            syncStatus={syncStatus}
+            lastSyncedAt={lastSyncedAt}
+            deviceType={deviceType}
+            isAuthenticated={isAuthenticated}
+            onForceSync={onForceSync || (() => {})}
+          />
         </div>
       </header>
 

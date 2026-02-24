@@ -4,20 +4,11 @@
  * Falls back gracefully when not supported.
  */
 
-type SpeechRecognitionEvent = {
-  results: { [index: number]: { [index: number]: { transcript: string; confidence: number } }; length: number };
-  resultIndex: number;
-};
-
-type SpeechRecognitionErrorEvent = {
-  error: string;
-  message?: string;
-};
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Browser compat: SpeechRecognition is prefixed in most browsers
-function getSpeechRecognition(): (new () => SpeechRecognition) | null {
+function getSpeechRecognition(): any | null {
   if (typeof window === 'undefined') return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   return SR || null;
 }
@@ -64,15 +55,14 @@ export function startVoiceInput(options: VoiceInputOptions = {}): Promise<string
       try { recognition.stop(); } catch { /* already stopped */ }
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let finalTranscript = '';
       let interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result[0]) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((result as any).isFinal) {
+          if (result.isFinal) {
             finalTranscript += result[0].transcript;
           } else {
             interimTranscript += result[0].transcript;
@@ -90,7 +80,7 @@ export function startVoiceInput(options: VoiceInputOptions = {}): Promise<string
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       if (settled) return;
       cleanup();
       if (event.error === 'no-speech') {
@@ -119,7 +109,7 @@ export function startVoiceInput(options: VoiceInputOptions = {}): Promise<string
 
     try {
       recognition.start();
-    } catch (err) {
+    } catch {
       cleanup();
       reject(new Error('Failed to start voice input'));
     }

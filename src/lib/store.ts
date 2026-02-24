@@ -69,7 +69,7 @@ import {
   WellnessDomain,
   WellnessStats,
 } from './types';
-import type { SavedRecipe } from './food-database';
+import type { MealStamp } from './food-database';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -161,8 +161,8 @@ interface AppState {
   dietPhaseHistory: CompletedDietPhase[];
   weeklyCheckIns: WeeklyCheckIn[];
 
-  // Saved recipes / meal combos
-  savedRecipes: SavedRecipe[];
+  // Meal stamps (user's personal frequent meals — tap to log)
+  mealStamps: MealStamp[];
 
   // Meal reminders
   mealReminders: MealReminderSettings;
@@ -398,10 +398,11 @@ interface AppState {
   deleteDietPhaseFromHistory: (id: string) => void;
   editDietPhaseInHistory: (id: string, updates: Partial<CompletedDietPhase>) => void;
 
-  // Saved recipe actions
-  addRecipe: (recipe: Omit<SavedRecipe, 'id' | 'createdAt' | 'timesUsed'>) => void;
-  deleteRecipe: (id: string) => void;
-  useRecipe: (id: string) => void;
+  // Meal stamp actions
+  addMealStamp: (stamp: Omit<MealStamp, 'id' | 'createdAt' | 'timesUsed'>) => void;
+  deleteMealStamp: (id: string) => void;
+  useMealStamp: (id: string) => void;
+  copyYesterdayMeals: (targetDate: string) => void;
 
   // Meal reminder actions
   setMealReminders: (settings: Partial<MealReminderSettings>) => void;
@@ -576,7 +577,7 @@ export const useAppStore = create<AppState>()(
       activeDietPhase: null,
       dietPhaseHistory: [],
       weeklyCheckIns: [],
-      savedRecipes: [],
+      mealStamps: [],
       mealReminders: {
         enabled: false,
         reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },
@@ -3165,12 +3166,12 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      // Saved recipe actions
-      addRecipe: (recipe) => {
-        const { savedRecipes } = get();
+      // Meal stamp actions
+      addMealStamp: (stamp) => {
+        const { mealStamps } = get();
         set({
-          savedRecipes: [...savedRecipes, {
-            ...recipe,
+          mealStamps: [...mealStamps, {
+            ...stamp,
             id: uuidv4(),
             createdAt: new Date().toISOString(),
             timesUsed: 0,
@@ -3178,18 +3179,35 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      deleteRecipe: (id) => {
-        const { savedRecipes } = get();
-        set({ savedRecipes: savedRecipes.filter(r => r.id !== id) });
+      deleteMealStamp: (id) => {
+        const { mealStamps } = get();
+        set({ mealStamps: mealStamps.filter(s => s.id !== id) });
       },
 
-      useRecipe: (id) => {
-        const { savedRecipes } = get();
+      useMealStamp: (id) => {
+        const { mealStamps } = get();
         set({
-          savedRecipes: savedRecipes.map(r =>
-            r.id === id ? { ...r, timesUsed: r.timesUsed + 1 } : r
+          mealStamps: mealStamps.map(s =>
+            s.id === id ? { ...s, timesUsed: s.timesUsed + 1, lastUsed: new Date().toISOString() } : s
           ),
         });
+      },
+
+      copyYesterdayMeals: (targetDate) => {
+        const { meals } = get();
+        const yesterday = new Date(targetDate + 'T12:00:00');
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const yesterdayMeals = meals.filter(
+          m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr
+        );
+        if (yesterdayMeals.length === 0) return;
+        const newMeals = yesterdayMeals.map(m => ({
+          ...m,
+          id: uuidv4(),
+          date: new Date(targetDate + 'T12:00:00'),
+        }));
+        set({ meals: [...meals, ...newMeals] });
       },
 
       // Meal reminder actions
@@ -3688,6 +3706,7 @@ export const useAppStore = create<AppState>()(
         dietPhaseHistory: state.dietPhaseHistory,
         weeklyCheckIns: state.weeklyCheckIns,
         mealReminders: state.mealReminders,
+        mealStamps: state.mealStamps,
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,

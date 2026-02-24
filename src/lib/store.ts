@@ -69,6 +69,7 @@ import {
   WellnessDomain,
   WellnessStats,
 } from './types';
+import type { SavedRecipe } from './food-database';
 import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
@@ -159,6 +160,9 @@ interface AppState {
   activeDietPhase: DietPhase | null;
   dietPhaseHistory: CompletedDietPhase[];
   weeklyCheckIns: WeeklyCheckIn[];
+
+  // Saved recipes / meal combos
+  savedRecipes: SavedRecipe[];
 
   // Meal reminders
   mealReminders: MealReminderSettings;
@@ -394,6 +398,11 @@ interface AppState {
   deleteDietPhaseFromHistory: (id: string) => void;
   editDietPhaseInHistory: (id: string, updates: Partial<CompletedDietPhase>) => void;
 
+  // Saved recipe actions
+  addRecipe: (recipe: Omit<SavedRecipe, 'id' | 'createdAt' | 'timesUsed'>) => void;
+  deleteRecipe: (id: string) => void;
+  useRecipe: (id: string) => void;
+
   // Meal reminder actions
   setMealReminders: (settings: Partial<MealReminderSettings>) => void;
 
@@ -567,6 +576,7 @@ export const useAppStore = create<AppState>()(
       activeDietPhase: null,
       dietPhaseHistory: [],
       weeklyCheckIns: [],
+      savedRecipes: [],
       mealReminders: {
         enabled: false,
         reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },
@@ -3151,6 +3161,33 @@ export const useAppStore = create<AppState>()(
         set({
           dietPhaseHistory: dietPhaseHistory.map(p =>
             p.id === id ? { ...p, ...updates, id } : p
+          ),
+        });
+      },
+
+      // Saved recipe actions
+      addRecipe: (recipe) => {
+        const { savedRecipes } = get();
+        set({
+          savedRecipes: [...savedRecipes, {
+            ...recipe,
+            id: uuidv4(),
+            createdAt: new Date().toISOString(),
+            timesUsed: 0,
+          }],
+        });
+      },
+
+      deleteRecipe: (id) => {
+        const { savedRecipes } = get();
+        set({ savedRecipes: savedRecipes.filter(r => r.id !== id) });
+      },
+
+      useRecipe: (id) => {
+        const { savedRecipes } = get();
+        set({
+          savedRecipes: savedRecipes.map(r =>
+            r.id === id ? { ...r, timesUsed: r.timesUsed + 1 } : r
           ),
         });
       },

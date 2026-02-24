@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -36,11 +36,21 @@ import {
   ArrowRightLeft,
   Pencil,
   Check,
+  Mic,
+  ScanBarcode,
+  UtensilsCrossed,
+  BookOpen,
+  Search,
+  Globe,
+  Save,
+  ChefHat,
 } from 'lucide-react';
 import { MealType, MealEntry } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, assessHydrationStatus } from '@/lib/electrolyte-engine';
-import { PRESET_FOODS, FOOD_DB, estimateLocally } from '@/lib/food-database';
+import { PRESET_FOODS, FOOD_DB, ALL_FOODS, estimateLocally, RESTAURANT_CHAINS, type SavedRecipe } from '@/lib/food-database';
+import { isVoiceInputSupported, startVoiceInput } from '@/lib/voice-input';
+import { lookupBarcode, searchFoodAPI, isBarcodeDetectorSupported, startCameraStream, type BarcodeNutrition } from '@/lib/barcode-lookup';
 import { cn } from '@/lib/utils';
 import DietCoach from './DietCoach';
 import SupplementTracker from './SupplementTracker';
@@ -167,6 +177,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     latestWhoopData,
     workoutLogs,
     getActiveIllness,
+    savedRecipes,
+    addRecipe,
+    deleteRecipe,
+    useRecipe,
   } = useAppStore(
     useShallow(s => ({
       user: s.user,
@@ -183,6 +197,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       latestWhoopData: s.latestWhoopData,
       workoutLogs: s.workoutLogs,
       getActiveIllness: s.getActiveIllness,
+      savedRecipes: s.savedRecipes,
+      addRecipe: s.addRecipe,
+      deleteRecipe: s.deleteRecipe,
+      useRecipe: s.useRecipe,
     }))
   );
 
@@ -334,6 +352,33 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     source: string; portion?: string;
   } | null>(null);
 
+  // ── Voice input state ──
+  const [isListening, setIsListening] = useState(false);
+  const [voiceInterim, setVoiceInterim] = useState('');
+
+  // ── Barcode scanner state ──
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const barcodeVideoRef = useRef<HTMLVideoElement>(null);
+  const barcodeCleanupRef = useRef<(() => void) | null>(null);
+
+  // ── Restaurant chain browser state ──
+  const [showChains, setShowChains] = useState(false);
+  const [selectedChain, setSelectedChain] = useState<string | null>(null);
+
+  // ── Saved recipe state ──
+  const [showRecipes, setShowRecipes] = useState(false);
+  const [showSaveRecipe, setShowSaveRecipe] = useState(false);
+  const [recipeNameInput, setRecipeNameInput] = useState('');
+
+  // ── External API search state ──
+  const [apiResults, setApiResults] = useState<BarcodeNutrition[]>([]);
+  const [apiLoading, setApiLoading] = useState(false);
+
+  // ── Input mode: controls which panel is visible below the search bar ──
+  type InputMode = 'search' | 'presets' | 'chains' | 'recipes' | 'manual';
+  const [inputMode, setInputMode] = useState<InputMode>('search');
+
   // ── Portion scaling ──
   // Stores the "1x" base macros when a food is selected so user can scale
   const [baseServing, setBaseServing] = useState<{
@@ -484,12 +529,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           : undefined,
       }));
 
-    // 2. Search FOOD_DB with fuzzy matching (only add items not already in history)
+    // 2. Search ALL_FOODS (local DB + restaurant chains) with fuzzy matching
     const historyNames = new Set(historyMatches.map(h => h.name.toLowerCase()));
-    const dbMatches = FOOD_DB
+    const dbMatches = ALL_FOODS
       .filter(f => f.keywords.some(kw => kw.startsWith(q) || kw.includes(q) || q.includes(kw)) || fuzzyMatch(f.name, q))
       .filter(f => !historyNames.has(f.name.toLowerCase()))
-      .slice(0, 3)
+      .slice(0, 4)
       .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const, dayPattern: undefined as string | undefined }));
 
     // 3. Search preset foods (merged from Quick tab for unified search)
@@ -580,7 +625,21 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     }
 
     setInstantLogItem(null);
-    setAnalysisError('No match found. Try Quick presets or enter macros manually.');
+
+    // 4. Fall back to external API search (async)
+    setApiLoading(true);
+    setAnalysisError(null);
+    searchFoodAPI(trimmed).then(results => {
+      setApiLoading(false);
+      if (results.length > 0) {
+        setApiResults(results);
+      } else {
+        setAnalysisError('No match found. Try presets, restaurants, or enter macros manually.');
+      }
+    }).catch(() => {
+      setApiLoading(false);
+      setAnalysisError('No match found. Try presets, restaurants, or enter macros manually.');
+    });
   };
 
   // Instant log: confirm and add
@@ -600,7 +659,206 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     });
     setInstantLogItem(null);
     setFormName('');
+    setApiResults([]);
   };
+
+  // ── Voice input handler ──
+  const handleVoiceInput = useCallback(async () => {
+    if (isListening) return;
+    setIsListening(true);
+    setVoiceInterim('');
+    try {
+      const text = await startVoiceInput({
+        timeout: 6000,
+        onInterim: (interim) => setVoiceInterim(interim),
+      });
+      setFormName(text);
+      setVoiceInterim('');
+      setIsListening(false);
+      // Auto-estimate after voice input
+      setTimeout(() => {
+        const local = estimateLocally(text);
+        if (local) {
+          setInstantLogItem({ ...local, source: 'Voice → matched' });
+        } else {
+          // Try external API
+          setApiLoading(true);
+          searchFoodAPI(text).then(results => {
+            setApiLoading(false);
+            if (results.length > 0) setApiResults(results);
+          }).catch(() => setApiLoading(false));
+        }
+      }, 100);
+    } catch (err) {
+      setIsListening(false);
+      setVoiceInterim('');
+      setAnalysisError(err instanceof Error ? err.message : 'Voice input failed');
+    }
+  }, [isListening]);
+
+  // ── Barcode scanner handlers ──
+  const openBarcodeScanner = useCallback(async () => {
+    setShowBarcodeScanner(true);
+    setBarcodeLoading(false);
+  }, []);
+
+  const closeBarcodeScanner = useCallback(() => {
+    if (barcodeCleanupRef.current) {
+      barcodeCleanupRef.current();
+      barcodeCleanupRef.current = null;
+    }
+    setShowBarcodeScanner(false);
+    setBarcodeLoading(false);
+  }, []);
+
+  // Start camera when scanner opens
+  useEffect(() => {
+    if (!showBarcodeScanner || !barcodeVideoRef.current) return;
+    let cancelled = false;
+
+    const start = async () => {
+      try {
+        const cleanup = await startCameraStream(barcodeVideoRef.current!, async (barcode) => {
+          if (cancelled) return;
+          setBarcodeLoading(true);
+          const product = await lookupBarcode(barcode);
+          if (product && !cancelled) {
+            setInstantLogItem({
+              name: product.brand ? `${product.name} (${product.brand})` : product.name,
+              calories: product.calories,
+              protein: product.protein,
+              carbs: product.carbs,
+              fat: product.fat,
+              source: `Barcode: ${product.barcode}`,
+              portion: product.servingSize,
+            });
+            closeBarcodeScanner();
+          } else if (!cancelled) {
+            setBarcodeLoading(false);
+            setAnalysisError('Product not found in database. Try entering manually.');
+            closeBarcodeScanner();
+          }
+        });
+        if (!cancelled) {
+          barcodeCleanupRef.current = cleanup;
+        } else {
+          cleanup();
+        }
+      } catch {
+        if (!cancelled) {
+          setAnalysisError('Camera access denied or not available.');
+          closeBarcodeScanner();
+        }
+      }
+    };
+
+    start();
+    return () => {
+      cancelled = true;
+      if (barcodeCleanupRef.current) {
+        barcodeCleanupRef.current();
+        barcodeCleanupRef.current = null;
+      }
+    };
+  }, [showBarcodeScanner, closeBarcodeScanner]);
+
+  // ── Manual barcode input (fallback when BarcodeDetector not available) ──
+  const [manualBarcode, setManualBarcode] = useState('');
+  const handleManualBarcodeLookup = useCallback(async () => {
+    if (!manualBarcode.trim()) return;
+    setBarcodeLoading(true);
+    const product = await lookupBarcode(manualBarcode.trim());
+    setBarcodeLoading(false);
+    if (product) {
+      setInstantLogItem({
+        name: product.brand ? `${product.name} (${product.brand})` : product.name,
+        calories: product.calories,
+        protein: product.protein,
+        carbs: product.carbs,
+        fat: product.fat,
+        source: `Barcode: ${product.barcode}`,
+        portion: product.servingSize,
+      });
+      setShowBarcodeScanner(false);
+      setManualBarcode('');
+    } else {
+      setAnalysisError('Product not found. Try a different barcode or enter manually.');
+    }
+  }, [manualBarcode]);
+
+  // ── Restaurant chain item handler ──
+  const handleChainItemAdd = useCallback((item: { name: string; calories: number; protein: number; carbs: number; fat: number }, chainName: string) => {
+    const h = new Date().getHours();
+    const mealType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+    addMeal({
+      date: new Date(selectedDate + 'T12:00:00'),
+      mealType,
+      name: `${item.name} (${chainName})`,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+    });
+    setSelectedChain(null);
+  }, [addMeal, selectedDate]);
+
+  // ── Recipe handlers ──
+  const handleSaveRecipe = useCallback(() => {
+    const name = recipeNameInput.trim();
+    if (!name || todayMeals.length === 0) return;
+    const items = todayMeals.map(m => ({
+      name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat,
+    }));
+    const total = items.reduce((acc, i) => ({
+      calories: acc.calories + i.calories,
+      protein: acc.protein + i.protein,
+      carbs: acc.carbs + i.carbs,
+      fat: acc.fat + i.fat,
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+    addRecipe({
+      name,
+      items,
+      totalCalories: Math.round(total.calories),
+      totalProtein: Math.round(total.protein),
+      totalCarbs: Math.round(total.carbs),
+      totalFat: Math.round(total.fat),
+    });
+    setRecipeNameInput('');
+    setShowSaveRecipe(false);
+  }, [recipeNameInput, todayMeals, addRecipe]);
+
+  const handleUseRecipe = useCallback((recipe: SavedRecipe) => {
+    const h = new Date().getHours();
+    const mealType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+    recipe.items.forEach(item => {
+      addMeal({
+        date: new Date(selectedDate + 'T12:00:00'),
+        mealType,
+        name: item.name,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+      });
+    });
+    useRecipe(recipe.id);
+    setShowRecipes(false);
+  }, [addMeal, useRecipe, selectedDate]);
+
+  // ── External API result handler ──
+  const handleApiResultSelect = useCallback((result: BarcodeNutrition) => {
+    setInstantLogItem({
+      name: result.name,
+      calories: result.calories,
+      protein: result.protein,
+      carbs: result.carbs,
+      fat: result.fat,
+      source: 'Open Food Facts',
+      portion: result.servingSize,
+    });
+    setApiResults([]);
+  }, []);
 
   // ── Preset search ──
   const [presetSearch, setPresetSearch] = useState('');

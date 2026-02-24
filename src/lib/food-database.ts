@@ -229,6 +229,121 @@ export const FOOD_DB: FoodEntry[] = [
   { keywords: ['tuna sandwich', 'tuna sub'], name: 'Tuna Sandwich', calories: 400, protein: 35, carbs: 36, fat: 12 },
   { keywords: ['protein smoothie'], name: 'Protein Smoothie (banana + whey + milk)', calories: 350, protein: 35, carbs: 40, fat: 6 },
   { keywords: ['chipotle bowl', 'burrito bowl'], name: 'Burrito Bowl', calories: 550, protein: 40, carbs: 50, fat: 18 },
+  // ── Asian cuisine ──
+  { keywords: ['pad thai'], name: 'Pad Thai', calories: 450, protein: 18, carbs: 55, fat: 18 },
+  { keywords: ['pho'], name: 'Pho (large bowl)', calories: 420, protein: 30, carbs: 45, fat: 12 },
+  { keywords: ['bibimbap'], name: 'Bibimbap', calories: 500, protein: 25, carbs: 60, fat: 18 },
+  { keywords: ['fried chicken', 'chicken tenders', 'chicken nuggets'], name: 'Fried Chicken (3 pieces)', calories: 480, protein: 35, carbs: 22, fat: 28 },
+  { keywords: ['spring roll', 'spring rolls', 'egg roll'], name: 'Spring Rolls (3)', calories: 250, protein: 8, carbs: 30, fat: 12 },
+  { keywords: ['dim sum', 'dumplings', 'gyoza'], name: 'Dumplings (6 pieces)', calories: 300, protein: 14, carbs: 35, fat: 12 },
+  { keywords: ['teriyaki chicken', 'teriyaki'], name: 'Teriyaki Chicken Bowl', calories: 520, protein: 38, carbs: 55, fat: 14 },
+  { keywords: ['tofu', 'tofu stir fry'], name: 'Tofu Stir Fry', calories: 280, protein: 18, carbs: 20, fat: 16 },
+  { keywords: ['miso soup'], name: 'Miso Soup', calories: 60, protein: 4, carbs: 6, fat: 2 },
+  { keywords: ['edamame'], name: 'Edamame (150g)', calories: 170, protein: 17, carbs: 8, fat: 8 },
+  { keywords: ['thai curry', 'green curry', 'red curry'], name: 'Thai Curry with Rice', calories: 550, protein: 25, carbs: 50, fat: 28 },
+  { keywords: ['naan', 'naan bread'], name: 'Naan Bread (1 piece)', calories: 260, protein: 8, carbs: 42, fat: 6 },
+  { keywords: ['tikka masala', 'chicken tikka'], name: 'Chicken Tikka Masala', calories: 480, protein: 32, carbs: 30, fat: 26 },
+  { keywords: ['butter chicken'], name: 'Butter Chicken with Rice', calories: 600, protein: 35, carbs: 55, fat: 26 },
+  { keywords: ['dal', 'lentil soup', 'lentils'], name: 'Dal / Lentils (300g)', calories: 230, protein: 16, carbs: 35, fat: 3 },
+  { keywords: ['biryani'], name: 'Chicken Biryani', calories: 550, protein: 30, carbs: 65, fat: 18 },
+  { keywords: ['samosa'], name: 'Samosa (2 pieces)', calories: 300, protein: 8, carbs: 32, fat: 16 },
+  // ── Mexican / Latin ──
+  { keywords: ['taco', 'tacos'], name: 'Tacos (3)', calories: 480, protein: 25, carbs: 42, fat: 22 },
+  { keywords: ['quesadilla'], name: 'Quesadilla', calories: 500, protein: 24, carbs: 38, fat: 28 },
+  { keywords: ['nachos'], name: 'Nachos with Cheese', calories: 550, protein: 18, carbs: 50, fat: 32 },
+  { keywords: ['enchilada', 'enchiladas'], name: 'Enchiladas (2)', calories: 480, protein: 24, carbs: 40, fat: 24 },
+  { keywords: ['guacamole', 'guac'], name: 'Guacamole (100g)', calories: 160, protein: 2, carbs: 8, fat: 14 },
+  { keywords: ['chips and salsa', 'tortilla chips'], name: 'Chips & Salsa', calories: 280, protein: 4, carbs: 36, fat: 14 },
+  // ── Mediterranean ──
+  { keywords: ['falafel'], name: 'Falafel Wrap', calories: 480, protein: 18, carbs: 52, fat: 22 },
+  { keywords: ['hummus plate', 'hummus'], name: 'Hummus + Pita', calories: 320, protein: 10, carbs: 40, fat: 14 },
+  { keywords: ['greek salad'], name: 'Greek Salad', calories: 200, protein: 6, carbs: 12, fat: 15 },
+  { keywords: ['moussaka'], name: 'Moussaka', calories: 450, protein: 22, carbs: 30, fat: 28 },
+  { keywords: ['shakshuka'], name: 'Shakshuka (2 eggs)', calories: 280, protein: 16, carbs: 18, fat: 16 },
+  // ── Italian ──
+  { keywords: ['lasagna', 'lasagne'], name: 'Lasagna (1 serving)', calories: 520, protein: 28, carbs: 42, fat: 26 },
+  { keywords: ['risotto'], name: 'Risotto', calories: 420, protein: 12, carbs: 55, fat: 16 },
+  { keywords: ['carbonara'], name: 'Pasta Carbonara', calories: 550, protein: 24, carbs: 52, fat: 28 },
+  { keywords: ['bolognese', 'bolognaise', 'ragu'], name: 'Pasta Bolognese', calories: 500, protein: 28, carbs: 52, fat: 18 },
+  { keywords: ['margherita', 'margherita pizza'], name: 'Pizza Margherita (2 slices)', calories: 480, protein: 20, carbs: 56, fat: 20 },
+  // ── Breakfast ──
+  { keywords: ['croissant'], name: 'Croissant', calories: 280, protein: 5, carbs: 30, fat: 16 },
+  { keywords: ['muesli', 'müsli'], name: 'Muesli with Milk (250g)', calories: 350, protein: 12, carbs: 52, fat: 10 },
+  { keywords: ['french toast'], name: 'French Toast (2 slices)', calories: 380, protein: 14, carbs: 44, fat: 16 },
+  { keywords: ['breakfast burrito'], name: 'Breakfast Burrito', calories: 450, protein: 22, carbs: 38, fat: 24 },
+  { keywords: ['omelette', 'omelet'], name: 'Omelette (3 eggs + cheese)', calories: 380, protein: 26, carbs: 3, fat: 30 },
+  { keywords: ['scrambled eggs'], name: 'Scrambled Eggs (3)', calories: 270, protein: 20, carbs: 3, fat: 20 },
+  { keywords: ['bacon', 'bacon strips'], name: 'Bacon (4 strips)', calories: 180, protein: 12, carbs: 0, fat: 14 },
+  { keywords: ['sausage', 'breakfast sausage'], name: 'Sausage (2 links)', calories: 220, protein: 12, carbs: 2, fat: 18 },
+  { keywords: ['hash brown', 'hash browns'], name: 'Hash Browns (150g)', calories: 250, protein: 3, carbs: 30, fat: 14 },
+  // ── Plant-based protein ──
+  { keywords: ['chickpeas', 'garbanzo'], name: 'Chickpeas (200g cooked)', calories: 260, protein: 14, carbs: 45, fat: 4 },
+  { keywords: ['black beans'], name: 'Black Beans (200g cooked)', calories: 260, protein: 17, carbs: 45, fat: 1 },
+  { keywords: ['tempeh'], name: 'Tempeh (150g)', calories: 290, protein: 28, carbs: 12, fat: 16 },
+  { keywords: ['seitan'], name: 'Seitan (150g)', calories: 190, protein: 38, carbs: 6, fat: 2 },
+  { keywords: ['quinoa'], name: 'Quinoa (200g cooked)', calories: 240, protein: 9, carbs: 40, fat: 4 },
+  { keywords: ['pea protein', 'plant protein'], name: 'Plant Protein Shake', calories: 130, protein: 25, carbs: 4, fat: 2 },
+  // ── More drinks ──
+  { keywords: ['cappuccino'], name: 'Cappuccino (250ml)', calories: 80, protein: 4, carbs: 6, fat: 4 },
+  { keywords: ['espresso'], name: 'Espresso (double)', calories: 5, protein: 0, carbs: 1, fat: 0 },
+  { keywords: ['black coffee', 'americano'], name: 'Black Coffee / Americano', calories: 5, protein: 0, carbs: 1, fat: 0 },
+  { keywords: ['hot chocolate', 'cocoa'], name: 'Hot Chocolate (250ml)', calories: 200, protein: 8, carbs: 28, fat: 7 },
+  { keywords: ['protein water'], name: 'Protein Water', calories: 70, protein: 15, carbs: 2, fat: 0 },
+  { keywords: ['beer', 'bier'], name: 'Beer (500ml)', calories: 215, protein: 2, carbs: 18, fat: 0 },
+  { keywords: ['wine', 'red wine', 'white wine', 'wein'], name: 'Wine (200ml)', calories: 170, protein: 0, carbs: 4, fat: 0 },
+  { keywords: ['energy drink', 'red bull', 'monster'], name: 'Energy Drink (250ml)', calories: 110, protein: 0, carbs: 28, fat: 0 },
+  { keywords: ['diet coke', 'diet soda', 'zero sugar', 'coke zero'], name: 'Diet Soda (330ml)', calories: 0, protein: 0, carbs: 0, fat: 0 },
+  { keywords: ['iced coffee', 'iced latte'], name: 'Iced Latte (400ml)', calories: 120, protein: 6, carbs: 10, fat: 5 },
+  { keywords: ['matcha', 'matcha latte'], name: 'Matcha Latte (350ml)', calories: 140, protein: 6, carbs: 18, fat: 5 },
+  // ── More snacks / convenience ──
+  { keywords: ['granola bar', 'müsliriegel'], name: 'Granola Bar', calories: 190, protein: 4, carbs: 28, fat: 7 },
+  { keywords: ['popcorn'], name: 'Popcorn (50g)', calories: 190, protein: 3, carbs: 22, fat: 10 },
+  { keywords: ['chips', 'crisps', 'potato chips'], name: 'Chips/Crisps (50g)', calories: 270, protein: 3, carbs: 26, fat: 17 },
+  { keywords: ['ice cream', 'eis', 'gelato'], name: 'Ice Cream (1 scoop)', calories: 200, protein: 3, carbs: 24, fat: 10 },
+  { keywords: ['cookie', 'cookies', 'keks'], name: 'Cookies (2)', calories: 220, protein: 2, carbs: 30, fat: 10 },
+  { keywords: ['donut', 'doughnut'], name: 'Donut', calories: 300, protein: 4, carbs: 36, fat: 16 },
+  { keywords: ['muffin'], name: 'Muffin', calories: 350, protein: 5, carbs: 48, fat: 16 },
+  { keywords: ['brownie'], name: 'Brownie', calories: 280, protein: 3, carbs: 36, fat: 14 },
+  { keywords: ['dark chocolate'], name: 'Dark Chocolate (40g)', calories: 220, protein: 3, carbs: 18, fat: 16 },
+  { keywords: ['dried fruit', 'dates', 'raisins'], name: 'Dried Fruit (50g)', calories: 140, protein: 1, carbs: 34, fat: 0 },
+  { keywords: ['cashews', 'cashew'], name: 'Cashews (30g)', calories: 165, protein: 5, carbs: 9, fat: 13 },
+  { keywords: ['walnuts', 'walnut'], name: 'Walnuts (30g)', calories: 196, protein: 5, carbs: 4, fat: 20 },
+  { keywords: ['pistachios', 'pistachio'], name: 'Pistachios (30g)', calories: 160, protein: 6, carbs: 8, fat: 13 },
+  { keywords: ['macadamia'], name: 'Macadamia Nuts (30g)', calories: 215, protein: 2, carbs: 4, fat: 22 },
+  { keywords: ['chia seeds', 'chia'], name: 'Chia Seeds (30g)', calories: 140, protein: 5, carbs: 12, fat: 9 },
+  { keywords: ['flax seeds', 'flaxseed', 'leinsamen'], name: 'Flax Seeds (30g)', calories: 150, protein: 5, carbs: 8, fat: 12 },
+  // ── More prepared meals ──
+  { keywords: ['fish and chips', 'fish n chips'], name: 'Fish & Chips', calories: 650, protein: 30, carbs: 55, fat: 34 },
+  { keywords: ['caesar salad'], name: 'Caesar Salad with Chicken', calories: 400, protein: 32, carbs: 18, fat: 24 },
+  { keywords: ['cobb salad'], name: 'Cobb Salad', calories: 450, protein: 35, carbs: 12, fat: 30 },
+  { keywords: ['grilled cheese'], name: 'Grilled Cheese Sandwich', calories: 440, protein: 16, carbs: 36, fat: 26 },
+  { keywords: ['club sandwich'], name: 'Club Sandwich', calories: 520, protein: 32, carbs: 40, fat: 26 },
+  { keywords: ['blt'], name: 'BLT Sandwich', calories: 380, protein: 16, carbs: 30, fat: 22 },
+  { keywords: ['pulled pork'], name: 'Pulled Pork Sandwich', calories: 550, protein: 35, carbs: 42, fat: 26 },
+  { keywords: ['chicken salad'], name: 'Chicken Salad', calories: 350, protein: 30, carbs: 10, fat: 22 },
+  { keywords: ['soup', 'chicken soup', 'suppe'], name: 'Soup (1 bowl)', calories: 180, protein: 10, carbs: 20, fat: 6 },
+  { keywords: ['chili', 'chilli', 'chili con carne'], name: 'Chili con Carne', calories: 380, protein: 28, carbs: 30, fat: 16 },
+  { keywords: ['mac and cheese', 'mac n cheese', 'mac & cheese'], name: 'Mac & Cheese', calories: 480, protein: 18, carbs: 48, fat: 24 },
+  { keywords: ['hot dog'], name: 'Hot Dog', calories: 350, protein: 12, carbs: 28, fat: 22 },
+  { keywords: ['chicken wings', 'wings', 'buffalo wings'], name: 'Chicken Wings (6)', calories: 430, protein: 36, carbs: 4, fat: 30 },
+  { keywords: ['poke bowl', 'poke'], name: 'Poke Bowl', calories: 480, protein: 30, carbs: 50, fat: 16 },
+  { keywords: ['grain bowl', 'buddha bowl'], name: 'Grain Bowl', calories: 420, protein: 18, carbs: 55, fat: 14 },
+  // ── Sauces / Condiments (commonly forgotten calories) ──
+  { keywords: ['mayo', 'mayonnaise'], name: 'Mayonnaise (1 tbsp)', calories: 100, protein: 0, carbs: 0, fat: 11 },
+  { keywords: ['ketchup'], name: 'Ketchup (2 tbsp)', calories: 40, protein: 0, carbs: 10, fat: 0 },
+  { keywords: ['ranch', 'ranch dressing'], name: 'Ranch Dressing (2 tbsp)', calories: 130, protein: 0, carbs: 2, fat: 13 },
+  { keywords: ['salad dressing', 'vinaigrette'], name: 'Salad Dressing (2 tbsp)', calories: 90, protein: 0, carbs: 4, fat: 8 },
+  { keywords: ['soy sauce'], name: 'Soy Sauce (1 tbsp)', calories: 10, protein: 1, carbs: 1, fat: 0 },
+  { keywords: ['honey'], name: 'Honey (1 tbsp)', calories: 64, protein: 0, carbs: 17, fat: 0 },
+  { keywords: ['cream cheese'], name: 'Cream Cheese (30g)', calories: 100, protein: 2, carbs: 1, fat: 10 },
+  { keywords: ['nutella'], name: 'Nutella (30g)', calories: 160, protein: 2, carbs: 18, fat: 9 },
+  { keywords: ['jam', 'marmalade', 'marmelade'], name: 'Jam (1 tbsp)', calories: 50, protein: 0, carbs: 13, fat: 0 },
+  // ── Supplements (combat sports focus) ──
+  { keywords: ['creatine'], name: 'Creatine (5g)', calories: 0, protein: 0, carbs: 0, fat: 0 },
+  { keywords: ['bcaa', 'bcaas', 'eaa', 'eaas'], name: 'BCAAs/EAAs (1 scoop)', calories: 15, protein: 3, carbs: 1, fat: 0 },
+  { keywords: ['collagen', 'collagen peptides'], name: 'Collagen Peptides (20g)', calories: 72, protein: 18, carbs: 0, fat: 0 },
+  { keywords: ['mass gainer', 'weight gainer'], name: 'Mass Gainer Shake', calories: 650, protein: 40, carbs: 85, fat: 10 },
+  { keywords: ['casein', 'casein protein'], name: 'Casein Shake', calories: 130, protein: 26, carbs: 4, fat: 1 },
 ];
 
 /**
@@ -296,3 +411,195 @@ export function estimateLocally(input: string): { name: string; calories: number
   const name = matched.map(f => f.name).join(' + ');
   return { name, calories: Math.round(raw.calories), protein: +raw.protein.toFixed(1), carbs: +raw.carbs.toFixed(1), fat: +raw.fat.toFixed(1) };
 }
+
+// ── Restaurant chain menus ──────────────────────────────────────────────────
+// Structured by chain for browsable UI. Macros are approximate per-serving.
+export type ChainMenuItem = { name: string; calories: number; protein: number; carbs: number; fat: number };
+export type RestaurantChain = { chain: string; emoji: string; items: ChainMenuItem[] };
+
+export const RESTAURANT_CHAINS: RestaurantChain[] = [
+  {
+    chain: "McDonald's", emoji: '🍔',
+    items: [
+      { name: 'Big Mac', calories: 550, protein: 25, carbs: 45, fat: 30 },
+      { name: 'Quarter Pounder w/ Cheese', calories: 520, protein: 30, carbs: 42, fat: 27 },
+      { name: 'McChicken', calories: 400, protein: 15, carbs: 40, fat: 21 },
+      { name: 'Chicken McNuggets (10)', calories: 420, protein: 25, carbs: 26, fat: 24 },
+      { name: 'Filet-O-Fish', calories: 390, protein: 16, carbs: 39, fat: 19 },
+      { name: 'Egg McMuffin', calories: 300, protein: 17, carbs: 30, fat: 12 },
+      { name: 'Medium Fries', calories: 320, protein: 5, carbs: 40, fat: 15 },
+      { name: 'McFlurry (Oreo)', calories: 510, protein: 12, carbs: 76, fat: 17 },
+    ],
+  },
+  {
+    chain: 'Subway', emoji: '🥖',
+    items: [
+      { name: 'Turkey Breast (6")', calories: 280, protein: 18, carbs: 46, fat: 3 },
+      { name: 'Chicken Teriyaki (6")', calories: 330, protein: 26, carbs: 44, fat: 5 },
+      { name: 'Italian BMT (6")', calories: 370, protein: 17, carbs: 44, fat: 14 },
+      { name: 'Tuna (6")', calories: 370, protein: 18, carbs: 44, fat: 13 },
+      { name: 'Veggie Delite (6")', calories: 230, protein: 9, carbs: 44, fat: 2 },
+      { name: 'Meatball Marinara (6")', calories: 430, protein: 19, carbs: 51, fat: 16 },
+      { name: 'Steak & Cheese (6")', calories: 360, protein: 24, carbs: 45, fat: 10 },
+    ],
+  },
+  {
+    chain: 'Chipotle', emoji: '🌯',
+    items: [
+      { name: 'Chicken Bowl (no guac)', calories: 520, protein: 40, carbs: 48, fat: 17 },
+      { name: 'Chicken Burrito', calories: 700, protein: 42, carbs: 75, fat: 24 },
+      { name: 'Steak Bowl', calories: 550, protein: 38, carbs: 48, fat: 20 },
+      { name: 'Barbacoa Bowl', calories: 540, protein: 36, carbs: 48, fat: 22 },
+      { name: 'Sofritas Bowl (vegan)', calories: 480, protein: 18, carbs: 58, fat: 20 },
+      { name: 'Chips & Guacamole', calories: 540, protein: 7, carbs: 47, fat: 36 },
+      { name: 'Side of Guacamole', calories: 230, protein: 3, carbs: 12, fat: 22 },
+    ],
+  },
+  {
+    chain: 'Starbucks', emoji: '☕',
+    items: [
+      { name: 'Caffè Latte (Grande)', calories: 190, protein: 13, carbs: 18, fat: 7 },
+      { name: 'Caramel Macchiato (Grande)', calories: 250, protein: 10, carbs: 35, fat: 7 },
+      { name: 'Iced Coffee (Grande)', calories: 80, protein: 1, carbs: 20, fat: 0 },
+      { name: 'Mocha (Grande)', calories: 360, protein: 14, carbs: 47, fat: 14 },
+      { name: 'Protein Cold Brew (Grande)', calories: 230, protein: 12, carbs: 30, fat: 7 },
+      { name: 'Egg Bites (2 pack)', calories: 300, protein: 19, carbs: 13, fat: 20 },
+      { name: 'Turkey Bacon Sandwich', calories: 230, protein: 14, carbs: 25, fat: 8 },
+    ],
+  },
+  {
+    chain: 'Burger King', emoji: '👑',
+    items: [
+      { name: 'Whopper', calories: 660, protein: 28, carbs: 49, fat: 40 },
+      { name: 'Whopper Jr', calories: 310, protein: 13, carbs: 27, fat: 18 },
+      { name: 'Chicken Royale / Long Chicken', calories: 570, protein: 22, carbs: 52, fat: 30 },
+      { name: 'Cheeseburger', calories: 280, protein: 15, carbs: 27, fat: 13 },
+      { name: 'Chicken Nuggets (9)', calories: 380, protein: 20, carbs: 22, fat: 23 },
+      { name: 'Medium Fries', calories: 380, protein: 5, carbs: 48, fat: 18 },
+    ],
+  },
+  {
+    chain: 'KFC', emoji: '🍗',
+    items: [
+      { name: 'Original Chicken Breast', calories: 390, protein: 39, carbs: 11, fat: 21 },
+      { name: 'Original Chicken Thigh', calories: 280, protein: 18, carbs: 9, fat: 19 },
+      { name: 'Zinger Burger', calories: 490, protein: 22, carbs: 46, fat: 24 },
+      { name: 'Popcorn Chicken (Large)', calories: 560, protein: 28, carbs: 34, fat: 34 },
+      { name: 'Coleslaw (Large)', calories: 230, protein: 2, carbs: 22, fat: 15 },
+      { name: 'Mashed Potato + Gravy', calories: 130, protein: 2, carbs: 19, fat: 5 },
+    ],
+  },
+  {
+    chain: 'Taco Bell', emoji: '🌮',
+    items: [
+      { name: 'Crunchy Taco', calories: 170, protein: 8, carbs: 13, fat: 10 },
+      { name: 'Burrito Supreme', calories: 400, protein: 16, carbs: 51, fat: 14 },
+      { name: 'Crunchwrap Supreme', calories: 530, protein: 16, carbs: 71, fat: 21 },
+      { name: 'Chalupa Supreme', calories: 350, protein: 14, carbs: 31, fat: 18 },
+      { name: 'Quesarito', calories: 650, protein: 24, carbs: 68, fat: 30 },
+      { name: 'Power Bowl (Chicken)', calories: 470, protein: 26, carbs: 50, fat: 18 },
+    ],
+  },
+  {
+    chain: 'Chick-fil-A', emoji: '🐔',
+    items: [
+      { name: 'Chicken Sandwich', calories: 440, protein: 28, carbs: 40, fat: 19 },
+      { name: 'Grilled Chicken Sandwich', calories: 320, protein: 28, carbs: 36, fat: 7 },
+      { name: 'Chicken Nuggets (12)', calories: 380, protein: 40, carbs: 14, fat: 18 },
+      { name: 'Grilled Nuggets (12)', calories: 200, protein: 38, carbs: 2, fat: 4 },
+      { name: 'Cobb Salad w/ Chicken', calories: 510, protein: 42, carbs: 26, fat: 28 },
+      { name: 'Waffle Fries (Medium)', calories: 400, protein: 5, carbs: 44, fat: 22 },
+    ],
+  },
+  {
+    chain: 'Panda Express', emoji: '🐼',
+    items: [
+      { name: 'Orange Chicken', calories: 490, protein: 25, carbs: 51, fat: 23 },
+      { name: 'Grilled Teriyaki Chicken', calories: 300, protein: 36, carbs: 14, fat: 13 },
+      { name: 'Kung Pao Chicken', calories: 290, protein: 16, carbs: 19, fat: 19 },
+      { name: 'Beijing Beef', calories: 470, protein: 14, carbs: 46, fat: 26 },
+      { name: 'Fried Rice', calories: 520, protein: 11, carbs: 82, fat: 16 },
+      { name: 'Chow Mein', calories: 510, protein: 13, carbs: 80, fat: 16 },
+    ],
+  },
+  {
+    chain: 'Five Guys', emoji: '🍔',
+    items: [
+      { name: 'Cheeseburger', calories: 840, protein: 47, carbs: 40, fat: 55 },
+      { name: 'Little Cheeseburger', calories: 550, protein: 27, carbs: 39, fat: 32 },
+      { name: 'Hot Dog', calories: 520, protein: 18, carbs: 40, fat: 32 },
+      { name: 'Regular Fries', calories: 530, protein: 8, carbs: 65, fat: 23 },
+    ],
+  },
+  {
+    chain: 'Nando\'s', emoji: '🔥',
+    items: [
+      { name: 'Chicken Breast (1/4)', calories: 230, protein: 42, carbs: 0, fat: 7 },
+      { name: 'Chicken Thighs (1/4)', calories: 290, protein: 30, carbs: 0, fat: 19 },
+      { name: 'Chicken Wrap', calories: 450, protein: 36, carbs: 38, fat: 18 },
+      { name: 'Peri Peri Fries', calories: 380, protein: 5, carbs: 48, fat: 18 },
+      { name: 'Spicy Rice', calories: 300, protein: 5, carbs: 55, fat: 6 },
+    ],
+  },
+  {
+    chain: 'Wendy\'s', emoji: '🟧',
+    items: [
+      { name: 'Dave\'s Single', calories: 570, protein: 30, carbs: 39, fat: 34 },
+      { name: 'Grilled Chicken Sandwich', calories: 370, protein: 35, carbs: 36, fat: 10 },
+      { name: 'Spicy Chicken Sandwich', calories: 480, protein: 28, carbs: 45, fat: 20 },
+      { name: 'Baconator', calories: 940, protein: 57, carbs: 38, fat: 62 },
+      { name: 'Medium Fries', calories: 350, protein: 5, carbs: 42, fat: 16 },
+      { name: 'Chili (Large)', calories: 330, protein: 24, carbs: 28, fat: 13 },
+    ],
+  },
+  {
+    chain: 'Pizza Hut', emoji: '🍕',
+    items: [
+      { name: 'Pepperoni Pizza (2 slices med)', calories: 420, protein: 18, carbs: 44, fat: 18 },
+      { name: 'Cheese Pizza (2 slices med)', calories: 400, protein: 18, carbs: 44, fat: 16 },
+      { name: 'Meat Lovers (2 slices med)', calories: 500, protein: 22, carbs: 44, fat: 26 },
+      { name: 'Garlic Bread (4 pieces)', calories: 380, protein: 8, carbs: 44, fat: 18 },
+      { name: 'Chicken Wings (6)', calories: 420, protein: 36, carbs: 0, fat: 28 },
+    ],
+  },
+  {
+    chain: 'Domino\'s', emoji: '🍕',
+    items: [
+      { name: 'Pepperoni Pizza (2 slices med)', calories: 410, protein: 16, carbs: 42, fat: 18 },
+      { name: 'Margherita (2 slices med)', calories: 380, protein: 16, carbs: 44, fat: 14 },
+      { name: 'BBQ Chicken (2 slices med)', calories: 420, protein: 18, carbs: 50, fat: 16 },
+      { name: 'Garlic Bread + Cheese', calories: 320, protein: 10, carbs: 32, fat: 16 },
+    ],
+  },
+];
+
+// Flattened chain items for search integration (prefixed with chain name)
+export const CHAIN_FOOD_DB: FoodEntry[] = RESTAURANT_CHAINS.flatMap(chain =>
+  chain.items.map(item => ({
+    keywords: [
+      item.name.toLowerCase(),
+      `${chain.chain.toLowerCase()} ${item.name.toLowerCase()}`,
+    ],
+    name: `${item.name} (${chain.chain})`,
+    calories: item.calories,
+    protein: item.protein,
+    carbs: item.carbs,
+    fat: item.fat,
+  }))
+);
+
+// Combined database for unified search (local + chain items)
+export const ALL_FOODS: FoodEntry[] = [...FOOD_DB, ...CHAIN_FOOD_DB];
+
+// ── Saved recipe type ──────────────────────────────────────────────────────
+export type SavedRecipe = {
+  id: string;
+  name: string;
+  items: { name: string; calories: number; protein: number; carbs: number; fat: number }[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  createdAt: string;
+  timesUsed: number;
+};

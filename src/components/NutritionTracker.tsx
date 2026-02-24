@@ -802,50 +802,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     setSelectedChain(null);
   }, [addMeal, selectedDate]);
 
-  // ── Recipe handlers ──
-  const handleSaveRecipe = useCallback(() => {
-    const name = recipeNameInput.trim();
-    if (!name || todayMeals.length === 0) return;
-    const items = todayMeals.map(m => ({
-      name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat,
-    }));
-    const total = items.reduce((acc, i) => ({
-      calories: acc.calories + i.calories,
-      protein: acc.protein + i.protein,
-      carbs: acc.carbs + i.carbs,
-      fat: acc.fat + i.fat,
-    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
-
-    addRecipe({
-      name,
-      items,
-      totalCalories: Math.round(total.calories),
-      totalProtein: Math.round(total.protein),
-      totalCarbs: Math.round(total.carbs),
-      totalFat: Math.round(total.fat),
-    });
-    setRecipeNameInput('');
-    setShowSaveRecipe(false);
-  }, [recipeNameInput, todayMeals, addRecipe]);
-
-  const handleUseRecipe = useCallback((recipe: SavedRecipe) => {
-    const h = new Date().getHours();
-    const mealType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
-    recipe.items.forEach(item => {
-      addMeal({
-        date: new Date(selectedDate + 'T12:00:00'),
-        mealType,
-        name: item.name,
-        calories: item.calories,
-        protein: item.protein,
-        carbs: item.carbs,
-        fat: item.fat,
-      });
-    });
-    useRecipe(recipe.id);
-    setShowRecipes(false);
-  }, [addMeal, useRecipe, selectedDate]);
-
   // ── External API result handler ──
   const handleApiResultSelect = useCallback((result: BarcodeNutrition) => {
     setInstantLogItem({
@@ -904,6 +860,50 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
     });
     return grouped;
   }, [todayMeals]);
+
+  // ── Recipe handlers (must be after todayMeals) ──
+  const handleSaveRecipe = useCallback(() => {
+    const name = recipeNameInput.trim();
+    if (!name || todayMeals.length === 0) return;
+    const items = todayMeals.map(m => ({
+      name: m.name, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat,
+    }));
+    const total = items.reduce((acc, i) => ({
+      calories: acc.calories + i.calories,
+      protein: acc.protein + i.protein,
+      carbs: acc.carbs + i.carbs,
+      fat: acc.fat + i.fat,
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+    addRecipe({
+      name,
+      items,
+      totalCalories: Math.round(total.calories),
+      totalProtein: Math.round(total.protein),
+      totalCarbs: Math.round(total.carbs),
+      totalFat: Math.round(total.fat),
+    });
+    setRecipeNameInput('');
+    setShowSaveRecipe(false);
+  }, [recipeNameInput, todayMeals, addRecipe]);
+
+  const handleUseRecipe = useCallback((recipe: SavedRecipe) => {
+    const h = new Date().getHours();
+    const mealType: MealType = h < 10 ? 'breakfast' : h < 14 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+    recipe.items.forEach(item => {
+      addMeal({
+        date: new Date(selectedDate + 'T12:00:00'),
+        mealType,
+        name: item.name,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+      });
+    });
+    useRecipe(recipe.id);
+    setShowRecipes(false);
+  }, [addMeal, useRecipe, selectedDate]);
 
   // ── Water tracking (dynamic goal from contextual hydration) ──
   const contextualHydrationMl = contextualNutrition.hydrationGoal || 2000;
@@ -1938,7 +1938,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           </p>
         </motion.div>
 
-        {/* ── Quick Add / Camera / Custom ── */}
+        {/* ── Log Food — UUS-optimized: type → match → tap → done ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -2015,64 +2015,292 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-grappler-200 uppercase tracking-wide">
-              Log Food
-            </h2>
-            <div className="flex gap-2">
+          {/* ── Always-visible smart search bar with voice + barcode ── */}
+          <div className="relative mb-3">
+            <div className="flex gap-1.5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500 pointer-events-none" />
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={isListening ? (voiceInterim || 'Listening...') : formName}
+                  onChange={(e) => {
+                    setFormName(e.target.value);
+                    setShowAutocomplete(e.target.value.trim().length >= 1);
+                    setApiResults([]);
+                  }}
+                  onFocus={() => {
+                    if (formName.trim().length >= 1) setShowAutocomplete(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && formName.trim()) {
+                      e.preventDefault();
+                      setShowAutocomplete(false);
+                      handleAIEstimate(true);
+                    }
+                    if (e.key === 'Escape') setShowAutocomplete(false);
+                  }}
+                  placeholder="What did you eat? (type or speak)"
+                  className={cn('input pl-9 text-sm', isListening && 'border-red-500/50 bg-red-500/5 animate-pulse')}
+                  readOnly={isListening}
+                />
+              </div>
+              {/* Voice button */}
+              {isVoiceInputSupported() && (
+                <button
+                  type="button"
+                  onClick={handleVoiceInput}
+                  className={cn(
+                    'px-3 rounded-lg border transition-all flex items-center justify-center',
+                    isListening
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400 animate-pulse'
+                      : 'bg-grappler-700/40 border-grappler-700/60 text-grappler-400 hover:text-grappler-200 hover:border-grappler-500'
+                  )}
+                  title="Voice input"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              )}
+              {/* Barcode button */}
               <button
-                onClick={() => {
-                  setShowPresets(!showPresets);
-                  setShowAddForm(false);
-                }}
-                className="btn btn-secondary btn-sm gap-1"
+                type="button"
+                onClick={openBarcodeScanner}
+                className="px-3 rounded-lg border bg-grappler-700/40 border-grappler-700/60 text-grappler-400 hover:text-grappler-200 hover:border-grappler-500 transition-all flex items-center justify-center"
+                title="Scan barcode"
               >
-                <Zap className="w-3.5 h-3.5" />
-                Quick
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddForm(!showAddForm);
-                  setShowPresets(false);
-                  setAnalysisResult(null);
-                  setAnalysisError(null);
-                              }}
-                className="btn btn-primary btn-sm gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Manual
+                <ScanBarcode className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Autocomplete dropdown */}
+            <AnimatePresence>
+              {showAutocomplete && autocompleteSuggestions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute z-30 left-0 right-0 mt-1 bg-grappler-800 border border-grappler-600 rounded-xl shadow-xl overflow-hidden"
+                >
+                  {autocompleteSuggestions.map((item, idx) => (
+                    <button
+                      key={`${item.source}-${item.name}-${idx}`}
+                      onClick={() => selectAutocomplete(item)}
+                      className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-grappler-700/60 transition-colors text-left border-b border-grappler-700/40 last:border-b-0"
+                    >
+                      <span className="text-sm flex-shrink-0">
+                        {item.dayPattern ? (
+                          <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
+                        ) : item.source === 'history' ? (
+                          <Clock className="w-3.5 h-3.5 text-sky-400" />
+                        ) : (
+                          <Apple className="w-3.5 h-3.5 text-grappler-500" />
+                        )}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-grappler-100 truncate">{item.name}</p>
+                          {item.dayPattern && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 flex-shrink-0">{item.dayPattern}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-grappler-400">
+                          {Math.round(item.calories)} kcal · {+item.protein.toFixed(1)}g P · {+item.carbs.toFixed(1)}g C · {+item.fat.toFixed(1)}g F
+                          {item.source === 'history' && item.count > 1 && !item.dayPattern && (
+                            <span className="text-sky-400/70 ml-1">· logged {item.count}x</span>
+                          )}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <p className="text-xs text-grappler-600 mt-1">
+              Type &amp; press Enter to instant-log — or use voice, barcode, presets below
+            </p>
           </div>
 
-          {/* Meal type selector (shared) */}
-          {(showAddForm || showPresets) && (
-            <div className="mb-3">
-              <label className="text-xs text-grappler-400 mb-1.5 block">
-                Meal
-              </label>
-              <div className="flex gap-1.5 flex-wrap">
-                {MEAL_TYPE_ORDER.map((type) => (
+          {/* ── Barcode Scanner Overlay ── */}
+          <AnimatePresence>
+            {showBarcodeScanner && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-3 overflow-hidden"
+              >
+                <div className="bg-grappler-900 border border-grappler-600 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-grappler-200 uppercase tracking-wide flex items-center gap-1.5">
+                      <ScanBarcode className="w-3.5 h-3.5" />
+                      {isBarcodeDetectorSupported() ? 'Point camera at barcode' : 'Enter barcode number'}
+                    </span>
+                    <button onClick={closeBarcodeScanner} className="text-grappler-400 hover:text-grappler-200">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {isBarcodeDetectorSupported() ? (
+                    <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                      <video ref={barcodeVideoRef} className="w-full h-full object-cover" playsInline muted />
+                      {barcodeLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                          <div className="text-xs text-grappler-200 animate-pulse">Looking up product...</div>
+                        </div>
+                      )}
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-red-500/60 animate-pulse" />
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={manualBarcode}
+                        onChange={(e) => setManualBarcode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="e.g. 5000159484695"
+                        className="input flex-1 text-sm"
+                        onKeyDown={(e) => e.key === 'Enter' && handleManualBarcodeLookup()}
+                      />
+                      <button
+                        onClick={handleManualBarcodeLookup}
+                        disabled={!manualBarcode.trim() || barcodeLoading}
+                        className="btn btn-primary btn-sm disabled:opacity-40"
+                      >
+                        {barcodeLoading ? '...' : 'Look up'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Instant log confirmation card ── */}
+          {instantLogItem && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-grappler-100">{instantLogItem.name}</p>
+                  <p className="text-xs text-grappler-400 mt-0.5">{instantLogItem.source}</p>
+                  <div className="flex gap-3 mt-1.5">
+                    <span className="text-xs font-medium text-blue-400">{Math.round(instantLogItem.calories)} kcal</span>
+                    <span className="text-xs font-medium text-red-400">{+instantLogItem.protein.toFixed(1)}g P</span>
+                    <span className="text-xs font-medium text-sky-400">{+instantLogItem.carbs.toFixed(1)}g C</span>
+                    <span className="text-xs font-medium text-yellow-400">{+instantLogItem.fat.toFixed(1)}g F</span>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
                   <button
-                    key={type}
-                    onClick={() => setFormMealType(type)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
-                      formMealType === type
-                        ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
-                        : 'bg-grappler-700/40 text-grappler-400 border border-grappler-700/60 hover:border-grappler-600'
-                    }`}
+                    onClick={() => {
+                      setFormName(instantLogItem.name);
+                      setFormCalories(String(instantLogItem.calories));
+                      setFormProtein(String(instantLogItem.protein));
+                      setFormCarbs(String(instantLogItem.carbs));
+                      setFormFat(String(instantLogItem.fat));
+                      if (instantLogItem.portion) setFormPortion(instantLogItem.portion);
+                      setInstantLogItem(null);
+                      setInputMode('manual');
+                    }}
+                    className="px-2 py-1.5 text-xs text-grappler-400 bg-grappler-700/40 rounded-lg hover:bg-grappler-700/60 transition-colors"
                   >
-                    {MEAL_TYPE_ICONS[type]}
-                    {MEAL_TYPE_LABELS[type]}
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleInstantLog}
+                    className="px-3 py-1.5 text-xs font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 active:scale-95 transition-all"
+                  >
+                    Log it
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── External API results (when local match fails) ── */}
+          {apiLoading && (
+            <div className="flex items-center gap-2 text-xs px-3 py-2 mb-3 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/30">
+              <Globe className="w-4 h-4 animate-spin" />
+              <span>Searching food databases...</span>
+            </div>
+          )}
+          {apiResults.length > 0 && (
+            <div className="mb-3">
+              <label className="text-xs text-grappler-400 mb-1.5 block flex items-center gap-1">
+                <Globe className="w-3 h-3 text-violet-400" />
+                Results from Open Food Facts
+              </label>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {apiResults.slice(0, 5).map((result, idx) => (
+                  <button
+                    key={`api-${idx}`}
+                    onClick={() => handleApiResultSelect(result)}
+                    className="w-full px-3 py-2 flex items-center gap-2 hover:bg-violet-500/10 bg-grappler-800/40 border border-grappler-700/40 rounded-lg transition-colors text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-grappler-100 truncate">{result.name}</p>
+                      <p className="text-xs text-grappler-400">
+                        {result.calories} kcal · {result.protein}g P · {result.carbs}g C · {result.fat}g F
+                        {result.servingSize && <span className="text-grappler-500 ml-1">· {result.servingSize}</span>}
+                      </p>
+                    </div>
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setApiResults([])}
+                className="text-xs text-grappler-500 mt-1 hover:text-grappler-300 transition-colors"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
-          {/* ── Preset foods grid with search ── */}
+          {/* Analysis status messages */}
+          {analysisResult && !instantLogItem && (
+            <div className="flex items-center gap-2 text-xs px-3 py-2 mb-3 rounded-lg bg-green-500/10 text-green-400 border border-green-500/30">
+              <Sparkles className="w-4 h-4 flex-shrink-0" />
+              <span>{analysisResult.notes || 'Auto-filled from local database'}</span>
+            </div>
+          )}
+          {analysisError && (
+            <div className="flex items-center gap-2 text-xs px-3 py-2 mb-3 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{analysisError}</span>
+            </div>
+          )}
+
+          {/* ── Input mode tabs ── */}
+          <div className="flex gap-1 mb-3 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            {([
+              { mode: 'presets' as InputMode, icon: <Zap className="w-3 h-3" />, label: 'Quick' },
+              { mode: 'chains' as InputMode, icon: <UtensilsCrossed className="w-3 h-3" />, label: 'Restaurants' },
+              { mode: 'recipes' as InputMode, icon: <BookOpen className="w-3 h-3" />, label: 'Recipes' },
+              { mode: 'manual' as InputMode, icon: <Pencil className="w-3 h-3" />, label: 'Manual' },
+            ] as const).map(tab => (
+              <button
+                key={tab.mode}
+                onClick={() => setInputMode(inputMode === tab.mode ? 'search' : tab.mode)}
+                className={cn(
+                  'flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1',
+                  inputMode === tab.mode
+                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                    : 'bg-grappler-700/40 text-grappler-400 border border-grappler-700/60 hover:border-grappler-600'
+                )}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Preset foods grid ── */}
           <AnimatePresence>
-            {showPresets && (
+            {inputMode === 'presets' && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -2080,13 +2308,12 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                {/* Search bar */}
                 <div className="mb-2">
                   <input
                     type="text"
                     value={presetSearch}
                     onChange={(e) => setPresetSearch(e.target.value)}
-                    placeholder="Search... (e.g. chicken, rice)"
+                    placeholder="Filter presets... (e.g. chicken, rice)"
                     className="input text-sm"
                     autoFocus
                   />
@@ -2105,24 +2332,16 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                         {preset.name}
                       </p>
                       <div className="flex gap-2 mt-1 text-xs text-grappler-400">
-                        <span className="text-blue-400/80">
-                          {preset.calories} kcal
-                        </span>
-                        <span className="text-red-400/80">
-                          {preset.protein}p
-                        </span>
-                        <span className="text-blue-400/80">
-                          {preset.carbs}c
-                        </span>
-                        <span className="text-yellow-400/80">
-                          {preset.fat}f
-                        </span>
+                        <span className="text-blue-400/80">{preset.calories} kcal</span>
+                        <span className="text-red-400/80">{preset.protein}p</span>
+                        <span className="text-blue-400/80">{preset.carbs}c</span>
+                        <span className="text-yellow-400/80">{preset.fat}f</span>
                       </div>
                     </motion.button>
                   ))}
                   {filteredPresets.length === 0 && (
                     <p className="col-span-2 text-xs text-grappler-400 text-center py-4">
-                      No results. Try &quot;Manual&quot; to enter macros directly.
+                      No results. Try the search bar above or manual entry.
                     </p>
                   )}
                 </div>
@@ -2130,9 +2349,164 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             )}
           </AnimatePresence>
 
-          {/* ── Custom meal form (also used for camera results) ── */}
+          {/* ── Restaurant chains browser ── */}
           <AnimatePresence>
-            {showAddForm && (
+            {inputMode === 'chains' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                {!selectedChain ? (
+                  <div className="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto pb-1">
+                    {RESTAURANT_CHAINS.map(chain => (
+                      <button
+                        key={chain.chain}
+                        onClick={() => setSelectedChain(chain.chain)}
+                        className="bg-grappler-700/30 hover:bg-grappler-700/60 border border-grappler-700/50 rounded-lg p-2.5 text-center transition-all"
+                      >
+                        <span className="text-lg">{chain.emoji}</span>
+                        <p className="text-xs font-medium text-grappler-200 mt-1 truncate">{chain.chain}</p>
+                        <p className="text-xs text-grappler-500">{chain.items.length} items</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => setSelectedChain(null)}
+                      className="flex items-center gap-1 text-xs text-grappler-400 hover:text-grappler-200 mb-2 transition-colors"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      All restaurants
+                    </button>
+                    <div className="space-y-1 max-h-72 overflow-y-auto pb-1">
+                      {RESTAURANT_CHAINS.find(c => c.chain === selectedChain)?.items.map((item, idx) => (
+                        <motion.button
+                          key={item.name}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          onClick={() => handleChainItemAdd(item, selectedChain)}
+                          className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-grappler-700/40 bg-grappler-800/40 border border-grappler-700/40 rounded-lg transition-colors text-left"
+                        >
+                          <div>
+                            <p className="text-xs font-medium text-grappler-100">{item.name}</p>
+                            <p className="text-xs text-grappler-400 mt-0.5">
+                              {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
+                            </p>
+                          </div>
+                          <Plus className="w-4 h-4 text-grappler-500 flex-shrink-0" />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Saved recipes ── */}
+          <AnimatePresence>
+            {inputMode === 'recipes' && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                {/* Save current day as recipe */}
+                {todayMeals.length >= 2 && (
+                  <div className="mb-3">
+                    {showSaveRecipe ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={recipeNameInput}
+                          onChange={(e) => setRecipeNameInput(e.target.value)}
+                          placeholder="Recipe name (e.g. 'Prep Day Meals')"
+                          className="input flex-1 text-sm"
+                          autoFocus
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveRecipe()}
+                        />
+                        <button onClick={handleSaveRecipe} disabled={!recipeNameInput.trim()} className="btn btn-primary btn-sm disabled:opacity-40">
+                          <Save className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setShowSaveRecipe(false)} className="btn btn-secondary btn-sm">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowSaveRecipe(true)}
+                        className="w-full py-2 rounded-lg border border-dashed border-grappler-600 text-xs text-grappler-400 hover:border-primary-500/40 hover:text-primary-400 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save today&apos;s meals as a recipe ({todayMeals.length} items)
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {savedRecipes.length === 0 ? (
+                  <div className="text-center py-6">
+                    <BookOpen className="w-8 h-8 text-grappler-600 mx-auto mb-2" />
+                    <p className="text-xs text-grappler-400">No saved recipes yet</p>
+                    <p className="text-xs text-grappler-500 mt-1">Log 2+ meals, then save them as a reusable recipe</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto pb-1">
+                    {savedRecipes
+                      .sort((a, b) => b.timesUsed - a.timesUsed)
+                      .map(recipe => (
+                        <div
+                          key={recipe.id}
+                          className="bg-grappler-800/40 border border-grappler-700/40 rounded-lg p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-grappler-100">{recipe.name}</p>
+                              <p className="text-xs text-grappler-400 mt-0.5">
+                                {recipe.items.length} items · {recipe.totalCalories} kcal · {recipe.totalProtein}g P
+                                {recipe.timesUsed > 0 && <span className="text-grappler-500 ml-1">· used {recipe.timesUsed}x</span>}
+                              </p>
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {recipe.items.map((item, i) => (
+                                  <span key={i} className="text-xs px-1.5 py-0.5 bg-grappler-700/40 rounded text-grappler-400 truncate max-w-[120px]">
+                                    {item.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => deleteRecipe(recipe.id)}
+                                className="p-1.5 text-grappler-500 hover:text-red-400 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleUseRecipe(recipe)}
+                                className="px-3 py-1.5 text-xs font-semibold bg-primary-500/20 text-primary-400 border border-primary-500/40 rounded-lg hover:bg-primary-500/30 active:scale-95 transition-all"
+                              >
+                                Log all
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Manual entry form ── */}
+          <AnimatePresence>
+            {inputMode === 'manual' && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -2141,178 +2515,27 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                 className="overflow-hidden"
               >
                 <div className="space-y-3 pb-1">
-                  {/* Analysis result badge */}
-                  {analysisResult && (
-                    <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/30">
-                      <Sparkles className="w-4 h-4 flex-shrink-0" />
-                      <span>{analysisResult.notes || 'Auto-filled from local database'}</span>
-                    </div>
-                  )}
-
-                  {/* Analysis error */}
-                  {analysisError && (
-                    <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>{analysisError}</span>
-                    </div>
-                  )}
-
-                  {/* Recent & Favorites chips */}
-                  {favoriteFoods.length > 0 && (
-                    <div>
-                      <label className="text-xs text-grappler-400 mb-1.5 block flex items-center gap-1">
-                        <Star className="w-3 h-3 text-sky-400" />
-                        Your Favorites
-                      </label>
-                      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                        {favoriteFoods.map(food => (
-                          <button
-                            key={food.name}
-                            onClick={() => selectAutocomplete(food)}
-                            className="flex-shrink-0 px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg transition-colors text-left"
-                          >
-                            <p className="text-xs font-medium text-grappler-100 truncate max-w-[120px]">{food.name}</p>
-                            <p className="text-xs text-grappler-400">{Math.round(food.calories)} kcal · {+food.protein.toFixed(1)}g P</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <label className="text-xs text-grappler-400 mb-1 block">
-                      Name
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        ref={nameInputRef}
-                        type="text"
-                        value={formName}
-                        onChange={(e) => {
-                          setFormName(e.target.value);
-                          setShowAutocomplete(e.target.value.trim().length >= 1);
-                        }}
-                        onFocus={() => {
-                          if (formName.trim().length >= 1) setShowAutocomplete(true);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && formName.trim()) {
-                            e.preventDefault();
-                            setShowAutocomplete(false);
-                            handleAIEstimate(true);
-                          }
-                          if (e.key === 'Escape') setShowAutocomplete(false);
-                        }}
-                        placeholder="e.g. Chicken breast and rice"
-                        className="input flex-1"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleAIEstimate(false)}
-                        disabled={!formName.trim()}
-                        className="btn btn-sm px-3 bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
-                        title="Auto-fill macros from database"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span className="text-xs">Estimate</span>
-                      </button>
-                    </div>
-
-                    {/* Autocomplete dropdown */}
-                    <AnimatePresence>
-                      {showAutocomplete && autocompleteSuggestions.length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute z-30 left-0 right-0 mt-1 bg-grappler-800 border border-grappler-600 rounded-xl shadow-xl overflow-hidden"
+                  {/* Meal type selector */}
+                  <div>
+                    <label className="text-xs text-grappler-400 mb-1.5 block">Meal</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {MEAL_TYPE_ORDER.map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => setFormMealType(type)}
+                          className={cn(
+                            'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1',
+                            formMealType === type
+                              ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                              : 'bg-grappler-700/40 text-grappler-400 border border-grappler-700/60 hover:border-grappler-600'
+                          )}
                         >
-                          {autocompleteSuggestions.map((item, idx) => (
-                            <button
-                              key={`${item.source}-${item.name}-${idx}`}
-                              onClick={() => selectAutocomplete(item)}
-                              className="w-full px-3 py-2.5 flex items-center gap-2.5 hover:bg-grappler-700/60 transition-colors text-left border-b border-grappler-700/40 last:border-b-0"
-                            >
-                              <span className="text-sm flex-shrink-0">
-                                {item.dayPattern ? (
-                                  <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
-                                ) : item.source === 'history' ? (
-                                  <Clock className="w-3.5 h-3.5 text-sky-400" />
-                                ) : (
-                                  <Apple className="w-3.5 h-3.5 text-grappler-500" />
-                                )}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-xs font-medium text-grappler-100 truncate">{item.name}</p>
-                                  {item.dayPattern && (
-                                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 flex-shrink-0">{item.dayPattern}</span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-grappler-400">
-                                  {Math.round(item.calories)} kcal · {+item.protein.toFixed(1)}g P · {+item.carbs.toFixed(1)}g C · {+item.fat.toFixed(1)}g F
-                                  {item.source === 'history' && item.count > 1 && !item.dayPattern && (
-                                    <span className="text-sky-400/70 ml-1">· logged {item.count}x</span>
-                                  )}
-                                </p>
-                              </div>
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <p className="text-xs text-grappler-600 mt-1">
-                      Type what you ate and press Enter — instant match &amp; log
-                    </p>
+                          {MEAL_TYPE_ICONS[type]}
+                          {MEAL_TYPE_LABELS[type]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-
-                  {/* ── Instant log confirmation card ── */}
-                  {instantLogItem && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-green-500/10 border border-green-500/30 rounded-xl p-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-grappler-100">{instantLogItem.name}</p>
-                          <p className="text-xs text-grappler-400 mt-0.5">{instantLogItem.source}</p>
-                          <div className="flex gap-3 mt-1.5">
-                            <span className="text-xs font-medium text-blue-400">{Math.round(instantLogItem.calories)} kcal</span>
-                            <span className="text-xs font-medium text-red-400">{+instantLogItem.protein.toFixed(1)}g P</span>
-                            <span className="text-xs font-medium text-sky-400">{+instantLogItem.carbs.toFixed(1)}g C</span>
-                            <span className="text-xs font-medium text-yellow-400">{+instantLogItem.fat.toFixed(1)}g F</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-1.5 flex-shrink-0">
-                          <button
-                            onClick={() => {
-                              // Switch to manual edit mode with fields pre-filled
-                              setFormName(instantLogItem.name);
-                              setFormCalories(String(instantLogItem.calories));
-                              setFormProtein(String(instantLogItem.protein));
-                              setFormCarbs(String(instantLogItem.carbs));
-                              setFormFat(String(instantLogItem.fat));
-                              if (instantLogItem.portion) setFormPortion(instantLogItem.portion);
-                              setInstantLogItem(null);
-                            }}
-                            className="px-2 py-1.5 text-xs text-grappler-400 bg-grappler-700/40 rounded-lg hover:bg-grappler-700/60 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={handleInstantLog}
-                            className="px-3 py-1.5 text-xs font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 active:scale-95 transition-all"
-                          >
-                            Log it
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
 
                   {/* Portion size + scaling */}
                   <div>
@@ -2324,7 +2547,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       value={formPortion}
                       onChange={(e) => {
                         setFormPortion(e.target.value);
-                        // Auto-scale macros if base serving has grams and user types a weight
                         if (baseServing?.baseGrams) {
                           const typedGrams = extractGrams(e.target.value);
                           if (typedGrams && typedGrams > 0) {
@@ -2339,7 +2561,6 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                       placeholder={baseServing?.baseGrams ? `e.g. ${baseServing.baseGrams}g (type weight to auto-scale)` : 'e.g. 1 cup, 200g, 2 scoops'}
                       className="input"
                     />
-                    {/* Quick portion scale buttons */}
                     {baseServing && (
                       <div className="flex gap-1.5 mt-1.5">
                         {[
@@ -2365,76 +2586,40 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-blue-400" />
-                        kcal
+                        <Flame className="w-3 h-3 text-blue-400" /> kcal
                       </label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formCalories}
-                        onChange={(e) => setFormCalories(e.target.value)}
-                        placeholder="0"
-                        className="input"
-                      />
+                      <input type="text" inputMode="decimal" value={formCalories} onChange={(e) => setFormCalories(e.target.value)} placeholder="0" className="input" />
                     </div>
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
-                        <Beef className="w-3 h-3 text-red-400" />
-                        Protein (g)
+                        <Beef className="w-3 h-3 text-red-400" /> Protein (g)
                       </label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formProtein}
-                        onChange={(e) => setFormProtein(e.target.value)}
-                        placeholder="0"
-                        className="input"
-                      />
+                      <input type="text" inputMode="decimal" value={formProtein} onChange={(e) => setFormProtein(e.target.value)} placeholder="0" className="input" />
                     </div>
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
-                        <Wheat className="w-3 h-3 text-blue-400" />
-                        Carbs (g)
+                        <Wheat className="w-3 h-3 text-blue-400" /> Carbs (g)
                       </label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formCarbs}
-                        onChange={(e) => setFormCarbs(e.target.value)}
-                        placeholder="0"
-                        className="input"
-                      />
+                      <input type="text" inputMode="decimal" value={formCarbs} onChange={(e) => setFormCarbs(e.target.value)} placeholder="0" className="input" />
                     </div>
                     <div>
                       <label className="text-xs text-grappler-400 mb-1 block flex items-center gap-1">
-                        <Droplet className="w-3 h-3 text-yellow-400" />
-                        Fat (g)
+                        <Droplet className="w-3 h-3 text-yellow-400" /> Fat (g)
                       </label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={formFat}
-                        onChange={(e) => setFormFat(e.target.value)}
-                        placeholder="0"
-                        className="input"
-                      />
+                      <input type="text" inputMode="decimal" value={formFat} onChange={(e) => setFormFat(e.target.value)} placeholder="0" className="input" />
                     </div>
                   </div>
 
                   <div className="flex gap-2 pt-1">
                     <button
-                      onClick={() => {
-                        setShowAddForm(false);
-                        resetForm();
-                      }}
+                      onClick={() => { setInputMode('search'); resetForm(); }}
                       className="btn btn-secondary btn-sm flex-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleAddMeal}
-                      disabled={false}
-                      className="btn btn-primary btn-sm flex-1 disabled:opacity-50"
+                      className="btn btn-primary btn-sm flex-1"
                     >
                       Add
                     </button>

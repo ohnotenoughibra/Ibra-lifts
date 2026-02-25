@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   ChevronLeft,
+  ChevronDown,
   Moon,
   Activity,
   Heart,
@@ -74,6 +75,7 @@ function metricColor(good: boolean, mid: boolean): string {
 
 export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
   const { workoutLogs, bodyWeightLog, trainingSessions } = useAppStore();
+  const [showDetails, setShowDetails] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'trends'>('overview');
 
   // Sort logs by date descending
@@ -235,10 +237,32 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
 
   // Readiness indicator
   const readiness = useMemo(() => {
-    if (recoveryScore > 67) return { color: '#34d399', label: 'Ready to Train', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' };
-    if (recoveryScore >= 34) return { color: '#fbbf24', label: 'Train with Caution', bg: 'bg-yellow-500/20', border: 'border-yellow-500/40' };
-    return { color: '#f87171', label: 'Rest Recommended', bg: 'bg-red-500/20', border: 'border-red-500/40' };
+    if (recoveryScore > 67) return { color: '#34d399', label: 'Push today', bg: 'bg-emerald-500/20', border: 'border-emerald-500/40' };
+    if (recoveryScore >= 34) return { color: '#fbbf24', label: 'Go moderate', bg: 'bg-yellow-500/20', border: 'border-yellow-500/40' };
+    return { color: '#f87171', label: 'Rest recommended', bg: 'bg-red-500/20', border: 'border-red-500/40' };
   }, [recoveryScore]);
+
+  // 1-line reason for the verdict
+  const verdictReason = useMemo(() => {
+    if (logsWithCheckIn.length === 0) return 'Not enough check-in data to assess recovery yet.';
+    const latest = logsWithCheckIn[0].preCheckIn!;
+    // Find the weakest link
+    const factors: { label: string; score: number }[] = [
+      { label: 'sleep', score: latest.sleepQuality },
+      { label: 'soreness', score: 6 - latest.soreness }, // invert: lower soreness = higher score
+      { label: 'stress', score: 6 - latest.stress },       // invert: lower stress = higher score
+    ];
+    if (trainingLoad.isTooHigh) factors.push({ label: 'training load spike', score: 1 });
+    const weakest = factors.reduce((a, b) => a.score < b.score ? a : b);
+
+    if (recoveryScore > 67) {
+      return 'Sleep, stress, and training load are all in good shape.';
+    }
+    if (recoveryScore >= 34) {
+      return `Your ${weakest.label} is holding you back \u2014 keep intensity moderate.`;
+    }
+    return `Your ${weakest.label} needs attention \u2014 prioritize recovery today.`;
+  }, [logsWithCheckIn, trainingLoad, recoveryScore]);
 
   const scoreColor = getScoreColor(recoveryScore);
   const scoreLabel = getScoreLabel(recoveryScore);

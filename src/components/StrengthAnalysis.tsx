@@ -4,13 +4,16 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
+  ChevronDown,
   TrendingUp,
   TrendingDown,
+  Minus,
   Target,
   AlertTriangle,
   Zap,
   BarChart3,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 import {
   LineChart,
@@ -71,6 +74,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
   const [analyses, setAnalyses] = useState<StickingPointAnalysis[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<StickingPointAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Generate sticking point analyses for compound lifts with multiple sessions
   useEffect(() => {
@@ -165,6 +169,61 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
         count,
       }));
   }, [selectedExercise]);
+
+  // Derived hero metrics
+  const heroMetrics = useMemo(() => {
+    // Volume trend: compare last 2 weeks of total volume
+    const sorted = [...strengthTrends];
+    let volumeTrendPct = 0;
+    let trendLabel: 'Gaining' | 'Declining' | 'Maintaining' = 'Maintaining';
+
+    if (sorted.length >= 2) {
+      const recent = sorted[sorted.length - 1];
+      const previous = sorted[sorted.length - 2];
+      if (previous.totalVolume > 0) {
+        volumeTrendPct = ((recent.totalVolume - previous.totalVolume) / previous.totalVolume) * 100;
+      }
+      if (volumeTrendPct > 2) trendLabel = 'Gaining';
+      else if (volumeTrendPct < -2) trendLabel = 'Declining';
+      else trendLabel = 'Maintaining';
+    }
+
+    // Volume capacity zone based on latest week avg RPE
+    let volumeZone: 'Under-reaching' | 'Productive' | 'Overreaching' = 'Productive';
+    if (sorted.length > 0) {
+      const latestRPE = sorted[sorted.length - 1].avgRPE;
+      if (latestRPE < 6) volumeZone = 'Under-reaching';
+      else if (latestRPE > 9) volumeZone = 'Overreaching';
+      else volumeZone = 'Productive';
+    }
+
+    // Fight readiness: composite score 0-100
+    let fightReadiness = 50;
+    if (sorted.length > 0) {
+      const latestRPE = sorted[sorted.length - 1].avgRPE;
+      if (latestRPE >= 7 && latestRPE <= 8.5) fightReadiness += 20;
+      else if (latestRPE >= 6 && latestRPE <= 9) fightReadiness += 10;
+      else fightReadiness -= 10;
+    }
+    if (sorted.length >= 3) fightReadiness += 15;
+    if (sorted.length >= 6) fightReadiness += 10;
+    const identifiedCount = analyses.filter(a => a.stickingPoint !== 'unknown').length;
+    if (identifiedCount > 0 && analyses.length > 0) {
+      fightReadiness += Math.min(10, identifiedCount * 3);
+    }
+    const unknownRatio = analyses.length > 0
+      ? analyses.filter(a => a.stickingPoint === 'unknown').length / analyses.length
+      : 0;
+    if (unknownRatio > 0.5) fightReadiness -= 10;
+    fightReadiness = Math.max(0, Math.min(100, fightReadiness));
+
+    return { volumeTrendPct, trendLabel, volumeZone, fightReadiness };
+  }, [strengthTrends, analyses]);
+
+  // Exercises with identified sticking points = plateaus (actionable)
+  const plateauExercises = useMemo(() => {
+    return analyses.filter(a => a.stickingPoint !== 'unknown');
+  }, [analyses]);
 
   if (workoutLogs.length === 0) {
     return (
@@ -490,122 +549,88 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-4"
           >
-            {/* Overall Strength Trends */}
-            {strengthTrends.length > 1 && (
-              <div className="card p-4">
-                <h4 className="font-medium text-grappler-200 mb-3">
-                  Weekly Training Load
-                </h4>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={strengthTrends}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="week" stroke="#64748b" fontSize={12} />
-                      <YAxis
-                        yAxisId="rpe"
-                        orientation="left"
-                        stroke="#ef4444"
-                        fontSize={12}
-                        domain={[5, 10]}
-                        label={{
-                          value: 'RPE',
-                          angle: -90,
-                          position: 'insideLeft',
-                          style: { fill: '#ef4444', fontSize: 12 },
-                        }}
-                      />
-                      <YAxis
-                        yAxisId="volume"
-                        orientation="right"
-                        stroke="#0ea5e9"
-                        fontSize={12}
-                        label={{
-                          value: 'Volume',
-                          angle: 90,
-                          position: 'insideRight',
-                          style: { fill: '#0ea5e9', fontSize: 12 },
-                        }}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1e293b',
-                          border: '1px solid #334155',
-                          borderRadius: '8px',
-                        }}
-                      />
-                      <Line
-                        yAxisId="rpe"
-                        type="monotone"
-                        dataKey="avgRPE"
-                        name="Avg RPE"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        dot={{ fill: '#ef4444', r: 3 }}
-                      />
-                      <Line
-                        yAxisId="volume"
-                        type="monotone"
-                        dataKey="totalVolume"
-                        name="Total Volume"
-                        stroke="#0ea5e9"
-                        strokeWidth={2}
-                        dot={{ fill: '#0ea5e9', r: 3 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+            {/* 1. HERO VERDICT CARD */}
+            <div className="card p-5 bg-gradient-to-br from-grappler-800 to-grappler-900 border-grappler-700">
+              {/* Primary: Strength Trend */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-grappler-400 uppercase tracking-wider mb-1">Strength Trend</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-3xl font-bold ${
+                      heroMetrics.trendLabel === 'Gaining' ? 'text-emerald-400' :
+                      heroMetrics.trendLabel === 'Declining' ? 'text-red-400' :
+                      'text-grappler-200'
+                    }`}>
+                      {heroMetrics.volumeTrendPct > 0 ? '+' : ''}{heroMetrics.volumeTrendPct.toFixed(1)}%
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      heroMetrics.trendLabel === 'Gaining' ? 'text-emerald-400' :
+                      heroMetrics.trendLabel === 'Declining' ? 'text-red-400' :
+                      'text-grappler-400'
+                    }`}>
+                      {heroMetrics.trendLabel}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center gap-6 mt-2 text-xs text-grappler-400">
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-0.5 bg-red-500 inline-block rounded" />
-                    Avg RPE
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-0.5 bg-sky-500 inline-block rounded" />
-                    Total Volume
-                  </span>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  heroMetrics.trendLabel === 'Gaining' ? 'bg-emerald-500/20' :
+                  heroMetrics.trendLabel === 'Declining' ? 'bg-red-500/20' :
+                  'bg-grappler-700'
+                }`}>
+                  {heroMetrics.trendLabel === 'Gaining' ? (
+                    <TrendingUp className="w-6 h-6 text-emerald-400" />
+                  ) : heroMetrics.trendLabel === 'Declining' ? (
+                    <TrendingDown className="w-6 h-6 text-red-400" />
+                  ) : (
+                    <Minus className="w-6 h-6 text-grappler-400" />
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Sticking Point Summary */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-grappler-400 mb-1">Exercises</p>
-                <p className="text-lg font-bold text-grappler-50">{analyses.length}</p>
-              </div>
-              <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-grappler-400 mb-1">Avg RPE</p>
-                <p className="text-lg font-bold text-grappler-50">
-                  {analyses.length > 0
-                    ? (analyses.reduce((sum, a) => sum + a.avgRPE, 0) / analyses.length).toFixed(1)
-                    : '--'}
-                </p>
-              </div>
-              <div className="bg-grappler-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-grappler-400 mb-1">Identified</p>
-                <p className="text-lg font-bold text-grappler-50">
-                  {analyses.filter((a) => a.stickingPoint !== 'unknown').length}
-                </p>
+              {/* Secondary: Volume Zone + Fight Readiness */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-grappler-800/60 rounded-lg p-3">
+                  <p className="text-xs text-grappler-400 mb-1">Volume Zone</p>
+                  <div className="flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-grappler-300" />
+                    <span className={`text-sm font-semibold ${
+                      heroMetrics.volumeZone === 'Productive' ? 'text-emerald-400' :
+                      heroMetrics.volumeZone === 'Overreaching' ? 'text-red-400' :
+                      'text-yellow-400'
+                    }`}>
+                      {heroMetrics.volumeZone}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-grappler-800/60 rounded-lg p-3">
+                  <p className="text-xs text-grappler-400 mb-1">Fight Readiness</p>
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-grappler-300" />
+                    <span className={`text-sm font-semibold ${
+                      heroMetrics.fightReadiness >= 70 ? 'text-emerald-400' :
+                      heroMetrics.fightReadiness >= 40 ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {heroMetrics.fightReadiness}/100
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Exercise Analysis List */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-grappler-200">Exercise Breakdown</h4>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            {/* 2. PLATEAUS / STICKING POINTS (actionable) */}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : plateauExercises.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <h4 className="font-medium text-grappler-200">Plateaus & Sticking Points</h4>
                 </div>
-              ) : analyses.length === 0 ? (
-                <div className="text-center py-8 text-grappler-500">
-                  <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Need more sessions to generate analysis.</p>
-                  <p className="text-xs mt-1">Log at least 2 sessions per exercise.</p>
-                </div>
-              ) : (
-                analyses.map((analysis, index) => {
+                {plateauExercises.map((analysis, index) => {
                   const config = stickingPointConfig[analysis.stickingPoint];
-
                   return (
                     <motion.button
                       key={analysis.exerciseId}
@@ -613,9 +638,9 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       onClick={() => setSelectedExercise(analysis)}
-                      className="w-full card p-4 text-left hover:bg-grappler-700/50 transition-colors"
+                      className="w-full card p-4 text-left hover:bg-grappler-700/50 transition-colors border-amber-500/10"
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1.5">
                         <h5 className="font-medium text-grappler-100">
                           {analysis.exerciseName}
                         </h5>
@@ -625,7 +650,6 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                           {config.label}
                         </span>
                       </div>
-
                       <div className="flex items-center gap-4 text-xs text-grappler-400">
                         <span className="flex items-center gap-1">
                           <Target className="w-3 h-3" />
@@ -639,49 +663,250 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                         )}
                         {analysis.failureReps.length > 0 && (
                           <span className="flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3 text-blue-400" />
+                            <AlertTriangle className="w-3 h-3 text-amber-400" />
                             Fails at rep {analysis.failureReps[0]}
                           </span>
                         )}
                       </div>
-
-                      {/* Mini analysis preview */}
-                      <p className="text-xs text-grappler-400 mt-2 line-clamp-2">
+                      <p className="text-xs text-grappler-400 mt-1.5 line-clamp-2">
                         {analysis.analysis}
                       </p>
                     </motion.button>
                   );
-                })
-              )}
-            </div>
-
-            {/* Tips Section */}
-            {analyses.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="card p-4 bg-gradient-to-br from-primary-500/10 to-accent-500/10 border-primary-500/20"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-primary-400" />
-                  <h4 className="font-medium text-grappler-200">Strength Tips</h4>
+                })}
+              </div>
+            ) : analyses.length > 0 ? (
+              <div className="card p-4 bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/20">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <p className="text-sm text-grappler-200">
+                    No plateaus detected — all {analyses.length} tracked exercises are progressing.
+                  </p>
                 </div>
-                <ul className="space-y-2 text-sm text-grappler-300">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary-400 mt-0.5">-</span>
-                    Address sticking points with targeted accessories 2-3x per week.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary-400 mt-0.5">-</span>
-                    Keep RPE between 7-9 for main lifts to balance stimulus and recovery.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary-400 mt-0.5">-</span>
-                    Track failure reps to identify if fatigue is muscular or technique-based.
-                  </li>
-                </ul>
-              </motion.div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-grappler-500">
+                <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Need more sessions to generate analysis.</p>
+                <p className="text-xs mt-1">Log at least 2 sessions per exercise.</p>
+              </div>
+            )}
+
+            {/* 3. COLLAPSIBLE DETAILS SECTION */}
+            {(strengthTrends.length > 1 || analyses.length > 0) && (
+              <div>
+                <button
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="w-full flex items-center justify-between card p-4 hover:bg-grappler-700/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-grappler-400" />
+                    <span className="text-sm font-medium text-grappler-200">Show Details</span>
+                    <span className="text-xs text-grappler-500">
+                      Charts, weekly load & per-exercise data
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-grappler-400 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {showDetails && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-4 pt-4">
+                        {/* Weekly Training Load Chart */}
+                        {strengthTrends.length > 1 && (
+                          <div className="card p-4">
+                            <h4 className="font-medium text-grappler-200 mb-3">
+                              Weekly Training Load
+                            </h4>
+                            <div className="h-48">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={strengthTrends}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                  <XAxis dataKey="week" stroke="#64748b" fontSize={12} />
+                                  <YAxis
+                                    yAxisId="rpe"
+                                    orientation="left"
+                                    stroke="#ef4444"
+                                    fontSize={12}
+                                    domain={[5, 10]}
+                                    label={{
+                                      value: 'RPE',
+                                      angle: -90,
+                                      position: 'insideLeft',
+                                      style: { fill: '#ef4444', fontSize: 12 },
+                                    }}
+                                  />
+                                  <YAxis
+                                    yAxisId="volume"
+                                    orientation="right"
+                                    stroke="#0ea5e9"
+                                    fontSize={12}
+                                    label={{
+                                      value: 'Volume',
+                                      angle: 90,
+                                      position: 'insideRight',
+                                      style: { fill: '#0ea5e9', fontSize: 12 },
+                                    }}
+                                  />
+                                  <Tooltip
+                                    contentStyle={{
+                                      backgroundColor: '#1e293b',
+                                      border: '1px solid #334155',
+                                      borderRadius: '8px',
+                                    }}
+                                  />
+                                  <Line
+                                    yAxisId="rpe"
+                                    type="monotone"
+                                    dataKey="avgRPE"
+                                    name="Avg RPE"
+                                    stroke="#ef4444"
+                                    strokeWidth={2}
+                                    dot={{ fill: '#ef4444', r: 3 }}
+                                  />
+                                  <Line
+                                    yAxisId="volume"
+                                    type="monotone"
+                                    dataKey="totalVolume"
+                                    name="Total Volume"
+                                    stroke="#0ea5e9"
+                                    strokeWidth={2}
+                                    dot={{ fill: '#0ea5e9', r: 3 }}
+                                  />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                            <div className="flex items-center justify-center gap-6 mt-2 text-xs text-grappler-400">
+                              <span className="flex items-center gap-1">
+                                <span className="w-3 h-0.5 bg-red-500 inline-block rounded" />
+                                Avg RPE
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="w-3 h-0.5 bg-sky-500 inline-block rounded" />
+                                Total Volume
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sticking Point Summary */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                            <p className="text-xs text-grappler-400 mb-1">Exercises</p>
+                            <p className="text-lg font-bold text-grappler-50">{analyses.length}</p>
+                          </div>
+                          <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                            <p className="text-xs text-grappler-400 mb-1">Avg RPE</p>
+                            <p className="text-lg font-bold text-grappler-50">
+                              {analyses.length > 0
+                                ? (analyses.reduce((sum, a) => sum + a.avgRPE, 0) / analyses.length).toFixed(1)
+                                : '--'}
+                            </p>
+                          </div>
+                          <div className="bg-grappler-800 rounded-xl p-3 text-center">
+                            <p className="text-xs text-grappler-400 mb-1">Identified</p>
+                            <p className="text-lg font-bold text-grappler-50">
+                              {analyses.filter((a) => a.stickingPoint !== 'unknown').length}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Exercise Analysis List (all exercises, including unknown) */}
+                        {analyses.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-grappler-200">Exercise Breakdown</h4>
+                            {analyses.map((analysis, index) => {
+                              const config = stickingPointConfig[analysis.stickingPoint];
+
+                              return (
+                                <motion.button
+                                  key={analysis.exerciseId}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  onClick={() => setSelectedExercise(analysis)}
+                                  className="w-full card p-4 text-left hover:bg-grappler-700/50 transition-colors"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h5 className="font-medium text-grappler-100">
+                                      {analysis.exerciseName}
+                                    </h5>
+                                    <span
+                                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.bgColor} ${config.color}`}
+                                    >
+                                      {config.label}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-4 text-xs text-grappler-400">
+                                    <span className="flex items-center gap-1">
+                                      <Target className="w-3 h-3" />
+                                      RPE: {analysis.avgRPE.toFixed(1)}
+                                    </span>
+                                    {analysis.suggestedAccessories.length > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <Zap className="w-3 h-3 text-yellow-400" />
+                                        {analysis.suggestedAccessories.length} accessories
+                                      </span>
+                                    )}
+                                    {analysis.failureReps.length > 0 && (
+                                      <span className="flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3 text-blue-400" />
+                                        Fails at rep {analysis.failureReps[0]}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Mini analysis preview */}
+                                  <p className="text-xs text-grappler-400 mt-2 line-clamp-2">
+                                    {analysis.analysis}
+                                  </p>
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Tips Section */}
+                        {analyses.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="card p-4 bg-gradient-to-br from-primary-500/10 to-accent-500/10 border-primary-500/20"
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <TrendingUp className="w-4 h-4 text-primary-400" />
+                              <h4 className="font-medium text-grappler-200">Strength Tips</h4>
+                            </div>
+                            <ul className="space-y-2 text-sm text-grappler-300">
+                              <li className="flex items-start gap-2">
+                                <span className="text-primary-400 mt-0.5">-</span>
+                                Address sticking points with targeted accessories 2-3x per week.
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-primary-400 mt-0.5">-</span>
+                                Keep RPE between 7-9 for main lifts to balance stimulus and recovery.
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-primary-400 mt-0.5">-</span>
+                                Track failure reps to identify if fatigue is muscular or technique-based.
+                              </li>
+                            </ul>
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
           </motion.div>
         )}

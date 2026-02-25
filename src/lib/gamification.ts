@@ -1212,21 +1212,22 @@ export function computeChallengeProgress(
     return d >= mondayDate && d < sundayDate;
   });
   const combatCategories = new Set(['grappling', 'striking', 'mma']);
-  const weekSessions = trainingSessions.filter(s => {
+  const weekAllSessions = trainingSessions.filter(s => {
     const d = new Date(s.date);
-    return d >= mondayDate && d < sundayDate && combatCategories.has(s.category);
+    return d >= mondayDate && d < sundayDate;
   });
+  const weekCombatSessions = weekAllSessions.filter(s => combatCategories.has(s.category));
 
   // Precompute metrics
   const liftCount = weekLogs.length;
   const totalVolume = weekLogs.reduce((sum, l) => sum + (l.totalVolume || 0), 0);
   const prCount = weekLogs.reduce((sum, l) =>
     sum + (l.exercises || []).filter(e => e.personalRecord).length, 0);
-  const sessionCount = weekSessions.length;
+  const sessionCount = weekAllSessions.length;
 
   // Dual days: dates that have both a lift and a combat session
   const liftDates = new Set(weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]));
-  const combatDates = new Set(weekSessions.map(s => new Date(s.date).toISOString().split('T')[0]));
+  const combatDates = new Set(weekCombatSessions.map(s => new Date(s.date).toISOString().split('T')[0]));
   let dualDayCount = 0;
   liftDates.forEach(d => { if (combatDates.has(d)) dualDayCount++; });
 

@@ -369,7 +369,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog,
+    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
@@ -379,6 +379,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
+      workoutSkips: s.workoutSkips,
     }))
   );
   const { showToast } = useToast();
@@ -472,8 +473,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
       macroTargets, waterLog, injuryLog, quickLogs, competitions,
+      workoutSkips,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {
@@ -1770,6 +1772,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                           reason: 'schedule_conflict' as SkipReason,
                           rescheduled: false,
                         });
+                        setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
                         showToast(`Skipped ${s.type}`, 'info');
                       }}
                       className="text-grappler-600 hover:text-grappler-300 transition-colors"
@@ -1808,6 +1811,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       reason: 'schedule_conflict' as SkipReason,
                       rescheduled: false,
                     });
+                    setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add('combat-0'); return n; });
                     showToast(`Skipped ${directive.todayCombatSessions[0].type}`, 'info');
                   }}
                   className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
@@ -2013,6 +2017,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                         reason: 'schedule_conflict' as SkipReason,
                         rescheduled: false,
                       });
+                      setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
                       showToast(`Skipped ${s.type}`, 'info');
                     }}
                     className="text-grappler-600 hover:text-grappler-300 transition-colors"

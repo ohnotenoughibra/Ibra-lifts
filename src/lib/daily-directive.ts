@@ -21,6 +21,7 @@ import type {
   ReadinessLevel,
   CompetitionEvent,
   CombatTrainingDay,
+  WorkoutSkip,
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
@@ -117,13 +118,14 @@ interface DirectiveInput {
   injuryLog: InjuryEntry[];
   quickLogs: QuickLog[];
   competitions?: CompetitionEvent[];
+  workoutSkips?: WorkoutSkip[];
 }
 
 export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const {
     user, currentMesocycle, workoutLogs, trainingSessions,
     wearableData, wearableHistory, meals, macroTargets,
-    injuryLog, quickLogs,
+    injuryLog, quickLogs, workoutSkips,
   } = input;
 
   // ─── Readiness ───
@@ -190,8 +192,6 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     : true; // if no schedule set, assume any day is fine
   const scheduledCombatToday = userCombatDays.filter(d => d.day === todayDow);
   const hasScheduledCombat = scheduledCombatToday.length > 0;
-  // Combine: either logged combat exists OR it's a scheduled combat day
-  const hasCombatToday = hasLoggedCombatToday || hasScheduledCombat;
   // Build combat session display from schedule if nothing logged yet
   if (!hasLoggedCombatToday && hasScheduledCombat) {
     scheduledCombatToday.forEach(d => {
@@ -204,6 +204,21 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
       });
     });
   }
+
+  // Filter out skipped combat sessions — match by scheduledSessionId pattern "combat-{index}"
+  const todaySkips = (workoutSkips || []).filter(s => s.date === new Date().toISOString().split('T')[0]);
+  const skippedCombatIds = new Set(
+    todaySkips.filter(s => s.scheduledSessionId?.startsWith('combat-')).map(s => s.scheduledSessionId)
+  );
+  // Remove skipped unlogged sessions (keep logged ones — those are real data)
+  for (let i = todayCombatSessions.length - 1; i >= 0; i--) {
+    if (!todayCombatSessions[i].logged && skippedCombatIds.has(`combat-${i}`)) {
+      todayCombatSessions.splice(i, 1);
+    }
+  }
+
+  // Combine: either logged combat exists OR scheduled (non-skipped) combat remains
+  const hasCombatToday = todayCombatSessions.length > 0;
 
   // ─── Today's performance (post-session metrics) ───
   let todayPerformance: TodayPerformance | null = null;

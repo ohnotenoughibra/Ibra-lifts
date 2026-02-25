@@ -1772,6 +1772,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                           reason: 'schedule_conflict' as SkipReason,
                           rescheduled: false,
                         });
+                        setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
                         showToast(`Skipped ${s.type}`, 'info');
                       }}
                       className="text-grappler-600 hover:text-grappler-300 transition-colors"
@@ -1810,6 +1811,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                       reason: 'schedule_conflict' as SkipReason,
                       rescheduled: false,
                     });
+                    setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add('combat-0'); return n; });
                     showToast(`Skipped ${directive.todayCombatSessions[0].type}`, 'info');
                   }}
                   className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
@@ -2015,6 +2017,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                         reason: 'schedule_conflict' as SkipReason,
                         rescheduled: false,
                       });
+                      setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
                       showToast(`Skipped ${s.type}`, 'info');
                     }}
                     className="text-grappler-600 hover:text-grappler-300 transition-colors"

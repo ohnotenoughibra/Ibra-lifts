@@ -1453,9 +1453,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* ─── PULSE — analysis engine previews, always visible ─── */}
-      <DashboardInsights onNavigate={onNavigate} />
-
       {/* ═══════════════════════════════════════════════════════════════════
           ZONE 2: THE DIRECTIVE — single adaptive card (with Start Workout)
           ═══════════════════════════════════════════════════════════════════ */}
@@ -2362,6 +2359,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         hasCompletedWorkoutToday={directive.todayPerformance != null}
         onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
       />
+
+      {/* ─── PULSE — horizontal scroll of analysis micro-chips, always visible ─── */}
+      <DashboardInsights onNavigate={onNavigate} />
 
       {/* ═══════════════════════════════════════════════════════════════════
           COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed, tools dock

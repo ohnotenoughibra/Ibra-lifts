@@ -48,7 +48,7 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
-import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge } from '@/lib/types';
+import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge, SessionsPerWeek } from '@/lib/types';
 import type { ColorTheme } from '@/lib/types';
 import { useToast } from './Toast';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
@@ -223,12 +223,13 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount } = useAppStore(
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
       resetStore: s.resetStore, setUser: s.setUser, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
       colorTheme: s.colorTheme, setColorTheme: s.setColorTheme, homeGymEquipment: s.homeGymEquipment, setHomeGymEquipment: s.setHomeGymEquipment,
       recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: (s.workoutLogs || []).length,
+      currentMesocycle: s.currentMesocycle,
     }))
   );
   const { data: session } = useSession();
@@ -1243,7 +1244,18 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   onClick={() => {
                     const current = user.trainingDays || [];
                     const next = isLift ? current.filter(d => d !== i) : [...current, i].sort();
-                    updateUser({ trainingDays: next });
+                    const newCount = Math.min(Math.max(next.length, 1), 6) as SessionsPerWeek;
+                    const oldCount = user.sessionsPerWeek;
+                    const sessionsChanged = next.length > 0 && newCount !== oldCount;
+                    updateUser({
+                      trainingDays: next,
+                      ...(sessionsChanged ? { sessionsPerWeek: newCount } : {}),
+                    });
+                    if (sessionsChanged) {
+                      const weeks = currentMesocycle?.weeks?.length || 5;
+                      generateNewMesocycle(weeks, user.sessionDurationMinutes || 60);
+                      showToast(`Program updated to ${newCount} sessions/week`);
+                    }
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();

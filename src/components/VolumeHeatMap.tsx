@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronDown, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { getExerciseById, getExercisesByMuscle } from '@/lib/exercises';
 import { VOLUME_LANDMARKS } from '@/lib/workout-generator';
@@ -152,6 +152,7 @@ interface MuscleVolumeData {
 export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
   const { workoutLogs, currentMesocycle } = useAppStore();
   const [expandedMuscle, setExpandedMuscle] = useState<MuscleGroup | null>(null);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   const weeklySetVolumes = useMemo(
     () => computeWeeklySetVolume(workoutLogs),
@@ -203,6 +204,74 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
     };
   }, [currentMesocycle]);
 
+  // Top-level verdict: the single most important thing the user needs to know
+  const verdict = useMemo(() => {
+    const aboveMrv = muscleData.filter(d => d.zone === 'above_mrv');
+    const belowMev = muscleData.filter(d => d.zone === 'below_mev' || d.zone === 'untrained');
+    const allOptimal = summary.optimal === summary.total;
+    const allProductive = summary.belowMev === 0 && summary.overreaching === 0;
+
+    // Priority: overreaching > undertrained > all good
+    if (aboveMrv.length > 0) {
+      const worst = aboveMrv[0]; // already sorted by optimalGap
+      const setsOver = Math.ceil(worst.sets - worst.landmarks.mrv);
+      return {
+        status: 'danger' as const,
+        headline: `${worst.label}: over MRV — cut ${setsOver} set${setsOver > 1 ? 's' : ''}`,
+        detail: aboveMrv.length > 1
+          ? `${aboveMrv.length} muscle groups exceeding MRV. Fatigue is outpacing recovery.`
+          : `${worst.sets} sets this week vs ${worst.landmarks.mrv} MRV. Risk of overreaching.`,
+        color: 'text-red-400',
+        bg: 'bg-red-500/10 border-red-500/30',
+        icon: AlertTriangle,
+      };
+    }
+    if (belowMev.length > 0) {
+      const worst = belowMev[0];
+      const setsNeeded = Math.ceil(worst.landmarks.mev - worst.sets);
+      return {
+        status: 'warning' as const,
+        headline: worst.sets === 0
+          ? `${worst.label}: no volume — add ${setsNeeded} sets`
+          : `${worst.label}: below MEV — add ${setsNeeded} set${setsNeeded > 1 ? 's' : ''}`,
+        detail: belowMev.length > 1
+          ? `${belowMev.length} muscle groups below minimum effective volume. These won't grow.`
+          : `${worst.sets} sets this week vs ${worst.landmarks.mev} MEV minimum.`,
+        color: 'text-yellow-400',
+        bg: 'bg-yellow-500/10 border-yellow-500/30',
+        icon: AlertTriangle,
+      };
+    }
+    if (allOptimal) {
+      return {
+        status: 'optimal' as const,
+        headline: 'All muscles in optimal growth range',
+        detail: `Every muscle group is between MAV and MRV. Perfect volume distribution.`,
+        color: 'text-emerald-400',
+        bg: 'bg-emerald-500/10 border-emerald-500/30',
+        icon: CheckCircle,
+      };
+    }
+    if (allProductive) {
+      return {
+        status: 'good' as const,
+        headline: 'Volume is productive — push toward MAV-MRV',
+        detail: `${summary.maintenance} muscle group${summary.maintenance > 1 ? 's' : ''} at maintenance, ${summary.optimal} at optimal. No critical gaps.`,
+        color: 'text-emerald-400',
+        bg: 'bg-emerald-500/10 border-emerald-500/30',
+        icon: CheckCircle,
+      };
+    }
+    return {
+      status: 'good' as const,
+      headline: 'Volume on track',
+      detail: `${summary.optimal} optimal, ${summary.maintenance} maintenance. No critical issues.`,
+      color: 'text-grappler-200',
+      bg: 'bg-grappler-700/50 border-grappler-600/30',
+      icon: CheckCircle,
+    };
+  }, [muscleData, summary]);
+
   return (
     <motion.div
       className="min-h-screen bg-grappler-900 pb-24"
@@ -243,191 +312,226 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
           initial="hidden"
           animate="visible"
         >
-          {/* Summary Cards */}
-          <motion.div variants={itemVariants} className="grid grid-cols-4 gap-2">
-            <div className="card p-3 text-center">
-              <div className="text-lg font-bold text-emerald-400">{summary.optimal}</div>
-              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Optimal</div>
+          {/* 1. VERDICT CARD — the single most important answer */}
+          <motion.div variants={itemVariants} className={cn('card p-4 border', verdict.bg)}>
+            <div className="flex items-start gap-3">
+              <verdict.icon className={cn('w-6 h-6 mt-0.5 flex-shrink-0', verdict.color)} />
+              <div className="min-w-0">
+                <h2 className={cn('text-base font-bold leading-snug', verdict.color)}>
+                  {verdict.headline}
+                </h2>
+                <p className="text-sm text-grappler-300 mt-1">{verdict.detail}</p>
+              </div>
             </div>
-            <div className="card p-3 text-center">
-              <div className="text-lg font-bold text-yellow-400">{summary.maintenance}</div>
-              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Maintenance</div>
-            </div>
-            <div className="card p-3 text-center">
-              <div className="text-lg font-bold text-red-400">{summary.belowMev}</div>
-              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Below MEV</div>
-            </div>
-            <div className="card p-3 text-center">
-              <div className="text-lg font-bold text-red-400">{summary.overreaching}</div>
-              <div className="text-xs text-grappler-400 leading-tight mt-0.5">Over MRV</div>
+            {/* Compact summary strip */}
+            <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-grappler-700/50">
+              <div className="text-center">
+                <div className="text-sm font-bold text-emerald-400">{summary.optimal}</div>
+                <div className="text-xs text-grappler-500">Optimal</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-bold text-yellow-400">{summary.maintenance}</div>
+                <div className="text-xs text-grappler-500">Maint.</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-bold text-red-400">{summary.belowMev}</div>
+                <div className="text-xs text-grappler-500">Low</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-bold text-red-400">{summary.overreaching}</div>
+                <div className="text-xs text-grappler-500">Over</div>
+              </div>
             </div>
           </motion.div>
 
-          {/* Legend */}
+          {/* 2. ACTIONABLE RECOMMENDATIONS — Fix Volume Gaps + Insights combined */}
           <motion.div variants={itemVariants} className="card p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Info className="w-4 h-4 text-primary-400" />
-              <h3 className="text-sm font-semibold text-grappler-50">Volume Zones</h3>
+              <Zap className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-semibold text-grappler-50">Recommendations</h3>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-red-500/60" />
-                <span className="text-grappler-300">Below MEV <span className="text-grappler-500">(junk volume)</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-yellow-500/60" />
-                <span className="text-grappler-300">MEV-MAV <span className="text-grappler-500">(maintenance)</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-emerald-500/60" />
-                <span className="text-grappler-300">MAV-MRV <span className="text-grappler-500">(optimal growth)</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-red-500/80" />
-                <span className="text-grappler-300">Above MRV <span className="text-grappler-500">(overreaching)</span></span>
-              </div>
-            </div>
-            <p className="text-xs text-grappler-400 mt-2.5">
-              MEV = Minimum Effective Volume &bull; MAV = Maximum Adaptive Volume &bull; MRV = Maximum Recoverable Volume
-            </p>
-          </motion.div>
-
-          {/* Muscle Group Volume Bars */}
-          <motion.div variants={itemVariants} className="card p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-primary-400" />
-              <h2 className="text-base font-semibold text-grappler-50">Weekly Set Volume</h2>
-              <span className="text-xs text-grappler-400 ml-auto">last 7 days</span>
-            </div>
-
-            <div className="space-y-1">
-              {muscleData.map((data, index) => (
-                <MuscleVolumeBar
-                  key={data.muscle}
-                  data={data}
-                  index={index}
-                  expanded={expandedMuscle === data.muscle}
-                  onToggle={() =>
-                    setExpandedMuscle(expandedMuscle === data.muscle ? null : data.muscle)
-                  }
-                />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Insights */}
-          <motion.div variants={itemVariants} className="card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-primary-400" />
-              <h3 className="text-sm font-semibold text-grappler-50">Insights</h3>
-            </div>
-            <div className="space-y-2.5">
-              {summary.overreaching > 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-grappler-300">
-                    <span className="text-red-400 font-medium">{summary.overreaching} muscle group{summary.overreaching > 1 ? 's' : ''}</span>{' '}
-                    exceeding MRV. Consider reducing volume to avoid excess fatigue and injury risk.
-                  </p>
-                </div>
-              )}
-              {summary.belowMev > 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-grappler-300">
-                    <span className="text-yellow-400 font-medium">{summary.belowMev} muscle group{summary.belowMev > 1 ? 's' : ''}</span>{' '}
-                    below MEV. Volume is too low to stimulate meaningful growth.
-                  </p>
-                </div>
-              )}
-              {summary.optimal > 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-grappler-300">
-                    <span className="text-emerald-400 font-medium">{summary.optimal} muscle group{summary.optimal > 1 ? 's' : ''}</span>{' '}
-                    in the optimal growth zone (MAV-MRV). Keep it up!
-                  </p>
-                </div>
-              )}
-              {summary.optimal === 0 && summary.overreaching === 0 && summary.belowMev === 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <Info className="w-4 h-4 text-grappler-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-grappler-300">
-                    All muscle groups are in the maintenance range. Push volume toward MAV-MRV for hypertrophy gains.
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Gap Recommendations */}
-          {(() => {
-            const belowMev = muscleData.filter(d => d.zone === 'below_mev' || d.zone === 'untrained');
-            const aboveMrv = muscleData.filter(d => d.zone === 'above_mrv');
-            if (belowMev.length === 0 && aboveMrv.length === 0) return null;
-            return (
-              <motion.div variants={itemVariants} className="card p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm font-semibold text-grappler-50">Fix Volume Gaps</h3>
-                </div>
-                <div className="space-y-3">
-                  {belowMev.map(d => {
-                    const setsNeeded = Math.ceil(d.landmarks.mev - d.sets);
-                    const suggestions = getExerciseSuggestionsForMuscle(d.muscle);
-                    return (
-                      <div key={d.muscle} className="bg-grappler-800/60 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="w-2 h-2 rounded-full bg-red-400" />
-                          <span className="text-sm font-medium text-grappler-100">{d.label}</span>
-                          <span className="text-xs text-red-400 ml-auto">
-                            +{setsNeeded} sets to MEV
-                          </span>
+            <div className="space-y-3">
+              {/* Actionable fixes first — muscles that need volume changes */}
+              {(() => {
+                const belowMev = muscleData.filter(d => d.zone === 'below_mev' || d.zone === 'untrained');
+                const aboveMrv = muscleData.filter(d => d.zone === 'above_mrv');
+                if (belowMev.length === 0 && aboveMrv.length === 0) return null;
+                return (
+                  <>
+                    {aboveMrv.map(d => {
+                      const setsOver = Math.ceil(d.sets - d.landmarks.mrv);
+                      return (
+                        <div key={d.muscle} className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="w-2 h-2 rounded-full bg-red-400" />
+                            <span className="text-sm font-medium text-grappler-100">{d.label}</span>
+                            <span className="text-xs text-red-400 font-medium ml-auto">
+                              -{setsOver} sets
+                            </span>
+                          </div>
+                          <p className="text-xs text-grappler-400">
+                            {d.sets} sets exceeds your MRV of {d.landmarks.mrv}. Drop {setsOver} set{setsOver > 1 ? 's' : ''} to avoid overreaching.
+                          </p>
                         </div>
-                        <p className="text-xs text-grappler-400">
-                          {d.sets === 0 ? 'No sets this week' : `Only ${d.sets} sets`} — need {d.landmarks.mev} minimum.{' '}
-                          {suggestions.length > 0 && (
-                            <>Add {suggestions.slice(0, 2).join(' or ')}.</>
-                          )}
-                        </p>
-                      </div>
-                    );
-                  })}
-                  {aboveMrv.map(d => {
-                    const setsOver = Math.ceil(d.sets - d.landmarks.mrv);
-                    return (
-                      <div key={d.muscle} className="bg-grappler-800/60 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="w-2 h-2 rounded-full bg-red-400" />
-                          <span className="text-sm font-medium text-grappler-100">{d.label}</span>
-                          <span className="text-xs text-red-400 ml-auto">
-                            {setsOver} sets over MRV
-                          </span>
+                      );
+                    })}
+                    {belowMev.map(d => {
+                      const setsNeeded = Math.ceil(d.landmarks.mev - d.sets);
+                      const suggestions = getExerciseSuggestionsForMuscle(d.muscle);
+                      return (
+                        <div key={d.muscle} className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                            <span className="text-sm font-medium text-grappler-100">{d.label}</span>
+                            <span className="text-xs text-yellow-400 font-medium ml-auto">
+                              +{setsNeeded} sets to MEV
+                            </span>
+                          </div>
+                          <p className="text-xs text-grappler-400">
+                            {d.sets === 0 ? 'No sets this week' : `Only ${d.sets} sets`} — need {d.landmarks.mev} minimum.{' '}
+                            {suggestions.length > 0 && (
+                              <>Try {suggestions.slice(0, 2).join(' or ')}.</>
+                            )}
+                          </p>
                         </div>
-                        <p className="text-xs text-grappler-400">
-                          {d.sets} sets exceeds your MRV of {d.landmarks.mrv}. Drop {setsOver} sets to avoid overreaching.
-                        </p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </>
+                );
+              })()}
+
+              {/* Contextual insights below the fixes */}
+              <div className="space-y-2 pt-1">
+                {summary.overreaching > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-grappler-300">
+                      <span className="text-red-400 font-medium">{summary.overreaching} muscle group{summary.overreaching > 1 ? 's' : ''}</span>{' '}
+                      exceeding MRV. Fatigue is outpacing recovery — reduce volume or deload.
+                    </p>
+                  </div>
+                )}
+                {summary.belowMev > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-grappler-300">
+                      <span className="text-yellow-400 font-medium">{summary.belowMev} muscle group{summary.belowMev > 1 ? 's' : ''}</span>{' '}
+                      below MEV. These won&apos;t grow at current volume.
+                    </p>
+                  </div>
+                )}
+                {summary.optimal > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-grappler-300">
+                      <span className="text-emerald-400 font-medium">{summary.optimal} muscle group{summary.optimal > 1 ? 's' : ''}</span>{' '}
+                      in optimal growth zone (MAV-MRV).
+                    </p>
+                  </div>
+                )}
+                {summary.maintenance > 0 && summary.overreaching === 0 && summary.belowMev === 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <TrendingUp className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-grappler-300">
+                      <span className="text-yellow-400 font-medium">{summary.maintenance} muscle group{summary.maintenance > 1 ? 's' : ''}</span>{' '}
+                      at maintenance. Push toward MAV-MRV for hypertrophy.
+                    </p>
+                  </div>
+                )}
+                {summary.optimal === 0 && summary.overreaching === 0 && summary.belowMev === 0 && summary.maintenance === 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Info className="w-4 h-4 text-grappler-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-grappler-300">
+                      All muscle groups are in the maintenance range. Push volume toward MAV-MRV for hypertrophy gains.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 3. DETAILED BREAKDOWN — collapsible */}
+          <motion.div variants={itemVariants} className="card overflow-hidden">
+            <button
+              onClick={() => setDetailsExpanded(!detailsExpanded)}
+              className="w-full flex items-center justify-between p-4"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary-400" />
+                <h2 className="text-base font-semibold text-grappler-50">Detailed Breakdown</h2>
+                <span className="text-xs text-grappler-400">last 7 days</span>
+              </div>
+              <ChevronDown
+                className={cn(
+                  'w-5 h-5 text-grappler-400 transition-transform duration-200',
+                  detailsExpanded && 'rotate-180'
+                )}
+              />
+            </button>
+
+            {detailsExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                transition={{ duration: 0.25 }}
+                className="px-4 pb-4 space-y-4"
+              >
+                {/* Legend */}
+                <div className="bg-grappler-800/40 rounded-lg p-3">
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-red-500/60" />
+                      <span className="text-grappler-300">Below MEV <span className="text-grappler-500">(junk volume)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-yellow-500/60" />
+                      <span className="text-grappler-300">MEV-MAV <span className="text-grappler-500">(maintenance)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-emerald-500/60" />
+                      <span className="text-grappler-300">MAV-MRV <span className="text-grappler-500">(optimal growth)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-sm bg-red-500/80" />
+                      <span className="text-grappler-300">Above MRV <span className="text-grappler-500">(overreaching)</span></span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-grappler-400 mt-2">
+                    MEV = Minimum Effective Volume &bull; MAV = Maximum Adaptive Volume &bull; MRV = Maximum Recoverable Volume
+                  </p>
                 </div>
+
+                {/* Muscle Group Volume Bars */}
+                <div className="space-y-1">
+                  {muscleData.map((data, index) => (
+                    <MuscleVolumeBar
+                      key={data.muscle}
+                      data={data}
+                      index={index}
+                      expanded={expandedMuscle === data.muscle}
+                      onToggle={() =>
+                        setExpandedMuscle(expandedMuscle === data.muscle ? null : data.muscle)
+                      }
+                    />
+                  ))}
+                </div>
+
+                {/* Mesocycle context */}
+                {mesocycleInfo && (
+                  <div className="bg-grappler-800/40 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Info className="w-4 h-4 text-grappler-400" />
+                      <h3 className="text-sm font-semibold text-grappler-50">Current Block</h3>
+                    </div>
+                    <p className="text-xs text-grappler-400">
+                      {mesocycleInfo.name} &mdash; {mesocycleInfo.weekCount} week{mesocycleInfo.weekCount !== 1 ? 's' : ''} planned.
+                      Volume should progressively increase across weeks (MEV &rarr; MRV), then deload.
+                    </p>
+                  </div>
+                )}
               </motion.div>
-            );
-          })()}
-
-          {/* Mesocycle context */}
-          {mesocycleInfo && (
-            <motion.div variants={itemVariants} className="card p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Info className="w-4 h-4 text-grappler-400" />
-                <h3 className="text-sm font-semibold text-grappler-50">Current Block</h3>
-              </div>
-              <p className="text-xs text-grappler-400">
-                {mesocycleInfo.name} &mdash; {mesocycleInfo.weekCount} week{mesocycleInfo.weekCount !== 1 ? 's' : ''} planned.
-                Volume should progressively increase across weeks (MEV &rarr; MRV), then deload.
-              </p>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
         </motion.div>
       )}
     </motion.div>

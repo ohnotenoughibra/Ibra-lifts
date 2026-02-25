@@ -1150,10 +1150,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-grappler-900 pb-24"
+      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
     >
       {/* ── Header ── */}
-      <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3 safe-area-top">
+      <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center justify-between">
           <button aria-label="Go back"
             onClick={onClose}

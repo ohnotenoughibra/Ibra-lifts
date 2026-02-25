@@ -83,6 +83,8 @@ export interface DailyDirective {
   trainingModification: string | null;
   /** Label for the next scheduled lift day, e.g. "Wed" or "tomorrow" */
   nextLiftDayLabel: string | null;
+  /** Combat sessions skipped today (names, for UI context) */
+  skippedSessions: string[];
 }
 
 export type SessionGrade = 'S' | 'A' | 'B' | 'C';
@@ -211,8 +213,10 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     todaySkips.filter(s => s.scheduledSessionId?.startsWith('combat-')).map(s => s.scheduledSessionId)
   );
   // Remove skipped unlogged sessions (keep logged ones — those are real data)
+  const skippedSessionNames: string[] = [];
   for (let i = todayCombatSessions.length - 1; i >= 0; i--) {
     if (!todayCombatSessions[i].logged && skippedCombatIds.has(`combat-${i}`)) {
+      skippedSessionNames.push(todayCombatSessions[i].type);
       todayCombatSessions.splice(i, 1);
     }
   }
@@ -552,6 +556,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     overloadTeaser,
     trainingModification,
     nextLiftDayLabel,
+    skippedSessions: skippedSessionNames,
   };
 }
 

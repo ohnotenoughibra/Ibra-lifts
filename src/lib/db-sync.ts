@@ -145,9 +145,24 @@ export function resolveConflicts(
     }
   }
 
+  // ── User profile: prefer whichever side has the newer updatedAt ──
+  // Prevents cloud sync from overwriting local profile changes (e.g. training days)
+  // when the push hasn't completed yet (sendBeacon dropped, offline, race condition).
+  const localUser = local.user as Record<string, unknown> | undefined;
+  const remoteUser = remote.user as Record<string, unknown> | undefined;
+  if (localUser && remoteUser) {
+    const localUserTs = new Date((localUser.updatedAt || 0) as string).getTime();
+    const remoteUserTs = new Date((remoteUser.updatedAt || 0) as string).getTime();
+    if (localUserTs > remoteUserTs) {
+      merged.user = localUser;
+    }
+  } else if (localUser) {
+    merged.user = localUser;
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
   // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
-  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt']);
+  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user']);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
       if (!specialFields.has(key) && local[key] !== undefined) {

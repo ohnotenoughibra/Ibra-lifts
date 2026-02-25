@@ -2422,7 +2422,7 @@ export const useAppStore = create<AppState>()(
 
         // Regenerate if: no challenge, wrong week, OR targets exceed plan (stale from old code)
         const existing = gamificationStats.weeklyChallenge;
-        const needsRegen = !existing || !isCurrentWeek(existing) ||
+        const needsRegen = !existing || !Array.isArray(existing.goals) || !isCurrentWeek(existing) ||
           existing.goals.some(g =>
             (g.type === 'workouts' && g.target > planned) ||
             (g.type === 'prs' && g.target > 2)
@@ -3671,6 +3671,35 @@ export const useAppStore = create<AppState>()(
         // Future: if (fromVersion < 4) { ... }
 
         return state;
+      },
+      // Deep-merge critical nested objects so persisted data from older schemas
+      // doesn't wipe out new fields (Zustand's default is shallow merge).
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Record<string, unknown>;
+        const merged = { ...currentState, ...persisted } as AppState;
+
+        // gamificationStats: ensure all required sub-fields exist
+        if (persisted.gamificationStats && typeof persisted.gamificationStats === 'object') {
+          merged.gamificationStats = {
+            ...initialGamificationStats,
+            ...(persisted.gamificationStats as Record<string, unknown>),
+          } as GamificationStats;
+          // Ensure badges is always an array
+          if (!Array.isArray(merged.gamificationStats.badges)) {
+            merged.gamificationStats.badges = [];
+          }
+          // Ensure weeklyChallenge goals array is valid
+          const wc = merged.gamificationStats.weeklyChallenge;
+          if (wc && !Array.isArray(wc.goals)) {
+            merged.gamificationStats.weeklyChallenge = null;
+          }
+        }
+        // Ensure arrays are always arrays (protect against corrupted persisted data)
+        if (!Array.isArray(merged.workoutLogs)) merged.workoutLogs = [];
+        if (!Array.isArray(merged.trainingSessions)) merged.trainingSessions = [];
+        if (!Array.isArray(merged.bodyWeightLog)) merged.bodyWeightLog = [];
+
+        return merged;
       },
       partialize: (state) => ({
         user: state.user,

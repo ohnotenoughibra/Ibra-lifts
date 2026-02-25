@@ -1191,6 +1191,61 @@ export function isCurrentWeek(challenge: WeeklyChallenge): boolean {
   return challenge.weekStart === getMonday(new Date());
 }
 
+/**
+ * Compute challenge progress from actual workout/training data — source of truth.
+ * The stored `goal.current` relies on incremental updates that can drift (e.g. challenge
+ * regenerated after workouts, state reset). This function always returns accurate values.
+ */
+export function computeChallengeProgress(
+  challenge: WeeklyChallenge,
+  workoutLogs: WorkoutLog[],
+  trainingSessions: TrainingSession[],
+): WeeklyChallenge {
+  const monday = challenge.weekStart;
+  const mondayDate = new Date(monday + 'T00:00:00');
+  const sundayDate = new Date(mondayDate);
+  sundayDate.setDate(sundayDate.getDate() + 7);
+
+  // Filter to this week's data
+  const weekLogs = workoutLogs.filter(l => {
+    const d = new Date(l.date);
+    return d >= mondayDate && d < sundayDate;
+  });
+  const combatCategories = new Set(['grappling', 'striking', 'mma']);
+  const weekSessions = trainingSessions.filter(s => {
+    const d = new Date(s.date);
+    return d >= mondayDate && d < sundayDate && combatCategories.has(s.category);
+  });
+
+  // Precompute metrics
+  const liftCount = weekLogs.length;
+  const totalVolume = weekLogs.reduce((sum, l) => sum + (l.totalVolume || 0), 0);
+  const prCount = weekLogs.reduce((sum, l) =>
+    sum + (l.exercises || []).filter(e => e.personalRecord).length, 0);
+  const sessionCount = weekSessions.length;
+
+  // Dual days: dates that have both a lift and a combat session
+  const liftDates = new Set(weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]));
+  const combatDates = new Set(weekSessions.map(s => new Date(s.date).toISOString().split('T')[0]));
+  let dualDayCount = 0;
+  liftDates.forEach(d => { if (combatDates.has(d)) dualDayCount++; });
+
+  const goals = challenge.goals.map(g => {
+    let current: number;
+    switch (g.type) {
+      case 'workouts': current = liftCount; break;
+      case 'volume': current = totalVolume; break;
+      case 'prs': current = prCount; break;
+      case 'sessions': current = sessionCount; break;
+      case 'dual_days': current = dualDayCount; break;
+      default: current = g.current;
+    }
+    return { ...g, current, completed: current >= g.target };
+  });
+
+  return { ...challenge, goals };
+}
+
 // ═══════════════════════════════════════════
 // COMEBACK DETECTION
 // ═══════════════════════════════════════════

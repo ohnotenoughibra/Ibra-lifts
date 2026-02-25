@@ -1455,9 +1455,31 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       {/* ═══════════════════════════════════════════════════════════════════
           ZONE 2: THE DIRECTIVE — single adaptive card (with Start Workout)
           ═══════════════════════════════════════════════════════════════════ */}
+
+      {/* Skip context banner — shown when combat sessions were skipped today */}
+      <AnimatePresence>
+        {directive.skippedSessions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/40 mb-2">
+              <SkipForward className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
+              <span className="text-xs text-grappler-400">{directive.skippedSessions.join(', ')} skipped</span>
+              {directive.forwardLook && (
+                <span className="text-xs text-grappler-500 ml-auto">{directive.forwardLook}</span>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
         /* POST-SESSION: Victory sequence — grade stamp, staggered reveal */
         <motion.div
+          key="zone2-recovery-perf"
           initial={{ opacity: 0, scale: 0.96, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -1679,6 +1701,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (
         /* Rest / recovery day — interactive Mission Control card */
         <RestDayMissionCard
+          key="zone2-rest"
           headline={directive.headline}
           subline={directive.subline}
           actions={directive.actions}
@@ -1706,7 +1729,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
       ) : directive.todayType === 'combat' ? (
         /* ─── COMBAT DAY — structured session cards with intensity badges ─── */
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+        <motion.div key="zone2-combat" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           {(() => {
             const allCombatLogged = directive.todayCombatSessions.length > 0 && directive.todayCombatSessions.every(s => s.logged);
             const loggedCount = directive.todayCombatSessions.filter(s => s.logged).length;
@@ -1865,6 +1888,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       ) : nextWorkout ? (
         /* ─── LIFT DAY (or both) — Mission Briefing Card ─── */
         <motion.div
+          key="zone2-lift"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
@@ -2098,6 +2122,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
         /* ─── MESOCYCLE COMPLETE — celebration with rich stats ─── */
         <motion.div
+          key="zone2-block-complete"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl overflow-hidden border border-primary-500/20 bg-gradient-to-br from-primary-500/10 via-grappler-800 to-accent-500/5"
@@ -2172,6 +2197,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       ) : (
         /* ─── NO PROGRAM — welcoming onboarding card ─── */
         <motion.div
+          key="zone2-onboard"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl overflow-hidden border border-grappler-700/50 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/10"

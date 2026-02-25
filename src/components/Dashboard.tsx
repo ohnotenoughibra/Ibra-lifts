@@ -551,7 +551,7 @@ export default function Dashboard({
 
   return (
     <ToastProvider>
-    <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top">
         {/* Row 1: Identity + Key Actions */}
@@ -677,7 +677,7 @@ export default function Dashboard({
       {activeWorkout && workoutMinimized && (
         <button
           onClick={resumeWorkout}
-          className="fixed bottom-[68px] left-3 right-3 z-30 safe-area-bottom"
+          className="fixed bottom-[68px] left-3 right-3 z-30 safe-area-bottom will-change-transform"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -703,7 +703,7 @@ export default function Dashboard({
 
       {/* Bottom Navigation — Home, Program, [+], Explore, Progress */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom will-change-transform"
         role="tablist"
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}

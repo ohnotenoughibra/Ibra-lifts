@@ -526,9 +526,9 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-xl border-b border-grappler-800 p-4 safe-area-top">
+      <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
           <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm">
             <X className="w-5 h-5" />

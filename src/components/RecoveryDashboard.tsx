@@ -253,13 +253,13 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
 
   return (
     <motion.div
-      className="min-h-screen bg-grappler-900 pb-24"
+      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3 safe-area-top">
+      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
           <button aria-label="Go back"
             onClick={onClose}

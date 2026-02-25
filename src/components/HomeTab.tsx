@@ -78,6 +78,7 @@ import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import InsightCard from './InsightCard';
+import DashboardInsights from './DashboardInsights';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { getDockSuggestions } from '@/lib/tool-affinity';
 import { hapticMedium } from '@/lib/haptics';
@@ -1451,6 +1452,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           {criticalAlerts.map(card => card)}
         </div>
       )}
+
+      {/* ─── PULSE — analysis engine previews, always visible ─── */}
+      <DashboardInsights onNavigate={onNavigate} />
 
       {/* ═══════════════════════════════════════════════════════════════════
           ZONE 2: THE DIRECTIVE — single adaptive card (with Start Workout)

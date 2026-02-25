@@ -35,7 +35,7 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
-import { isCurrentWeek, badges as allBadges } from '@/lib/gamification';
+import { isCurrentWeek, computeChallengeProgress, badges as allBadges } from '@/lib/gamification';
 import { calculate1RM, VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { generateWorkoutShareCard } from '@/lib/share-card';
 import {
@@ -362,8 +362,13 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
 }
 
 function WeeklyChallengeCard({ gamificationStats }: { gamificationStats: GamificationStats }) {
-  const challenge = gamificationStats.weeklyChallenge;
-  if (!challenge || !isCurrentWeek(challenge)) return null;
+  const storedChallenge = gamificationStats.weeklyChallenge;
+  const workoutLogs = useAppStore(s => s.workoutLogs);
+  const trainingSessions = useAppStore(s => s.trainingSessions);
+  if (!storedChallenge || !isCurrentWeek(storedChallenge)) return null;
+
+  // Compute real progress from actual data — stored counters can drift
+  const challenge = computeChallengeProgress(storedChallenge, workoutLogs, trainingSessions);
 
   return (
     <div className="card p-4">

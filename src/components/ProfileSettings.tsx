@@ -228,7 +228,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
       resetStore: s.resetStore, setUser: s.setUser, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
       colorTheme: s.colorTheme, setColorTheme: s.setColorTheme, homeGymEquipment: s.homeGymEquipment, setHomeGymEquipment: s.setHomeGymEquipment,
-      recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: s.workoutLogs.length,
+      recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: (s.workoutLogs || []).length,
     }))
   );
   const { data: session } = useSession();
@@ -257,9 +257,10 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const [editingLift, setEditingLift] = useState<string | null>(null);
   const [liftDraft, setLiftDraft] = useState('');
 
-  const progress = levelProgress(gamificationStats.totalPoints);
-  const pointsNeeded = pointsToNextLevel(gamificationStats.totalPoints);
-  const earnedBadgeIds = new Set(gamificationStats.badges.map(b => b.badgeId));
+  const progress = levelProgress(gamificationStats?.totalPoints ?? 0);
+  const pointsNeeded = pointsToNextLevel(gamificationStats?.totalPoints ?? 0);
+  const badgesList = Array.isArray(gamificationStats?.badges) ? gamificationStats.badges : [];
+  const earnedBadgeIds = new Set(badgesList.map(b => b.badgeId));
 
   // ── Email verification ────────────────────────────────────────────────────
   useEffect(() => {
@@ -1003,7 +1004,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             { value: gamificationStats.totalWorkouts, label: 'Workouts' },
             { value: gamificationStats.personalRecords, label: 'PRs' },
             { value: gamificationStats.currentStreak, label: 'Streak' },
-            { value: gamificationStats.badges.length, label: 'Badges' },
+            { value: badgesList.length, label: 'Badges' },
           ]).map((s) => (
             <div key={s.label} className="text-center py-2">
               <span className="text-xl font-black text-grappler-50 tabular-nums block leading-none">{s.value}</span>
@@ -1025,9 +1026,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             <div className="flex items-center gap-1.5">
               <Trophy className="w-3.5 h-3.5 text-yellow-500" />
               <h3 className="text-xs font-semibold text-grappler-100">Achievements</h3>
-              <span className="text-[10px] text-grappler-500">{gamificationStats.badges.length}/{badges.length}</span>
+              <span className="text-[10px] text-grappler-500">{badgesList.length}/{badges.length}</span>
             </div>
-            {gamificationStats.badges.length > 0 && (
+            {badgesList.length > 0 && (
               <button
                 onClick={() => { setShowAllBadges(!showAllBadges); hapticLight(); }}
                 className="text-[10px] text-primary-400 hover:text-primary-300 font-medium"
@@ -1037,11 +1038,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             )}
           </div>
 
-          {gamificationStats.badges.length > 0 ? (
+          {badgesList.length > 0 ? (
             <div className={cn(
               showAllBadges ? 'grid grid-cols-5 gap-2' : 'flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-0.5 px-0.5'
             )}>
-              {(showAllBadges ? gamificationStats.badges : gamificationStats.badges.slice(0, 8)).map((ub) => (
+              {(showAllBadges ? badgesList : badgesList.slice(0, 8)).map((ub) => (
                 <button
                   key={ub.id}
                   onClick={() => { hapticLight(); setSelectedBadge({ badge: ub.badge, earned: true, earnedAt: ub.earnedAt }); }}

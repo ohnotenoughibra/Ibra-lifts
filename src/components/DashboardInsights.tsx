@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Activity, Zap, TrendingUp, TrendingDown, Shield, AlertTriangle,
-  Target, Trophy, BarChart3, HeartPulse, Brain, Dumbbell, ChevronRight,
+  Target, Trophy, BarChart3, HeartPulse, Brain, Dumbbell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -32,76 +32,19 @@ const ICON_MAP = {
   dumbbell: Dumbbell,
 } as const;
 
-// ─── Color Configs ────────────────────────────────────────────────────────────
+// ─── Chip color configs — minimal: dot + text colors ──────────────────────────
 
-const COLOR_CONFIG = {
-  green:   { bg: 'bg-green-500/10',  border: 'border-green-500/25',  icon: 'text-green-400',  status: 'text-green-400',  value: 'text-green-300' },
-  blue:    { bg: 'bg-blue-500/10',   border: 'border-blue-500/25',   icon: 'text-blue-400',   status: 'text-blue-400',   value: 'text-blue-300' },
-  yellow:  { bg: 'bg-yellow-500/10', border: 'border-yellow-500/25', icon: 'text-yellow-400', status: 'text-yellow-400', value: 'text-yellow-300' },
-  red:     { bg: 'bg-red-500/10',    border: 'border-red-500/25',    icon: 'text-red-400',    status: 'text-red-400',    value: 'text-red-300' },
-  purple:  { bg: 'bg-purple-500/10', border: 'border-purple-500/25', icon: 'text-purple-400', status: 'text-purple-400', value: 'text-purple-300' },
-  amber:   { bg: 'bg-amber-500/10',  border: 'border-amber-500/25',  icon: 'text-amber-400',  status: 'text-amber-400',  value: 'text-amber-300' },
-  emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', icon: 'text-emerald-400', status: 'text-emerald-400', value: 'text-emerald-300' },
-  sky:     { bg: 'bg-sky-500/10',    border: 'border-sky-500/25',    icon: 'text-sky-400',    status: 'text-sky-400',    value: 'text-sky-300' },
-  orange:  { bg: 'bg-orange-500/10', border: 'border-orange-500/25', icon: 'text-orange-400', status: 'text-orange-400', value: 'text-orange-300' },
+const CHIP_COLORS = {
+  green:   { dot: 'bg-green-400',   text: 'text-green-300',   bg: 'bg-green-500/8',   border: 'border-green-500/20' },
+  blue:    { dot: 'bg-blue-400',    text: 'text-blue-300',    bg: 'bg-blue-500/8',    border: 'border-blue-500/20' },
+  yellow:  { dot: 'bg-yellow-400',  text: 'text-yellow-300',  bg: 'bg-yellow-500/8',  border: 'border-yellow-500/20' },
+  red:     { dot: 'bg-red-400',     text: 'text-red-300',     bg: 'bg-red-500/8',     border: 'border-red-500/20' },
+  purple:  { dot: 'bg-purple-400',  text: 'text-purple-300',  bg: 'bg-purple-500/8',  border: 'border-purple-500/20' },
+  amber:   { dot: 'bg-amber-400',   text: 'text-amber-300',   bg: 'bg-amber-500/8',   border: 'border-amber-500/20' },
+  emerald: { dot: 'bg-emerald-400', text: 'text-emerald-300', bg: 'bg-emerald-500/8', border: 'border-emerald-500/20' },
+  sky:     { dot: 'bg-sky-400',     text: 'text-sky-300',     bg: 'bg-sky-500/8',     border: 'border-sky-500/20' },
+  orange:  { dot: 'bg-orange-400',  text: 'text-orange-300',  bg: 'bg-orange-500/8',  border: 'border-orange-500/20' },
 } as const;
-
-// ─── Single Tile ──────────────────────────────────────────────────────────────
-
-function InsightTile({
-  insight,
-  onTap,
-  index,
-}: {
-  insight: DashboardInsight;
-  onTap: (target: OverlayView) => void;
-  index: number;
-}) {
-  const Icon = ICON_MAP[insight.icon] || Activity;
-  const colors = COLOR_CONFIG[insight.color] || COLOR_CONFIG.blue;
-
-  return (
-    <motion.button
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      onClick={() => onTap(insight.target)}
-      className={cn(
-        'w-full rounded-xl border p-3 text-left transition-all active:scale-[0.97]',
-        colors.bg, colors.border,
-        'hover:brightness-110',
-      )}
-    >
-      <div className="flex items-start gap-2.5">
-        {/* Icon + Value column */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0 min-w-[40px]">
-          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', colors.bg)}>
-            <Icon className={cn('w-4 h-4', colors.icon)} />
-          </div>
-          <span className={cn('text-sm font-black tabular-nums leading-none', colors.value)}>
-            {insight.value}
-          </span>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <h4 className="text-xs font-bold text-grappler-200 truncate">{insight.headline}</h4>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <span className={cn('text-[10px] font-semibold uppercase tracking-wide', colors.status)}>
-                {insight.status}
-              </span>
-              <ChevronRight className="w-3 h-3 text-grappler-600" />
-            </div>
-          </div>
-          <p className="text-[11px] text-grappler-400 leading-snug mt-0.5 line-clamp-2">
-            {insight.body}
-          </p>
-        </div>
-      </div>
-    </motion.button>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -129,7 +72,6 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
   const insights = useMemo(() => {
     if (workoutLogs.length < 3) return [];
 
-    // Compute analysis data
     const acwr = calculateEnhancedACWR(workoutLogs, trainingSessions);
     const fatigueDebt = calculateFatigueDebt(workoutLogs, wearableHistory);
     const hardMetrics = calculateHardMetrics(workoutLogs, currentMesocycle?.id ?? null);
@@ -137,7 +79,6 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
     const volumeGauges = calculateMuscleVolumeGauges(workoutLogs);
     const allPRs = extractPRTimeline(workoutLogs);
 
-    // This week's workout count
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const weeklyWorkoutCount = workoutLogs.filter(l => new Date(l.date).getTime() >= weekAgo).length;
@@ -158,25 +99,34 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
   if (insights.length === 0) return null;
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2 px-0.5">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-grappler-500">
-          Pulse
-        </span>
-        <span className="text-[10px] text-grappler-600">
-          tap to explore
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {insights.map((insight, i) => (
-          <InsightTile
+    <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+      {insights.map((insight, i) => {
+        const colors = CHIP_COLORS[insight.color] || CHIP_COLORS.blue;
+        const Icon = ICON_MAP[insight.icon] || Activity;
+
+        return (
+          <motion.button
             key={insight.id}
-            insight={insight}
-            onTap={onNavigate}
-            index={i}
-          />
-        ))}
-      </div>
-    </section>
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.04, duration: 0.2 }}
+            onClick={() => onNavigate(insight.target)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 flex-shrink-0',
+              'active:scale-95 transition-transform',
+              colors.bg, colors.border,
+            )}
+          >
+            <Icon className={cn('w-3 h-3', colors.text)} />
+            <span className={cn('text-[11px] font-bold tabular-nums whitespace-nowrap', colors.text)}>
+              {insight.value}
+            </span>
+            <span className="text-[10px] text-grappler-500 whitespace-nowrap">
+              {insight.status}
+            </span>
+          </motion.button>
+        );
+      })}
+    </div>
   );
 }

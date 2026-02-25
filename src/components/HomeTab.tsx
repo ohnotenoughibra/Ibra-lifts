@@ -369,7 +369,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog,
+    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
@@ -379,6 +379,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
+      workoutSkips: s.workoutSkips,
     }))
   );
   const { showToast } = useToast();
@@ -472,8 +473,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
       macroTargets, waterLog, injuryLog, quickLogs, competitions,
+      workoutSkips,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {

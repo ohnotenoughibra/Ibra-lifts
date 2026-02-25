@@ -50,6 +50,10 @@
 - `SorenessCheck.tsx` (~630) — Muscle soreness tracking
 - `FatigueOverlay.tsx` (~600) — Fatigue warnings
 
+### Dashboard Insights
+- `DashboardInsights.tsx` (~160) — Pulse strip: surfaces analysis engine previews (ACWR, fatigue, strength, volume, PRs, recovery) as compact tappable tiles on HomeTab. Uses `dashboard-insights.ts` engine.
+- `TrainingLoadDashboard.tsx` (~280) — Full ACWR dashboard with zone bar, weekly load chart, 28-day heatmap, actionable CTAs
+
 ### Progress & Analytics
 - `ProgressCharts.tsx` (~1,090) — Charts and visualizations
 - `ProgressiveOverload.tsx` (~640) — Overload tracking

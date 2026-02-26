@@ -507,34 +507,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getVolumeGaps(workoutLogs, user.equipment, user.availableEquipment);
   }, [user, workoutLogs]);
 
-  // ─── Insight Summary — context-aware toggle text ───
-  const insightSummary = useMemo(() => {
-    const parts: string[] = [];
-
-    // Volume gaps — most actionable signal
-    if (volumeGaps.length > 0) {
-      const zeroMuscles = volumeGaps.filter(g => g.currentSets === 0);
-      if (zeroMuscles.length > 0) {
-        parts.push(`${zeroMuscles.length} muscle${zeroMuscles.length > 1 ? 's' : ''} at 0 vol`);
-      } else {
-        parts.push(`${volumeGaps.length} below MEV`);
-      }
-    }
-
-    // Win or consistency
-    if (weeklyInsights.length > 0) {
-      const win = weeklyInsights.find(i => i.type === 'win');
-      if (win) parts.push(win.label === 'Big Win' ? `${synthesis.stats.prs} PR${synthesis.stats.prs !== 1 ? 's' : ''}` : 'Consistent');
-    }
-
-    // Protein status
-    if (macroTargets.protein > 0) {
-      parts.push(`${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g protein`);
-    }
-
-    return parts.length > 0 ? parts.join(' · ') : 'View coaching insights';
-  }, [volumeGaps, weeklyInsights, synthesis, macroTargets, todayProtein]);
-
   const postWorkoutCoaching = useMemo(() => {
     if (!lastCompletedWorkout) return null;
     return generatePostWorkoutCoachingLine(
@@ -780,6 +752,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     if (phase === 'pm') return `Afternoon window. Readiness: ${directive.readinessLevel}.`;
     return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
   }, [directive, macroTargets, todayProtein, hour, sleepHours]);
+
+  // ─── Insight Summary — context-aware toggle text ───
+  const insightSummary = useMemo(() => {
+    const parts: string[] = [];
+
+    // Volume gaps — most actionable signal
+    if (volumeGaps.length > 0) {
+      const zeroMuscles = volumeGaps.filter(g => g.currentSets === 0);
+      if (zeroMuscles.length > 0) {
+        parts.push(`${zeroMuscles.length} muscle${zeroMuscles.length > 1 ? 's' : ''} at 0 vol`);
+      } else {
+        parts.push(`${volumeGaps.length} below MEV`);
+      }
+    }
+
+    // Win or consistency
+    if (weeklyInsights.length > 0) {
+      const win = weeklyInsights.find(i => i.type === 'win');
+      if (win) parts.push(win.label === 'Big Win' ? `${synthesis.stats.prs} PR${synthesis.stats.prs !== 1 ? 's' : ''}` : 'Consistent');
+    }
+
+    // Protein status
+    if (macroTargets.protein > 0) {
+      parts.push(`${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g protein`);
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : 'View coaching insights';
+  }, [volumeGaps, weeklyInsights, synthesis, macroTargets, todayProtein]);
 
   // ─── Sport Nutrition Tip icons ───
   const tipIconMap: Record<string, typeof Zap> = {

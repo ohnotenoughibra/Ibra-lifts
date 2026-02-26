@@ -402,6 +402,11 @@ interface AppState {
   deleteDietPhaseFromHistory: (id: string) => void;
   editDietPhaseInHistory: (id: string, updates: Partial<CompletedDietPhase>) => void;
 
+  // Periodized nutrition plan actions
+  setNutritionPeriodPlan: (plan: NutritionPeriodPlan | null) => void;
+  advanceNutritionPhase: () => void;
+  incrementNutritionPhaseWeek: () => void;
+
   // Meal stamp actions
   addMealStamp: (stamp: Omit<MealStamp, 'id' | 'createdAt' | 'timesUsed'>) => void;
   deleteMealStamp: (id: string) => void;

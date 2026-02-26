@@ -40,9 +40,9 @@ import {
   Pause,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
-import { calculate1RM } from '@/lib/workout-generator';
+import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
+import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, getExerciseById, ExerciseRecommendation } from '@/lib/exercises';
 import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
@@ -228,6 +228,10 @@ export default function ActiveWorkout() {
   const preWhoopSnapshot = useRef<{ session: any; exerciseLogs: any } | null>(null);
   const [grapplingToday, setGrapplingToday] = useState<'none' | 'light' | 'moderate' | 'hard'>('none');
   const [showGrapplingQ, setShowGrapplingQ] = useState(true);
+
+  // ── Volume Gap Fill prompt state ──
+  const [showVolumeGapPrompt, setShowVolumeGapPrompt] = useState(false);
+  const [volumeGapDismissed, setVolumeGapDismissed] = useState(false);
   const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
@@ -928,6 +932,32 @@ export default function ActiveWorkout() {
       return true;
     });
   }, [activeWorkout, user, addExerciseSearch, addExerciseFilter, profileEquipment]);
+
+  // ── Post-workout volume gaps (includes current session's work) ──
+  const postWorkoutVolumeGaps = useMemo(() => {
+    if (!activeWorkout || !user) return [];
+    // Build a synthetic WorkoutLog from the in-progress session so getVolumeGaps
+    // counts the sets the user just did before suggesting gaps
+    const syntheticLog: WorkoutLog = {
+      id: 'active-session',
+      userId: user.id || '',
+      mesocycleId: '',
+      sessionId: '',
+      date: new Date(),
+      exercises: activeWorkout.exerciseLogs,
+      totalVolume: 0,
+      duration: 0,
+      overallRPE: 0,
+      soreness: 0,
+      energy: 0,
+      completed: true,
+    };
+    return getVolumeGaps(
+      [...storeWorkoutLogs, syntheticLog],
+      user.equipment,
+      user.availableEquipment,
+    );
+  }, [activeWorkout, user, storeWorkoutLogs]);
 
   // Get previous performance for an alternative exercise
   const getAltHistory = (exerciseId: string) => {
@@ -2649,7 +2679,13 @@ export default function ActiveWorkout() {
             </p>
           </div>
           <button
-            onClick={() => setShowFinishModal(true)}
+            onClick={() => {
+              if (postWorkoutVolumeGaps.length > 0 && !volumeGapDismissed) {
+                setShowVolumeGapPrompt(true);
+              } else {
+                setShowFinishModal(true);
+              }
+            }}
             className="btn btn-primary btn-sm"
             aria-label="Finish workout"
           >
@@ -3844,6 +3880,129 @@ export default function ActiveWorkout() {
                   className="btn btn-md w-full bg-red-500/20 hover:bg-red-500/30 text-red-400"
                 >
                   Discard Workout
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Volume Gap Fill Prompt */}
+      <AnimatePresence>
+        {showVolumeGapPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="card p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Dumbbell className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-bold text-grappler-50">Got extra time?</h2>
+              </div>
+              <p className="text-sm text-grappler-400 mb-4">
+                {postWorkoutVolumeGaps.length} muscle group{postWorkoutVolumeGaps.length !== 1 ? 's' : ''} still below minimum effective volume this week.
+              </p>
+
+              <div className="space-y-2 mb-5">
+                {postWorkoutVolumeGaps.slice(0, 5).map((gap) => {
+                  const exercise = gap.recommendedExercise
+                    ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
+                    : null;
+                  const setsNeeded = Math.min(gap.deficit, 3); // Cap at 3 sets to keep it quick
+                  return (
+                    <div
+                      key={gap.muscle}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-grappler-700 bg-grappler-800/50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-grappler-100 capitalize">
+                          {gap.muscle}
+                          <span className="ml-2 text-xs font-normal text-amber-400">
+                            {gap.currentSets}/{gap.mev} sets
+                          </span>
+                        </p>
+                        {gap.recommendedExercise && (
+                          <p className="text-xs text-grappler-400 truncate mt-0.5">
+                            {gap.recommendedExercise} · {setsNeeded} sets × 10-12 reps
+                          </p>
+                        )}
+                      </div>
+                      {exercise && (
+                        <button
+                          onClick={() => {
+                            addBonusExercise(exercise, setsNeeded, 10);
+                            // Navigate to the new exercise
+                            setTimeout(() => {
+                              if (activeWorkout) {
+                                setCurrentExerciseIndex(activeWorkout.session.exercises.length);
+                                setCurrentSetIndex(0);
+                              }
+                            }, 50);
+                            setShowVolumeGapPrompt(false);
+                            setVolumeGapDismissed(true);
+                          }}
+                          className="shrink-0 px-3 py-1.5 rounded-lg bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-xs font-semibold transition-colors"
+                        >
+                          + Add
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {postWorkoutVolumeGaps.length > 5 && (
+                <p className="text-xs text-grappler-500 mb-4 text-center">
+                  +{postWorkoutVolumeGaps.length - 5} more below MEV
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowVolumeGapPrompt(false);
+                    setVolumeGapDismissed(true);
+                    setShowFinishModal(true);
+                  }}
+                  className="btn btn-secondary btn-md flex-1"
+                >
+                  Skip & Finish
+                </button>
+                <button
+                  onClick={() => {
+                    // Add ALL gap exercises at once
+                    const added: string[] = [];
+                    for (const gap of postWorkoutVolumeGaps.slice(0, 5)) {
+                      const exercise = gap.recommendedExercise
+                        ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
+                        : null;
+                      if (exercise) {
+                        const setsNeeded = Math.min(gap.deficit, 3);
+                        addBonusExercise(exercise, setsNeeded, 10);
+                        added.push(exercise.name);
+                      }
+                    }
+                    if (added.length > 0 && activeWorkout) {
+                      setTimeout(() => {
+                        setCurrentExerciseIndex(activeWorkout.session.exercises.length);
+                        setCurrentSetIndex(0);
+                      }, 50);
+                    }
+                    setShowVolumeGapPrompt(false);
+                    setVolumeGapDismissed(true);
+                  }}
+                  className="btn btn-primary btn-md flex-1"
+                >
+                  Add All ({postWorkoutVolumeGaps.filter(g => g.recommendedExercise).length})
                 </button>
               </div>
             </motion.div>

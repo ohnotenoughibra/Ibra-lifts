@@ -80,7 +80,8 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `exercise-recommender.ts` — Weak-point-based exercise suggestions
 
 ### Nutrition
-- `diet-coach.ts` — BMR, TDEE, macros, RED-S warnings
+- `diet-coach.ts` — BMR, TDEE, macros, RED-S warnings, phase-to-macro bridge
+- `periodization-planner.ts` — Annual nutrition phase sequencing (massing/cut/maintenance cycles), training-nutrition coupling, competition-anchored planning, metabolic adaptation detection
 - `contextual-nutrition.ts` — Pre/intra/post fuel, illness-aware
 - `sport-nutrition-engine.ts` — Combat sport nutrition phases
 - `fight-camp-engine.ts` — Competition nutrition phasing

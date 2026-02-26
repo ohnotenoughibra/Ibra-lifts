@@ -1181,6 +1181,99 @@ export interface ElectrolyteNeeds {
   timing: string;
 }
 
+// ── Periodized Nutrition Planning ────────────────────────────────────────────
+
+/**
+ * Nutrition phase types — each represents a distinct physiological purpose.
+ *
+ * massing:      Caloric surplus for muscle gain. Paired with hypertrophy training.
+ * maintenance:  TDEE calories. Mandatory between phases for hormonal recalibration.
+ * mini_cut:     Short aggressive deficit (3-6 weeks) between massing blocks.
+ * fat_loss:     Moderate deficit (8-16 weeks) for significant body composition change.
+ * diet_break:   1-2 weeks at TDEE during extended cuts to counteract metabolic adaptation.
+ * fight_camp:   Competition prep — delegates to fight-camp-engine when active.
+ * recovery:     Post-competition or post-cut reverse diet.
+ *
+ * References:
+ *   - Helms et al. 2019: Sustainable nutrition paradigm in physique sport
+ *   - Israetel/RP Strength: Mesocycle-aligned nutrition phases
+ *   - Byrne et al. 2017 (MATADOR): Intermittent energy restriction preserves FFM
+ *   - ISSN 2025: Position stand on nutrition for MMA and combat sports
+ */
+export type NutritionPhaseType =
+  | 'massing'
+  | 'maintenance'
+  | 'mini_cut'
+  | 'fat_loss'
+  | 'diet_break'
+  | 'fight_camp'
+  | 'recovery';
+
+/** Why the system recommends transitioning to a new phase. */
+export type PhaseTransitionReason =
+  | 'phase_duration_complete'     // Planned duration reached
+  | 'competition_approaching'     // Fight/tournament date forces phase change
+  | 'body_fat_threshold'          // BF% reached upper/lower bound
+  | 'metabolic_adaptation'        // Weight loss stalled despite adherence
+  | 'performance_decline'         // Strength dropping >10% during deficit
+  | 'adherence_breakdown'         // <60% adherence for 2+ weeks
+  | 'weight_target_reached'       // Hit goal weight
+  | 'recovery_complete'           // Post-comp recovery period finished
+  | 'manual_override';            // User chose to switch
+
+/** A single planned nutrition phase within an annual periodization plan. */
+export interface PlannedNutritionPhase {
+  id: string;
+  type: NutritionPhaseType;
+  startDate: string;              // ISO date
+  endDate: string;                // ISO date
+  plannedWeeks: number;
+  /** Calorie target relative to TDEE: e.g. 1.10 = 10% surplus, 0.80 = 20% deficit */
+  calorieFactor: number;
+  /** Target rate of weight change (kg/week). Negative = loss, 0 = maintain, positive = gain */
+  targetRateKgPerWeek: number;
+  /** Protein target g/kg bodyweight */
+  proteinGKg: number;
+  /** Recommended training block to pair with this phase */
+  pairedTrainingFocus: BlockFocus;
+  /** Why this phase was recommended */
+  reasoning: string;
+  /** Linked competition ID if this phase serves a competition */
+  competitionId?: string;
+  /** Whether a diet break should be inserted at the midpoint */
+  dietBreakRecommended: boolean;
+}
+
+/** The full annual periodization plan. */
+export interface NutritionPeriodPlan {
+  id: string;
+  createdAt: string;              // ISO date
+  updatedAt: string;              // ISO date
+  phases: PlannedNutritionPhase[];
+  /** Index into phases[] for the currently active phase */
+  activePhaseIndex: number;
+  /** Weeks completed within the active phase */
+  weeksIntoActivePhase: number;
+  /** Current status of the plan */
+  status: 'active' | 'needs_review' | 'completed';
+}
+
+/** Snapshot of the current phase for display/integration. */
+export interface ActivePhaseContext {
+  phase: PlannedNutritionPhase;
+  weeksCompleted: number;
+  weeksRemaining: number;
+  /** e.g. "Week 3 of 8 · Massing" */
+  label: string;
+  /** e.g. "14 weeks to fight camp" */
+  lookAhead: string | null;
+  /** Whether the system recommends transitioning now */
+  transitionRecommended: boolean;
+  transitionReason: PhaseTransitionReason | null;
+  /** The recommended next phase if transition is warranted */
+  recommendedNextPhase: NutritionPhaseType | null;
+}
+
 // ── Diet Phase / Nutrition Coaching ─────────────────────────────────────────
 export type DietGoal = 'cut' | 'maintain' | 'bulk';
 

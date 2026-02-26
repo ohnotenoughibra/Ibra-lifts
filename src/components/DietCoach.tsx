@@ -12,9 +12,16 @@ import {
   calculateAdherence,
   calculateEnergyAvailability,
   estimateDailyExerciseCost,
+  getPhaseDietParams,
 } from '@/lib/diet-coach';
-import { DietGoal, BiologicalSex } from '@/lib/types';
+import { DietGoal, BiologicalSex, NutritionPhaseType } from '@/lib/types';
 import { detectFightCampPhase } from '@/lib/fight-camp-engine';
+import {
+  generateNutritionPlan,
+  getActivePhaseContext,
+  advancePhase,
+  insertDietBreak,
+} from '@/lib/periodization-planner';
 import {
   Scale,
   TrendingDown,
@@ -92,6 +99,9 @@ export default function DietCoach() {
     competitions,
     bodyComposition,
     workoutLogs,
+    nutritionPeriodPlan,
+    setNutritionPeriodPlan,
+    advanceNutritionPhase,
   } = useAppStore();
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
@@ -195,6 +205,70 @@ export default function DietCoach() {
   const latestBodyFat = bodyComposition?.length > 0
     ? bodyComposition[bodyComposition.length - 1]?.bodyFatPercent
     : undefined;
+
+  // Periodized nutrition plan context
+  const phaseContext = useMemo(() => {
+    if (!nutritionPeriodPlan) return null;
+    return getActivePhaseContext(
+      nutritionPeriodPlan,
+      bodyWeightLog,
+      weeklyCheckIns,
+      competitions || [],
+    );
+  }, [nutritionPeriodPlan, bodyWeightLog, weeklyCheckIns, competitions]);
+
+  const handleGeneratePlan = () => {
+    const plan = generateNutritionPlan({
+      competitions: competitions || [],
+      currentWeightKg: bodyWeightKg,
+      bodyFatPercent: latestBodyFat ?? null,
+      sex: formSex,
+      dietPhaseHistory,
+      currentTrainingFocus: null,
+      isCombatAthlete,
+    });
+    setNutritionPeriodPlan(plan);
+  };
+
+  const handleAdvancePhase = () => {
+    if (!nutritionPeriodPlan) return;
+    advanceNutritionPhase();
+    // Also sync the active diet phase with the new periodization phase
+    const nextIdx = nutritionPeriodPlan.activePhaseIndex + 1;
+    if (nextIdx < nutritionPeriodPlan.phases.length) {
+      const nextPhase = nutritionPeriodPlan.phases[nextIdx];
+      const params = getPhaseDietParams(nextPhase);
+      const newMacros = calculateMacros({
+        bodyWeightKg,
+        heightCm,
+        age,
+        sex: formSex,
+        goal: params.goal,
+        activityMultiplier,
+        bodyFatPercent: latestBodyFat,
+        isCombatAthlete,
+        occupation: combatNutritionProfile?.occupation,
+        weeklyTrainingSessions: recentTrainingSessions,
+        weeklyLiftingSessions: recentLiftingSessions,
+      });
+      endDietPhase();
+      startDietPhase({
+        goal: params.goal,
+        startDate: new Date().toISOString().split('T')[0],
+        startWeightKg: bodyWeightKg,
+        targetRatePerWeek: nextPhase.targetRateKgPerWeek,
+        currentMacros: newMacros,
+        weeksCompleted: 0,
+        isActive: true,
+      });
+    }
+  };
+
+  const handleInsertDietBreak = () => {
+    if (!nutritionPeriodPlan) return;
+    const updated = insertDietBreak(nutritionPeriodPlan);
+    setNutritionPeriodPlan(updated);
+  };
 
   // Energy availability calculation (for display)
   const energyAvailability = useMemo(() => {
@@ -379,6 +453,26 @@ export default function DietCoach() {
             className="overflow-hidden"
           >
             <div className="p-3 pt-2 space-y-3">
+              {/* Periodized nutrition timeline */}
+              {nutritionPeriodPlan && nutritionPeriodPlan.phases.length > 0 && (
+                <PhaseTimeline
+                  plan={nutritionPeriodPlan}
+                  phaseContext={phaseContext}
+                  onAdvance={handleAdvancePhase}
+                  onInsertDietBreak={handleInsertDietBreak}
+                />
+              )}
+
+              {/* Generate plan CTA (when no plan exists but profile is complete) */}
+              {!nutritionPeriodPlan && hasProfileData && !showSetup && activeDietPhase && (
+                <button
+                  onClick={handleGeneratePlan}
+                  className="w-full py-2 px-3 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 rounded-lg text-xs text-violet-300 transition-colors"
+                >
+                  Generate annual nutrition plan
+                </button>
+              )}
+
               {/* No active phase — show setup */}
               {!activeDietPhase && !showSetup && (
                 <div className="space-y-3">
@@ -1133,6 +1227,173 @@ export default function DietCoach() {
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+// ─── Phase Timeline ───
+
+const PHASE_COLORS: Record<NutritionPhaseType, { bg: string; border: string; text: string; label: string }> = {
+  massing: { bg: 'bg-green-500/20', border: 'border-green-500/30', text: 'text-green-400', label: 'Massing' },
+  maintenance: { bg: 'bg-blue-500/20', border: 'border-blue-500/30', text: 'text-blue-400', label: 'Maintenance' },
+  mini_cut: { bg: 'bg-orange-500/20', border: 'border-orange-500/30', text: 'text-orange-400', label: 'Mini-Cut' },
+  fat_loss: { bg: 'bg-red-500/20', border: 'border-red-500/30', text: 'text-red-400', label: 'Fat Loss' },
+  diet_break: { bg: 'bg-cyan-500/20', border: 'border-cyan-500/30', text: 'text-cyan-400', label: 'Diet Break' },
+  fight_camp: { bg: 'bg-amber-500/20', border: 'border-amber-500/30', text: 'text-amber-400', label: 'Fight Camp' },
+  recovery: { bg: 'bg-purple-500/20', border: 'border-purple-500/30', text: 'text-purple-400', label: 'Recovery' },
+};
+
+function PhaseTimeline({
+  plan,
+  phaseContext,
+  onAdvance,
+  onInsertDietBreak,
+}: {
+  plan: import('@/lib/types').NutritionPeriodPlan;
+  phaseContext: import('@/lib/types').ActivePhaseContext | null;
+  onAdvance: () => void;
+  onInsertDietBreak: () => void;
+}) {
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
+
+  // Calculate total plan duration for proportional widths
+  const totalWeeks = plan.phases.reduce((s, p) => s + p.plannedWeeks, 0);
+
+  return (
+    <div className="space-y-2">
+      {/* Timeline bar — horizontal, scrollable */}
+      <div className="flex gap-0.5 h-8 rounded-lg overflow-hidden">
+        {plan.phases.map((phase, i) => {
+          const colors = PHASE_COLORS[phase.type];
+          const isActive = i === plan.activePhaseIndex;
+          const isPast = i < plan.activePhaseIndex;
+          const widthPct = Math.max(8, (phase.plannedWeeks / totalWeeks) * 100);
+
+          return (
+            <button
+              key={phase.id}
+              onClick={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
+              className={`
+                relative flex items-center justify-center text-[10px] font-medium transition-all
+                ${colors.bg} ${isActive ? `${colors.border} border ring-1 ring-white/10` : 'border border-transparent'}
+                ${isPast ? 'opacity-40' : ''}
+                ${isActive ? 'z-10' : ''}
+              `}
+              style={{ width: `${widthPct}%`, minWidth: '32px' }}
+              title={`${colors.label} · ${phase.plannedWeeks}w`}
+            >
+              <span className={`truncate px-1 ${colors.text}`}>
+                {phase.plannedWeeks}w
+              </span>
+              {isActive && (
+                <span className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Active phase context line */}
+      {phaseContext && (
+        <div className="flex items-center justify-between">
+          <p className={`text-xs font-medium ${PHASE_COLORS[phaseContext.phase.type].text}`}>
+            {phaseContext.label}
+          </p>
+          {phaseContext.lookAhead && (
+            <p className="text-[10px] text-gray-500">{phaseContext.lookAhead}</p>
+          )}
+        </div>
+      )}
+
+      {/* Phase transition alert */}
+      {phaseContext?.transitionRecommended && phaseContext.transitionReason && (
+        <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-amber-300">
+                {phaseContext.transitionReason === 'phase_duration_complete'
+                  ? 'Phase complete — ready to transition'
+                  : phaseContext.transitionReason === 'metabolic_adaptation'
+                  ? 'Weight stalled despite good adherence — diet break recommended'
+                  : phaseContext.transitionReason === 'adherence_breakdown'
+                  ? 'Adherence dropping — consider switching to maintenance'
+                  : phaseContext.transitionReason === 'body_fat_threshold'
+                  ? 'Weight gain rate too fast — time to reassess'
+                  : 'Phase transition recommended'}
+              </p>
+              <div className="flex gap-2 mt-1.5">
+                {phaseContext.transitionReason === 'metabolic_adaptation' ? (
+                  <button
+                    onClick={onInsertDietBreak}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors"
+                  >
+                    Insert diet break
+                  </button>
+                ) : (
+                  <button
+                    onClick={onAdvance}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors flex items-center gap-0.5"
+                  >
+                    {phaseContext.recommendedNextPhase
+                      ? `Switch to ${PHASE_COLORS[phaseContext.recommendedNextPhase]?.label || phaseContext.recommendedNextPhase}`
+                      : 'Advance to next phase'}
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expanded phase detail */}
+      <AnimatePresence>
+        {expandedPhase && (() => {
+          const phase = plan.phases.find(p => p.id === expandedPhase);
+          if (!phase) return null;
+          const colors = PHASE_COLORS[phase.type];
+          const isActive = plan.phases.indexOf(phase) === plan.activePhaseIndex;
+
+          return (
+            <motion.div
+              key={expandedPhase}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className={`p-2.5 ${colors.bg} ${colors.border} border rounded-lg space-y-1.5`}>
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs font-medium ${colors.text}`}>{colors.label}</p>
+                  <p className="text-[10px] text-gray-500">
+                    {phase.startDate} → {phase.endDate}
+                  </p>
+                </div>
+                <p className="text-[10px] text-gray-400">{phase.reasoning}</p>
+                <div className="flex gap-3 text-[10px] text-gray-500">
+                  <span>{phase.plannedWeeks} weeks</span>
+                  <span>·</span>
+                  <span>{Math.round(phase.calorieFactor * 100)}% TDEE</span>
+                  <span>·</span>
+                  <span>{phase.proteinGKg}g/kg protein</span>
+                </div>
+                <div className="flex gap-3 text-[10px] text-gray-500">
+                  <span>Training: {phase.pairedTrainingFocus}</span>
+                  {phase.dietBreakRecommended && <span className="text-cyan-400">· Diet break at midpoint</span>}
+                </div>
+                {isActive && phaseContext && (
+                  <div className="pt-1 border-t border-white/5">
+                    <p className="text-[10px] text-gray-400">
+                      Week {phaseContext.weeksCompleted + 1} of {phase.plannedWeeks} · {phaseContext.weeksRemaining} weeks remaining
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+    </div>
   );
 }
 

@@ -93,6 +93,37 @@
 
 ---
 
+## In Progress: Periodized Diet + Training Integration
+
+### Design Principles
+- **First Principles**: Biology demands phase cycling. Training and nutrition are coupled variables. Competition dates are hard constraints.
+- **Unregretted User Seconds**: Zero configuration wizards. System infers from existing data. One-tap phase transitions. Glanceable timeline.
+
+### Architecture
+New Tier 1 engine: `src/lib/periodization-planner.ts`
+- Pure functions, no side effects
+- Inputs: competitions, weight, BF%, mesocycle state, diet history
+- Outputs: `NutritionPeriodPlan` (sequence of planned phases covering 6-12 months)
+
+Integration points:
+- `daily-directive.ts` → shows current phase + "Week 3 of Massing · 14 weeks to fight camp"
+- `diet-coach.ts` → macro targets derived from active planned phase
+- `block-suggestion.ts` → training block recommendations consider nutrition phase
+- `DietCoach.tsx` → timeline visualization + transition prompts
+- Store → new state for `nutritionPeriodPlan`
+
+### Tasks
+- [x] Research science + analyze codebase
+- [x] Design type system for periodization plan
+- [ ] Build `periodization-planner.ts` engine
+- [ ] Add store state + actions for nutrition period plan
+- [ ] Integrate with `daily-directive.ts` (phase context banner)
+- [ ] Integrate with `block-suggestion.ts` (nutrition-aware block recs)
+- [ ] Update `diet-coach.ts` to read from planned phases
+- [ ] Update docs (map.md, CLAUDE.md)
+
+---
+
 ## In Progress: Knowledge Library
 
 ### Design: "Unregrettable User Seconds"

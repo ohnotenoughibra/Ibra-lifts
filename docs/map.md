@@ -36,12 +36,13 @@ Living map of how the pieces connect. When you need to change something, look he
 | Contextual | `src/lib/contextual-nutrition.ts` | Pre/intra/post workout fuel, illness-aware adjustments |
 | Sport nutrition | `src/lib/sport-nutrition-engine.ts` | Combat sport phase selection, vegan/keto macros |
 | Fight camp | `src/lib/fight-camp-engine.ts` | Competition nutrition phasing (off-season → weigh-in → fight day) |
+| Periodization | `src/lib/periodization-planner.ts` | Annual nutrition phase sequencing (massing → maintenance → cut cycles), training-nutrition coupling |
 | Weight cut | `src/lib/weight-cut-engine.ts` | Safe phased cuts (0.7% BW/week), energy availability floor |
 | Electrolytes | `src/lib/electrolyte-engine.ts` | Sweat rate estimation, intra-training sodium/carbs |
 | Supplements | `src/lib/supplement-engine.ts` | Evidence-based stack (creatine, beta-alanine), competition pauses |
 | State | `src/lib/store.ts` lines 3017-3163 | Nutrition slice: meals, macroTargets, waterLog, dietPhase |
 
-**Flow**: `diet-coach` calculates targets from profile → user logs meals in `NutritionTracker` → `contextual-nutrition` adjusts around sessions → `fight-camp-engine` overrides during competition prep → `weight-cut-engine` enforces safety floors
+**Flow**: `periodization-planner` generates annual phase plan → `diet-coach` calculates targets per phase → user logs meals in `NutritionTracker` → `contextual-nutrition` adjusts around sessions → `fight-camp-engine` overrides during competition prep → `weight-cut-engine` enforces safety floors → `block-suggestion` recommends training blocks aligned to nutrition phase
 
 ---
 

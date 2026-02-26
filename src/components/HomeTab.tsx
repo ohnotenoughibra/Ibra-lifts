@@ -507,6 +507,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getVolumeGaps(workoutLogs, user.equipment, user.availableEquipment);
   }, [user, workoutLogs]);
 
+  // ─── Insight Summary — context-aware toggle text ───
+  const insightSummary = useMemo(() => {
+    const parts: string[] = [];
+
+    // Volume gaps — most actionable signal
+    if (volumeGaps.length > 0) {
+      const zeroMuscles = volumeGaps.filter(g => g.currentSets === 0);
+      if (zeroMuscles.length > 0) {
+        parts.push(`${zeroMuscles.length} muscle${zeroMuscles.length > 1 ? 's' : ''} at 0 vol`);
+      } else {
+        parts.push(`${volumeGaps.length} below MEV`);
+      }
+    }
+
+    // Win or consistency
+    if (weeklyInsights.length > 0) {
+      const win = weeklyInsights.find(i => i.type === 'win');
+      if (win) parts.push(win.label === 'Big Win' ? `${synthesis.stats.prs} PR${synthesis.stats.prs !== 1 ? 's' : ''}` : 'Consistent');
+    }
+
+    // Protein status
+    if (macroTargets.protein > 0) {
+      parts.push(`${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g protein`);
+    }
+
+    return parts.length > 0 ? parts.join(' · ') : 'View coaching insights';
+  }, [volumeGaps, weeklyInsights, synthesis, macroTargets, todayProtein]);
+
   const postWorkoutCoaching = useMemo(() => {
     if (!lastCompletedWorkout) return null;
     return generatePostWorkoutCoachingLine(
@@ -2375,19 +2403,21 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       <DashboardInsights onNavigate={onNavigate} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed, tools dock
+          COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed
           ═══════════════════════════════════════════════════════════════════ */}
       <div>
         <button
           onClick={() => setShowInsights(v => !v)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-grappler-400 hover:text-grappler-200 transition-colors"
+          className="w-full flex items-center justify-between gap-2 py-2.5 px-1 text-xs font-semibold text-grappler-400 hover:text-grappler-200 transition-colors"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          {showInsights ? 'Hide insights' : 'Show more insights'}
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
+          </div>
           <motion.span
             animate={{ rotate: showInsights ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="inline-flex"
+            className="inline-flex flex-shrink-0"
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </motion.span>
@@ -2404,13 +2434,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             >
               <div className="space-y-3 pt-1">
 
-                {/* ─── TIME-AWARE COACHING LINE ─── */}
-                <div className="flex items-start gap-2.5 px-1">
-                  <Sun className="w-3.5 h-3.5 text-grappler-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-grappler-400 leading-snug">{timeCoaching}</p>
-                </div>
-
-                {/* ─── PERSISTENT NUTRITION STRIP — protein + water ─── */}
+                {/* ─── NUTRITION STRIP — compact protein + water ─── */}
                 {macroTargets.protein > 0 && (
                   <div className="flex items-center gap-3 px-1">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -2441,139 +2465,112 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   </div>
                 )}
 
-                {/* ─── SPORT NUTRITION TIPS ─── */}
-                {sportTips.length > 0 && (
-                  <div className="space-y-1.5 px-1">
-                    {sportTips.map((tip, i) => {
-                      const Icon = tipIconMap[tip.icon] || Zap;
-                      return (
-                        <div key={i} className="flex items-start gap-2">
-                          <Icon className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', tip.color)} />
-                          <p className="text-xs text-grappler-300 leading-snug">{tip.text}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* ─── Wearable CTA — if no wearable connected ─── */}
-                {recoveryScore == null && (() => {
-                  const tier = getEffectiveTier(subscription, session?.user?.email);
-                  return hasFeatureAccess('wearable-integration', tier);
-                })() && accountAgeDays >= 7 && (
-                  <button
-                    onClick={() => onNavigate('wearable')}
-                    className="w-full rounded-xl p-2.5 border border-purple-500/30 bg-purple-500/10 flex items-center justify-between hover:bg-purple-500/15 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Watch className="w-4 h-4 text-purple-400" />
-                      <div className="text-left">
-                        <span className="text-xs font-medium text-grappler-200">Unlock smarter readiness</span>
-                        <p className="text-xs text-grappler-400">Connect Whoop — auto-adjust from HRV</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-purple-400 px-2 py-1 rounded-lg bg-purple-500/20">Connect</span>
-                  </button>
-                )}
-
                 {/* ─── Performance Readiness — nutrition-focused ─── */}
                 {!showReadiness && <PerformanceReadiness />}
 
-                {/* ─── INTEL FEED — priority-ranked compact chips ─── */}
+                {/* ─── INTEL FEED — flat, priority-ranked, no nested accordions ─── */}
                 {(() => {
-                  // Build intel items ranked by signal strength
                   const intelItems: { key: string; priority: number; content: React.ReactNode }[] = [];
 
-                  // P2: Top coaching insight (from weekly synthesis)
-                  if (showWeeklySynthesis && weeklyInsights.length > 0) {
-                    const topInsight = weeklyInsights[0];
-                    const INTEL_COLORS: Record<string, string> = {
-                      gold: 'border-l-yellow-400', green: 'border-l-green-400', red: 'border-l-red-400',
-                      amber: 'border-l-amber-400', blue: 'border-l-blue-400', purple: 'border-l-purple-400',
-                      primary: 'border-l-primary-400',
-                    };
-                    const INTEL_ICONS: Record<string, React.ReactNode> = {
-                      trophy: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
-                      trending: <TrendingUp className="w-3.5 h-3.5 text-green-400" />,
-                      alert: <AlertTriangle className="w-3.5 h-3.5 text-red-400" />,
-                      target: <Target className="w-3.5 h-3.5 text-primary-400" />,
-                      shield: <Shield className="w-3.5 h-3.5 text-purple-400" />,
-                      crosshair: <Crosshair className="w-3.5 h-3.5 text-blue-400" />,
-                    };
+                  const INTEL_ICONS: Record<string, React.ReactNode> = {
+                    trophy: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
+                    trending: <TrendingUp className="w-3.5 h-3.5 text-green-400" />,
+                    alert: <AlertTriangle className="w-3.5 h-3.5 text-red-400" />,
+                    target: <Target className="w-3.5 h-3.5 text-primary-400" />,
+                    shield: <Shield className="w-3.5 h-3.5 text-purple-400" />,
+                    crosshair: <Crosshair className="w-3.5 h-3.5 text-blue-400" />,
+                  };
+                  const INSIGHT_BG: Record<string, string> = {
+                    gold: 'bg-yellow-500/8 border-yellow-500/20', green: 'bg-green-500/8 border-green-500/20',
+                    red: 'bg-red-500/8 border-red-500/20', amber: 'bg-amber-500/8 border-amber-500/20',
+                    blue: 'bg-blue-500/8 border-blue-500/20', purple: 'bg-purple-500/8 border-purple-500/20',
+                    primary: 'bg-primary-500/10 border-primary-500/25',
+                  };
+
+                  // ── ACTION: Volume gaps (P1 — highest when present) ──
+                  if (volumeGaps.length > 0) {
+                    const topGaps = volumeGaps.slice(0, 4);
+                    const critical = volumeGaps.filter(g => g.currentSets === 0).length;
+                    const borderColor = critical > 0 ? 'border-red-500/30' : 'border-amber-500/30';
+                    const bgColor = critical > 0 ? 'from-red-500/10 to-rose-500/5' : 'from-amber-500/10 to-yellow-500/5';
+                    const iconColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
+                    const labelColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
 
                     intelItems.push({
-                      key: 'coaching',
-                      priority: topInsight.type === 'win' || topInsight.type === 'warning' ? 2 : 5,
+                      key: 'volume-gaps',
+                      priority: 1,
                       content: (
                         <button
-                          onClick={() => setWeeklyCoachingExpanded(v => v !== null ? !v : true)}
-                          className={cn(
-                            'w-full card px-3 py-2.5 text-left border-l-2 flex items-start gap-2.5 hover:bg-grappler-800/40 transition-colors',
-                            INTEL_COLORS[topInsight.color] || 'border-l-primary-400',
-                          )}
+                          onClick={handleQuickWorkout}
+                          className={cn('w-full rounded-xl p-3 border bg-gradient-to-r text-left hover:brightness-110 transition-all', borderColor, bgColor)}
                         >
-                          <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[topInsight.icon]}</span>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">{topInsight.label}</span>
-                            <p className="text-xs text-grappler-300 mt-0.5 leading-snug">{topInsight.text}</p>
-                            {weeklyInsights.length > 1 && (
-                              <p className="text-xs text-grappler-600 mt-1">+{weeklyInsights.length - 1} more insights ▾</p>
-                            )}
+                          <div className="flex items-start gap-2.5">
+                            <BarChart3 className={cn('w-4 h-4 flex-shrink-0 mt-0.5', iconColor)} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className={cn('text-xs font-bold uppercase tracking-wider', labelColor)}>Volume Gaps</span>
+                                <span className="text-xs text-grappler-500 font-medium">tap to fill →</span>
+                              </div>
+                              <div className="mt-2 space-y-1.5">
+                                {topGaps.map(gap => {
+                                  const pct = Math.round((gap.currentSets / gap.mev) * 100);
+                                  const barColor = gap.currentSets === 0 ? 'bg-red-400' : 'bg-amber-400';
+                                  return (
+                                    <div key={gap.muscle} className="flex items-center gap-2">
+                                      <span className="text-xs text-grappler-300 w-20 truncate capitalize">{gap.muscle}</span>
+                                      <div className="flex-1 h-1.5 bg-black/20 rounded-full overflow-hidden">
+                                        <div
+                                          className={cn('h-full rounded-full transition-all', barColor)}
+                                          style={{ width: `${Math.max(pct, 2)}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-xs tabular-nums text-grappler-400 w-14 text-right">
+                                        {gap.currentSets}/{gap.mev} sets
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {volumeGaps.length > 4 && (
+                                <p className="text-xs text-grappler-600 mt-1.5">+{volumeGaps.length - 4} more under MEV</p>
+                              )}
+                            </div>
                           </div>
                         </button>
                       ),
                     });
-
-                    // Expanded coaching — show all insights
-                    if (weeklyCoachingExpanded) {
-                      intelItems.push({
-                        key: 'coaching-expanded',
-                        priority: 2.5,
-                        content: (
-                          <CardErrorBoundary fallbackLabel="Weekly Coaching">
-                            <div className="card p-3 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Brain className="w-4 h-4 text-primary-400" />
-                                  <span className="text-xs font-semibold uppercase tracking-wide text-grappler-200">Weekly Coaching</span>
-                                </div>
-                                <button onClick={() => setWeeklyCoachingExpanded(false)} className="text-xs text-grappler-600">▴</button>
-                              </div>
-                              {weeklyInsights.slice(1).map((insight, i) => {
-                                const INSIGHT_BG: Record<string, string> = {
-                                  gold: 'bg-yellow-500/8 border-yellow-500/20', green: 'bg-green-500/8 border-green-500/20',
-                                  red: 'bg-red-500/8 border-red-500/20', amber: 'bg-amber-500/8 border-amber-500/20',
-                                  blue: 'bg-blue-500/8 border-blue-500/20', purple: 'bg-purple-500/8 border-purple-500/20',
-                                  primary: 'bg-primary-500/10 border-primary-500/25',
-                                };
-                                return (
-                                  <div key={i} className={cn('rounded-xl px-3 py-2 border', INSIGHT_BG[insight.color] || INSIGHT_BG.primary)}>
-                                    <div className="flex items-start gap-2.5">
-                                      <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[insight.icon]}</span>
-                                      <div className="flex-1 min-w-0">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">{insight.label}</span>
-                                        <p className={cn('text-xs leading-relaxed mt-0.5', insight.type === 'one_thing' ? 'text-grappler-200 font-medium' : 'text-grappler-300')}>
-                                          {insight.text}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </CardErrorBoundary>
-                        ),
-                      });
-                    }
                   }
 
-                  // P2.5: Yesterday recap — continuity between sessions
+                  // ── COACHING: All weekly insights, flat — no nested accordion ──
+                  if (showWeeklySynthesis && weeklyInsights.length > 0) {
+                    weeklyInsights.forEach((insight, i) => {
+                      intelItems.push({
+                        key: `coaching-${i}`,
+                        priority: 2 + i * 0.1,
+                        content: (
+                          <div className={cn('rounded-xl px-3 py-2 border', INSIGHT_BG[insight.color] || INSIGHT_BG.primary)}>
+                            <div className="flex items-start gap-2.5">
+                              <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[insight.icon]}</span>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">{insight.label}</span>
+                                <p className={cn('text-xs leading-relaxed mt-0.5', insight.type === 'one_thing' ? 'text-grappler-200 font-medium' : 'text-grappler-300')}>
+                                  {insight.text}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ),
+                      });
+                    });
+                  }
+
+                  // ── CONTEXT: Yesterday recap ──
                   if (yesterdayWorkouts.length > 0 && !directive.todayPerformance) {
                     const ydayVolume = yesterdayWorkouts.reduce((s, l) => s + (l.totalVolume || 0), 0);
                     const ydayPRs = yesterdayWorkouts.reduce((s, l) => s + (l.exercises?.filter(e => e.personalRecord).length || 0), 0);
                     intelItems.push({
                       key: 'yesterday-recap',
-                      priority: 3,
+                      priority: 5,
                       content: (
                         <div className="card px-3 py-2.5 border-l-2 border-l-blue-400 flex items-center gap-2.5">
                           <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
@@ -2588,61 +2585,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     });
                   }
 
-                  // P3: Volume gaps — muscles below MEV this week
-                  if (volumeGaps.length > 0) {
-                    const topGaps = volumeGaps.slice(0, 4); // Show max 4 muscles
-                    const critical = volumeGaps.filter(g => g.currentSets === 0).length;
-                    const borderColor = critical > 0 ? 'border-l-red-400' : 'border-l-amber-400';
-                    const iconColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
-                    const labelColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
-
-                    intelItems.push({
-                      key: 'volume-gaps',
-                      priority: 3.5,
-                      content: (
-                        <button
-                          onClick={handleQuickWorkout}
-                          className={cn(
-                            'w-full card px-3 py-2.5 text-left border-l-2 flex items-start gap-2.5 hover:bg-grappler-800/40 transition-colors',
-                            borderColor,
-                          )}
-                        >
-                          <BarChart3 className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', iconColor)} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className={cn('text-xs font-bold uppercase tracking-wider', labelColor)}>Volume Gaps</span>
-                              <span className="text-xs text-grappler-600">tap to fill →</span>
-                            </div>
-                            <div className="mt-1.5 space-y-1.5">
-                              {topGaps.map(gap => {
-                                const pct = Math.round((gap.currentSets / gap.mev) * 100);
-                                const barColor = gap.currentSets === 0 ? 'bg-red-400' : 'bg-amber-400';
-                                return (
-                                  <div key={gap.muscle} className="flex items-center gap-2">
-                                    <span className="text-xs text-grappler-300 w-20 truncate capitalize">{gap.muscle}</span>
-                                    <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
-                                      <div
-                                        className={cn('h-full rounded-full transition-all', barColor)}
-                                        style={{ width: `${Math.max(pct, 2)}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-xs tabular-nums text-grappler-500 w-14 text-right">
-                                      {gap.currentSets}/{gap.mev} sets
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            {volumeGaps.length > 4 && (
-                              <p className="text-xs text-grappler-600 mt-1">+{volumeGaps.length - 4} more under MEV</p>
-                            )}
-                          </div>
-                        </button>
-                      ),
-                    });
-                  }
-
-                  // P3.5: Narrative one-liner
+                  // ── CONTEXT: Narrative highlight ──
                   if (narrative.hasData && workoutLogs.length >= 6 && narrative.highlights.length > 0) {
                     const topHighlight = narrative.highlights[0];
                     intelItems.push({
@@ -2660,7 +2603,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     });
                   }
 
-                  // P4: Old feed cards (deload, meal reminder, etc.)
+                  // ── FEED: Contextual cards (deload, competition, rest tips, etc.) ──
                   const visibleFeedCards = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
                   visibleFeedCards.forEach((card, i) => {
                     intelItems.push({
@@ -2670,11 +2613,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     });
                   });
 
-                  // Sort by priority and take top 6
-                  const sorted = intelItems.sort((a, b) => a.priority - b.priority).slice(0, 6);
+                  // Sort by priority, take top 8 (more room now that coaching is flat)
+                  const sorted = intelItems.sort((a, b) => a.priority - b.priority).slice(0, 8);
 
                   return sorted.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {sorted.map(item => (
                         <div key={item.key}>{item.content}</div>
                       ))}

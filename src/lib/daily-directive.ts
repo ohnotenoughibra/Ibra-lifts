@@ -22,9 +22,13 @@ import type {
   CompetitionEvent,
   CombatTrainingDay,
   WorkoutSkip,
+  NutritionPeriodPlan,
+  BodyWeightEntry,
+  WeeklyCheckIn,
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
+import { getActivePhaseContext } from './periodization-planner';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 
 export type TodayType = 'lift' | 'combat' | 'both' | 'rest' | 'recovery';
@@ -85,6 +89,10 @@ export interface DailyDirective {
   nextLiftDayLabel: string | null;
   /** Combat sessions skipped today (names, for UI context) */
   skippedSessions: string[];
+  /** Periodized nutrition phase context, e.g. "Week 3 of 8 · Massing" */
+  nutritionPhaseTag: string | null;
+  /** Whether the periodization engine recommends transitioning to a new phase */
+  phaseTransitionRecommended: boolean;
 }
 
 export type SessionGrade = 'S' | 'A' | 'B' | 'C';
@@ -121,6 +129,9 @@ interface DirectiveInput {
   quickLogs: QuickLog[];
   competitions?: CompetitionEvent[];
   workoutSkips?: WorkoutSkip[];
+  nutritionPeriodPlan?: NutritionPeriodPlan | null;
+  bodyWeightLog?: BodyWeightEntry[];
+  weeklyCheckIns?: WeeklyCheckIn[];
 }
 
 export function generateDailyDirective(input: DirectiveInput): DailyDirective {
@@ -160,6 +171,18 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     const cfg = getPhaseConfig(campPhase, (user?.sex || 'male') as 'male' | 'female');
     fightCampTag = `${cfg.name.split('(')[0].trim()} · ${daysToComp}d out`;
   }
+
+  // ─── Periodized nutrition context ───
+  const phaseContext = input.nutritionPeriodPlan
+    ? getActivePhaseContext(
+        input.nutritionPeriodPlan,
+        input.bodyWeightLog || [],
+        input.weeklyCheckIns || [],
+        competitions,
+      )
+    : null;
+  const nutritionPhaseTag = phaseContext?.label ?? null;
+  const phaseTransitionRecommended = phaseContext?.transitionRecommended ?? false;
 
   // ─── Today's nutrition ───
   const todayStr = new Date().toDateString();
@@ -506,7 +529,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
   // ─── Context banner — strategic awareness ───
   const contextBanner = buildContextBanner({
-    todayType, sessionLabel, isDeload, fightCampTag, readinessScore: readiness.overall,
+    todayType, sessionLabel, isDeload, fightCampTag, nutritionPhaseTag,
+    readinessScore: readiness.overall,
     mesocycle: currentMesocycle, nextWorkoutInfo,
     yesterdayRPE: getYesterdayRPE(workoutLogs),
   });
@@ -557,6 +581,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     trainingModification,
     nextLiftDayLabel,
     skippedSessions: skippedSessionNames,
+    nutritionPhaseTag,
+    phaseTransitionRecommended,
   };
 }
 
@@ -725,12 +751,13 @@ function buildContextBanner(opts: {
   sessionLabel: string | null;
   isDeload: boolean;
   fightCampTag: string | null;
+  nutritionPhaseTag: string | null;
   readinessScore: number;
   mesocycle: Mesocycle | null;
   nextWorkoutInfo: { weekNumber: number; dayNumber: number; isDeload: boolean } | null;
   yesterdayRPE: number | null;
 }): string | null {
-  const { todayType, sessionLabel, isDeload, fightCampTag, readinessScore, mesocycle, nextWorkoutInfo, yesterdayRPE } = opts;
+  const { todayType, sessionLabel, isDeload, fightCampTag, nutritionPhaseTag, readinessScore, mesocycle, nextWorkoutInfo, yesterdayRPE } = opts;
 
   // Fight camp takes priority
   if (fightCampTag) return fightCampTag;
@@ -748,10 +775,14 @@ function buildContextBanner(opts: {
       // Identify peak/ramp weeks
       const isLateBlock = weekNum >= totalWeeks - 1 && !isDeload;
       const label = sessionLabel || `W${weekNum}/D${dayNum}`;
+      const phaseSuffix = nutritionPhaseTag ? ` · ${nutritionPhaseTag}` : '';
       if (isLateBlock) return `${label} · ${mesocycle.name} · Final push week`;
-      return `${label} · Week ${weekNum} of ${totalWeeks}`;
+      return `${label} · Week ${weekNum} of ${totalWeeks}${phaseSuffix}`;
     }
   }
+
+  // Nutrition phase context (when no training block is active)
+  if (nutritionPhaseTag) return nutritionPhaseTag;
 
   // Rest/recovery context
   if (todayType === 'recovery' && yesterdayRPE && yesterdayRPE >= 8.5) {

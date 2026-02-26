@@ -793,3 +793,75 @@ export function calculateAdherence(
 
   return Math.round((daysLogged / daysBack) * 100);
 }
+
+// ── Periodized Nutrition Integration ──────────────────────────────────────
+
+import type { NutritionPhaseType, PlannedNutritionPhase } from './types';
+
+/**
+ * Derive diet coach parameters from a periodized nutrition phase.
+ *
+ * Maps the rich NutritionPhaseType to the existing DietGoal system,
+ * preserving the phase's specific calorie factor and protein target.
+ * This bridges the new periodization engine with the existing macro calculator.
+ *
+ * Usage:
+ *   const params = getPhaseParams(activePhase);
+ *   const macros = calculateMacros({ ...baseInput, goal: params.goal });
+ *   // Then override calories with: tdee * params.calorieFactor
+ */
+export function getPhaseDietParams(phase: PlannedNutritionPhase): {
+  goal: DietGoal;
+  calorieFactor: number;
+  proteinGKg: number;
+  deficitSeverity?: 'mild' | 'moderate' | 'aggressive';
+} {
+  switch (phase.type) {
+    case 'massing':
+      return {
+        goal: 'bulk',
+        calorieFactor: phase.calorieFactor,
+        proteinGKg: phase.proteinGKg,
+      };
+    case 'maintenance':
+    case 'diet_break':
+      return {
+        goal: 'maintain',
+        calorieFactor: 1.0,
+        proteinGKg: phase.proteinGKg,
+      };
+    case 'mini_cut':
+      return {
+        goal: 'cut',
+        calorieFactor: phase.calorieFactor,
+        proteinGKg: phase.proteinGKg,
+        deficitSeverity: 'aggressive',
+      };
+    case 'fat_loss':
+      return {
+        goal: 'cut',
+        calorieFactor: phase.calorieFactor,
+        proteinGKg: phase.proteinGKg,
+        deficitSeverity: 'moderate',
+      };
+    case 'fight_camp':
+      return {
+        goal: 'cut',
+        calorieFactor: phase.calorieFactor,
+        proteinGKg: phase.proteinGKg,
+        deficitSeverity: phase.calorieFactor < 0.80 ? 'aggressive' : 'moderate',
+      };
+    case 'recovery':
+      return {
+        goal: 'bulk',
+        calorieFactor: phase.calorieFactor,
+        proteinGKg: phase.proteinGKg,
+      };
+    default:
+      return {
+        goal: 'maintain',
+        calorieFactor: 1.0,
+        proteinGKg: 2.0,
+      };
+  }
+}

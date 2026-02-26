@@ -68,6 +68,7 @@ import {
   FeatureFeedback,
   WellnessDomain,
   WellnessStats,
+  NutritionPeriodPlan,
 } from './types';
 import type { MealStamp } from './food-database';
 import type { CycleLog } from './female-athlete';
@@ -160,6 +161,9 @@ interface AppState {
   activeDietPhase: DietPhase | null;
   dietPhaseHistory: CompletedDietPhase[];
   weeklyCheckIns: WeeklyCheckIn[];
+
+  // Periodized nutrition plan (annual phase sequencing)
+  nutritionPeriodPlan: NutritionPeriodPlan | null;
 
   // Meal stamps (user's personal frequent meals — tap to log)
   mealStamps: MealStamp[];
@@ -577,6 +581,7 @@ export const useAppStore = create<AppState>()(
       activeDietPhase: null,
       dietPhaseHistory: [],
       weeklyCheckIns: [],
+      nutritionPeriodPlan: null,
       mealStamps: [],
       mealReminders: {
         enabled: false,
@@ -3166,6 +3171,46 @@ export const useAppStore = create<AppState>()(
         });
       },
 
+      // Periodized nutrition plan actions
+      setNutritionPeriodPlan: (plan: NutritionPeriodPlan | null) => {
+        set({ nutritionPeriodPlan: plan });
+      },
+
+      advanceNutritionPhase: () => {
+        const { nutritionPeriodPlan } = get();
+        if (!nutritionPeriodPlan) return;
+        const nextIndex = nutritionPeriodPlan.activePhaseIndex + 1;
+        if (nextIndex >= nutritionPeriodPlan.phases.length) {
+          set({
+            nutritionPeriodPlan: {
+              ...nutritionPeriodPlan,
+              status: 'needs_review',
+              updatedAt: new Date().toISOString().split('T')[0],
+            },
+          });
+        } else {
+          set({
+            nutritionPeriodPlan: {
+              ...nutritionPeriodPlan,
+              activePhaseIndex: nextIndex,
+              weeksIntoActivePhase: 0,
+              updatedAt: new Date().toISOString().split('T')[0],
+            },
+          });
+        }
+      },
+
+      incrementNutritionPhaseWeek: () => {
+        const { nutritionPeriodPlan } = get();
+        if (!nutritionPeriodPlan) return;
+        set({
+          nutritionPeriodPlan: {
+            ...nutritionPeriodPlan,
+            weeksIntoActivePhase: nutritionPeriodPlan.weeksIntoActivePhase + 1,
+          },
+        });
+      },
+
       // Meal stamp actions
       addMealStamp: (stamp) => {
         const { mealStamps } = get();
@@ -3430,6 +3475,7 @@ export const useAppStore = create<AppState>()(
           activeDietPhase: null,
           dietPhaseHistory: [],
           weeklyCheckIns: [],
+          nutritionPeriodPlan: null,
           mealReminders: {
             enabled: false,
             reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },

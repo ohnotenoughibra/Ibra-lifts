@@ -46,8 +46,8 @@
 ### Equipment & UI (149–175)
 `themeMode`, `colorTheme`, `activeEquipmentProfile`, `homeGymEquipment`, `muscleEmphasis`
 
-### Nutrition (153–165)
-`meals`, `macroTargets`, `waterLog`, `activeDietPhase`, `dietPhaseHistory`, `weeklyCheckIns`, `mealReminders`
+### Nutrition (153–170)
+`meals`, `macroTargets`, `waterLog`, `activeDietPhase`, `dietPhaseHistory`, `weeklyCheckIns`, `nutritionPeriodPlan`, `mealReminders`
 
 ### Combat (177–195)
 `competitions`, `weightCutPlans`, `combatNutritionProfile`, `fightCampPlans`, `activeSupplements`, `supplementStack`, `supplementIntakes`

@@ -23,8 +23,10 @@ import type {
   UserProfile,
   GoalFocus,
   MuscleGroup,
+  NutritionPeriodPlan,
 } from './types';
 import { getExerciseById } from './exercises';
+import { getRecommendedTrainingFocus, getActivePhaseContext } from './periodization-planner';
 
 // ── Analysis Helpers ────────────────────────────────────────────────────
 
@@ -213,6 +215,7 @@ export function suggestNextBlock(opts: {
   injuryLog: InjuryEntry[];
   wearableHistory: WearableData[];
   competitions: { date: Date; type: string }[];
+  nutritionPeriodPlan?: NutritionPeriodPlan | null;
 }): BlockSuggestion {
   const reasoning: string[] = [];
   const keyMetrics: BlockSuggestion['keyMetrics'] = [];
@@ -294,6 +297,35 @@ export function suggestNextBlock(opts: {
   const currentGoal = opts.currentMesocycle?.goalFocus || opts.user?.goalFocus || 'balanced';
   const lastGoal = lastBlock?.goalFocus;
 
+  // ── Nutrition Phase Awareness ──────────────────────────────────────────
+  // If a periodization plan exists, its recommended training focus carries weight.
+  let nutritionPhaseRecommendation: BlockFocus | null = null;
+  let nutritionPhaseLabel: string | null = null;
+
+  if (opts.nutritionPeriodPlan) {
+    const phaseCtx = getActivePhaseContext(
+      opts.nutritionPeriodPlan, [], [], [],
+    );
+    if (phaseCtx) {
+      const phase = phaseCtx.phase;
+      nutritionPhaseRecommendation = getRecommendedTrainingFocus(
+        phase.type, phaseCtx.weeksCompleted, phase.plannedWeeks
+      );
+      const phaseLabels = {
+        massing: 'Massing', maintenance: 'Maintenance', mini_cut: 'Mini-Cut',
+        fat_loss: 'Fat Loss', diet_break: 'Diet Break', fight_camp: 'Fight Camp',
+        recovery: 'Recovery',
+      } as const;
+      nutritionPhaseLabel = phaseLabels[phase.type] || phase.type;
+
+      keyMetrics.push({
+        label: 'Nutrition phase',
+        value: nutritionPhaseLabel,
+        trend: 'stable',
+      });
+    }
+  }
+
   // ── Decision Tree ─────────────────────────────────────────────────────
 
   let recommendedFocus: BlockFocus;
@@ -370,6 +402,28 @@ export function suggestNextBlock(opts: {
     alternativeReason = 'Power block if sport performance is the primary goal';
   }
   // DECISION 7: User goal alignment
+  // DECISION 7.5: Nutrition phase coupling (overrides generic goal when plan exists)
+  else if (nutritionPhaseRecommendation) {
+    recommendedFocus = nutritionPhaseRecommendation;
+    reasoning.push(`${nutritionPhaseLabel} phase → ${nutritionPhaseRecommendation} training (nutrition-training coupling)`);
+    reasoning.push('Training focus aligned to nutrition phase for optimal adaptation');
+
+    // Offer the user's general goal as alternative
+    const goalToFocus: Record<GoalFocus, BlockFocus> = {
+      strength: 'strength',
+      hypertrophy: 'hypertrophy',
+      power: 'power',
+      balanced: progressingCount > plateauCount ? 'hypertrophy' : 'strength',
+    };
+    const goalFocus = goalToFocus[currentGoal];
+    if (goalFocus !== recommendedFocus) {
+      alternativeFocus = goalFocus;
+      alternativeReason = `Your general goal (${currentGoal}) suggests ${goalFocus} instead`;
+    }
+    suggestedWeeks = 5;
+    confidence = 75; // Higher confidence when aligned to nutrition plan
+  }
+  // DECISION 8: User goal alignment (fallback when no nutrition plan)
   else {
     const goalToFocus: Record<GoalFocus, BlockFocus> = {
       strength: 'strength',

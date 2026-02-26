@@ -57,7 +57,7 @@ import Link from 'next/link';
 import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
 import { fireConfetti } from '@/lib/confetti';
-import { generateQuickWorkout } from '@/lib/workout-generator';
+import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
 import { generateDailyDirective } from '@/lib/daily-directive';
 import { generateWeeklySynthesis, generatePostWorkoutCoachingLine, generateWeeklyInsights } from '@/lib/weekly-synthesis';
@@ -974,7 +974,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   const handleQuickWorkout = () => {
     if (!user) return;
-    const quickSession = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity);
+    // Detect volume gaps so the quick workout fills under-MEV muscles
+    const gaps = getVolumeGaps(workoutLogs, user.equipment, user.availableEquipment);
+    const quickSession = generateQuickWorkout(
+      user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity,
+      gaps.length > 0 ? gaps.map(g => ({ muscle: g.muscle, deficit: g.deficit })) : undefined,
+    );
     startWorkout(quickSession);
   };
 

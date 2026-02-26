@@ -1397,7 +1397,11 @@ export function getVolumeGaps(
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
   const gaps: { muscle: MuscleGroup; deficit: number; currentSets: number; mev: number; recommendedExercise: string | null }[] = [];
 
+  // Skip 'full_body' — it's a fallback category, not a trainable muscle group
+  const SKIP_MUSCLES = new Set(['full_body']);
+
   for (const [muscle, lm] of Object.entries(VOLUME_LANDMARKS)) {
+    if (SKIP_MUSCLES.has(muscle)) continue;
     const current = Math.round(volumeByMuscle[muscle] || 0);
     if (current < lm.mev) {
       const deficit = lm.mev - current;

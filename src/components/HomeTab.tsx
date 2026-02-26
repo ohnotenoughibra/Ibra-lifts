@@ -501,6 +501,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     });
   }, [synthesis, weightUnit]);
 
+  // ─── Volume Gaps — muscles below MEV this week ───
+  const volumeGaps = useMemo(() => {
+    if (!user || workoutLogs.length === 0) return [];
+    return getVolumeGaps(workoutLogs, user.equipment, user.availableEquipment);
+  }, [user, workoutLogs]);
+
   const postWorkoutCoaching = useMemo(() => {
     if (!lastCompletedWorkout) return null;
     return generatePostWorkoutCoachingLine(
@@ -2582,7 +2588,61 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     });
                   }
 
-                  // P3: Narrative one-liner
+                  // P3: Volume gaps — muscles below MEV this week
+                  if (volumeGaps.length > 0) {
+                    const topGaps = volumeGaps.slice(0, 4); // Show max 4 muscles
+                    const critical = volumeGaps.filter(g => g.currentSets === 0).length;
+                    const borderColor = critical > 0 ? 'border-l-red-400' : 'border-l-amber-400';
+                    const iconColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
+                    const labelColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
+
+                    intelItems.push({
+                      key: 'volume-gaps',
+                      priority: 3.5,
+                      content: (
+                        <button
+                          onClick={handleQuickWorkout}
+                          className={cn(
+                            'w-full card px-3 py-2.5 text-left border-l-2 flex items-start gap-2.5 hover:bg-grappler-800/40 transition-colors',
+                            borderColor,
+                          )}
+                        >
+                          <BarChart3 className={cn('w-3.5 h-3.5 flex-shrink-0 mt-0.5', iconColor)} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs font-bold uppercase tracking-wider', labelColor)}>Volume Gaps</span>
+                              <span className="text-xs text-grappler-600">tap to fill →</span>
+                            </div>
+                            <div className="mt-1.5 space-y-1.5">
+                              {topGaps.map(gap => {
+                                const pct = Math.round((gap.currentSets / gap.mev) * 100);
+                                const barColor = gap.currentSets === 0 ? 'bg-red-400' : 'bg-amber-400';
+                                return (
+                                  <div key={gap.muscle} className="flex items-center gap-2">
+                                    <span className="text-xs text-grappler-300 w-20 truncate capitalize">{gap.muscle}</span>
+                                    <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
+                                      <div
+                                        className={cn('h-full rounded-full transition-all', barColor)}
+                                        style={{ width: `${Math.max(pct, 2)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs tabular-nums text-grappler-500 w-14 text-right">
+                                      {gap.currentSets}/{gap.mev} sets
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {volumeGaps.length > 4 && (
+                              <p className="text-xs text-grappler-600 mt-1">+{volumeGaps.length - 4} more under MEV</p>
+                            )}
+                          </div>
+                        </button>
+                      ),
+                    });
+                  }
+
+                  // P3.5: Narrative one-liner
                   if (narrative.hasData && workoutLogs.length >= 6 && narrative.highlights.length > 0) {
                     const topHighlight = narrative.highlights[0];
                     intelItems.push({

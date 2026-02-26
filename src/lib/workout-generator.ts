@@ -1282,16 +1282,19 @@ export function generateQuickWorkout(
   durationMinutes: number = 30,
   goalFocus: GoalFocus = 'balanced',
   availableEquipment?: EquipmentType[],
-  trainingIdentity?: TrainingIdentity
+  trainingIdentity?: TrainingIdentity,
+  volumeGaps?: { muscle: MuscleGroup; deficit: number }[],
 ): WorkoutSession {
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
                             goalFocus === 'hypertrophy' ? 'hypertrophy' : 'power';
 
-  const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment)
+  const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const compounds = allAvailable
     .filter(e => e.category === 'compound' && (trainingIdentity === 'combat' ? e.grapplerFriendly : true));
 
   // Select 3-4 key compounds
-  const selected = shuffleArray(availableExercises).slice(0, 4);
+  const selected = shuffleArray(compounds).slice(0, durationMinutes <= 20 ? 3 : 4);
+  const usedIds = new Set(selected.map(e => e.id));
 
   const exercisePrescriptions: ExercisePrescription[] = selected.map(exercise => ({
     exerciseId: exercise.id,
@@ -1301,7 +1304,47 @@ export function generateQuickWorkout(
     notes: 'Keep rest periods short for time efficiency'
   }));
 
-  const sessionName = trainingIdentity === 'combat' ? 'Quick Combat Session' : 'Quick Strength Session';
+  // Fill volume gaps: add isolation exercises for under-MEV muscles
+  if (volumeGaps && volumeGaps.length > 0) {
+    // Sort by largest deficit first — prioritize the most starved muscles
+    const sorted = [...volumeGaps].sort((a, b) => b.deficit - a.deficit);
+
+    // Budget: roughly 1-2 gap exercises depending on time
+    const gapBudget = durationMinutes <= 20 ? 1 : 2;
+    let added = 0;
+
+    for (const gap of sorted) {
+      if (added >= gapBudget) break;
+
+      // Check if any selected compound already hits this muscle
+      const alreadyCovered = exercisePrescriptions.some(ep =>
+        ep.exercise.primaryMuscles.includes(gap.muscle)
+      );
+      if (alreadyCovered) continue;
+
+      // Find an isolation exercise for this muscle
+      const candidate = allAvailable.find(
+        e => e.primaryMuscles.includes(gap.muscle) && !usedIds.has(e.id)
+      );
+      if (!candidate) continue;
+
+      const setsToAdd = Math.min(gap.deficit, 4); // Cap at 4 sets per exercise
+      exercisePrescriptions.push({
+        exerciseId: candidate.id,
+        exercise: candidate,
+        sets: setsToAdd,
+        prescription: createSetPrescription('hypertrophy'), // Isolation = hypertrophy rep ranges
+        notes: `Added to fill ${gap.muscle} volume gap (${gap.deficit} sets below MEV)`,
+      });
+      usedIds.add(candidate.id);
+      added++;
+    }
+  }
+
+  const hasGapFills = volumeGaps && volumeGaps.length > 0;
+  const sessionName = trainingIdentity === 'combat'
+    ? (hasGapFills ? 'Quick Combat + Gap Fill' : 'Quick Combat Session')
+    : (hasGapFills ? 'Quick Session + Gap Fill' : 'Quick Strength Session');
 
   return {
     id: uuidv4(),
@@ -1313,6 +1356,66 @@ export function generateQuickWorkout(
     warmUp: ['3 min jump rope', 'Dynamic stretches'],
     coolDown: ['2 min deep breathing']
   };
+}
+
+/**
+ * Identify muscle groups below MEV and return the deficit + recommended exercises.
+ *
+ * This bridges the volume tracker (which shows the problem) to the quick workout
+ * generator (which can fix it). Call this with recent workout logs, then pass
+ * the result to generateQuickWorkout() as volumeGaps.
+ *
+ * Returns muscles sorted by largest deficit first.
+ */
+export function getVolumeGaps(
+  workoutLogs: WorkoutLog[],
+  equipment: Equipment,
+  availableEquipment?: EquipmentType[],
+): { muscle: MuscleGroup; deficit: number; currentSets: number; mev: number; recommendedExercise: string | null }[] {
+  // Calculate current weekly volume from last 7 days
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const recentLogs = workoutLogs.filter(l => new Date(l.date) >= weekAgo);
+
+  // Count sets per muscle group
+  const volumeByMuscle: Record<string, number> = {};
+  for (const log of recentLogs) {
+    for (const ex of log.exercises) {
+      const exercise = getExerciseById(ex.exerciseId);
+      if (!exercise) continue;
+      const completedSets = ex.sets.filter(s => s.completed).length;
+      for (const m of exercise.primaryMuscles) {
+        volumeByMuscle[m] = (volumeByMuscle[m] || 0) + completedSets;
+      }
+      for (const m of exercise.secondaryMuscles) {
+        volumeByMuscle[m] = (volumeByMuscle[m] || 0) + completedSets * 0.5;
+      }
+    }
+  }
+
+  // Find muscles below MEV
+  const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const gaps: { muscle: MuscleGroup; deficit: number; currentSets: number; mev: number; recommendedExercise: string | null }[] = [];
+
+  for (const [muscle, lm] of Object.entries(VOLUME_LANDMARKS)) {
+    const current = Math.round(volumeByMuscle[muscle] || 0);
+    if (current < lm.mev) {
+      const deficit = lm.mev - current;
+      // Find best exercise to fill the gap
+      const candidate = allAvailable.find(
+        e => e.primaryMuscles.includes(muscle as MuscleGroup)
+      );
+      gaps.push({
+        muscle: muscle as MuscleGroup,
+        deficit,
+        currentSets: current,
+        mev: lm.mev,
+        recommendedExercise: candidate?.name || null,
+      });
+    }
+  }
+
+  return gaps.sort((a, b) => b.deficit - a.deficit);
 }
 
 // Get muscle group volume analysis

@@ -35,7 +35,7 @@ import {
   type SessionTiming,
   type MealType,
 } from '@/lib/types';
-import { generateQuickWorkout } from '@/lib/workout-generator';
+import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
 import {
   getTodayChecklist,
   SUPPLEMENT_DATABASE,
@@ -912,7 +912,11 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              const session = generateQuickWorkout(user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity);
+              const gaps = getVolumeGaps(workoutLogs, user.equipment, user.availableEquipment);
+              const session = generateQuickWorkout(
+                user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity,
+                gaps.length > 0 ? gaps.map(g => ({ muscle: g.muscle, deficit: g.deficit })) : undefined,
+              );
               startWorkout(session);
               onClose();
             }}

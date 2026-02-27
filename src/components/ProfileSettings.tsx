@@ -1377,17 +1377,19 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
             <div className="space-y-4">
               {([
-                { key: 'squat', label: 'Squat', value: actual1RMs.squat || baselineLifts?.squat, baseline: baselineLifts?.squat, color: 'from-red-500 to-red-400', dotColor: 'bg-red-400' },
-                { key: 'deadlift', label: 'Deadlift', value: actual1RMs.deadlift || baselineLifts?.deadlift, baseline: baselineLifts?.deadlift, color: 'from-orange-500 to-amber-400', dotColor: 'bg-orange-400' },
-                { key: 'benchPress', label: 'Bench', value: actual1RMs.benchPress || baselineLifts?.benchPress, baseline: baselineLifts?.benchPress, color: 'from-blue-500 to-sky-400', dotColor: 'bg-blue-400' },
-                { key: 'overheadPress', label: 'OHP', value: actual1RMs.overheadPress || baselineLifts?.overheadPress, baseline: baselineLifts?.overheadPress, color: 'from-purple-500 to-violet-400', dotColor: 'bg-purple-400' },
-                { key: 'barbellRow', label: 'Row', value: actual1RMs.barbellRow || baselineLifts?.barbellRow, baseline: baselineLifts?.barbellRow, color: 'from-emerald-500 to-green-400', dotColor: 'bg-emerald-400' },
+                { key: 'squat', label: 'Squat', value: baselineLifts?.squat || actual1RMs.squat, color: 'from-red-500 to-red-400', dotColor: 'bg-red-400' },
+                { key: 'deadlift', label: 'Deadlift', value: baselineLifts?.deadlift || actual1RMs.deadlift, color: 'from-orange-500 to-amber-400', dotColor: 'bg-orange-400' },
+                { key: 'benchPress', label: 'Bench', value: baselineLifts?.benchPress || actual1RMs.benchPress, color: 'from-blue-500 to-sky-400', dotColor: 'bg-blue-400' },
+                { key: 'overheadPress', label: 'OHP', value: baselineLifts?.overheadPress || actual1RMs.overheadPress, color: 'from-purple-500 to-violet-400', dotColor: 'bg-purple-400' },
+                { key: 'barbellRow', label: 'Row', value: baselineLifts?.barbellRow || actual1RMs.barbellRow, color: 'from-emerald-500 to-green-400', dotColor: 'bg-emerald-400' },
               ] as const).map((lift) => {
                 const displayValue = lift.value || 0;
                 const tier = getStrengthTier(lift.key, displayValue);
                 const isEditing = editingLift === lift.key;
                 const hasActual = !!actual1RMs[lift.key];
-                const delta = hasActual && lift.baseline ? actual1RMs[lift.key] - lift.baseline : null;
+                const baselineMap = baselineLifts as unknown as Record<string, number | null | undefined> | null;
+                const baseline = baselineMap?.[lift.key];
+                const delta = hasActual && baseline ? Math.round(actual1RMs[lift.key] - baseline) : null;
 
                 return (
                   <div key={lift.key}>
@@ -1492,11 +1494,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${displayValue ? (displayValue / Math.max(
-                            actual1RMs.squat || baselineLifts?.squat || 0,
-                            actual1RMs.deadlift || baselineLifts?.deadlift || 0,
-                            actual1RMs.benchPress || baselineLifts?.benchPress || 0,
-                            actual1RMs.overheadPress || baselineLifts?.overheadPress || 0,
-                            actual1RMs.barbellRow || baselineLifts?.barbellRow || 0, 1
+                            baselineLifts?.squat || actual1RMs.squat || 0,
+                            baselineLifts?.deadlift || actual1RMs.deadlift || 0,
+                            baselineLifts?.benchPress || actual1RMs.benchPress || 0,
+                            baselineLifts?.overheadPress || actual1RMs.overheadPress || 0,
+                            baselineLifts?.barbellRow || actual1RMs.barbellRow || 0, 1
                           )) * 100 : 0}%` }}
                           transition={{ duration: 0.8, ease: 'easeOut' }}
                           className={cn('h-full rounded-full bg-gradient-to-r', lift.color)}

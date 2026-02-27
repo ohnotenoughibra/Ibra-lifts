@@ -260,6 +260,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const [selectedBadge, setSelectedBadge] = useState<{ badge: Badge; earned: boolean; earnedAt?: Date } | null>(null);
   const [editingLift, setEditingLift] = useState<string | null>(null);
   const [liftDraft, setLiftDraft] = useState('');
+  const liftSavedRef = useRef(false);
 
   const progress = levelProgress(gamificationStats?.totalPoints ?? 0);
   const pointsNeeded = pointsToNextLevel(gamificationStats?.totalPoints ?? 0);
@@ -458,7 +459,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   };
 
   const saveLift = (key: string, val: string) => {
-    const num = val === '' ? null : Number(val);
+    if (liftSavedRef.current) return; // prevent double-save from blur + Enter
+    liftSavedRef.current = true;
+    const num = val === '' ? null : Math.round(Number(val));
     const updated = {
       id: baselineLifts?.id || (user?.id || 'user') + '-baseline',
       userId: user?.id || 'user',
@@ -1415,8 +1418,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                               value={liftDraft}
                               onChange={e => setLiftDraft(e.target.value)}
                               onKeyDown={e => {
-                                if (e.key === 'Enter') saveLift(lift.key, liftDraft);
-                                if (e.key === 'Escape') setEditingLift(null);
+                                if (e.key === 'Enter') { saveLift(lift.key, liftDraft); }
+                                if (e.key === 'Escape') { liftSavedRef.current = true; setEditingLift(null); }
                               }}
                               onBlur={() => saveLift(lift.key, liftDraft)}
                               className="w-16 bg-grappler-900 border border-primary-500/50 rounded px-2 py-0.5 text-xs text-right text-grappler-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -1425,11 +1428,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           </div>
                         ) : (
                           <button
-                            onClick={() => { setEditingLift(lift.key); setLiftDraft(displayValue ? String(displayValue) : ''); }}
+                            onClick={() => { liftSavedRef.current = false; setEditingLift(lift.key); setLiftDraft(displayValue ? String(Math.round(displayValue)) : ''); }}
                             className="flex items-center gap-1 group"
                           >
                             <span className="text-sm font-black text-grappler-50 tabular-nums">
-                              {displayValue ? `${displayValue}` : '—'}
+                              {displayValue ? Math.round(displayValue) : '—'}
                               {displayValue > 0 && <span className="text-[10px] font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
                             </span>
                             <Pencil className="w-2.5 h-2.5 text-grappler-600 opacity-0 group-hover:opacity-100 transition-opacity" />

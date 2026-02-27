@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Check,
   Trash2,
+  Minus,
 } from 'lucide-react';
 import { MealType } from '@/lib/types';
 import { PRESET_FOODS } from '@/lib/food-database';
@@ -75,6 +76,11 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
   const [manualMealType, setManualMealType] = useState<MealType>(autoMealType());
   const [saveAsStamp, setSaveAsStamp] = useState(false);
 
+  // Portion selector state
+  const [pendingFood, setPendingFood] = useState<{ name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string; mealType?: MealType } | null>(null);
+  const [portionMultiplier, setPortionMultiplier] = useState(1);
+  const [customServings, setCustomServings] = useState('');
+
   // Search handler
   useEffect(() => {
     if (query.length >= 1) {
@@ -102,17 +108,41 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
     setResults([]);
   }, [addMeal, selectedDate, autoMealType]);
 
-  // Log a stamp
+  // Select a food item for portion adjustment before logging
+  const selectFood = useCallback((item: { name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string; mealType?: MealType }) => {
+    setPendingFood(item);
+    setPortionMultiplier(1);
+    setCustomServings('');
+  }, []);
+
+  // Confirm and log the pending food with portion multiplier applied
+  const confirmFood = useCallback(() => {
+    if (!pendingFood) return;
+    const m = portionMultiplier;
+    const portionLabel = m === 1 ? pendingFood.portion : `${m}× serving`;
+    logFood({
+      name: pendingFood.name,
+      calories: Math.round(pendingFood.calories * m),
+      protein: Math.round(pendingFood.protein * m),
+      carbs: Math.round(pendingFood.carbs * m),
+      fat: Math.round(pendingFood.fat * m),
+      portion: portionLabel,
+    }, pendingFood.mealType);
+    setPendingFood(null);
+  }, [pendingFood, portionMultiplier, logFood]);
+
+  // Log a stamp (via portion selector)
   const logStamp = useCallback((stamp: typeof mealStamps[number]) => {
     useMealStamp(stamp.id);
-    logFood({
+    selectFood({
       name: stamp.name,
       calories: stamp.calories,
       protein: stamp.protein,
       carbs: stamp.carbs,
       fat: stamp.fat,
-    }, stamp.mealType);
-  }, [useMealStamp, logFood]);
+      mealType: stamp.mealType,
+    });
+  }, [useMealStamp, selectFood]);
 
   // Quick add submit
   const handleQuickAdd = () => {
@@ -398,7 +428,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
             {todayPatternMeals.slice(0, 4).map((food, i) => (
               <button
                 key={i}
-                onClick={() => logFood(food)}
+                onClick={() => selectFood(food)}
                 className="w-full flex items-center gap-3 p-2.5 bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 rounded-xl transition-colors"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -411,6 +441,121 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
           </div>
         </div>
       )}
+
+      {/* Portion Selector */}
+      <AnimatePresence>
+        {pendingFood && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="card p-4 space-y-3"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-grappler-100 truncate">{pendingFood.name}</p>
+                <p className="text-[10px] text-grappler-500 mt-0.5">
+                  Per serving: {pendingFood.calories} kcal · {pendingFood.protein}p · {pendingFood.carbs}c · {pendingFood.fat}f
+                </p>
+              </div>
+              <button
+                onClick={() => setPendingFood(null)}
+                className="p-1.5 hover:bg-grappler-700 rounded-lg transition-colors ml-2"
+              >
+                <X className="w-4 h-4 text-grappler-400" />
+              </button>
+            </div>
+
+            {/* Serving size selector */}
+            <div>
+              <p className="text-xs text-grappler-400 mb-2">Serving size</p>
+              <div className="flex items-center gap-2">
+                {/* Preset buttons */}
+                {[
+                  { label: '½', value: 0.5 },
+                  { label: '¾', value: 0.75 },
+                  { label: '1', value: 1 },
+                  { label: '1½', value: 1.5 },
+                  { label: '2', value: 2 },
+                ].map(preset => (
+                  <button
+                    key={preset.value}
+                    onClick={() => { setPortionMultiplier(preset.value); setCustomServings(''); }}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
+                      portionMultiplier === preset.value && !customServings
+                        ? 'bg-primary-500/20 text-primary-300 ring-1 ring-primary-500/30'
+                        : 'bg-grappler-800 text-grappler-400 hover:bg-grappler-700'
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom amount row */}
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    const next = Math.max(0.25, portionMultiplier - 0.25);
+                    setPortionMultiplier(next);
+                    setCustomServings(String(next));
+                  }}
+                  className="p-2 bg-grappler-800 hover:bg-grappler-700 rounded-lg transition-colors"
+                >
+                  <Minus className="w-3.5 h-3.5 text-grappler-300" />
+                </button>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.25"
+                  value={customServings || (portionMultiplier !== 1 && ![0.5, 0.75, 1.5, 2].includes(portionMultiplier) ? portionMultiplier : '')}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setCustomServings(v);
+                    const n = parseFloat(v);
+                    if (n > 0 && n <= 10) setPortionMultiplier(n);
+                  }}
+                  placeholder="Custom"
+                  className="flex-1 bg-grappler-800 rounded-lg px-3 py-2 text-sm text-center text-grappler-100 placeholder-grappler-600 outline-none focus:ring-1 focus:ring-primary-500/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  onClick={() => {
+                    const next = Math.min(10, portionMultiplier + 0.25);
+                    setPortionMultiplier(next);
+                    setCustomServings(String(next));
+                  }}
+                  className="p-2 bg-grappler-800 hover:bg-grappler-700 rounded-lg transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-grappler-300" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scaled macros preview */}
+            <div className="flex items-center justify-between bg-grappler-800/50 rounded-xl p-2.5">
+              <div className="flex gap-3 text-xs">
+                <span className="text-blue-300 font-medium">{Math.round(pendingFood.calories * portionMultiplier)} kcal</span>
+                <span className="text-red-300">{Math.round(pendingFood.protein * portionMultiplier)}p</span>
+                <span className="text-amber-300">{Math.round(pendingFood.carbs * portionMultiplier)}c</span>
+                <span className="text-purple-300">{Math.round(pendingFood.fat * portionMultiplier)}f</span>
+              </div>
+              {portionMultiplier !== 1 && (
+                <span className="text-[10px] text-primary-400 font-bold">{portionMultiplier}× serving</span>
+              )}
+            </div>
+
+            {/* Log button */}
+            <button
+              onClick={confirmFood}
+              className="w-full py-2.5 bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold rounded-xl transition-colors active:scale-[0.98]"
+            >
+              Log It
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Search */}
       <div className="relative">
@@ -445,7 +590,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
               {results.map((item, i) => (
                 <button
                   key={`${item.name}-${i}`}
-                  onClick={() => logFood(item)}
+                  onClick={() => selectFood(item)}
                   className="w-full flex items-center gap-3 p-2.5 bg-grappler-800/50 hover:bg-grappler-800 rounded-xl transition-colors"
                 >
                   <div className="flex-1 text-left min-w-0">
@@ -485,10 +630,10 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
         <div className="card p-3">
           <p className="text-xs text-grappler-500 mb-1.5">Still need today:</p>
           <div className="flex gap-4 text-xs">
-            <span className="text-blue-300">{nutrition.remaining.calories} kcal</span>
-            <span className="text-red-300">{nutrition.remaining.protein}g P</span>
-            <span className="text-amber-300">{nutrition.remaining.carbs}g C</span>
-            <span className="text-purple-300">{nutrition.remaining.fat}g F</span>
+            <span className="text-blue-300">{Math.round(nutrition.remaining.calories)} kcal</span>
+            <span className="text-red-300">{Math.round(nutrition.remaining.protein)}g P</span>
+            <span className="text-amber-300">{Math.round(nutrition.remaining.carbs)}g C</span>
+            <span className="text-purple-300">{Math.round(nutrition.remaining.fat)}g F</span>
           </div>
         </div>
       )}

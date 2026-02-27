@@ -485,10 +485,10 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
         <div className="card p-3">
           <p className="text-xs text-grappler-500 mb-1.5">Still need today:</p>
           <div className="flex gap-4 text-xs">
-            <span className="text-blue-300">{nutrition.remaining.calories} kcal</span>
-            <span className="text-red-300">{nutrition.remaining.protein}g P</span>
-            <span className="text-amber-300">{nutrition.remaining.carbs}g C</span>
-            <span className="text-purple-300">{nutrition.remaining.fat}g F</span>
+            <span className="text-blue-300">{Math.round(nutrition.remaining.calories)} kcal</span>
+            <span className="text-red-300">{Math.round(nutrition.remaining.protein)}g P</span>
+            <span className="text-amber-300">{Math.round(nutrition.remaining.carbs)}g C</span>
+            <span className="text-purple-300">{Math.round(nutrition.remaining.fat)}g F</span>
           </div>
         </div>
       )}

@@ -10,6 +10,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Minus,
 } from 'lucide-react';
 import { MealEntry, MealType } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -114,24 +116,69 @@ function WaterRow({ glasses, target, onChange }: {
   target: number;
   onChange: (val: number) => void;
 }) {
+  const ml = glasses * 250;
+  const targetMl = target * 250;
+  const pct = target > 0 ? Math.min((glasses / target) * 100, 100) : 0;
+  const overTarget = glasses > target;
+
   return (
-    <div className="flex items-center gap-3">
-      <Droplets className="w-4 h-4 text-blue-400 shrink-0" />
-      <div className="flex gap-1 flex-1">
-        {Array.from({ length: target }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => onChange(i < glasses ? i : i + 1)}
-            className={cn(
-              'w-5 h-6 rounded-sm transition-colors',
-              i < glasses ? 'bg-blue-500/80' : 'bg-grappler-800 hover:bg-grappler-700'
-            )}
-          />
-        ))}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Droplets className="w-4 h-4 text-blue-400" />
+          <span className="text-xs font-medium text-grappler-300">Water</span>
+        </div>
+        <span className="text-xs text-grappler-400 tabular-nums">
+          <span className={cn('font-semibold', overTarget ? 'text-blue-400' : 'text-grappler-200')}>
+            {ml >= 1000 ? `${(ml / 1000).toFixed(1)}L` : `${ml}ml`}
+          </span>
+          <span className="text-grappler-600 mx-1">/</span>
+          {targetMl >= 1000 ? `${(targetMl / 1000).toFixed(1)}L` : `${targetMl}ml`}
+        </span>
       </div>
-      <span className="text-xs text-grappler-400 shrink-0">
-        {glasses}/{target}
-      </span>
+
+      {/* Progress bar */}
+      <div className="relative h-3 bg-grappler-800 rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className={cn(
+            'h-full rounded-full',
+            overTarget ? 'bg-blue-400' : 'bg-blue-500/70'
+          )}
+        />
+        {overTarget && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[9px] font-bold text-white drop-shadow-sm">
+              +{((glasses - target) * 250) >= 1000
+                ? `${(((glasses - target) * 250) / 1000).toFixed(1)}L`
+                : `${(glasses - target) * 250}ml`} extra
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Stepper */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onChange(Math.max(0, glasses - 1))}
+          disabled={glasses <= 0}
+          className="p-2 bg-grappler-800 hover:bg-grappler-700 disabled:opacity-30 rounded-lg transition-colors"
+        >
+          <Minus className="w-3.5 h-3.5 text-grappler-300" />
+        </button>
+        <div className="flex-1 flex items-center justify-center gap-1.5">
+          <span className="text-lg font-bold text-grappler-100 tabular-nums">{glasses}</span>
+          <span className="text-xs text-grappler-500">glasses</span>
+        </div>
+        <button
+          onClick={() => onChange(glasses + 1)}
+          className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors ring-1 ring-blue-500/20"
+        >
+          <Plus className="w-3.5 h-3.5 text-blue-300" />
+        </button>
+      </div>
     </div>
   );
 }

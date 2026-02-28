@@ -786,6 +786,13 @@ export const pointRewards = {
   breathingSession: 15,      // Complete a breathing protocol
   wellnessStreakBonus: 5,    // Per day of wellness streak (capped at 50)
   fullWellnessDay: 25,       // Bonus for completing 4+ wellness domains in a day
+
+  // ═══ Engagement XP — reward every meaningful action ═══
+  bodyWeightLog: 10,         // Logging body weight (consistency is king)
+  articleRead: 10,           // Reading a knowledge article
+  weeklyCheckIn: 15,         // Completing a nutrition phase check-in
+  confidenceEntry: 10,       // Adding confidence ledger evidence
+  bodyComposition: 10,       // Logging body composition data
 };
 
 // Calculate level from total points

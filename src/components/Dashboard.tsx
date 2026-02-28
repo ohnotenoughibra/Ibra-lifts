@@ -607,7 +607,7 @@ export default function Dashboard({
             <Star className="w-3 h-3 text-yellow-500" />
             <span className="text-[11px] font-bold text-grappler-300">Lv.{gamificationStats.level}</span>
           </button>
-          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${pointsToNextLevel(gamificationStats.totalPoints)} XP to next level`}>
+          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(gamificationStats.totalPoints)} total XP · ${pointsToNextLevel(gamificationStats.totalPoints)} to Lv.${gamificationStats.level + 1}`}>
             <motion.div
               className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
               initial={false}
@@ -615,7 +615,7 @@ export default function Dashboard({
               transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
-          <span className="text-[11px] text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(pointsToNextLevel(gamificationStats.totalPoints))} XP</span>
+          <span className="text-[11px] text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(gamificationStats.totalPoints)} XP</span>
           <SyncStatusIndicator
             syncStatus={syncStatus}
             lastSyncedAt={lastSyncedAt}

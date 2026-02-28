@@ -2687,6 +2687,8 @@ export const useAppStore = create<AppState>()(
           notes
         };
         set({ bodyWeightLog: [...bodyWeightLog, entry] });
+        // Award XP for consistent weight tracking
+        get().awardPoints(pointRewards.bodyWeightLog, 'Body weight logged');
       },
 
       deleteBodyWeight: (id) => {
@@ -3012,6 +3014,9 @@ export const useAppStore = create<AppState>()(
             gamificationStats: updatedStats,
           });
 
+          // Award XP for training session (was defined but never used)
+          get().awardPoints(pointRewards.trainingSession, 'Training session');
+
           // Check badges after updating
           queueMicrotask(() => get().checkAndAwardBadges());
         }
@@ -3148,6 +3153,8 @@ export const useAppStore = create<AppState>()(
           weeklyCheckIns: [...weeklyCheckIns, { ...checkIn, id: uuidv4() }],
           macroTargets: checkIn.newMacros,
         });
+        // Award XP for nutrition phase check-in (adherence tracking)
+        get().awardPoints(pointRewards.weeklyCheckIn, 'Weekly check-in');
       },
 
       incrementPhaseWeek: () => {
@@ -3270,6 +3277,8 @@ export const useAppStore = create<AppState>()(
       addBodyComposition: (entry) => {
         const { bodyComposition } = get();
         set({ bodyComposition: [...bodyComposition, { ...entry, id: uuidv4() }] });
+        // Award XP for tracking body composition
+        get().awardPoints(pointRewards.bodyComposition, 'Body composition logged');
       },
 
       deleteBodyComposition: (id) => {
@@ -3414,6 +3423,8 @@ export const useAppStore = create<AppState>()(
       addConfidenceEntry: (entry) => {
         const full: ConfidenceLedgerEntry = { ...entry, id: crypto.randomUUID() };
         set({ confidenceLedger: [...get().confidenceLedger, full] });
+        // Award XP for building confidence evidence (mental game matters)
+        get().awardPoints(pointRewards.confidenceEntry, 'Confidence evidence logged');
       },
       deleteConfidenceEntry: (id) => {
         set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id) });
@@ -3433,7 +3444,11 @@ export const useAppStore = create<AppState>()(
       },
       markArticleRead: (id) => {
         const s = get().readArticles;
-        if (!s.includes(id)) set({ readArticles: [...s, id] });
+        if (!s.includes(id)) {
+          set({ readArticles: [...s, id] });
+          // Award XP for reading new articles (education drives results)
+          get().awardPoints(pointRewards.articleRead, 'Article read');
+        }
       },
       toggleBookmarkArticle: (id) => {
         const s = get().bookmarkedArticles;

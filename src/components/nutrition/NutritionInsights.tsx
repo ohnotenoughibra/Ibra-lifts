@@ -1,0 +1,555 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Zap,
+  Target,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  Award,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { MealEntry, MacroTargets } from '@/lib/types';
+import type { HistoryFood } from '@/hooks/useNutrition';
+import { PRESET_FOODS } from '@/lib/food-database';
+
+interface NutritionInsightsProps {
+  todayMeals: MealEntry[];
+  allMeals: MealEntry[];
+  targets: { calories: number; protein: number; carbs: number; fat: number };
+  remaining: { calories: number; protein: number; carbs: number; fat: number };
+  totals: { calories: number; protein: number; carbs: number; fat: number };
+  macroTargets: MacroTargets;
+  mealHistoryIndex: Map<string, HistoryFood>;
+}
+
+// ── Protein Distribution Score ──────────────────────────────────────
+
+interface ProteinGrade {
+  grade: string;
+  color: string;
+  cv: number;
+  perMeal: number[];
+  mealLabels: string[];
+  nudge: string;
+}
+
+const MEAL_TYPE_SHORT: Record<string, string> = {
+  breakfast: 'Bkfst',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+  pre_workout: 'Pre',
+  post_workout: 'Post',
+};
+
+function analyzeProteinDistribution(meals: MealEntry[]): ProteinGrade | null {
+  if (meals.length < 2) return null;
+
+  const perMeal = meals.map(m => m.protein);
+  const mealLabels = meals.map(m => MEAL_TYPE_SHORT[m.mealType] || m.mealType);
+  const totalProtein = perMeal.reduce((s, p) => s + p, 0);
+
+  if (totalProtein < 20) return null; // Not enough data to grade
+
+  const mean = totalProtein / perMeal.length;
+  const variance = perMeal.reduce((s, p) => s + Math.pow(p - mean, 2), 0) / perMeal.length;
+  const sd = Math.sqrt(variance);
+  const cv = mean > 0 ? sd / mean : 0;
+
+  let grade: string;
+  let color: string;
+  if (cv < 0.15) { grade = 'A'; color = 'text-green-400'; }
+  else if (cv < 0.25) { grade = 'A-'; color = 'text-green-400'; }
+  else if (cv < 0.35) { grade = 'B+'; color = 'text-emerald-400'; }
+  else if (cv < 0.45) { grade = 'B'; color = 'text-blue-400'; }
+  else if (cv < 0.55) { grade = 'C+'; color = 'text-yellow-400'; }
+  else if (cv < 0.7) { grade = 'C'; color = 'text-yellow-400'; }
+  else if (cv < 0.85) { grade = 'D'; color = 'text-orange-400'; }
+  else { grade = 'F'; color = 'text-red-400'; }
+
+  // Generate nudge
+  const maxIdx = perMeal.indexOf(Math.max(...perMeal));
+  const minIdx = perMeal.indexOf(Math.min(...perMeal));
+  const maxVal = perMeal[maxIdx];
+  const minVal = perMeal[minIdx];
+  let nudge = '';
+
+  if (cv >= 0.35 && maxVal > 0 && minVal < mean * 0.6) {
+    const deficit = Math.round(mean - minVal);
+    nudge = `Add ~${deficit}g protein to ${mealLabels[minIdx].toLowerCase()}. ${mealLabels[maxIdx]} has ${Math.round(maxVal)}g — spread it out for better recovery.`;
+  } else if (cv >= 0.25) {
+    nudge = 'Aim for 25-40g protein per meal for optimal muscle protein synthesis.';
+  } else {
+    nudge = 'Excellent protein spread across meals. This maximizes muscle protein synthesis.';
+  }
+
+  return { grade, color, cv, perMeal, mealLabels, nudge };
+}
+
+function ProteinDistribution({ analysis }: { analysis: ProteinGrade }) {
+  const maxProtein = Math.max(...analysis.perMeal, 1);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Target className="w-4 h-4 text-red-400" />
+          <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
+            Protein Distribution
+          </span>
+        </div>
+        <span className={cn('text-lg font-bold', analysis.color)}>{analysis.grade}</span>
+      </div>
+
+      {/* Visual timeline */}
+      <div className="flex items-end gap-1.5">
+        {analysis.perMeal.map((protein, i) => {
+          const height = Math.max((protein / maxProtein) * 48, 4);
+          const isLow = protein < 20;
+          const isGood = protein >= 25 && protein <= 45;
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <span className={cn(
+                'text-xs font-semibold tabular-nums',
+                isGood ? 'text-green-400' : isLow ? 'text-red-400' : 'text-grappler-300'
+              )}>
+                {Math.round(protein)}g
+              </span>
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className={cn(
+                  'w-full rounded-t',
+                  isGood ? 'bg-green-500/60' : isLow ? 'bg-red-500/40' : 'bg-blue-500/50'
+                )}
+              />
+              <span className="text-[10px] text-grappler-500 truncate max-w-full">
+                {analysis.mealLabels[i]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Nudge */}
+      <p className="text-xs text-grappler-400 leading-relaxed">{analysis.nudge}</p>
+    </div>
+  );
+}
+
+// ── Smart Remaining Suggestions ─────────────────────────────────────
+
+interface FoodSuggestion {
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  source: 'history' | 'database';
+  matchScore: number;
+}
+
+function getSuggestions(
+  remaining: { calories: number; protein: number; carbs: number; fat: number },
+  historyIndex: Map<string, HistoryFood>,
+): FoodSuggestion[] {
+  if (remaining.calories < 80 && remaining.protein < 8) return [];
+
+  const candidates: FoodSuggestion[] = [];
+
+  // Score: how well does this food fill the remaining gap?
+  const score = (food: { calories: number; protein: number; carbs: number; fat: number }) => {
+    // Penalize going over, reward getting close
+    const calDiff = Math.abs(food.calories - remaining.calories);
+    const proDiff = Math.abs(food.protein - remaining.protein) * 4; // Weight protein heavily
+    const calPenalty = food.calories > remaining.calories * 1.3 ? 200 : 0;
+    return -(calDiff + proDiff + calPenalty);
+  };
+
+  // Pull from user's history (most relevant)
+  historyIndex.forEach(food => {
+    if (food.calories > 0 && food.calories <= remaining.calories * 1.5) {
+      candidates.push({
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+        source: 'history',
+        matchScore: score(food) + (food.count * 2), // Boost frequent foods
+      });
+    }
+  });
+
+  // Pull from preset database as fallback
+  PRESET_FOODS.forEach(food => {
+    if (food.calories > 0 && food.calories <= remaining.calories * 1.5) {
+      const existing = candidates.some(c => c.name.toLowerCase() === food.name.toLowerCase());
+      if (!existing) {
+        candidates.push({
+          name: food.name,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+          source: 'database',
+          matchScore: score(food),
+        });
+      }
+    }
+  });
+
+  return candidates
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 3);
+}
+
+function SmartRemaining({ remaining, suggestions }: {
+  remaining: { calories: number; protein: number; carbs: number; fat: number };
+  suggestions: FoodSuggestion[];
+}) {
+  const hasRemaining = remaining.calories > 80 || remaining.protein > 8;
+
+  if (!hasRemaining) {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+        <Award className="w-4 h-4 text-green-400 shrink-0" />
+        <span className="text-xs text-green-300 font-medium">Targets hit! Great job today.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Lightbulb className="w-4 h-4 text-yellow-400" />
+          <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
+            Still Need
+          </span>
+        </div>
+        <span className="text-xs text-grappler-400">
+          {remaining.calories > 0 && `${remaining.calories} kcal`}
+          {remaining.protein > 8 && ` · ${Math.round(remaining.protein)}g P`}
+        </span>
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="space-y-1.5">
+          {suggestions.map((s, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-2 bg-grappler-800/60 rounded-lg"
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-xs text-yellow-400/70">
+                  {s.source === 'history' ? '⟳' : '◆'}
+                </span>
+                <span className="text-xs text-grappler-200 truncate">{s.name}</span>
+              </div>
+              <div className="flex gap-2 text-xs text-grappler-500 shrink-0 ml-2">
+                <span>{s.calories}cal</span>
+                <span className="text-red-400/70">{s.protein}p</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Weekly Report Card ──────────────────────────────────────────────
+
+interface WeeklyReport {
+  avg: { calories: number; protein: number; carbs: number; fat: number };
+  daysLogged: number;
+  totalDays: number;
+  hitRate: { calories: number; protein: number; carbs: number; fat: number };
+  consistencyGrade: string;
+  consistencyColor: string;
+  topFood: { name: string; count: number } | null;
+  recommendation: string;
+}
+
+function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets): WeeklyReport | null {
+  const now = new Date();
+  const days: { calories: number; protein: number; carbs: number; fat: number }[] = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const dayMeals = allMeals.filter(
+      m => new Date(m.date).toISOString().split('T')[0] === key
+    );
+    if (dayMeals.length > 0) {
+      days.push({
+        calories: dayMeals.reduce((s, m) => s + m.calories, 0),
+        protein: dayMeals.reduce((s, m) => s + m.protein, 0),
+        carbs: dayMeals.reduce((s, m) => s + m.carbs, 0),
+        fat: dayMeals.reduce((s, m) => s + m.fat, 0),
+      });
+    }
+  }
+
+  if (days.length < 2) return null;
+
+  const avg = {
+    calories: Math.round(days.reduce((s, d) => s + d.calories, 0) / days.length),
+    protein: Math.round(days.reduce((s, d) => s + d.protein, 0) / days.length),
+    carbs: Math.round(days.reduce((s, d) => s + d.carbs, 0) / days.length),
+    fat: Math.round(days.reduce((s, d) => s + d.fat, 0) / days.length),
+  };
+
+  // Hit rate: within ±10% of target
+  const withinRange = (actual: number, target: number) =>
+    target > 0 && Math.abs(actual - target) / target <= 0.1;
+
+  const hitRate = {
+    calories: days.filter(d => withinRange(d.calories, macroTargets.calories)).length,
+    protein: days.filter(d => withinRange(d.protein, macroTargets.protein)).length,
+    carbs: days.filter(d => withinRange(d.carbs, macroTargets.carbs)).length,
+    fat: days.filter(d => withinRange(d.fat, macroTargets.fat)).length,
+  };
+
+  // Consistency: coefficient of variation of daily calories
+  const calMean = avg.calories;
+  const calVar = days.reduce((s, d) => s + Math.pow(d.calories - calMean, 2), 0) / days.length;
+  const calCV = calMean > 0 ? Math.sqrt(calVar) / calMean : 0;
+
+  let consistencyGrade: string;
+  let consistencyColor: string;
+  if (calCV < 0.08) { consistencyGrade = 'A'; consistencyColor = 'text-green-400'; }
+  else if (calCV < 0.12) { consistencyGrade = 'A-'; consistencyColor = 'text-green-400'; }
+  else if (calCV < 0.18) { consistencyGrade = 'B+'; consistencyColor = 'text-emerald-400'; }
+  else if (calCV < 0.25) { consistencyGrade = 'B'; consistencyColor = 'text-blue-400'; }
+  else if (calCV < 0.35) { consistencyGrade = 'C'; consistencyColor = 'text-yellow-400'; }
+  else { consistencyGrade = 'D'; consistencyColor = 'text-orange-400'; }
+
+  // Top food (last 7 days)
+  const foodCounts = new Map<string, number>();
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - 7);
+  allMeals
+    .filter(m => new Date(m.date) >= weekStart)
+    .forEach(m => {
+      const key = m.name.toLowerCase().trim();
+      foodCounts.set(key, (foodCounts.get(key) || 0) + 1);
+    });
+  let topFood: { name: string; count: number } | null = null;
+  foodCounts.forEach((count, key) => {
+    if (!topFood || count > topFood.count) {
+      const meal = allMeals.find(m => m.name.toLowerCase().trim() === key);
+      topFood = { name: meal?.name || key, count };
+    }
+  });
+
+  // Recommendation
+  let recommendation = '';
+  const proteinRate = hitRate.protein / days.length;
+  const calDelta = avg.calories - macroTargets.calories;
+
+  if (proteinRate < 0.5) {
+    recommendation = `Protein target hit only ${hitRate.protein}/${days.length} days. Prioritize protein at every meal — it's the hardest macro to catch up on.`;
+  } else if (calCV > 0.25) {
+    recommendation = `Your calorie intake varies a lot day-to-day (${consistencyGrade} consistency). Try to keep within ±200 kcal of your target daily.`;
+  } else if (calDelta < -200) {
+    recommendation = `Averaging ${Math.abs(calDelta)} kcal under target. If intentional, great — if not, you're leaving gains on the table.`;
+  } else if (calDelta > 200) {
+    recommendation = `Averaging ${calDelta} kcal over target. Watch portion sizes or adjust targets if your goals have changed.`;
+  } else if (proteinRate >= 0.7) {
+    recommendation = 'Strong week! Protein adherence and consistency are both solid. Keep it up.';
+  } else {
+    recommendation = 'Decent week. Focus on hitting protein targets more consistently for better results.';
+  }
+
+  return {
+    avg,
+    daysLogged: days.length,
+    totalDays: 7,
+    hitRate,
+    consistencyGrade,
+    consistencyColor,
+    topFood,
+    recommendation,
+  };
+}
+
+function HitRateBar({ label, hit, total, color }: { label: string; hit: number; total: number; color: string }) {
+  const pct = total > 0 ? (hit / total) * 100 : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-grappler-500 w-5 text-right">{label}</span>
+      <div className="flex-1 h-2 bg-grappler-800 rounded-full overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all', color)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={cn(
+        'text-xs font-semibold tabular-nums w-10',
+        pct >= 70 ? 'text-green-400' : pct >= 40 ? 'text-yellow-400' : 'text-red-400'
+      )}>
+        {hit}/{total}
+      </span>
+    </div>
+  );
+}
+
+function WeeklyReportCard({ report }: { report: WeeklyReport }) {
+  const [expanded, setExpanded] = useState(false);
+  const calDelta = report.avg.calories - 0; // Will be calculated with targets
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary-400" />
+          <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
+            Weekly Report
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={cn('text-sm font-bold', report.consistencyColor)}>
+            {report.consistencyGrade}
+          </span>
+          {expanded
+            ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" />
+            : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />
+          }
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3 pt-1">
+              {/* Avg stats */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { label: 'Cal', value: report.avg.calories, unit: '' },
+                  { label: 'Pro', value: report.avg.protein, unit: 'g' },
+                  { label: 'Carb', value: report.avg.carbs, unit: 'g' },
+                  { label: 'Fat', value: report.avg.fat, unit: 'g' },
+                ].map(s => (
+                  <div key={s.label} className="text-center p-1.5 bg-grappler-800/50 rounded">
+                    <p className="text-sm font-bold text-grappler-200">{s.value}{s.unit}</p>
+                    <p className="text-[10px] text-grappler-500">{s.label}/day</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Macro hit rates */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-grappler-500 uppercase tracking-wider">
+                  Target Hit Rate (±10%)
+                </p>
+                <HitRateBar label="Cal" hit={report.hitRate.calories} total={report.daysLogged} color="bg-orange-500" />
+                <HitRateBar label="P" hit={report.hitRate.protein} total={report.daysLogged} color="bg-red-500" />
+                <HitRateBar label="C" hit={report.hitRate.carbs} total={report.daysLogged} color="bg-blue-500" />
+                <HitRateBar label="F" hit={report.hitRate.fat} total={report.daysLogged} color="bg-yellow-500" />
+              </div>
+
+              {/* Meta */}
+              <div className="flex items-center justify-between text-xs text-grappler-500">
+                <span>Logged {report.daysLogged}/{report.totalDays} days</span>
+                {report.topFood && (
+                  <span>Top: {report.topFood.name.length > 18
+                    ? report.topFood.name.slice(0, 18) + '...'
+                    : report.topFood.name
+                  } ({report.topFood.count}x)</span>
+                )}
+              </div>
+
+              {/* Recommendation */}
+              <div className="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+                <p className="text-xs text-grappler-300 leading-relaxed">{report.recommendation}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Main Component ──────────────────────────────────────────────────
+
+export default function NutritionInsights({
+  todayMeals,
+  allMeals,
+  targets,
+  remaining,
+  totals,
+  macroTargets,
+  mealHistoryIndex,
+}: NutritionInsightsProps) {
+  const proteinAnalysis = useMemo(
+    () => analyzeProteinDistribution(todayMeals),
+    [todayMeals]
+  );
+
+  const suggestions = useMemo(
+    () => getSuggestions(remaining, mealHistoryIndex),
+    [remaining, mealHistoryIndex]
+  );
+
+  const weeklyReport = useMemo(
+    () => computeWeeklyReport(allMeals, macroTargets),
+    [allMeals, macroTargets]
+  );
+
+  // Don't render if there's nothing to show
+  const hasContent = proteinAnalysis || suggestions.length > 0 ||
+    remaining.calories < 80 || weeklyReport;
+  if (!hasContent && todayMeals.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="card p-4 space-y-4"
+    >
+      <div className="flex items-center gap-2">
+        <Zap className="w-4 h-4 text-yellow-400" />
+        <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide">
+          Smart Insights
+        </h3>
+      </div>
+
+      {/* Protein Distribution */}
+      {proteinAnalysis && (
+        <>
+          <ProteinDistribution analysis={proteinAnalysis} />
+          <div className="border-t border-grappler-800" />
+        </>
+      )}
+
+      {/* Smart Remaining / Targets Hit */}
+      {(todayMeals.length > 0 || remaining.calories > 0) && (
+        <>
+          <SmartRemaining remaining={remaining} suggestions={suggestions} />
+          {weeklyReport && <div className="border-t border-grappler-800" />}
+        </>
+      )}
+
+      {/* Weekly Report Card */}
+      {weeklyReport && <WeeklyReportCard report={weeklyReport} />}
+    </motion.div>
+  );
+}

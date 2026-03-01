@@ -283,9 +283,11 @@ function SmartRemaining({ remaining, suggestions }: {
   );
 }
 
-// ── Weekly Report Card ──────────────────────────────────────────────
+// ── Nutrition Report Card ────────────────────────────────────────────
 
-interface WeeklyReport {
+type ReportRange = '7d' | '14d' | '30d' | 'all';
+
+interface NutritionReport {
   avg: { calories: number; protein: number; carbs: number; fat: number };
   daysLogged: number;
   totalDays: number;
@@ -296,34 +298,53 @@ interface WeeklyReport {
   recommendation: string;
 }
 
-function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets): WeeklyReport | null {
+function computeReport(allMeals: MealEntry[], macroTargets: MacroTargets, range: ReportRange): NutritionReport | null {
   const now = new Date();
-  const days: { calories: number; protein: number; carbs: number; fat: number }[] = [];
+  const dayMap = new Map<string, { calories: number; protein: number; carbs: number; fat: number }>();
 
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    const dayMeals = allMeals.filter(
-      m => new Date(m.date).toISOString().split('T')[0] === key
-    );
-    if (dayMeals.length > 0) {
-      days.push({
-        calories: dayMeals.reduce((s, m) => s + m.calories, 0),
-        protein: dayMeals.reduce((s, m) => s + m.protein, 0),
-        carbs: dayMeals.reduce((s, m) => s + m.carbs, 0),
-        fat: dayMeals.reduce((s, m) => s + m.fat, 0),
-      });
-    }
+  // Group all meals by date
+  allMeals.forEach(m => {
+    const key = new Date(m.date).toISOString().split('T')[0];
+    const existing = dayMap.get(key) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    dayMap.set(key, {
+      calories: existing.calories + m.calories,
+      protein: existing.protein + m.protein,
+      carbs: existing.carbs + m.carbs,
+      fat: existing.fat + m.fat,
+    });
+  });
+
+  // Filter by range
+  let rangeDays: number;
+  let filteredDays: { calories: number; protein: number; carbs: number; fat: number }[];
+
+  if (range === 'all') {
+    filteredDays = Array.from(dayMap.values());
+    // Total days = from first meal to now
+    if (allMeals.length === 0) return null;
+    const earliest = allMeals.reduce((min, m) => {
+      const d = new Date(m.date).getTime();
+      return d < min ? d : min;
+    }, Date.now());
+    rangeDays = Math.max(Math.ceil((Date.now() - earliest) / 86400000), 1);
+  } else {
+    rangeDays = range === '7d' ? 7 : range === '14d' ? 14 : 30;
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - rangeDays);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    filteredDays = [];
+    dayMap.forEach((totals, dateKey) => {
+      if (dateKey >= cutoffStr) filteredDays.push(totals);
+    });
   }
 
-  if (days.length < 2) return null;
+  if (filteredDays.length < 2) return null;
 
   const avg = {
-    calories: Math.round(days.reduce((s, d) => s + d.calories, 0) / days.length),
-    protein: Math.round(days.reduce((s, d) => s + d.protein, 0) / days.length),
-    carbs: Math.round(days.reduce((s, d) => s + d.carbs, 0) / days.length),
-    fat: Math.round(days.reduce((s, d) => s + d.fat, 0) / days.length),
+    calories: Math.round(filteredDays.reduce((s, d) => s + d.calories, 0) / filteredDays.length),
+    protein: Math.round(filteredDays.reduce((s, d) => s + d.protein, 0) / filteredDays.length),
+    carbs: Math.round(filteredDays.reduce((s, d) => s + d.carbs, 0) / filteredDays.length),
+    fat: Math.round(filteredDays.reduce((s, d) => s + d.fat, 0) / filteredDays.length),
   };
 
   // Hit rate: within ±10% of target
@@ -331,15 +352,15 @@ function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets):
     target > 0 && Math.abs(actual - target) / target <= 0.1;
 
   const hitRate = {
-    calories: days.filter(d => withinRange(d.calories, macroTargets.calories)).length,
-    protein: days.filter(d => withinRange(d.protein, macroTargets.protein)).length,
-    carbs: days.filter(d => withinRange(d.carbs, macroTargets.carbs)).length,
-    fat: days.filter(d => withinRange(d.fat, macroTargets.fat)).length,
+    calories: filteredDays.filter(d => withinRange(d.calories, macroTargets.calories)).length,
+    protein: filteredDays.filter(d => withinRange(d.protein, macroTargets.protein)).length,
+    carbs: filteredDays.filter(d => withinRange(d.carbs, macroTargets.carbs)).length,
+    fat: filteredDays.filter(d => withinRange(d.fat, macroTargets.fat)).length,
   };
 
   // Consistency: coefficient of variation of daily calories
   const calMean = avg.calories;
-  const calVar = days.reduce((s, d) => s + Math.pow(d.calories - calMean, 2), 0) / days.length;
+  const calVar = filteredDays.reduce((s, d) => s + Math.pow(d.calories - calMean, 2), 0) / filteredDays.length;
   const calCV = calMean > 0 ? Math.sqrt(calVar) / calMean : 0;
 
   let consistencyGrade: string;
@@ -351,12 +372,12 @@ function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets):
   else if (calCV < 0.35) { consistencyGrade = 'C'; consistencyColor = 'text-yellow-400'; }
   else { consistencyGrade = 'D'; consistencyColor = 'text-orange-400'; }
 
-  // Top food (last 7 days)
+  // Top food in range
   const foodCounts = new Map<string, number>();
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - 7);
+  const cutoffDate = range === 'all' ? new Date(0) : new Date(now);
+  if (range !== 'all') cutoffDate.setDate(cutoffDate.getDate() - rangeDays);
   allMeals
-    .filter(m => new Date(m.date) >= weekStart)
+    .filter(m => new Date(m.date) >= cutoffDate)
     .forEach(m => {
       const key = m.name.toLowerCase().trim();
       foodCounts.set(key, (foodCounts.get(key) || 0) + 1);
@@ -371,11 +392,11 @@ function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets):
 
   // Recommendation
   let recommendation = '';
-  const proteinRate = hitRate.protein / days.length;
+  const proteinRate = hitRate.protein / filteredDays.length;
   const calDelta = avg.calories - macroTargets.calories;
 
   if (proteinRate < 0.5) {
-    recommendation = `Protein target hit only ${hitRate.protein}/${days.length} days. Prioritize protein at every meal — it's the hardest macro to catch up on.`;
+    recommendation = `Protein target hit only ${hitRate.protein}/${filteredDays.length} days. Prioritize protein at every meal — it's the hardest macro to catch up on.`;
   } else if (calCV > 0.25) {
     recommendation = `Your calorie intake varies a lot day-to-day (${consistencyGrade} consistency). Try to keep within ±200 kcal of your target daily.`;
   } else if (calDelta < -200) {
@@ -383,15 +404,15 @@ function computeWeeklyReport(allMeals: MealEntry[], macroTargets: MacroTargets):
   } else if (calDelta > 200) {
     recommendation = `Averaging ${calDelta} kcal over target. Watch portion sizes or adjust targets if your goals have changed.`;
   } else if (proteinRate >= 0.7) {
-    recommendation = 'Strong week! Protein adherence and consistency are both solid. Keep it up.';
+    recommendation = 'Strong adherence! Protein and consistency are both solid. Keep it up.';
   } else {
-    recommendation = 'Decent week. Focus on hitting protein targets more consistently for better results.';
+    recommendation = 'Decent period. Focus on hitting protein targets more consistently for better results.';
   }
 
   return {
     avg,
-    daysLogged: days.length,
-    totalDays: 7,
+    daysLogged: filteredDays.length,
+    totalDays: rangeDays,
     hitRate,
     consistencyGrade,
     consistencyColor,
@@ -421,86 +442,102 @@ function HitRateBar({ label, hit, total, color }: { label: string; hit: number; 
   );
 }
 
-function WeeklyReportCard({ report }: { report: WeeklyReport }) {
-  const [expanded, setExpanded] = useState(true);
+const RANGE_OPTIONS: { id: ReportRange; label: string }[] = [
+  { id: '7d', label: '7D' },
+  { id: '14d', label: '14D' },
+  { id: '30d', label: '30D' },
+  { id: 'all', label: 'All' },
+];
+
+function ReportCard({ allMeals, macroTargets }: { allMeals: MealEntry[]; macroTargets: MacroTargets }) {
+  const [range, setRange] = useState<ReportRange>('all');
+
+  const report = useMemo(
+    () => computeReport(allMeals, macroTargets, range),
+    [allMeals, macroTargets, range]
+  );
 
   return (
-    <div className="space-y-2">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between"
-      >
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary-400" />
           <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
-            Weekly Report
+            Nutrition Report
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        {report && (
           <span className={cn('text-sm font-bold', report.consistencyColor)}>
             {report.consistencyGrade}
           </span>
-          {expanded
-            ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" />
-            : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />
-          }
-        </div>
-      </button>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-3 pt-1">
-              {/* Avg stats */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { label: 'Cal', value: report.avg.calories, unit: '' },
-                  { label: 'Pro', value: report.avg.protein, unit: 'g' },
-                  { label: 'Carb', value: report.avg.carbs, unit: 'g' },
-                  { label: 'Fat', value: report.avg.fat, unit: 'g' },
-                ].map(s => (
-                  <div key={s.label} className="text-center p-1.5 bg-grappler-800/50 rounded">
-                    <p className="text-sm font-bold text-grappler-200">{s.value}{s.unit}</p>
-                    <p className="text-[10px] text-grappler-500">{s.label}/day</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Macro hit rates */}
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-grappler-500 uppercase tracking-wider">
-                  Target Hit Rate (±10%)
-                </p>
-                <HitRateBar label="Cal" hit={report.hitRate.calories} total={report.daysLogged} color="bg-orange-500" />
-                <HitRateBar label="P" hit={report.hitRate.protein} total={report.daysLogged} color="bg-red-500" />
-                <HitRateBar label="C" hit={report.hitRate.carbs} total={report.daysLogged} color="bg-blue-500" />
-                <HitRateBar label="F" hit={report.hitRate.fat} total={report.daysLogged} color="bg-yellow-500" />
-              </div>
-
-              {/* Meta */}
-              <div className="flex items-center justify-between text-xs text-grappler-500">
-                <span>Logged {report.daysLogged}/{report.totalDays} days</span>
-                {report.topFood && (
-                  <span>Top: {report.topFood.name.length > 18
-                    ? report.topFood.name.slice(0, 18) + '...'
-                    : report.topFood.name
-                  } ({report.topFood.count}x)</span>
-                )}
-              </div>
-
-              {/* Recommendation */}
-              <div className="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-lg">
-                <p className="text-xs text-grappler-300 leading-relaxed">{report.recommendation}</p>
-              </div>
-            </div>
-          </motion.div>
         )}
-      </AnimatePresence>
+      </div>
+
+      {/* Range selector */}
+      <div className="flex gap-1 bg-grappler-800/50 rounded-lg p-0.5">
+        {RANGE_OPTIONS.map(r => (
+          <button
+            key={r.id}
+            onClick={() => setRange(r.id)}
+            className={cn(
+              'flex-1 py-1.5 text-xs font-medium rounded-md transition-all',
+              range === r.id
+                ? 'bg-primary-500/20 text-primary-400'
+                : 'text-grappler-500 hover:text-grappler-300'
+            )}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {report ? (
+        <div className="space-y-3">
+          {/* Avg stats */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { label: 'Cal', value: report.avg.calories, unit: '' },
+              { label: 'Pro', value: report.avg.protein, unit: 'g' },
+              { label: 'Carb', value: report.avg.carbs, unit: 'g' },
+              { label: 'Fat', value: report.avg.fat, unit: 'g' },
+            ].map(s => (
+              <div key={s.label} className="text-center p-1.5 bg-grappler-800/50 rounded">
+                <p className="text-sm font-bold text-grappler-200">{s.value}{s.unit}</p>
+                <p className="text-[10px] text-grappler-500">{s.label}/day</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Macro hit rates */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-grappler-500 uppercase tracking-wider">
+              Target Hit Rate (±10%)
+            </p>
+            <HitRateBar label="Cal" hit={report.hitRate.calories} total={report.daysLogged} color="bg-orange-500" />
+            <HitRateBar label="P" hit={report.hitRate.protein} total={report.daysLogged} color="bg-red-500" />
+            <HitRateBar label="C" hit={report.hitRate.carbs} total={report.daysLogged} color="bg-blue-500" />
+            <HitRateBar label="F" hit={report.hitRate.fat} total={report.daysLogged} color="bg-yellow-500" />
+          </div>
+
+          {/* Meta */}
+          <div className="flex items-center justify-between text-xs text-grappler-500">
+            <span>Logged {report.daysLogged}/{report.totalDays} days</span>
+            {report.topFood && (
+              <span>Top: {report.topFood.name.length > 18
+                ? report.topFood.name.slice(0, 18) + '...'
+                : report.topFood.name
+              } ({report.topFood.count}x)</span>
+            )}
+          </div>
+
+          {/* Recommendation */}
+          <div className="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-lg">
+            <p className="text-xs text-grappler-300 leading-relaxed">{report.recommendation}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-grappler-500">Not enough data for this range yet.</p>
+      )}
     </div>
   );
 }
@@ -726,10 +763,7 @@ export default function NutritionInsights({
     [remaining, mealHistoryIndex]
   );
 
-  const weeklyReport = useMemo(
-    () => computeWeeklyReport(allMeals, macroTargets),
-    [allMeals, macroTargets]
-  );
+  const hasReportData = allMeals.length >= 2;
 
   const foodTips = useMemo(
     () => analyzeDiet(mealHistoryIndex),
@@ -737,7 +771,7 @@ export default function NutritionInsights({
   );
 
   const hasAnyData = proteinAnalysis || suggestions.length > 0 ||
-    remaining.calories < 80 || weeklyReport || todayMeals.length > 0;
+    remaining.calories < 80 || hasReportData || todayMeals.length > 0;
 
   return (
     <div className="space-y-4">
@@ -778,15 +812,15 @@ export default function NutritionInsights({
         <SmartRemaining remaining={remaining} suggestions={suggestions} />
       </motion.div>
 
-      {/* Weekly Report Card */}
-      {weeklyReport && (
+      {/* Nutrition Report */}
+      {hasReportData && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="card p-4"
         >
-          <WeeklyReportCard report={weeklyReport} />
+          <ReportCard allMeals={allMeals} macroTargets={macroTargets} />
         </motion.div>
       )}
 

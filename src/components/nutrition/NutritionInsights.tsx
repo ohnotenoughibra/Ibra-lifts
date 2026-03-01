@@ -10,6 +10,9 @@ import {
   ChevronUp,
   Lightbulb,
   Award,
+  Leaf,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MealEntry, MacroTargets } from '@/lib/types';
@@ -49,8 +52,24 @@ const MEAL_TYPE_SHORT: Record<string, string> = {
 function analyzeProteinDistribution(meals: MealEntry[]): ProteinGrade | null {
   if (meals.length < 2) return null;
 
-  const perMeal = meals.map(m => m.protein);
-  const mealLabels = meals.map(m => MEAL_TYPE_SHORT[m.mealType] || m.mealType);
+  // Group meals by mealType and sum protein
+  const grouped = new Map<string, number>();
+  const typeOrder = ['breakfast', 'pre_workout', 'lunch', 'snack', 'post_workout', 'dinner'];
+  meals.forEach(m => {
+    const key = m.mealType;
+    grouped.set(key, (grouped.get(key) || 0) + m.protein);
+  });
+
+  // Sort by meal time order
+  const sortedKeys = Array.from(grouped.keys()).sort(
+    (a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) -
+              (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b))
+  );
+
+  if (sortedKeys.length < 2) return null;
+
+  const perMeal = sortedKeys.map(k => grouped.get(k)!);
+  const mealLabels = sortedKeys.map(k => MEAL_TYPE_SHORT[k] || k);
   const totalProtein = perMeal.reduce((s, p) => s + p, 0);
 
   if (totalProtein < 20) return null; // Not enough data to grade
@@ -403,8 +422,7 @@ function HitRateBar({ label, hit, total, color }: { label: string; hit: number; 
 }
 
 function WeeklyReportCard({ report }: { report: WeeklyReport }) {
-  const [expanded, setExpanded] = useState(false);
-  const calDelta = report.avg.calories - 0; // Will be calculated with targets
+  const [expanded, setExpanded] = useState(true);
 
   return (
     <div className="space-y-2">
@@ -487,6 +505,206 @@ function WeeklyReportCard({ report }: { report: WeeklyReport }) {
   );
 }
 
+// ── Science-Based Food Guidance ─────────────────────────────────────
+
+// Evidence-based food categories (sources cited in comments)
+// Categories are used to match against user's meal history keywords
+
+const POWER_FOODS = [
+  // High protein per calorie — Morton et al. 2018, 1.6-2.2g/kg optimal
+  { keywords: ['salmon', 'mackerel', 'sardine', 'herring', 'trout'], label: 'Fatty fish (2-3x/week)', why: 'Omega-3s reduce inflammation, protect joints, improve brain health — critical for contact sports.', source: 'Calder 2017' },
+  { keywords: ['berry', 'berries', 'blueberry', 'cherry', 'tart cherry'], label: 'Berries & tart cherry', why: 'Polyphenols reduce muscle soreness (DOMS) and accelerate recovery between sessions.', source: 'Howatson 2010' },
+  { keywords: ['yogurt', 'kefir', 'kimchi', 'sauerkraut', 'fermented', 'kombucha'], label: 'Fermented foods', why: 'Gut microbiome diversity boosts immune function — fewer sick days, better nutrient absorption.', source: 'Sonnenburg 2016' },
+  { keywords: ['spinach', 'kale', 'beet', 'beetroot', 'arugula', 'rocket'], label: 'Nitrate-rich greens', why: 'Dietary nitrates improve oxygen efficiency during training — more output, less fatigue.', source: 'Jones 2018' },
+  { keywords: ['bone broth', 'gelatin', 'collagen'], label: 'Collagen / bone broth', why: 'Supports tendon and ligament adaptation — essential for grapplers and anyone training hard.', source: 'Shaw 2017' },
+  { keywords: ['egg', 'eggs'], label: 'Whole eggs', why: 'Complete protein + choline for brain function. Whole eggs stimulate more MPS than egg whites alone.', source: 'van Vliet 2017' },
+  { keywords: ['turmeric', 'ginger', 'curcumin'], label: 'Turmeric & ginger', why: 'Natural anti-inflammatories that reduce DOMS and joint pain without NSAID side effects.', source: 'Nicol 2015' },
+  { keywords: ['oats', 'oatmeal', 'porridge'], label: 'Oats', why: 'Slow-release carbs + beta-glucan fiber. Steady energy for long sessions, supports gut health.', source: 'Rebello 2016' },
+] as const;
+
+const FOODS_TO_LIMIT = [
+  { keywords: ['fried', 'fries', 'chips', 'crisp', 'deep fried', 'nugget'], label: 'Fried foods', why: 'Trans fats and advanced glycation end-products (AGEs) promote systemic inflammation and slow recovery.' },
+  { keywords: ['soda', 'cola', 'fanta', 'sprite', 'soft drink', 'mountain dew', 'energy drink'], label: 'Sugary drinks', why: 'Empty calories, insulin spikes, zero satiety. Associated with increased inflammation and fat storage.' },
+  { keywords: ['candy', 'sweets', 'gummy', 'haribo', 'skittles', 'chocolate bar'], label: 'Candy & sweets', why: 'Excess added sugar suppresses immune function for hours post-consumption and provides no micronutrients.' },
+  { keywords: ['alcohol', 'beer', 'wine', 'vodka', 'whiskey', 'cocktail'], label: 'Alcohol', why: 'Reduces muscle protein synthesis by up to 37% post-training, disrupts sleep quality, and impairs recovery.', source: 'Parr 2014' },
+  { keywords: ['pizza', 'hot dog', 'fast food', 'mcdonalds', 'burger king', 'kfc'], label: 'Ultra-processed fast food', why: 'People eat 500+ more kcal/day on ultra-processed diets — these foods override satiety signals.', source: 'Hall 2019 (NIH)' },
+] as const;
+
+interface FoodTip {
+  type: 'add' | 'reduce';
+  label: string;
+  why: string;
+  source?: string;
+  found: boolean; // Is this food already in their diet?
+  frequency?: number; // How often they eat it
+}
+
+function analyzeDiet(historyIndex: Map<string, HistoryFood>): FoodTip[] {
+  const tips: FoodTip[] = [];
+  const allNames = Array.from(historyIndex.keys());
+
+  // Check which power foods they're missing
+  for (const food of POWER_FOODS) {
+    const match = allNames.find(name =>
+      food.keywords.some(kw => name.includes(kw))
+    );
+    const freq = match ? historyIndex.get(match)?.count || 0 : 0;
+    tips.push({
+      type: 'add',
+      label: food.label,
+      why: food.why,
+      source: food.source,
+      found: !!match,
+      frequency: freq,
+    });
+  }
+
+  // Check which foods to limit they're eating
+  for (const food of FOODS_TO_LIMIT) {
+    const matches = allNames.filter(name =>
+      food.keywords.some(kw => name.includes(kw))
+    );
+    const totalFreq = matches.reduce((s, name) => s + (historyIndex.get(name)?.count || 0), 0);
+    if (totalFreq > 0) {
+      tips.push({
+        type: 'reduce',
+        label: food.label,
+        why: food.why,
+        source: 'source' in food ? food.source : undefined,
+        found: true,
+        frequency: totalFreq,
+      });
+    }
+  }
+
+  return tips;
+}
+
+function FoodGuidance({ tips }: { tips: FoodTip[] }) {
+  const [expanded, setExpanded] = useState(true);
+
+  const missing = tips.filter(t => t.type === 'add' && !t.found);
+  const eating = tips.filter(t => t.type === 'add' && t.found);
+  const toReduce = tips.filter(t => t.type === 'reduce');
+
+  return (
+    <div className="space-y-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <Leaf className="w-4 h-4 text-green-400" />
+          <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
+            Food Quality Guide
+          </span>
+        </div>
+        {expanded
+          ? <ChevronUp className="w-3.5 h-3.5 text-grappler-500" />
+          : <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />
+        }
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-4 pt-1">
+              {/* Already eating well */}
+              {eating.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-green-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Already in your diet
+                  </p>
+                  {eating.map((tip, i) => (
+                    <FoodTipRow key={i} tip={tip} />
+                  ))}
+                </div>
+              )}
+
+              {/* Missing power foods */}
+              {missing.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-yellow-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                    <Lightbulb className="w-3 h-3" /> Consider adding
+                  </p>
+                  {missing.map((tip, i) => (
+                    <FoodTipRow key={i} tip={tip} />
+                  ))}
+                </div>
+              )}
+
+              {/* Foods to reduce */}
+              {toReduce.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-red-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Consider reducing
+                  </p>
+                  {toReduce.map((tip, i) => (
+                    <FoodTipRow key={i} tip={tip} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function FoodTipRow({ tip }: { tip: FoodTip }) {
+  const [showDetail, setShowDetail] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={() => setShowDetail(!showDetail)}
+        className="w-full flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-grappler-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn(
+            'text-xs font-medium',
+            tip.type === 'add' && tip.found ? 'text-green-400' :
+            tip.type === 'add' ? 'text-grappler-300' :
+            'text-red-400'
+          )}>
+            {tip.label}
+          </span>
+          {tip.found && tip.frequency && tip.frequency > 1 && (
+            <span className="text-[10px] text-grappler-600">{tip.frequency}x logged</span>
+          )}
+        </div>
+        <ChevronDown className={cn(
+          'w-3 h-3 text-grappler-600 transition-transform',
+          showDetail && 'rotate-180'
+        )} />
+      </button>
+      <AnimatePresence>
+        {showDetail && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-2 pb-2">
+              <p className="text-xs text-grappler-400 leading-relaxed">{tip.why}</p>
+              {tip.source && (
+                <p className="text-[10px] text-grappler-600 mt-1">Source: {tip.source}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Main Component ──────────────────────────────────────────────────
 
 export default function NutritionInsights({
@@ -513,43 +731,83 @@ export default function NutritionInsights({
     [allMeals, macroTargets]
   );
 
-  // Don't render if there's nothing to show
-  const hasContent = proteinAnalysis || suggestions.length > 0 ||
-    remaining.calories < 80 || weeklyReport;
-  if (!hasContent && todayMeals.length === 0) return null;
+  const foodTips = useMemo(
+    () => analyzeDiet(mealHistoryIndex),
+    [mealHistoryIndex]
+  );
+
+  const hasAnyData = proteinAnalysis || suggestions.length > 0 ||
+    remaining.calories < 80 || weeklyReport || todayMeals.length > 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="card p-4 space-y-4"
-    >
-      <div className="flex items-center gap-2">
-        <Zap className="w-4 h-4 text-yellow-400" />
-        <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide">
-          Smart Insights
-        </h3>
-      </div>
-
+    <div className="space-y-4">
       {/* Protein Distribution */}
-      {proteinAnalysis && (
-        <>
+      {proteinAnalysis ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-4"
+        >
           <ProteinDistribution analysis={proteinAnalysis} />
-          <div className="border-t border-grappler-800" />
-        </>
-      )}
+        </motion.div>
+      ) : todayMeals.length < 2 ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-red-400" />
+            <span className="text-xs font-semibold text-grappler-300 uppercase tracking-wide">
+              Protein Distribution
+            </span>
+          </div>
+          <p className="text-xs text-grappler-500">
+            Log 2+ meals to see your protein distribution score.
+          </p>
+        </motion.div>
+      ) : null}
 
       {/* Smart Remaining / Targets Hit */}
-      {(todayMeals.length > 0 || remaining.calories > 0) && (
-        <>
-          <SmartRemaining remaining={remaining} suggestions={suggestions} />
-          {weeklyReport && <div className="border-t border-grappler-800" />}
-        </>
-      )}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="card p-4"
+      >
+        <SmartRemaining remaining={remaining} suggestions={suggestions} />
+      </motion.div>
 
       {/* Weekly Report Card */}
-      {weeklyReport && <WeeklyReportCard report={weeklyReport} />}
-    </motion.div>
+      {weeklyReport && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="card p-4"
+        >
+          <WeeklyReportCard report={weeklyReport} />
+        </motion.div>
+      )}
+
+      {/* Science-Based Food Guidance */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="card p-4"
+      >
+        <FoodGuidance tips={foodTips} />
+      </motion.div>
+
+      {!hasAnyData && (
+        <div className="text-center py-12">
+          <Zap className="w-8 h-8 text-grappler-700 mx-auto mb-3" />
+          <p className="text-sm text-grappler-500">
+            Start logging meals to unlock insights.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

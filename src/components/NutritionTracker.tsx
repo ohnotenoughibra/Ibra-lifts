@@ -9,14 +9,16 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   GraduationCap,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNutrition } from '@/hooks/useNutrition';
 import NutritionDashboard from './nutrition/NutritionDashboard';
 import NutritionLogSheet from './nutrition/NutritionLogSheet';
 import NutritionCoach from './nutrition/NutritionCoach';
+import NutritionInsights from './nutrition/NutritionInsights';
 
-type Tab = 'dashboard' | 'log' | 'coach';
+type Tab = 'dashboard' | 'log' | 'insights' | 'coach';
 
 interface NutritionTrackerProps {
   onClose: () => void;
@@ -48,6 +50,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'log', label: 'Log', icon: <UtensilsCrossed className="w-4 h-4" /> },
+    { id: 'insights', label: 'Insights', icon: <Zap className="w-4 h-4" /> },
     { id: 'coach', label: 'Coach', icon: <GraduationCap className="w-4 h-4" /> },
   ];
 
@@ -136,6 +139,17 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <NutritionLogSheet
             nutrition={nutrition}
             selectedDate={selectedDate}
+          />
+        )}
+        {activeTab === 'insights' && (
+          <NutritionInsights
+            todayMeals={nutrition.meals}
+            allMeals={nutrition.allMeals}
+            targets={nutrition.targets}
+            remaining={nutrition.remaining}
+            totals={nutrition.totals}
+            macroTargets={nutrition.macroTargets}
+            mealHistoryIndex={nutrition.mealHistoryIndex}
           />
         )}
         {activeTab === 'coach' && (

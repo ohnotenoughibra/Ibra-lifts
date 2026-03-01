@@ -16,7 +16,6 @@ import {
 import { MealEntry, MealType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import type { useNutrition } from '@/hooks/useNutrition';
-import NutritionInsights from './NutritionInsights';
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -365,7 +364,7 @@ interface NutritionDashboardProps {
 }
 
 export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDashboardProps) {
-  const { meals, totals, targets, remaining, waterGlasses, setWaterGlasses, deleteMeal, updateMeal, contextualNutrition, allMeals, macroTargets, mealHistoryIndex } = nutrition;
+  const { meals, totals, targets, remaining, waterGlasses, setWaterGlasses, deleteMeal, updateMeal, contextualNutrition } = nutrition;
   const [editingMeal, setEditingMeal] = useState<MealEntry | null>(null);
 
   const waterTarget = Math.round((contextualNutrition.hydrationGoal || 3000) / 250);
@@ -457,17 +456,6 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
           </div>
         )}
       </div>
-
-      {/* Smart Insights */}
-      <NutritionInsights
-        todayMeals={meals}
-        allMeals={allMeals}
-        targets={targets}
-        remaining={remaining}
-        totals={totals}
-        macroTargets={macroTargets}
-        mealHistoryIndex={mealHistoryIndex}
-      />
 
       {/* Edit meal modal */}
       <AnimatePresence>

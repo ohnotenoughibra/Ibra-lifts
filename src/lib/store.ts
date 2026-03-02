@@ -2212,6 +2212,8 @@ export const useAppStore = create<AppState>()(
             longestStreak,
             totalTrainingSessions,
             dualTrainingDays,
+            // Ensure level stays in sync with totalPoints (defensive recalc)
+            level: calculateLevel(gamificationStats.totalPoints),
           }
         });
 

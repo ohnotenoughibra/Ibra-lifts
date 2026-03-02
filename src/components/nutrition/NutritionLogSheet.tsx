@@ -146,8 +146,8 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
 
   // Quick add submit
   const handleQuickAdd = () => {
-    const cal = parseFloat(quickCal) || 0;
-    const pro = parseFloat(quickProtein) || 0;
+    const cal = parseFloat(quickCal.replace(',', '.')) || 0;
+    const pro = parseFloat(quickProtein.replace(',', '.')) || 0;
     if (cal === 0) return;
     logFood({
       name: quickName.trim() || `Quick add (${cal} kcal)`,
@@ -164,14 +164,14 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
 
   // Manual entry submit
   const handleManualAdd = () => {
-    const cal = parseFloat(manualCal) || 0;
+    const cal = parseFloat(manualCal.replace(',', '.')) || 0;
     if (!manualName.trim() || cal === 0) return;
     const food = {
       name: manualName.trim(),
       calories: cal,
-      protein: parseFloat(manualProtein) || 0,
-      carbs: parseFloat(manualCarbs) || 0,
-      fat: parseFloat(manualFat) || 0,
+      protein: parseFloat(manualProtein.replace(',', '.')) || 0,
+      carbs: parseFloat(manualCarbs.replace(',', '.')) || 0,
+      fat: parseFloat(manualFat.replace(',', '.')) || 0,
       portion: manualPortion.trim() || undefined,
     };
     logFood(food, manualMealType);
@@ -279,20 +279,20 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-xs text-grappler-500 mb-1 block">Calories</label>
-                  <input value={quickCal} onChange={e => setQuickCal(e.target.value)} type="number" inputMode="numeric"
+                  <input value={quickCal} onChange={e => setQuickCal(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     placeholder="0"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
                 <div className="flex-1">
                   <label className="text-xs text-grappler-500 mb-1 block">Protein (g)</label>
-                  <input value={quickProtein} onChange={e => setQuickProtein(e.target.value)} type="number" inputMode="numeric"
+                  <input value={quickProtein} onChange={e => setQuickProtein(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     placeholder="0"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
               </div>
               <button
                 onClick={handleQuickAdd}
-                disabled={!quickCal || parseFloat(quickCal) === 0}
+                disabled={!quickCal || parseFloat(quickCal.replace(',', '.')) === 0}
                 className="w-full py-2 bg-primary-500 hover:bg-primary-600 disabled:opacity-30 text-white text-sm font-semibold rounded-xl transition-colors"
               >
                 Log It
@@ -322,22 +322,22 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-grappler-500 mb-1 block">Calories</label>
-                  <input value={manualCal} onChange={e => setManualCal(e.target.value)} type="number" inputMode="numeric"
+                  <input value={manualCal} onChange={e => setManualCal(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
                 <div>
                   <label className="text-xs text-grappler-500 mb-1 block">Protein (g)</label>
-                  <input value={manualProtein} onChange={e => setManualProtein(e.target.value)} type="number" inputMode="decimal"
+                  <input value={manualProtein} onChange={e => setManualProtein(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
                 <div>
                   <label className="text-xs text-grappler-500 mb-1 block">Carbs (g)</label>
-                  <input value={manualCarbs} onChange={e => setManualCarbs(e.target.value)} type="number" inputMode="decimal"
+                  <input value={manualCarbs} onChange={e => setManualCarbs(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
                 <div>
                   <label className="text-xs text-grappler-500 mb-1 block">Fat (g)</label>
-                  <input value={manualFat} onChange={e => setManualFat(e.target.value)} type="number" inputMode="decimal"
+                  <input value={manualFat} onChange={e => setManualFat(e.target.value.replace(/[^0-9.,]/g, ''))} type="text" inputMode="decimal"
                     className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
                 </div>
               </div>

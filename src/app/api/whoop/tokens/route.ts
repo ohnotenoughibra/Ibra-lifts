@@ -1,6 +1,7 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 /**
  * GET /api/whoop/tokens
@@ -27,8 +28,8 @@ export async function GET() {
 
     return NextResponse.json({
       tokens: {
-        access_token: rows[0].access_token,
-        refresh_token: rows[0].refresh_token,
+        access_token: decrypt(rows[0].access_token),
+        refresh_token: decrypt(rows[0].refresh_token),
         expires_at: rows[0].expires_at,
       },
     });
@@ -61,6 +62,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'access_token required' }, { status: 400 });
     }
 
+    const encryptedAccessToken = encrypt(access_token);
+    const encryptedRefreshToken = encrypt(refresh_token || '');
+
     await sql`
       CREATE TABLE IF NOT EXISTS whoop_tokens (
         user_id TEXT PRIMARY KEY,
@@ -73,11 +77,11 @@ export async function POST(request: Request) {
 
     await sql`
       INSERT INTO whoop_tokens (user_id, access_token, refresh_token, expires_at, updated_at)
-      VALUES (${session.user.id}, ${access_token}, ${refresh_token || ''}, ${expires_at || ''}, NOW())
+      VALUES (${session.user.id}, ${encryptedAccessToken}, ${encryptedRefreshToken}, ${expires_at || ''}, NOW())
       ON CONFLICT (user_id)
       DO UPDATE SET
-        access_token = ${access_token},
-        refresh_token = ${refresh_token || ''},
+        access_token = ${encryptedAccessToken},
+        refresh_token = ${encryptedRefreshToken},
         expires_at = ${expires_at || ''},
         updated_at = NOW()
     `;

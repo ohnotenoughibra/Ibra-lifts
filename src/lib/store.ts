@@ -756,7 +756,7 @@ export const useAppStore = create<AppState>()(
         get().generateNewMesocycle(onboardingData.mesoCycleWeeks || 5, onboardingData.sessionDurationMinutes || 60, onboardingData.periodizationStyle);
       },
 
-      setBaselineLifts: (lifts) => set({ baselineLifts: lifts }),
+      setBaselineLifts: (lifts) => set({ baselineLifts: { ...lifts, updatedAt: new Date() } }),
 
       // Muscle emphasis actions
       setMuscleEmphasis: (config) => set({ muscleEmphasis: config }),

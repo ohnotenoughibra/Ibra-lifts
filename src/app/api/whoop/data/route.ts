@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refreshAccessToken, whoopFetch } from '@/lib/whoop';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 /**
  * POST /api/whoop/data
@@ -14,6 +15,16 @@ import { refreshAccessToken, whoopFetch } from '@/lib/whoop';
  *   - This avoids the previous double-round-trip pattern
  */
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 requests per 60 seconds per IP
+  const ip = getClientIP(request);
+  const { limited } = rateLimit(`whoop-data:${ip}`, 10, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { connected: false, error: 'Too many requests. Please wait before retrying.' },
+      { status: 429 }
+    );
+  }
+
   // --- Parse request body ---
   let body: any;
   try {

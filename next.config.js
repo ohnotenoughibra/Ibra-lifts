@@ -24,7 +24,12 @@ const nextConfig = {
       : {}),
   },
   images: {
-    domains: ['images.unsplash.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
   // Enable PWA support
   headers: async () => [
@@ -50,6 +55,11 @@ const nextConfig = {
         {
           key: 'Referrer-Policy',
           value: 'strict-origin-when-cross-origin',
+        },
+        {
+          key: 'Content-Security-Policy',
+          value:
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com https://*.paypal.com; font-src 'self' data:; connect-src 'self' https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com https://api.whoop.com https://api-7.whoop.com; frame-src 'self' https://www.paypal.com https://*.paypal.com; worker-src 'self'; manifest-src 'self'; media-src 'self'",
         },
       ],
     },
@@ -89,6 +99,4 @@ module.exports = withSentryConfig(nextConfig, {
   silent: !process.env.SENTRY_AUTH_TOKEN,
   // Hide source maps from end users
   hideSourceMaps: true,
-  // Automatically tree-shake Sentry logger in production
-  disableLogger: true,
 });

@@ -893,7 +893,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-medium ring-1 ring-amber-500/20 hover:bg-amber-500/20 transition-colors">
                       <RefreshCw className="w-3.5 h-3.5" /> Scan for Lost Data
                     </button>
-                    {workoutLogCount > 0 && gamificationStats.totalWorkouts === 0 && (
+                    {workoutLogCount > 0 && (
                       <button
                         onClick={() => {
                           hapticMedium();
@@ -901,7 +901,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           showToast(`Recomputed stats from ${workoutLogCount} workouts!`, 'success');
                         }}
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 text-xs font-medium ring-1 ring-primary-500/20 hover:bg-primary-500/20 transition-colors">
-                        <Sparkles className="w-3.5 h-3.5" /> Recompute Stats from {workoutLogCount} Workouts
+                        <Sparkles className="w-3.5 h-3.5" /> Recalculate XP &amp; Stats
                       </button>
                     )}
                   </div>
@@ -949,7 +949,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 {recoverStatus === 'nothing' && (
                   <div className="space-y-2">
                     <p className="text-xs text-grappler-500 py-1">No backups or database records found.</p>
-                    {workoutLogCount > 0 && gamificationStats.totalWorkouts === 0 && (
+                    {workoutLogCount > 0 && (
                       <button
                         onClick={() => {
                           hapticMedium();
@@ -959,7 +959,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                         }}
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-500/10 text-primary-400 text-xs font-medium ring-1 ring-primary-500/20"
                       >
-                        <Sparkles className="w-3.5 h-3.5" /> Recompute from {workoutLogCount} Workouts
+                        <Sparkles className="w-3.5 h-3.5" /> Recalculate XP &amp; Stats
                       </button>
                     )}
                   </div>

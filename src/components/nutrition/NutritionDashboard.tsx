@@ -153,7 +153,7 @@ function WaterRow({ glasses, target, onChange }: {
             <span className="text-[9px] font-bold text-white drop-shadow-sm">
               +{((glasses - target) * 250) >= 1000
                 ? `${(((glasses - target) * 250) / 1000).toFixed(1)}L`
-                : `${(glasses - target) * 250}ml`} extra
+                : `${Math.round((glasses - target) * 250)}ml`} extra
             </span>
           </div>
         )}

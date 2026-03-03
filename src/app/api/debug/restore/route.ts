@@ -13,6 +13,10 @@ import { auth } from '@/lib/auth';
  * tables still have data.
  */
 export async function POST() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

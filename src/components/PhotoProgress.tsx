@@ -18,6 +18,7 @@ import {
   Check,
   AlertTriangle,
 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -436,24 +437,14 @@ function GalleryTab({
       </div>
 
       {photos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-full bg-grappler-800 flex items-center justify-center mb-4">
-            <Camera className="w-8 h-8 text-grappler-500" />
-          </div>
-          <p className="text-grappler-300 font-medium mb-1">No progress photos yet</p>
-          <p className="text-sm text-grappler-500 mb-6 max-w-xs">
-            {poseFilter !== 'all'
-              ? `No ${poseFilter} photos found. Try a different filter or add a new photo.`
-              : 'Tap + to capture your first one.'}
-          </p>
-          <button
-            onClick={onAddPhoto}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Photo
-          </button>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title="No progress photos yet"
+          description={poseFilter !== 'all'
+            ? `No ${poseFilter} photos found. Try a different filter or add a new photo.`
+            : 'Capture your first progress photo to start tracking visual changes.'}
+          action={{ label: 'Add Photo', onClick: onAddPhoto }}
+        />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {photos.map((photo) => (
@@ -699,13 +690,11 @@ function TimelineTab({
 
   if (reversed.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-grappler-800 flex items-center justify-center mb-4">
-          <Clock className="w-8 h-8 text-grappler-500" />
-        </div>
-        <p className="text-grappler-300 font-medium mb-1">No timeline yet</p>
-        <p className="text-sm text-grappler-500">Add photos to see your progress over time.</p>
-      </div>
+      <EmptyState
+        icon={Clock}
+        title="No timeline yet"
+        description="Add photos to see your progress over time."
+      />
     );
   }
 

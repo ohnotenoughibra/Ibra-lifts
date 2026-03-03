@@ -2767,7 +2767,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       {dockPickerOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/60"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tool picker"
           onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setDockPickerOpen(false); setDockPickerSlot(null); } }}
         >
           <div
             className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-2xl bg-grappler-900 border-t border-grappler-700/50"

@@ -38,6 +38,7 @@ import {
   ArrowUp,
   Info,
   Pause,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
@@ -234,6 +235,9 @@ export default function ActiveWorkout() {
   const [volumeGapDismissed, setVolumeGapDismissed] = useState(false);
   const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
 
+  // ── First-time swipe gesture hint ──
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
 
@@ -340,6 +344,18 @@ export default function ActiveWorkout() {
       forceUpdate(n => n + 1);
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Show swipe gesture hint on first active workout
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('hasSeenSwipeHint')) {
+      setShowSwipeHint(true);
+      const hintTimer = setTimeout(() => {
+        setShowSwipeHint(false);
+        localStorage.setItem('hasSeenSwipeHint', 'true');
+      }, 4000);
+      return () => clearTimeout(hintTimer);
+    }
   }, []);
 
   // Rest timer — timestamp-based so it keeps counting while app is backgrounded
@@ -3175,6 +3191,18 @@ export default function ActiveWorkout() {
         </div>
 
         {/* Exercise Card — swipe left/right to change exercise */}
+        <div className="relative">
+          {showSwipeHint && (
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center z-50 pointer-events-auto"
+              onClick={() => { setShowSwipeHint(false); localStorage.setItem('hasSeenSwipeHint', 'true'); }}
+            >
+              <div className="bg-grappler-800/90 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-grappler-700/50">
+                <ArrowLeftRight className="w-5 h-5 text-primary-400" />
+                <span className="text-sm text-grappler-200">Swipe left/right to navigate exercises</span>
+              </div>
+            </div>
+          )}
         <motion.div
           key={currentExerciseIndex}
           initial={{ opacity: 0, x: 20 }}
@@ -3769,6 +3797,7 @@ export default function ActiveWorkout() {
             </button>
           )}
         </motion.div>
+        </div>
 
         {/* Cues — collapsed by default */}
         {currentExercise.exercise.cues.length > 0 && (

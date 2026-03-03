@@ -7,6 +7,7 @@ import {
   Trophy, Flame, Clock, Filter, Calendar,
   Navigation, Crosshair, Footprints, Bike,
 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { cn, formatNumber } from '@/lib/utils';
@@ -241,11 +242,11 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
       {/* Timeline */}
       <div className="px-4 pb-24">
         {grouped.length === 0 ? (
-          <div className="text-center py-16 space-y-3">
-            <Calendar className="w-10 h-10 text-grappler-700 mx-auto" />
-            <p className="text-sm text-grappler-400">No entries found</p>
-            <p className="text-xs text-grappler-500">{search ? 'Try a different search' : 'Start training to build your journal'}</p>
-          </div>
+          <EmptyState
+            icon={Calendar}
+            title="No entries found"
+            description={search ? 'Try a different search term.' : 'Start training to build your journal.'}
+          />
         ) : (
           grouped.map(([dateStr, entries]) => (
             <div key={dateStr} className="mt-4">

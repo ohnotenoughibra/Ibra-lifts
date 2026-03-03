@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp, Lightbulb, Heart, Dumbbell, Utensils, AlertTriangle, Info } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { cn } from '@/lib/utils';
 import { calculateAdherence, analyzeWeightTrend, calculateEnergyAvailability, estimateDailyExerciseCost } from '@/lib/diet-coach';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -1279,12 +1280,11 @@ export default function BodyWeightTracker() {
       )}
 
       {sortedLog.length === 0 && !showAddForm && (
-        <div className="text-center py-8">
-          <p className="text-sm font-medium text-grappler-300">Start tracking your weight</p>
-          <p className="text-xs text-grappler-400 mt-1 max-w-[260px] mx-auto">
-            Log 2+ entries to see trends. Weekly weigh-ins are enough to track progress during a bulk or cut.
-          </p>
-        </div>
+        <EmptyState
+          icon={Scale}
+          title="Start tracking your weight"
+          description="Log 2+ entries to see trends. Weekly weigh-ins are enough to track progress during a bulk or cut."
+        />
       )}
     </div>
   );

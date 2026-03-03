@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
@@ -291,10 +291,22 @@ export default function ExerciseDetail({ exercise, onClose }: ExerciseDetailProp
   const videoQuery = `${exercise.name} proper form technique`;
   const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(videoQuery)}`;
 
+  // Escape key closes the detail panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-50 flex safe-area-top"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Exercise details: ${exercise.name}`}
         variants={overlayVariants}
         initial="hidden"
         animate="visible"

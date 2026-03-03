@@ -870,6 +870,8 @@ export interface TrainingSession {
   actualIntensity?: TrainingIntensity; // Set after session if different from planned
   // Timing relative to lifting
   timing?: SessionTiming;
+  /** Hour of day the session started (0-23). Used for inter-session timing calculations. */
+  sessionHour?: number;
   duration: number; // minutes
   rounds?: number;
   roundDuration?: number; // minutes per round

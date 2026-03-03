@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, X, Check, Zap, Loader2, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
 import { PRICING } from '@/lib/subscription';
@@ -38,6 +38,16 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   const price = billingCycle === 'annual' ? PRICING.pro.annual : PRICING.pro.monthly;
   const planId = billingCycle === 'annual' ? PAYPAL_PLANS.annual : PAYPAL_PLANS.monthly;
   const canCheckout = !!PAYPAL_CLIENT_ID && !!planId;
+
+  // Escape key closes modal variant
+  useEffect(() => {
+    if (variant !== 'modal' || !onDismiss) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onDismiss();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [variant, onDismiss]);
 
   // ── Banner variant ──
   if (variant === 'banner') {
@@ -240,6 +250,9 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onDismiss}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Unlock ${featureName}`}
       >
         <motion.div
           className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl relative max-h-[90vh] overflow-y-auto"
@@ -249,7 +262,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           onClick={(e) => e.stopPropagation()}
         >
           {onDismiss && (
-            <button onClick={onDismiss} className="absolute top-4 right-4 text-grappler-500 hover:text-grappler-300">
+            <button onClick={onDismiss} aria-label="Close upgrade dialog" className="absolute top-4 right-4 text-grappler-500 hover:text-grappler-300">
               <X className="w-5 h-5" />
             </button>
           )}

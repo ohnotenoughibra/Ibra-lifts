@@ -722,10 +722,20 @@ export default function WorkoutView() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Import workout progress"
               onClick={() => {
                 setShowMigrateDialog(false);
                 setPendingGeneration(null);
                 setPreviousMesocycleId(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowMigrateDialog(false);
+                  setPendingGeneration(null);
+                  setPreviousMesocycleId(null);
+                }
               }}
             >
               <motion.div

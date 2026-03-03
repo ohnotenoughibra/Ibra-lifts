@@ -102,8 +102,15 @@ export default function MesocycleReport({
     <div className="min-h-screen bg-grappler-950">
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Delete mesocycle confirmation"
+          onClick={() => setShowDeleteConfirm(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowDeleteConfirm(false); }}
+        >
+          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-grappler-100">Delete Mesocycle?</h3>
             <p className="text-sm text-grappler-400">
               This will permanently delete <span className="text-grappler-200 font-medium">{mesocycle.name}</span> and all {report.workoutsCompleted} workout logs associated with it. This cannot be undone.

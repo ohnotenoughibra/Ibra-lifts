@@ -195,9 +195,23 @@ export function resolveConflicts(
     merged.gamificationStats = localGS;
   }
 
+  // ── baselineLifts: prefer whichever side has the newer updatedAt ──
+  // Prevents cloud sync from overwriting local baseline lift edits.
+  const localBL = local.baselineLifts as Record<string, unknown> | undefined;
+  const remoteBL = remote.baselineLifts as Record<string, unknown> | undefined;
+  if (localBL && remoteBL) {
+    const localBLTs = new Date((localBL.updatedAt || 0) as string).getTime();
+    const remoteBLTs = new Date((remoteBL.updatedAt || 0) as string).getTime();
+    if (localBLTs >= remoteBLTs) {
+      merged.baselineLifts = localBL;
+    }
+  } else if (localBL) {
+    merged.baselineLifts = localBL;
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
   // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
-  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user', 'gamificationStats']);
+  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts']);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
       if (!specialFields.has(key) && local[key] !== undefined) {

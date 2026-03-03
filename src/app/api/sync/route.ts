@@ -1,6 +1,7 @@
 import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 // GET - Load user data from database
 export async function GET(request: Request) {
@@ -54,6 +55,13 @@ export async function GET(request: Request) {
 // POST - Save user data to database
 export async function POST(request: Request) {
   try {
+    // Rate limit: 60 requests per 60 seconds per IP
+    const ip = getClientIP(request);
+    const { limited } = rateLimit(`sync:${ip}`, 60, 60 * 1000);
+    if (limited) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     // Verify auth session
     const session = await auth();
     if (!session?.user?.id) {

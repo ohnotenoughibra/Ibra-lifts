@@ -2,6 +2,7 @@
 // Falls back gracefully to localStorage-only when DB is not configured
 
 import { recordSyncSuccess, recordSyncFailure } from './data-safety';
+import { calculateLevel } from './gamification';
 
 const SYNC_DEBOUNCE_MS = 3000; // Debounce saves to avoid hammering the DB
 const SYNC_MAX_WAIT_MS = 15000; // Max wait before forcing a sync (prevents starvation)
@@ -160,9 +161,43 @@ export function resolveConflicts(
     merged.user = localUser;
   }
 
+  // ── gamificationStats: smart merge — XP/level can never regress ──
+  // totalPoints is monotonically increasing; badges are union-merged by badgeId.
+  // This prevents a stale server snapshot from reverting a freshly-earned level.
+  const localGS = local.gamificationStats as Record<string, unknown> | undefined;
+  const remoteGS = remote.gamificationStats as Record<string, unknown> | undefined;
+  if (localGS && remoteGS) {
+    const localPts = (localGS.totalPoints as number) || 0;
+    const remotePts = (remoteGS.totalPoints as number) || 0;
+    // Base: pick the side with more XP (the authoritative progression)
+    const winner = localPts >= remotePts ? localGS : remoteGS;
+    const loser  = localPts >= remotePts ? remoteGS : localGS;
+    const maxPoints = Math.max(localPts, remotePts);
+
+    // Union-merge badges by badgeId so no badge is ever lost
+    const winnerBadges = Array.isArray(winner.badges) ? winner.badges as Array<Record<string, unknown>> : [];
+    const loserBadges  = Array.isArray(loser.badges)  ? loser.badges  as Array<Record<string, unknown>> : [];
+    const badgeMap = new Map<string, Record<string, unknown>>();
+    for (const b of loserBadges)  badgeMap.set(String(b.badgeId ?? b.id), b);
+    for (const b of winnerBadges) badgeMap.set(String(b.badgeId ?? b.id), b);
+
+    merged.gamificationStats = {
+      ...winner,
+      totalPoints: maxPoints,
+      level: calculateLevel(maxPoints),
+      longestStreak: Math.max(
+        (localGS.longestStreak as number) || 0,
+        (remoteGS.longestStreak as number) || 0,
+      ),
+      badges: Array.from(badgeMap.values()),
+    };
+  } else if (localGS) {
+    merged.gamificationStats = localGS;
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
   // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
-  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user']);
+  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user', 'gamificationStats']);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
       if (!specialFields.has(key) && local[key] !== undefined) {

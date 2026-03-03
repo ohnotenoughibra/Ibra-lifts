@@ -185,6 +185,10 @@ export function resolveConflicts(
       ...winner,
       totalPoints: maxPoints,
       level: calculateLevel(maxPoints),
+      currentStreak: Math.max(
+        (localGS.currentStreak as number) || 0,
+        (remoteGS.currentStreak as number) || 0,
+      ),
       longestStreak: Math.max(
         (localGS.longestStreak as number) || 0,
         (remoteGS.longestStreak as number) || 0,

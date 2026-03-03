@@ -3793,7 +3793,7 @@ export const useAppStore = create<AppState>()(
 
           state.gamificationStats = {
             ...gamStats,
-            currentStreak: recalculated,
+            currentStreak: Math.max(recalculated, (gamStats.currentStreak as number) || 0),
             longestStreak: Math.max(recalculated, (gamStats.longestStreak as number) || 0),
           };
         }

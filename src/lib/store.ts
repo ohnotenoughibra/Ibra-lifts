@@ -2111,7 +2111,7 @@ export const useAppStore = create<AppState>()(
 
       // Gamification actions
       recalculateGamificationStats: () => {
-        const { workoutLogs, trainingSessions, gamificationStats, user } = get();
+        const { workoutLogs, trainingSessions, gamificationStats, user, dailyLoginBonus } = get();
 
         // Recalculate total workouts
         const totalWorkouts = workoutLogs.length;
@@ -2202,6 +2202,67 @@ export const useAppStore = create<AppState>()(
           workoutDateSet.has(fmtDate(new Date(s.date)))
         ).length;
 
+        // ── Recalculate totalPoints from actual data ──
+        // Replay all workout logs through calculateWorkoutPoints to recover
+        // XP that was silently lost by sync race conditions.
+        let recalculatedPoints = 0;
+
+        // Sort logs chronologically for accurate streak replay
+        const chronoLogs = [...workoutLogs].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        for (let i = 0; i < chronoLogs.length; i++) {
+          const log = chronoLogs[i];
+          const hadPR = log.exercises.some(ex => ex.personalRecord);
+
+          // Replay streak at time of this workout for accurate streak bonus
+          let streakAtTime = 1;
+          if (i > 0) {
+            const prevDate = new Date(chronoLogs[i - 1].date);
+            const curDate = new Date(log.date);
+            const diffDays = Math.floor((curDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 1) {
+              // Walk backwards to count consecutive days
+              streakAtTime = 1;
+              for (let j = i - 1; j >= 0; j--) {
+                const d1 = new Date(chronoLogs[j + 1].date);
+                const d2 = new Date(chronoLogs[j].date);
+                const gap = Math.floor((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+                if (gap <= 1) streakAtTime++;
+                else break;
+              }
+            }
+          }
+
+          const { points } = calculateWorkoutPoints(log, hadPR, streakAtTime, false);
+          recalculatedPoints += points;
+        }
+
+        // Badge points: sum from all earned badges
+        if (Array.isArray(gamificationStats.badges)) {
+          for (const ub of gamificationStats.badges) {
+            const badge = (ub as { badge?: { points?: number } }).badge;
+            if (badge?.points) recalculatedPoints += badge.points;
+          }
+        }
+
+        // Training session points
+        recalculatedPoints += trainingSessions.length * pointRewards.trainingSession;
+
+        // Daily login bonus total (tracked separately)
+        if (dailyLoginBonus?.totalClaimed) {
+          recalculatedPoints += dailyLoginBonus.totalClaimed;
+        }
+
+        // Wellness XP total (tracked in wellnessStats)
+        const wellnessStats = gamificationStats.wellnessStats as { totalWellnessXP?: number } | undefined;
+        if (wellnessStats?.totalWellnessXP) {
+          recalculatedPoints += wellnessStats.totalWellnessXP;
+        }
+
+        // Never go backwards — take the max of current and recalculated
+        const finalPoints = Math.max(gamificationStats.totalPoints, recalculatedPoints);
+
         set({
           gamificationStats: {
             ...gamificationStats,
@@ -2212,8 +2273,8 @@ export const useAppStore = create<AppState>()(
             longestStreak,
             totalTrainingSessions,
             dualTrainingDays,
-            // Ensure level stays in sync with totalPoints (defensive recalc)
-            level: calculateLevel(gamificationStats.totalPoints),
+            totalPoints: finalPoints,
+            level: calculateLevel(finalPoints),
           }
         });
 

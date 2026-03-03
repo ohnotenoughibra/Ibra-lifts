@@ -1819,7 +1819,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={confirmDialog.title}
             onClick={() => setConfirmDialog(null)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDialog(null); }}
           >
             <motion.div
               initial={{ opacity: 0, y: 40, scale: 0.97 }}

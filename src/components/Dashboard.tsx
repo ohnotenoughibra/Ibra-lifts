@@ -156,6 +156,9 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-6"
       onClick={onDismiss}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Level up — Level ${level}`}
     >
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
@@ -256,6 +259,36 @@ export default function Dashboard({
   const feedbackShownThisSession = useRef(false);
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
   const featureFeedback = useAppStore(s => s.featureFeedback);
+
+  // ── Swipe-down-to-dismiss for overlays ──
+  const [overlayDragY, setOverlayDragY] = useState(0);
+  const overlayTouchStartY = useRef(0);
+  const overlayDragging = useRef(false);
+
+  const handleOverlayTouchStart = useCallback((e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    const container = target.closest('[data-overlay-container]');
+    if (container && container.scrollTop <= 0) {
+      overlayTouchStartY.current = e.touches[0].clientY;
+      overlayDragging.current = true;
+    }
+  }, []);
+
+  const handleOverlayTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!overlayDragging.current) return;
+    const deltaY = e.touches[0].clientY - overlayTouchStartY.current;
+    if (deltaY > 0) {
+      setOverlayDragY(deltaY);
+    }
+  }, []);
+
+  const handleOverlayTouchEnd = useCallback(() => {
+    if (overlayDragY > 150) {
+      setOverlayView(null);
+    }
+    setOverlayDragY(0);
+    overlayDragging.current = false;
+  }, [overlayDragY]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Routine overlays that never need feedback — these are core utilities
   const ROUTINE_OVERLAYS = new Set([
@@ -427,6 +460,25 @@ export default function Dashboard({
     prevLevelRef.current = gamificationStats.level;
   }, [gamificationStats.level]);
 
+  // ── Escape key closes any open overlay ──
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (overlayView) {
+          setOverlayView(null);
+        } else if (upgradeFeature) {
+          setUpgradeFeature(null);
+        } else if (levelUpDisplay) {
+          setLevelUpDisplay(null);
+        } else if (reportMesocycleId) {
+          setReportMesocycleId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [overlayView, upgradeFeature, levelUpDisplay, reportMesocycleId]);
+
   // Show Ready for This when workout starts
   const prevActiveWorkoutRef = useRef(activeWorkout);
   useEffect(() => {
@@ -524,7 +576,24 @@ export default function Dashboard({
       profile_settings: <ProfileSettings onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
-    if (overlayContent) return <div className="overlay-safe">{overlayContent}</div>;
+    if (overlayContent) return (
+      <div
+        className="overlay-safe"
+        data-overlay-container
+        style={{
+          transform: overlayDragY > 0 ? `translateY(${overlayDragY}px)` : undefined,
+          transition: overlayDragY === 0 ? 'transform 0.3s ease' : 'none',
+        }}
+        onTouchStart={handleOverlayTouchStart}
+        onTouchMove={handleOverlayTouchMove}
+        onTouchEnd={handleOverlayTouchEnd}
+      >
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full bg-grappler-600" />
+        </div>
+        {overlayContent}
+      </div>
+    );
   }
 
   // Mesocycle report overlay
@@ -535,15 +604,28 @@ export default function Dashboard({
       const targetIdx = allMesos.indexOf(targetMeso);
       const prevMeso = targetIdx > 0 ? allMesos[targetIdx - 1] : null;
       return (
-        <div className="overlay-safe">
-        <MesocycleReportView
-          mesocycle={targetMeso}
-          workoutLogs={workoutLogs}
-          previousMesocycle={prevMeso}
-          weightUnit={user?.weightUnit || 'lbs'}
-          onClose={() => setReportMesocycleId(null)}
-          onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
-        />
+        <div
+          className="overlay-safe"
+          data-overlay-container
+          style={{
+            transform: overlayDragY > 0 ? `translateY(${overlayDragY}px)` : undefined,
+            transition: overlayDragY === 0 ? 'transform 0.3s ease' : 'none',
+          }}
+          onTouchStart={handleOverlayTouchStart}
+          onTouchMove={handleOverlayTouchMove}
+          onTouchEnd={handleOverlayTouchEnd}
+        >
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 rounded-full bg-grappler-600" />
+          </div>
+          <MesocycleReportView
+            mesocycle={targetMeso}
+            workoutLogs={workoutLogs}
+            previousMesocycle={prevMeso}
+            weightUnit={user?.weightUnit || 'lbs'}
+            onClose={() => setReportMesocycleId(null)}
+            onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
+          />
         </div>
       );
     }
@@ -858,14 +940,15 @@ export default function Dashboard({
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           >
-            <div
+            <button
               className={cn(
-                'px-5 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 cursor-pointer',
+                'px-5 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 cursor-pointer text-left',
                 loginBonusToast.isMysteryDay
                   ? 'bg-gradient-to-r from-sky-500/20 to-purple-500/20 border-sky-500/30'
                   : 'bg-grappler-800 border-grappler-700/50'
               )}
               onClick={() => setLoginBonusToast(null)}
+              aria-label="Dismiss login bonus notification"
             >
               <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
                 <span className="text-lg">{loginBonusToast.isMysteryDay ? '🎁' : '✨'}</span>
@@ -878,7 +961,7 @@ export default function Dashboard({
                   +{loginBonusToast.points} XP{loginBonusToast.isMysteryDay ? ' — 7-day streak reward!' : ''}
                 </p>
               </div>
-            </div>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

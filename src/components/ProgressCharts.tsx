@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Heart,
 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getExerciseById } from '@/lib/exercises';
@@ -742,11 +743,11 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
-                <TrendingUp className="w-8 h-8 text-grappler-600" />
-                <p className="font-medium">No strength data yet</p>
-                <p className="text-xs text-grappler-600">Complete a few workouts to track your estimated 1RM over time</p>
-              </div>
+              <EmptyState
+                icon={TrendingUp}
+                title="No strength data yet"
+                description="Complete a few workouts to track your estimated 1RM over time."
+              />
             )}
             {/* Context-paired analytics for Strength */}
             <div className="mt-4 space-y-4">{strengthExtras}</div>
@@ -798,11 +799,11 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
-                <BarChart3 className="w-8 h-8 text-grappler-600" />
-                <p className="font-medium">No volume data yet</p>
-                <p className="text-xs text-grappler-600">Log sets and reps to see your weekly volume trends</p>
-              </div>
+              <EmptyState
+                icon={BarChart3}
+                title="No volume data yet"
+                description="Log sets and reps to see your weekly volume trends."
+              />
             )}
             {/* Context-paired analytics for Volume */}
             <div className="mt-4 space-y-4">{volumeExtras}</div>
@@ -841,11 +842,11 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
-                <PieChartIcon className="w-8 h-8 text-grappler-600" />
-                <p className="font-medium">No distribution data yet</p>
-                <p className="text-xs text-grappler-600">Train different muscle groups to see your split breakdown</p>
-              </div>
+              <EmptyState
+                icon={PieChartIcon}
+                title="No distribution data yet"
+                description="Train different muscle groups to see your split breakdown."
+              />
             )}
           </div>
         )}
@@ -883,11 +884,11 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
-                <Calendar className="w-8 h-8 text-grappler-600" />
-                <p className="font-medium">No frequency data yet</p>
-                <p className="text-xs text-grappler-600">Train consistently to see your workout frequency over time</p>
-              </div>
+              <EmptyState
+                icon={Calendar}
+                title="No frequency data yet"
+                description="Train consistently to see your workout frequency over time."
+              />
             )}
             {/* Context-paired analytics for Frequency */}
             <div className="mt-4 space-y-4">{frequencyExtras}</div>
@@ -1039,11 +1040,11 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
                 )}
               </div>
             ) : (
-              <div className="h-64 flex flex-col items-center justify-center text-grappler-500 gap-2">
-                <Heart className="w-8 h-8 text-grappler-600" />
-                <p className="font-medium">No wearable data yet</p>
-                <p className="text-xs text-grappler-600">Connect Whoop or add manual entries to track recovery trends</p>
-              </div>
+              <EmptyState
+                icon={Heart}
+                title="No wearable data yet"
+                description="Connect Whoop or add manual entries to track recovery trends."
+              />
             )}
             {/* Context-paired analytics for Recovery */}
             <div className="mt-4 space-y-4">{recoveryExtras}</div>

@@ -17,6 +17,7 @@ import {
   Sparkles,
   Eye,
   Trophy,
+  SkipForward,
 } from 'lucide-react';
 import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -427,7 +428,10 @@ function Step1_AboutYou({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Experience</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">Experience</label>
+                  <span className="text-[10px] text-grappler-500 italic">Optional</span>
+                </div>
                 <div className="grid grid-cols-3 gap-1">
                   {([
                     { value: 'beginner' as ExperienceLevel, label: '<1y' },
@@ -450,6 +454,21 @@ function Step1_AboutYou({
                 </div>
               </div>
             </div>
+
+            {/* Skip optional fields */}
+            {!data.experienceLevel && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => update({ experienceLevel: 'intermediate' })}
+                  className="inline-flex items-center gap-1.5 text-sm text-grappler-400 underline underline-offset-2 hover:text-grappler-300 transition-colors"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                  Skip for now
+                </button>
+                <p className="text-[10px] text-grappler-500 mt-0.5">Defaults to intermediate -- you can change this later</p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -644,6 +663,46 @@ function Step2_ScheduleAndGo({
         <p className="text-xs text-grappler-400 text-center">
           Combat sessions are auto-optimized around your lifts. Fine-tune in Settings.
         </p>
+      )}
+
+      {/* Week Structure Preview */}
+      {liftDays.length > 0 && (
+        <div className="mt-4 p-3 rounded-xl bg-grappler-800/50 border border-grappler-700/50">
+          <p className="text-xs text-grappler-400 mb-2 font-medium">Your Week</p>
+          <div className="grid grid-cols-7 gap-1">
+            {DAY_NAMES.map((day, i) => {
+              const hasLifting = liftDays.includes(i);
+              const hasSport = combatDays.some((s) => s.day === i);
+              return (
+                <div key={day} className="text-center">
+                  <span className="text-[10px] text-grappler-500">{day}</span>
+                  <div className={cn(
+                    'mt-1 h-8 rounded-md flex items-center justify-center text-[10px] font-medium',
+                    hasLifting && hasSport
+                      ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
+                      : hasLifting
+                        ? 'bg-primary-500/20 text-primary-300'
+                        : hasSport
+                          ? 'bg-orange-500/20 text-orange-300'
+                          : 'bg-grappler-800 text-grappler-600'
+                  )}>
+                    {hasLifting && hasSport ? 'Both' : hasLifting ? 'Lift' : hasSport ? 'Sport' : 'Rest'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-3 mt-2">
+            <span className="text-[10px] text-grappler-500 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm bg-primary-500/30" /> Lifting
+            </span>
+            {isCombat && (
+              <span className="text-[10px] text-grappler-500 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-orange-500/30" /> Sport
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Disclaimer — compact, inline */}

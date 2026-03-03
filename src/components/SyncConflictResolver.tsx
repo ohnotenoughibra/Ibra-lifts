@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
@@ -122,6 +122,15 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
   const [showDetails, setShowDetails] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState<Resolution | null>(null);
 
+  // Escape key dismisses the conflict resolver
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onDismiss();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onDismiss]);
+
   const resolutionOptions = [
     {
       id: 'local' as Resolution,
@@ -167,6 +176,9 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sync conflict detected"
       >
         <motion.div
           initial={{ y: 100, opacity: 0 }}

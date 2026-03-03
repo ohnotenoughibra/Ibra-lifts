@@ -4,7 +4,7 @@
  * Upgrades from v1:
  *   - Cunningham equation (BMR from lean mass) when body fat % available
  *   - Dynamic TDEE from actual logged training sessions (replaces flat 1.55 multiplier)
- *   - Deficit-severity protein scaling (2.4 → 3.1 g/kg for aggressive fight camp cuts)
+ *   - Deficit-severity protein scaling (2.3 → 3.1 g/kg), sex-equalized per Helms 2014
  *   - Proper fat floors (0.7 g/kg male, 0.8 g/kg female minimum)
  *   - Energy Availability calculation (replaces absolute calorie floors)
  *   - Fight camp acceleration (faster adjustment cadence near competition)
@@ -280,14 +280,16 @@ export function calculateMacros({
       calories = Math.round(tdee * 0.8); // ~20% deficit
 
       // Protein scaling based on deficit severity (combat athletes)
-      // Helms et al. 2014: 2.3-3.1 g/kg for lean athletes in deficit
-      // Hector & Phillips 2018: needs increase with deficit severity
+      // Helms et al. 2014: Protein recommendations are driven by deficit severity,
+      // not biological sex. 2.3-3.1 g/kg for lean athletes in deficit.
+      // Hector & Phillips 2018: No significant sex-based protein differences found.
+      // Longland et al. 2016: 2.4 g/kg preserves LBM in aggressive deficit.
       if (isCombatAthlete && deficitSeverity === 'aggressive') {
-        proteinPerKg = isFemale ? 2.6 : 3.1;
+        proteinPerKg = 3.1;
       } else if (isCombatAthlete && deficitSeverity === 'moderate') {
-        proteinPerKg = isFemale ? 2.3 : 2.7;
+        proteinPerKg = 2.7;
       } else {
-        proteinPerKg = isFemale ? 2.0 : 2.4;
+        proteinPerKg = 2.4;
       }
 
       // Fat floor: 0.8 g/kg female, 0.7 g/kg male minimum
@@ -297,13 +299,15 @@ export function calculateMacros({
     }
     case 'bulk':
       calories = Math.round(tdee * (isFemale ? 1.10 : 1.12));
-      proteinPerKg = isFemale ? 1.8 : 2.0;
+      // Maintenance/surplus: 1.6-2.2 g/kg for both sexes (Schoenfeld & Aragon 2018)
+      proteinPerKg = 2.0;
       fatPerKg = isFemale ? 1.0 : 1.0;
       break;
     case 'maintain':
     default:
       calories = tdee;
-      proteinPerKg = isFemale ? 1.8 : 2.0;
+      // Maintenance: 1.6-2.2 g/kg for both sexes (Schoenfeld & Aragon 2018)
+      proteinPerKg = 2.0;
       fatPerKg = isFemale ? 1.0 : 0.9;
       break;
   }

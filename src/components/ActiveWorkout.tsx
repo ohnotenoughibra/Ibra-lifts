@@ -237,6 +237,7 @@ export default function ActiveWorkout() {
 
   // ── First-time swipe gesture hint ──
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [confirmZeroReps, setConfirmZeroReps] = useState(false);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
@@ -336,6 +337,7 @@ export default function ActiveWorkout() {
     wouldRepeat: true
   });
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
+  const [showMoreFeedback, setShowMoreFeedback] = useState(false);
 
   // Workout timer — uses startTime timestamp so it survives app backgrounding
   const [, forceUpdate] = useState(0);
@@ -360,6 +362,7 @@ export default function ActiveWorkout() {
 
   // Rest timer — timestamp-based so it keeps counting while app is backgrounded
   const [restEndTime, setRestEndTime] = useState<number | null>(null);
+  const [restDuration, setRestDuration] = useState(0);
   const restTimer = restEndTime ? Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000)) : 0;
   const warned10sRef = useRef(false);
 
@@ -529,6 +532,11 @@ export default function ActiveWorkout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResting]);
 
+  // Reset zero-reps confirmation when set changes
+  useEffect(() => {
+    setConfirmZeroReps(false);
+  }, [currentSetIndex, currentExerciseIndex]);
+
   const completeSet = () => {
     // Save undo info before modifying
     setUndoInfo({
@@ -554,12 +562,13 @@ export default function ActiveWorkout() {
       setTempoTotalTUT(0);
     }
 
-    // Carry forward weight/reps to next set so the user doesn't have to re-enter
+    // Carry forward weight/reps/rpe to next set so the user doesn't have to re-enter
     if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
       newSets[currentSetIndex + 1] = {
         ...newSets[currentSetIndex + 1],
         weight: newSets[currentSetIndex].weight,
         reps: newSets[currentSetIndex].reps,
+        rpe: newSets[currentSetIndex + 1].rpe || newSets[currentSetIndex].rpe,
       };
     }
 
@@ -592,9 +601,13 @@ export default function ActiveWorkout() {
     }
 
     // Start rest timer — store end timestamp so it survives backgrounding
-    setRestEndTime(Date.now() + currentExercise.prescription.restSeconds * 1000);
-    setIsResting(true);
-    setRestMinimized(false);
+    const restSecs = currentExercise.prescription.restSeconds;
+    if (restSecs > 0) {
+      setRestDuration(restSecs);
+      setRestEndTime(Date.now() + restSecs * 1000);
+      setIsResting(true);
+      setRestMinimized(false);
+    }
 
     // ── Corner Coach: generate coaching messages after set completion ──
     try {
@@ -2757,7 +2770,7 @@ export default function ActiveWorkout() {
                     restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
                   )}
                   strokeDasharray={2 * Math.PI * 96}
-                  strokeDashoffset={2 * Math.PI * 96 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                  strokeDashoffset={2 * Math.PI * 96 * (1 - restTimer / Math.max(restDuration, 1))}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -2773,7 +2786,7 @@ export default function ActiveWorkout() {
                   {formatRestTime(restTimer)}
                 </motion.div>
                 <p className="text-xs text-grappler-400 mt-1">
-                  of {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')}
+                  of {Math.floor(restDuration / 60)}:{(restDuration % 60).toString().padStart(2, '0')}
                 </p>
               </div>
             </div>
@@ -2877,7 +2890,7 @@ export default function ActiveWorkout() {
             {/* What's next — one-line hint */}
             {!isLastSet && (
               <p className="mt-4 text-xs text-grappler-400 text-center">
-                Next: Set {currentSetIndex + 2}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
+                Next: Set {currentSetIndex + 1}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
               </p>
             )}
             {isLastSet && !allExercisesDone && (
@@ -3032,7 +3045,7 @@ export default function ActiveWorkout() {
                       restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
                     )}
                     strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(restDuration, 1))}
                   />
                 </svg>
                 <span className={cn(
@@ -3054,7 +3067,7 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-40">
         {/* Inline Exercise Feedback Bar */}
         <AnimatePresence>
           {inlineFeedbackIndex !== null && (
@@ -3765,27 +3778,7 @@ export default function ActiveWorkout() {
             </AnimatePresence>
           )}
 
-          {/* Complete Set Button */}
-          <button
-            onClick={completeSet}
-            disabled={currentSet.completed}
-            className={cn(
-              'btn btn-lg w-full mt-6 gap-2',
-              currentSet.completed ? 'btn-secondary opacity-50' : 'btn-primary'
-            )}
-          >
-            {currentSet.completed ? (
-              <>
-                <Check className="w-5 h-5" />
-                Set Completed
-              </>
-            ) : (
-              <>
-                <Check className="w-5 h-5" />
-                Complete Set
-              </>
-            )}
-          </button>
+          {/* Complete Set Button — handled by fixed bottom bar */}
           {/* Undo last set */}
           {undoInfo && !isResting && (
             <button
@@ -3868,6 +3861,35 @@ export default function ActiveWorkout() {
           </div>
         </details>
       </main>
+
+      {/* Fixed Complete Set Button */}
+      {!showOverview && !isResting && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-700/50 z-40">
+          {currentSet.reps <= 0 && currentSet.weight > 0 && !confirmZeroReps && !currentSet.completed ? (
+            <button
+              onClick={() => setConfirmZeroReps(true)}
+              className="w-full py-4 rounded-xl font-bold text-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 gap-2 flex items-center justify-center"
+            >
+              <AlertTriangle className="w-5 h-5" />
+              Complete with 0 reps?
+            </button>
+          ) : (
+            <button
+              onClick={completeSet}
+              disabled={currentSet.completed}
+              className={cn(
+                'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2',
+                currentSet.completed
+                  ? 'bg-grappler-700 text-grappler-400 opacity-50'
+                  : 'bg-primary-500 text-white active:scale-[0.98] transition-transform'
+              )}
+            >
+              <Check className="w-5 h-5" />
+              {currentSet.completed ? 'Set Completed' : 'Complete Set'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Cancel Confirmation Modal */}
       <AnimatePresence>
@@ -4058,6 +4080,42 @@ export default function ActiveWorkout() {
             >
               <h2 className="text-xl font-bold text-grappler-50 mb-4">Finish Workout</h2>
 
+              {/* Workout Summary */}
+              {(() => {
+                const elapsedMs = Date.now() - new Date(activeWorkout!.startTime).getTime();
+                const durationMin = durationOverride ?? Math.round(elapsedMs / 1000 / 60);
+                const exercisesCompleted = activeWorkout!.exerciseLogs.filter(
+                  log => log.sets.some(s => s.completed)
+                ).length;
+                const prCount = activeWorkout!.exerciseLogs.filter(log => log.personalRecord).length;
+                return (
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{durationMin}</div>
+                      <div className="text-xs text-grappler-400">Minutes</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{totalVolumeCompleted.toLocaleString()}</div>
+                      <div className="text-xs text-grappler-400">{weightUnit} Volume</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{completedSets}/{totalSets}</div>
+                      <div className="text-xs text-grappler-400">Sets</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{exercisesCompleted}</div>
+                      <div className="text-xs text-grappler-400">Exercises</div>
+                    </div>
+                    {prCount > 0 && (
+                      <div className="col-span-2 bg-primary-500/10 border border-primary-500/30 rounded-xl p-3 text-center">
+                        <div className="text-2xl font-bold text-primary-400">{prCount}</div>
+                        <div className="text-xs text-primary-400">PR{prCount > 1 ? 's' : ''} Hit</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="space-y-4">
                 {/* Overall RPE */}
                 <div>
@@ -4082,6 +4140,17 @@ export default function ActiveWorkout() {
                   </div>
                 </div>
 
+                {/* More details toggle */}
+                <button
+                  onClick={() => setShowMoreFeedback(!showMoreFeedback)}
+                  className="flex items-center gap-2 text-sm text-grappler-400 hover:text-grappler-300 transition-colors"
+                >
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', showMoreFeedback && 'rotate-180')} />
+                  {showMoreFeedback ? 'Less details' : 'More details'}
+                </button>
+
+                {showMoreFeedback && (
+                <>
                 {/* Performance vs Expectations */}
                 <div>
                   <label className="text-sm text-grappler-400 mb-2 block">
@@ -4204,6 +4273,8 @@ export default function ActiveWorkout() {
                     className="input min-h-[80px] resize-none"
                   />
                 </div>
+                </>
+                )}
 
                 {/* Duration override — show when elapsed time is unrealistically short */}
                 {(() => {

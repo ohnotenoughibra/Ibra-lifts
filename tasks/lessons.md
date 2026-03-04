@@ -14,3 +14,19 @@
 ## UX Patterns
 - Never hide actionable info behind overlays — weight bump suggestions must be visible during rest timer
 - Full-screen overlays should always be minimizable so users can check underlying content
+- Fixed bottom buttons for primary actions (Complete Set) — never make users scroll to act
+- Pre-fill everything possible (RPE from prescription, weight from history, reps from target)
+- Show results BEFORE asking for feedback (workout summary → then optional survey)
+- Destructive actions (replacing mesocycle) MUST have confirmation dialogs
+
+## Formula Consistency
+- **Brzycki formula** is the standard for 1RM across the codebase: `weight / (1.0278 - 0.0278 * reps)`
+- Always clamp reps to max 12 for 1RM estimation (both Brzycki and Epley degrade past ~12)
+- RPE progresses **additively** (e.g., +0.5/week), never multiplicatively
+- RPE values should be in 0.5 increments only (6, 6.5, 7, 7.5, etc.)
+- Unit-sensitive calculations must normalize for kg vs lbs (fatigue scoring, volume thresholds)
+
+## Store Patterns
+- `updateExerciseLog` validates bounds and sanitizes inputs (no negative reps/weight, RPE capped 0-10)
+- Pause/resume tracks `pausedAt` timestamp + `totalPausedMs` accumulator for accurate duration
+- Swap/bonus exercises should prefill weights from `getSuggestedWeight` and reps from prescription

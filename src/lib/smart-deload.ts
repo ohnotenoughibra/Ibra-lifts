@@ -241,7 +241,7 @@ function weeklyVolumeScore(weekLogs: WorkoutLog[]): number {
   const setScore = Math.min(40, totalSets * 0.6);
   // Volume is relative — we just scale it based on sets already done
   const avgVolumePerSet = totalSets > 0 ? totalVolume / totalSets : 0;
-  const volumeScore = Math.min(30, avgVolumePerSet / 100);
+  const volumeScore = Math.min(30, avgVolumePerSet / 50);
 
   return Math.min(100, Math.round(sessionScore + setScore + volumeScore));
 }
@@ -256,17 +256,19 @@ function weeklyAvgRPE(weekLogs: WorkoutLog[]): number {
   let count = 0;
 
   weekLogs.forEach(log => {
+    let logSetCount = 0;
     // Use per-set RPE when available for accuracy
     log.exercises.forEach(ex => {
       ex.sets.forEach(set => {
         if (set.completed && set.rpe > 0) {
           totalRPE += set.rpe;
           count++;
+          logSetCount++;
         }
       });
     });
-    // Fallback to overall RPE if no per-set data
-    if (count === 0 && log.overallRPE > 0) {
+    // Fallback to overall RPE if no per-set data for this log
+    if (logSetCount === 0 && log.overallRPE > 0) {
       totalRPE += log.overallRPE;
       count++;
     }
@@ -344,11 +346,11 @@ function countTrainingWeeks(logs: WorkoutLog[]): number {
 function countConsecutiveOverloadWeeks(weeklyScores: { week: number; score: number }[]): number {
   if (weeklyScores.length < 2) return weeklyScores.length;
 
+  const maxScore = Math.max(...weeklyScores.map(w => w.score));
   let count = 1; // at least the current week
   for (let i = weeklyScores.length - 1; i > 0; i--) {
-    // A "deload" week would show significantly lower score than average
-    const avgScore = weeklyScores.reduce((s, w) => s + w.score, 0) / weeklyScores.length;
-    if (weeklyScores[i].score >= avgScore * 0.65) {
+    // A "deload" week would show significantly lower score than peak
+    if (weeklyScores[i].score >= maxScore * 0.50) {
       count++;
     } else {
       break;
@@ -637,7 +639,7 @@ export function getSmartDeloadRecommendation(
   triggers.push({
     met: consecutiveHighDebt >= 2,
     urgency: consecutiveHighDebt >= 3 ? 'critical' : 'recommended',
-    reason: `Fatigue debt has been above 70 for ${consecutiveHighDebt} consecutive weeks`,
+    reason: `Fatigue debt has been above 70 for ${consecutiveHighDebt} of the last 3 weeks`,
   });
 
   // Trigger 2: 3+ exercises showing declining 1RM trend

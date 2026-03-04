@@ -138,7 +138,7 @@ const INTENSITY_MULTIPLIERS: Record<TrainingIntensity, number> = {
  */
 const FATIGUE_TYPE_MAP: Record<ActivityCategory, FatigueType> = {
   grappling: 'both',
-  striking: 'peripheral',
+  striking: 'both',
   mma: 'both',
   cardio: 'peripheral',
   outdoor: 'peripheral',
@@ -152,7 +152,7 @@ const FATIGUE_TYPE_MAP: Record<ActivityCategory, FatigueType> = {
  */
 const PEAK_MUSCLE_GROUPS: Record<ActivityCategory, string[]> = {
   grappling: ['grip', 'posterior_chain', 'core'],
-  striking: ['shoulders', 'core', 'calves'],
+  striking: ['shoulders', 'core', 'calves', 'hips'],
   mma: ['full_body'],
   cardio: ['quads', 'calves', 'core'],
   outdoor: ['quads', 'core'],
@@ -381,10 +381,10 @@ export function calculateCumulativeSportLoad(
     ? chronicDays.reduce((sum, d) => sum + d.load, 0) / CHRONIC_WINDOW_DAYS
     : 0;
 
-  // ACWR — guard against division by zero
-  const acuteChronicRatio = chronicLoad > 0
+  // ACWR — guard against division by zero and cold-start spikes
+  const acuteChronicRatio = chronicLoad > 0.5
     ? Math.round((acuteLoad / chronicLoad) * 100) / 100
-    : 0;
+    : acuteLoad > 5 ? 2.0 : 0;
 
   // Risk classification (Gabbett 2016 thresholds)
   let riskLevel: ACRRiskLevel;

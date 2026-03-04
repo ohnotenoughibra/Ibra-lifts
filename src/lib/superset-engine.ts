@@ -45,13 +45,14 @@ export function detectSupersetCandidates(
   const pairs: { indexA: number; indexB: number; reason: string }[] = [];
 
   const antagonistPairs: Record<string, string[]> = {
-    chest: ['back', 'biceps'],
-    back: ['chest', 'shoulders'],
+    chest: ['back'],
+    back: ['chest'],
     biceps: ['triceps'],
     triceps: ['biceps'],
     quadriceps: ['hamstrings'],
     hamstrings: ['quadriceps'],
-    shoulders: ['back'],
+    shoulders: ['chest'],
+    abs: ['lower_back'],
   };
 
   for (let i = 0; i < exercises.length - 1; i++) {

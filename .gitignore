@@ -51,3 +51,4 @@ supabase/.temp
 
 # PWA (auto-generated files only)
 workbox-*.js
+.env*.local

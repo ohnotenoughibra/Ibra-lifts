@@ -168,8 +168,9 @@ export function calculateExerciseAdjustments(
 
   if (!feedback) return adjustments;
 
-  const lastWeight = exerciseLog.sets.length > 0
-    ? exerciseLog.sets.reduce((max, s) => Math.max(max, s.weight), 0)
+  const completedSets = exerciseLog.sets.filter(s => s.completed);
+  const lastWeight = completedSets.length > 0
+    ? completedSets.reduce((max, s) => Math.max(max, s.weight), 0)
     : 0;
   const lastSets = exerciseLog.sets.length;
 
@@ -177,7 +178,7 @@ export function calculateExerciseAdjustments(
   switch (feedback.difficulty) {
     case 'too_easy':
       // Increase weight by 5-10%
-      const easyIncrease = Math.max(5, Math.round(lastWeight * 0.05 / 5) * 5);
+      const easyIncrease = Math.max(5, Math.round(lastWeight * 0.10 / 5) * 5);
       adjustments.push({
         exerciseId: feedback.exerciseId,
         exerciseName: exerciseLog.exerciseName,
@@ -212,7 +213,16 @@ export function calculateExerciseAdjustments(
       });
       break;
     case 'just_right':
-      // Maintain for this session, tiny bump
+      // Maintain with micro-progression
+      const microBump = Math.max(2.5, Math.round(lastWeight * 0.025 / 2.5) * 2.5);
+      adjustments.push({
+        exerciseId: feedback.exerciseId,
+        exerciseName: exerciseLog.exerciseName,
+        adjustmentType: 'weight',
+        oldValue: lastWeight,
+        newValue: lastWeight + microBump,
+        reason: 'Micro-progression — weight felt right, small increase to keep progressing',
+      });
       break;
   }
 
@@ -294,14 +304,20 @@ export function calculateSessionAdjustments(
       break;
   }
 
-  // High RPE session
+  // Graduated RPE response
   if (postFeedback.overallRPE >= 9.5) {
-    volumeMultiplier *= 0.9;
+    volumeMultiplier *= 0.90;
     messages.push('Very high session RPE - reducing next session volume');
+  } else if (postFeedback.overallRPE >= 9) {
+    volumeMultiplier *= 0.95;
+    messages.push('High session RPE - slightly reducing volume');
   } else if (postFeedback.overallRPE <= 6) {
     volumeMultiplier *= 1.05;
     intensityMultiplier *= 1.02;
     messages.push('Low session RPE - can handle more');
+  } else if (postFeedback.overallRPE <= 7) {
+    volumeMultiplier *= 1.03;
+    messages.push('Moderate session RPE - small volume bump');
   }
 
   // Energy level
@@ -376,10 +392,14 @@ export function applyAdjustmentsToSession(
           let adjustedSets = ex.sets;
           let adjustedRPE = ex.prescription.rpe;
 
+          let adjustedWeight: number | undefined;
+
           // Apply exercise-specific adjustments
           for (const adj of exerciseAdj) {
             if (adj.adjustmentType === 'sets') {
               adjustedSets = adj.newValue;
+            } else if (adj.adjustmentType === 'weight') {
+              adjustedWeight = adj.newValue;
             }
           }
 
@@ -390,9 +410,11 @@ export function applyAdjustmentsToSession(
           return {
             ...ex,
             sets: adjustedSets,
+            ...(adjustedWeight !== undefined ? { suggestedWeight: adjustedWeight } : {}),
             prescription: {
               ...ex.prescription,
-              rpe: Math.round(adjustedRPE * 10) / 10
+              rpe: Math.round(adjustedRPE * 10) / 10,
+              ...(adjustedWeight !== undefined ? { weight: adjustedWeight } : {})
             }
           };
         })
@@ -583,10 +605,11 @@ export function evaluateDoubleProgression(
     return { action: 'maintain', reason: 'No completed sets found.' };
   }
 
-  const lastWeight = completedSets[0].weight;
-  const allHitTop = completedSets.every(s => s.reps >= targetRepRange[1]);
-  const allHitBottom = completedSets.every(s => s.reps >= targetRepRange[0]);
-  const anyBelowBottom = completedSets.some(s => s.reps < targetRepRange[0]);
+  const lastWeight = completedSets.reduce((max, s) => Math.max(max, s.weight), 0);
+  const workingSets = completedSets.filter(s => s.weight === lastWeight);
+  const allHitTop = workingSets.every(s => s.reps >= targetRepRange[1]);
+  const allHitBottom = workingSets.every(s => s.reps >= targetRepRange[0]);
+  const anyBelowBottom = workingSets.some(s => s.reps < targetRepRange[0]);
 
   // All sets hit top of rep range → increase weight, reset to bottom of range
   if (allHitTop) {
@@ -634,7 +657,8 @@ export function evaluateDoubleProgression(
 export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reason: string } {
   if (recentLogs.length < 3) return { needed: false, reason: '' };
 
-  const recent = recentLogs.slice(0, 5);
+  const sorted = [...recentLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const recent = sorted.slice(0, 5);
 
   // Check for declining performance
   const avgRPE = recent.reduce((sum, l) => sum + l.overallRPE, 0) / recent.length;

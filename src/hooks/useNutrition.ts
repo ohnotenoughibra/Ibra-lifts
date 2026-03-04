@@ -309,7 +309,7 @@ export function useNutrition(selectedDate: string) {
         const bPattern = patternKeys.has(b.name.toLowerCase()) ? 100 : 0;
         return (bPattern + b.count) - (aPattern + a.count);
       })
-      .slice(0, 4)
+      .slice(0, 5)
       .map(f => ({
         ...f,
         source: 'history' as const,
@@ -320,16 +320,16 @@ export function useNutrition(selectedDate: string) {
     const dbMatches = FOOD_DB
       .filter(f => f.keywords.some(kw => kw.startsWith(q) || kw.includes(q) || q.includes(kw)) || fuzzyMatch(f.name, q))
       .filter(f => !historyNames.has(f.name.toLowerCase()))
-      .slice(0, 4)
+      .slice(0, 8)
       .map(f => ({ ...f, portion: undefined, count: 0, lastUsed: 0, source: 'database' as const, dayPattern: undefined as string | undefined }));
 
     const usedNames = new Set(Array.from(historyNames).concat(dbMatches.map(d => d.name.toLowerCase())));
     const presetMatches = PRESET_FOODS
       .filter(p => fuzzyMatch(p.name, q) && !usedNames.has(p.name.toLowerCase()))
-      .slice(0, 2)
+      .slice(0, 3)
       .map(p => ({ ...p, portion: undefined, count: 0, lastUsed: 0, source: 'preset' as const, dayPattern: undefined as string | undefined }));
 
-    return [...historyMatches, ...dbMatches, ...presetMatches].slice(0, 8);
+    return [...historyMatches, ...dbMatches, ...presetMatches].slice(0, 12);
   };
 
   // Estimate food from text

@@ -107,6 +107,8 @@ interface AppState {
     exerciseLogs: ExerciseLog[];
     startTime: Date;
     preCheckIn?: PreWorkoutCheckIn;
+    pausedAt?: Date;
+    totalPausedMs?: number;
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -1555,9 +1557,21 @@ export const useAppStore = create<AppState>()(
       updateExerciseLog: (exerciseIndex, log) => {
         const { activeWorkout } = get();
         if (!activeWorkout) return;
+        if (exerciseIndex < 0 || exerciseIndex >= activeWorkout.exerciseLogs.length) return;
+
+        // Sanitize set values
+        const sanitizedLog = {
+          ...log,
+          sets: log.sets.map(s => ({
+            ...s,
+            weight: Math.max(0, s.weight ?? 0),
+            reps: Math.max(0, s.reps ?? 0),
+            rpe: Math.min(10, Math.max(0, s.rpe ?? 0)),
+          })),
+        };
 
         const updatedLogs = [...activeWorkout.exerciseLogs];
-        updatedLogs[exerciseIndex] = log;
+        updatedLogs[exerciseIndex] = sanitizedLog;
 
         set({
           activeWorkout: {
@@ -1589,14 +1603,18 @@ export const useAppStore = create<AppState>()(
         const { activeWorkout } = get();
         if (!activeWorkout) return;
 
-        // Update logs
+        // Update logs — prefill weight from history if available
         const updatedLogs = [...activeWorkout.exerciseLogs];
         const oldLog = updatedLogs[exerciseIndex];
+        const { workoutLogs } = get();
+        const swapSuggestedWeight = getSuggestedWeight(newExerciseId, workoutLogs) ?? 0;
+        const oldPrescriptionForSwap = activeWorkout.session.exercises[exerciseIndex];
+        const targetReps = oldPrescriptionForSwap?.prescription?.targetReps ?? 0;
         updatedLogs[exerciseIndex] = {
           ...oldLog,
           exerciseId: newExerciseId,
           exerciseName: newExerciseName,
-          sets: oldLog.sets.map(s => ({ ...s, weight: 0, completed: false })),
+          sets: oldLog.sets.map(s => ({ ...s, weight: swapSuggestedWeight, reps: targetReps, completed: false })),
           personalRecord: false,
           estimated1RM: undefined,
           feedback: undefined
@@ -1644,14 +1662,15 @@ export const useAppStore = create<AppState>()(
           },
         };
 
+        const bonusSuggestedWeight = getSuggestedWeight(exercise.id, get().workoutLogs) ?? 0;
         const newLog: ExerciseLog = {
           exerciseId: exercise.id,
           exerciseName: exercise.name,
           sets: Array.from({ length: sets }, (_, i) => ({
             setNumber: i + 1,
-            weight: 0,
-            reps: 0,
-            rpe: 0,
+            weight: bonusSuggestedWeight,
+            reps: reps,
+            rpe: 7,
             completed: false,
           })),
           personalRecord: false,
@@ -1832,11 +1851,11 @@ export const useAppStore = create<AppState>()(
           }, 0);
         }, 0);
 
-        // Calculate duration — use override if provided (retroactive logging)
+        // Calculate duration — subtract paused time, use override if provided
         // Wrap startTime in new Date() because localStorage deserializes it as a string
-        const duration = feedback.durationOverride ?? Math.round(
-          (new Date().getTime() - new Date(activeWorkout.startTime).getTime()) / 1000 / 60
-        );
+        const elapsedMs = new Date().getTime() - new Date(activeWorkout.startTime).getTime();
+        const pausedMs = activeWorkout.totalPausedMs || 0;
+        const duration = feedback.durationOverride ?? Math.max(1, Math.round((elapsedMs - pausedMs) / 1000 / 60));
 
         // Check for PRs
         const hadPR = activeWorkout.exerciseLogs.some((ex) => ex.personalRecord);
@@ -2092,9 +2111,33 @@ export const useAppStore = create<AppState>()(
 
       cancelWorkout: () => set({ activeWorkout: null, workoutMinimized: false }),
 
-      pauseWorkout: () => set({ workoutMinimized: true }),
+      pauseWorkout: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            pausedAt: new Date(),
+          },
+          workoutMinimized: true,
+        });
+      },
 
-      resumeWorkout: () => set({ workoutMinimized: false }),
+      resumeWorkout: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        const pausedMs = activeWorkout.pausedAt
+          ? new Date().getTime() - new Date(activeWorkout.pausedAt).getTime()
+          : 0;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            pausedAt: undefined,
+            totalPausedMs: (activeWorkout.totalPausedMs || 0) + pausedMs,
+          },
+          workoutMinimized: false,
+        });
+      },
 
       getWeightUnit: () => {
         const { user } = get();

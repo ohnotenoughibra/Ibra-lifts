@@ -92,7 +92,7 @@ const THROTTLE_CONFIGS: Record<ThrottleLevel, ThrottleConfig> = {
     level: 'red',
     label: 'Recovery Mode',
     color: 'red',
-    volumeMultiplier: 0.40,
+    volumeMultiplier: 0.25,
     rpeCap: 5,
     restMultiplier: 1.5,
     dropIsolation: true,
@@ -179,8 +179,9 @@ export function applyThrottle(
     const originalRpe = ex.prescription.rpe;
     const originalRest = ex.prescription.restSeconds;
 
-    // Volume: multiply sets, minimum 2
-    const newSets = Math.max(2, Math.round(originalSets * config.volumeMultiplier));
+    // Volume: multiply sets, minimum depends on throttle level
+    const minSets = config.volumeMultiplier <= 0.3 ? 1 : 2;
+    const newSets = Math.max(minSets, Math.round(originalSets * config.volumeMultiplier));
 
     // Intensity: cap RPE
     const newRpe = Math.min(originalRpe, config.rpeCap);

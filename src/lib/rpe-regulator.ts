@@ -93,7 +93,7 @@ export function regulateRPE(
 
   // ── Detect too easy (RPE too low) — only on green/peak days ──
   if (throttleLevel !== 'yellow' && throttleLevel !== 'orange' && throttleLevel !== 'red') {
-    if (avgRpe <= targetRpe - 2 && avgRpe <= 6) {
+    if (avgRpe <= targetRpe - 2) {
       const currentPct = rpeToPercentage(avgRpe);
       const targetPct = rpeToPercentage(targetRpe);
       const estimated1RM = currentWeight / currentPct;

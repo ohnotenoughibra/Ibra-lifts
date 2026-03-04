@@ -560,9 +560,11 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
       name,
       type: 'hypertrophy' as const,
       dayNumber: 1,
-      exercises: log.exercises.map(ex => ({
+      exercises: log.exercises.map(ex => {
+        const foundExercise = allExercises.find(e => e.id === ex.exerciseId);
+        return {
         exerciseId: ex.exerciseId,
-        exercise: {
+        exercise: foundExercise ? { ...foundExercise } : {
           id: ex.exerciseId,
           name: ex.exerciseName,
           category: 'compound' as const,
@@ -585,7 +587,8 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
           rpe: ex.sets[0]?.rpe ?? 7,
           restSeconds: 120
         }
-      })),
+      };
+      }),
       estimatedDuration: log.duration,
       warmUp: ['General warm-up'],
       coolDown: ['Light stretching']

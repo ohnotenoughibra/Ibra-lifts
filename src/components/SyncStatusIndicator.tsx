@@ -52,6 +52,8 @@ export default function SyncStatusIndicator({
   syncFailureCount = 0,
 }: SyncStatusIndicatorProps) {
   const [showDetail, setShowDetail] = useState(false);
+  const [repairStatus, setRepairStatus] = useState<'idle' | 'repairing' | 'done' | 'error'>('idle');
+  const [repairResult, setRepairResult] = useState<string>('');
 
   // Don't show for unauthenticated users
   if (!isAuthenticated) return null;
@@ -193,8 +195,8 @@ export default function SyncStatusIndicator({
                 </div>
               </div>
 
-              {/* Sync now button */}
-              <div className="p-4 border-t border-grappler-800">
+              {/* Action buttons */}
+              <div className="p-4 border-t border-grappler-800 space-y-2">
                 <button
                   onClick={() => {
                     onForceSync();
@@ -215,6 +217,51 @@ export default function SyncStatusIndicator({
                   )}
                   {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
                 </button>
+
+                {/* Repair XP — recovers highest XP/level from backups */}
+                <button
+                  onClick={async () => {
+                    setRepairStatus('repairing');
+                    try {
+                      const res = await fetch('/api/sync/repair-xp', { method: 'POST' });
+                      const data = await res.json();
+                      if (data.repaired) {
+                        setRepairResult(`Fixed: Level ${data.before.level} → ${data.after.level} (${data.before.totalPoints} → ${data.after.totalPoints} XP)`);
+                        setRepairStatus('done');
+                        // Re-sync to pull the repaired data into the store
+                        setTimeout(() => onForceSync(), 500);
+                      } else {
+                        setRepairResult(data.message || 'Already correct');
+                        setRepairStatus('done');
+                      }
+                    } catch {
+                      setRepairResult('Repair failed — try again');
+                      setRepairStatus('error');
+                    }
+                  }}
+                  disabled={repairStatus === 'repairing' || syncStatus === 'offline'}
+                  className={cn(
+                    'w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium transition-all',
+                    repairStatus === 'repairing'
+                      ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
+                      : 'bg-grappler-800/50 text-grappler-400 hover:bg-grappler-800 hover:text-grappler-300 border border-grappler-700/50'
+                  )}
+                >
+                  {repairStatus === 'repairing' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <AlertCircle className="w-3 h-3" />
+                  )}
+                  {repairStatus === 'repairing' ? 'Repairing...' : 'Repair XP / Level'}
+                </button>
+                {repairResult && (
+                  <p className={cn(
+                    'text-xs text-center',
+                    repairStatus === 'error' ? 'text-red-400' : 'text-green-400'
+                  )}>
+                    {repairResult}
+                  </p>
+                )}
               </div>
             </motion.div>
           </motion.div>

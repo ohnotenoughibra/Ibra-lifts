@@ -668,6 +668,15 @@ export default function Dashboard({
                 {gamificationStats.currentStreak}
               </span>
             </div>
+            {/* Cloud sync — moved here for PWA visibility (was hidden in XP bar) */}
+            <SyncStatusIndicator
+              syncStatus={syncStatus}
+              lastSyncedAt={lastSyncedAt}
+              deviceType={deviceType}
+              isAuthenticated={isAuthenticated}
+              onForceSync={onForceSync || (() => {})}
+              syncFailureCount={syncFailureCount}
+            />
             {/* Settings */}
             <button
               onClick={() => setOverlayView('profile_settings')}
@@ -698,14 +707,6 @@ export default function Dashboard({
             />
           </div>
           <span className="text-[11px] text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(gamificationStats.totalPoints)} XP</span>
-          <SyncStatusIndicator
-            syncStatus={syncStatus}
-            lastSyncedAt={lastSyncedAt}
-            deviceType={deviceType}
-            isAuthenticated={isAuthenticated}
-            onForceSync={onForceSync || (() => {})}
-            syncFailureCount={syncFailureCount}
-          />
         </div>
       </header>
 

@@ -26,6 +26,12 @@
 - RPE values should be in 0.5 increments only (6, 6.5, 7, 7.5, etc.)
 - Unit-sensitive calculations must normalize for kg vs lbs (fatigue scoring, volume thresholds)
 
+## Sync / Multi-Device
+- **Never restore `lastSyncAt` from the server** — always set it to `Date.now()` after pull. Restoring a stale timestamp causes the scalar merge to pick the wrong device as "winner"
+- **Always use `Date.now()` in push payloads** for `lastSyncAt`, never read from store (which may have stale value from another device's push)
+- **Server-side merge is essential** — the POST endpoint must merge incoming with existing data using `resolveConflicts`, not blindly overwrite. Otherwise a stale device can overwrite newer data
+- **Critical fields need `updatedAt`** — any structured object that can change independently across devices (currentMesocycle, activeDietPhase, etc.) should have `updatedAt` for merge priority
+
 ## Store Patterns
 - `updateExerciseLog` validates bounds and sanitizes inputs (no negative reps/weight, RPE capped 0-10)
 - Pause/resume tracks `pausedAt` timestamp + `totalPausedMs` accumulator for accurate duration

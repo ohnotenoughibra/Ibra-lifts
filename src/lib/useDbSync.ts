@@ -237,6 +237,10 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       const result = await loadFromDatabase(userId);
       if (result) {
         applyRemoteData(result.data, isResync, result.serverUpdatedAt);
+        // CRITICAL: Set lastSyncAt to NOW after pull, not the server's stale value.
+        // Without this, a device restores another device's old timestamp and the
+        // scalar merge in resolveConflicts picks the wrong "winner" on next push.
+        useAppStore.setState({ lastSyncAt: Date.now() });
       }
 
       // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
@@ -383,7 +387,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       notificationPreferences: s.notificationPreferences,
       workoutSkips: s.workoutSkips, illnessLogs: s.illnessLogs,
       cycleLogs: s.cycleLogs, mealReminders: s.mealReminders,
-      dailyLoginBonus: s.dailyLoginBonus, lastSyncAt: s.lastSyncAt,
+      dailyLoginBonus: s.dailyLoginBonus, lastSyncAt: Date.now(),
       colorTheme: s.colorTheme, dietPhaseHistory: s.dietPhaseHistory,
       weightCutPlans: s.weightCutPlans, combatNutritionProfile: s.combatNutritionProfile,
       fightCampPlans: s.fightCampPlans, activeSupplements: s.activeSupplements,
@@ -475,7 +479,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       cycleLogs: store.cycleLogs,
       mealReminders: store.mealReminders,
       dailyLoginBonus: store.dailyLoginBonus,
-      lastSyncAt: store.lastSyncAt,
+      lastSyncAt: Date.now(),
       // Combat / nutrition / supplements (previously missing from sync)
       colorTheme: store.colorTheme,
       dietPhaseHistory: store.dietPhaseHistory,

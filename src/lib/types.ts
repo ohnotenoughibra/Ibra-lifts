@@ -171,6 +171,7 @@ export interface Mesocycle {
   status: 'active' | 'completed' | 'upcoming';
   volumeWarnings?: string[];
   createdAt: Date;
+  updatedAt?: string; // ISO string — used by sync merge to prefer newer side
 }
 
 // Queue for planning upcoming mesocycles
@@ -1288,6 +1289,7 @@ export interface DietPhase {
   currentMacros: MacroTargets;
   weeksCompleted: number;
   isActive: boolean;
+  updatedAt?: string; // ISO string — used by sync merge to prefer newer side
 }
 
 export interface CompletedDietPhase {

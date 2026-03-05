@@ -213,9 +213,35 @@ export function resolveConflicts(
     merged.baselineLifts = localBL;
   }
 
+  // ── Object fields with updatedAt: prefer whichever side is newer ──
+  // These are critical structured fields that can regress if the wrong side wins.
+  // Each gets its own updatedAt-based merge (like user and baselineLifts above).
+  const updatedAtFields = ['currentMesocycle', 'activeDietPhase', 'macroTargets',
+    'muscleEmphasis', 'activeEquipmentProfile', 'combatNutritionProfile',
+    'notificationPreferences', 'onboardingData', 'subscription'];
+  for (const field of updatedAtFields) {
+    const localVal = local[field] as Record<string, unknown> | undefined;
+    const remoteVal = remote[field] as Record<string, unknown> | undefined;
+    if (localVal && remoteVal) {
+      // Prefer the side with the newer updatedAt; fall back to lastSyncAt comparison
+      const localTs = new Date((localVal.updatedAt || 0) as string).getTime();
+      const remoteTs = new Date((remoteVal.updatedAt || 0) as string).getTime();
+      if (localTs > 0 || remoteTs > 0) {
+        merged[field] = localTs >= remoteTs ? localVal : remoteVal;
+      } else {
+        // No updatedAt on either side — fall back to lastSyncAt
+        merged[field] = localSync >= remoteSync ? localVal : remoteVal;
+      }
+    } else if (localVal) {
+      merged[field] = localVal;
+    }
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
-  // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
-  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts']);
+  const specialFields = new Set([
+    ...arrayFields, ...objectFields, ...updatedAtFields,
+    'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts',
+  ]);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
       if (!specialFields.has(key) && local[key] !== undefined) {

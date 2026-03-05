@@ -55,6 +55,7 @@ export default function SyncStatusIndicator({
   const [showDetail, setShowDetail] = useState(false);
   const [repairStatus, setRepairStatus] = useState<'idle' | 'repairing' | 'done' | 'error'>('idle');
   const [repairResult, setRepairResult] = useState<string>('');
+  const [forcePullStatus, setForcePullStatus] = useState<'idle' | 'pulling' | 'done' | 'error'>('idle');
 
   // Don't show for unauthenticated users
   if (!isAuthenticated) return null;
@@ -269,6 +270,61 @@ export default function SyncStatusIndicator({
                     {repairResult}
                   </p>
                 )}
+
+                {/* Force Pull — overwrites local state with server state */}
+                <button
+                  onClick={async () => {
+                    setForcePullStatus('pulling');
+                    try {
+                      const res = await fetch(`/api/sync?userId=${useAppStore.getState().user?.id}`, { cache: 'no-store' });
+                      if (!res.ok) throw new Error('Failed to fetch');
+                      const { data } = await res.json();
+                      if (data) {
+                        // Nuclear: overwrite ALL local state with server state
+                        const fieldsToMerge: Record<string, unknown> = {};
+                        const restoreFields = [
+                          'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
+                          'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
+                          'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
+                          'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
+                          'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
+                          'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
+                          'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
+                          'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
+                          'mealReminders', 'dailyLoginBonus',
+                          'weightCutPlans', 'combatNutritionProfile', 'fightCampPlans',
+                          'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
+                          'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
+                          'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
+                          'nutritionPeriodPlan', 'mealStamps',
+                        ];
+                        for (const field of restoreFields) {
+                          if (data[field] !== undefined) fieldsToMerge[field] = data[field];
+                        }
+                        if (data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = data.isOnboarded;
+                        fieldsToMerge.lastSyncAt = Date.now();
+                        useAppStore.setState(fieldsToMerge);
+                        setForcePullStatus('done');
+                      }
+                    } catch {
+                      setForcePullStatus('error');
+                    }
+                  }}
+                  disabled={forcePullStatus === 'pulling' || syncStatus === 'offline'}
+                  className={cn(
+                    'w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium transition-all',
+                    forcePullStatus === 'pulling'
+                      ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
+                      : 'bg-grappler-800/50 text-grappler-400 hover:bg-grappler-800 hover:text-grappler-300 border border-grappler-700/50'
+                  )}
+                >
+                  {forcePullStatus === 'pulling' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Cloud className="w-3 h-3" />
+                  )}
+                  {forcePullStatus === 'pulling' ? 'Pulling...' : forcePullStatus === 'done' ? 'Restored from cloud!' : 'Force Pull from Cloud'}
+                </button>
               </div>
             </motion.div>
           </motion.div>

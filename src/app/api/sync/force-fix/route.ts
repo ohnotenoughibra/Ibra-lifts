@@ -69,6 +69,18 @@ export async function GET() {
 </button>
 <p style="color:#777;font-size:11px;text-align:center;margin:2px 0 16px">Use on devices that need to catch up (your laptop)</p>
 
+<div style="background:#2e1a1a;border:1px solid #f87171;border-radius:12px;padding:16px;margin:16px 0">
+  <p style="color:#f87171;font-size:11px;text-transform:uppercase;margin:0 0 8px;font-weight:600">Emergency XP Repair</p>
+  <p style="color:#999;font-size:12px;margin:0 0 12px">Set your XP to a specific value if sync corrupted it</p>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <input id="manual-xp" type="number" placeholder="e.g. 8178" style="flex:1;padding:10px;border-radius:8px;border:1px solid #555;background:#1a1a1a;color:#fff;font-size:14px" />
+    <button onclick="doRepairXP()" style="padding:10px 16px;border-radius:8px;border:1px solid #f87171;background:#f8717122;color:#f87171;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">
+      Fix XP
+    </button>
+  </div>
+  <p id="repair-status" style="color:#999;font-size:11px;margin:0;display:none"></p>
+</div>
+
 <button onclick="clearCaches()" style="width:100%;padding:10px;border-radius:12px;border:1px solid #555;background:transparent;color:#999;font-size:12px;cursor:pointer;margin:8px 0">
   Clear Caches & Service Workers
 </button>
@@ -111,6 +123,32 @@ async function clearCaches() {
     for (var i = 0; i < keys.length; i++) await caches.delete(keys[i]);
   }
   showStatus('Caches & service workers cleared!', '#4ade80');
+}
+
+async function doRepairXP() {
+  var xpInput = document.getElementById('manual-xp');
+  var statusEl = document.getElementById('repair-status');
+  var xp = parseInt(xpInput.value);
+  if (!xp || xp <= 0) { statusEl.style.display='block'; statusEl.style.color='#f87171'; statusEl.textContent='Enter a valid XP number'; return; }
+  statusEl.style.display='block'; statusEl.style.color='#f59e0b'; statusEl.textContent='Repairing...';
+  try {
+    var res = await fetch('/api/sync/repair-xp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ totalPoints: xp })
+    });
+    var data = await res.json();
+    if (data.repaired) {
+      statusEl.style.color='#4ade80';
+      statusEl.textContent = 'Fixed! Level ' + data.before.level + ' → ' + data.after.level + ' (' + data.before.totalPoints + ' → ' + data.after.totalPoints + ' XP). Now pull from cloud.';
+    } else {
+      statusEl.style.color='#999';
+      statusEl.textContent = data.message || 'Already correct (XP: ' + data.currentPoints + ')';
+    }
+    setTimeout(function() { location.reload(); }, 3000);
+  } catch(e) {
+    statusEl.style.color='#f87171'; statusEl.textContent='Error: ' + e.message;
+  }
 }
 
 async function doPush() {

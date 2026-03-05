@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 interface SyncStatusIndicatorProps {
@@ -223,7 +224,13 @@ export default function SyncStatusIndicator({
                   onClick={async () => {
                     setRepairStatus('repairing');
                     try {
-                      const res = await fetch('/api/sync/repair-xp', { method: 'POST' });
+                      // Send this device's local XP so the server can use the highest value
+                      const localGam = useAppStore.getState().gamificationStats;
+                      const res = await fetch('/api/sync/repair-xp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ totalPoints: localGam?.totalPoints || 0 }),
+                      });
                       const data = await res.json();
                       if (data.repaired) {
                         setRepairResult(`Fixed: Level ${data.before.level} → ${data.after.level} (${data.before.totalPoints} → ${data.after.totalPoints} XP)`);

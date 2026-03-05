@@ -1176,7 +1176,7 @@ export const useAppStore = create<AppState>()(
           periodizationType: periodizationStyle,
         });
 
-        set({ currentMesocycle: newMesocycle });
+        set({ currentMesocycle: { ...newMesocycle, updatedAt: new Date().toISOString() } });
       },
 
       completeMesocycle: () => {
@@ -1216,7 +1216,7 @@ export const useAppStore = create<AppState>()(
         // The current one was generated right after — delete it
         set({
           mesocycleHistory: newHistory,
-          currentMesocycle: { ...restored, status: 'active' as const },
+          currentMesocycle: { ...restored, status: 'active' as const, updatedAt: new Date().toISOString() },
           gamificationStats: {
             ...gamificationStats,
             totalPoints: Math.max(0, gamificationStats.totalPoints - 200),
@@ -1717,6 +1717,7 @@ export const useAppStore = create<AppState>()(
           currentMesocycle: {
             ...currentMesocycle,
             weeks: updatedWeeks,
+            updatedAt: new Date().toISOString(),
           },
         });
       },
@@ -3215,7 +3216,7 @@ export const useAppStore = create<AppState>()(
       startDietPhase: (phase) => {
         const { mealReminders } = get();
         set({
-          activeDietPhase: { ...phase, id: uuidv4() },
+          activeDietPhase: { ...phase, id: uuidv4(), updatedAt: new Date().toISOString() },
           macroTargets: phase.currentMacros,
           // Auto-enable meal reminders when starting a diet phase
           mealReminders: { ...mealReminders, enabled: true },
@@ -3270,6 +3271,7 @@ export const useAppStore = create<AppState>()(
             activeDietPhase: {
               ...activeDietPhase,
               weeksCompleted: activeDietPhase.weeksCompleted + 1,
+              updatedAt: new Date().toISOString(),
             },
           });
         }

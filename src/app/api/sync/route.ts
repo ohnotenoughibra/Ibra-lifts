@@ -2,6 +2,7 @@ import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
+import { resolveConflicts } from '@/lib/db-sync';
 
 // GET - Load user data from database
 export async function GET(request: Request) {
@@ -89,16 +90,13 @@ export async function POST(request: Request) {
       )
     `;
 
-    const jsonData = JSON.stringify(data);
-
     // ── Safety: refuse to overwrite richer server data with poorer incoming data ──
-    // Computes a "richness score" for both sides. If the incoming data is
-    // significantly poorer than the server data, the write is blocked and a
-    // backup is forced. This catches empty-state pushes, partial hydrations,
-    // corrupted localStorage, and any other scenario where data would regress.
     const { rows: existingRows } = await sql`
       SELECT data FROM user_store WHERE user_id = ${userId}
     `;
+
+    let mergedData = data;
+
     if (existingRows.length > 0 && existingRows[0].data) {
       const serverData = existingRows[0].data as Record<string, unknown>;
 
@@ -114,7 +112,6 @@ export async function POST(request: Request) {
         score += (Array.isArray(d.trainingSessions) ? d.trainingSessions.length : 0);
         score += (Array.isArray(d.bodyWeightLog) ? d.bodyWeightLog.length : 0);
         score += (Array.isArray(d.quickLogs) ? d.quickLogs.length : 0);
-        // Additional data types for more comprehensive scoring
         score += (Array.isArray(d.bodyComposition) ? d.bodyComposition.length : 0);
         score += (Array.isArray(d.injuryLog) ? d.injuryLog.length : 0);
         score += (Array.isArray(d.supplementIntakes) ? d.supplementIntakes.length : 0);
@@ -130,7 +127,6 @@ export async function POST(request: Request) {
       const incomingScore = richness(data);
 
       // Block if incoming data loses more than 20% of the server's richness
-      // (allows small fluctuations from normal edits but catches data wipes)
       if (serverScore > 10 && incomingScore < serverScore * 0.8) {
         console.warn(
           `[sync] BLOCKED data regression for user ${userId}: ` +
@@ -144,10 +140,21 @@ export async function POST(request: Request) {
           incomingScore,
         });
       }
+
+      // ── SERVER-SIDE MERGE: merge incoming with existing server data ──
+      // This is the bulletproof fix for multi-device sync. Instead of blindly
+      // overwriting, we merge so that:
+      //   - Arrays are union-merged (no workout logs, meals, etc. are ever lost)
+      //   - Gamification stats never regress (XP/level always take the max)
+      //   - Scalar fields prefer the newer push (by lastSyncAt)
+      // This prevents the race condition where phone pushes level 14, then
+      // laptop pushes level 12 with stale data — the merge keeps level 14.
+      mergedData = resolveConflicts(data, serverData);
     }
 
+    const jsonData = JSON.stringify(mergedData);
+
     // ── Atomic write: backup + upsert + gamification in a single transaction ──
-    // Prevents inconsistent state if the server crashes mid-write.
     const client = await db.connect();
     try {
       await client.sql`BEGIN`;
@@ -189,7 +196,7 @@ export async function POST(request: Request) {
         }
       }
 
-      // Upsert data
+      // Upsert merged data (not raw incoming — server-side merge ensures no data loss)
       await client.sql`
         INSERT INTO user_store (user_id, data, updated_at)
         VALUES (${userId}, ${jsonData}::jsonb, NOW())
@@ -197,8 +204,8 @@ export async function POST(request: Request) {
         DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
       `;
 
-      // Dual-write gamification to its dedicated table
-      const gam = data.gamificationStats as Record<string, unknown> | undefined;
+      // Dual-write gamification to its dedicated table (use merged data, not raw incoming)
+      const gam = mergedData.gamificationStats as Record<string, unknown> | undefined;
       if (gam && (Number(gam.totalPoints) > 0 || Number(gam.totalWorkouts) > 0)) {
         const badgesJson = JSON.stringify(gam.badges || []);
         await client.sql`

@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { calculateLevel } from '@/lib/gamification';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/sync/repair-xp
  *

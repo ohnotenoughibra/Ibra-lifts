@@ -10,7 +10,7 @@ import { calculateLevel } from '@/lib/gamification';
  * then patches the live user_store and gamification_stats to that value.
  * This fixes XP/level regression caused by the stale-lastSyncAt bug.
  */
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -18,6 +18,17 @@ export async function POST() {
     }
 
     const userId = session.user.id;
+
+    // Optional: accept a manual XP override from the request body
+    let manualXP: number | null = null;
+    try {
+      const body = await request.json();
+      if (body.totalPoints && typeof body.totalPoints === 'number' && body.totalPoints > 0) {
+        manualXP = body.totalPoints;
+      }
+    } catch {
+      // No body or invalid JSON — proceed with backup scan
+    }
 
     // 1. Get current server data
     const { rows: currentRows } = await sql`
@@ -73,6 +84,12 @@ export async function POST() {
       }
     } catch {
       // No backups table — just use current
+    }
+
+    // If manual XP provided and it's higher, use it
+    if (manualXP && manualXP > maxPoints) {
+      maxPoints = manualXP;
+      sourceLabel = 'manual override (from device)';
     }
 
     const correctLevel = calculateLevel(maxPoints);

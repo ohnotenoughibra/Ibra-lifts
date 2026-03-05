@@ -18,7 +18,9 @@ import {
   Eye,
   Trophy,
   SkipForward,
+  LogIn,
 } from 'lucide-react';
+import Link from 'next/link';
 import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingData, TrainingIdentity, CombatSport, CombatTrainingDay, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarDays, Check } from 'lucide-react';
@@ -88,6 +90,27 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh px-4 py-8">
+      {/* Returning user — sign in CTA */}
+      {safeStep === 1 && (
+        <div className="max-w-lg mx-auto mb-6">
+          <Link
+            href="/login"
+            className="flex items-center justify-between w-full p-4 rounded-xl border border-primary-500/30 bg-primary-500/10 hover:bg-primary-500/20 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
+                <LogIn className="w-5 h-5 text-primary-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Already have an account?</p>
+                <p className="text-xs text-grappler-400">Sign in to restore your data</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-primary-400" />
+          </Link>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="max-w-lg mx-auto mb-8">
         <div className="flex items-center justify-between mb-2">

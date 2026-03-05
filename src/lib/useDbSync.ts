@@ -31,6 +31,8 @@ const RESTORE_FIELDS = [
   // Mental / knowledge base tracking
   'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
   'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
+  // Nutrition planning / meal shortcuts (previously local-only)
+  'nutritionPeriodPlan', 'mealStamps',
 ];
 
 /**
@@ -397,6 +399,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       seenInsights: s.seenInsights, dismissedInsights: s.dismissedInsights,
       readArticles: s.readArticles, bookmarkedArticles: s.bookmarkedArticles,
       lastInsightDate: s.lastInsightDate,
+      nutritionPeriodPlan: s.nutritionPeriodPlan, mealStamps: s.mealStamps,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
       // Quick Access pins (stored in localStorage, not Zustand)
@@ -499,6 +502,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       readArticles: store.readArticles,
       bookmarkedArticles: store.bookmarkedArticles,
       lastInsightDate: store.lastInsightDate,
+      // Nutrition planning / meal shortcuts
+      nutritionPeriodPlan: store.nutritionPeriodPlan,
+      mealStamps: store.mealStamps,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
@@ -585,6 +591,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.readArticles,
     store.bookmarkedArticles,
     store.lastInsightDate,
+    // Nutrition planning / meal shortcuts
+    store.nutritionPeriodPlan,
+    store.mealStamps,
     deviceType,
   ]);
 

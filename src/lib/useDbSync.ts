@@ -691,30 +691,80 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     return () => clearInterval(snapshotInterval);
   }, [isInitialLoadComplete, buildSyncPayload]);
 
-  // ── IndexedDB recovery: if localStorage was empty, try IndexedDB before server ──
+  // ── IndexedDB recovery: check if IndexedDB has richer data than current state ──
+  // This catches cases where a pull from cloud or service worker cache issue
+  // overwrote local state with stale data, but IndexedDB still has the good snapshot.
   useEffect(() => {
     if (!initialLoadDone.current || !isInitialLoadComplete) return;
-    const s = useAppStore.getState();
-    const stillEmpty = !s.isOnboarded && !s.user;
-    if (!stillEmpty) return;
 
-    // localStorage was empty — check IndexedDB for a recent snapshot
-    loadSnapshot().then(snapshot => {
-      if (!snapshot?.data) return;
-      const data = snapshot.data as Record<string, unknown>;
-      if (!data.isOnboarded || !data.user) return;
+    const checkAndRecover = async () => {
+      // Check both 'latest' and 'pre-prune' snapshots
+      const [latestSnap, prePruneSnap] = await Promise.all([
+        loadSnapshot().catch(() => null),
+        loadSnapshot('pre-prune').catch(() => null),
+      ]);
 
-      console.log('[db-sync] Recovering from IndexedDB snapshot (localStorage was empty)');
-      const fieldsToMerge: Record<string, unknown> = {};
-      for (const field of RESTORE_FIELDS) {
-        if (data[field] !== undefined) fieldsToMerge[field] = data[field];
+      const s = useAppStore.getState();
+      const currentXP = (s.gamificationStats?.totalPoints || 0) as number;
+      const currentWorkouts = s.workoutLogs?.length || 0;
+      const currentMeals = s.meals?.length || 0;
+
+      // Pick the richest snapshot
+      let bestSnapshot: { data: unknown; timestamp: number } | null = null;
+      let bestScore = currentXP + currentWorkouts * 100 + currentMeals * 10;
+
+      for (const snap of [latestSnap, prePruneSnap]) {
+        if (!snap?.data) continue;
+        const data = snap.data as Record<string, unknown>;
+        if (!data.isOnboarded || !data.user) continue;
+        const snapXP = ((data.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
+        const snapWorkouts = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
+        const snapMeals = Array.isArray(data.meals) ? data.meals.length : 0;
+        const snapScore = snapXP + snapWorkouts * 100 + snapMeals * 10;
+
+        if (snapScore > bestScore) {
+          bestScore = snapScore;
+          bestSnapshot = snap;
+        }
       }
-      if (data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = data.isOnboarded;
-      if (Object.keys(fieldsToMerge).length > 0) {
-        useAppStore.setState(fieldsToMerge);
+
+      if (bestSnapshot) {
+        const data = bestSnapshot.data as Record<string, unknown>;
+        const snapXP = ((data.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
+        const snapWorkouts = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
+        console.log(`[db-sync] IndexedDB has richer data! XP: ${snapXP} vs ${currentXP}, workouts: ${snapWorkouts} vs ${currentWorkouts}. Recovering...`);
+
+        // Merge using resolveConflicts to get the best of both
+        const currentState: Record<string, unknown> = {};
+        for (const field of RESTORE_FIELDS) {
+          const val = (s as unknown as Record<string, unknown>)[field];
+          if (val !== undefined) currentState[field] = val;
+        }
+        currentState.isOnboarded = s.isOnboarded;
+
+        const merged = resolveConflicts(currentState, data);
+        const fieldsToMerge: Record<string, unknown> = {};
+        for (const field of RESTORE_FIELDS) {
+          if (merged[field] !== undefined) fieldsToMerge[field] = merged[field];
+        }
+        if (merged.isOnboarded !== undefined) fieldsToMerge.isOnboarded = merged.isOnboarded;
+        fieldsToMerge.lastSyncAt = Date.now();
+
+        if (Object.keys(fieldsToMerge).length > 0) {
+          useAppStore.setState(fieldsToMerge);
+          // Push recovered data to server immediately
+          if (effectiveUserId) {
+            const payload = { ...fieldsToMerge };
+            payload._lastDevice = getDeviceType();
+            payload._lastDeviceUA = typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '';
+            forcePushToCloud(effectiveUserId, payload).catch(() => {});
+          }
+        }
       }
-    }).catch(() => {});
-  }, [isInitialLoadComplete]);
+    };
+
+    checkAndRecover();
+  }, [isInitialLoadComplete, effectiveUserId]);
 
   // ── Sync failure listener: surface persistent failures to user ──────────
   const [syncFailureCount, setSyncFailureCount] = useState(0);

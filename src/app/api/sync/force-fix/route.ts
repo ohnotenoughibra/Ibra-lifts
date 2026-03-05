@@ -81,6 +81,16 @@ export async function GET() {
   <p id="repair-status" style="color:#999;font-size:11px;margin:0;display:none"></p>
 </div>
 
+<div style="background:#1a1a2e;border:1px solid #6366f1;border-radius:12px;padding:16px;margin:16px 0">
+  <p style="color:#6366f1;font-size:11px;text-transform:uppercase;margin:0 0 8px;font-weight:600">Restore from Backup</p>
+  <p style="color:#999;font-size:12px;margin:0 0 12px">Find and restore the backup with your correct workouts + meals</p>
+  <button onclick="loadBackups()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #6366f1;background:#6366f122;color:#6366f1;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">
+    Load Backups
+  </button>
+  <div id="backups-list" style="max-height:300px;overflow-y:auto"></div>
+  <p id="backup-status" style="color:#999;font-size:11px;margin:8px 0 0;display:none"></p>
+</div>
+
 <button onclick="clearCaches()" style="width:100%;padding:10px;border-radius:12px;border:1px solid #555;background:transparent;color:#999;font-size:12px;cursor:pointer;margin:8px 0">
   Clear Caches & Service Workers
 </button>
@@ -123,6 +133,66 @@ async function clearCaches() {
     for (var i = 0; i < keys.length; i++) await caches.delete(keys[i]);
   }
   showStatus('Caches & service workers cleared!', '#4ade80');
+}
+
+async function loadBackups() {
+  var listEl = document.getElementById('backups-list');
+  var statusEl = document.getElementById('backup-status');
+  listEl.innerHTML = '<p style="color:#999;font-size:12px">Loading...</p>';
+  try {
+    var res = await fetch('/api/sync/force-fix/backups', { cache: 'no-store' });
+    var data = await res.json();
+    if (!data.backups || data.backups.length === 0) {
+      listEl.innerHTML = '<p style="color:#999;font-size:12px">No backups found</p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < data.backups.length; i++) {
+      var b = data.backups[i];
+      var date = new Date(b.created_at).toLocaleString();
+      html += '<div style="background:#111;border:1px solid #333;border-radius:8px;padding:10px;margin:6px 0">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      html += '<div>';
+      html += '<p style="color:#fff;font-size:12px;margin:0;font-weight:600">' + date + '</p>';
+      html += '<p style="color:#999;font-size:11px;margin:2px 0 0">';
+      html += 'Lv.' + (b.level || '?') + ' • ' + (b.total_points || 0) + ' XP • ';
+      html += (b.workout_count || 0) + ' workouts • ' + (b.meal_count || 0) + ' meals';
+      if (b.meso_week) html += ' • Week ' + b.meso_week;
+      html += '</p>';
+      html += '</div>';
+      html += '<button onclick="restoreBackup(' + b.id + ')" style="padding:6px 12px;border-radius:6px;border:1px solid #4ade80;background:#4ade8022;color:#4ade80;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Restore</button>';
+      html += '</div></div>';
+    }
+    listEl.innerHTML = html;
+  } catch(e) {
+    listEl.innerHTML = '<p style="color:#f87171;font-size:12px">Error: ' + e.message + '</p>';
+  }
+}
+
+async function restoreBackup(backupId) {
+  var statusEl = document.getElementById('backup-status');
+  statusEl.style.display = 'block';
+  statusEl.style.color = '#f59e0b';
+  statusEl.textContent = 'Restoring backup #' + backupId + '...';
+  try {
+    var res = await fetch('/api/sync/backups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backupId: backupId })
+    });
+    var data = await res.json();
+    if (data.restored) {
+      statusEl.style.color = '#4ade80';
+      statusEl.textContent = 'Restored! ' + data.workoutCount + ' workouts from ' + new Date(data.backupDate).toLocaleString() + '. Now Pull from Cloud below.';
+    } else {
+      statusEl.style.color = '#f87171';
+      statusEl.textContent = data.error || 'Restore failed';
+    }
+    setTimeout(function() { location.reload(); }, 3000);
+  } catch(e) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = 'Error: ' + e.message;
+  }
 }
 
 async function doRepairXP() {

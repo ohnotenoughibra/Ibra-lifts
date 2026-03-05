@@ -276,7 +276,7 @@ export default function SyncStatusIndicator({
                   onClick={async () => {
                     setForcePullStatus('pulling');
                     try {
-                      const res = await fetch(`/api/sync?userId=${useAppStore.getState().user?.id}`, { cache: 'no-store' });
+                      const res = await fetch('/api/sync/force-pull', { cache: 'no-store' });
                       if (!res.ok) throw new Error('Failed to fetch');
                       const { data } = await res.json();
                       if (data) {

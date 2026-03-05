@@ -84,6 +84,7 @@ export function resolveConflicts(
     // Previously missing — remote silently overwrote local:
     'mesocycleHistory', 'mesocycleQueue',
     'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles',
+    'mealStamps',
   ];
 
   for (const field of arrayFields) {
@@ -218,7 +219,7 @@ export function resolveConflicts(
   // Each gets its own updatedAt-based merge (like user and baselineLifts above).
   const updatedAtFields = ['currentMesocycle', 'activeDietPhase', 'macroTargets',
     'muscleEmphasis', 'activeEquipmentProfile', 'combatNutritionProfile',
-    'notificationPreferences', 'onboardingData', 'subscription'];
+    'notificationPreferences', 'onboardingData', 'subscription', 'nutritionPeriodPlan'];
   for (const field of updatedAtFields) {
     const localVal = local[field] as Record<string, unknown> | undefined;
     const remoteVal = remote[field] as Record<string, unknown> | undefined;

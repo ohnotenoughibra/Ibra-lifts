@@ -289,9 +289,59 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   useEffect(() => {
     if (!effectiveUserId || initialLoadDone.current) return;
 
-    pullFromCloud(effectiveUserId, false).then(() => {
+    pullFromCloud(effectiveUserId, false).then(async () => {
       initialLoadDone.current = true;
       setIsInitialLoadComplete(true);
+
+      // ── Auto-push-if-ahead: if local data is richer than server, push immediately ──
+      // This solves the "trapped data" problem: e.g. PWA has level 14 but server has level 12.
+      // After pulling, compare local gamification with what we just pulled.
+      // If local is ahead (higher XP, more workouts), push to cloud automatically.
+      try {
+        const s = useAppStore.getState();
+        if (!s.isOnboarded || !s.user) return;
+
+        // Check server state to compare
+        const serverRes = await fetch(`/api/sync?userId=${encodeURIComponent(effectiveUserId)}`, { cache: 'no-store' });
+        if (!serverRes.ok) return;
+        const serverJson = await serverRes.json();
+        const serverData = serverJson.data;
+        if (!serverData) return;
+
+        const localXP = (s.gamificationStats?.totalPoints || 0) as number;
+        const serverXP = ((serverData.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
+        const localWorkouts = s.workoutLogs?.length || 0;
+        const serverWorkouts = Array.isArray(serverData.workoutLogs) ? serverData.workoutLogs.length : 0;
+        const localMeals = s.meals?.length || 0;
+        const serverMeals = Array.isArray(serverData.meals) ? serverData.meals.length : 0;
+
+        const localAhead = localXP > serverXP || localWorkouts > serverWorkouts || localMeals > serverMeals;
+        if (localAhead) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[db-sync] Local is ahead of server (XP: ${localXP} vs ${serverXP}, workouts: ${localWorkouts} vs ${serverWorkouts}). Auto-pushing...`);
+          }
+          // Build payload inline — can't reference buildSyncPayload here (not yet declared)
+          const hasRealData = s.isOnboarded && s.user && (s.workoutLogs?.length > 0 || s.trainingSessions?.length > 0 || s.meals?.length > 0);
+          if (hasRealData) {
+            const payload: Record<string, unknown> = {};
+            for (const field of RESTORE_FIELDS) {
+              const val = (s as unknown as Record<string, unknown>)[field];
+              if (val !== undefined) payload[field] = val;
+            }
+            payload.isOnboarded = s.isOnboarded;
+            payload.isAuthenticated = s.isAuthenticated;
+            payload.lastSyncAt = Date.now();
+            payload._lastDevice = getDeviceType();
+            payload._lastDeviceUA = typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '';
+            await forcePushToCloud(effectiveUserId, payload);
+            setSyncStatus('success');
+            setLastSyncedAt(new Date());
+            setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+          }
+        }
+      } catch {
+        // Non-critical — normal sync will catch up eventually
+      }
     });
   }, [effectiveUserId, pullFromCloud]);
 

@@ -196,7 +196,7 @@ export function calculateExerciseAdjustments(
         exerciseName: exerciseLog.exerciseName,
         adjustmentType: 'weight',
         oldValue: lastWeight,
-        newValue: Math.max(0, lastWeight - hardDecrease),
+        newValue: Math.max(5, lastWeight - hardDecrease), // floor at 5 to avoid suggesting 0
         reason: 'Previous session was too hard - reducing weight for quality reps'
       });
       break;
@@ -490,7 +490,7 @@ export function getSuggestedWeight(
           case 'too_easy':
             return maxWeight + Math.max(5, Math.round(maxWeight * 0.05 / 5) * 5);
           case 'too_hard':
-            return Math.max(0, maxWeight - Math.max(5, Math.round(maxWeight * 0.07 / 5) * 5));
+            return Math.max(5, maxWeight - Math.max(5, Math.round(maxWeight * 0.07 / 5) * 5));
           case 'challenging':
             return maxWeight + Math.max(2.5, Math.round(maxWeight * 0.05 / 2.5) * 2.5);
           default:
@@ -660,10 +660,13 @@ export function shouldDeload(recentLogs: WorkoutLog[]): { needed: boolean; reaso
   const sorted = [...recentLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const recent = sorted.slice(0, 5);
 
-  // Check for declining performance
-  const avgRPE = recent.reduce((sum, l) => sum + l.overallRPE, 0) / recent.length;
-  const avgEnergy = recent.reduce((sum, l) => sum + l.energy, 0) / recent.length;
-  const avgSoreness = recent.reduce((sum, l) => sum + l.soreness, 0) / recent.length;
+  // Check for declining performance — filter out 0 (unlogged) values to avoid dragging average down
+  const withRPE = recent.filter(l => l.overallRPE > 0);
+  const withEnergy = recent.filter(l => l.energy > 0);
+  const withSoreness = recent.filter(l => l.soreness > 0);
+  const avgRPE = withRPE.length > 0 ? withRPE.reduce((sum, l) => sum + l.overallRPE, 0) / withRPE.length : 0;
+  const avgEnergy = withEnergy.length > 0 ? withEnergy.reduce((sum, l) => sum + l.energy, 0) / withEnergy.length : 5;
+  const avgSoreness = withSoreness.length > 0 ? withSoreness.reduce((sum, l) => sum + l.soreness, 0) / withSoreness.length : 0;
 
   if (avgRPE >= 9 && avgSoreness >= 7) {
     return { needed: true, reason: 'Consistently high RPE with high soreness - accumulated fatigue detected' };

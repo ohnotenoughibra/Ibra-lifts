@@ -545,10 +545,13 @@ export function calculateHardMetrics(
     }
   });
 
-  // Median trend
+  // Median trend (properly handles even-length arrays)
   trendPcts.sort((a, b) => a - b);
+  const mid = Math.floor(trendPcts.length / 2);
   const medianTrend = trendPcts.length > 0
-    ? trendPcts[Math.floor(trendPcts.length / 2)]
+    ? trendPcts.length % 2 === 1
+      ? trendPcts[mid]
+      : (trendPcts[mid - 1] + trendPcts[mid]) / 2
     : 0;
 
   const strengthTrend = {

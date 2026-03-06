@@ -85,13 +85,16 @@ interface ExerciseDataPoint {
 // ─── Internal Helpers ───────────────────────────────────────────────────────
 
 /**
- * Epley formula: estimated 1-rep max from weight and reps.
- * Returns weight directly if reps <= 1.
+ * Estimated 1-rep max from weight and reps.
+ * Brzycki for 1-10 reps (most accurate), Epley for 11+ reps (Brzycki degrades).
+ * Consistent with calc1RM in progress-analytics.ts and weight-estimator.ts.
  */
 function epley1RM(weight: number, reps: number): number {
   if (weight <= 0) return 0;
-  if (reps <= 1) return weight;
-  return weight * (1 + reps / 30);
+  if (reps <= 0) return 0;
+  if (reps === 1) return weight;
+  if (reps > 10) return weight * (1 + reps / 30); // Epley for high reps
+  return weight / (1.0278 - 0.0278 * reps);       // Brzycki for 2-10 reps
 }
 
 /**

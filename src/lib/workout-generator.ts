@@ -24,21 +24,23 @@ import {
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
-// Volume landmarks per muscle group (weekly sets)
-// Based on RP/scientific literature: MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume
+// Volume landmarks per muscle group (weekly direct sets)
+// Updated to Israetel / RP 2023 values ("Scientific Principles of Hypertrophy Training")
+// MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume
+// These population defaults are overridden by individualized landmarks from volume-landmarks.ts
 export const VOLUME_LANDMARKS: Record<string, { mev: number; mav: number; mrv: number }> = {
   chest: { mev: 8, mav: 16, mrv: 22 },
-  back: { mev: 8, mav: 16, mrv: 22 },
-  shoulders: { mev: 6, mav: 14, mrv: 20 },
-  biceps: { mev: 4, mav: 12, mrv: 18 },
-  triceps: { mev: 4, mav: 10, mrv: 16 },
-  quadriceps: { mev: 6, mav: 14, mrv: 20 },
-  hamstrings: { mev: 4, mav: 12, mrv: 18 },
-  glutes: { mev: 4, mav: 12, mrv: 18 },
-  calves: { mev: 4, mav: 10, mrv: 16 },
+  back: { mev: 10, mav: 18, mrv: 25 },      // back tolerates and needs more volume
+  shoulders: { mev: 8, mav: 18, mrv: 26 },   // delts recover fast, high MRV
+  biceps: { mev: 5, mav: 16, mrv: 26 },      // small muscles recover fast, high MRV
+  triceps: { mev: 4, mav: 12, mrv: 18 },
+  quadriceps: { mev: 8, mav: 16, mrv: 20 },  // quads need higher MEV
+  hamstrings: { mev: 4, mav: 12, mrv: 20 },
+  glutes: { mev: 4, mav: 14, mrv: 20 },
+  calves: { mev: 6, mav: 14, mrv: 20 },      // calves are volume-resistant
   core: { mev: 4, mav: 10, mrv: 16 },
   forearms: { mev: 2, mav: 8, mrv: 14 },
-  traps: { mev: 4, mav: 10, mrv: 16 },
+  traps: { mev: 4, mav: 12, mrv: 18 },
   full_body: { mev: 4, mav: 10, mrv: 16 },
 };
 

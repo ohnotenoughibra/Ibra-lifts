@@ -1538,6 +1538,7 @@ export const useAppStore = create<AppState>()(
 
         set({ workoutLogs: updatedLogs });
         get().recalculatePRs();
+        get().recalculateGamificationStats();
 
         return { fixed: orphanedLogs.length, orphanedMesoId };
       },
@@ -2258,6 +2259,8 @@ export const useAppStore = create<AppState>()(
         }
 
         // Calculate current streak and longest historical streak from sorted dates
+        // Uses 2-day gap tolerance (consistent with calculateStreak) — training
+        // Mon/Wed/Fri still counts as a streak since rest days are expected.
         const sortedDates = Array.from(allTrainingDates).sort().reverse(); // newest first
         let currentStreak = 0;
         let longestStreak = 0;
@@ -2265,21 +2268,20 @@ export const useAppStore = create<AppState>()(
         if (sortedDates.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const todayStr = fmtDate(today);
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = fmtDate(yesterday);
+          const todayMs = today.getTime();
+          const mostRecentMs = new Date(sortedDates[0]).getTime();
+          const DAY_MS = 86400000;
 
-          // Current streak: only counts if trained today or yesterday
-          if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+          // Current streak: only counts if most recent activity within 2 days
+          if ((todayMs - mostRecentMs) <= 2 * DAY_MS) {
             currentStreak = 1;
             let prevDate = new Date(sortedDates[0]);
 
             for (let i = 1; i < sortedDates.length; i++) {
               const checkDate = new Date(sortedDates[i]);
-              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / DAY_MS);
 
-              if (diffDays === 1) {
+              if (diffDays <= 2) {
                 currentStreak++;
                 prevDate = checkDate;
               } else {
@@ -2288,7 +2290,7 @@ export const useAppStore = create<AppState>()(
             }
           }
 
-          // Longest historical streak: scan all dates (oldest first) to find best run
+          // Longest historical streak: scan all dates (oldest first) with same 2-day tolerance
           const chronological = [...sortedDates].reverse(); // oldest first
           let runLength = 1;
           longestStreak = 1;
@@ -2296,9 +2298,9 @@ export const useAppStore = create<AppState>()(
           for (let i = 1; i < chronological.length; i++) {
             const prev = new Date(chronological[i - 1]);
             const curr = new Date(chronological[i]);
-            const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor((curr.getTime() - prev.getTime()) / DAY_MS);
 
-            if (diffDays === 1) {
+            if (diffDays <= 2) {
               runLength++;
             } else {
               runLength = 1;

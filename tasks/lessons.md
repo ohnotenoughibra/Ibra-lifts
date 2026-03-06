@@ -32,6 +32,11 @@
 - **Server-side merge is essential** — the POST endpoint must merge incoming with existing data using `resolveConflicts`, not blindly overwrite. Otherwise a stale device can overwrite newer data
 - **Critical fields need `updatedAt`** — any structured object that can change independently across devices (currentMesocycle, activeDietPhase, etc.) should have `updatedAt` for merge priority
 
+- **Tombstones for array deletes** — use `_deleted: true` + `_deletedAt: timestamp` instead of `.filter()` removal. Filter tombstones at read time (selectors/hooks). GC tombstones >30 days in sync merge
+- **Field-level timestamps on UserProfile** — `_fieldTimestamps: Record<string, number>` enables per-field merge so editing name on laptop doesn't overwrite training days changed on phone
+- **Heartbeat must pull after push** — push-only heartbeat leaves devices stale; pull after push so changes propagate within the heartbeat interval
+- **Mesocycle regeneration must auto-migrate logs** — `generateNewMesocycle()` creates new session IDs which orphan workout logs. Always call `migrateWorkoutLogsToMesocycle(oldId, newId)` after
+
 ## Store Patterns
 - `updateExerciseLog` validates bounds and sanitizes inputs (no negative reps/weight, RPE capped 0-10)
 - Pause/resume tracks `pausedAt` timestamp + `totalPausedMs` accumulator for accurate duration

@@ -62,12 +62,12 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const user = useAppStore(s => s.user);
   const addQuickLog = useAppStore(s => s.addQuickLog);
   const quickLogs = useAppStore(s => s.quickLogs) ?? [];
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const addBodyWeight = useAppStore(s => s.addBodyWeight);
   const trainingSessions = useAppStore(s => s.trainingSessions);
   const addTrainingSession = useAppStore(s => s.addTrainingSession);
   const addMeal = useAppStore(s => s.addMeal);
-  const meals = useAppStore(s => s.meals) ?? [];
+  const meals = useAppStore(s => s.meals.filter(m => !m._deleted));
   const startWorkout = useAppStore(s => s.startWorkout);
   const supplementStack = useAppStore(s => s.supplementStack);
   const supplementIntakes = useAppStore(s => s.supplementIntakes);

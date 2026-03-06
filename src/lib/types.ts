@@ -67,6 +67,7 @@ export interface UserProfile {
   disclaimerAcceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  _fieldTimestamps?: Record<string, number>;
 }
 
 // Baseline lift estimates for programming
@@ -443,6 +444,8 @@ export interface BodyWeightEntry {
   weight: number;
   unit: WeightUnit;
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Quick logging entries (water, sleep, energy, readiness, mobility)
@@ -508,6 +511,8 @@ export interface MealEntry {
   fat: number;
   portion?: string;  // e.g. "1 cup", "200g", "2 scoops"
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 export interface DailyNutrition {

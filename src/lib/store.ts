@@ -228,6 +228,9 @@ interface AppState {
   syncConflict: SyncConflict | null;
   pendingRemoteData: Record<string, unknown> | null;
 
+  // Write-through: when true, next sync fires immediately (no debounce)
+  _syncUrgent: boolean;
+
   // Subscription
   subscription: Subscription | null;
 
@@ -255,6 +258,7 @@ interface AppState {
 
   // Actions
   setUser: (user: UserProfile | null) => void;
+  updateUserFields: (fields: Partial<UserProfile>) => void;
   setAuthenticated: (auth: boolean) => void;
   updateOnboardingData: (data: Partial<OnboardingData>) => void;
   completeOnboarding: (authUserId?: string) => void;
@@ -615,6 +619,7 @@ export const useAppStore = create<AppState>()(
       lastCompletedWorkout: null,
       syncConflict: null,
       pendingRemoteData: null,
+      _syncUrgent: false,
       subscription: null,
       notificationPreferences: {
         enabled: false,
@@ -642,6 +647,19 @@ export const useAppStore = create<AppState>()(
 
       // User actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+      updateUserFields: (fields) => {
+        const { user } = get();
+        if (!user) return;
+        const now = Date.now();
+        const stamps = { ...(user._fieldTimestamps || {}) };
+        for (const key of Object.keys(fields)) {
+          if (key !== '_fieldTimestamps' && key !== 'updatedAt') {
+            stamps[key] = now;
+          }
+        }
+        set({ user: { ...user, ...fields, updatedAt: new Date(), _fieldTimestamps: stamps } });
+      },
 
       setAuthenticated: (auth) => set({ isAuthenticated: auth }),
 
@@ -1178,6 +1196,11 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ currentMesocycle: { ...newMesocycle, updatedAt: new Date().toISOString() } });
+
+        // Auto-migrate orphaned workout logs from old mesocycle to new one
+        if (currentMesocycle) {
+          get().migrateWorkoutLogsToMesocycle(currentMesocycle.id, newMesocycle.id);
+        }
       },
 
       completeMesocycle: () => {
@@ -2179,6 +2202,9 @@ export const useAppStore = create<AppState>()(
 
         // Check for new badges
         get().checkAndAwardBadges();
+
+        // Write-through: sync immediately after workout completion
+        set({ _syncUrgent: true });
       },
 
       cancelWorkout: () => set({ activeWorkout: null, workoutMinimized: false }),
@@ -2865,14 +2891,14 @@ export const useAppStore = create<AppState>()(
           unit: user?.weightUnit || 'lbs',
           notes
         };
-        set({ bodyWeightLog: [...bodyWeightLog, entry] });
+        set({ bodyWeightLog: [...bodyWeightLog, entry], _syncUrgent: true });
         // Award XP for consistent weight tracking
         get().awardPoints(pointRewards.bodyWeightLog, 'Body weight logged');
       },
 
       deleteBodyWeight: (id) => {
         const { bodyWeightLog } = get();
-        set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
+        set({ bodyWeightLog: bodyWeightLog.map(e => e.id === id ? { ...e, _deleted: true, _deletedAt: Date.now() } : e), _syncUrgent: true });
       },
 
       // Quick log actions
@@ -3249,6 +3275,9 @@ export const useAppStore = create<AppState>()(
             macrosHit,
           });
         }
+
+        // Write-through: sync meals immediately
+        set({ _syncUrgent: true });
       },
 
       updateMeal: (id, updates) => {
@@ -3258,7 +3287,7 @@ export const useAppStore = create<AppState>()(
 
       deleteMeal: (id) => {
         const { meals } = get();
-        set({ meals: meals.filter(m => m.id !== id) });
+        set({ meals: meals.map(m => m.id === id ? { ...m, _deleted: true, _deletedAt: Date.now() } : m), _syncUrgent: true });
       },
 
       setMacroTargets: (targets) => set({ macroTargets: targets }),
@@ -3418,7 +3447,7 @@ export const useAppStore = create<AppState>()(
 
       deleteMealStamp: (id) => {
         const { mealStamps } = get();
-        set({ mealStamps: mealStamps.filter(s => s.id !== id) });
+        set({ mealStamps: mealStamps.map(s => s.id === id ? { ...s, _deleted: true, _deletedAt: Date.now() } : s), _syncUrgent: true });
       },
 
       useMealStamp: (id) => {
@@ -4020,4 +4049,9 @@ export const useCurrentMesocycle = () => useAppStore((state) => state.currentMes
 export const useActiveWorkout = () => useAppStore((state) => state.activeWorkout);
 export const useWorkoutLogs = () => useAppStore((state) => state.workoutLogs);
 export const useGamificationStats = () => useAppStore((state) => state.gamificationStats);
-export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog);
+export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog.filter(e => !e._deleted));
+export const useBodyWeightLogRaw = () => useAppStore((state) => state.bodyWeightLog);
+export const useMeals = () => useAppStore((state) => state.meals.filter(m => !m._deleted));
+export const useMealsRaw = () => useAppStore((state) => state.meals);
+export const useMealStamps = () => useAppStore((state) => state.mealStamps.filter(s => !s._deleted));
+export const useMealStampsRaw = () => useAppStore((state) => state.mealStamps);

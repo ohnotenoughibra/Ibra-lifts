@@ -36,6 +36,7 @@ import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
 import type { ContentCategory } from '@/lib/types';
 import type { SyncStatus } from '@/lib/useDbSync';
+import { useComputedGamification } from '@/lib/computed-gamification';
 
 // Core tabs — lazy loaded for smaller initial bundle
 const HomeTab = dynamic(() => import('./HomeTab'), { loading: () => <HomeTabSkeleton /> });
@@ -245,6 +246,7 @@ export default function Dashboard({
   onForceSync,
   syncFailureCount = 0,
 }: DashboardProps = {}) {
+  const computed = useComputedGamification();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
   const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
@@ -400,7 +402,7 @@ export default function Dashboard({
 
   // Ensure weekly challenge is generated on Dashboard mount
   useEffect(() => {
-    if (user && gamificationStats.totalWorkouts > 0) {
+    if (user && computed.totalWorkouts > 0) {
       ensureWeeklyChallenge();
     }
   }, []);
@@ -430,13 +432,13 @@ export default function Dashboard({
       'Notification' in window &&
       Notification.permission === 'default' &&
       !notificationPreferences.enabled &&
-      gamificationStats.totalWorkouts >= 3 &&
+      computed.totalWorkouts >= 3 &&
       !localStorage.getItem('roots-notif-prompt-dismissed')
     ) {
       const timer = setTimeout(() => setShowNotifPrompt(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [gamificationStats.totalWorkouts, notificationPreferences.enabled]);
+  }, [computed.totalWorkouts, notificationPreferences.enabled]);
 
   const handleEnableNotifications = async () => {
     try {
@@ -452,13 +454,13 @@ export default function Dashboard({
 
   // Level-up detection
   const [levelUpDisplay, setLevelUpDisplay] = useState<number | null>(null);
-  const prevLevelRef = useRef(gamificationStats.level);
+  const prevLevelRef = useRef(computed.level);
   useEffect(() => {
-    if (gamificationStats.level > prevLevelRef.current && prevLevelRef.current > 0) {
-      setLevelUpDisplay(gamificationStats.level);
+    if (computed.level > prevLevelRef.current && prevLevelRef.current > 0) {
+      setLevelUpDisplay(computed.level);
     }
-    prevLevelRef.current = gamificationStats.level;
-  }, [gamificationStats.level]);
+    prevLevelRef.current = computed.level;
+  }, [computed.level]);
 
   // ── Escape key closes any open overlay ──
   useEffect(() => {
@@ -492,7 +494,7 @@ export default function Dashboard({
   }, [activeWorkout]);
 
   // Streak at-risk detection
-  const streakAtRisk = gamificationStats.currentStreak > 0 && (() => {
+  const streakAtRisk = computed.currentStreak > 0 && (() => {
     const todayStr = new Date().toDateString();
     const trainedToday = workoutLogs.some(l => new Date(l.date).toDateString() === todayStr);
     return !trainedToday;
@@ -502,10 +504,10 @@ export default function Dashboard({
   useEffect(() => {
     if (streakAtRisk && notificationPreferences.enabled && notificationPreferences.streakAlerts) {
       import('@/lib/notifications').then(({ scheduleStreakReminder }) => {
-        scheduleStreakReminder(gamificationStats.currentStreak);
+        scheduleStreakReminder(computed.currentStreak);
       });
     }
-  }, [streakAtRisk, notificationPreferences.enabled, notificationPreferences.streakAlerts, gamificationStats.currentStreak]);
+  }, [streakAtRisk, notificationPreferences.enabled, notificationPreferences.streakAlerts, computed.currentStreak]);
 
   // New user walkthrough guide
   if (showNewUserGuide) {
@@ -644,14 +646,14 @@ export default function Dashboard({
             </div>
             <div>
               <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
-              <p className="text-xs text-grappler-400">{getLevelTitle(gamificationStats.level)}</p>
+              <p className="text-xs text-grappler-400">{getLevelTitle(computed.level)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {/* Streak — the hero motivator */}
             <div className={cn(
               'flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-colors',
-              gamificationStats.currentStreak >= 7
+              computed.currentStreak >= 7
                 ? 'bg-orange-500/20 border border-orange-500/30'
                 : streakAtRisk
                   ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
@@ -659,13 +661,13 @@ export default function Dashboard({
             )}>
               <Flame className={cn(
                 'w-4 h-4',
-                gamificationStats.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
+                computed.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
               )} />
               <span className={cn(
                 'text-sm font-bold tabular-nums',
-                gamificationStats.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
+                computed.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
               )}>
-                {gamificationStats.currentStreak}
+                {computed.currentStreak}
               </span>
             </div>
             {/* Cloud sync — moved here for PWA visibility (was hidden in XP bar) */}
@@ -696,17 +698,17 @@ export default function Dashboard({
             title="View badges"
           >
             <Star className="w-3 h-3 text-yellow-500" />
-            <span className="text-xs font-bold text-grappler-300">Lv.{gamificationStats.level}</span>
+            <span className="text-xs font-bold text-grappler-300">Lv.{computed.level}</span>
           </button>
-          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(gamificationStats.totalPoints)} total XP · ${pointsToNextLevel(gamificationStats.totalPoints)} to Lv.${gamificationStats.level + 1}`}>
+          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(computed.totalPoints)} total XP · ${pointsToNextLevel(computed.totalPoints)} to Lv.${computed.level + 1}`}>
             <motion.div
               className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
               initial={false}
-              animate={{ width: `${levelProgress(gamificationStats.totalPoints)}%` }}
+              animate={{ width: `${levelProgress(computed.totalPoints)}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
-          <span className="text-xs text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(gamificationStats.totalPoints)} XP</span>
+          <span className="text-xs text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(computed.totalPoints)} XP</span>
         </div>
       </header>
 

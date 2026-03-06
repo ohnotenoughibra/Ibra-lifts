@@ -11,8 +11,8 @@ export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 // Minimum interval between re-syncs on focus (30 seconds)
 const RESYNC_COOLDOWN_MS = 30_000;
 
-// Heartbeat: push to server every 5 minutes as a safety net
-const HEARTBEAT_INTERVAL_MS = 5 * 60_000;
+// Heartbeat: push then pull every 2 minutes to keep devices in sync
+const HEARTBEAT_INTERVAL_MS = 2 * 60_000;
 
 // Fields to restore from the database
 const RESTORE_FIELDS = [
@@ -661,18 +661,26 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
 
-    const heartbeat = setInterval(() => {
+    const heartbeat = setInterval(async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
       const payload = buildSyncPayload();
       if (payload) {
-        forcePushToCloud(effectiveUserId, payload).catch(() => {
-          // Heartbeat failure is logged by recordSyncFailure in doSync
-        });
+        try {
+          await forcePushToCloud(effectiveUserId, payload);
+        } catch {
+          // Heartbeat push failure is logged by recordSyncFailure in doSync
+        }
+      }
+      // Pull after push so other devices' changes propagate within 2 min
+      try {
+        await pullFromCloud(effectiveUserId, true);
+      } catch {
+        // Non-critical — next heartbeat will retry
       }
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => clearInterval(heartbeat);
-  }, [effectiveUserId, buildSyncPayload]);
+  }, [effectiveUserId, buildSyncPayload, pullFromCloud]);
 
   // ── IndexedDB snapshot: save known-good state every 5 minutes ──────────
   // Survives localStorage clears — second line of defense after server backup

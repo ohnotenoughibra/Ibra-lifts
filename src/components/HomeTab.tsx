@@ -894,20 +894,26 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }, [currentMesocycle, workoutLogs]);
 
   // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
+  // that point to mesocycle IDs not found in current or history (truly orphaned, not just old blocks)
   const needsProgressRepair = useMemo(() => {
     if (!currentMesocycle) return false;
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
     if (currentLogs.length > 0) return false; // already has logs, no repair needed
-    // Check if there are recent logs (last 45 days) pointing to other mesocycles
+
+    // Build set of all known mesocycle IDs (current + history)
+    const knownMesoIds = new Set<string>([currentMesocycle.id]);
+    mesocycleHistory.forEach(m => knownMesoIds.add(m.id));
+
+    // Only truly orphaned: logs pointing to mesocycle IDs that don't exist anywhere
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 45);
     const orphanedLogs = workoutLogs.filter(l =>
-      l.mesocycleId !== currentMesocycle.id &&
+      !knownMesoIds.has(l.mesocycleId) &&
       l.mesocycleId !== 'standalone' &&
       new Date(l.date) >= cutoff
     );
-    return orphanedLogs.length >= 3; // at least 3 orphaned logs = likely a broken link
-  }, [currentMesocycle, workoutLogs]);
+    return orphanedLogs.length >= 3;
+  }, [currentMesocycle, workoutLogs, mesocycleHistory]);
 
   const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;

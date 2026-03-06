@@ -192,18 +192,18 @@ export function resolveConflicts(
     merged.user = localUser;
   }
 
-  // ── gamificationStats: smart merge — XP/level can never regress ──
-  // totalPoints is monotonically increasing; badges are union-merged by badgeId.
-  // This prevents a stale server snapshot from reverting a freshly-earned level.
+  // ── gamificationStats: merge event-based fields + union badges ──
+  // Streak, XP, level, totalWorkouts, totalVolume, personalRecords are now
+  // COMPUTED from workoutLogs on every render (see computed-gamification.ts).
+  // The merge only needs to handle badges (union) and event counters (max).
   const localGS = local.gamificationStats as Record<string, unknown> | undefined;
   const remoteGS = remote.gamificationStats as Record<string, unknown> | undefined;
   if (localGS && remoteGS) {
     const localPts = (localGS.totalPoints as number) || 0;
     const remotePts = (remoteGS.totalPoints as number) || 0;
-    // Base: pick the side with more XP (the authoritative progression)
+    // Base: pick the side with more XP as the "winner" for non-computed fields
     const winner = localPts >= remotePts ? localGS : remoteGS;
     const loser  = localPts >= remotePts ? remoteGS : localGS;
-    const maxPoints = Math.max(localPts, remotePts);
 
     // Union-merge badges by badgeId so no badge is ever lost
     const winnerBadges = Array.isArray(winner.badges) ? winner.badges as Array<Record<string, unknown>> : [];
@@ -214,17 +214,17 @@ export function resolveConflicts(
 
     merged.gamificationStats = {
       ...winner,
-      totalPoints: maxPoints,
-      level: calculateLevel(maxPoints),
-      currentStreak: Math.max(
-        (localGS.currentStreak as number) || 0,
-        (remoteGS.currentStreak as number) || 0,
-      ),
-      longestStreak: Math.max(
-        (localGS.longestStreak as number) || 0,
-        (remoteGS.longestStreak as number) || 0,
-      ),
+      // Keep stored totalPoints as max (computed hook takes Math.max anyway)
+      totalPoints: Math.max(localPts, remotePts),
+      level: calculateLevel(Math.max(localPts, remotePts)),
       badges: Array.from(badgeMap.values()),
+      // Event counters: take max from both sides
+      comebackCount: Math.max((localGS.comebackCount as number) || 0, (remoteGS.comebackCount as number) || 0),
+      challengesCompleted: Math.max((localGS.challengesCompleted as number) || 0, (remoteGS.challengesCompleted as number) || 0),
+      smartRestDays: Math.max((localGS.smartRestDays as number) || 0, (remoteGS.smartRestDays as number) || 0),
+      // Streak/XP/totalWorkouts/totalVolume/personalRecords are NOT merged —
+      // they're computed from workoutLogs on every render. Any value stored
+      // here is just a cache that the computed hook will override.
     };
   } else if (localGS) {
     merged.gamificationStats = localGS;

@@ -253,7 +253,7 @@ export default function PostWorkoutPhase({
               >
                 <s.icon className="w-3 h-3 text-grappler-400" />
                 <span className="text-xs text-grappler-300">{s.label}</span>
-                <span className="text-[10px] text-grappler-600">{s.reason}</span>
+                <span className="text-xs text-grappler-600">{s.reason}</span>
               </button>
             ));
           })()}

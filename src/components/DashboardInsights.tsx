@@ -99,34 +99,40 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
   if (insights.length === 0) return null;
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
-      {insights.map((insight, i) => {
-        const colors = CHIP_COLORS[insight.color] || CHIP_COLORS.blue;
-        const Icon = ICON_MAP[insight.icon] || Activity;
+    <div className="relative">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+        {insights.map((insight, i) => {
+          const colors = CHIP_COLORS[insight.color] || CHIP_COLORS.blue;
+          const Icon = ICON_MAP[insight.icon] || Activity;
 
-        return (
-          <motion.button
-            key={insight.id}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.04, duration: 0.2 }}
-            onClick={() => onNavigate(insight.target)}
-            className={cn(
-              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 flex-shrink-0',
-              'active:scale-95 transition-transform',
-              colors.bg, colors.border,
-            )}
-          >
-            <Icon className={cn('w-3 h-3', colors.text)} />
-            <span className={cn('text-[11px] font-bold tabular-nums whitespace-nowrap', colors.text)}>
-              {insight.value}
-            </span>
-            <span className="text-[10px] text-grappler-500 whitespace-nowrap">
-              {insight.status}
-            </span>
-          </motion.button>
-        );
-      })}
+          return (
+            <motion.button
+              key={insight.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.04, duration: 0.2 }}
+              onClick={() => onNavigate(insight.target)}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 flex-shrink-0',
+                'active:scale-95 transition-transform',
+                colors.bg, colors.border,
+              )}
+            >
+              <Icon className={cn('w-3.5 h-3.5', colors.text)} />
+              <span className={cn('text-xs font-bold tabular-nums whitespace-nowrap', colors.text)}>
+                {insight.value}
+              </span>
+              <span className="text-xs text-grappler-500 whitespace-nowrap">
+                {insight.status}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+      {/* Scroll affordance — fade gradient on right edge */}
+      {insights.length > 2 && (
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-grappler-950 to-transparent pointer-events-none" />
+      )}
     </div>
   );
 }

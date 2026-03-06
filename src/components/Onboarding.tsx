@@ -453,7 +453,7 @@ function Step1_AboutYou({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">Experience</label>
-                  <span className="text-[10px] text-grappler-500 italic">Optional</span>
+                  <span className="text-xs text-grappler-500 italic">Optional</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1">
                   {([
@@ -489,7 +489,7 @@ function Step1_AboutYou({
                   <SkipForward className="w-3.5 h-3.5" />
                   Skip for now
                 </button>
-                <p className="text-[10px] text-grappler-500 mt-0.5">Defaults to intermediate -- you can change this later</p>
+                <p className="text-xs text-grappler-500 mt-0.5">Defaults to intermediate -- you can change this later</p>
               </div>
             )}
           </motion.div>
@@ -698,9 +698,9 @@ function Step2_ScheduleAndGo({
               const hasSport = combatDays.some((s) => s.day === i);
               return (
                 <div key={day} className="text-center">
-                  <span className="text-[10px] text-grappler-500">{day}</span>
+                  <span className="text-xs text-grappler-500">{day}</span>
                   <div className={cn(
-                    'mt-1 h-8 rounded-md flex items-center justify-center text-[10px] font-medium',
+                    'mt-1 h-8 rounded-md flex items-center justify-center text-xs font-medium',
                     hasLifting && hasSport
                       ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
                       : hasLifting
@@ -716,11 +716,11 @@ function Step2_ScheduleAndGo({
             })}
           </div>
           <div className="flex gap-3 mt-2">
-            <span className="text-[10px] text-grappler-500 flex items-center gap-1">
+            <span className="text-xs text-grappler-500 flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm bg-primary-500/30" /> Lifting
             </span>
             {isCombat && (
-              <span className="text-[10px] text-grappler-500 flex items-center gap-1">
+              <span className="text-xs text-grappler-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm bg-orange-500/30" /> Sport
               </span>
             )}

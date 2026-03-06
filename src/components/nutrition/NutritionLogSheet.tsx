@@ -455,7 +455,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-grappler-100 truncate">{pendingFood.name}</p>
-                <p className="text-[10px] text-grappler-500 mt-0.5">
+                <p className="text-xs text-grappler-500 mt-0.5">
                   Per serving: {pendingFood.calories} kcal · {pendingFood.protein}p · {pendingFood.carbs}c · {pendingFood.fat}f
                 </p>
               </div>
@@ -542,7 +542,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
                 <span className="text-purple-300">{Math.round(pendingFood.fat * portionMultiplier)}f</span>
               </div>
               {portionMultiplier !== 1 && (
-                <span className="text-[10px] text-primary-400 font-bold">{portionMultiplier}× serving</span>
+                <span className="text-xs text-primary-400 font-bold">{portionMultiplier}× serving</span>
               )}
             </div>
 
@@ -597,12 +597,12 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-grappler-200 truncate">{item.name}</p>
                       {item.dayPattern && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded-full shrink-0">
+                        <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded-full shrink-0">
                           {item.dayPattern}
                         </span>
                       )}
                       {item.source === 'history' && !item.dayPattern && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-sky-500/20 text-sky-300 rounded-full shrink-0">
+                        <span className="text-xs px-1.5 py-0.5 bg-sky-500/20 text-sky-300 rounded-full shrink-0">
                           {item.count}x
                         </span>
                       )}

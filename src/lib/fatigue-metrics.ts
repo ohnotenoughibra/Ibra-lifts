@@ -127,83 +127,96 @@ const ZONE_COLORS: Record<number, string> = {
 // ─── Training Load Functions ────────────────────────────────────────────────
 
 /**
- * Enhanced Acute:Chronic Workload Ratio using sRPE (session RPE × duration).
- * Falls back to volume-only when duration data is unavailable.
+ * Enhanced Acute:Chronic Workload Ratio using EWMA (Exponentially Weighted Moving Average).
+ * Williams et al. 2017: EWMA avoids mathematical artefacts of coupled rolling averages.
  * Gabbett 2016: optimal ACWR 0.8–1.3, injury risk spikes >1.5
+ *
+ * Acute lambda  = 2 / (7 + 1)  = 0.25
+ * Chronic lambda = 2 / (28 + 1) = ~0.069
  */
 export function calculateEnhancedACWR(
   workoutLogs: WorkoutLog[],
   trainingSessions?: TrainingSession[],
 ): EnhancedACWR {
+  // Collect all daily sRPE loads for the last 28 days
   const now = Date.now();
-  const sevenDaysAgo = now - 7 * DAY_MS;
   const twentyEightDaysAgo = now - 28 * DAY_MS;
 
-  // Collect sRPE loads from workout logs
-  let acute7d = 0;
-  let chronic28d = 0;
+  // Build daily load map (day offset 0 = today, 27 = 28 days ago)
+  const dailyLoad = new Array(28).fill(0);
+
+  const addLoad = (dateStr: string | Date, duration: number, rpe: number) => {
+    const t = new Date(dateStr).getTime();
+    if (t < twentyEightDaysAgo || t > now) return;
+    const dayIndex = Math.floor((now - t) / DAY_MS);
+    if (dayIndex >= 0 && dayIndex < 28) {
+      dailyLoad[dayIndex] += rpe * duration;
+    }
+  };
 
   workoutLogs.forEach(log => {
-    const t = new Date(log.date).getTime();
-    const duration = log.duration || 60; // default 60 min if missing
-    const rpe = log.overallRPE || 5;
-    const sRPE = rpe * duration;
-
-    if (t >= sevenDaysAgo) acute7d += sRPE;
-    if (t >= twentyEightDaysAgo) chronic28d += sRPE;
+    addLoad(log.date, log.duration || 60, log.overallRPE || 5);
   });
 
-  // Include training sessions (combat sport, cardio, etc.)
   if (trainingSessions) {
     trainingSessions.forEach(s => {
-      const t = new Date(s.date).getTime();
-      const duration = s.duration || 60;
-      const rpe = s.perceivedExertion || 5;
-      const sRPE = rpe * duration;
-
-      if (t >= sevenDaysAgo) acute7d += sRPE;
-      if (t >= twentyEightDaysAgo) chronic28d += sRPE;
+      addLoad(s.date, s.duration || 60, s.perceivedExertion || 5);
     });
   }
 
-  // Count actual active weeks (weeks with at least one session) in the 28-day window.
-  // Dividing by 4 when the user has <4 weeks of data inflates the ACWR ratio
-  // because empty weeks before they started training drag down the chronic average.
-  const activeWeeks = (() => {
-    let count = 0;
-    for (let w = 0; w < 4; w++) {
-      const weekStart = now - (w + 1) * 7 * DAY_MS;
-      const weekEnd = now - w * 7 * DAY_MS;
-      const hasWorkout = workoutLogs.some(log => {
-        const t = new Date(log.date).getTime();
-        return t >= weekStart && t < weekEnd;
-      });
-      const hasSession = trainingSessions?.some(s => {
-        const t = new Date(s.date).getTime();
-        return t >= weekStart && t < weekEnd;
-      });
-      if (hasWorkout || hasSession) count++;
-    }
-    return Math.max(count, 1);
-  })();
-
-  const chronicWeekly = chronic28d / activeWeeks;
-
-  if (chronicWeekly === 0 && acute7d === 0) {
+  // Check if any data exists
+  const totalLoad = dailyLoad.reduce((a, b) => a + b, 0);
+  if (totalLoad === 0) {
     return { acute: 0, chronic: 0, ratio: 0, status: 'no_data' };
   }
 
-  const ratio = chronicWeekly > 0
-    ? Math.round((acute7d / chronicWeekly) * 100) / 100
-    : acute7d > 0 ? 2.0 : 0;
+  // EWMA calculation — iterate from oldest (day 27) to newest (day 0)
+  const lambdaAcute = 2 / (7 + 1);   // 0.25
+  const lambdaChronic = 2 / (28 + 1); // ~0.069
+
+  let ewmaAcute = 0;
+  let ewmaChronic = 0;
+
+  // Seed with first day's value to avoid cold-start bias
+  const oldest = dailyLoad[27];
+  ewmaAcute = oldest;
+  ewmaChronic = oldest;
+
+  for (let i = 26; i >= 0; i--) {
+    const load = dailyLoad[i];
+    ewmaAcute = load * lambdaAcute + ewmaAcute * (1 - lambdaAcute);
+    ewmaChronic = load * lambdaChronic + ewmaChronic * (1 - lambdaChronic);
+  }
+
+  // Ratio — chronic near zero means very little training history
+  const ratio = ewmaChronic > 0
+    ? Math.round((ewmaAcute / ewmaChronic) * 100) / 100
+    : ewmaAcute > 0 ? 2.0 : 0;
+
+  // Clamp to reasonable range for display
+  const clampedRatio = Math.min(ratio, 3.0);
 
   let status: EnhancedACWR['status'];
-  if (ratio >= 0.8 && ratio <= 1.3) status = 'optimal';
-  else if (ratio > 1.5) status = 'very_high';
-  else if (ratio > 1.3) status = 'high';
+  if (clampedRatio >= 0.8 && clampedRatio <= 1.3) status = 'optimal';
+  else if (clampedRatio > 1.5) status = 'very_high';
+  else if (clampedRatio > 1.3) status = 'high';
   else status = 'low';
 
-  return { acute: Math.round(acute7d), chronic: Math.round(chronicWeekly), ratio, status };
+  // Return acute as 7-day sum (for display compatibility) and chronic as weekly equivalent
+  const acute7dSum = dailyLoad.slice(0, 7).reduce((a, b) => a + b, 0);
+  const chronic28dSum = dailyLoad.reduce((a, b) => a + b, 0);
+  const activeWeeks = Math.max(1, dailyLoad.filter((_, i) => {
+    const weekIdx = Math.floor(i / 7);
+    // Check if this week has any load
+    return dailyLoad.slice(weekIdx * 7, (weekIdx + 1) * 7).some(d => d > 0);
+  }).length > 0 ? Math.ceil(dailyLoad.filter(d => d > 0).length / 3) : 1);
+
+  return {
+    acute: Math.round(acute7dSum),
+    chronic: Math.round(chronic28dSum / Math.max(activeWeeks, 1)),
+    ratio: clampedRatio,
+    status,
+  };
 }
 
 /**
@@ -403,8 +416,14 @@ export function calculateRHRTrend(wearableHistory: WearableData[]): RHRTrend {
   }
 
   const current = withRHR[withRHR.length - 1].restingHR!;
-  const baseline = withRHR.length >= 3
-    ? withRHR.slice(0, -1).reduce((s, w) => s + w.restingHR!, 0) / (withRHR.length - 1)
+
+  // 14-day rolling window baseline (Buchheit 2014), excluding the most recent value
+  // Uses the last 14 entries (not the lifetime average) so it adapts to training changes
+  const baselineWindow = withRHR.length >= 3
+    ? withRHR.slice(-15, -1) // up to 14 entries before the current one
+    : [];
+  const baseline = baselineWindow.length >= 2
+    ? baselineWindow.reduce((s, w) => s + w.restingHR!, 0) / baselineWindow.length
     : current;
 
   const delta = Math.round((current - baseline) * 10) / 10;
@@ -430,8 +449,13 @@ export function calculateHRVDeviation(wearableHistory: WearableData[]): HRVDevia
   }
 
   const current = withHRV[withHRV.length - 1].hrv!;
-  const baseline = withHRV.length >= 3
-    ? withHRV.slice(0, -1).reduce((s, w) => s + w.hrv!, 0) / (withHRV.length - 1)
+
+  // 14-day rolling window baseline (Plews et al. 2013), excluding the most recent value
+  const baselineWindow = withHRV.length >= 3
+    ? withHRV.slice(-15, -1)
+    : [];
+  const baseline = baselineWindow.length >= 2
+    ? baselineWindow.reduce((s, w) => s + w.hrv!, 0) / baselineWindow.length
     : current;
 
   const deviationPct = baseline > 0
@@ -615,7 +639,7 @@ export function calculateVO2MaxEstimate(
   }
 
   // Use provided maxHR, or derive from wearable data, or use age-based estimate (fallback 190)
-  const derivedMaxHR = Math.max(...wearableHistory.filter(w => w.maxHeartRate != null).map(w => w.maxHeartRate!), 0);
+  const derivedMaxHR = wearableHistory.filter(w => w.maxHeartRate != null).reduce((max, w) => Math.max(max, w.maxHeartRate!), 0);
   const effectiveMaxHR = maxHeartRate ?? (derivedMaxHR > 0 ? derivedMaxHR : 190);
 
   const trend = sorted.map(w => {
@@ -636,13 +660,38 @@ export function calculateVO2MaxEstimate(
   };
 }
 
-function classifyVO2Max(vo2: number | null): string {
+/**
+ * Classify VO2max relative to age and sex using ACSM percentile-based thresholds.
+ * Simplified to 3 age bands × 2 sexes. Falls back to unisex if no demographics.
+ */
+function classifyVO2Max(vo2: number | null, age?: number | null, sex?: string | null): string {
   if (vo2 == null) return 'No data';
-  if (vo2 >= 55) return 'Elite';
-  if (vo2 >= 48) return 'Excellent';
-  if (vo2 >= 42) return 'Good';
-  if (vo2 >= 36) return 'Average';
-  if (vo2 >= 30) return 'Below avg';
+
+  // Age/sex-adjusted thresholds: [Elite, Excellent, Good, Average, BelowAvg]
+  // Based on ACSM's Guidelines for Exercise Testing and Prescription, 11th ed.
+  const isFemale = sex === 'female';
+  const ageGroup = !age ? 'default' : age < 30 ? 'young' : age < 50 ? 'mid' : 'senior';
+
+  const thresholds: Record<string, number[]> = {
+    // Male thresholds
+    young:  [55, 48, 42, 36, 30],
+    mid:    [48, 42, 36, 31, 26],
+    senior: [42, 36, 31, 26, 22],
+    // Female thresholds (offset ~5-8 lower)
+    young_f:  [48, 42, 36, 31, 26],
+    mid_f:    [42, 36, 31, 26, 22],
+    senior_f: [36, 31, 26, 22, 18],
+    default:  [55, 48, 42, 36, 30],
+  };
+
+  const key = ageGroup === 'default' ? 'default' : isFemale ? `${ageGroup}_f` : ageGroup;
+  const t = thresholds[key];
+
+  if (vo2 >= t[0]) return 'Elite';
+  if (vo2 >= t[1]) return 'Excellent';
+  if (vo2 >= t[2]) return 'Good';
+  if (vo2 >= t[3]) return 'Average';
+  if (vo2 >= t[4]) return 'Below avg';
   return 'Low';
 }
 

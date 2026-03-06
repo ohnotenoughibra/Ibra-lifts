@@ -1497,59 +1497,37 @@ export const useAppStore = create<AppState>()(
       },
 
       repairMesocycleProgress: () => {
-        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
+        const { currentMesocycle, workoutLogs } = get();
         if (!currentMesocycle) return { fixed: 0, orphanedMesoId: null };
 
         // Check if current mesocycle already has logs — if so, no repair needed
         const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
         if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
 
-        // Find the most recent archived mesocycle that has workout logs
-        // (this is the one that got replaced, causing the orphan)
-        const mesoStartDate = new Date(currentMesocycle.startDate);
-        const sortedHistory = [...mesocycleHistory]
-          .sort((a, b) => new Date(b.updatedAt || b.startDate).getTime() - new Date(a.updatedAt || a.startDate).getTime());
+        // Collect ALL recent logs that should belong to this mesocycle
+        // (any log dated after the mesocycle start, from any source)
+        const mesoStart = new Date(currentMesocycle.startDate);
+        const recentLogs = workoutLogs
+          .filter(l =>
+            l.mesocycleId !== currentMesocycle.id &&
+            l.mesocycleId !== 'standalone' &&
+            new Date(l.date) >= mesoStart
+          )
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        let orphanedMesoId: string | null = null;
-        let orphanedLogs: typeof workoutLogs = [];
-
-        for (const oldMeso of sortedHistory) {
-          const logs = workoutLogs
-            .filter(l => l.mesocycleId === oldMeso.id)
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-          if (logs.length > 0) {
-            orphanedMesoId = oldMeso.id;
-            orphanedLogs = logs;
-            break;
-          }
-        }
-
-        // Also check for logs matching any mesocycleId not in current or history (truly orphaned)
-        if (!orphanedMesoId) {
-          const knownIds = new Set<string>();
-          if (currentMesocycle) knownIds.add(currentMesocycle.id);
-          mesocycleHistory.forEach(m => knownIds.add(m.id));
-
-          const unknownLogs = workoutLogs
-            .filter(l => !knownIds.has(l.mesocycleId) && l.mesocycleId !== 'standalone')
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-          if (unknownLogs.length > 0) {
-            orphanedMesoId = unknownLogs[0].mesocycleId;
-            orphanedLogs = unknownLogs.filter(l => l.mesocycleId === orphanedMesoId);
-          }
-        }
-
-        if (orphanedLogs.length === 0) return { fixed: 0, orphanedMesoId: null };
+        if (recentLogs.length === 0) return { fixed: 0, orphanedMesoId: null };
 
         // Build flat session list in week/day order
         const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
 
-        // Map orphaned logs (sorted by date) to sessions positionally
-        const updatedLogs = workoutLogs.map(log => {
-          if (log.mesocycleId !== orphanedMesoId) return log;
+        // Build a set of log IDs to migrate for fast lookup
+        const logsToMigrate = new Set(recentLogs.map(l => l.id));
 
-          const posIndex = orphanedLogs.indexOf(log);
+        // Map logs (sorted by date) to sessions positionally
+        const updatedLogs = workoutLogs.map(log => {
+          if (!logsToMigrate.has(log.id)) return log;
+
+          const posIndex = recentLogs.indexOf(log);
           if (posIndex < 0 || posIndex >= allSessions.length) return log;
 
           return {
@@ -1559,11 +1537,11 @@ export const useAppStore = create<AppState>()(
           };
         });
 
-        set({ workoutLogs: updatedLogs });
+        set({ workoutLogs: updatedLogs, _syncUrgent: true });
         get().recalculatePRs();
         get().recalculateGamificationStats();
 
-        return { fixed: orphanedLogs.length, orphanedMesoId };
+        return { fixed: recentLogs.length, orphanedMesoId: recentLogs[0].mesocycleId };
       },
 
       // Workout actions

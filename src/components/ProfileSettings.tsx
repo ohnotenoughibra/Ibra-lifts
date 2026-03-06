@@ -48,6 +48,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge, SessionsPerWeek } from '@/lib/types';
@@ -235,6 +236,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
       workoutLogs: s.workoutLogs || [],
     }))
   );
+  const computed = useComputedGamification();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'kg';
@@ -262,8 +264,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const [liftDraft, setLiftDraft] = useState('');
   const liftSavedRef = useRef(false);
 
-  const progress = levelProgress(gamificationStats?.totalPoints ?? 0);
-  const pointsNeeded = pointsToNextLevel(gamificationStats?.totalPoints ?? 0);
+  const progress = levelProgress(computed.totalPoints);
+  const pointsNeeded = pointsToNextLevel(computed.totalPoints);
   const badgesList = Array.isArray(gamificationStats?.badges) ? gamificationStats.badges : [];
   const earnedBadgeIds = new Set(badgesList.map(b => b.badgeId));
 
@@ -502,23 +504,23 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
     if (req.includes('personal_records')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.personalRecords ?? 0;
+      current = computed.personalRecords;
       label = 'PRs';
     } else if (req.includes('total_workouts')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.totalWorkouts ?? workoutLogCount;
+      current = computed.totalWorkouts;
       label = 'workouts';
     } else if (req.startsWith('streak')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.currentStreak ?? 0;
+      current = computed.currentStreak;
       label = 'day streak';
     } else if (req.includes('total_volume')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.totalVolume ?? 0;
+      current = computed.totalVolume;
       label = weightUnit;
     } else if (req.includes('level')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.level ?? 0;
+      current = computed.level;
       label = 'level';
     } else if (req.includes('mesocycles_completed')) {
       target = parseInt(req.split('>=')[1].trim());
@@ -534,7 +536,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
     const pct = target > 0 ? Math.min((current / target) * 100, 99.9) : 0;
     return { current: Math.min(current, target), target, pct, label };
-  }, [nextBadge, gamificationStats, workoutLogCount, weightUnit]);
+  }, [nextBadge, computed, workoutLogCount, weightUnit]);
 
   // ── Strength Standards computation ───────────────────────────────────────
   const COMPOUND_IDS: Record<string, string[]> = {
@@ -1096,7 +1098,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
           {/* Horizontal layout: Ring left, Identity right */}
           <div className="relative flex items-center gap-3 pt-1">
-            <LevelRing progress={progress} level={gamificationStats.level} size={72} stroke={4} />
+            <LevelRing progress={progress} level={computed.level} size={72} stroke={4} />
 
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-black text-grappler-50 tracking-tight truncate">
@@ -1105,7 +1107,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Crown className="w-3 h-3 text-primary-400" />
                 <span className="text-xs text-primary-400 font-semibold">
-                  {getLevelTitle(gamificationStats.level)}
+                  {getLevelTitle(computed.level)}
                 </span>
               </div>
 
@@ -1120,7 +1122,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   />
                 </div>
                 <div className="flex justify-between text-xs text-grappler-500 mt-1 tabular-nums">
-                  <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
+                  <span>{formatNumber(computed.totalPoints)} XP</span>
                   <span>{formatNumber(pointsNeeded)} to next</span>
                 </div>
               </div>
@@ -1131,9 +1133,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         {/* Stats Banner — compact */}
         <div className="grid grid-cols-4 divide-x divide-grappler-700/30 px-2">
           {([
-            { value: gamificationStats.totalWorkouts, label: 'Workouts' },
-            { value: gamificationStats.personalRecords, label: 'PRs' },
-            { value: gamificationStats.currentStreak, label: 'Streak' },
+            { value: computed.totalWorkouts, label: 'Workouts' },
+            { value: computed.personalRecords, label: 'PRs' },
+            { value: computed.currentStreak, label: 'Streak' },
             { value: badgesList.length, label: 'Badges' },
           ]).map((s) => (
             <div key={s.label} className="text-center py-2">
@@ -1340,10 +1342,10 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         className="grid grid-cols-2 gap-1.5"
       >
         {([
-          { icon: Dumbbell, label: 'Total Volume', value: formatNumber(gamificationStats.totalVolume), suffix: weightUnit, color: 'from-primary-500/15 to-primary-500/5' },
-          { icon: Flame, label: 'Best Streak', value: `${gamificationStats.longestStreak}`, suffix: 'days', color: 'from-orange-500/15 to-orange-500/5' },
-          { icon: Star, label: 'Total Points', value: formatNumber(gamificationStats.totalPoints), suffix: '', color: 'from-yellow-500/15 to-yellow-500/5' },
-          { icon: Medal, label: 'Current Streak', value: `${gamificationStats.currentStreak}`, suffix: 'days', color: 'from-accent-500/15 to-accent-500/5' },
+          { icon: Dumbbell, label: 'Total Volume', value: formatNumber(computed.totalVolume), suffix: weightUnit, color: 'from-primary-500/15 to-primary-500/5' },
+          { icon: Flame, label: 'Best Streak', value: `${computed.longestStreak}`, suffix: 'days', color: 'from-orange-500/15 to-orange-500/5' },
+          { icon: Star, label: 'Total Points', value: formatNumber(computed.totalPoints), suffix: '', color: 'from-yellow-500/15 to-yellow-500/5' },
+          { icon: Medal, label: 'Current Streak', value: `${computed.currentStreak}`, suffix: 'days', color: 'from-accent-500/15 to-accent-500/5' },
         ] as const).map((stat) => (
           <div key={stat.label} className={cn('card p-2.5 bg-gradient-to-br', stat.color)}>
             <div className="flex items-center gap-1.5 mb-1">

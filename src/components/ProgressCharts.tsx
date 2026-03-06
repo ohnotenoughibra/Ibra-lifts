@@ -41,6 +41,7 @@ import { cn, formatNumber, formatDate, percentageChange } from '@/lib/utils';
 import { calculate1RM } from '@/lib/workout-generator';
 import { getExerciseById } from '@/lib/exercises';
 import { calculateVO2MaxEstimate } from '@/lib/fatigue-metrics';
+import { useComputedGamification } from '@/lib/computed-gamification';
 
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency' | 'recovery';
 
@@ -51,6 +52,7 @@ interface ProgressChartsProps {
 
 export default function ProgressCharts({ onViewReport, children }: ProgressChartsProps) {
   const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
+  const computed = useComputedGamification();
   const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');
 
@@ -221,18 +223,18 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
     }
 
     // Streak
-    if (gamificationStats.currentStreak >= 7) {
+    if (computed.currentStreak >= 7) {
       results.push({
         type: 'positive',
-        message: `${gamificationStats.currentStreak} day streak! Consistency is your superpower.`
+        message: `${computed.currentStreak} day streak! Consistency is your superpower.`
       });
     }
 
     // PRs
-    if (gamificationStats.personalRecords > 0) {
+    if (computed.personalRecords > 0) {
       results.push({
         type: 'positive',
-        message: `${gamificationStats.personalRecords} personal records crushed! Strength is building.`
+        message: `${computed.personalRecords} personal records crushed! Strength is building.`
       });
     }
 
@@ -349,7 +351,7 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
 
     // Default insight — milestone-based encouragement
     if (results.length === 0) {
-      const totalW = gamificationStats.totalWorkouts;
+      const totalW = computed.totalWorkouts;
       if (totalW < 3) {
         results.push({
           type: 'neutral',
@@ -581,14 +583,14 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
             <Dumbbell className="w-4 h-4 text-primary-400" />
             <span className="stat-label">Total Volume</span>
           </div>
-          <p className="stat-value">{formatNumber(gamificationStats.totalVolume)} {weightUnit}</p>
+          <p className="stat-value">{formatNumber(computed.totalVolume)} {weightUnit}</p>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2">
             <Award className="w-4 h-4 text-yellow-400" />
             <span className="stat-label">Personal Records</span>
           </div>
-          <p className="stat-value">{gamificationStats.personalRecords}</p>
+          <p className="stat-value">{computed.personalRecords}</p>
         </div>
       </div>
 

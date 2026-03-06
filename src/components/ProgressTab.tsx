@@ -33,6 +33,7 @@ import {
   Medal,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import { isCurrentWeek, computeChallengeProgress, badges as allBadges } from '@/lib/gamification';
@@ -668,6 +669,7 @@ const PERF_FACTOR_EXPLAINERS: Record<string, { what: string; action: string }> =
 };
 
 function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: WorkoutLog[]; gamificationStats: GamificationStats }) {
+  const computed = useComputedGamification();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
 
@@ -738,7 +740,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
 
     // Engagement (10%): streak, badges, challenges
     const engagementScore = Math.min(100,
-      (gamificationStats.currentStreak >= 7 ? 40 : gamificationStats.currentStreak * 5) +
+      (computed.currentStreak >= 7 ? 40 : computed.currentStreak * 5) +
       Math.min(30, gamificationStats.badges.length * 3) +
       (gamificationStats.challengesCompleted * 10)
     );
@@ -752,7 +754,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
     );
 
     return { total, consistency: Math.round(consistencyScore), strength: Math.round(strengthScore), volume: Math.round(volumeScore), recovery: Math.round(recoveryScore), engagement: Math.round(engagementScore) };
-  }, [workoutLogs, gamificationStats]);
+  }, [workoutLogs, gamificationStats, computed]);
 
   // Animated ring fill on mount
   const [animatedValue, setAnimatedValue] = useState(0);

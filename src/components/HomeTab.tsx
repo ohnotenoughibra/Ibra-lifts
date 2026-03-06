@@ -85,6 +85,7 @@ import { getDockSuggestions } from '@/lib/tool-affinity';
 import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
+import { useComputedGamification } from '@/lib/computed-gamification';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -388,6 +389,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       workoutSkips: s.workoutSkips, addTrainingSession: s.addTrainingSession,
     }))
   );
+  const computed = useComputedGamification();
   const { showToast } = useToast();
   const { data: session } = useSession();
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
@@ -1421,7 +1423,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }
 
   // ─── Momentum data ───
-  const currentStreak = gamificationStats.currentStreak || 0;
+  const currentStreak = computed.currentStreak;
   const liftTarget = user?.trainingDays?.length || 3;
   const combatTarget = user?.combatTrainingDays?.length || 0;
   const weekTarget = liftTarget + combatTarget;

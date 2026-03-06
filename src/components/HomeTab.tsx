@@ -147,7 +147,7 @@ function ReadinessCard() {
   const trainingSessions = useAppStore(s => s.trainingSessions);
   const wearableData = useAppStore(s => s.latestWhoopData);
   const wearableHistory = useAppStore(s => s.wearableHistory);
-  const meals = useAppStore(s => s.meals);
+  const meals = useAppStore(s => s.meals.filter(m => !m._deleted));
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
@@ -382,7 +382,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
       mesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
-      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals, subscription: s.subscription,
+      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
@@ -392,7 +392,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const computed = useComputedGamification();
   const { showToast } = useToast();
   const { data: session } = useSession();
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);

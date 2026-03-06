@@ -88,7 +88,7 @@ export default function DietCoach() {
     addWeeklyCheckIn,
     incrementPhaseWeek,
     setMacroTargets,
-    setUser,
+    updateUserFields,
     mealReminders,
     setMealReminders,
     getActiveIllness,
@@ -292,7 +292,7 @@ export default function DietCoach() {
   const handleStartPhase = () => {
     // Save height & sex to user profile
     if (user) {
-      setUser({ ...user, heightCm, sex: formSex, updatedAt: new Date() });
+      updateUserFields({ heightCm, sex: formSex });
     }
 
     const newMacros = calculateMacros({

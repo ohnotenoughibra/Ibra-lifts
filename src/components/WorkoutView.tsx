@@ -183,7 +183,7 @@ export default function WorkoutView() {
     } else {
       // No workouts to migrate, proceed directly
       if (sessionsPerWeek && user) {
-        useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+        useAppStore.getState().updateUserFields({ sessionsPerWeek });
       }
       generateNewMesocycle(weeks, sessionMinutes);
     }
@@ -203,7 +203,7 @@ export default function WorkoutView() {
 
     // Update sessions per week if needed
     if (sessionsPerWeek && user) {
-      useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+      useAppStore.getState().updateUserFields({ sessionsPerWeek });
     }
 
     // Generate the new mesocycle
@@ -281,7 +281,7 @@ export default function WorkoutView() {
     const handleWizardGenerate = () => {
       const state = useAppStore.getState();
       if (state.user) {
-        state.setUser({ ...state.user, sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
+        state.updateUserFields({ sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
       }
       generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
     };

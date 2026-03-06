@@ -226,10 +226,10 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle, workoutLogs } = useAppStore(
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, updateUserFields, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle, workoutLogs } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
-      resetStore: s.resetStore, setUser: s.setUser, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
+      resetStore: s.resetStore, setUser: s.setUser, updateUserFields: s.updateUserFields, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
       colorTheme: s.colorTheme, setColorTheme: s.setColorTheme, homeGymEquipment: s.homeGymEquipment, setHomeGymEquipment: s.setHomeGymEquipment,
       recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: (s.workoutLogs || []).length,
       currentMesocycle: s.currentMesocycle,
@@ -447,8 +447,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   // ── Helpers ────────────────────────────────────────────────────────────────
   const updateUser = useCallback((patch: Partial<NonNullable<typeof user>>) => {
     if (!user) return;
-    setUser({ ...user, ...patch, updatedAt: new Date() });
-  }, [user, setUser]);
+    updateUserFields(patch);
+  }, [user, updateUserFields]);
 
   const displayWeight = (kg: number | undefined) => {
     if (!kg) return '';

@@ -2,17 +2,17 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud, flushImmediateSync } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
-import { saveLatestSnapshot, loadSnapshot, onSyncFailure } from './data-safety';
+import { saveLatestSnapshot, onSyncFailure } from './data-safety';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 
 // Minimum interval between re-syncs on focus (30 seconds)
 const RESYNC_COOLDOWN_MS = 30_000;
 
-// Heartbeat: push to server every 5 minutes as a safety net
-const HEARTBEAT_INTERVAL_MS = 5 * 60_000;
+// Heartbeat: push then pull every 2 minutes to keep devices in sync
+const HEARTBEAT_INTERVAL_MS = 2 * 60_000;
 
 // Fields to restore from the database
 const RESTORE_FIELDS = [
@@ -293,64 +293,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   useEffect(() => {
     if (!effectiveUserId || initialLoadDone.current) return;
 
-    // ── Auto-push-if-ahead: capture local state BEFORE pull overwrites it ──
-    // This solves the "trapped data" problem: e.g. PWA has level 14 but server has level 12.
-    // We snapshot local state first, then pull, then compare snapshot vs server.
-    const prePullState = useAppStore.getState();
-    const prePullSnapshot: Record<string, unknown> | null = (prePullState.isOnboarded && prePullState.user)
-      ? (() => {
-          const snap: Record<string, unknown> = {};
-          for (const field of RESTORE_FIELDS) {
-            const val = (prePullState as unknown as Record<string, unknown>)[field];
-            if (val !== undefined) snap[field] = val;
-          }
-          snap.isOnboarded = prePullState.isOnboarded;
-          snap.isAuthenticated = prePullState.isAuthenticated;
-          return snap;
-        })()
-      : null;
-
-    pullFromCloud(effectiveUserId, false).then(async () => {
+    pullFromCloud(effectiveUserId, false).then(() => {
       initialLoadDone.current = true;
       setIsInitialLoadComplete(true);
-
-      // Compare pre-pull snapshot against server — if local WAS ahead, push the snapshot
-      if (!prePullSnapshot) return;
-      try {
-        const serverRes = await fetch(`/api/sync?userId=${encodeURIComponent(effectiveUserId)}`, { cache: 'no-store' });
-        if (!serverRes.ok) return;
-        const serverJson = await serverRes.json();
-        const serverData = serverJson.data;
-        if (!serverData) return;
-
-        const localXP = ((prePullSnapshot.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
-        const serverXP = ((serverData.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
-        const localWorkouts = Array.isArray(prePullSnapshot.workoutLogs) ? prePullSnapshot.workoutLogs.length : 0;
-        const serverWorkouts = Array.isArray(serverData.workoutLogs) ? serverData.workoutLogs.length : 0;
-        const localMeals = Array.isArray(prePullSnapshot.meals) ? prePullSnapshot.meals.length : 0;
-        const serverMeals = Array.isArray(serverData.meals) ? serverData.meals.length : 0;
-
-        const localAhead = localXP > serverXP || localWorkouts > serverWorkouts || localMeals > serverMeals;
-        if (localAhead) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[db-sync] Pre-pull local was ahead (XP: ${localXP} vs ${serverXP}, workouts: ${localWorkouts} vs ${serverWorkouts}). Pushing snapshot...`);
-          }
-          // Push the pre-pull snapshot (the real data before pull overwrote it)
-          const payload = { ...prePullSnapshot };
-          payload.lastSyncAt = Date.now();
-          payload._lastDevice = getDeviceType();
-          payload._lastDeviceUA = typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '';
-          await forcePushToCloud(effectiveUserId, payload);
-
-          // Now pull again to get the merged result back into local state
-          await pullFromCloud(effectiveUserId, true);
-          setSyncStatus('success');
-          setLastSyncedAt(new Date());
-          setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
-        }
-      } catch {
-        // Non-critical — normal sync will catch up eventually
-      }
     });
   }, [effectiveUserId, pullFromCloud]);
 
@@ -592,6 +537,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       lastSyncRef.current = fingerprint;
       saveToDatabase(effectiveUserId, syncData);
       setLastSyncedAt(new Date());
+
+      // Write-through: if a critical mutation flagged urgent, flush immediately
+      if (store._syncUrgent) {
+        useAppStore.setState({ _syncUrgent: false });
+        flushImmediateSync().catch(() => {});
+      }
     }
   }, [
     store.user,
@@ -661,18 +612,26 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
 
-    const heartbeat = setInterval(() => {
+    const heartbeat = setInterval(async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
       const payload = buildSyncPayload();
       if (payload) {
-        forcePushToCloud(effectiveUserId, payload).catch(() => {
-          // Heartbeat failure is logged by recordSyncFailure in doSync
-        });
+        try {
+          await forcePushToCloud(effectiveUserId, payload);
+        } catch {
+          // Heartbeat push failure is logged by recordSyncFailure in doSync
+        }
+      }
+      // Pull after push so other devices' changes propagate within 2 min
+      try {
+        await pullFromCloud(effectiveUserId, true);
+      } catch {
+        // Non-critical — next heartbeat will retry
       }
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => clearInterval(heartbeat);
-  }, [effectiveUserId, buildSyncPayload]);
+  }, [effectiveUserId, buildSyncPayload, pullFromCloud]);
 
   // ── IndexedDB snapshot: save known-good state every 5 minutes ──────────
   // Survives localStorage clears — second line of defense after server backup
@@ -694,81 +653,6 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
     return () => clearInterval(snapshotInterval);
   }, [isInitialLoadComplete, buildSyncPayload]);
-
-  // ── IndexedDB recovery: check if IndexedDB has richer data than current state ──
-  // This catches cases where a pull from cloud or service worker cache issue
-  // overwrote local state with stale data, but IndexedDB still has the good snapshot.
-  useEffect(() => {
-    if (!initialLoadDone.current || !isInitialLoadComplete) return;
-
-    const checkAndRecover = async () => {
-      // Check both 'latest' and 'pre-prune' snapshots
-      const [latestSnap, prePruneSnap] = await Promise.all([
-        loadSnapshot().catch(() => null),
-        loadSnapshot('pre-prune').catch(() => null),
-      ]);
-
-      const s = useAppStore.getState();
-      const currentXP = (s.gamificationStats?.totalPoints || 0) as number;
-      const currentWorkouts = s.workoutLogs?.length || 0;
-      const currentMeals = s.meals?.length || 0;
-
-      // Pick the richest snapshot
-      let bestSnapshot: { data: unknown; timestamp: number } | null = null;
-      let bestScore = currentXP + currentWorkouts * 100 + currentMeals * 10;
-
-      for (const snap of [latestSnap, prePruneSnap]) {
-        if (!snap?.data) continue;
-        const data = snap.data as Record<string, unknown>;
-        if (!data.isOnboarded || !data.user) continue;
-        const snapXP = ((data.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
-        const snapWorkouts = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
-        const snapMeals = Array.isArray(data.meals) ? data.meals.length : 0;
-        const snapScore = snapXP + snapWorkouts * 100 + snapMeals * 10;
-
-        if (snapScore > bestScore) {
-          bestScore = snapScore;
-          bestSnapshot = snap;
-        }
-      }
-
-      if (bestSnapshot) {
-        const data = bestSnapshot.data as Record<string, unknown>;
-        const snapXP = ((data.gamificationStats as Record<string, unknown>)?.totalPoints || 0) as number;
-        const snapWorkouts = Array.isArray(data.workoutLogs) ? data.workoutLogs.length : 0;
-        console.log(`[db-sync] IndexedDB has richer data! XP: ${snapXP} vs ${currentXP}, workouts: ${snapWorkouts} vs ${currentWorkouts}. Recovering...`);
-
-        // Merge using resolveConflicts to get the best of both
-        const currentState: Record<string, unknown> = {};
-        for (const field of RESTORE_FIELDS) {
-          const val = (s as unknown as Record<string, unknown>)[field];
-          if (val !== undefined) currentState[field] = val;
-        }
-        currentState.isOnboarded = s.isOnboarded;
-
-        const merged = resolveConflicts(currentState, data);
-        const fieldsToMerge: Record<string, unknown> = {};
-        for (const field of RESTORE_FIELDS) {
-          if (merged[field] !== undefined) fieldsToMerge[field] = merged[field];
-        }
-        if (merged.isOnboarded !== undefined) fieldsToMerge.isOnboarded = merged.isOnboarded;
-        fieldsToMerge.lastSyncAt = Date.now();
-
-        if (Object.keys(fieldsToMerge).length > 0) {
-          useAppStore.setState(fieldsToMerge);
-          // Push recovered data to server immediately
-          if (effectiveUserId) {
-            const payload = { ...fieldsToMerge };
-            payload._lastDevice = getDeviceType();
-            payload._lastDeviceUA = typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '';
-            forcePushToCloud(effectiveUserId, payload).catch(() => {});
-          }
-        }
-      }
-    };
-
-    checkAndRecover();
-  }, [isInitialLoadComplete, effectiveUserId]);
 
   // ── Sync failure listener: surface persistent failures to user ──────────
   const [syncFailureCount, setSyncFailureCount] = useState(0);

@@ -46,7 +46,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
     trainingSessions: s.trainingSessions,
     latestWhoopData: s.latestWhoopData,
     wearableHistory: s.wearableHistory,
-    meals: s.meals,
+    meals: s.meals.filter(m => !m._deleted),
     macroTargets: s.macroTargets,
     waterLog: s.waterLog,
     injuryLog: s.injuryLog,

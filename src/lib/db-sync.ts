@@ -56,6 +56,36 @@ export async function loadFromDatabase(userId: string): Promise<{ data: Record<s
 }
 
 /**
+ * Normalize workoutLogs: ensures every set in a completed workout has `completed: true`.
+ * Imported/DB-inserted workouts may lack this field, which breaks ~50 places
+ * in the codebase that filter on `set.completed`.
+ */
+export function normalizeWorkoutLogs(data: Record<string, unknown>): Record<string, unknown> {
+  const logs = data.workoutLogs;
+  if (!Array.isArray(logs) || logs.length === 0) return data;
+
+  let mutated = false;
+  for (const log of logs as Array<Record<string, unknown>>) {
+    // Only normalize completed workouts (active workouts may have incomplete sets)
+    if (!log.completed) continue;
+    const exercises = log.exercises as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(exercises)) continue;
+    for (const ex of exercises) {
+      const sets = ex.sets as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(sets)) continue;
+      for (const set of sets) {
+        if (set.completed === undefined && set.weight != null && set.reps != null) {
+          set.completed = true;
+          mutated = true;
+        }
+      }
+    }
+  }
+
+  return mutated ? { ...data, workoutLogs: logs } : data;
+}
+
+/**
  * Resolve conflicts between local and remote data.
  *
  * Strategy:
@@ -67,8 +97,8 @@ export function resolveConflicts(
   local: Record<string, unknown>,
   remote: Record<string, unknown>
 ): Record<string, unknown> {
-  if (!remote) return local;
-  if (!local) return remote;
+  if (!remote) return normalizeWorkoutLogs(local);
+  if (!local) return normalizeWorkoutLogs(remote);
 
   const merged: Record<string, unknown> = { ...remote };
 
@@ -251,7 +281,7 @@ export function resolveConflicts(
     }
   }
 
-  return merged;
+  return normalizeWorkoutLogs(merged);
 }
 
 /**

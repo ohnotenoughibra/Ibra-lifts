@@ -1,7 +1,8 @@
-import { sql } from '@vercel/postgres';
+import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { calculateLevel } from '@/lib/gamification';
+import { createBackupIfEligible } from '@/lib/db-backup';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,7 +106,19 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Patch the live data
+    // 3. Force-backup before mutating (bypasses rate limit)
+    try {
+      const client = await db.connect();
+      try {
+        await createBackupIfEligible(client, userId, currentData, { force: true });
+      } finally {
+        client.release();
+      }
+    } catch {
+      // Non-fatal
+    }
+
+    // 4. Patch the live data
     const repairedGam = {
       ...(currentGam || {}),
       totalPoints: maxPoints,

@@ -5,8 +5,6 @@ import { createBackupIfEligible } from '@/lib/db-backup';
 
 export const dynamic = 'force-dynamic';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/sync/force-pull
  *

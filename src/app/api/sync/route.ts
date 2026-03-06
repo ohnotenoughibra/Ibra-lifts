@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 import { resolveConflicts } from '@/lib/db-sync';
+import { createBackupIfEligible } from '@/lib/db-backup';
 
 // GET - Load user data from database
 export async function GET(request: Request) {
@@ -33,6 +34,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: null }, {
         headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
       });
+    }
+
+    // Pre-pull backup: snapshot before device overwrites with potentially stale data
+    try {
+      const client = await db.connect();
+      try {
+        await createBackupIfEligible(client, userId, rows[0].data as Record<string, unknown>);
+      } finally {
+        client.release();
+      }
+    } catch {
+      // Non-fatal — don't block the GET
     }
 
     return NextResponse.json({
@@ -159,41 +172,9 @@ export async function POST(request: Request) {
     try {
       await client.sql`BEGIN`;
 
-      // Ensure backup table exists
-      await client.sql`
-        CREATE TABLE IF NOT EXISTS user_store_backups (
-          id SERIAL PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          data JSONB NOT NULL,
-          workout_count INTEGER NOT NULL DEFAULT 0,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        )
-      `;
-
-      // Backup: snapshot existing data before overwriting
+      // Backup: snapshot existing data before overwriting (15-min rate limit, smart pruning)
       if (existingRows.length > 0 && existingRows[0].data) {
-        const existingData = existingRows[0].data as Record<string, unknown>;
-        const existingLogs = Array.isArray(existingData.workoutLogs) ? existingData.workoutLogs.length : 0;
-        const existingHasProfile = existingData.isOnboarded === true && existingData.user;
-        if (existingLogs > 0 || existingHasProfile) {
-          const { rows: recentBackup } = await client.sql`
-            SELECT id FROM user_store_backups
-            WHERE user_id = ${userId} AND created_at > NOW() - INTERVAL '1 hour'
-            LIMIT 1
-          `;
-          if (recentBackup.length === 0) {
-            const existingJson = JSON.stringify(existingRows[0].data);
-            await client.sql`
-              INSERT INTO user_store_backups (user_id, data, workout_count)
-              VALUES (${userId}, ${existingJson}::jsonb, ${existingLogs})
-            `;
-            // Prune backups older than 30 days
-            await client.sql`
-              DELETE FROM user_store_backups
-              WHERE user_id = ${userId} AND created_at < NOW() - INTERVAL '30 days'
-            `;
-          }
-        }
+        await createBackupIfEligible(client, userId, existingRows[0].data as Record<string, unknown>);
       }
 
       // Upsert merged data (not raw incoming — server-side merge ensures no data loss)

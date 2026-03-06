@@ -286,6 +286,7 @@ interface AppState {
     importable: WorkoutLog[];
   };
   importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => void;
+  repairMesocycleProgress: () => { fixed: number; orphanedMesoId: string | null };
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -1470,6 +1471,75 @@ export const useAppStore = create<AppState>()(
 
         // Recalculate PRs and gamification stats after import
         get().recalculatePRs();
+      },
+
+      repairMesocycleProgress: () => {
+        const { currentMesocycle, workoutLogs, mesocycleHistory } = get();
+        if (!currentMesocycle) return { fixed: 0, orphanedMesoId: null };
+
+        // Check if current mesocycle already has logs — if so, no repair needed
+        const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+        if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
+
+        // Find the most recent archived mesocycle that has workout logs
+        // (this is the one that got replaced, causing the orphan)
+        const mesoStartDate = new Date(currentMesocycle.startDate);
+        const sortedHistory = [...mesocycleHistory]
+          .sort((a, b) => new Date(b.updatedAt || b.startDate).getTime() - new Date(a.updatedAt || a.startDate).getTime());
+
+        let orphanedMesoId: string | null = null;
+        let orphanedLogs: typeof workoutLogs = [];
+
+        for (const oldMeso of sortedHistory) {
+          const logs = workoutLogs
+            .filter(l => l.mesocycleId === oldMeso.id)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          if (logs.length > 0) {
+            orphanedMesoId = oldMeso.id;
+            orphanedLogs = logs;
+            break;
+          }
+        }
+
+        // Also check for logs matching any mesocycleId not in current or history (truly orphaned)
+        if (!orphanedMesoId) {
+          const knownIds = new Set<string>();
+          if (currentMesocycle) knownIds.add(currentMesocycle.id);
+          mesocycleHistory.forEach(m => knownIds.add(m.id));
+
+          const unknownLogs = workoutLogs
+            .filter(l => !knownIds.has(l.mesocycleId) && l.mesocycleId !== 'standalone')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          if (unknownLogs.length > 0) {
+            orphanedMesoId = unknownLogs[0].mesocycleId;
+            orphanedLogs = unknownLogs.filter(l => l.mesocycleId === orphanedMesoId);
+          }
+        }
+
+        if (orphanedLogs.length === 0) return { fixed: 0, orphanedMesoId: null };
+
+        // Build flat session list in week/day order
+        const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
+
+        // Map orphaned logs (sorted by date) to sessions positionally
+        const updatedLogs = workoutLogs.map(log => {
+          if (log.mesocycleId !== orphanedMesoId) return log;
+
+          const posIndex = orphanedLogs.indexOf(log);
+          if (posIndex < 0 || posIndex >= allSessions.length) return log;
+
+          return {
+            ...log,
+            mesocycleId: currentMesocycle.id,
+            sessionId: allSessions[posIndex].id,
+          };
+        });
+
+        set({ workoutLogs: updatedLogs });
+        get().recalculatePRs();
+
+        return { fixed: orphanedLogs.length, orphanedMesoId };
       },
 
       // Workout actions

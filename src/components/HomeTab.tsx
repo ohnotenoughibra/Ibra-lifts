@@ -373,7 +373,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals, subscription,
-    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, repairMesocycleProgress,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
     deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips, addTrainingSession,
   } = useAppStore(
@@ -382,7 +382,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
       mesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
       trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals, subscription: s.subscription,
-      migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
+      migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
       workoutSkips: s.workoutSkips, addTrainingSession: s.addTrainingSession,
@@ -889,6 +889,22 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
     );
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
+  }, [currentMesocycle, workoutLogs]);
+
+  // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
+  const needsProgressRepair = useMemo(() => {
+    if (!currentMesocycle) return false;
+    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    if (currentLogs.length > 0) return false; // already has logs, no repair needed
+    // Check if there are recent logs (last 45 days) pointing to other mesocycles
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 45);
+    const orphanedLogs = workoutLogs.filter(l =>
+      l.mesocycleId !== currentMesocycle.id &&
+      l.mesocycleId !== 'standalone' &&
+      new Date(l.date) >= cutoff
+    );
+    return orphanedLogs.length >= 3; // at least 3 orphaned logs = likely a broken link
   }, [currentMesocycle, workoutLogs]);
 
   const trainingLoadWarning = useMemo(() => {
@@ -1504,6 +1520,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         <div className="space-y-2">
           {criticalAlerts.map(card => card)}
         </div>
+      )}
+
+      {/* Progress repair banner — shown when mesocycle has 0 logs but orphaned logs exist */}
+      {needsProgressRepair && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-2"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-300">Program progress lost</p>
+            <p className="text-xs text-amber-400/70 mt-0.5">Your workout history got disconnected from your current program. Tap to fix.</p>
+          </div>
+          <button
+            onClick={() => {
+              const result = repairMesocycleProgress();
+              if (result.fixed > 0) {
+                showToast(`Restored ${result.fixed} workouts to your program`, 'success');
+              } else {
+                showToast('No workouts found to restore', 'error');
+              }
+            }}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-medium whitespace-nowrap active:scale-95 transition-transform"
+          >
+            Repair
+          </button>
+        </motion.div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════

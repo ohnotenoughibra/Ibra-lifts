@@ -893,22 +893,29 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
   }, [currentMesocycle, workoutLogs]);
 
-  // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
-  // pointing to other mesocycle IDs (from history or unknown). These should have been migrated.
+  // Auto-repair orphaned progress: if mesocycle has 0 logs but recent workout logs exist,
+  // automatically migrate them instead of showing a banner the user has to tap.
   const needsProgressRepair = useMemo(() => {
     if (!currentMesocycle) return false;
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-    if (currentLogs.length > 0) return false; // already has logs, no repair needed
+    if (currentLogs.length > 0) return false;
 
-    // Check for recent logs that should be in the current mesocycle
-    const mesoStart = new Date(currentMesocycle.startDate);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 60);
     const orphanedLogs = workoutLogs.filter(l =>
       l.mesocycleId !== currentMesocycle.id &&
       l.mesocycleId !== 'standalone' &&
-      new Date(l.date) >= mesoStart
+      new Date(l.date) >= cutoff
     );
     return orphanedLogs.length >= 3;
   }, [currentMesocycle, workoutLogs]);
+
+  // Auto-repair on detection — no user interaction needed
+  useEffect(() => {
+    if (needsProgressRepair) {
+      repairMesocycleProgress();
+    }
+  }, [needsProgressRepair, repairMesocycleProgress]);
 
   const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;

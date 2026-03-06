@@ -249,10 +249,11 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   }, []);
 
   // Core sync-from-cloud function (used for initial load and re-syncs)
-  const pullFromCloud = useCallback(async (userId: string, isResync: boolean) => {
+  // Returns true if data was successfully fetched, false otherwise.
+  const pullFromCloud = useCallback(async (userId: string, isResync: boolean): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSyncStatus('offline');
-      return;
+      return false;
     }
     setSyncStatus('syncing');
     try {
@@ -263,6 +264,10 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
         // Without this, a device restores another device's old timestamp and the
         // scalar merge in resolveConflicts picks the wrong "winner" on next push.
         useAppStore.setState({ lastSyncAt: Date.now() });
+      } else {
+        // loadFromDatabase returned null — API 401 (auth not ready) or no data
+        setSyncStatus('idle');
+        return false;
       }
 
       // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
@@ -297,19 +302,29 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
       // Clear success status after 3 seconds
       setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+      return true;
     } catch (err) {
       console.error('[db-sync] Sync failed:', err);
       setSyncStatus('error');
       // Clear error status after 5 seconds
       setTimeout(() => setSyncStatus(prev => prev === 'error' ? 'idle' : prev), 5000);
+      return false;
     }
   }, []);
 
+  // Track whether a SUCCESSFUL pull has happened (not just an attempt)
+  const hasPulledSuccessfully = useRef(false);
+
   // Load from database on mount (if user exists)
+  // CRITICAL: Only mark initialLoadDone if pull actually succeeded (got data from server).
+  // Previously, a 401 (auth not ready) would mark done → push stale data → never retry pull.
   useEffect(() => {
     if (!effectiveUserId || initialLoadDone.current) return;
 
-    pullFromCloud(effectiveUserId, false).then(() => {
+    pullFromCloud(effectiveUserId, false).then((success) => {
+      if (success) {
+        hasPulledSuccessfully.current = true;
+      }
       initialLoadDone.current = true;
       setIsInitialLoadComplete(true);
     });
@@ -322,6 +337,22 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       setIsInitialLoadComplete(true);
     }
   }, [effectiveUserId, sessionStatus]);
+
+  // ── Retry pull when auth resolves if initial pull failed ──────────────
+  // Handles the race where localStorage has user.id → pull fires before
+  // NextAuth resolves → API 401 → pull is a no-op → data never arrives.
+  // When sessionStatus transitions to 'authenticated', retry the pull.
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated' || !effectiveUserId) return;
+    if (hasPulledSuccessfully.current) return; // Already got data, no need
+
+    // Auth just resolved — retry the pull that previously failed
+    pullFromCloud(effectiveUserId, false).then((success) => {
+      if (success) {
+        hasPulledSuccessfully.current = true;
+      }
+    });
+  }, [sessionStatus, effectiveUserId, pullFromCloud]);
 
   // ── Re-sync when app regains focus (multi-device support) ──────────────
   useEffect(() => {
@@ -457,6 +488,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
+
+    // CRITICAL: Don't push until we've successfully pulled from server at least once.
+    // Without this, a device with stale localStorage pushes old data before the pull
+    // completes (e.g., pull fails with 401 because auth isn't ready yet), and the
+    // server merge uses the stale timestamps/data, corrupting other devices' state.
+    if (!hasPulledSuccessfully.current) return;
 
     // Safety: never push empty/fresh state that could overwrite real server data
     const hasRealData = store.isOnboarded && store.user && (store.workoutLogs?.length > 0 || store.trainingSessions?.length > 0 || store.meals?.length > 0);
@@ -630,17 +667,24 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
     const heartbeat = setInterval(async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-      const payload = buildSyncPayload();
-      if (payload) {
-        try {
-          await forcePushToCloud(effectiveUserId, payload);
-        } catch {
-          // Heartbeat push failure is logged by recordSyncFailure in doSync
+
+      // Only push if we've pulled successfully at least once (prevents stale overwrites)
+      if (hasPulledSuccessfully.current) {
+        const payload = buildSyncPayload();
+        if (payload) {
+          try {
+            await forcePushToCloud(effectiveUserId, payload);
+          } catch {
+            // Heartbeat push failure is logged by recordSyncFailure in doSync
+          }
         }
       }
       // Pull after push so other devices' changes propagate within 2 min
       try {
-        await pullFromCloud(effectiveUserId, true);
+        const success = await pullFromCloud(effectiveUserId, true);
+        if (success && !hasPulledSuccessfully.current) {
+          hasPulledSuccessfully.current = true;
+        }
       } catch {
         // Non-critical — next heartbeat will retry
       }

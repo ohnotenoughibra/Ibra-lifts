@@ -123,7 +123,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
     const phaseConfig = phase && phase !== 'off_season' ? getPhaseConfig(phase, (user?.sex || 'male') as 'male' | 'female') : null;
 
     // Body weight change
-    const recentWeights = (bodyWeightLog || []).filter(w => new Date(w.date).getTime() > weekAgo);
+    const recentWeights = (bodyWeightLog || []).filter(w => !w._deleted && new Date(w.date).getTime() > weekAgo);
     const weightDelta = recentWeights.length >= 2
       ? +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1)
       : null;

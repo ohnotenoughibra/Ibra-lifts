@@ -1309,7 +1309,7 @@ function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 
 function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const user = useAppStore(s => s.user);
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const weightUnit = user?.weightUnit || 'lbs';
 
   const benchmarks = useMemo(() => {
@@ -1761,7 +1761,7 @@ function OverviewSkeleton() {
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
   const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats }))
+    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats }))
   );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);

@@ -461,4 +461,6 @@ export type MealStamp = {
   timesUsed: number;
   lastUsed?: string; // ISO date string
   createdAt: string; // ISO date string
+  _deleted?: boolean;
+  _deletedAt?: number;
 };

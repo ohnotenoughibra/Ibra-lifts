@@ -155,7 +155,7 @@ export default function ActiveWorkout() {
   // Store selectors for full readiness (used by throttle engine)
   const storeWorkoutLogs = useAppStore(s => s.workoutLogs);
   const trainingSessions = useAppStore(s => s.trainingSessions ?? []);
-  const meals = useAppStore(s => s.meals ?? []);
+  const meals = useAppStore(s => (s.meals ?? []).filter(m => !m._deleted));
   const macroTargets = useAppStore(s => s.macroTargets ?? { calories: 2500, protein: 180, carbs: 300, fat: 80 });
   const waterLog = useAppStore(s => s.waterLog ?? {});
   const quickLogs = useAppStore(s => s.quickLogs ?? []);

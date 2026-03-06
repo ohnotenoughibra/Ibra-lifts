@@ -416,7 +416,7 @@ function scheduleStreakReminder() {
         const mealKey = `roots-meal-notif-${now.toDateString()}-${slot}`;
         if (!localStorage.getItem(mealKey)) {
           const todayMeals = store2.meals.filter(
-            m => new Date(m.date).toDateString() === now.toDateString()
+            m => !m._deleted && new Date(m.date).toDateString() === now.toDateString()
           );
           const hasMealType = todayMeals.some(m =>
             slot === 'lunch'

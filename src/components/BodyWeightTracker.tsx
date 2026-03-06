@@ -427,7 +427,9 @@ const SUGGESTION_STYLES = {
 };
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals, macroTargets } = useAppStore();
+  const { bodyWeightLog: rawBodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals: rawMeals, macroTargets } = useAppStore();
+  const bodyWeightLog = rawBodyWeightLog.filter(e => !e._deleted);
+  const meals = rawMeals.filter(m => !m._deleted);
   const bodyComposition = rawBodyComposition || [];
   const [showAddForm, setShowAddForm] = useState(false);
   const [showComposition, setShowComposition] = useState(false);

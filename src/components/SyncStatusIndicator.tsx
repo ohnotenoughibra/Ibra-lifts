@@ -15,7 +15,6 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/lib/store';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 interface SyncStatusIndicatorProps {
@@ -53,9 +52,6 @@ export default function SyncStatusIndicator({
   syncFailureCount = 0,
 }: SyncStatusIndicatorProps) {
   const [showDetail, setShowDetail] = useState(false);
-  const [repairStatus, setRepairStatus] = useState<'idle' | 'repairing' | 'done' | 'error'>('idle');
-  const [repairResult, setRepairResult] = useState<string>('');
-  const [forcePullStatus, setForcePullStatus] = useState<'idle' | 'pulling' | 'done' | 'error'>('idle');
 
   // Don't show for unauthenticated users
   if (!isAuthenticated) return null;
@@ -218,112 +214,6 @@ export default function SyncStatusIndicator({
                     <RefreshCw className="w-4 h-4" />
                   )}
                   {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
-                </button>
-
-                {/* Repair XP — recovers highest XP/level from backups */}
-                <button
-                  onClick={async () => {
-                    setRepairStatus('repairing');
-                    try {
-                      // Send this device's local XP so the server can use the highest value
-                      const localGam = useAppStore.getState().gamificationStats;
-                      const res = await fetch('/api/sync/repair-xp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ totalPoints: localGam?.totalPoints || 0 }),
-                      });
-                      const data = await res.json();
-                      if (data.repaired) {
-                        setRepairResult(`Fixed: Level ${data.before.level} → ${data.after.level} (${data.before.totalPoints} → ${data.after.totalPoints} XP)`);
-                        setRepairStatus('done');
-                        // Re-sync to pull the repaired data into the store
-                        setTimeout(() => onForceSync(), 500);
-                      } else {
-                        setRepairResult(data.message || 'Already correct');
-                        setRepairStatus('done');
-                      }
-                    } catch {
-                      setRepairResult('Repair failed — try again');
-                      setRepairStatus('error');
-                    }
-                  }}
-                  disabled={repairStatus === 'repairing' || syncStatus === 'offline'}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium transition-all',
-                    repairStatus === 'repairing'
-                      ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
-                      : 'bg-grappler-800/50 text-grappler-400 hover:bg-grappler-800 hover:text-grappler-300 border border-grappler-700/50'
-                  )}
-                >
-                  {repairStatus === 'repairing' ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <AlertCircle className="w-3 h-3" />
-                  )}
-                  {repairStatus === 'repairing' ? 'Repairing...' : 'Repair XP / Level'}
-                </button>
-                {repairResult && (
-                  <p className={cn(
-                    'text-xs text-center',
-                    repairStatus === 'error' ? 'text-red-400' : 'text-green-400'
-                  )}>
-                    {repairResult}
-                  </p>
-                )}
-
-                {/* Force Pull — overwrites local state with server state */}
-                <button
-                  onClick={async () => {
-                    setForcePullStatus('pulling');
-                    try {
-                      const res = await fetch('/api/sync/force-pull', { cache: 'no-store' });
-                      if (!res.ok) throw new Error('Failed to fetch');
-                      const { data } = await res.json();
-                      if (data) {
-                        // Nuclear: overwrite ALL local state with server state
-                        const fieldsToMerge: Record<string, unknown> = {};
-                        const restoreFields = [
-                          'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
-                          'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
-                          'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
-                          'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
-                          'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
-                          'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
-                          'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
-                          'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
-                          'mealReminders', 'dailyLoginBonus',
-                          'weightCutPlans', 'combatNutritionProfile', 'fightCampPlans',
-                          'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
-                          'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
-                          'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
-                          'nutritionPeriodPlan', 'mealStamps',
-                        ];
-                        for (const field of restoreFields) {
-                          if (data[field] !== undefined) fieldsToMerge[field] = data[field];
-                        }
-                        if (data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = data.isOnboarded;
-                        fieldsToMerge.lastSyncAt = Date.now();
-                        useAppStore.setState(fieldsToMerge);
-                        setForcePullStatus('done');
-                      }
-                    } catch {
-                      setForcePullStatus('error');
-                    }
-                  }}
-                  disabled={forcePullStatus === 'pulling' || syncStatus === 'offline'}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium transition-all',
-                    forcePullStatus === 'pulling'
-                      ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
-                      : 'bg-grappler-800/50 text-grappler-400 hover:bg-grappler-800 hover:text-grappler-300 border border-grappler-700/50'
-                  )}
-                >
-                  {forcePullStatus === 'pulling' ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Cloud className="w-3 h-3" />
-                  )}
-                  {forcePullStatus === 'pulling' ? 'Pulling...' : forcePullStatus === 'done' ? 'Restored from cloud!' : 'Force Pull from Cloud'}
                 </button>
               </div>
             </motion.div>

@@ -1,6 +1,9 @@
-import { sql } from '@vercel/postgres';
+import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { createBackupIfEligible } from '@/lib/db-backup';
+
+export const dynamic = 'force-dynamic';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +27,18 @@ export async function GET() {
 
     if (rows.length === 0) {
       return NextResponse.json({ data: null });
+    }
+
+    // Force-backup before returning data (device will overwrite local state)
+    try {
+      const client = await db.connect();
+      try {
+        await createBackupIfEligible(client, session.user.id, rows[0].data as Record<string, unknown>, { force: true });
+      } finally {
+        client.release();
+      }
+    } catch {
+      // Non-fatal
     }
 
     return NextResponse.json({ data: rows[0].data }, {

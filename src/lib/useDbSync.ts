@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 import { saveLatestSnapshot, loadSnapshot, onSyncFailure } from './data-safety';
 
@@ -76,11 +76,13 @@ function applyRemoteData(
 
   // Helper: apply all RESTORE_FIELDS from source into the store
   const applyFields = (source: Record<string, unknown>, label: string) => {
+    // Normalize workoutLogs before applying (ensures set.completed exists)
+    const normalized = normalizeWorkoutLogs(source);
     const fieldsToMerge: Record<string, unknown> = {};
     for (const field of RESTORE_FIELDS) {
-      if (source[field] !== undefined) fieldsToMerge[field] = source[field];
+      if (normalized[field] !== undefined) fieldsToMerge[field] = normalized[field];
     }
-    if (source.isOnboarded !== undefined) fieldsToMerge.isOnboarded = source.isOnboarded;
+    if (normalized.isOnboarded !== undefined) fieldsToMerge.isOnboarded = normalized.isOnboarded;
 
     if (Object.keys(fieldsToMerge).length > 0) {
       useAppStore.setState(fieldsToMerge);

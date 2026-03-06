@@ -4000,6 +4000,7 @@ export const useAppStore = create<AppState>()(
         weeklyCheckIns: state.weeklyCheckIns,
         mealReminders: state.mealReminders,
         mealStamps: state.mealStamps,
+        nutritionPeriodPlan: state.nutritionPeriodPlan,
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,

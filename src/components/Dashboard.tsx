@@ -644,7 +644,7 @@ export default function Dashboard({
             </div>
             <div>
               <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
-              <p className="text-[11px] text-grappler-400">{getLevelTitle(gamificationStats.level)}</p>
+              <p className="text-xs text-grappler-400">{getLevelTitle(gamificationStats.level)}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -696,7 +696,7 @@ export default function Dashboard({
             title="View badges"
           >
             <Star className="w-3 h-3 text-yellow-500" />
-            <span className="text-[11px] font-bold text-grappler-300">Lv.{gamificationStats.level}</span>
+            <span className="text-xs font-bold text-grappler-300">Lv.{gamificationStats.level}</span>
           </button>
           <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(gamificationStats.totalPoints)} total XP · ${pointsToNextLevel(gamificationStats.totalPoints)} to Lv.${gamificationStats.level + 1}`}>
             <motion.div
@@ -706,7 +706,7 @@ export default function Dashboard({
               transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
-          <span className="text-[11px] text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(gamificationStats.totalPoints)} XP</span>
+          <span className="text-xs text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(gamificationStats.totalPoints)} XP</span>
         </div>
       </header>
 
@@ -810,7 +810,7 @@ export default function Dashboard({
               )}
             >
               <tab.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-xs font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
@@ -849,7 +849,7 @@ export default function Dashboard({
               )}
             >
               <tab.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-xs font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"

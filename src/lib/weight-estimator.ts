@@ -27,9 +27,10 @@ export function workingWeightFrom1RM(oneRM: number, targetReps: number): number 
 export function estimate1RMFromReps(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps <= 1) return weight;
-  // Brzycki degrades past ~12 reps — clamp to keep estimates accurate
-  const clampedReps = Math.min(reps, 12);
-  return weight / (1.0278 - 0.0278 * clampedReps);
+  // Brzycki for 2-10 reps (most accurate), Epley for 11+ reps
+  // Consistent with calc1RM in progress-analytics.ts and performance-model.ts
+  if (reps > 10) return weight * (1 + reps / 30);
+  return weight / (1.0278 - 0.0278 * reps);
 }
 
 // ── BW-based 1RM Multipliers by Sex + Experience ────────────────────────────

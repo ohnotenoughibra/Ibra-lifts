@@ -1119,7 +1119,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                     className="h-full rounded-full bg-gradient-to-r from-primary-500 to-accent-500"
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-grappler-500 mt-1 tabular-nums">
+                <div className="flex justify-between text-xs text-grappler-500 mt-1 tabular-nums">
                   <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
                   <span>{formatNumber(pointsNeeded)} to next</span>
                 </div>
@@ -1160,7 +1160,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             </div>
             <button
               onClick={() => { setShowAllBadges(!showAllBadges); hapticLight(); }}
-              className="text-[10px] text-primary-400 hover:text-primary-300 font-medium flex items-center gap-0.5"
+              className="text-xs text-primary-400 hover:text-primary-300 font-medium flex items-center gap-0.5"
             >
               <span className="tabular-nums">{badgesList.length}/{badges.length}</span>
               <ChevronRight className="w-3 h-3" />
@@ -1204,10 +1204,10 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                                 <span className="text-[9px] text-primary-400 font-bold">+{activeBadge.badge.points} XP</span>
                               </div>
                               <h4 className="text-sm font-bold text-grappler-50 mt-0.5 truncate">{activeBadge.badge.name}</h4>
-                              <p className="text-[11px] text-grappler-400 mt-0.5 line-clamp-2 leading-relaxed">{activeBadge.badge.description}</p>
+                              <p className="text-xs text-grappler-400 mt-0.5 line-clamp-2 leading-relaxed">{activeBadge.badge.description}</p>
                               <div className="flex items-center gap-1.5 mt-1.5">
                                 <Check className="w-3 h-3 text-green-400" />
-                                <span className="text-[10px] text-grappler-500">
+                                <span className="text-xs text-grappler-500">
                                   {new Date(activeBadge.earnedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               </div>
@@ -1243,7 +1243,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                     🏆
                   </div>
                   <p className="text-xs text-grappler-400 font-medium">No badges yet</p>
-                  <p className="text-[10px] text-grappler-600 mt-0.5">Complete workouts to start earning</p>
+                  <p className="text-xs text-grappler-600 mt-0.5">Complete workouts to start earning</p>
                 </div>
               )}
 
@@ -1266,8 +1266,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                       {badgeProgress ? (
                         <div className="mt-1.5">
                           <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[10px] text-grappler-500">{badgeProgress.current}/{badgeProgress.target} {badgeProgress.label}</span>
-                            <span className="text-[10px] text-primary-400 font-bold tabular-nums">{Math.round(badgeProgress.pct)}%</span>
+                            <span className="text-xs text-grappler-500">{badgeProgress.current}/{badgeProgress.target} {badgeProgress.label}</span>
+                            <span className="text-xs text-primary-400 font-bold tabular-nums">{Math.round(badgeProgress.pct)}%</span>
                           </div>
                           <div className="h-1.5 bg-grappler-700/50 rounded-full overflow-hidden">
                             <motion.div
@@ -1279,7 +1279,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[10px] text-grappler-500 mt-0.5 truncate">{nextBadge.description}</p>
+                        <p className="text-xs text-grappler-500 mt-0.5 truncate">{nextBadge.description}</p>
                       )}
                     </div>
                   </div>
@@ -1311,7 +1311,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               </div>
               {/* Locked badges */}
               <div className="pt-2 border-t border-grappler-700/50">
-                <p className="text-[10px] text-grappler-500 mb-2 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Locked</p>
+                <p className="text-xs text-grappler-500 mb-2 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Locked</p>
                 <div className="grid grid-cols-5 gap-2">
                   {badges.filter(b => !earnedBadgeIds.has(b.id)).map((badge) => (
                     <button
@@ -1348,11 +1348,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
           <div key={stat.label} className={cn('card p-2.5 bg-gradient-to-br', stat.color)}>
             <div className="flex items-center gap-1.5 mb-1">
               <stat.icon className="w-3 h-3 text-grappler-400" />
-              <p className="text-[10px] text-grappler-400 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-xs text-grappler-400 uppercase tracking-wider">{stat.label}</p>
             </div>
             <p className="text-base font-bold text-grappler-50 tabular-nums leading-tight">
               {stat.value}
-              {stat.suffix && <span className="text-[10px] text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
+              {stat.suffix && <span className="text-xs text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
             </p>
           </div>
         ))}
@@ -1373,7 +1373,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               <span className="text-xs text-grappler-500 ml-auto">1RM · {weightUnit}</span>
             </div>
             {user?.bodyWeightKg && (
-              <p className="text-[10px] text-grappler-500 mb-3 ml-6">
+              <p className="text-xs text-grappler-500 mb-3 ml-6">
                 Based on {weightUnit === 'kg' ? Math.round(user.bodyWeightKg) : Math.round(user.bodyWeightKg * 2.205)} {weightUnit} bodyweight
               </p>
             )}
@@ -1404,7 +1404,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {delta !== null && delta !== 0 && (
-                          <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', delta > 0 ? 'text-green-400' : 'text-red-400')}>
+                          <span className={cn('text-xs font-semibold flex items-center gap-0.5', delta > 0 ? 'text-green-400' : 'text-red-400')}>
                             <TrendingUp className={cn('w-3 h-3', delta < 0 && 'rotate-180')} />
                             {delta > 0 ? '+' : ''}{delta}
                           </span>
@@ -1424,7 +1424,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                               onBlur={() => saveLift(lift.key, liftDraft)}
                               className="w-16 bg-grappler-900 border border-primary-500/50 rounded px-2 py-0.5 text-xs text-right text-grappler-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
-                            <span className="text-[10px] text-grappler-500">{weightUnit}</span>
+                            <span className="text-xs text-grappler-500">{weightUnit}</span>
                           </div>
                         ) : (
                           <button
@@ -1433,7 +1433,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           >
                             <span className="text-sm font-black text-grappler-50 tabular-nums">
                               {displayValue ? Math.round(displayValue) : '—'}
-                              {displayValue > 0 && <span className="text-[10px] font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
+                              {displayValue > 0 && <span className="text-xs font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
                             </span>
                             <Pencil className="w-2.5 h-2.5 text-grappler-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
@@ -1478,7 +1478,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                         {/* Tier labels + ratio */}
                         <div className="flex items-center justify-between mt-1">
                           <span className={cn(
-                            'text-[10px] font-semibold',
+                            'text-xs font-semibold',
                             tier.tierName === 'Elite' ? 'text-yellow-400' :
                             tier.tierName === 'Advanced' ? 'text-primary-400' :
                             tier.tierName === 'Intermediate' ? 'text-grappler-300' :
@@ -1486,7 +1486,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           )}>
                             {tier.tierName}
                           </span>
-                          <span className="text-[10px] text-grappler-500 tabular-nums">
+                          <span className="text-xs text-grappler-500 tabular-nums">
                             {tier.ratio}× BW
                           </span>
                         </div>
@@ -1578,7 +1578,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   }}
                   className="flex flex-col items-center gap-1.5"
                 >
-                  <span className="text-[10px] text-grappler-500 font-medium">{day}</span>
+                  <span className="text-xs text-grappler-500 font-medium">{day}</span>
                   <div className={cn(
                     'w-8 h-8 rounded-full transition-all active:scale-90 flex items-center justify-center',
                     isBoth ? 'bg-gradient-to-br from-green-500 to-purple-500 shadow-md shadow-green-500/20'
@@ -1604,7 +1604,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               { color: 'bg-purple-500/30 ring-1 ring-purple-500/50', label: 'Combat' },
               { color: 'bg-gradient-to-br from-green-500 to-purple-500', label: 'Both' },
             ].map(l => (
-              <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-grappler-500">
+              <div key={l.label} className="flex items-center gap-1.5 text-xs text-grappler-500">
                 <div className={cn('w-2 h-2 rounded-full', l.color)} />
                 {l.label}
               </div>

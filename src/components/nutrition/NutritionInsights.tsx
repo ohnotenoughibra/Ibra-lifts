@@ -147,7 +147,7 @@ function ProteinDistribution({ analysis }: { analysis: ProteinGrade }) {
                   isGood ? 'bg-green-500/60' : isLow ? 'bg-red-500/40' : 'bg-blue-500/50'
                 )}
               />
-              <span className="text-[10px] text-grappler-500 truncate max-w-full">
+              <span className="text-xs text-grappler-500 truncate max-w-full">
                 {analysis.mealLabels[i]}
               </span>
             </div>
@@ -503,14 +503,14 @@ function ReportCard({ allMeals, macroTargets }: { allMeals: MealEntry[]; macroTa
             ].map(s => (
               <div key={s.label} className="text-center p-1.5 bg-grappler-800/50 rounded">
                 <p className="text-sm font-bold text-grappler-200">{s.value}{s.unit}</p>
-                <p className="text-[10px] text-grappler-500">{s.label}/day</p>
+                <p className="text-xs text-grappler-500">{s.label}/day</p>
               </div>
             ))}
           </div>
 
           {/* Macro hit rates */}
           <div className="space-y-1.5">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wider">
+            <p className="text-xs text-grappler-500 uppercase tracking-wider">
               Target Hit Rate (±10%)
             </p>
             <HitRateBar label="Cal" hit={report.hitRate.calories} total={report.daysLogged} color="bg-orange-500" />
@@ -654,7 +654,7 @@ function FoodGuidance({ tips }: { tips: FoodTip[] }) {
               {/* Already eating well */}
               {eating.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] text-green-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                  <p className="text-xs text-green-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Already in your diet
                   </p>
                   {eating.map((tip, i) => (
@@ -666,7 +666,7 @@ function FoodGuidance({ tips }: { tips: FoodTip[] }) {
               {/* Missing power foods */}
               {missing.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] text-yellow-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                  <p className="text-xs text-yellow-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
                     <Lightbulb className="w-3 h-3" /> Consider adding
                   </p>
                   {missing.map((tip, i) => (
@@ -678,7 +678,7 @@ function FoodGuidance({ tips }: { tips: FoodTip[] }) {
               {/* Foods to reduce */}
               {toReduce.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] text-red-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
+                  <p className="text-xs text-red-400/70 uppercase tracking-wider font-medium flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> Consider reducing
                   </p>
                   {toReduce.map((tip, i) => (
@@ -713,7 +713,7 @@ function FoodTipRow({ tip }: { tip: FoodTip }) {
             {tip.label}
           </span>
           {tip.found && tip.frequency && tip.frequency > 1 && (
-            <span className="text-[10px] text-grappler-600">{tip.frequency}x logged</span>
+            <span className="text-xs text-grappler-600">{tip.frequency}x logged</span>
           )}
         </div>
         <ChevronDown className={cn(
@@ -732,7 +732,7 @@ function FoodTipRow({ tip }: { tip: FoodTip }) {
             <div className="px-2 pb-2">
               <p className="text-xs text-grappler-400 leading-relaxed">{tip.why}</p>
               {tip.source && (
-                <p className="text-[10px] text-grappler-600 mt-1">Source: {tip.source}</p>
+                <p className="text-xs text-grappler-600 mt-1">Source: {tip.source}</p>
               )}
             </div>
           </motion.div>

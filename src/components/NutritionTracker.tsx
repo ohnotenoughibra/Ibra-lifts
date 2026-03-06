@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import { useNutrition } from '@/hooks/useNutrition';
 import NutritionDashboard from './nutrition/NutritionDashboard';
 import NutritionLogSheet from './nutrition/NutritionLogSheet';
@@ -46,6 +47,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   });
 
   const nutrition = useNutrition(selectedDate);
+  const activeDietPhase = useAppStore(s => s.activeDietPhase);
+  const phaseLabel = activeDietPhase?.isActive ? activeDietPhase.goal : null;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -104,7 +107,18 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
             </button>
           </div>
 
-          <div className="w-16" />
+          <div className="w-16 flex justify-end">
+            {phaseLabel && (
+              <span className={cn(
+                'text-xs font-semibold px-2 py-0.5 rounded-full capitalize',
+                phaseLabel === 'cut' ? 'bg-red-500/20 text-red-400' :
+                phaseLabel === 'bulk' ? 'bg-emerald-500/20 text-emerald-400' :
+                'bg-blue-500/20 text-blue-400'
+              )}>
+                {phaseLabel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Tab bar */}
@@ -114,7 +128,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-all border-b-2',
+                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-all border-b-2',
                 activeTab === tab.id
                   ? 'text-primary-400 border-primary-400'
                   : 'text-grappler-500 border-transparent hover:text-grappler-300'

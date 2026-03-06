@@ -211,7 +211,7 @@ function ReadinessCard() {
                     )}>{f.score}</span>
                   </div>
                   {actionText && (
-                    <p className="text-[11px] text-primary-400 leading-snug mt-0.5">{actionText}</p>
+                    <p className="text-xs text-primary-400 leading-snug mt-0.5">{actionText}</p>
                   )}
                 </div>
               </div>
@@ -222,7 +222,7 @@ function ReadinessCard() {
 
       {/* Auto-adjustment pill */}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-[11px] text-grappler-400 px-2">
+        <p className="text-xs text-grappler-400 px-2">
           Auto-adjusted: Volume {Math.round(summary.volumeModifier * 100)}% · Intensity {Math.round(summary.intensityModifier * 100)}%
         </p>
       )}
@@ -230,7 +230,7 @@ function ReadinessCard() {
       {/* Show all toggle — for data nerds */}
       <button
         onClick={() => setShowAll(v => !v)}
-        className="text-[11px] text-grappler-500 hover:text-grappler-300 px-2 transition-colors"
+        className="text-xs text-grappler-500 hover:text-grappler-300 px-2 transition-colors"
       >
         {showAll ? 'Hide details ▴' : `All factors (${summary.allFactors.length}) ▾`}
       </button>
@@ -247,7 +247,7 @@ function ReadinessCard() {
             <div className="space-y-0.5 pb-1">
               {summary.allFactors.map(f => (
                 <div key={f.source} className="flex items-center gap-2 px-2">
-                  <span className="text-[11px] w-16 text-left truncate text-grappler-400">{f.label}</span>
+                  <span className="text-xs w-16 text-left truncate text-grappler-400">{f.label}</span>
                   <div className="flex-1 h-1 rounded-full overflow-hidden bg-grappler-700/40">
                     <div className={cn('h-full rounded-full transition-all', getBarColor(f.score))} style={{ width: `${Math.max(3, f.score)}%` }} />
                   </div>
@@ -1650,14 +1650,35 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           BELOW THE FOLD — Secondary Content
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Body Check-In — soreness & mobility (safety-relevant) ─── */}
-      {showSorenessCheck && (
-        <SorenessCheck
-          context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
-          isCombatAthlete={user?.trainingIdentity === 'combat'}
-          onDismiss={() => setSorenessCheckDismissed(true)}
-          onLog={handleSorenessLog}
-        />
+      {/* ─── NUTRITION STRIP — protein + water, always visible ─── */}
+      {macroTargets.protein > 0 && (
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
+            <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all duration-500',
+                  todayProtein >= macroTargets.protein ? 'bg-green-400' :
+                  todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
+                )}
+                style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
+              />
+            </div>
+            <span className={cn(
+              'text-sm tabular-nums font-medium flex-shrink-0',
+              todayProtein >= macroTargets.protein ? 'text-green-400' :
+              todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
+            )}>
+              {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
+            </span>
+          </div>
+          {waterTodayL > 0 && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Droplets className="w-3 h-3 text-blue-400/70" />
+              <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ─── Weekly Momentum — 7-day rhythm bar, expandable scorecard ─── */}
@@ -1699,18 +1720,18 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       <div>
         <button
           onClick={() => setShowInsights(v => !v)}
-          className="w-full flex items-center justify-between gap-2 py-2.5 px-1 text-xs font-semibold text-grappler-400 hover:text-grappler-200 transition-colors"
+          className="w-full flex items-center justify-between gap-2 py-3 px-3 rounded-xl bg-grappler-800/40 border border-grappler-700/30 hover:bg-grappler-800/60 transition-colors"
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Sparkles className="w-4 h-4 text-primary-400 flex-shrink-0" />
+            <span className="text-sm font-semibold text-grappler-300 truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
           </div>
           <motion.span
             animate={{ rotate: showInsights ? 180 : 0 }}
             transition={{ duration: 0.2 }}
             className="inline-flex flex-shrink-0"
           >
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-4 h-4 text-grappler-400" />
           </motion.span>
         </button>
 
@@ -1725,35 +1746,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             >
               <div className="space-y-3 pt-1">
 
-                {/* ─── NUTRITION STRIP — compact protein + water ─── */}
-                {macroTargets.protein > 0 && (
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
-                      <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-500',
-                            todayProtein >= macroTargets.protein ? 'bg-green-400' :
-                            todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
-                          )}
-                          style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
-                        />
-                      </div>
-                      <span className={cn(
-                        'text-xs tabular-nums font-medium flex-shrink-0',
-                        todayProtein >= macroTargets.protein ? 'text-green-400' :
-                        todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
-                      )}>
-                        {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
-                      </span>
-                    </div>
-                    {waterTodayL > 0 && (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Droplets className="w-3 h-3 text-blue-400/70" />
-                        <span className="text-xs text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
-                      </div>
-                    )}
-                  </div>
+                {/* ─── Body Check-In — soreness & mobility ─── */}
+                {showSorenessCheck && (
+                  <SorenessCheck
+                    context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
+                    isCombatAthlete={user?.trainingIdentity === 'combat'}
+                    onDismiss={() => setSorenessCheckDismissed(true)}
+                    onLog={handleSorenessLog}
+                  />
                 )}
 
                 {/* ─── Performance Readiness — nutrition-focused ─── */}

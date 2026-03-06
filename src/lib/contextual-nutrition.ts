@@ -46,7 +46,6 @@ export function getContextualNutrition(
   let calorieMultiplier = 1.0;
   let proteinMultiplier = 1.0;
   let carbMultiplier = 1.0;
-  let fatMultiplier = 1.0;
   let preworkoutTiming: string | undefined;
   let postworkoutTiming: string | undefined;
   let carbCycleNote: string | undefined;
@@ -364,17 +363,27 @@ export function getContextualNutrition(
     recommendations.push('Sleep and hydration are your top priorities right now');
   }
 
-  // Calculate adjusted macros
+  // Derive fat target to balance remaining calories after protein + carbs
+  // This ensures macros sum to the calorie target instead of fatMultiplier always being 1.0
+  const adjustedCalories = Math.round((baseMacros.calories * calorieMultiplier) + recoveryBonus);
+  const adjustedProtein = Math.round(baseMacros.protein * proteinMultiplier);
+  const adjustedCarbs = Math.round(baseMacros.carbs * carbMultiplier);
+  // Fat fills the remaining calories: (total - protein*4 - carbs*4) / 9
+  const remainingCalsForFat = adjustedCalories - (adjustedProtein * 4) - (adjustedCarbs * 4);
+  // Floor at 20% of base fat to prevent unreasonably low fat (hormonal health)
+  const minFat = Math.round(baseMacros.fat * 0.5);
+  const derivedFat = Math.max(minFat, Math.round(remainingCalsForFat / 9));
+
   const adjustedTargets: MacroTargets = {
-    calories: Math.round((baseMacros.calories * calorieMultiplier) + recoveryBonus),
-    protein: Math.round(baseMacros.protein * proteinMultiplier),
-    carbs: Math.round(baseMacros.carbs * carbMultiplier),
-    fat: Math.round(baseMacros.fat * fatMultiplier),
+    calories: adjustedCalories,
+    protein: adjustedProtein,
+    carbs: adjustedCarbs,
+    fat: derivedFat,
   };
 
   // Hydration goal based on body weight and training (in ml)
   // ~35ml per kg is a good baseline (equivalent to 0.5oz per lb)
-  const bodyWeightKg = bodyWeightLbs / 2.205;
+  const bodyWeightKg = bodyWeightLbs / 2.20462;
   let hydrationGoal = Math.round(bodyWeightKg * 35); // 35ml per kg baseline
   if (illnessActive) {
     // Illness increases fluid needs — fever, sweating, GI losses

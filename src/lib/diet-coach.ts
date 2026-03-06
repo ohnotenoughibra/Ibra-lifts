@@ -63,8 +63,21 @@ const INTENSITY_MULTIPLIERS: Record<string, number> = {
   competition_prep: 1.4,
 };
 
-/** NEAT multipliers for occupation type (non-exercise activity thermogenesis). */
+/**
+ * NEAT multipliers for occupation type (non-exercise activity thermogenesis).
+ * When training data is available, we use lower occupation-only values to avoid
+ * double-counting exercise (training cals are added separately as EAT).
+ * When no training data exists, we use the full Harris-Benedict multipliers as fallback.
+ */
 const OCCUPATION_NEAT: Record<OccupationType, number> = {
+  sedentary: 1.2,      // desk job — same either way
+  lightly_active: 1.3, // was 1.375 — lower to avoid double-counting EAT
+  active: 1.4,         // was 1.55 — teacher, retail, nurse
+  very_active: 1.6,    // was 1.725 — construction, warehouse
+};
+
+/** Full Harris-Benedict multipliers — used as fallback when no training data exists. */
+const HARRIS_BENEDICT_AF: Record<OccupationType, number> = {
   sedentary: 1.2,
   lightly_active: 1.375,
   active: 1.55,
@@ -181,8 +194,8 @@ export function calculateDynamicTDEE({
     return { tdee, activityFactor, trainingCals: Math.round(dailyTrainingCals) };
   }
 
-  // Fallback: occupation-based multiplier (less accurate but works without data)
-  const fallbackMultiplier = OCCUPATION_NEAT[occupation];
+  // Fallback: full Harris-Benedict multiplier (includes all activity, less accurate)
+  const fallbackMultiplier = HARRIS_BENEDICT_AF[occupation];
   const tdee = Math.round(bmr * fallbackMultiplier);
   return { tdee, activityFactor: fallbackMultiplier, trainingCals: 0 };
 }
@@ -288,6 +301,12 @@ export function calculateMacros({
         proteinPerKg = 3.1;
       } else if (isCombatAthlete && deficitSeverity === 'moderate') {
         proteinPerKg = 2.7;
+      } else if (bodyFatPercent && bodyFatPercent > 25) {
+        // Higher BF% users: scale protein to lean mass instead of total BW
+        // Morton et al. 2018: diminishing returns above 1.62 g/kg total BW for non-lean
+        // But we want to hit ~2.5 g/kg LBM — so scale down per-total-BW accordingly
+        const leanMassFraction = 1 - (bodyFatPercent / 100);
+        proteinPerKg = Math.max(1.8, 2.5 * leanMassFraction);
       } else {
         proteinPerKg = 2.4;
       }

@@ -180,7 +180,7 @@ export default function DailyWellnessCheckin() {
               <span className={`text-xl mb-1 ${isAnimating ? 'animate-bounce' : ''}`}>
                 {isDone ? '✅' : icon}
               </span>
-              <span className={`text-[10px] font-medium ${isDone ? 'text-emerald-400' : 'text-zinc-400'}`}>
+              <span className={`text-xs font-medium ${isDone ? 'text-emerald-400' : 'text-zinc-400'}`}>
                 {isDone ? quickAction : label}
               </span>
 
@@ -215,7 +215,7 @@ export default function DailyWellnessCheckin() {
             <div className="text-center">
               <span className="text-emerald-400 font-black text-lg">+{xpPopup.points} XP</span>
               {xpPopup.breakdown.map((b, i) => (
-                <div key={i} className="text-emerald-300/70 text-[10px]">{b.reason}</div>
+                <div key={i} className="text-emerald-300/70 text-xs">{b.reason}</div>
               ))}
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function DailyWellnessCheckin() {
       {currentMultiplier >= 2.0 && completedCount === totalDomains && (
         <div className="text-center py-2 bg-gradient-to-r from-amber-900/30 to-orange-900/30 rounded-lg border border-amber-800/30">
           <div className="text-amber-400 font-black text-sm">⚡ BEAST MODE ACTIVE ⚡</div>
-          <div className="text-amber-500/70 text-[10px] mt-0.5">All training XP doubled today</div>
+          <div className="text-amber-500/70 text-xs mt-0.5">All training XP doubled today</div>
         </div>
       )}
     </div>

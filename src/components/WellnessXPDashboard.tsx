@@ -61,7 +61,7 @@ export default function WellnessXPDashboard() {
         {todayDomains.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {todayDomains.map(d => (
-              <span key={d} className="text-[10px] bg-grappler-800 text-grappler-400 px-2 py-0.5 rounded-full capitalize">
+              <span key={d} className="text-xs bg-grappler-800 text-grappler-400 px-2 py-0.5 rounded-full capitalize">
                 {d}
               </span>
             ))}
@@ -71,7 +71,7 @@ export default function WellnessXPDashboard() {
 
       {/* 7-Day Adherence */}
       <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
-        <div className="text-[10px] text-grappler-500 uppercase tracking-wider mb-2">Last 7 Days</div>
+        <div className="text-xs text-grappler-500 uppercase tracking-wider mb-2">Last 7 Days</div>
         <div className="flex gap-1.5">
           {last7Days.map((day, i) => {
             const intensity = day.domains.length;
@@ -124,7 +124,7 @@ export default function WellnessXPDashboard() {
           ))}
         </div>
         {ws.streaks.longestOverall > 0 && (
-          <div className="mt-2 text-[10px] text-grappler-600 text-center">
+          <div className="mt-2 text-xs text-grappler-600 text-center">
             Best: {ws.streaks.longestOverall} days
           </div>
         )}
@@ -135,7 +135,7 @@ export default function WellnessXPDashboard() {
         <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-grappler-100">Milestones</h3>
-            <span className="text-[10px] text-grappler-500">{earnedWellnessBadges.length}/{wellnessBadges.length}</span>
+            <span className="text-xs text-grappler-500">{earnedWellnessBadges.length}/{wellnessBadges.length}</span>
           </div>
           <div className="grid grid-cols-7 gap-2">
             {wellnessBadges.map((badge) => {
@@ -157,7 +157,7 @@ export default function WellnessXPDashboard() {
       {/* Multiplier reference */}
       <div className="bg-grappler-900 rounded-xl border border-grappler-800 p-4">
         <h3 className="text-sm font-semibold text-grappler-100 mb-1">Training XP Multiplier</h3>
-        <p className="text-[10px] text-grappler-500 mb-3">
+        <p className="text-xs text-grappler-500 mb-3">
           Log wellness habits throughout the day. Your training XP scales with how many you hit.
         </p>
         <div className="space-y-1">

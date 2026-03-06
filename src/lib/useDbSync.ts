@@ -154,6 +154,22 @@ function applyRemoteData(
     const conflictFields = buildConflictFields(localData, remoteData);
 
     if (conflictFields.length > 0) {
+      // Even though workout logs conflict, merge non-conflicting data immediately
+      // (meals, water, supplements, etc.) so nutrition data isn't held hostage
+      const fullLocal = buildFullLocal();
+      const premerged = resolveConflicts(fullLocal, dbData);
+      // Apply everything EXCEPT the conflicting workout fields (those wait for user resolution)
+      const conflictFieldNames = new Set(conflictFields.map(f => f.field));
+      const safeUpdates: Record<string, unknown> = {};
+      for (const field of RESTORE_FIELDS) {
+        if (!conflictFieldNames.has(field) && premerged[field] !== undefined) {
+          safeUpdates[field] = premerged[field];
+        }
+      }
+      if (Object.keys(safeUpdates).length > 0) {
+        useAppStore.setState(safeUpdates);
+      }
+
       const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
       const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
       useAppStore.setState({

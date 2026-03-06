@@ -86,6 +86,9 @@ function applyRemoteData(
 
     if (Object.keys(fieldsToMerge).length > 0) {
       useAppStore.setState(fieldsToMerge);
+      // Recalculate streak from actual workout log dates after merge
+      // so stale stored streak values don't persist across devices
+      useAppStore.getState().recalculateGamificationStats();
       if (process.env.NODE_ENV === 'development') {
         console.log(`[db-sync] ${label}`);
       }

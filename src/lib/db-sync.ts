@@ -502,6 +502,26 @@ export function flushPendingSync(): void {
 }
 
 /**
+ * Immediately flush any pending debounced sync via fetch (not sendBeacon).
+ * Called after critical mutations (completeWorkout, addMeal, etc.) to ensure
+ * data reaches the server within seconds instead of waiting for debounce.
+ */
+export async function flushImmediateSync(): Promise<void> {
+  if (!pendingPayload) return;
+  const { userId, data } = pendingPayload;
+  pendingPayload = null;
+
+  if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
+  if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
+
+  try {
+    await doSync(userId, data);
+  } catch {
+    await queueForBackgroundSync(userId, data);
+  }
+}
+
+/**
  * Force-push current data to cloud immediately (non-debounced).
  * Used by the manual "Sync Now" button to ensure local data reaches the server.
  */

@@ -26,23 +26,26 @@ import type {
   MealEntry,
   MacroTargets,
   InjuryEntry,
+  IllnessLog,
   PreWorkoutCheckIn,
   UserProfile,
   QuickLog,
 } from './types';
+import { getIllnessTrainingRecommendation } from './illness-engine';
 
 // ── Factor Weights (default, redistributed if unavailable) ──────────────
 const DEFAULT_WEIGHTS: Record<ReadinessFactor['source'], number> = {
-  sleep:         0.20,
-  nutrition:     0.14,
-  stress:        0.11,
-  recovery:      0.14,  // wearable recovery score
-  injury:        0.09,
-  training_load: 0.11,
+  sleep:         0.18,
+  nutrition:     0.13,
+  stress:        0.10,
+  recovery:      0.13,  // wearable recovery score
+  injury:        0.08,
+  illness:       0.10,  // active illness — high weight, critical limiter
+  training_load: 0.10,
   hydration:     0.04,
-  age:           0.05,
+  age:           0.04,
   hrv:           0.04,
-  soreness:      0.08,
+  soreness:      0.06,
 };
 
 // ── Main Entry Point ────────────────────────────────────────────────────
@@ -56,6 +59,7 @@ export function calculateReadiness(opts: {
   macroTargets: MacroTargets;
   waterLog: Record<string, number>;
   injuryLog: InjuryEntry[];
+  illnessLogs?: IllnessLog[];
   quickLogs: QuickLog[];
   preCheckIn?: PreWorkoutCheckIn;
 }): ReadinessScore {
@@ -91,6 +95,9 @@ export function calculateReadiness(opts: {
 
   // 10. Soreness
   factors.push(assessSoreness(opts.quickLogs));
+
+  // 11. Illness
+  factors.push(assessIllness(opts.illnessLogs));
 
   // Redistribute weights from unavailable factors to available ones
   const availableFactors = factors.filter(f => f.available);
@@ -624,6 +631,66 @@ function assessSoreness(quickLogs: QuickLog[]): ReadinessFactor {
   return base;
 }
 
+function assessIllness(illnessLogs?: IllnessLog[]): ReadinessFactor {
+  const base: ReadinessFactor = {
+    source: 'illness',
+    label: 'Illness',
+    score: 100,
+    weight: DEFAULT_WEIGHTS.illness,
+    available: false,
+  };
+
+  if (!illnessLogs || illnessLogs.length === 0) return base;
+
+  // Find active or recovering illness
+  const activeIllness = illnessLogs.find(
+    il => il.status === 'active' || il.status === 'recovering'
+  );
+
+  if (!activeIllness) {
+    // Check recently resolved (within 14 days) — return-to-training phase matters
+    const recentlyResolved = illnessLogs
+      .filter(il => il.status === 'resolved' && il.endDate)
+      .sort((a, b) => new Date(b.endDate!).getTime() - new Date(a.endDate!).getTime())[0];
+
+    if (recentlyResolved && recentlyResolved.endDate) {
+      const daysSinceResolved = Math.ceil(
+        (Date.now() - new Date(recentlyResolved.endDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSinceResolved <= 14) {
+        const rec = getIllnessTrainingRecommendation(recentlyResolved);
+        if (rec.returnPhase && rec.returnPhase !== 'full_return') {
+          base.available = true;
+          // Score based on return phase restrictions
+          base.score = Math.round(rec.maxVolumePercent * 0.9);
+          base.detail = `Return-to-training: ${rec.message}`;
+          return base;
+        }
+      }
+    }
+    return base;
+  }
+
+  base.available = true;
+  const rec = getIllnessTrainingRecommendation(activeIllness);
+
+  if (!rec.canTrain) {
+    // Active illness blocking training — critical readiness impact
+    base.score = 5;
+    base.detail = rec.message;
+  } else if (activeIllness.status === 'recovering') {
+    // Recovering, can do very light — low readiness
+    base.score = Math.round(rec.maxVolumePercent * 0.8);
+    base.detail = `Recovering: ${rec.message}`;
+  } else {
+    // Active but mild above-neck — can do light activity
+    base.score = Math.round(rec.maxVolumePercent * 0.7);
+    base.detail = rec.message;
+  }
+
+  return base;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────
 
 function scoreToLevel(score: number): ReadinessLevel {
@@ -677,6 +744,10 @@ function getRecommendation(factor: ReadinessFactor): string | null {
       return factor.score < 40
         ? 'Multiple areas are severely sore — consider a full rest day or light mobility work only.'
         : 'Significant soreness detected — consider swapping to a session that avoids sore muscle groups.';
+    case 'illness':
+      return factor.score < 20
+        ? 'Active illness — complete rest required. Training with a fever risks myocarditis.'
+        : 'Illness present — follow the Neck Check protocol. Light activity only if symptoms are above the neck and mild.';
   }
   return null;
 }

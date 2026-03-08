@@ -394,6 +394,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
   const confidenceLedger = useAppStore(s => s.confidenceLedger);
+  const illnessLogs = useAppStore(s => s.illnessLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
@@ -474,9 +475,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
       macroTargets, waterLog, injuryLog, quickLogs, competitions,
-      workoutSkips,
+      workoutSkips, illnessLogs,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips, illnessLogs]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {

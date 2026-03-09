@@ -3487,52 +3487,62 @@ export const useAppStore = create<AppState>()(
           return;
         }
 
+        // All syncable fields — must match RESTORE_FIELDS in useDbSync.ts
+        const SYNC_FIELDS = [
+          'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
+          'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
+          'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
+          'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
+          'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
+          'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
+          'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
+          'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
+          'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
+          'weightCutPlans', 'combatNutritionProfile', 'fightCampPlans',
+          'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
+          'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
+          'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
+          'nutritionPeriodPlan', 'mealStamps',
+        ];
+
         if (resolution === 'local') {
-          // Keep local data, overwrite remote on next sync
-          set({ syncConflict: null, pendingRemoteData: null });
+          // Keep local data, but still merge non-conflicting remote data
+          // (e.g., meals/supplements from phone should still come through)
+          const localState = get();
+          const fullLocal: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            const val = (localState as unknown as Record<string, unknown>)[field];
+            if (val !== undefined) fullLocal[field] = val;
+          }
+          fullLocal.isOnboarded = localState.isOnboarded;
+          const merged = resolveConflicts(fullLocal, pendingRemoteData);
+          const updates: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            if (merged[field] !== undefined) updates[field] = merged[field];
+          }
+          set({ ...updates, syncConflict: null, pendingRemoteData: null });
         } else if (resolution === 'remote') {
-          // Use remote data
+          // Use remote data for all fields
           const fieldsToMerge: Record<string, unknown> = {};
-          if (pendingRemoteData.workoutLogs) fieldsToMerge.workoutLogs = pendingRemoteData.workoutLogs;
-          if (pendingRemoteData.bodyWeightLog) fieldsToMerge.bodyWeightLog = pendingRemoteData.bodyWeightLog;
-          if (pendingRemoteData.gamificationStats) fieldsToMerge.gamificationStats = pendingRemoteData.gamificationStats;
-          if (pendingRemoteData.injuryLog) fieldsToMerge.injuryLog = pendingRemoteData.injuryLog;
-          if (pendingRemoteData.customExercises) fieldsToMerge.customExercises = pendingRemoteData.customExercises;
-          if (pendingRemoteData.sessionTemplates) fieldsToMerge.sessionTemplates = pendingRemoteData.sessionTemplates;
-          if (pendingRemoteData.hrSessions) fieldsToMerge.hrSessions = pendingRemoteData.hrSessions;
-          if (pendingRemoteData.trainingSessions) fieldsToMerge.trainingSessions = pendingRemoteData.trainingSessions;
-          if (pendingRemoteData.currentMesocycle) fieldsToMerge.currentMesocycle = pendingRemoteData.currentMesocycle;
-          if (pendingRemoteData.mesocycleHistory) fieldsToMerge.mesocycleHistory = pendingRemoteData.mesocycleHistory;
-          if (pendingRemoteData.baselineLifts) fieldsToMerge.baselineLifts = pendingRemoteData.baselineLifts;
-          if (pendingRemoteData.user) fieldsToMerge.user = pendingRemoteData.user;
+          for (const field of SYNC_FIELDS) {
+            if (pendingRemoteData[field] !== undefined) fieldsToMerge[field] = pendingRemoteData[field];
+          }
+          if (pendingRemoteData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = pendingRemoteData.isOnboarded;
           set({ ...fieldsToMerge, syncConflict: null, pendingRemoteData: null });
         } else {
-          // Smart merge: union arrays, prefer newest for scalars
+          // Smart merge: union arrays, prefer newest for scalars — ALL fields
           const localState = get();
-          const localData: Record<string, unknown> = {
-            workoutLogs: localState.workoutLogs,
-            bodyWeightLog: localState.bodyWeightLog,
-            gamificationStats: localState.gamificationStats,
-            injuryLog: localState.injuryLog,
-            customExercises: localState.customExercises,
-            sessionTemplates: localState.sessionTemplates,
-            hrSessions: localState.hrSessions,
-            trainingSessions: localState.trainingSessions,
-            currentMesocycle: localState.currentMesocycle,
-            mesocycleHistory: localState.mesocycleHistory,
-            lastSyncAt: localState.lastSyncAt || 0,
-            user: localState.user,
-          };
-          const merged = resolveConflicts(localData, pendingRemoteData);
+          const fullLocal: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            const val = (localState as unknown as Record<string, unknown>)[field];
+            if (val !== undefined) fullLocal[field] = val;
+          }
+          fullLocal.isOnboarded = localState.isOnboarded;
+          const merged = resolveConflicts(fullLocal, pendingRemoteData);
           const updates: Record<string, unknown> = {};
-          if (merged.workoutLogs) updates.workoutLogs = merged.workoutLogs;
-          if (merged.bodyWeightLog) updates.bodyWeightLog = merged.bodyWeightLog;
-          if (merged.gamificationStats) updates.gamificationStats = merged.gamificationStats;
-          if (merged.injuryLog) updates.injuryLog = merged.injuryLog;
-          if (merged.customExercises) updates.customExercises = merged.customExercises;
-          if (merged.sessionTemplates) updates.sessionTemplates = merged.sessionTemplates;
-          if (merged.hrSessions) updates.hrSessions = merged.hrSessions;
-          if (merged.trainingSessions) updates.trainingSessions = merged.trainingSessions;
+          for (const field of SYNC_FIELDS) {
+            if (merged[field] !== undefined) updates[field] = merged[field];
+          }
           set({ ...updates, syncConflict: null, pendingRemoteData: null });
         }
       },
@@ -3989,6 +3999,7 @@ export const useAppStore = create<AppState>()(
         weeklyCheckIns: state.weeklyCheckIns,
         mealReminders: state.mealReminders,
         mealStamps: state.mealStamps,
+        nutritionPeriodPlan: state.nutritionPeriodPlan,
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,

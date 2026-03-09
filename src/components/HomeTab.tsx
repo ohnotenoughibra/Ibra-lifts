@@ -898,7 +898,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const needsProgressRepair = useMemo(() => {
     if (!currentMesocycle) return false;
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-    if (currentLogs.length > 0) return false; // already has logs, no repair needed
+    if (currentLogs.length > 0) return false;
 
     // Check for recent logs that should be in the current mesocycle
     const mesoStart = new Date(currentMesocycle.startDate);

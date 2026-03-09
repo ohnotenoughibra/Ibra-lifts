@@ -25,10 +25,12 @@ import type {
   NutritionPeriodPlan,
   BodyWeightEntry,
   WeeklyCheckIn,
+  IllnessLog,
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
 import { getActivePhaseContext } from './periodization-planner';
+import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 
 export type TodayType = 'lift' | 'combat' | 'both' | 'rest' | 'recovery';
@@ -129,6 +131,7 @@ interface DirectiveInput {
   quickLogs: QuickLog[];
   competitions?: CompetitionEvent[];
   workoutSkips?: WorkoutSkip[];
+  illnessLogs?: IllnessLog[];
   nutritionPeriodPlan?: NutritionPeriodPlan | null;
   bodyWeightLog?: BodyWeightEntry[];
   weeklyCheckIns?: WeeklyCheckIn[];
@@ -145,7 +148,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const readiness = calculateReadiness({
     user, workoutLogs, trainingSessions,
     wearableData, wearableHistory, meals, macroTargets,
-    waterLog: input.waterLog, injuryLog, quickLogs,
+    waterLog: input.waterLog, injuryLog, illnessLogs: input.illnessLogs, quickLogs,
   });
 
   // ─── Next workout ───
@@ -287,8 +290,15 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     todayPerformance = { totalVolume, totalSets, exerciseCount, avgRPE, duration, topExercise, topExerciseVolume, grade, verdict, prs: prExercises.length, prExercises };
   }
 
+  // ─── Active illness gate ───
+  const activeIllness = (input.illnessLogs || []).find(
+    il => il.status === 'active' || il.status === 'recovering'
+  ) || null;
+  const illnessRec = activeIllness ? getIllnessTrainingRecommendation(activeIllness) : null;
+  const illnessBlocksTraining = illnessRec ? !illnessRec.canTrain : false;
+
   // ─── Determine today type ───
-  const isCritical = readiness.overall < 30;
+  const isCritical = readiness.overall < 30 || illnessBlocksTraining;
   // shouldTrain: must be a scheduled lift day, not already lifted, have a pending session, and not critical
   const shouldTrain = !isCritical && !alreadyLiftedToday && nextSession !== null && isScheduledLiftDay;
 
@@ -351,7 +361,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
       headline = alreadyLiftedToday ? 'Session Complete' : 'Recovery Mode';
       break;
     case 'rest':
-      headline = 'Rest & Recover';
+      headline = activeIllness ? 'Rest — You\'re Sick' : 'Rest & Recover';
       break;
     case 'combat': {
       // Use the user's sport name when session type is generic (e.g. "Moderate Session")
@@ -460,6 +470,23 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     }
   }
 
+  // Illness-aware actions — override generic rest advice with illness-specific guidance
+  if (activeIllness && illnessRec) {
+    // Replace generic rest actions with illness-specific ones
+    if (illnessBlocksTraining) {
+      // Clear generic rest advice, replace with illness-specific
+      actions.length = 0;
+      actions.push(illnessRec.message);
+      if (illnessRec.suggestedActivities.length > 0) {
+        actions.push(`OK today: ${illnessRec.suggestedActivities.join(', ')}`);
+      }
+      actions.push('Log a daily check-in to track your recovery');
+    } else if (illnessRec.rpeCap < 10) {
+      // Can train but with restrictions
+      actions.push(`Illness active — RPE cap ${illnessRec.rpeCap}, max ${illnessRec.maxDurationMinutes}min`);
+    }
+  }
+
   // Soreness-aware training suggestions
   const sorenessFactor = readiness.factors.find(f => f.source === 'soreness' && f.available);
   if (sorenessFactor && sorenessFactor.score < 60 && (todayType === 'lift' || todayType === 'both')) {
@@ -545,9 +572,15 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     ? buildOverloadTeaser(nextSession, workoutLogs)
     : null;
 
-  // ─── Training modification for low readiness ───
+  // ─── Training modification for low readiness or illness ───
   let trainingModification: string | null = null;
-  if ((todayType === 'lift' || todayType === 'both') && readiness.overall < 55) {
+  if (activeIllness && illnessRec) {
+    if (illnessBlocksTraining) {
+      trainingModification = illnessRec.message;
+    } else if (illnessRec.rpeCap < 10) {
+      trainingModification = `Illness protocol: ${illnessRec.maxVolumePercent}% volume, RPE ≤${illnessRec.rpeCap}, max ${illnessRec.maxDurationMinutes}min`;
+    }
+  } else if ((todayType === 'lift' || todayType === 'both') && readiness.overall < 55) {
     if (readiness.overall < 30) {
       trainingModification = 'Active recovery only — light mobility, no heavy lifts today';
     } else if (readiness.overall < 40) {
@@ -593,17 +626,59 @@ function getNextWorkout(
   logs: WorkoutLog[]
 ): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean } | null {
   if (!mesocycle) return null;
-  const completedIds = new Set(
-    logs.filter(l => l.mesocycleId === mesocycle.id).map(l => l.sessionId)
-  );
+  const mesoLogs = logs.filter(l => l.mesocycleId === mesocycle.id);
+  const completedIds = new Set(mesoLogs.map(l => l.sessionId));
+
+  // Build a flat ordered list of all sessions with their position
+  const allSessions: { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean; flatIndex: number }[] = [];
+  let idx = 0;
   for (const week of mesocycle.weeks) {
     for (let i = 0; i < week.sessions.length; i++) {
-      const session = week.sessions[i];
-      if (!completedIds.has(session.id)) {
-        return { session, weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload };
+      allSessions.push({
+        session: week.sessions[i],
+        weekNumber: week.weekNumber,
+        dayNumber: i + 1,
+        isDeload: week.isDeload,
+        flatIndex: idx++,
+      });
+    }
+  }
+
+  // Find the position of the most recently completed session (by log date)
+  let lastCompletedIndex = -1;
+  if (mesoLogs.length > 0) {
+    // Sort logs by date descending to find most recent
+    const sortedLogs = [...mesoLogs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    for (const log of sortedLogs) {
+      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
+      if (pos !== -1) {
+        lastCompletedIndex = pos;
+        break;
       }
     }
   }
+
+  // Look for next uncompleted session starting AFTER the most recently completed one
+  if (lastCompletedIndex >= 0) {
+    for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
+      if (!completedIds.has(allSessions[i].session.id)) {
+        const { session, weekNumber, dayNumber, isDeload } = allSessions[i];
+        return { session, weekNumber, dayNumber, isDeload };
+      }
+    }
+  }
+
+  // Fallback: find first uncompleted session from the start
+  // (handles fresh mesocycles with no completions, or wrap-around)
+  for (const entry of allSessions) {
+    if (!completedIds.has(entry.session.id)) {
+      const { session, weekNumber, dayNumber, isDeload } = entry;
+      return { session, weekNumber, dayNumber, isDeload };
+    }
+  }
+
   return null;
 }
 

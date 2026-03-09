@@ -1505,14 +1505,13 @@ export const useAppStore = create<AppState>()(
         if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
 
         // Collect ALL recent logs that should belong to this mesocycle
-        // Use 60-day lookback (not mesocycle startDate which may be very recent after regen)
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - 60);
+        // (any log dated after the mesocycle start, from any source)
+        const mesoStart = new Date(currentMesocycle.startDate);
         const recentLogs = workoutLogs
           .filter(l =>
             l.mesocycleId !== currentMesocycle.id &&
             l.mesocycleId !== 'standalone' &&
-            new Date(l.date) >= cutoff
+            new Date(l.date) >= mesoStart
           )
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

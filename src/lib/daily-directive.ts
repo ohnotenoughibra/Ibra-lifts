@@ -626,17 +626,59 @@ function getNextWorkout(
   logs: WorkoutLog[]
 ): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean } | null {
   if (!mesocycle) return null;
-  const completedIds = new Set(
-    logs.filter(l => l.mesocycleId === mesocycle.id).map(l => l.sessionId)
-  );
+  const mesoLogs = logs.filter(l => l.mesocycleId === mesocycle.id);
+  const completedIds = new Set(mesoLogs.map(l => l.sessionId));
+
+  // Build a flat ordered list of all sessions with their position
+  const allSessions: { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean; flatIndex: number }[] = [];
+  let idx = 0;
   for (const week of mesocycle.weeks) {
     for (let i = 0; i < week.sessions.length; i++) {
-      const session = week.sessions[i];
-      if (!completedIds.has(session.id)) {
-        return { session, weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload };
+      allSessions.push({
+        session: week.sessions[i],
+        weekNumber: week.weekNumber,
+        dayNumber: i + 1,
+        isDeload: week.isDeload,
+        flatIndex: idx++,
+      });
+    }
+  }
+
+  // Find the position of the most recently completed session (by log date)
+  let lastCompletedIndex = -1;
+  if (mesoLogs.length > 0) {
+    // Sort logs by date descending to find most recent
+    const sortedLogs = [...mesoLogs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    for (const log of sortedLogs) {
+      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
+      if (pos !== -1) {
+        lastCompletedIndex = pos;
+        break;
       }
     }
   }
+
+  // Look for next uncompleted session starting AFTER the most recently completed one
+  if (lastCompletedIndex >= 0) {
+    for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
+      if (!completedIds.has(allSessions[i].session.id)) {
+        const { session, weekNumber, dayNumber, isDeload } = allSessions[i];
+        return { session, weekNumber, dayNumber, isDeload };
+      }
+    }
+  }
+
+  // Fallback: find first uncompleted session from the start
+  // (handles fresh mesocycles with no completions, or wrap-around)
+  for (const entry of allSessions) {
+    if (!completedIds.has(entry.session.id)) {
+      const { session, weekNumber, dayNumber, isDeload } = entry;
+      return { session, weekNumber, dayNumber, isDeload };
+    }
+  }
+
   return null;
 }
 

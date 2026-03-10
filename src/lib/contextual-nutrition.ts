@@ -56,10 +56,15 @@ export function getContextualNutrition(
   // nutrition advice matches the dashboard's smart schedule.
   const hasTraining = todayTraining.length > 0;
   const trainingMinutes = todayTraining.reduce((sum, s) => sum + s.duration, 0);
-  // Check actual or planned intensity for hard sessions
+  // Check actual or planned intensity — respect the user's explicit selection
   const hasHardTraining = todayTraining.some(s => {
     const intensity = s.actualIntensity || s.plannedIntensity;
     return intensity === 'hard_sparring' || intensity === 'competition_prep';
+  });
+  // Moderate sessions only count as "hard" fueling if genuinely long (90+ min)
+  const hasLongModerateTraining = todayTraining.some(s => {
+    const intensity = s.actualIntensity || s.plannedIntensity;
+    return intensity === 'moderate' && s.duration >= 90;
   });
 
   // Detect two-a-day: multiple combat/training sessions logged today
@@ -83,7 +88,7 @@ export function getContextualNutrition(
     dayType = 'two_a_day';
   } else if (hasSparring) {
     dayType = 'sparring';
-  } else if (hasHardTraining || trainingMinutes >= 60) {
+  } else if (hasHardTraining || hasLongModerateTraining) {
     dayType = 'grappling_hard';
   } else if (hasTraining) {
     dayType = 'grappling_light';

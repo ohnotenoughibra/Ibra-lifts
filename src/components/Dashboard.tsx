@@ -635,7 +635,7 @@ export default function Dashboard({
 
   return (
     <ToastProvider>
-    <div className="min-h-[100dvh] bg-grappler-900 bg-mesh pb-20">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top">
         {/* Row 1: Identity + Key Actions */}
@@ -793,7 +793,7 @@ export default function Dashboard({
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}
       >
-        <div className="grid grid-cols-5 items-center py-1 px-2 sm:px-4 max-w-lg mx-auto">
+        <div className="grid grid-cols-5 items-center py-1 px-2 sm:px-4">
           {/* Left tabs: Home, Program */}
           {TABS.slice(0, 2).map((tab) => (
             <button

@@ -329,7 +329,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Pin className="w-3 h-3" /> Pinned
           </p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {pinnedTools.map(tool => (
               <button
                 key={tool.id}

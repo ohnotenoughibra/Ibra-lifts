@@ -1520,21 +1520,60 @@ export const useAppStore = create<AppState>()(
         // Build flat session list in week/day order
         const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
 
+        // Track which sessions have already been claimed
+        const claimedSessionIds = new Set<string>();
+
         // Build a set of log IDs to migrate for fast lookup
         const logsToMigrate = new Set(recentLogs.map(l => l.id));
 
-        // Map logs (sorted by date) to sessions positionally
+        // Match logs to sessions by content (name/type) rather than blind position
         const updatedLogs = workoutLogs.map(log => {
           if (!logsToMigrate.has(log.id)) return log;
 
-          const posIndex = recentLogs.indexOf(log);
-          if (posIndex < 0 || posIndex >= allSessions.length) return log;
+          // Try to find a matching session by name first, then by type
+          const logExerciseIds = new Set((log.exercises || []).map(e => e.exerciseId));
+          let bestMatch: typeof allSessions[0] | null = null;
+          let bestScore = -1;
 
-          return {
-            ...log,
-            mesocycleId: currentMesocycle.id,
-            sessionId: allSessions[posIndex].id,
-          };
+          for (const session of allSessions) {
+            if (claimedSessionIds.has(session.id)) continue;
+
+            let score = 0;
+            // Exact name match is strong signal
+            if (session.name === log.sessionId) score += 5;
+            // Exercise overlap: count matching exercises
+            for (const ex of session.exercises) {
+              if (logExerciseIds.has(ex.exerciseId)) score += 2;
+            }
+            // Session type match (if log has notes or name hints)
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = session;
+            }
+          }
+
+          // If no exercise overlap found, fall back to positional order
+          if (bestScore <= 0) {
+            const posIndex = recentLogs.indexOf(log);
+            const unclaimed = allSessions.filter(s => !claimedSessionIds.has(s.id));
+            if (posIndex >= 0 && posIndex < unclaimed.length) {
+              bestMatch = unclaimed[posIndex];
+            } else if (unclaimed.length > 0) {
+              bestMatch = unclaimed[0];
+            }
+          }
+
+          if (bestMatch) {
+            claimedSessionIds.add(bestMatch.id);
+            return {
+              ...log,
+              mesocycleId: currentMesocycle.id,
+              sessionId: bestMatch.id,
+            };
+          }
+
+          // No available session — just update mesocycleId
+          return { ...log, mesocycleId: currentMesocycle.id };
         });
 
         set({ workoutLogs: updatedLogs, _syncUrgent: true });

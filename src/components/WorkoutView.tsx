@@ -168,6 +168,10 @@ export default function WorkoutView() {
   const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek } | null>(null);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
 
+  // New block success flash — shows summary after generation
+  const [blockFlash, setBlockFlash] = useState<{ name: string; weeks: number; sessions: number; focus: string } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Get workout logs breakdown by type for the current mesocycle
   const getWorkoutBreakdown = () => {
     const state = useAppStore.getState();
@@ -196,6 +200,33 @@ export default function WorkoutView() {
   };
 
   // Check for existing workouts and prompt migration
+  // Show success flash and scroll to top after block generation
+  const showBlockCreatedFlash = () => {
+    // Read fresh state — the mesocycle was just generated
+    setTimeout(() => {
+      const meso = useAppStore.getState().currentMesocycle;
+      if (meso) {
+        const totalSessions = meso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+        setBlockFlash({
+          name: meso.name,
+          weeks: meso.weeks.length,
+          sessions: totalSessions,
+          focus: meso.goalFocus,
+        });
+        // Scroll to top so user sees the new "Next Up" card
+        containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  // Auto-dismiss block flash
+  useEffect(() => {
+    if (!blockFlash) return;
+    const timer = setTimeout(() => setBlockFlash(null), 4000);
+    return () => clearTimeout(timer);
+  }, [blockFlash]);
+
   const handleGenerateWithMigrationCheck = (weeks: number, sessionMinutes?: number, sessionsPerWeek?: SessionsPerWeek) => {
     // Get fresh state from store to avoid stale closure issues
     const state = useAppStore.getState();
@@ -219,6 +250,7 @@ export default function WorkoutView() {
         useAppStore.getState().updateUserFields({ sessionsPerWeek });
       }
       generateNewMesocycle(weeks, sessionMinutes);
+      showBlockCreatedFlash();
     }
   };
 
@@ -264,6 +296,7 @@ export default function WorkoutView() {
     setShowMigrateDialog(false);
     setPendingGeneration(null);
     setPreviousMesocycleId(null);
+    showBlockCreatedFlash();
   };
 
   const handleGenerateWithEmphasis = () => {
@@ -317,6 +350,7 @@ export default function WorkoutView() {
         state.updateUserFields({ sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
       }
       generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
+      showBlockCreatedFlash();
     };
 
     return (
@@ -430,7 +464,33 @@ export default function WorkoutView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={containerRef} className="space-y-6">
+      {/* New Block Created Flash */}
+      <AnimatePresence>
+        {blockFlash && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            onClick={() => setBlockFlash(null)}
+            className="card p-4 bg-gradient-to-r from-primary-500/20 to-primary-500/5 border border-primary-500/30 cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                <Check className="w-5 h-5 text-primary-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-grappler-50 text-sm">{blockFlash.name}</p>
+                <p className="text-xs text-grappler-400">
+                  {blockFlash.weeks} weeks &middot; {blockFlash.sessions} sessions &middot; {blockFlash.focus} focus
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-primary-400/70 mt-2">Your first session is ready below</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header with Progress Ring */}
       <div className="space-y-4">
         <div className="flex items-center gap-4">

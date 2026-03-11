@@ -31,10 +31,11 @@ import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exerci
 import { fireConfetti } from '@/lib/confetti';
 import { suggestNextBlock } from '@/lib/block-suggestion';
 import { BlockTimeline, VolumeWave, AICoachInsight } from './MesocycleTimeline';
+import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function WorkoutView() {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress } = useAppStore(
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
@@ -42,97 +43,35 @@ export default function WorkoutView() {
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
       injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
-      repairMesocycleProgress: s.repairMesocycleProgress,
     }))
   );
 
-  // Auto-repair orphaned sessionIds on mount
-  const sessionRepairDone = useRef(false);
-  useEffect(() => {
-    if (sessionRepairDone.current || !currentMesocycle) return;
-    const mesoLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-    if (mesoLogs.length === 0) return;
-    const allSessionIds = new Set(currentMesocycle.weeks.flatMap(w => w.sessions.map(s => s.id)));
-    if (mesoLogs.some(l => !allSessionIds.has(l.sessionId))) {
-      sessionRepairDone.current = true;
-      repairMesocycleProgress();
-    }
-  }, [currentMesocycle, workoutLogs, repairMesocycleProgress]);
-
-  // Track which sessions have been completed in this mesocycle
-  const completedSessionIds = new Set(
-    currentMesocycle
-      ? workoutLogs
-          .filter(log => log.mesocycleId === currentMesocycle.id)
-          .map(log => log.sessionId)
-      : []
+  // Position-based session matching — survives UUID changes from regeneration/sync/migration
+  const completedSessionIds = useMemo(
+    () => getCompletedSessionIds(currentMesocycle, workoutLogs),
+    [currentMesocycle, workoutLogs]
   );
+
   // Compute progress stats for the mesocycle
   const progressStats = useMemo(() => {
     if (!currentMesocycle) return { total: 0, completed: 0, percentage: 0 };
     const total = currentMesocycle.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
-    // Count sessions whose IDs match log sessionIds
-    let completed = currentMesocycle.weeks.reduce((sum, w) =>
+    const completed = currentMesocycle.weeks.reduce((sum, w) =>
       sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
     );
-    // If logs exist but no sessionIds match (stale after migration), use log count
-    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
-    if (completed === 0 && mesoLogCount > 0) {
-      completed = Math.min(mesoLogCount, total);
-    }
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, percentage };
-  }, [currentMesocycle, completedSessionIds, workoutLogs]);
+  }, [currentMesocycle, completedSessionIds]);
 
-  // Find the next unfinished session — continue from most recently completed position
+  // Find the next unfinished session
   const nextUpSession = useMemo(() => {
     if (!currentMesocycle) return null;
-
-    // Build flat session list sorted by week then position
-    const allSessions: { session: WorkoutSession; weekIndex: number; weekNumber: number }[] = [];
-    for (let wIdx = 0; wIdx < currentMesocycle.weeks.length; wIdx++) {
-      const week = currentMesocycle.weeks[wIdx];
-      for (const session of week.sessions) {
-        allSessions.push({ session, weekIndex: wIdx, weekNumber: week.weekNumber });
-      }
-    }
-    allSessions.sort((a, b) => a.weekNumber - b.weekNumber);
-
-    // Find the FURTHEST completed position (highest index among all completed sessions)
-    let lastCompletedIndex = -1;
-    for (let i = 0; i < allSessions.length; i++) {
-      if (completedSessionIds.has(allSessions[i].session.id)) {
-        lastCompletedIndex = i;
-      }
-    }
-
-    // Look forward from the most recently completed session
-    if (lastCompletedIndex >= 0) {
-      for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
-        if (!completedSessionIds.has(allSessions[i].session.id)) {
-          return allSessions[i];
-        }
-      }
-    }
-
-    // Count-based fallback: if logs exist but sessionIds don't match, use log count
-    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
-    if (mesoLogCount > 0 && lastCompletedIndex === -1) {
-      const nextIndex = Math.min(mesoLogCount, allSessions.length - 1);
-      if (nextIndex < allSessions.length) {
-        return allSessions[nextIndex];
-      }
-    }
-
-    // Fallback: first uncompleted from start (fresh mesocycle or wrap-around)
-    for (const entry of allSessions) {
-      if (!completedSessionIds.has(entry.session.id)) {
-        return entry;
-      }
-    }
-
-    return null; // All sessions completed
-  }, [currentMesocycle, completedSessionIds, workoutLogs]);
+    const next = getNextSession(currentMesocycle, workoutLogs);
+    if (!next) return null;
+    // Map to legacy shape expected by downstream code
+    const weekIndex = currentMesocycle.weeks.findIndex(w => w.weekNumber === next.weekNumber);
+    return { session: next.session, weekIndex, weekNumber: next.weekNumber };
+  }, [currentMesocycle, workoutLogs]);
 
   // Current week index (for volume wave highlight)
   const currentWeekIndex = nextUpSession?.weekIndex ?? -1;
@@ -193,6 +132,7 @@ export default function WorkoutView() {
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek } | null>(null);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
+  const [viewingBlock, setViewingBlock] = useState<typeof mesocycleHistory[0] | null>(null);
 
   // New block success flash — shows summary after generation
   const [blockFlash, setBlockFlash] = useState<{ name: string; weeks: number; sessions: number; focus: string } | null>(null);
@@ -565,6 +505,7 @@ export default function WorkoutView() {
           currentProgress={progressStats.percentage}
           daysToCompetition={daysToCompetition}
           onAcceptSuggestion={() => setShowEmphasisPicker(true)}
+          onBlockClick={(block) => setViewingBlock(block)}
         />
       )}
 
@@ -981,6 +922,118 @@ export default function WorkoutView() {
             </motion.div>
           );
         })()}
+      </AnimatePresence>
+
+      {/* Block Detail Modal — view completed block history */}
+      <AnimatePresence>
+        {viewingBlock && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center"
+            onClick={() => setViewingBlock(null)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg bg-grappler-900 rounded-t-2xl border-t border-grappler-700 max-h-[80vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-grappler-800 sticky top-0 bg-grappler-900 z-10">
+                <div className="w-10 h-1 bg-grappler-700 rounded-full mx-auto mb-3" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-grappler-100">{viewingBlock.name}</h3>
+                    <p className="text-xs text-grappler-400 capitalize">{viewingBlock.goalFocus} focus · {viewingBlock.weeks.length}w · {viewingBlock.weeks.reduce((s, w) => s + w.sessions.length, 0)} sessions</p>
+                  </div>
+                  <button onClick={() => setViewingBlock(null)} className="p-2 rounded-lg bg-grappler-800 text-grappler-400">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                {(() => {
+                  const blockLogs = workoutLogs
+                    .filter(l => l.mesocycleId === viewingBlock.id)
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                  const totalVolume = blockLogs.reduce((s, l) => s + l.totalVolume, 0);
+                  const avgRPE = blockLogs.length > 0
+                    ? (blockLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / blockLogs.length).toFixed(1)
+                    : '-';
+                  const totalDuration = blockLogs.reduce((s, l) => s + (l.duration || 0), 0);
+
+                  return (
+                    <>
+                      {/* Summary stats */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <p className="text-lg font-bold text-grappler-100">{blockLogs.length}</p>
+                          <p className="text-xs text-grappler-400">Sessions</p>
+                        </div>
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <p className="text-lg font-bold text-grappler-100">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(0)}k` : totalVolume}</p>
+                          <p className="text-xs text-grappler-400">Volume (kg)</p>
+                        </div>
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <p className="text-lg font-bold text-grappler-100">{avgRPE}</p>
+                          <p className="text-xs text-grappler-400">Avg RPE</p>
+                        </div>
+                      </div>
+
+                      {/* Per-week breakdown */}
+                      {viewingBlock.weeks
+                        .sort((a, b) => a.weekNumber - b.weekNumber)
+                        .map(week => {
+                          const weekLogs = blockLogs.filter(l => {
+                            // Match by weekNumber if available, else by session ID
+                            if (l.weekNumber != null) return l.weekNumber === week.weekNumber;
+                            return week.sessions.some(s => s.id === l.sessionId);
+                          });
+                          return (
+                            <div key={week.weekNumber} className="bg-grappler-800/50 rounded-xl p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className={cn('text-sm font-semibold', week.isDeload ? 'text-teal-400' : 'text-grappler-200')}>
+                                  Week {week.weekNumber} {week.isDeload ? '(Deload)' : ''}
+                                </span>
+                                <span className="text-xs text-grappler-400">{weekLogs.length}/{week.sessions.length} done</span>
+                              </div>
+                              {weekLogs.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {weekLogs.map(log => (
+                                    <div key={log.id} className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-grappler-300">
+                                          {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-grappler-400">
+                                        <span>{log.totalVolume >= 1000 ? `${(log.totalVolume / 1000).toFixed(1)}k` : log.totalVolume} kg</span>
+                                        <span>RPE {log.overallRPE}</span>
+                                        <span>{log.duration}m</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-grappler-500 italic">No sessions logged</p>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                      {blockLogs.length === 0 && (
+                        <p className="text-sm text-grappler-400 text-center py-4">No workout data for this block</p>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

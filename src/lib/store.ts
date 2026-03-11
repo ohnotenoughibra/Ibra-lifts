@@ -80,6 +80,7 @@ import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generat
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
+import { getCompletedSessionIds } from './session-matching';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { calculateCompositeWellnessScore } from './wellness-score';
 import { v4 as uuidv4 } from 'uuid';
@@ -108,6 +109,8 @@ interface AppState {
     exerciseLogs: ExerciseLog[];
     startTime: Date;
     mesocycleId: string; // Captured at start time so block transitions don't misattribute logs
+    weekNumber?: number; // Position in mesocycle (survives session UUID changes)
+    dayNumber?: number;  // Position in mesocycle (survives session UUID changes)
     preCheckIn?: PreWorkoutCheckIn;
     pausedAt?: Date;
     totalPausedMs?: number;
@@ -1202,10 +1205,10 @@ export const useAppStore = create<AppState>()(
 
         set({ currentMesocycle: { ...newMesocycle, updatedAt: new Date().toISOString() } });
 
-        // Auto-migrate orphaned workout logs from old mesocycle to new one
-        if (currentMesocycle) {
-          get().migrateWorkoutLogsToMesocycle(currentMesocycle.id, newMesocycle.id);
-        }
+        // Old logs stay with the old mesocycle — position-based matching handles everything.
+        // Migration was the source of orphaned sessionId bugs: it moved logs to the new block
+        // but couldn't reliably remap UUIDs, leaving ghost progress (header showed 2/12 but
+        // week pills showed 0/2). Clean slate is correct: new block = fresh start.
       },
 
       completeMesocycle: () => {
@@ -1696,13 +1699,30 @@ export const useAppStore = create<AppState>()(
           };
         });
 
+        // Look up session position in mesocycle for position-based tracking
+        let weekNumber: number | undefined;
+        let dayNumber: number | undefined;
+        const meso = get().currentMesocycle;
+        if (meso) {
+          for (const week of meso.weeks) {
+            const dayIdx = week.sessions.findIndex(s => s.id === session.id);
+            if (dayIdx >= 0) {
+              weekNumber = week.weekNumber;
+              dayNumber = dayIdx + 1;
+              break;
+            }
+          }
+        }
+
         set({
           activeWorkout: {
             session: activeSession,
             baseSession: JSON.parse(JSON.stringify(session)), // Deep clone original as immutable base
             exerciseLogs,
             startTime: new Date(),
-            mesocycleId: get().currentMesocycle?.id || 'standalone', // Lock mesocycle at start time
+            mesocycleId: meso?.id || 'standalone', // Lock mesocycle at start time
+            weekNumber,
+            dayNumber,
           },
           workoutMinimized: false,
         });
@@ -2037,6 +2057,8 @@ export const useAppStore = create<AppState>()(
           userId: user.id,
           mesocycleId: activeWorkout.mesocycleId || currentMesocycle?.id || 'standalone',
           sessionId: activeWorkout.session.id,
+          weekNumber: activeWorkout.weekNumber,
+          dayNumber: activeWorkout.dayNumber,
           date: new Date(),
           exercises: activeWorkout.exerciseLogs,
           totalVolume,
@@ -2247,11 +2269,7 @@ export const useAppStore = create<AppState>()(
         let isMesocycleComplete = false;
         if (logMeso) {
           const allSessions = logMeso.weeks.flatMap(w => w.sessions);
-          const completedIds = new Set(
-            [...workoutLogs, workoutLog]
-              .filter(l => l.mesocycleId === logMeso.id)
-              .map(l => l.sessionId)
-          );
+          const completedIds = getCompletedSessionIds(logMeso, [...workoutLogs, workoutLog]);
           isMesocycleComplete = allSessions.every(s => completedIds.has(s.id));
         }
 

@@ -23,6 +23,7 @@ import type {
   Mesocycle,
 } from './types';
 import type { ExercisePerformanceProfile } from './performance-model';
+import { getCompletedSessionIds, flattenSessions } from './session-matching';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -348,52 +349,29 @@ function countTrainingWeeks(logs: WorkoutLog[]): number {
  */
 function isInOrJustCompletedDeloadWeek(mesocycle: Mesocycle, workoutLogs: WorkoutLog[]): boolean {
   const mesoLogs = workoutLogs.filter(l => l.mesocycleId === mesocycle.id);
-  const completedSessionIds = new Set(mesoLogs.map(l => l.sessionId));
-
-  // Build flat list of all sessions with their week info
-  const allSessions: { sessionId: string; weekNumber: number; isDeload: boolean }[] = [];
-  for (const week of mesocycle.weeks) {
-    for (const session of week.sessions) {
-      allSessions.push({
-        sessionId: session.id,
-        weekNumber: week.weekNumber,
-        isDeload: week.isDeload,
-      });
-    }
-  }
+  const completedIds = getCompletedSessionIds(mesocycle, workoutLogs);
+  const entries = flattenSessions(mesocycle);
 
   // Find the most recently completed session by log date
   if (mesoLogs.length > 0) {
-    const sortedLogs = [...mesoLogs].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
-    for (const log of sortedLogs) {
-      const sessionInfo = allSessions.find(s => s.sessionId === log.sessionId);
-      if (sessionInfo) {
-        // If the most recent workout was in a deload week, user is deloading or just finished
-        if (sessionInfo.isDeload) return true;
-
-        // Also check: is the NEXT uncompleted session in a deload week?
-        const logIndex = allSessions.findIndex(s => s.sessionId === log.sessionId);
-        for (let i = logIndex + 1; i < allSessions.length; i++) {
-          if (!completedSessionIds.has(allSessions[i].sessionId)) {
-            if (allSessions[i].isDeload) return true;
-            break; // next session is not deload, stop checking
-          }
-        }
-        break;
-      }
+    // Find which entries are completed, get the last one
+    const completedEntries = entries.filter(e => completedIds.has(e.session.id));
+    if (completedEntries.length > 0) {
+      const last = completedEntries[completedEntries.length - 1];
+      if (last.isDeload) return true;
+      // Check if NEXT uncompleted session is deload
+      const nextEntry = entries.find(e => e.flatIndex > last.flatIndex && !completedIds.has(e.session.id));
+      if (nextEntry?.isDeload) return true;
     }
 
     // Check if the most recent deload-week log was within the last 10 days
-    // (covers the gap between finishing deload and starting the new block)
     const tenDaysAgo = Date.now() - 10 * DAY_MS;
-    const recentDeloadLog = sortedLogs.find(log => {
-      const sessionInfo = allSessions.find(s => s.sessionId === log.sessionId);
-      return sessionInfo?.isDeload && new Date(log.date).getTime() >= tenDaysAgo;
-    });
-    if (recentDeloadLog) return true;
+    const deloadEntries = entries.filter(e => e.isDeload && completedIds.has(e.session.id));
+    if (deloadEntries.length > 0) {
+      const sortedLogs = [...mesoLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const recentLog = sortedLogs.find(l => new Date(l.date).getTime() >= tenDaysAgo);
+      if (recentLog) return true;
+    }
   }
 
   // Check if the current week (by date) maps to a deload week in the mesocycle

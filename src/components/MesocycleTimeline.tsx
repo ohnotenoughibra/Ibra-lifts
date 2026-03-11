@@ -42,9 +42,10 @@ interface BlockTimelineProps {
   currentProgress: number; // 0-100
   daysToCompetition?: number | null; // fight countdown for combat athletes
   onAcceptSuggestion?: () => void;
+  onBlockClick?: (block: Mesocycle) => void; // Tap completed/active blocks to view details
 }
 
-export function BlockTimeline({ history, current, suggestion, currentProgress, daysToCompetition, onAcceptSuggestion }: BlockTimelineProps) {
+export function BlockTimeline({ history, current, suggestion, currentProgress, daysToCompetition, onAcceptSuggestion, onBlockClick }: BlockTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to active block on mount
@@ -89,11 +90,13 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
           const Icon = config.icon;
           const totalSessions = block.weeks.reduce((s, w) => s + w.sessions.length, 0);
           return (
-            <div
+            <button
               key={block.id}
+              onClick={() => onBlockClick?.(block)}
               className={cn(
-                'flex-shrink-0 w-24 rounded-xl p-2.5 border transition-all',
-                'bg-grappler-800/60 border-grappler-700/50 opacity-70'
+                'flex-shrink-0 w-24 rounded-xl p-2.5 border transition-all text-left',
+                'bg-grappler-800/60 border-grappler-700/50 opacity-70',
+                onBlockClick && 'active:scale-95 hover:opacity-90 cursor-pointer'
               )}
             >
               <div className="flex items-center gap-1.5 mb-1.5">
@@ -104,7 +107,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
               </div>
               <p className={cn('text-xs font-semibold truncate', config.color)}>{config.label}</p>
               <p className="text-xs text-grappler-500">{block.weeks.length}w · {totalSessions}s</p>
-            </div>
+            </button>
           );
         })}
 

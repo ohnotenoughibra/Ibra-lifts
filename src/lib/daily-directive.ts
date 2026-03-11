@@ -642,20 +642,19 @@ function getNextWorkout(
       });
     }
   }
-  // Sort by weekNumber then dayNumber — handles out-of-order weeks array
   allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
 
-  // Find the FURTHEST completed position in the block (highest index among all completed sessions).
-  // Using position-based tracking instead of date-based prevents pointer from going backwards
-  // when logs have date mismatches or were migrated from a different mesocycle.
+  // Count how many sessions actually match by ID
+  let matchedCount = 0;
   let lastCompletedIndex = -1;
   for (let i = 0; i < allSessions.length; i++) {
     if (completedIds.has(allSessions[i].session.id)) {
       lastCompletedIndex = i;
+      matchedCount++;
     }
   }
 
-  // Look for next uncompleted session starting AFTER the furthest completed one
+  // If sessionIds match: use position-based forward search
   if (lastCompletedIndex >= 0) {
     for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
       if (!completedIds.has(allSessions[i].session.id)) {
@@ -665,8 +664,18 @@ function getNextWorkout(
     }
   }
 
-  // Fallback: find first uncompleted session from the start
-  // (handles fresh mesocycles with no completions, or wrap-around)
+  // Count-based fallback: if we have logs for this mesocycle but sessionIds
+  // don't match any sessions (stale IDs after migration/regeneration),
+  // use the log count to determine position sequentially.
+  if (mesoLogs.length > 0 && matchedCount === 0) {
+    const nextIndex = Math.min(mesoLogs.length, allSessions.length - 1);
+    if (nextIndex < allSessions.length) {
+      const { session, weekNumber, dayNumber, isDeload } = allSessions[nextIndex];
+      return { session, weekNumber, dayNumber, isDeload };
+    }
+  }
+
+  // Fallback: first uncompleted session from the start
   for (const entry of allSessions) {
     if (!completedIds.has(entry.session.id)) {
       const { session, weekNumber, dayNumber, isDeload } = entry;

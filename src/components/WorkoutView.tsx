@@ -57,10 +57,18 @@ export default function WorkoutView() {
   const progressStats = useMemo(() => {
     if (!currentMesocycle) return { total: 0, completed: 0, percentage: 0 };
     const total = currentMesocycle.weeks.reduce((sum, week) => sum + week.sessions.length, 0);
-    const completed = completedSessionIds.size;
+    // Count sessions whose IDs match log sessionIds
+    let completed = currentMesocycle.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    // If logs exist but no sessionIds match (stale after migration), use log count
+    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
+    if (completed === 0 && mesoLogCount > 0) {
+      completed = Math.min(mesoLogCount, total);
+    }
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, percentage };
-  }, [currentMesocycle, completedSessionIds]);
+  }, [currentMesocycle, completedSessionIds, workoutLogs]);
 
   // Find the next unfinished session — continue from most recently completed position
   const nextUpSession = useMemo(() => {
@@ -90,6 +98,15 @@ export default function WorkoutView() {
         if (!completedSessionIds.has(allSessions[i].session.id)) {
           return allSessions[i];
         }
+      }
+    }
+
+    // Count-based fallback: if logs exist but sessionIds don't match, use log count
+    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
+    if (mesoLogCount > 0 && lastCompletedIndex === -1) {
+      const nextIndex = Math.min(mesoLogCount, allSessions.length - 1);
+      if (nextIndex < allSessions.length) {
+        return allSessions[nextIndex];
       }
     }
 

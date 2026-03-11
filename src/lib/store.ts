@@ -1505,12 +1505,75 @@ export const useAppStore = create<AppState>()(
         const { currentMesocycle, workoutLogs } = get();
         if (!currentMesocycle) return { fixed: 0, orphanedMesoId: null };
 
-        // Check if current mesocycle already has logs — if so, no repair needed
+        // Build flat session list sorted by week/day order
+        const allSessions = [...currentMesocycle.weeks]
+          .sort((a, b) => a.weekNumber - b.weekNumber)
+          .flatMap(week => week.sessions);
+        const allSessionIds = new Set(allSessions.map(s => s.id));
+
+        // Check if current mesocycle has logs with VALID sessionIds
         const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+        const orphanedCurrentLogs = currentLogs.filter(l => !allSessionIds.has(l.sessionId));
+
+        // Phase 1: Fix logs that have correct mesocycleId but stale/wrong sessionIds
+        if (orphanedCurrentLogs.length > 0) {
+          const claimedSessionIds = new Set<string>(
+            currentLogs.filter(l => allSessionIds.has(l.sessionId)).map(l => l.sessionId)
+          );
+          const orphanedLogIds = new Set(orphanedCurrentLogs.map(l => l.id));
+
+          // Sort orphaned logs by date to assign in chronological order
+          const sortedOrphaned = [...orphanedCurrentLogs].sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
+
+          const updatedLogs = workoutLogs.map(log => {
+            if (!orphanedLogIds.has(log.id)) return log;
+
+            // Content-based matching: find best session by exercise overlap
+            const logExerciseIds = new Set((log.exercises || []).map(e => e.exerciseId));
+            let bestMatch: typeof allSessions[0] | null = null;
+            let bestScore = -1;
+
+            for (const session of allSessions) {
+              if (claimedSessionIds.has(session.id)) continue;
+              let score = 0;
+              for (const ex of session.exercises) {
+                if (logExerciseIds.has(ex.exerciseId)) score += 2;
+              }
+              if (score > bestScore) {
+                bestScore = score;
+                bestMatch = session;
+              }
+            }
+
+            // Fallback to positional order if no exercise overlap
+            if (bestScore <= 0) {
+              const posIndex = sortedOrphaned.indexOf(log);
+              const unclaimed = allSessions.filter(s => !claimedSessionIds.has(s.id));
+              if (posIndex >= 0 && posIndex < unclaimed.length) {
+                bestMatch = unclaimed[posIndex];
+              } else if (unclaimed.length > 0) {
+                bestMatch = unclaimed[0];
+              }
+            }
+
+            if (bestMatch) {
+              claimedSessionIds.add(bestMatch.id);
+              return { ...log, sessionId: bestMatch.id };
+            }
+            return log;
+          });
+
+          set({ workoutLogs: updatedLogs, _syncUrgent: true });
+          get().recalculatePRs();
+          get().recalculateGamificationStats();
+          return { fixed: orphanedCurrentLogs.length, orphanedMesoId: null };
+        }
+
+        // Phase 2: Migrate logs from a different mesocycleId (original behavior)
         if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
 
-        // Collect ALL recent logs that should belong to this mesocycle
-        // (any log dated after the mesocycle start, from any source)
         const mesoStart = new Date(currentMesocycle.startDate);
         const recentLogs = workoutLogs
           .filter(l =>
@@ -1522,42 +1585,28 @@ export const useAppStore = create<AppState>()(
 
         if (recentLogs.length === 0) return { fixed: 0, orphanedMesoId: null };
 
-        // Build flat session list in week/day order
-        const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
-
-        // Track which sessions have already been claimed
         const claimedSessionIds = new Set<string>();
-
-        // Build a set of log IDs to migrate for fast lookup
         const logsToMigrate = new Set(recentLogs.map(l => l.id));
 
-        // Match logs to sessions by content (name/type) rather than blind position
         const updatedLogs = workoutLogs.map(log => {
           if (!logsToMigrate.has(log.id)) return log;
 
-          // Try to find a matching session by name first, then by type
           const logExerciseIds = new Set((log.exercises || []).map(e => e.exerciseId));
           let bestMatch: typeof allSessions[0] | null = null;
           let bestScore = -1;
 
           for (const session of allSessions) {
             if (claimedSessionIds.has(session.id)) continue;
-
             let score = 0;
-            // Exact name match is strong signal
-            if (session.name === log.sessionId) score += 5;
-            // Exercise overlap: count matching exercises
             for (const ex of session.exercises) {
               if (logExerciseIds.has(ex.exerciseId)) score += 2;
             }
-            // Session type match (if log has notes or name hints)
             if (score > bestScore) {
               bestScore = score;
               bestMatch = session;
             }
           }
 
-          // If no exercise overlap found, fall back to positional order
           if (bestScore <= 0) {
             const posIndex = recentLogs.indexOf(log);
             const unclaimed = allSessions.filter(s => !claimedSessionIds.has(s.id));
@@ -1577,7 +1626,6 @@ export const useAppStore = create<AppState>()(
             };
           }
 
-          // No available session — just update mesocycleId
           return { ...log, mesocycleId: currentMesocycle.id };
         });
 

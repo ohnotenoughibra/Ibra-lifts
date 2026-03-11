@@ -927,20 +927,31 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
 
     // Find the FURTHEST completed position (highest index among all completed sessions)
-    // instead of most-recent-by-date — prevents pointer from going backwards after migrations
     let lastCompletedIndex = -1;
+    let matchedCount = 0;
     for (let i = 0; i < allSessions.length; i++) {
       if (completedSessionIds.has(allSessions[i].session.id)) {
         lastCompletedIndex = i;
+        matchedCount++;
       }
     }
 
-    // Look forward from the furthest completed session
+    // If sessionIds match: use position-based forward search
     if (lastCompletedIndex >= 0) {
       for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
         if (!completedSessionIds.has(allSessions[i].session.id)) {
           return allSessions[i];
         }
+      }
+    }
+
+    // Count-based fallback: if we have logs for this mesocycle but sessionIds
+    // don't match (stale after migration), use log count as position
+    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
+    if (mesoLogCount > 0 && matchedCount === 0) {
+      const nextIndex = Math.min(mesoLogCount, allSessions.length - 1);
+      if (nextIndex < allSessions.length) {
+        return allSessions[nextIndex];
       }
     }
 
@@ -960,14 +971,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const mesocycleProgress = useMemo(() => {
     if (!currentMesocycle) return null;
     const totalSessions = currentMesocycle.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const completedSessionIds = new Set(
-      workoutLogs
-        .filter(log => log.mesocycleId === currentMesocycle.id)
-        .map(log => log.sessionId)
-    );
-    const completedCount = currentMesocycle.weeks.reduce((sum, w) =>
+    const mesoLogs = workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id);
+    const completedSessionIds = new Set(mesoLogs.map(log => log.sessionId));
+    // Count sessions whose IDs match log sessionIds
+    let completedCount = currentMesocycle.weeks.reduce((sum, w) =>
       sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
     );
+    // If logs exist but no sessionIds match (stale after migration), use log count
+    if (completedCount === 0 && mesoLogs.length > 0) {
+      completedCount = Math.min(mesoLogs.length, totalSessions);
+    }
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
   }, [currentMesocycle, workoutLogs]);
 

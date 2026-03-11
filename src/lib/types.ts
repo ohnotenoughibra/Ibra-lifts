@@ -255,6 +255,8 @@ export interface WorkoutLog {
   userId: string;
   mesocycleId: string;
   sessionId: string;
+  weekNumber?: number;  // Position-based tracking (survives mesocycle regeneration)
+  dayNumber?: number;   // Position-based tracking (survives mesocycle regeneration)
   date: Date;
   exercises: ExerciseLog[];
   totalVolume: number; // weight x reps

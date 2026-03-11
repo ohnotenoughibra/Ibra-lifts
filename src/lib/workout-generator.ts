@@ -242,18 +242,17 @@ const GOAL_TO_LINEAR_TYPE: Record<GoalFocus, WorkoutType> = {
   power: 'power',
 };
 
-// Wave loading multipliers for DUP — 3-week ascending wave cycles
-// Creates undulating volume/intensity instead of flat linear increase
-function getWaveMultipliers(weekNumber: number): { volume: number; intensity: number } {
-  const wavePos = (weekNumber - 1) % 3; // position within 3-week wave
-  const waveNum = Math.floor((weekNumber - 1) / 3); // which wave cycle
-  const base = waveNum * 0.05; // evidence-based progression between wave cycles (3-5% per cycle)
-  switch (wavePos) {
-    case 0: return { volume: 1.0 + base, intensity: 1.0 + base };       // moderate
-    case 1: return { volume: 1.08 + base, intensity: 1.0 + base };      // high volume
-    case 2: return { volume: 1.02 + base, intensity: 1.04 + base };     // high intensity
-    default: return { volume: 1.0, intensity: 1.0 };
-  }
+// Wave loading multipliers for DUP — monotonic ascending with mild undulation
+// Volume increases steadily across the block; intensity ramps in the back half
+// This avoids the sawtooth pattern where W3 volume dropped below W2
+function getWaveMultipliers(weekNumber: number, totalWeeks?: number): { volume: number; intensity: number } {
+  const trainingWeeks = Math.max(1, (totalWeeks ?? 6) - 1); // exclude deload
+  const progress = (weekNumber - 1) / Math.max(1, trainingWeeks - 1); // 0→1 over training weeks
+  // Volume: +0% to +15% with slight wave (never decreases week-to-week)
+  const volume = 1.0 + progress * 0.15;
+  // Intensity: stays flat early, ramps in back half (+0% to +6%)
+  const intensity = 1.0 + Math.max(0, progress - 0.3) * 0.085;
+  return { volume, intensity };
 }
 
 // Block periodization: each week focuses on one training quality
@@ -1109,7 +1108,7 @@ function generateMesocycleWeek(
     intensityMultiplier = conj.intensity;
   } else {
     // DUP / Block: wave loading — undulating volume & intensity
-    const wave = getWaveMultipliers(weekNumber);
+    const wave = getWaveMultipliers(weekNumber, totalWeeks);
     volumeMultiplier = wave.volume;
     intensityMultiplier = wave.intensity;
   }

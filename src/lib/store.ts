@@ -107,6 +107,7 @@ interface AppState {
     baseSession: WorkoutSession; // Original session before any location adaptations
     exerciseLogs: ExerciseLog[];
     startTime: Date;
+    mesocycleId: string; // Captured at start time so block transitions don't misattribute logs
     preCheckIn?: PreWorkoutCheckIn;
     pausedAt?: Date;
     totalPausedMs?: number;
@@ -223,6 +224,9 @@ interface AppState {
     newStreak: number;
     newBadges: { id: string; name: string; icon: string; points: number }[];
     wellnessMultiplier?: number;
+    isMesocycleComplete?: boolean; // True when this was the last session of the mesocycle
+    mesocycleName?: string; // Name of the completed mesocycle
+    mesocycleTotalSessions?: number; // Total sessions in the completed mesocycle
   } | null;
 
   // Sync conflict resolution
@@ -1649,7 +1653,8 @@ export const useAppStore = create<AppState>()(
             session: activeSession,
             baseSession: JSON.parse(JSON.stringify(session)), // Deep clone original as immutable base
             exerciseLogs,
-            startTime: new Date()
+            startTime: new Date(),
+            mesocycleId: get().currentMesocycle?.id || 'standalone', // Lock mesocycle at start time
           },
           workoutMinimized: false,
         });
@@ -1977,11 +1982,12 @@ export const useAppStore = create<AppState>()(
         const { whoopWorkouts } = get();
         const whoopHR = matchWhoopWorkout(new Date(), duration, whoopWorkouts);
 
-        // Create workout log
+        // Create workout log — use mesocycleId captured at start time to prevent
+        // misattribution when block transitions happen mid-workout or between sessions
         const workoutLog: WorkoutLog = {
           id: uuidv4(),
           userId: user.id,
-          mesocycleId: currentMesocycle?.id || 'standalone',
+          mesocycleId: activeWorkout.mesocycleId || currentMesocycle?.id || 'standalone',
           sessionId: activeWorkout.session.id,
           date: new Date(),
           exercises: activeWorkout.exerciseLogs,
@@ -2186,6 +2192,21 @@ export const useAppStore = create<AppState>()(
           });
         }
 
+        // Detect if this session completes the mesocycle
+        const logMeso = workoutLog.mesocycleId !== 'standalone'
+          ? (currentMesocycle?.id === workoutLog.mesocycleId ? currentMesocycle : get().mesocycleHistory.find(m => m.id === workoutLog.mesocycleId))
+          : null;
+        let isMesocycleComplete = false;
+        if (logMeso) {
+          const allSessions = logMeso.weeks.flatMap(w => w.sessions);
+          const completedIds = new Set(
+            [...workoutLogs, workoutLog]
+              .filter(l => l.mesocycleId === logMeso.id)
+              .map(l => l.sessionId)
+          );
+          isMesocycleComplete = allSessions.every(s => completedIds.has(s.id));
+        }
+
         set({
           activeWorkout: null,
           workoutMinimized: false,
@@ -2199,6 +2220,9 @@ export const useAppStore = create<AppState>()(
             newStreak: newStreak,
             newBadges: [], // Will be populated by checkAndAwardBadges
             wellnessMultiplier: wellnessMultiplier > 1.0 ? wellnessMultiplier : undefined,
+            isMesocycleComplete,
+            mesocycleName: isMesocycleComplete ? logMeso?.name : undefined,
+            mesocycleTotalSessions: isMesocycleComplete ? logMeso?.weeks.flatMap(w => w.sessions).length : undefined,
           },
           gamificationStats: {
             ...gamificationStats,

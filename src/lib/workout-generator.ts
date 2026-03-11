@@ -76,6 +76,14 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
     percentageOf1RM: [60, 80],
     restSeconds: [120, 180],
     tempo: '1-0-X-0' // Fast eccentric, explosive concentric
+  },
+  strength_endurance: {
+    sets: [3, 4],
+    reps: [12, 20],
+    rpe: [6, 8],
+    percentageOf1RM: [40, 65],
+    restSeconds: [45, 75],
+    tempo: '2-0-2-0' // Controlled tempo, sustained output
   }
 };
 
@@ -352,44 +360,108 @@ const EXERCISE_PRIORITIES: Record<WorkoutType, {
 }> = {
   strength: { compounds: 4, accessories: 2, grapplingSpecific: 1, isolation: 1 },
   hypertrophy: { compounds: 3, accessories: 2, grapplingSpecific: 1, isolation: 3 },
-  power: { compounds: 2, accessories: 1, grapplingSpecific: 2, isolation: 1 }
+  power: { compounds: 2, accessories: 1, grapplingSpecific: 2, isolation: 1 },
+  strength_endurance: { compounds: 3, accessories: 2, grapplingSpecific: 1, isolation: 2 }
 };
 
+// Split day roles — determines which muscles a session targets
+type SplitDayRole = 'push' | 'pull' | 'legs' | 'upper' | 'lower' | 'full_body';
+
+// Muscles allowed per split day role — enforces proper split structure
+const SPLIT_DAY_MUSCLES: Record<SplitDayRole, Set<string>> = {
+  push: new Set(['chest', 'shoulders', 'triceps']),
+  pull: new Set(['back', 'biceps', 'forearms', 'traps']),
+  legs: new Set(['quadriceps', 'hamstrings', 'glutes', 'calves', 'core']),
+  upper: new Set(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'traps']),
+  lower: new Set(['quadriceps', 'hamstrings', 'glutes', 'calves', 'core']),
+  full_body: new Set(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'core', 'forearms', 'traps']),
+};
+
+// Split day role sequences for each split type
+const SPLIT_DAY_ROLES: Record<string, SplitDayRole[]> = {
+  // PPL: 3-session rotation, doubled for 6 days
+  push_pull_legs_3: ['push', 'pull', 'legs'],
+  push_pull_legs_5: ['push', 'pull', 'legs', 'push', 'pull'],
+  push_pull_legs_6: ['push', 'pull', 'legs', 'push', 'pull', 'legs'],
+  // Upper/Lower alternating
+  upper_lower_2: ['upper', 'lower'],
+  upper_lower_3: ['upper', 'lower', 'upper'],
+  upper_lower_4: ['upper', 'lower', 'upper', 'lower'],
+  // Full body for everything else
+};
+
+function getSplitDayRoles(splitType: SplitType, sessionsPerWeek: number): SplitDayRole[] {
+  if (splitType === 'push_pull_legs') {
+    return SPLIT_DAY_ROLES[`push_pull_legs_${sessionsPerWeek}`] || SPLIT_DAY_ROLES.push_pull_legs_3;
+  }
+  if (splitType === 'upper_lower') {
+    return SPLIT_DAY_ROLES[`upper_lower_${sessionsPerWeek}`] || SPLIT_DAY_ROLES.upper_lower_4;
+  }
+  // All other splits (full_body, grappler_hybrid, striker_power, etc.) are full_body days
+  return Array(sessionsPerWeek).fill('full_body' as SplitDayRole);
+}
+
 // Movement pattern templates for balanced programming
-const MOVEMENT_PATTERNS_PER_SESSION = {
+const MOVEMENT_PATTERNS_PER_SESSION: Record<string, Record<string, string[]>> = {
   full_body: {
     strength: ['hinge', 'squat', 'push', 'pull', 'carry'],
     hypertrophy: ['squat', 'push', 'pull', 'hinge', 'rotation'],
-    power: ['explosive', 'hinge', 'squat', 'push', 'pull']
+    power: ['explosive', 'hinge', 'squat', 'push', 'pull'],
+    strength_endurance: ['squat', 'push', 'pull', 'hinge', 'carry']
   },
-  upper_lower: {
-    upper: ['push', 'pull', 'push', 'pull'],
-    lower: ['squat', 'hinge', 'carry', 'squat']
+  push: {
+    strength: ['push', 'push', 'push'],
+    hypertrophy: ['push', 'push', 'push', 'push'],
+    power: ['explosive', 'push', 'push'],
+    strength_endurance: ['push', 'push', 'push']
   },
-  push_pull_legs: {
-    push: ['push', 'push', 'push', 'push'],
-    pull: ['pull', 'pull', 'hinge', 'pull'],
-    legs: ['squat', 'hinge', 'squat', 'carry']
+  pull: {
+    strength: ['pull', 'pull', 'hinge'],
+    hypertrophy: ['pull', 'pull', 'pull', 'pull'],
+    power: ['pull', 'explosive', 'pull'],
+    strength_endurance: ['pull', 'pull', 'pull']
+  },
+  legs: {
+    strength: ['squat', 'hinge', 'squat'],
+    hypertrophy: ['squat', 'hinge', 'squat', 'squat'],
+    power: ['explosive', 'squat', 'hinge'],
+    strength_endurance: ['squat', 'hinge', 'squat']
+  },
+  upper: {
+    strength: ['push', 'pull', 'push', 'pull'],
+    hypertrophy: ['push', 'pull', 'push', 'pull', 'push'],
+    power: ['explosive', 'push', 'pull', 'push'],
+    strength_endurance: ['push', 'pull', 'push', 'pull']
+  },
+  lower: {
+    strength: ['squat', 'hinge', 'carry', 'squat'],
+    hypertrophy: ['squat', 'hinge', 'squat', 'hinge', 'squat'],
+    power: ['explosive', 'squat', 'hinge'],
+    strength_endurance: ['squat', 'hinge', 'squat', 'carry']
   },
   grappler_hybrid: {
     strength: ['hinge', 'squat', 'push', 'pull', 'carry'],
     hypertrophy: ['push', 'pull', 'squat', 'hinge'],
-    power: ['explosive', 'rotation', 'hinge', 'carry']
+    power: ['explosive', 'rotation', 'hinge', 'carry'],
+    strength_endurance: ['squat', 'pull', 'hinge', 'carry']
   },
   striker_power: {
-    power: ['explosive', 'rotation', 'push', 'core'],
+    power: ['explosive', 'rotation', 'push', 'push'],
     strength: ['push', 'pull', 'squat', 'rotation'],
-    hypertrophy: ['push', 'pull', 'squat', 'core']
+    hypertrophy: ['push', 'pull', 'squat', 'push'],
+    strength_endurance: ['push', 'rotation', 'squat', 'push']
   },
   wrestler_strength: {
-    strength: ['hinge', 'squat', 'pull', 'carry', 'core'],
+    strength: ['hinge', 'squat', 'pull', 'carry', 'pull'],
     power: ['explosive', 'hinge', 'pull', 'carry'],
-    hypertrophy: ['pull', 'squat', 'hinge', 'carry']
+    hypertrophy: ['pull', 'squat', 'hinge', 'carry'],
+    strength_endurance: ['hinge', 'pull', 'squat', 'carry']
   },
   mma_hybrid: {
     strength: ['hinge', 'squat', 'push', 'pull', 'rotation'],
     power: ['explosive', 'rotation', 'hinge', 'push'],
-    hypertrophy: ['push', 'pull', 'squat', 'hinge', 'core']
+    hypertrophy: ['push', 'pull', 'squat', 'hinge', 'push'],
+    strength_endurance: ['push', 'pull', 'squat', 'hinge']
   }
 };
 
@@ -526,12 +598,15 @@ function shuffleArray<T>(array: T[]): T[] {
 
 function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPrescription {
   const config = getSexAdjustedPrescription(type, sex);
+  // Round rest to nearest 15s — clean values like 60, 90, 120, 180 instead of 3:32, 4:43
+  const rawRest = randomBetween(config.restSeconds[0], config.restSeconds[1]);
+  const restSeconds = Math.round(rawRest / 15) * 15;
   return {
     targetReps: randomBetween(config.reps[0], config.reps[1]),
     minReps: config.reps[0],
     maxReps: config.reps[1],
     rpe: Math.round(randomBetween(config.rpe[0] * 2, config.rpe[1] * 2)) / 2,
-    restSeconds: randomBetween(config.restSeconds[0], config.restSeconds[1]),
+    restSeconds,
     tempo: config.tempo,
     percentageOf1RM: randomBetween(config.percentageOf1RM[0], config.percentageOf1RM[1])
   };
@@ -574,10 +649,20 @@ function selectExercisesForType(
   availableEquipment?: EquipmentType[],
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
-  sessionsPerWeek: number = 3
+  sessionsPerWeek: number = 3,
+  splitDayRole: SplitDayRole = 'full_body'
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
-  const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
+  // Filter to exercises that match the split day's target muscles
+  const allowedMuscles = SPLIT_DAY_MUSCLES[splitDayRole];
+  const availableExercises = splitDayRole === 'full_body'
+    ? allAvailable
+    : allAvailable.filter(e =>
+        e.primaryMuscles.some(m => allowedMuscles.has(m)) ||
+        // Keep compound exercises that secondarily hit allowed muscles (e.g., rows for pull day)
+        (e.category === 'compound' && e.secondaryMuscles.some(m => allowedMuscles.has(m)))
+      );
   const priorities = { ...EXERCISE_PRIORITIES[type] };
 
   // Adjust exercise slot counts based on training identity
@@ -649,9 +734,11 @@ function selectExercisesForType(
     return score;
   };
 
-  // Pick movement pattern template based on split type
-  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport); // just for pattern lookup
-  const patternSource = MOVEMENT_PATTERNS_PER_SESSION[splitType] ?? MOVEMENT_PATTERNS_PER_SESSION.full_body;
+  // Pick movement pattern template based on split day role
+  // For structured splits (PPL/UL), use the day role directly; for combat splits, use the split type
+  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
+  const patternKey = splitDayRole !== 'full_body' ? splitDayRole : splitType;
+  const patternSource = MOVEMENT_PATTERNS_PER_SESSION[patternKey] ?? MOVEMENT_PATTERNS_PER_SESSION.full_body;
   const targetPatterns: string[] = type in patternSource
     ? (patternSource as any)[type] as string[]
     : ['hinge', 'squat', 'push', 'pull'];
@@ -734,9 +821,10 @@ function generateWorkoutSession(
   experienceLevel?: ExperienceLevel,
   sex?: BiologicalSex,
   dietGoal?: DietGoal,
-  sessionsPerWeek: number = 3
+  sessionsPerWeek: number = 3,
+  splitDayRole: SplitDayRole = 'full_body'
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek);
+  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole);
   const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
@@ -788,7 +876,8 @@ function generateWorkoutSession(
   const sessionNames: Record<WorkoutType, string[]> = {
     strength: ['Heavy Foundation', 'Max Effort', 'Strength Builder', 'Power Base'],
     hypertrophy: ['Muscle Builder', 'Growth Session', 'Hypertrophy Focus', 'Volume Day'],
-    power: ['Explosive Power', 'Athletic Performance', 'Speed Strength', 'Dynamic Effort']
+    power: ['Explosive Power', 'Athletic Performance', 'Speed Strength', 'Dynamic Effort'],
+    strength_endurance: ['Endurance Circuit', 'Work Capacity', 'Sustained Strength', 'Muscular Endurance']
   };
 
   return {
@@ -927,6 +1016,12 @@ function generateWarmUp(type: WorkoutType): string[] {
       'Box jumps or explosive push-ups x 3 sets of 5',
       'Medicine ball throws x 10'
     ];
+  } else if (type === 'strength_endurance') {
+    return [
+      ...baseWarmUp,
+      'Light compound sets x 15 — build up the heart rate',
+      'Band pull-aparts and band dislocates x 15'
+    ];
   }
 
   return baseWarmUp;
@@ -1049,7 +1144,12 @@ function generateMesocycleWeek(
     // 2 moderate sessions: 5% + 7% = 12% reduction
   }
 
+  // Determine split day roles for proper muscle targeting (PPL, UL, etc.)
+  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
+  const dayRoles = getSplitDayRoles(splitType, sessionsPerWeek);
+
   const sessions: WorkoutSession[] = workoutTypes.map((type, index) => {
+    const splitDayRole = dayRoles[index] || 'full_body';
     const session = generateWorkoutSession(
       type,
       index + 1,
@@ -1064,7 +1164,8 @@ function generateMesocycleWeek(
       experienceLevel,
       sex,
       dietGoal,
-      sessionsPerWeek
+      sessionsPerWeek,
+      splitDayRole
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -1104,11 +1205,15 @@ function generateMesocycleWeek(
       };
     });
 
-    // Structured naming: "W2/D1 — Hypertrophy" (fun name preserved in subtitle)
+    // Structured naming: "W2/D1 — Push (Hypertrophy)" for splits, "W2/D1 — Hypertrophy" for full body
     const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    const roleLabel = splitDayRole !== 'full_body' ? capitalize(splitDayRole) : '';
+    const typeLabel = capitalize(type.replace('_', ' '));
     const structuredName = isDeload
       ? `Deload / Day ${index + 1}`
-      : `W${weekNumber}/D${index + 1} — ${capitalize(type)}`;
+      : roleLabel
+        ? `W${weekNumber}/D${index + 1} — ${roleLabel} (${typeLabel})`
+        : `W${weekNumber}/D${index + 1} — ${typeLabel}`;
     session.name = structuredName;
 
     return session;
@@ -1293,7 +1398,8 @@ export function generateQuickWorkout(
 ): WorkoutSession {
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
                             goalFocus === 'hypertrophy' ? 'hypertrophy' :
-                            goalFocus === 'balanced' ? 'hypertrophy' : 'power';
+                            goalFocus === 'balanced' ? 'hypertrophy' :
+                            goalFocus === 'power' ? 'power' : 'hypertrophy';
 
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
   const compounds = allAvailable

@@ -401,6 +401,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
   const confidenceLedger = useAppStore(s => s.confidenceLedger);
+  const illnessLogs = useAppStore(s => s.illnessLogs);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
@@ -479,9 +480,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
       macroTargets, waterLog, injuryLog, quickLogs, competitions,
-      workoutSkips,
+      workoutSkips, illnessLogs,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips, illnessLogs]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {
@@ -540,6 +541,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     });
   };
 
+  // Check if the last completed workout finishes a previous block
+  const prevBlockJustCompleted = useMemo(() => {
+    if (!lastCompletedWorkout) return false;
+    const log = lastCompletedWorkout.log;
+    if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return false;
+    const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
+    if (!prevMeso) return false;
+    const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+    const completedSessionIds = new Set(
+      workoutLogs.filter(l => l.mesocycleId === prevMeso.id).map(l => l.sessionId)
+    );
+    const completedCount = prevMeso.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    return completedCount >= totalSessions;
+  }, [lastCompletedWorkout, currentMesocycle, mesocycleHistory, workoutLogs]);
+
   // ─── Victory sequence: Confetti + Haptic ───
   const confettiFired = useRef(false);
   useEffect(() => {
@@ -548,10 +566,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const hasBadge = lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0;
     const isSGrade = directive.todayPerformance?.grade === 'S';
     const manyPRs = (directive.todayPerformance?.prs ?? 0) >= 3;
-    if (hasPR || hasBadge || isSGrade) {
+    if (hasPR || hasBadge || isSGrade || prevBlockJustCompleted) {
       confettiFired.current = true;
-      // Sync confetti with victory animation — elite gets delayed for dramatic reveal
-      const isElite = isSGrade || manyPRs;
+      // Sync confetti with victory animation — elite/block-complete gets delayed for dramatic reveal
+      const isElite = isSGrade || manyPRs || prevBlockJustCompleted;
       setTimeout(() => fireConfetti(), isElite ? 1500 : 600);
       // Haptic at grade stamp moment
       setTimeout(() => {
@@ -560,7 +578,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         }
       }, 500);
     }
-  }, [lastCompletedWorkout, directive.todayPerformance]);
+  }, [lastCompletedWorkout, directive.todayPerformance, prevBlockJustCompleted]);
   // Reset confetti flag when workout summary is dismissed
   useEffect(() => {
     if (!lastCompletedWorkout) confettiFired.current = false;
@@ -866,13 +884,45 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         .filter(log => log.mesocycleId === currentMesocycle.id)
         .map(log => log.sessionId)
     );
+
+    // Build flat session list with day numbers
+    const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
     for (const week of currentMesocycle.weeks) {
-      for (const session of week.sessions) {
-        if (!completedSessionIds.has(session.id)) {
-          return { session, weekNumber: week.weekNumber, isDeload: week.isDeload };
+      for (let i = 0; i < week.sessions.length; i++) {
+        allSessions.push({ session: week.sessions[i], weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload });
+      }
+    }
+
+    // Find position of most recently completed session (by log date)
+    const mesoLogs = workoutLogs
+      .filter(log => log.mesocycleId === currentMesocycle.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    let lastCompletedIndex = -1;
+    for (const log of mesoLogs) {
+      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
+      if (pos !== -1) {
+        lastCompletedIndex = pos;
+        break;
+      }
+    }
+
+    // Look forward from the most recently completed session
+    if (lastCompletedIndex >= 0) {
+      for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
+        if (!completedSessionIds.has(allSessions[i].session.id)) {
+          return allSessions[i];
         }
       }
     }
+
+    // Fallback: first uncompleted from start (fresh mesocycle)
+    for (const entry of allSessions) {
+      if (!completedSessionIds.has(entry.session.id)) {
+        return entry;
+      }
+    }
+
     return null;
   };
 
@@ -1582,13 +1632,15 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           todayPerformance={directive.todayPerformance}
           lastCompletedWorkout={lastCompletedWorkout}
           postWorkoutNutritionNudge={postWorkoutNutritionNudge}
-          mesocycleProgress={mesocycleProgress}
+          mesocycleProgress={completedWorkoutProgress || mesocycleProgress}
           forwardLook={directive.forwardLook}
           weightUnit={weightUnit}
           shareCopied={shareCopied}
           onShare={handleShareWorkout}
           onDismiss={dismissWorkoutSummary}
           onNavigate={onNavigate}
+          onViewReport={onViewReport}
+          prevBlockJustCompleted={prevBlockJustCompleted}
         />
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (

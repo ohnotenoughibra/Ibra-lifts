@@ -118,7 +118,7 @@ export interface Exercise {
 }
 
 // Workout Programming Types
-export type WorkoutType = 'strength' | 'hypertrophy' | 'power';
+export type WorkoutType = 'strength' | 'hypertrophy' | 'power' | 'strength_endurance';
 export type SplitType = 'full_body' | 'upper_lower' | 'push_pull_legs' | 'grappler_hybrid' | 'striker_power' | 'wrestler_strength' | 'mma_hybrid';
 
 export interface SetPrescription {
@@ -1357,7 +1357,7 @@ export interface OnboardingData {
 export type ReadinessLevel = 'peak' | 'good' | 'moderate' | 'low' | 'critical';
 
 export interface ReadinessFactor {
-  source: 'sleep' | 'nutrition' | 'stress' | 'recovery' | 'injury' | 'training_load' | 'hydration' | 'age' | 'hrv' | 'soreness';
+  source: 'sleep' | 'nutrition' | 'stress' | 'recovery' | 'injury' | 'training_load' | 'hydration' | 'age' | 'hrv' | 'soreness' | 'illness';
   label: string;
   score: number;        // 0-100
   weight: number;       // importance 0-1 (redistributed if not tracked)

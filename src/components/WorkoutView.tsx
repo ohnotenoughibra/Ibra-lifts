@@ -23,6 +23,7 @@ import {
   Undo2,
   ChevronRight,
   Video,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
@@ -61,19 +62,51 @@ export default function WorkoutView() {
     return { total, completed, percentage };
   }, [currentMesocycle, completedSessionIds]);
 
-  // Find the next unfinished session
+  // Find the next unfinished session — continue from most recently completed position
   const nextUpSession = useMemo(() => {
     if (!currentMesocycle) return null;
+
+    // Build flat session list
+    const allSessions: { session: WorkoutSession; weekIndex: number; weekNumber: number }[] = [];
     for (let wIdx = 0; wIdx < currentMesocycle.weeks.length; wIdx++) {
       const week = currentMesocycle.weeks[wIdx];
       for (const session of week.sessions) {
-        if (!completedSessionIds.has(session.id)) {
-          return { session, weekIndex: wIdx, weekNumber: week.weekNumber };
+        allSessions.push({ session, weekIndex: wIdx, weekNumber: week.weekNumber });
+      }
+    }
+
+    // Find position of most recently completed session (by workout log date)
+    const mesoLogs = workoutLogs
+      .filter(log => log.mesocycleId === currentMesocycle.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    let lastCompletedIndex = -1;
+    for (const log of mesoLogs) {
+      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
+      if (pos !== -1) {
+        lastCompletedIndex = pos;
+        break;
+      }
+    }
+
+    // Look forward from the most recently completed session
+    if (lastCompletedIndex >= 0) {
+      for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
+        if (!completedSessionIds.has(allSessions[i].session.id)) {
+          return allSessions[i];
         }
       }
     }
+
+    // Fallback: first uncompleted from start (fresh mesocycle or wrap-around)
+    for (const entry of allSessions) {
+      if (!completedSessionIds.has(entry.session.id)) {
+        return entry;
+      }
+    }
+
     return null; // All sessions completed
-  }, [currentMesocycle, completedSessionIds]);
+  }, [currentMesocycle, completedSessionIds, workoutLogs]);
 
   // Current week index (for volume wave highlight)
   const currentWeekIndex = nextUpSession?.weekIndex ?? -1;
@@ -381,6 +414,8 @@ export default function WorkoutView() {
       case 'strength': return Zap;
       case 'hypertrophy': return Heart;
       case 'power': return Flame;
+      case 'strength_endurance': return Target;
+      default: return Zap;
     }
   };
 
@@ -389,6 +424,8 @@ export default function WorkoutView() {
       case 'strength': return 'text-red-400 bg-red-500/10';
       case 'hypertrophy': return 'text-purple-400 bg-purple-500/10';
       case 'power': return 'text-blue-400 bg-blue-500/10';
+      case 'strength_endurance': return 'text-amber-400 bg-amber-500/10';
+      default: return 'text-red-400 bg-red-500/10';
     }
   };
 

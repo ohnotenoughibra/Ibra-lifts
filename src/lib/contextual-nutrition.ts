@@ -2,7 +2,7 @@ import type { MacroTargets, WorkoutSession, TrainingSession, WearableData, UserP
 import { getIllnessTrainingRecommendation } from './illness-engine';
 
 export type TrainingDayType =
-  | 'strength' | 'hypertrophy' | 'power'
+  | 'strength' | 'hypertrophy' | 'power' | 'strength_endurance'
   | 'grappling_hard' | 'grappling_light'
   | 'two_a_day'     // AM + PM sessions (combat athletes)
   | 'sparring'      // striking/MMA sparring (highest intensity)
@@ -56,10 +56,15 @@ export function getContextualNutrition(
   // nutrition advice matches the dashboard's smart schedule.
   const hasTraining = todayTraining.length > 0;
   const trainingMinutes = todayTraining.reduce((sum, s) => sum + s.duration, 0);
-  // Check actual or planned intensity for hard sessions
+  // Check actual or planned intensity — respect the user's explicit selection
   const hasHardTraining = todayTraining.some(s => {
     const intensity = s.actualIntensity || s.plannedIntensity;
     return intensity === 'hard_sparring' || intensity === 'competition_prep';
+  });
+  // Moderate sessions only count as "hard" fueling if genuinely long (90+ min)
+  const hasLongModerateTraining = todayTraining.some(s => {
+    const intensity = s.actualIntensity || s.plannedIntensity;
+    return intensity === 'moderate' && s.duration >= 90;
   });
 
   // Detect two-a-day: multiple combat/training sessions logged today
@@ -83,7 +88,7 @@ export function getContextualNutrition(
     dayType = 'two_a_day';
   } else if (hasSparring) {
     dayType = 'sparring';
-  } else if (hasHardTraining || trainingMinutes >= 60) {
+  } else if (hasHardTraining || hasLongModerateTraining) {
     dayType = 'grappling_hard';
   } else if (hasTraining) {
     dayType = 'grappling_light';
@@ -169,6 +174,17 @@ export function getContextualNutrition(
       postworkoutTiming = 'Protein within 2-3 hours';
       carbCycleNote = 'Moderate carb day';
       recommendations.push('Keep pre-workout light for explosiveness');
+      break;
+
+    case 'strength_endurance':
+      calorieMultiplier = 1.15;
+      proteinMultiplier = 1.1;
+      carbMultiplier = 1.25;
+      preworkoutTiming = 'Eat 1.5-2 hours before — you need glycogen';
+      postworkoutTiming = 'Protein + carbs within 2 hours for glycogen replenishment';
+      carbCycleNote = 'High carb day — sustained effort depletes glycogen fast';
+      recommendations.push('Pre-workout: 40-60g carbs + 20g protein');
+      recommendations.push('Hydrate aggressively — high-rep work means more sweating');
       break;
 
     case 'grappling_hard':
@@ -469,6 +485,7 @@ export function getSupplementRecommendations(dayType: TrainingDayType): string[]
     strength: ['Caffeine pre-workout for performance', 'Beta-alanine for endurance sets'],
     hypertrophy: ['Citrulline for pump', 'EAAs during workout if fasted'],
     power: ['Caffeine if needed', 'Light on stimulants to maintain feel'],
+    strength_endurance: ['Beta-alanine for sustained output', 'Electrolytes during session', 'Caffeine pre-workout'],
     grappling_hard: ['Electrolytes during training', 'Tart cherry for recovery', 'Magnesium before bed'],
     grappling_light: ['Electrolytes if sweating', 'Optional: adaptogens for stress'],
     two_a_day: ['Electrolytes for BOTH sessions', 'Collagen + vitamin C before first session', 'Tart cherry post second session', 'Magnesium before bed'],

@@ -867,6 +867,8 @@
   /* Overlay safe area — pushes content below status bar and adjusts sticky headers */
   .overlay-safe {
     padding-top: env(safe-area-inset-top);
+    width: 100%;
+    overflow-x: hidden;
   }
   .overlay-safe .sticky {
     top: env(safe-area-inset-top);

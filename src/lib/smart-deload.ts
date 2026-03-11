@@ -339,23 +339,94 @@ function countTrainingWeeks(logs: WorkoutLog[]): number {
 }
 
 /**
+ * Check if the user is currently in a mesocycle deload week, or has completed
+ * a deload week within the last 10 days (to avoid recommending a deload
+ * right after one finishes before fatigue metrics have fully updated).
+ */
+function isInOrJustCompletedDeloadWeek(mesocycle: Mesocycle, workoutLogs: WorkoutLog[]): boolean {
+  const mesoLogs = workoutLogs.filter(l => l.mesocycleId === mesocycle.id);
+  const completedSessionIds = new Set(mesoLogs.map(l => l.sessionId));
+
+  // Build flat list of all sessions with their week info
+  const allSessions: { sessionId: string; weekNumber: number; isDeload: boolean }[] = [];
+  for (const week of mesocycle.weeks) {
+    for (const session of week.sessions) {
+      allSessions.push({
+        sessionId: session.id,
+        weekNumber: week.weekNumber,
+        isDeload: week.isDeload,
+      });
+    }
+  }
+
+  // Find the most recently completed session by log date
+  if (mesoLogs.length > 0) {
+    const sortedLogs = [...mesoLogs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    for (const log of sortedLogs) {
+      const sessionInfo = allSessions.find(s => s.sessionId === log.sessionId);
+      if (sessionInfo) {
+        // If the most recent workout was in a deload week, user is deloading or just finished
+        if (sessionInfo.isDeload) return true;
+
+        // Also check: is the NEXT uncompleted session in a deload week?
+        const logIndex = allSessions.findIndex(s => s.sessionId === log.sessionId);
+        for (let i = logIndex + 1; i < allSessions.length; i++) {
+          if (!completedSessionIds.has(allSessions[i].sessionId)) {
+            if (allSessions[i].isDeload) return true;
+            break; // next session is not deload, stop checking
+          }
+        }
+        break;
+      }
+    }
+
+    // Check if the most recent deload-week log was within the last 10 days
+    // (covers the gap between finishing deload and starting the new block)
+    const tenDaysAgo = Date.now() - 10 * DAY_MS;
+    const recentDeloadLog = sortedLogs.find(log => {
+      const sessionInfo = allSessions.find(s => s.sessionId === log.sessionId);
+      return sessionInfo?.isDeload && new Date(log.date).getTime() >= tenDaysAgo;
+    });
+    if (recentDeloadLog) return true;
+  }
+
+  // Check if the current week (by date) maps to a deload week in the mesocycle
+  const mesoStart = new Date(mesocycle.startDate).getTime();
+  const now = Date.now();
+  if (now >= mesoStart) {
+    const weeksSinceStart = Math.floor((now - mesoStart) / WEEK_MS);
+    const currentWeek = mesocycle.weeks[weeksSinceStart];
+    if (currentWeek?.isDeload) return true;
+  }
+
+  return false;
+}
+
+/**
  * Count consecutive weeks of progressive overload (no deload) from the most recent week backwards.
  */
 function countConsecutiveOverloadWeeks(weeklyScores: { week: number; score: number }[]): number {
   if (weeklyScores.length < 2) return weeklyScores.length;
 
-  let count = 1; // at least the current week
-  for (let i = weeklyScores.length - 1; i > 0; i--) {
-    // A "deload" week would show significantly lower score than average
-    const avgScore = weeklyScores.reduce((s, w) => s + w.score, 0) / weeklyScores.length;
-    if (weeklyScores[i].score >= avgScore * 0.65) {
+  const avgScore = weeklyScores.reduce((s, w) => s + w.score, 0) / weeklyScores.length;
+  // Threshold raised to 80%: a deload week should show at least 20% lower fatigue than average.
+  // The old 65% threshold was too lenient — non-training fatigue components (sleep, recovery)
+  // keep the overall score elevated even when training volume drops 40-50% during deload.
+  const deloadThreshold = avgScore * 0.80;
+
+  let count = 0;
+  for (let i = weeklyScores.length - 1; i >= 0; i--) {
+    if (weeklyScores[i].score >= deloadThreshold) {
       count++;
     } else {
       break;
     }
   }
 
-  return count;
+  return Math.max(count, 1); // at least 1 (current week)
 }
 
 /**
@@ -624,6 +695,14 @@ export function getSmartDeloadRecommendation(
     return {
       ...noDeload,
       reason: 'Not enough training history yet (need 3+ weeks) — keep building your base.',
+    };
+  }
+
+  // Gate: user is currently on a deload week or just completed one
+  if (currentMesocycle && isInOrJustCompletedDeloadWeek(currentMesocycle, workoutLogs)) {
+    return {
+      ...noDeload,
+      reason: 'Deload week in progress or recently completed — recovery is underway.',
     };
   }
 

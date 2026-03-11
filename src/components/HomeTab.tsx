@@ -1006,28 +1006,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
   })();
 
-  // Progress for the mesocycle the last completed workout belongs to
-  // (may differ from currentMesocycle if the block transitioned after completion)
-  const completedWorkoutProgress = (() => {
-    if (!lastCompletedWorkout) return mesocycleProgress;
-    const log = lastCompletedWorkout.log;
-    // If the workout belongs to the current mesocycle, just use current progress
-    if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return mesocycleProgress;
-    // The workout belongs to a previous mesocycle — find it and compute its progress
-    const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
-    if (!prevMeso) return mesocycleProgress;
-    const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const completedSessionIds = new Set(
-      workoutLogs
-        .filter(l => l.mesocycleId === prevMeso.id)
-        .map(l => l.sessionId)
-    );
-    const completedCount = prevMeso.weeks.reduce((sum, w) =>
-      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
-    );
-    return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
-  })();
-
   // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
   // pointing to other mesocycle IDs (from history or unknown). These should have been migrated.
   const needsProgressRepair = useMemo(() => {

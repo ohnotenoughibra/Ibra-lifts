@@ -15,6 +15,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, MesocycleWeek, WorkoutType } from '@/lib/types';
+import { getCompletedSessionIds } from '@/lib/session-matching';
 
 interface PeriodizationCalendarProps {
   onClose: () => void;
@@ -70,13 +71,9 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
 
   const currentWeekIndex = getCurrentWeekIndex();
 
-  // Check if a specific session has been completed
-  const isSessionCompleted = (sessionId: string): boolean => {
-    if (!currentMesocycle) return false;
-    return workoutLogs.some(
-      (log) => log.mesocycleId === currentMesocycle.id && log.sessionId === sessionId
-    );
-  };
+  // Position-based session completion check
+  const completedIds = getCompletedSessionIds(currentMesocycle, workoutLogs);
+  const isSessionCompleted = (sessionId: string): boolean => completedIds.has(sessionId);
 
   // Find the max volume multiplier for chart scaling
   const maxVolume = currentMesocycle

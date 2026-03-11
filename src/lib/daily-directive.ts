@@ -29,6 +29,7 @@ import type {
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
+import { getNextSession as getNextSessionFromMatching } from './session-matching';
 import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
@@ -625,65 +626,8 @@ function getNextWorkout(
   mesocycle: Mesocycle | null,
   logs: WorkoutLog[]
 ): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean } | null {
-  if (!mesocycle) return null;
-  const mesoLogs = logs.filter(l => l.mesocycleId === mesocycle.id);
-  const completedIds = new Set(mesoLogs.map(l => l.sessionId));
-
-  // Build a flat ordered list of all sessions, sorted by week then day
-  // to guarantee correct order regardless of weeks array ordering
-  const allSessions: { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
-  for (const week of mesocycle.weeks) {
-    for (let i = 0; i < week.sessions.length; i++) {
-      allSessions.push({
-        session: week.sessions[i],
-        weekNumber: week.weekNumber,
-        dayNumber: i + 1,
-        isDeload: week.isDeload,
-      });
-    }
-  }
-  allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
-
-  // Count how many sessions actually match by ID
-  let matchedCount = 0;
-  let lastCompletedIndex = -1;
-  for (let i = 0; i < allSessions.length; i++) {
-    if (completedIds.has(allSessions[i].session.id)) {
-      lastCompletedIndex = i;
-      matchedCount++;
-    }
-  }
-
-  // If sessionIds match: use position-based forward search
-  if (lastCompletedIndex >= 0) {
-    for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
-      if (!completedIds.has(allSessions[i].session.id)) {
-        const { session, weekNumber, dayNumber, isDeload } = allSessions[i];
-        return { session, weekNumber, dayNumber, isDeload };
-      }
-    }
-  }
-
-  // Count-based fallback: if we have logs for this mesocycle but sessionIds
-  // don't match any sessions (stale IDs after migration/regeneration),
-  // use the log count to determine position sequentially.
-  if (mesoLogs.length > 0 && matchedCount === 0) {
-    const nextIndex = Math.min(mesoLogs.length, allSessions.length - 1);
-    if (nextIndex < allSessions.length) {
-      const { session, weekNumber, dayNumber, isDeload } = allSessions[nextIndex];
-      return { session, weekNumber, dayNumber, isDeload };
-    }
-  }
-
-  // Fallback: first uncompleted session from the start
-  for (const entry of allSessions) {
-    if (!completedIds.has(entry.session.id)) {
-      const { session, weekNumber, dayNumber, isDeload } = entry;
-      return { session, weekNumber, dayNumber, isDeload };
-    }
-  }
-
-  return null;
+  const result = getNextSessionFromMatching(mesocycle, logs);
+  return result ? { session: result.session, weekNumber: result.weekNumber, dayNumber: result.dayNumber, isDeload: result.isDeload } : null;
 }
 
 function buildSubline(

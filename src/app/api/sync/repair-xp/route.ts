@@ -6,6 +6,8 @@ import { createBackupIfEligible } from '@/lib/db-backup';
 
 export const dynamic = 'force-dynamic';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/sync/repair-xp
  *

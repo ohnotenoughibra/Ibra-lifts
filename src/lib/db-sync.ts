@@ -475,6 +475,10 @@ export async function flushSyncQueue(): Promise<void> {
  * Immediately flush any pending debounced sync.
  * Called when the page is about to be hidden (app backgrounded, tab closed, etc.)
  * so we don't lose data that was waiting on the debounce timer.
+ *
+ * Strategy: ALWAYS persist to localStorage queue first (survives page kill),
+ * then attempt network delivery as best-effort. On next visit, flushSyncQueue
+ * will push any queued data that didn't make it.
  */
 export function flushPendingSync(): void {
   if (!pendingPayload) return;
@@ -485,20 +489,45 @@ export function flushPendingSync(): void {
   if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
   if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
 
-  // Use sendBeacon for reliability during page hide (fetch may be cancelled)
-  if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-    const payload = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
-    const sent = navigator.sendBeacon('/api/sync', new Blob([payload], { type: 'application/json' }));
-    if (sent) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[db-sync] Flushed pending sync via sendBeacon');
-      }
-      return;
+  // ALWAYS queue to localStorage first — this is the safety net.
+  // Even if sendBeacon/fetch succeeds, flushSyncQueue on next visit
+  // will harmlessly merge (server-side merge is idempotent).
+  queueForBackgroundSync(userId, data);
+
+  // Best-effort network delivery (may not complete before page kill)
+  const payload = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
+
+  // Try fetch with keepalive (survives page unload, up to ~64KB in most browsers)
+  // For large payloads this may fail, but the localStorage queue has our back.
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    try {
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).then(async (res) => {
+        if (res.ok) {
+          // Success — clear the queue entry we just added
+          const queue = loadQueueFromStorage();
+          if (queue.length > 0) {
+            // Remove the entry we just queued (last one)
+            queue.pop();
+            saveQueueToStorage(queue);
+          }
+          recordSyncSuccess();
+        }
+      }).catch(() => {
+        // Network failed — queue already persisted, will retry on next visit
+      });
+    } catch {
+      // fetch itself threw (e.g., page already unloading) — queue is persisted
     }
   }
 
-  // Fallback: fire-and-forget fetch (may or may not complete)
-  doSync(userId, data).catch(() => queueForBackgroundSync(userId, data));
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[db-sync] Flushed pending sync (queued + best-effort fetch)');
+  }
 }
 
 /**

@@ -543,6 +543,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   // Check if the last completed workout finishes a previous block
   const prevBlockJustCompleted = useMemo(() => {
+    // Check new flag first (set by completeWorkout)
+    if (lastCompletedWorkout?.isMesocycleComplete) return true;
     if (!lastCompletedWorkout) return false;
     const log = lastCompletedWorkout.log;
     if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return false;
@@ -557,6 +559,36 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
     return completedCount >= totalSessions;
   }, [lastCompletedWorkout, currentMesocycle, mesocycleHistory, workoutLogs]);
+
+  // Block-level stats when mesocycle just completed
+  const blockCompleteStats = useMemo(() => {
+    if (!prevBlockJustCompleted || !lastCompletedWorkout) return null;
+    const mesoId = lastCompletedWorkout.log.mesocycleId;
+    if (!mesoId || mesoId === 'standalone') return null;
+    const blockLogs = workoutLogs.filter(l => l.mesocycleId === mesoId);
+    if (blockLogs.length === 0) return null;
+
+    const totalVolume = blockLogs.reduce((s, l) => s + l.totalVolume, 0);
+    const totalPRs = blockLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+    const avgRPE = +(blockLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / blockLogs.length).toFixed(1);
+    const totalDuration = blockLogs.reduce((s, l) => s + (l.duration || 0), 0);
+    const sessionsCompleted = blockLogs.length;
+    const mesoName = lastCompletedWorkout.mesocycleName || currentMesocycle?.name || 'Block';
+
+    // Compare with previous block if available
+    const prevMeso = mesocycleHistory.find(m => m.id !== mesoId);
+    let volumeDelta: number | null = null;
+    if (prevMeso) {
+      const prevLogs = workoutLogs.filter(l => l.mesocycleId === prevMeso.id);
+      if (prevLogs.length > 0) {
+        const prevAvgVol = prevLogs.reduce((s, l) => s + l.totalVolume, 0) / prevLogs.length;
+        const currAvgVol = totalVolume / blockLogs.length;
+        volumeDelta = Math.round(((currAvgVol - prevAvgVol) / prevAvgVol) * 100);
+      }
+    }
+
+    return { totalVolume, totalPRs, avgRPE, totalDuration, sessionsCompleted, mesoName, volumeDelta };
+  }, [prevBlockJustCompleted, lastCompletedWorkout, workoutLogs, currentMesocycle, mesocycleHistory]);
 
   // ─── Victory sequence: Confetti + Haptic ───
   const confettiFired = useRef(false);
@@ -1641,6 +1673,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onNavigate={onNavigate}
           onViewReport={onViewReport}
           prevBlockJustCompleted={prevBlockJustCompleted}
+          blockCompleteStats={blockCompleteStats}
         />
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (

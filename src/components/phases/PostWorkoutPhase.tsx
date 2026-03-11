@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import {
   Check, Share2, Trophy, Brain, ChevronRight, Shield,
-  TrendingUp, Calendar, Apple,
+  TrendingUp, Calendar, Apple, Flame, Dumbbell, Zap, BarChart3,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
@@ -23,6 +23,10 @@ interface PostWorkoutPhaseProps {
     hadPR: boolean;
     newBadges?: { id: string; icon: string; name: string }[];
     newStreak: number;
+    points?: number;
+    isMesocycleComplete?: boolean;
+    mesocycleName?: string;
+    mesocycleTotalSessions?: number;
   } | null;
   postWorkoutNutritionNudge: { text: string; urgent: boolean } | null;
   mesocycleProgress: { total: number; completed: number; percent: number; blockName?: string; isComplete?: boolean } | null;
@@ -34,6 +38,15 @@ interface PostWorkoutPhaseProps {
   onNavigate: (view: OverlayView, context?: string) => void;
   onViewReport?: (mesoId: string) => void;
   prevBlockJustCompleted?: boolean;
+  blockCompleteStats?: {
+    totalVolume: number;
+    totalPRs: number;
+    avgRPE: number;
+    totalDuration: number;
+    sessionsCompleted: number;
+    mesoName: string;
+    volumeDelta: number | null;
+  } | null;
 }
 
 export default function PostWorkoutPhase({
@@ -49,7 +62,179 @@ export default function PostWorkoutPhase({
   onNavigate,
   onViewReport,
   prevBlockJustCompleted,
+  blockCompleteStats,
 }: PostWorkoutPhaseProps) {
+  const isMesoComplete = prevBlockJustCompleted || lastCompletedWorkout?.isMesocycleComplete;
+  const blockStats = blockCompleteStats;
+
+  // ─── Mesocycle Complete Card ───
+  if (isMesoComplete && blockStats) {
+    const hours = Math.floor(blockStats.totalDuration / 60);
+    const mins = blockStats.totalDuration % 60;
+    return (
+      <motion.div
+        key="zone2-block-complete-celebration"
+        initial={{ opacity: 0, scale: 0.94, y: 28 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        className="rounded-2xl border border-primary-500/30 bg-gradient-to-br from-primary-500/15 via-grappler-800 to-accent-500/10 p-5 overflow-hidden"
+      >
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.3 }}
+          className="text-center mb-4"
+        >
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
+            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/25 to-accent-500/25 border border-primary-500/20 flex items-center justify-center mx-auto mb-3"
+          >
+            <Trophy className="w-8 h-8 text-primary-400" />
+          </motion.div>
+          <motion.h3
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.3 }}
+            className="text-lg font-black text-grappler-50"
+          >
+            Block Complete
+          </motion.h3>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.25 }}
+            className="text-sm text-grappler-400 mt-1"
+          >
+            <span className="text-primary-300 font-semibold">{blockStats.mesoName}</span> — all {blockStats.sessionsCompleted} sessions crushed
+          </motion.p>
+        </motion.div>
+
+        {/* Block summary stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.3 }}
+          className="grid grid-cols-2 gap-2 mb-3"
+        >
+          <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-3 text-center">
+            <Dumbbell className="w-4 h-4 text-primary-400 mx-auto mb-1" />
+            <p className="text-lg font-black text-grappler-100">{formatNumber(blockStats.totalVolume)}</p>
+            <p className="text-xs text-grappler-400 uppercase">Total {weightUnit}</p>
+            {blockStats.volumeDelta !== null && (
+              <p className={cn('text-xs font-bold mt-0.5', blockStats.volumeDelta > 0 ? 'text-green-400' : blockStats.volumeDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                {blockStats.volumeDelta > 0 ? '+' : ''}{blockStats.volumeDelta}% vs prev
+              </p>
+            )}
+          </div>
+          <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-3 text-center">
+            <Trophy className="w-4 h-4 text-yellow-400 mx-auto mb-1" />
+            <p className="text-lg font-black text-grappler-100">{blockStats.totalPRs}</p>
+            <p className="text-xs text-grappler-400 uppercase">PRs Set</p>
+          </div>
+          <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-3 text-center">
+            <Flame className="w-4 h-4 text-orange-400 mx-auto mb-1" />
+            <p className="text-lg font-black text-grappler-100">{blockStats.avgRPE}</p>
+            <p className="text-xs text-grappler-400 uppercase">Avg RPE</p>
+          </div>
+          <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-3 text-center">
+            <Calendar className="w-4 h-4 text-blue-400 mx-auto mb-1" />
+            <p className="text-lg font-black text-grappler-100">{hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ''}` : `${mins}m`}</p>
+            <p className="text-xs text-grappler-400 uppercase">Time Trained</p>
+          </div>
+        </motion.div>
+
+        {/* Today's session summary (compact) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.25 }}
+          className="bg-grappler-900/40 border border-grappler-700/30 rounded-xl p-3 mb-3"
+        >
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-grappler-400 font-bold uppercase tracking-wide">Final Session</span>
+            <span className={cn(
+              'text-xs font-black px-2 py-0.5 rounded-full',
+              todayPerformance.grade === 'S' ? 'bg-yellow-500/15 text-yellow-400' :
+              todayPerformance.grade === 'A' ? 'bg-green-500/15 text-green-400' :
+              'bg-primary-500/15 text-primary-400'
+            )}>
+              {todayPerformance.grade}
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-grappler-200 font-bold">{formatNumber(todayPerformance.totalVolume)} {weightUnit}</span>
+            <span className="text-grappler-400">{todayPerformance.totalSets} sets</span>
+            <span className="text-grappler-400">RPE {todayPerformance.avgRPE}</span>
+          </div>
+          {todayPerformance.prs > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <Trophy className="w-3 h-3 text-yellow-400" />
+              <span className="text-xs text-yellow-300">
+                {todayPerformance.prs === 1
+                  ? `PR: ${todayPerformance.prExercises[0]}`
+                  : `${todayPerformance.prs} PRs: ${todayPerformance.prExercises.slice(0, 2).join(', ')}${todayPerformance.prs > 2 ? ` +${todayPerformance.prs - 2}` : ''}`}
+              </span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Badges */}
+        {lastCompletedWorkout?.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.55, duration: 0.25 }}
+            className="flex gap-1.5 mb-3 flex-wrap"
+          >
+            {lastCompletedWorkout.newBadges.map((badge, i) => (
+              <span
+                key={badge.id}
+                className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300"
+              >
+                {badge.icon} {badge.name}
+              </span>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Block progress bar — 100% */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.25 }}
+          className="mb-3"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-grappler-500">Block</span>
+            <div className="flex-1 h-2 bg-grappler-700 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: '80%' }}
+                animate={{ width: '100%' }}
+                transition={{ delay: 0.8, duration: 0.6, ease: 'easeOut' }}
+                className="h-full bg-gradient-to-r from-primary-500 to-accent-400 rounded-full"
+              />
+            </div>
+            <span className="text-xs text-primary-400 font-bold">{blockStats.sessionsCompleted}/{blockStats.sessionsCompleted}</span>
+          </div>
+        </motion.div>
+
+        {/* Done button */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.25 }}
+          onClick={onDismiss}
+          className="w-full py-3 text-sm font-bold text-primary-300 rounded-xl border border-primary-500/30 bg-primary-500/10 hover:bg-primary-500/20 transition-colors"
+        >
+          Done
+        </motion.button>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       key="zone2-recovery-perf"

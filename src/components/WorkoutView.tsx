@@ -34,7 +34,7 @@ import { BlockTimeline, VolumeWave, AICoachInsight } from './MesocycleTimeline';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function WorkoutView() {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions } = useAppStore(
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
@@ -42,8 +42,22 @@ export default function WorkoutView() {
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
       injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
+      repairMesocycleProgress: s.repairMesocycleProgress,
     }))
   );
+
+  // Auto-repair orphaned sessionIds on mount
+  const sessionRepairDone = useRef(false);
+  useEffect(() => {
+    if (sessionRepairDone.current || !currentMesocycle) return;
+    const mesoLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    if (mesoLogs.length === 0) return;
+    const allSessionIds = new Set(currentMesocycle.weeks.flatMap(w => w.sessions.map(s => s.id)));
+    if (mesoLogs.some(l => !allSessionIds.has(l.sessionId))) {
+      sessionRepairDone.current = true;
+      repairMesocycleProgress();
+    }
+  }, [currentMesocycle, workoutLogs, repairMesocycleProgress]);
 
   // Track which sessions have been completed in this mesocycle
   const completedSessionIds = new Set(

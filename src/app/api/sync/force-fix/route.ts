@@ -93,6 +93,15 @@ export async function GET() {
   <p id="backup-status" style="color:#999;font-size:11px;margin:8px 0 0;display:none"></p>
 </div>
 
+<div style="background:#1a2e2e;border:1px solid #2dd4bf;border-radius:12px;padding:16px;margin:16px 0">
+  <p style="color:#2dd4bf;font-size:11px;text-transform:uppercase;margin:0 0 8px;font-weight:600">Fix Deload Logs</p>
+  <p style="color:#999;font-size:12px;margin:0 0 12px">Moves deload sessions back to the previous mesocycle if they were incorrectly counted in the new block</p>
+  <button onclick="fixDeloadLogs()" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2dd4bf;background:#2dd4bf22;color:#2dd4bf;font-size:13px;font-weight:600;cursor:pointer">
+    Fix Deload Logs
+  </button>
+  <p id="deload-status" style="color:#999;font-size:11px;margin:8px 0 0;display:none"></p>
+</div>
+
 <button onclick="clearCaches()" style="width:100%;padding:10px;border-radius:12px;border:1px solid #555;background:transparent;color:#999;font-size:12px;cursor:pointer;margin:8px 0">
   Clear Caches & Service Workers
 </button>
@@ -220,6 +229,72 @@ async function doRepairXP() {
     setTimeout(function() { location.reload(); }, 3000);
   } catch(e) {
     statusEl.style.color='#f87171'; statusEl.textContent='Error: ' + e.message;
+  }
+}
+
+function fixDeloadLogs() {
+  var statusEl = document.getElementById('deload-status');
+  statusEl.style.display = 'block';
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { statusEl.style.color='#f87171'; statusEl.textContent='No localStorage data'; return; }
+    var parsed = JSON.parse(raw);
+    var s = parsed.state || {};
+    var current = s.currentMesocycle;
+    var history = s.mesocycleHistory || [];
+    var logs = s.workoutLogs || [];
+    if (!current || history.length === 0) { statusEl.style.color='#f59e0b'; statusEl.textContent='No mesocycle history to fix'; return; }
+
+    var oldMeso = history[history.length - 1];
+    var oldSessions = [];
+    for (var w = 0; w < (oldMeso.weeks || []).length; w++) {
+      var week = oldMeso.weeks[w];
+      for (var si = 0; si < (week.sessions || []).length; si++) {
+        oldSessions.push(week.sessions[si]);
+      }
+    }
+
+    // Find sessions in old meso that have no matching log
+    var oldLoggedIds = {};
+    for (var i = 0; i < logs.length; i++) {
+      if (logs[i].mesocycleId === oldMeso.id) oldLoggedIds[logs[i].sessionId] = true;
+    }
+    var uncompletedOld = [];
+    for (var j = 0; j < oldSessions.length; j++) {
+      if (!oldLoggedIds[oldSessions[j].id]) uncompletedOld.push(oldSessions[j]);
+    }
+
+    if (uncompletedOld.length === 0) { statusEl.style.color='#4ade80'; statusEl.textContent='Old mesocycle already fully logged — nothing to fix'; return; }
+
+    // Find logs in the current mesocycle that are recent (could be the misattributed deload sessions)
+    var currentLogs = [];
+    for (var k = 0; k < logs.length; k++) {
+      if (logs[k].mesocycleId === current.id) currentLogs.push({ idx: k, log: logs[k] });
+    }
+    // Sort by date ascending — take the earliest ones (those are likely the deload sessions)
+    currentLogs.sort(function(a, b) { return new Date(a.log.date) - new Date(b.log.date); });
+
+    var fixed = 0;
+    var toFix = Math.min(uncompletedOld.length, currentLogs.length);
+    for (var m = 0; m < toFix; m++) {
+      var logEntry = currentLogs[m];
+      var targetSession = uncompletedOld[m];
+      logs[logEntry.idx].mesocycleId = oldMeso.id;
+      logs[logEntry.idx].sessionId = targetSession.id;
+      fixed++;
+    }
+
+    if (fixed > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      statusEl.style.color = '#4ade80';
+      statusEl.textContent = 'Fixed ' + fixed + ' log(s)! Moved back to ' + (oldMeso.name || 'previous block') + '. Refresh the app.';
+    } else {
+      statusEl.style.color = '#f59e0b';
+      statusEl.textContent = 'No logs to fix — current block has no sessions to reassign';
+    }
+  } catch(e) {
+    statusEl.style.color = '#f87171';
+    statusEl.textContent = 'Error: ' + e.message;
   }
 }
 

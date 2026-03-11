@@ -638,6 +638,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
   }, [directive.todayType, directive.readinessLevel, workoutLogs, awardSmartRest, showToast]);
 
+  // ─── Auto-repair orphaned sessionIds — logs have correct mesocycleId but stale sessionIds ───
+  const sessionRepairDone = useRef(false);
+  useEffect(() => {
+    if (sessionRepairDone.current || !currentMesocycle) return;
+    const mesoLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    if (mesoLogs.length === 0) return;
+    const allSessionIds = new Set(currentMesocycle.weeks.flatMap(w => w.sessions.map(s => s.id)));
+    const hasOrphaned = mesoLogs.some(l => !allSessionIds.has(l.sessionId));
+    if (hasOrphaned) {
+      sessionRepairDone.current = true;
+      const result = repairMesocycleProgress();
+      if (result.fixed > 0) {
+        showToast(`Synced ${result.fixed} workouts to your program`, 'success');
+      }
+    }
+  }, [currentMesocycle, workoutLogs, repairMesocycleProgress, showToast]);
+
   // ─── Post-workout nutrition nudge (sport-aware) ───
   const postWorkoutNutritionNudge = useMemo(() => {
     if (!lastCompletedWorkout) return null;
@@ -1006,14 +1023,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
   })();
 
-  // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
-  // pointing to other mesocycle IDs (from history or unknown). These should have been migrated.
+  // Detect orphaned progress: mesocycle logs exist but sessionIds don't match any session
   const needsProgressRepair = useMemo(() => {
     if (!currentMesocycle) return false;
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-    if (currentLogs.length > 0) return false;
 
-    // Check for recent logs that should be in the current mesocycle
+    // Case 1: Logs with correct mesocycleId but stale sessionIds
+    if (currentLogs.length > 0) {
+      const allSessionIds = new Set(currentMesocycle.weeks.flatMap(w => w.sessions.map(s => s.id)));
+      const orphanedCount = currentLogs.filter(l => !allSessionIds.has(l.sessionId)).length;
+      return orphanedCount > 0;
+    }
+
+    // Case 2: No logs for current mesocycle but recent orphaned logs exist
     const mesoStart = new Date(currentMesocycle.startDate);
     const orphanedLogs = workoutLogs.filter(l =>
       l.mesocycleId !== currentMesocycle.id &&

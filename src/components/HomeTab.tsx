@@ -927,20 +927,31 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
 
     // Find the FURTHEST completed position (highest index among all completed sessions)
-    // instead of most-recent-by-date — prevents pointer from going backwards after migrations
     let lastCompletedIndex = -1;
+    let matchedCount = 0;
     for (let i = 0; i < allSessions.length; i++) {
       if (completedSessionIds.has(allSessions[i].session.id)) {
         lastCompletedIndex = i;
+        matchedCount++;
       }
     }
 
-    // Look forward from the furthest completed session
+    // If sessionIds match: use position-based forward search
     if (lastCompletedIndex >= 0) {
       for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
         if (!completedSessionIds.has(allSessions[i].session.id)) {
           return allSessions[i];
         }
+      }
+    }
+
+    // Count-based fallback: if we have logs for this mesocycle but sessionIds
+    // don't match (stale after migration), use log count as position
+    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
+    if (mesoLogCount > 0 && matchedCount === 0) {
+      const nextIndex = Math.min(mesoLogCount, allSessions.length - 1);
+      if (nextIndex < allSessions.length) {
+        return allSessions[nextIndex];
       }
     }
 
@@ -960,16 +971,40 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const mesocycleProgress = useMemo(() => {
     if (!currentMesocycle) return null;
     const totalSessions = currentMesocycle.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const completedSessionIds = new Set(
-      workoutLogs
-        .filter(log => log.mesocycleId === currentMesocycle.id)
-        .map(log => log.sessionId)
-    );
-    const completedCount = currentMesocycle.weeks.reduce((sum, w) =>
+    const mesoLogs = workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id);
+    const completedSessionIds = new Set(mesoLogs.map(log => log.sessionId));
+    // Count sessions whose IDs match log sessionIds
+    let completedCount = currentMesocycle.weeks.reduce((sum, w) =>
       sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
     );
+    // If logs exist but no sessionIds match (stale after migration), use log count
+    if (completedCount === 0 && mesoLogs.length > 0) {
+      completedCount = Math.min(mesoLogs.length, totalSessions);
+    }
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
   }, [currentMesocycle, workoutLogs]);
+
+  // Progress for the mesocycle the last completed workout belongs to
+  // (may differ from currentMesocycle if the block transitioned after completion)
+  const completedWorkoutProgress = (() => {
+    if (!lastCompletedWorkout) return mesocycleProgress;
+    const log = lastCompletedWorkout.log;
+    // If the workout belongs to the current mesocycle, just use current progress
+    if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return mesocycleProgress;
+    // The workout belongs to a previous mesocycle — find it and compute its progress
+    const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
+    if (!prevMeso) return mesocycleProgress;
+    const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+    const completedSessionIds = new Set(
+      workoutLogs
+        .filter(l => l.mesocycleId === prevMeso.id)
+        .map(l => l.sessionId)
+    );
+    const completedCount = prevMeso.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
+  })();
 
   // Progress for the mesocycle the last completed workout belongs to
   // (may differ from currentMesocycle if the block transitioned after completion)

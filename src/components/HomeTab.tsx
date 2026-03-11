@@ -572,21 +572,70 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const avgRPE = +(blockLogs.reduce((s, l) => s + (l.overallRPE || 7), 0) / blockLogs.length).toFixed(1);
     const totalDuration = blockLogs.reduce((s, l) => s + (l.duration || 0), 0);
     const sessionsCompleted = blockLogs.length;
-    const mesoName = lastCompletedWorkout.mesocycleName || currentMesocycle?.name || 'Block';
+    const meso = mesocycleHistory.find(m => m.id === mesoId) || currentMesocycle;
+    const mesoName = lastCompletedWorkout.mesocycleName || meso?.name || 'Block';
+    const totalPlanned = meso ? meso.weeks.reduce((s, w) => s + w.sessions.length, 0) : sessionsCompleted;
+    const completionRate = totalPlanned > 0 ? Math.round((sessionsCompleted / totalPlanned) * 100) : 100;
 
-    // Compare with previous block if available
+    // Strength gains: compute best e1RM per exercise in this block vs previous block
+    const calc1RM = (w: number, r: number) => r <= 0 || w <= 0 ? 0 : r === 1 ? w : Math.round(w / (1.0278 - 0.0278 * r));
+    const best1RMMap = new Map<string, { name: string; best1RM: number }>();
+    blockLogs.forEach(l => l.exercises.forEach(ex => {
+      ex.sets.forEach(set => {
+        if (set.completed && set.weight > 0 && set.reps > 0) {
+          const e1rm = calc1RM(set.weight, set.reps);
+          const existing = best1RMMap.get(ex.exerciseId);
+          if (!existing || e1rm > existing.best1RM) {
+            best1RMMap.set(ex.exerciseId, { name: ex.exerciseName, best1RM: e1rm });
+          }
+        }
+      });
+    }));
+
+    // Compare with previous block
     const prevMeso = mesocycleHistory.find(m => m.id !== mesoId);
     let volumeDelta: number | null = null;
+    let comparisonName: string | null = null;
+    const strengthGains: { name: string; current: number; prev: number; delta: number }[] = [];
+
     if (prevMeso) {
+      comparisonName = prevMeso.name;
       const prevLogs = workoutLogs.filter(l => l.mesocycleId === prevMeso.id);
       if (prevLogs.length > 0) {
         const prevAvgVol = prevLogs.reduce((s, l) => s + l.totalVolume, 0) / prevLogs.length;
         const currAvgVol = totalVolume / blockLogs.length;
         volumeDelta = Math.round(((currAvgVol - prevAvgVol) / prevAvgVol) * 100);
+
+        // Previous block best e1RM per exercise
+        const prev1RMMap = new Map<string, number>();
+        prevLogs.forEach(l => l.exercises.forEach(ex => {
+          ex.sets.forEach(set => {
+            if (set.completed && set.weight > 0 && set.reps > 0) {
+              const e1rm = calc1RM(set.weight, set.reps);
+              const existing = prev1RMMap.get(ex.exerciseId) || 0;
+              if (e1rm > existing) prev1RMMap.set(ex.exerciseId, e1rm);
+            }
+          });
+        }));
+
+        // Build strength gains for exercises that appear in both blocks
+        best1RMMap.forEach((curr, exId) => {
+          const prev = prev1RMMap.get(exId);
+          if (prev && prev > 0) {
+            const delta = Math.round(((curr.best1RM - prev) / prev) * 100);
+            strengthGains.push({ name: curr.name, current: curr.best1RM, prev, delta });
+          }
+        });
+        // Sort by absolute improvement (biggest gainers first)
+        strengthGains.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
       }
     }
 
-    return { totalVolume, totalPRs, avgRPE, totalDuration, sessionsCompleted, mesoName, volumeDelta };
+    return {
+      mesoId, totalVolume, totalPRs, avgRPE, totalDuration, sessionsCompleted,
+      mesoName, volumeDelta, completionRate, totalPlanned, comparisonName,
+      strengthGains: strengthGains.slice(0, 3),
+    };
   }, [prevBlockJustCompleted, lastCompletedWorkout, workoutLogs, currentMesocycle, mesocycleHistory]);
 
   // ─── Victory sequence: Confetti + Haptic ───
@@ -1613,15 +1662,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         <PostWorkoutPhase
           todayPerformance={directive.todayPerformance}
           lastCompletedWorkout={lastCompletedWorkout}
-          postWorkoutNutritionNudge={postWorkoutNutritionNudge}
           mesocycleProgress={completedWorkoutProgress || mesocycleProgress}
-          forwardLook={directive.forwardLook}
           weightUnit={weightUnit}
           shareCopied={shareCopied}
           onShare={handleShareWorkout}
           onDismiss={dismissWorkoutSummary}
           onNavigate={onNavigate}
           onViewReport={onViewReport}
+          onGenerateNext={handleGenerateNext}
           prevBlockJustCompleted={prevBlockJustCompleted}
           blockCompleteStats={blockCompleteStats}
         />

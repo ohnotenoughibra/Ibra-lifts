@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud, flushImmediateSync } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud, flushImmediateSync, flushSyncQueue } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 import { saveLatestSnapshot, onSyncFailure } from './data-safety';
 
@@ -371,8 +371,10 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       lastResyncAt.current = now;
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[db-sync] App regained focus — re-syncing from cloud');
+        console.log('[db-sync] App regained focus — flushing queue + re-syncing from cloud');
       }
+      // Flush any data queued during previous page-hide before pulling
+      flushSyncQueue().catch(() => {});
       pullFromCloud(effectiveUserId, true);
     };
 
@@ -405,7 +407,11 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
   // ── Update sync status on online/offline changes ──────────────
   useEffect(() => {
-    const handleOnline = () => setSyncStatus(prev => prev === 'offline' ? 'idle' : prev);
+    const handleOnline = () => {
+      setSyncStatus(prev => prev === 'offline' ? 'idle' : prev);
+      // Flush any data queued while we were offline
+      flushSyncQueue().catch(() => {});
+    };
     const handleOffline = () => setSyncStatus('offline');
 
     window.addEventListener('online', handleOnline);

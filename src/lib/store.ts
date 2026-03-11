@@ -3017,7 +3017,7 @@ export const useAppStore = create<AppState>()(
           id: uuidv4(),
         };
         const updatedQuickLogs = [...quickLogs, entry];
-        set({ quickLogs: updatedQuickLogs });
+        set({ quickLogs: updatedQuickLogs, _syncUrgent: true });
 
         // Sync water quick logs → waterLog Record for nutrition/readiness engines
         // waterLog stores glasses (1 glass = 250ml), QuickActions logs in ml
@@ -3063,7 +3063,7 @@ export const useAppStore = create<AppState>()(
 
       deleteQuickLog: (id) => {
         const { quickLogs } = get();
-        set({ quickLogs: quickLogs.filter(l => l.id !== id) });
+        set({ quickLogs: quickLogs.filter(l => l.id !== id), _syncUrgent: true });
       },
 
       // Cycle tracking actions
@@ -3265,7 +3265,7 @@ export const useAppStore = create<AppState>()(
       // HR session actions
       addHRSession: (session) => {
         const { hrSessions } = get();
-        set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }] });
+        set({ hrSessions: [...hrSessions, { ...session, id: uuidv4() }], _syncUrgent: true });
       },
 
       // Training session actions (unified system for grappling, striking, cardio, etc.)
@@ -3325,6 +3325,7 @@ export const useAppStore = create<AppState>()(
           set({
             trainingSessions: [...trainingSessions, newSession],
             gamificationStats: updatedStats,
+            _syncUrgent: true,
           });
 
           // Award XP for training session (was defined but never used)
@@ -3346,7 +3347,7 @@ export const useAppStore = create<AppState>()(
 
       deleteTrainingSession: (id) => {
         const { trainingSessions } = get();
-        set({ trainingSessions: trainingSessions.filter(s => s.id !== id) });
+        set({ trainingSessions: trainingSessions.filter(s => s.id !== id), _syncUrgent: true });
       },
 
       // Theme actions
@@ -3403,7 +3404,7 @@ export const useAppStore = create<AppState>()(
       setWaterGlasses: (date, glasses) => {
         const { waterLog, quickLogs } = get();
         const prev = waterLog[date] || 0;
-        set({ waterLog: { ...waterLog, [date]: glasses } });
+        set({ waterLog: { ...waterLog, [date]: glasses }, _syncUrgent: true });
 
         // Sync → QuickLog so quick log UI stays in sync
         // Convert glasses delta to ml for QuickLog (1 glass = 250ml)

@@ -867,13 +867,45 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         .filter(log => log.mesocycleId === currentMesocycle.id)
         .map(log => log.sessionId)
     );
+
+    // Build flat session list
+    const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; isDeload: boolean }[] = [];
     for (const week of currentMesocycle.weeks) {
       for (const session of week.sessions) {
-        if (!completedSessionIds.has(session.id)) {
-          return { session, weekNumber: week.weekNumber, isDeload: week.isDeload };
+        allSessions.push({ session, weekNumber: week.weekNumber, isDeload: week.isDeload });
+      }
+    }
+
+    // Find position of most recently completed session (by log date)
+    const mesoLogs = workoutLogs
+      .filter(log => log.mesocycleId === currentMesocycle.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    let lastCompletedIndex = -1;
+    for (const log of mesoLogs) {
+      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
+      if (pos !== -1) {
+        lastCompletedIndex = pos;
+        break;
+      }
+    }
+
+    // Look forward from the most recently completed session
+    if (lastCompletedIndex >= 0) {
+      for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
+        if (!completedSessionIds.has(allSessions[i].session.id)) {
+          return allSessions[i];
         }
       }
     }
+
+    // Fallback: first uncompleted from start (fresh mesocycle)
+    for (const entry of allSessions) {
+      if (!completedSessionIds.has(entry.session.id)) {
+        return entry;
+      }
+    }
+
     return null;
   };
 

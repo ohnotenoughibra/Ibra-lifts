@@ -1,5 +1,32 @@
 import { Exercise, Equipment, EquipmentType } from './types';
 
+/**
+ * COMBAT SPORT EXERCISE SELECTION RATIONALE
+ *
+ * Exercise selection is informed by combat sports science research:
+ *
+ * Neck Training:
+ * - Collins et al. 2014: Each 1 lb increase in neck strength reduces
+ *   concussion risk by 5%. Neck exercises are essential for all combat athletes.
+ *
+ * Grip & Forearm Training:
+ * - Grappling demands sustained grip endurance for collar ties, wrist control,
+ *   and submission attempts. Exercises include farmer carries, dead hangs,
+ *   and towel pull-ups.
+ *
+ * Rotational Power:
+ * - Striking power is generated through kinetic chain rotation (hips → core → shoulders).
+ *   Exercises include Pallof press, medicine ball rotational throws, and cable woodchops.
+ *
+ * Hip Mobility:
+ * - Guard passing, leg lock defense, and high kicks require exceptional hip mobility.
+ *   Hip CARs, 90/90 stretches, and deep squat holds are included.
+ *
+ * Posterior Chain:
+ * - Takedown power and sprawl defense require strong hip extension.
+ *   Deadlift variations, hip thrusts, and Nordic curls are prioritized.
+ */
+
 // Comprehensive exercise database for grapplers
 export const exercises: Exercise[] = [
   // COMPOUND MOVEMENTS - Strength Foundation

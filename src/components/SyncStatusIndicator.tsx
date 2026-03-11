@@ -94,7 +94,11 @@ export default function SyncStatusIndicator({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cloud sync status"
             onClick={() => setShowDetail(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowDetail(false); }}
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
@@ -189,8 +193,8 @@ export default function SyncStatusIndicator({
                 </div>
               </div>
 
-              {/* Sync now button */}
-              <div className="p-4 border-t border-grappler-800">
+              {/* Action buttons */}
+              <div className="p-4 border-t border-grappler-800 space-y-2">
                 <button
                   onClick={() => {
                     onForceSync();

@@ -79,11 +79,13 @@ import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import InsightCard from './InsightCard';
 import DashboardInsights from './DashboardInsights';
+import { PostWorkoutPhase, CombatPhase, LiftPhase, BlockCompletePhase, OnboardingPhase } from './phases';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { getDockSuggestions } from '@/lib/tool-affinity';
 import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
+import { useComputedGamification } from '@/lib/computed-gamification';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -145,7 +147,7 @@ function ReadinessCard() {
   const trainingSessions = useAppStore(s => s.trainingSessions);
   const wearableData = useAppStore(s => s.latestWhoopData);
   const wearableHistory = useAppStore(s => s.wearableHistory);
-  const meals = useAppStore(s => s.meals);
+  const meals = useAppStore(s => s.meals.filter(m => !m._deleted));
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
@@ -210,7 +212,7 @@ function ReadinessCard() {
                     )}>{f.score}</span>
                   </div>
                   {actionText && (
-                    <p className="text-[11px] text-primary-400 leading-snug mt-0.5">{actionText}</p>
+                    <p className="text-xs text-primary-400 leading-snug mt-0.5">{actionText}</p>
                   )}
                 </div>
               </div>
@@ -221,7 +223,7 @@ function ReadinessCard() {
 
       {/* Auto-adjustment pill */}
       {summary.volumeModifier !== 1.0 && (
-        <p className="text-[11px] text-grappler-400 px-2">
+        <p className="text-xs text-grappler-400 px-2">
           Auto-adjusted: Volume {Math.round(summary.volumeModifier * 100)}% · Intensity {Math.round(summary.intensityModifier * 100)}%
         </p>
       )}
@@ -229,7 +231,7 @@ function ReadinessCard() {
       {/* Show all toggle — for data nerds */}
       <button
         onClick={() => setShowAll(v => !v)}
-        className="text-[11px] text-grappler-500 hover:text-grappler-300 px-2 transition-colors"
+        className="text-xs text-grappler-500 hover:text-grappler-300 px-2 transition-colors"
       >
         {showAll ? 'Hide details ▴' : `All factors (${summary.allFactors.length}) ▾`}
       </button>
@@ -246,7 +248,7 @@ function ReadinessCard() {
             <div className="space-y-0.5 pb-1">
               {summary.allFactors.map(f => (
                 <div key={f.source} className="flex items-center gap-2 px-2">
-                  <span className="text-[11px] w-16 text-left truncate text-grappler-400">{f.label}</span>
+                  <span className="text-xs w-16 text-left truncate text-grappler-400">{f.label}</span>
                   <div className="flex-1 h-1 rounded-full overflow-hidden bg-grappler-700/40">
                     <div className={cn('h-full rounded-full transition-all', getBarColor(f.score))} style={{ width: `${Math.max(3, f.score)}%` }} />
                   </div>
@@ -286,11 +288,15 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
     { tip: 'Foam roll major muscle groups for 10 min — it reduces next-day soreness significantly.', category: 'Soft Tissue' },
   ];
 
+  // Seed on current date so tip is stable for the whole day
+  const now = new Date();
+  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+
   if (identity === 'combat') {
     const pool = sport === 'striking' ? [...combatTips, ...strikingTips] : combatTips;
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pool[dayOfYear % pool.length];
   }
-  return generalTips[Math.floor(Math.random() * generalTips.length)];
+  return generalTips[dayOfYear % generalTips.length];
 }
 
 function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavigate: (view: OverlayView) => void }) {
@@ -368,24 +374,25 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     mesocycleHistory, competitions,
     trainingSessions, latestWhoopData, meals, subscription,
-    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount,
+    migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, repairMesocycleProgress,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips,
+    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips, addTrainingSession,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
       mesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
-      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals, subscription: s.subscription,
-      migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
+      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
+      migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
-      workoutSkips: s.workoutSkips,
+      workoutSkips: s.workoutSkips, addTrainingSession: s.addTrainingSession,
     }))
   );
+  const computed = useComputedGamification();
   const { showToast } = useToast();
   const { data: session } = useSession();
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
@@ -399,10 +406,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [skipFrictionShown, setSkipFrictionShown] = useState(false);
-  const [liftOptionsExpanded, setLiftOptionsExpanded] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
-  const [showValidateConfirm, setShowValidateConfirm] = useState(false);
   const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
   const [readinessExpanded, setReadinessExpanded] = useState(false);
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
@@ -907,7 +912,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const nextWorkoutInfo = getNextWorkout();
   const nextWorkout = nextWorkoutInfo?.session ?? null;
 
-  const mesocycleProgress = (() => {
+  const mesocycleProgress = useMemo(() => {
     if (!currentMesocycle) return null;
     const totalSessions = currentMesocycle.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
     const completedSessionIds = new Set(
@@ -919,9 +924,26 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
     );
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
-  })();
+  }, [currentMesocycle, workoutLogs]);
 
-  const trainingLoadWarning = (() => {
+  // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
+  // pointing to other mesocycle IDs (from history or unknown). These should have been migrated.
+  const needsProgressRepair = useMemo(() => {
+    if (!currentMesocycle) return false;
+    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    if (currentLogs.length > 0) return false;
+
+    // Check for recent logs that should be in the current mesocycle
+    const mesoStart = new Date(currentMesocycle.startDate);
+    const orphanedLogs = workoutLogs.filter(l =>
+      l.mesocycleId !== currentMesocycle.id &&
+      l.mesocycleId !== 'standalone' &&
+      new Date(l.date) >= mesoStart
+    );
+    return orphanedLogs.length >= 3;
+  }, [currentMesocycle, workoutLogs]);
+
+  const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;
     const last7Days = workoutLogs.filter(log => {
       const diff = (Date.now() - new Date(log.date).getTime()) / (1000 * 60 * 60 * 24);
@@ -942,12 +964,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       return 'More lifting sessions than planned this week. Make sure you have enough recovery for sport training.';
     }
     return null;
-  })();
+  }, [user?.trainingIdentity, user?.sessionsPerWeek, workoutLogs]);
 
   const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 
-  const mesocycleComparison = (() => {
+  const mesocycleComparison = useMemo(() => {
     if (!currentMesocycle || mesocycleHistory.length === 0) return null;
     const prevBlock = mesocycleHistory[mesocycleHistory.length - 1];
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
@@ -967,9 +989,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       avgVolume: { current: avgVolCurrent, prev: avgVolPrev, delta: volDelta },
       avgRPE: { current: avgRPECurrent, prev: avgRPEPrev },
     };
-  })();
+  }, [currentMesocycle, mesocycleHistory, workoutLogs]);
 
-  const nextCompetition = (() => {
+  const nextCompetition = useMemo(() => {
     const now = Date.now();
     const active = competitions
       .filter(c => c.isActive && new Date(c.date).getTime() > now)
@@ -978,7 +1000,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const event = active[0];
     const daysUntil = Math.ceil((new Date(event.date).getTime() - now) / (1000 * 60 * 60 * 24));
     return { ...event, daysUntil };
-  })();
+  }, [competitions]);
 
   const periodSummaries = useMemo(() => {
     const now = new Date();
@@ -1087,7 +1109,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         },
       });
     }
-    setShowValidateConfirm(false);
   };
 
   const handleMigrateResponse = (shouldMigrate: boolean) => {
@@ -1127,6 +1148,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   // Regular: dismissible, shown below mission card (everything else)
   const criticalAlerts: React.ReactNode[] = [];
   const feedCards: React.ReactNode[] = [];
+  const urgentFeedCards: React.ReactNode[] = [];
 
   // 1. Illness banner → CRITICAL
   const activeIllness = getActiveIllness();
@@ -1213,14 +1235,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     if (deloadRec.urgency === 'critical') {
       criticalAlerts.push(deloadCard);
     } else {
-      feedCards.push(deloadCard);
+      urgentFeedCards.push(deloadCard);
     }
   }
 
-  // 4. Meal reminder → regular feed
-  if (feedCards.length < 4) {
-    feedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
-  }
+  // 4. Meal reminder → always visible
+  urgentFeedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
 
   // 5. Body weight reminder → regular feed
   const lastBWEntry = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -1273,7 +1293,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }, [fightCampPhase, bodyWeightLog, user?.bodyWeightKg, user?.sex]);
 
   // Camp Mode banner (combat athletes with competition <= 56 days / 8 weeks)
-  if (fightCampPhase && fightCampPhase !== 'off_season' && nextCompetition && feedCards.length < 4) {
+  if (fightCampPhase && fightCampPhase !== 'off_season' && nextCompetition) {
     const campColors: Record<string, { gradient: string; accent: string }> = {
       base_camp:        { gradient: 'from-blue-500/15 to-cyan-500/10 border-blue-500/30', accent: 'text-cyan-400' },
       intensification:  { gradient: 'from-purple-500/15 to-violet-500/10 border-purple-500/30', accent: 'text-purple-400' },
@@ -1286,7 +1306,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     };
     const colors = campColors[fightCampPhase] || campColors.base_camp;
 
-    feedCards.push(
+    urgentFeedCards.push(
       <motion.div key="camp-mode" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className={cn('rounded-xl border bg-gradient-to-r overflow-hidden', colors.gradient)}>
         {/* Header row */}
@@ -1343,9 +1363,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       </motion.div>
     );
-  } else if (nextCompetition && nextCompetition.daysUntil <= 60 && feedCards.length < 4) {
+  } else if (nextCompetition && nextCompetition.daysUntil <= 60) {
     // Non-combat athletes or off-season: simple countdown
-    feedCards.push(
+    urgentFeedCards.push(
       <motion.div key="competition" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-r from-yellow-500/15 to-blue-500/10 border border-yellow-500/30 rounded-xl p-3.5">
         <div className="flex items-center justify-between">
@@ -1437,7 +1457,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }
 
   // ─── Momentum data ───
-  const currentStreak = gamificationStats.currentStreak || 0;
+  const currentStreak = computed.currentStreak;
   const liftTarget = user?.trainingDays?.length || 3;
   const combatTarget = user?.combatTrainingDays?.length || 0;
   const weekTarget = liftTarget + combatTarget;
@@ -1476,21 +1496,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               score={directive.readinessScore}
               onClick={() => setReadinessExpanded(v => !v)}
             />
-            {/* Bottleneck callout — always visible, no tap needed */}
+            {/* Bottleneck callout — show limiters inline when readiness is low */}
             <div className="min-w-0">
               {directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? (
                 <p className="text-xs text-green-400 font-medium">All green. Push today.</p>
               ) : directive.readinessLevel === 'critical' ? (
                 <p className="text-xs text-red-400 font-medium">Take a rest day.</p>
-              ) : (
-                <p className="text-xs text-grappler-400">
-                  Tap ring for{' '}
-                  <span className={cn(
-                    'font-medium',
-                    directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400'
-                  )}>limiters</span>
-                </p>
-              )}
+              ) : (() => {
+                const hints: string[] = [];
+                if (sleepHours != null && sleepHours < 6) hints.push(`Sleep ${sleepHours}h`);
+                if (recoveryScore != null && recoveryScore < 50) hints.push(`Recovery ${recoveryScore}%`);
+                if (waterTodayL < 1) hints.push('Low hydration');
+                if (todayProtein < macroTargets.protein * 0.5) hints.push('Low protein');
+                const topHints = hints.slice(0, 2);
+                return topHints.length > 0 ? (
+                  <p className="text-xs text-grappler-400">
+                    <span className={cn('font-medium', directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400')}>
+                      {topHints.join(' · ')}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-grappler-400">
+                    <span className={cn('font-medium', directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400')}>
+                      Moderate readiness
+                    </span>
+                    {' '}— tap for details
+                  </p>
+                );
+              })()}
             </div>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -1525,6 +1558,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
+      {/* Progress repair banner — shown when mesocycle has 0 logs but orphaned logs exist */}
+      {needsProgressRepair && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-2"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-300">Program progress lost</p>
+            <p className="text-xs text-amber-400/70 mt-0.5">Your workout history got disconnected from your current program. Tap to fix.</p>
+          </div>
+          <button
+            onClick={() => {
+              const result = repairMesocycleProgress();
+              if (result.fixed > 0) {
+                showToast(`Restored ${result.fixed} workouts to your program`, 'success');
+              } else {
+                showToast('No workouts found to restore', 'error');
+              }
+            }}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-medium whitespace-nowrap active:scale-95 transition-transform"
+          >
+            Repair
+          </button>
+        </motion.div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════
           ZONE 2: THE DIRECTIVE — single adaptive card (with Start Workout)
           ═══════════════════════════════════════════════════════════════════ */}
@@ -1550,226 +1611,18 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       </AnimatePresence>
 
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
-        /* POST-SESSION: Victory sequence — grade stamp, staggered reveal */
-        <motion.div
-          key="zone2-recovery-perf"
-          initial={{ opacity: 0, scale: 0.96, y: 24 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
-        >
-          {/* Header — celebrate, don't label */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="flex items-center gap-2 mb-1"
-          >
-            <Check className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
-          </motion.div>
-
-          {/* Grade stamp + verdict — grade stamps in from 3x scale */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3 mt-2 flex-1">
-              <div className="relative flex items-center justify-center" style={{ width: 48, height: 48 }}>
-                {/* Color burst behind grade */}
-                <motion.div
-                  initial={{ scale: 0, opacity: 0.6 }}
-                  animate={{ scale: 2.5, opacity: 0 }}
-                  transition={{ delay: 0.55, duration: 0.8, ease: 'easeOut' }}
-                  className={cn('absolute w-12 h-12 rounded-full',
-                    directive.todayPerformance.grade === 'S' ? 'bg-yellow-400/30' :
-                    directive.todayPerformance.grade === 'A' ? 'bg-green-400/25' :
-                    'bg-primary-400/20'
-                  )}
-                />
-                {/* Grade letter — stamps in */}
-                <motion.span
-                  initial={{ scale: 3, opacity: 0, rotate: -12 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  transition={{ delay: 0.5, type: 'spring', stiffness: 300, damping: 20 }}
-                  className={cn(
-                    'text-4xl font-black leading-none relative',
-                    directive.todayPerformance.grade === 'S' ? 'text-yellow-400' :
-                    directive.todayPerformance.grade === 'A' ? 'text-green-400' :
-                    directive.todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
-                  )}
-                >
-                  {directive.todayPerformance.grade}
-                </motion.span>
-              </div>
-              <motion.p
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7, duration: 0.4 }}
-                className="text-sm text-grappler-300 leading-snug flex-1"
-              >
-                {directive.todayPerformance.verdict}
-              </motion.p>
-            </div>
-            {lastCompletedWorkout && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.8 }}
-                onClick={handleShareWorkout}
-                className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors flex-shrink-0"
-                title="Share workout"
-              >
-                {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              </motion.button>
-            )}
-          </div>
-
-          {/* PR callout — flies in from left */}
-          {directive.todayPerformance.prs > 0 && (
-            <motion.div
-              initial={{ opacity: 0, x: -20, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ delay: 1.0, type: 'spring', stiffness: 200, damping: 25 }}
-              className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3"
-            >
-              <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
-              <p className="text-xs text-yellow-300 font-medium">
-                {directive.todayPerformance.prs === 1
-                  ? `PR: ${directive.todayPerformance.prExercises[0]}`
-                  : `${directive.todayPerformance.prs} PRs: ${directive.todayPerformance.prExercises.slice(0, 2).join(', ')}${directive.todayPerformance.prs > 2 ? ` +${directive.todayPerformance.prs - 2}` : ''}`
-                }
-              </p>
-            </motion.div>
-          )}
-
-          {/* Badges — staggered fly-in */}
-          {lastCompletedWorkout?.newBadges && lastCompletedWorkout.newBadges.length > 0 && (
-            <div className="flex gap-1.5 mb-3 flex-wrap">
-              {lastCompletedWorkout.newBadges.map((badge, i) => (
-                <motion.span
-                  key={badge.id}
-                  initial={{ opacity: 0, y: 16, scale: 0.8 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 1.1 + i * 0.1, type: 'spring', stiffness: 250, damping: 20 }}
-                  className="text-xs px-2 py-1 rounded-full bg-purple-500/15 text-purple-300"
-                >
-                  {badge.icon} {badge.name}
-                </motion.span>
-              ))}
-            </div>
-          )}
-
-          {/* Performance metrics grid — fades in */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.4 }}
-            className="grid grid-cols-3 gap-2 mb-3"
-          >
-            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
-              <p className="text-lg font-black text-grappler-100">{formatNumber(directive.todayPerformance.totalVolume)}</p>
-              <p className="text-xs text-grappler-400 uppercase">{weightUnit}</p>
-            </div>
-            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
-              <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.totalSets}</p>
-              <p className="text-xs text-grappler-400 uppercase">Sets</p>
-            </div>
-            <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
-              <p className="text-lg font-black text-grappler-100">{directive.todayPerformance.avgRPE > 0 ? directive.todayPerformance.avgRPE : '—'}</p>
-              <p className="text-xs text-grappler-400 uppercase">RPE</p>
-            </div>
-          </motion.div>
-
-          {/* Nutrition nudge */}
-          {postWorkoutNutritionNudge && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5, duration: 0.3 }}
-              className={cn(
-                'flex items-center gap-2 rounded-lg px-3 py-2 mb-3',
-                postWorkoutNutritionNudge.urgent ? 'bg-orange-500/10 border border-orange-500/20' : 'bg-green-500/8 border border-green-500/15'
-              )}
-            >
-              <Apple className="w-3.5 h-3.5 flex-shrink-0 text-green-400" />
-              <p className={cn('text-xs', postWorkoutNutritionNudge.urgent ? 'text-orange-300' : 'text-green-400')}>
-                {postWorkoutNutritionNudge.text}
-              </p>
-            </motion.div>
-          )}
-
-          {/* Mental check-in nudge */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.6, duration: 0.3 }}
-            onClick={() => onNavigate('fighters_mind')}
-            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 mb-2 bg-violet-500/10 border border-violet-500/20 text-left hover:bg-violet-500/15 transition-colors"
-          >
-            <Brain className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
-            <p className="text-xs text-violet-300">How&apos;s the mind? Log a deeper check-in</p>
-            <ChevronRight className="w-3 h-3 text-violet-400/50 ml-auto flex-shrink-0" />
-          </motion.button>
-
-          {/* Forward look */}
-          {directive.forwardLook && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.7, duration: 0.3 }}
-              className="flex items-center gap-2 pt-2 border-t border-grappler-700/40"
-            >
-              <ChevronRight className="w-3 h-3 text-grappler-600 flex-shrink-0" />
-              <p className="text-xs text-grappler-400">{directive.forwardLook}</p>
-            </motion.div>
-          )}
-
-          {mesocycleProgress && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.8, duration: 0.3 }}
-              className="flex items-center gap-2 mt-3"
-            >
-              <span className="text-xs text-grappler-500">Block</span>
-              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
-              <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-            </motion.div>
-          )}
-
-          {/* Contextual tool suggestions — based on what just happened */}
-          {lastCompletedWorkout && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.0, duration: 0.3 }}
-              className="flex gap-2 mt-3 pt-3 border-t border-grappler-700/30 overflow-x-auto"
-            >
-              {(() => {
-                const suggestions: { id: string; label: string; icon: React.ElementType; reason: string }[] = [];
-                const log = lastCompletedWorkout.log;
-                const streak = lastCompletedWorkout.newStreak;
-                // High RPE → recovery
-                if (log.overallRPE >= 8) suggestions.push({ id: 'recovery', label: 'Recovery', icon: Shield, reason: 'Heavy session' });
-                // PR → strength analysis
-                if (lastCompletedWorkout.hadPR) suggestions.push({ id: 'strength', label: 'Strength', icon: TrendingUp, reason: 'New PR' });
-                // 5+ day streak → journal
-                if (streak >= 5) suggestions.push({ id: 'training_journal', label: 'Journal', icon: Calendar, reason: `${streak}d streak` });
-                // Always show fighters mind
-                suggestions.push({ id: 'fighters_mind', label: 'Mind', icon: Brain, reason: 'Reflect' });
-                return suggestions.slice(0, 3).map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => onNavigate(s.id as OverlayView)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-grappler-800/60 border border-grappler-700/30 hover:bg-grappler-800 transition-colors flex-shrink-0"
-                  >
-                    <s.icon className="w-3 h-3 text-grappler-400" />
-                    <span className="text-xs text-grappler-300">{s.label}</span>
-                    <span className="text-[10px] text-grappler-600">{s.reason}</span>
-                  </button>
-                ));
-              })()}
-            </motion.div>
-          )}
-        </motion.div>
+        <PostWorkoutPhase
+          todayPerformance={directive.todayPerformance}
+          lastCompletedWorkout={lastCompletedWorkout}
+          postWorkoutNutritionNudge={postWorkoutNutritionNudge}
+          mesocycleProgress={mesocycleProgress}
+          forwardLook={directive.forwardLook}
+          weightUnit={weightUnit}
+          shareCopied={shareCopied}
+          onShare={handleShareWorkout}
+          onDismiss={dismissWorkoutSummary}
+          onNavigate={onNavigate}
+        />
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (
         /* Rest / recovery day — interactive Mission Control card */
@@ -1801,530 +1654,111 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         />
 
       ) : directive.todayType === 'combat' ? (
-        /* ─── COMBAT DAY — structured session cards with intensity badges ─── */
-        <motion.div key="zone2-combat" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-          {(() => {
-            const allCombatLogged = directive.todayCombatSessions.length > 0 && directive.todayCombatSessions.every(s => s.logged);
-            const loggedCount = directive.todayCombatSessions.filter(s => s.logged).length;
-            const totalDuration = directive.todayCombatSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-            return (
-          <div className={cn(
-            'rounded-2xl overflow-hidden border',
-            allCombatLogged
-              ? 'border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900'
-              : 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'
-          )}>
-            {/* Header — the session type IS the hero */}
-            <div className="px-5 pt-4 pb-3">
-              <div className="flex items-center gap-2 mb-1">
-                {allCombatLogged ? <Check className="w-4 h-4 text-green-400" /> : <Shield className="w-4 h-4 text-purple-400" />}
-                {directive.todayCombatSessions.length === 1 && (
-                  <span className={cn('text-xs px-2 py-0.5 rounded-full font-semibold ml-1',
-                    /hard|sparring|competition/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
-                    /moderate/i.test(directive.todayCombatSessions[0].intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
-                    'bg-green-500/12 text-green-400 border border-green-500/20'
-                  )}>{directive.todayCombatSessions[0].intensity}</span>
-                )}
-                {mesocycleProgress && (
-                  <div className="flex items-center gap-2 ml-auto">
-                    <span className="text-xs text-grappler-500">Block</span>
-                    <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-400/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} />
-                    </div>
-                    <span className="text-xs text-grappler-400 tabular-nums">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-                  </div>
-                )}
-              </div>
-              <h2 className="text-xl font-black text-grappler-50 leading-tight">{directive.headline}</h2>
-              <p className="text-xs text-grappler-400 mt-1">{directive.subline}</p>
-            </div>
-
-            {/* Session list — only shown for 2+ sessions (single session info is in the header) */}
-            {directive.todayCombatSessions.length > 1 && (
-              <div className="mx-5 mb-3 space-y-2">
-                {directive.todayCombatSessions.map((s, i) => (
-                  <div key={i} className={cn(
-                    'rounded-xl border px-3.5 py-2.5 flex items-center gap-3',
-                    s.logged
-                      ? 'bg-green-500/8 border-green-500/20'
-                      : 'bg-grappler-900/50 border-grappler-700/40'
-                  )}>
-                    {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-grappler-200">{s.type}</p>
-                      <p className="text-xs text-grappler-400">{s.duration > 0 ? `${s.duration}min` : 'Open mat'}</p>
-                    </div>
-                    <span className={cn('text-xs px-2 py-0.5 rounded-full font-semibold',
-                      /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
-                      /moderate/i.test(s.intensity) ? 'bg-yellow-500/12 text-yellow-400 border border-yellow-500/20' :
-                      'bg-green-500/12 text-green-400 border border-green-500/20'
-                    )}>{s.intensity}</span>
-                    {!s.logged && (
-                    <button
-                      onClick={() => {
-                        skipWorkout({
-                          date: new Date().toISOString().split('T')[0],
-                          scheduledSessionId: `combat-${i}`,
-                          reason: 'schedule_conflict' as SkipReason,
-                          rescheduled: false,
-                        });
-                        setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
-                        showToast(`Skipped ${s.type}`, 'info');
-                      }}
-                      className="text-grappler-600 hover:text-grappler-300 transition-colors"
-                      title="Skip this session"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    )}
-                  </div>
-                ))}
-
-                {/* Stats row — only useful for multi-session */}
-                <div className="flex items-center gap-2 pt-1">
-                  <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                    <Shield className="w-3 h-3 text-grappler-500" />
-                    <span className="text-xs text-grappler-300 font-medium">{loggedCount}/{directive.todayCombatSessions.length}</span>
-                  </div>
-                  {totalDuration > 0 && (
-                    <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                      <Clock className="w-3 h-3 text-grappler-500" />
-                      <span className="text-xs text-grappler-300 font-medium">{totalDuration}min</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Single session skip button */}
-            {directive.todayCombatSessions.length === 1 && !directive.todayCombatSessions[0].logged && (
-              <div className="mx-5 mb-3">
-                <button
-                  onClick={() => {
-                    skipWorkout({
-                      date: new Date().toISOString().split('T')[0],
-                      scheduledSessionId: 'combat-0',
-                      reason: 'schedule_conflict' as SkipReason,
-                      rescheduled: false,
-                    });
-                    setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add('combat-0'); return n; });
-                    showToast(`Skipped ${directive.todayCombatSessions[0].type}`, 'info');
-                  }}
-                  className="text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
-                >
-                  Skip session
-                </button>
-              </div>
-            )}
-
-            {/* Action items — filter out combat session labels (already shown above) and protein (separate concern) */}
-            {(() => {
-              const filteredActions = directive.actions.filter(a =>
-                !a.includes(directive.todayCombatSessions[0]?.type || '§') &&
-                !/protein|next lift/i.test(a)
-              );
-              return filteredActions.length > 0 ? (
-                <div className="mx-5 mb-3 space-y-1">
-                  {filteredActions.map((a, i) => (
-                    <div key={i} className="flex items-start gap-2"><Target className="w-3 h-3 text-grappler-400 flex-shrink-0 mt-0.5" /><p className="text-xs text-grappler-400">{a}</p></div>
-                  ))}
-                </div>
-              ) : null;
-            })()}
-          </div>
-            );
-          })()}
-
-          {/* Next strength session — informational preview, not a temptation */}
-          {nextWorkout && (
-            <div className="w-full rounded-xl border border-grappler-700/30 bg-grappler-800/30 p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary-500/10 flex items-center justify-center flex-shrink-0">
-                <Dumbbell className="w-4 h-4 text-primary-400/60" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-grappler-400 font-medium uppercase tracking-wide">
-                  Next Strength{directive.nextLiftDayLabel ? ` · ${directive.nextLiftDayLabel}` : ''}
-                </p>
-                <p className="text-sm font-semibold text-grappler-300 truncate">{nextWorkout.name}</p>
-                <p className="text-xs text-grappler-400">{nextWorkout.exercises.length} exercises · ~{nextWorkout.estimatedDuration}m</p>
-              </div>
-              <button
-                onClick={() => startWorkout(nextWorkout)}
-                className="text-xs text-primary-400/60 hover:text-primary-400 px-2.5 py-1.5 rounded-lg hover:bg-primary-500/10 transition-colors flex-shrink-0"
-              >
-                Start
-              </button>
-            </div>
-          )}
-        </motion.div>
+        <CombatPhase
+          headline={directive.headline}
+          subline={directive.subline}
+          actions={directive.actions}
+          todayCombatSessions={directive.todayCombatSessions}
+          mesocycleProgress={mesocycleProgress}
+          nextWorkout={nextWorkout}
+          nextLiftDayLabel={directive.nextLiftDayLabel ?? undefined}
+          onStartWorkout={startWorkout}
+          onSkipWorkout={skipWorkout}
+          onLogSession={(session) => {
+            addTrainingSession({
+              date: new Date(),
+              category: 'grappling',
+              type: (session.type.toLowerCase().replace(/\s+/g, '_') || 'bjj_nogi') as any,
+              plannedIntensity: (session.intensity.toLowerCase() || 'moderate') as any,
+              duration: session.duration || 60,
+              perceivedExertion: /hard|sparring|competition/i.test(session.intensity) ? 8 : /moderate/i.test(session.intensity) ? 6 : 4,
+            });
+          }}
+          onDismissCard={(id) => setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(id); return n; })}
+          showToast={(msg, type) => showToast(msg, type as any)}
+        />
 
       ) : nextWorkout ? (
-        /* ─── LIFT DAY (or both) — Mission Briefing Card ─── */
-        <motion.div
-          key="zone2-lift"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
-        >
-          {/* Pre-Workout Intel Strip — compact readiness context */}
-          {(() => {
-            const intelChips: { label: string; value: string; color: string; icon: React.ReactNode }[] = [];
-            if (sleepHours != null) intelChips.push({ label: 'Sleep', value: `${sleepHours.toFixed(1)}h`, color: sleepHours >= 7 ? 'text-green-400' : sleepHours >= 5.5 ? 'text-yellow-400' : 'text-red-400', icon: <Moon className="w-3 h-3" /> });
-            if (macroTargets.protein > 0) intelChips.push({ label: 'Protein', value: `${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g`, color: todayProtein >= macroTargets.protein * 0.5 ? 'text-green-400' : todayProtein > 0 ? 'text-yellow-400' : 'text-grappler-500', icon: <Apple className="w-3 h-3" /> });
-            if (waterTodayL > 0 || macroTargets.protein > 0) intelChips.push({ label: 'Water', value: waterTodayL > 0 ? `${waterTodayL}L` : '—', color: waterTodayL >= 1.5 ? 'text-blue-400' : waterTodayL >= 0.75 ? 'text-blue-300' : 'text-grappler-500', icon: <Droplets className="w-3 h-3" /> });
-            if (recoveryScore != null) intelChips.push({ label: 'Recovery', value: `${recoveryScore}%`, color: recoveryScore >= 67 ? 'text-green-400' : recoveryScore >= 34 ? 'text-yellow-400' : 'text-red-400', icon: <HeartPulse className="w-3 h-3" /> });
-            return intelChips.length > 0 ? (
-              <div className="flex items-center gap-1 px-1 overflow-x-auto no-scrollbar">
-                {intelChips.map(chip => (
-                  <div key={chip.label} className="flex items-center gap-1.5 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5 flex-shrink-0">
-                    <span className={chip.color}>{chip.icon}</span>
-                    <span className={cn('text-xs font-bold tabular-nums', chip.color)}>{chip.value}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null;
-          })()}
-
-          {/* Training modification warning — outside the card for max visibility */}
-          {directive.trainingModification && (
-            <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
-              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <p className="text-xs text-amber-200 font-medium leading-snug">{directive.trainingModification}</p>
-            </div>
-          )}
-
-          {/* Main Mission Card */}
-          <div className={cn(
-            "rounded-2xl overflow-hidden border",
-            directive.todayType === 'both'
-              ? 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'
-              : 'border-primary-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/20'
-          )}>
-            {/* Card header — session label + block progress */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-1">
-              <div className="flex items-center gap-2">
-                <Dumbbell className={cn('w-4 h-4', directive.todayType === 'both' ? 'text-purple-400' : 'text-primary-400')} />
-                <span className="text-xs font-bold uppercase tracking-widest text-grappler-400">
-                  {directive.todayType === 'both' ? 'Lift + Mat Day' : directive.isDeload ? 'Deload Session' : 'Training Day'}
-                </span>
-              </div>
-              {mesocycleProgress && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-grappler-500">Block</span>
-                  <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
-                    <div className={cn('h-full rounded-full', directive.todayType === 'both' ? 'bg-purple-400/60' : 'bg-primary-400/60')} style={{ width: `${mesocycleProgress.percent}%` }} />
-                  </div>
-                  <span className="text-xs text-grappler-400 tabular-nums">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Workout name + subline */}
-            <div className="px-5 pb-3">
-              <h2 className="text-xl font-black text-grappler-50 leading-tight">{nextWorkout.name}</h2>
-              {directive.sessionLabel && (
-                <p className="text-xs text-grappler-500 mt-0.5">{directive.sessionLabel}</p>
-              )}
-              <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
-            </div>
-
-            {/* Overload teaser — the "why today matters" line */}
-            {directive.overloadTeaser && (
-              <div className="mx-5 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/8 border border-green-500/15">
-                <TrendingUp className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                <p className="text-xs text-green-300 font-semibold">{directive.overloadTeaser}</p>
-              </div>
-            )}
-
-            {/* Exercise lineup — structured grid */}
-            <div className="mx-5 mb-3 bg-grappler-900/50 rounded-xl border border-grappler-700/40 overflow-hidden">
-              {nextWorkout.exercises.slice(0, 4).map((ex, i) => (
-                <div key={i} className={cn(
-                  'flex items-center gap-3 px-3 py-2',
-                  i < Math.min(3, nextWorkout.exercises.length - 1) && 'border-b border-grappler-700/30'
-                )}>
-                  <span className="text-xs font-bold text-grappler-600 w-4 text-center tabular-nums">{i + 1}</span>
-                  <p className="text-xs text-grappler-200 flex-1 truncate">{ex.exercise.name}</p>
-                  <span className="text-xs text-grappler-400 tabular-nums">{ex.sets}×{ex.prescription.targetReps}</span>
-                </div>
-              ))}
-              {nextWorkout.exercises.length > 4 && (
-                <div className="px-3 py-1.5 text-center border-t border-grappler-700/30">
-                  <span className="text-xs text-grappler-400">+{nextWorkout.exercises.length - 4} more exercises</span>
-                </div>
-              )}
-            </div>
-
-            {/* Stats row — exercise count + duration + total sets */}
-            <div className="mx-5 mb-4 flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                <Dumbbell className="w-3 h-3 text-grappler-500" />
-                <span className="text-xs text-grappler-300 font-medium">{nextWorkout.exercises.length}</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                <Clock className="w-3 h-3 text-grappler-500" />
-                <span className="text-xs text-grappler-300 font-medium">~{nextWorkout.estimatedDuration}m</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-grappler-900/40 rounded-lg px-2.5 py-1.5">
-                <Target className="w-3 h-3 text-grappler-500" />
-                <span className="text-xs text-grappler-300 font-medium">{nextWorkout.exercises.reduce((s, e) => s + e.sets, 0)} sets</span>
-              </div>
-            </div>
-
-            {/* START CTA — high-contrast, large and prominent */}
-            <div className="px-5 pb-5">
-              <button
-                onClick={() => startWorkout(nextWorkout)}
-                className={cn(
-                  "w-full py-4 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg",
-                  directive.todayType === 'both'
-                    ? 'bg-gradient-to-r from-primary-500 via-purple-500 to-indigo-500 shadow-purple-500/20'
-                    : 'bg-gradient-to-r from-primary-500 to-accent-500 shadow-primary-500/20',
-                  workoutLogs.length === 0 && "ring-2 ring-primary-400/50 ring-offset-2 ring-offset-grappler-900 animate-pulse"
-                )}
-              >
-                <Play className="w-6 h-6" />
-                Start Workout
-              </button>
-            </div>
-          </div>
-
-          {/* Combat callout when both — each session as a mini-card */}
-          {directive.todayType === 'both' && directive.todayCombatSessions.length > 0 && (
-            <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 space-y-2">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-xs font-bold uppercase tracking-widest text-purple-400">Also on the mat</span>
-              </div>
-              {directive.todayCombatSessions.map((s, i) => (
-                <div key={i} className="flex items-center gap-2.5 bg-grappler-800/40 border border-purple-500/15 rounded-lg px-3 py-2">
-                  {s.logged ? <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <Shield className="w-3.5 h-3.5 text-purple-400/60 flex-shrink-0" />}
-                  <p className="text-xs text-grappler-300 flex-1">{s.type}{s.duration > 0 ? ` · ${s.duration}min` : ''}</p>
-                  <span className={cn('text-xs px-1.5 py-0.5 rounded-full font-medium',
-                    /hard|sparring|competition/i.test(s.intensity) ? 'bg-red-500/15 text-red-400' :
-                    /moderate/i.test(s.intensity) ? 'bg-yellow-500/15 text-yellow-400' :
-                    'bg-green-500/15 text-green-400'
-                  )}>{s.intensity}</span>
-                  {!s.logged && (
-                  <button
-                    onClick={() => {
-                      skipWorkout({
-                        date: new Date().toISOString().split('T')[0],
-                        scheduledSessionId: `combat-${i}`,
-                        reason: 'schedule_conflict' as SkipReason,
-                        rescheduled: false,
-                      });
-                      setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(`combat-${i}`); return n; });
-                      showToast(`Skipped ${s.type}`, 'info');
-                    }}
-                    className="text-grappler-600 hover:text-grappler-300 transition-colors"
-                    title="Skip this session"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Secondary CTA: Quick 30m + collapsed options */}
-          <div className="flex items-center justify-center gap-3">
-            <button onClick={handleQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-            <button
-              onClick={() => setLiftOptionsExpanded(v => !v)}
-              className="flex items-center gap-1 py-2 text-xs text-grappler-600 hover:text-grappler-400 transition-colors"
-            >
-              <MoreHorizontal className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Collapsed options: Skip + Finish Block */}
-          <AnimatePresence>
-            {liftOptionsExpanded && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="flex items-center justify-center gap-4 py-1">
-                  <button
-                    onClick={() => {
-                      setLiftOptionsExpanded(false);
-                      setShowSkipDialog(true);
-                    }}
-                    className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"
-                  >
-                    <SkipForward className="w-3.5 h-3.5" />Skip Session
-                  </button>
-                  <span className="text-grappler-700">·</span>
-                  <button
-                    onClick={() => { setLiftOptionsExpanded(false); setShowValidateConfirm(true); }}
-                    className="flex items-center gap-1.5 py-1.5 text-xs text-grappler-400 hover:text-green-400 transition-colors"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />Finish Block
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Finish block confirmation */}
-          <AnimatePresence>
-            {showValidateConfirm && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
-                  <p className="text-xs text-grappler-200 mb-2">
-                    Complete current block{mesocycleQueue.length > 0 ? ` and start ${mesocycleQueue[0].name}?` : ' and generate next?'}
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <button onClick={() => setShowValidateConfirm(false)} className="btn btn-sm bg-grappler-700 text-grappler-300 hover:bg-grappler-600">Cancel</button>
-                    <button onClick={handleValidateBlock} className="btn btn-sm bg-green-600 text-white hover:bg-green-500 gap-1.5"><CheckCircle className="w-3.5 h-3.5" />Finish</button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        <LiftPhase
+          directive={directive}
+          nextWorkout={nextWorkout}
+          mesocycleProgress={mesocycleProgress}
+          mesocycleQueue={mesocycleQueue}
+          sleepHours={sleepHours ?? null}
+          todayProtein={todayProtein}
+          macroTargets={macroTargets}
+          waterTodayL={waterTodayL}
+          waterTodayGlasses={waterTodayGlasses}
+          recoveryScore={recoveryScore ?? null}
+          weightUnit={weightUnit}
+          workoutLogsLength={workoutLogs.length}
+          onStartWorkout={startWorkout}
+          onQuickWorkout={handleQuickWorkout}
+          onSkipWorkout={skipWorkout}
+          onDismissCard={(id) => setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(id); return n; })}
+          onShowSkipDialog={() => setShowSkipDialog(true)}
+          showToast={(msg, type) => showToast(msg, type as any)}
+        />
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
-        /* ─── MESOCYCLE COMPLETE — celebration with rich stats ─── */
-        <motion.div
-          key="zone2-block-complete"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl overflow-hidden border border-primary-500/20 bg-gradient-to-br from-primary-500/10 via-grappler-800 to-accent-500/5"
-        >
-          {/* Trophy header */}
-          <div className="pt-6 pb-3 text-center relative">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/20 flex items-center justify-center mx-auto mb-3">
-              <Trophy className="w-8 h-8 text-primary-400" />
-            </div>
-            <h3 className="text-lg font-black text-grappler-50">Block Complete</h3>
-            <p className="text-xs text-grappler-400 mt-1">
-              All {mesocycleProgress.total} sessions in <span className="text-grappler-200 font-medium">{currentMesocycle.name}</span> done
-            </p>
-          </div>
-
-          {/* Stats comparison grid */}
-          {mesocycleComparison && (
-            <div className="mx-5 mb-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-grappler-400 mb-2">vs {mesocycleComparison.prevName}</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-grappler-900/50 border border-grappler-700/40 rounded-xl p-3 text-center">
-                  <p className="text-lg font-black text-grappler-100">{mesocycleComparison.sessions.current}</p>
-                  <p className="text-xs text-grappler-400 uppercase">Sessions</p>
-                </div>
-                <div className="bg-grappler-900/50 border border-grappler-700/40 rounded-xl p-3 text-center">
-                  <p className="text-lg font-black text-grappler-100">{formatNumber(mesocycleComparison.avgVolume.current)}</p>
-                  <p className="text-xs text-grappler-400 uppercase">Avg Vol</p>
-                  <p className={cn('text-xs font-bold mt-0.5', mesocycleComparison.avgVolume.delta > 0 ? 'text-green-400' : mesocycleComparison.avgVolume.delta < 0 ? 'text-red-400' : 'text-grappler-400')}>
-                    {mesocycleComparison.avgVolume.delta > 0 ? '+' : ''}{formatNumber(mesocycleComparison.avgVolume.delta)}
-                  </p>
-                </div>
-                <div className="bg-grappler-900/50 border border-grappler-700/40 rounded-xl p-3 text-center">
-                  <p className="text-lg font-black text-grappler-100">{mesocycleComparison.avgRPE.current}</p>
-                  <p className="text-xs text-grappler-400 uppercase">Avg RPE</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Next block preview */}
-          {mesocycleQueue.length > 0 && (
-            <div className="mx-5 mb-4 bg-grappler-900/40 border border-grappler-700/40 rounded-xl p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary-500/15 flex items-center justify-center flex-shrink-0">
-                <ChevronRight className="w-5 h-5 text-primary-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-grappler-400 font-bold uppercase tracking-wide">Up next</p>
-                <p className="text-sm font-bold text-primary-300 truncate">{mesocycleQueue[0].name}</p>
-                <p className="text-xs text-grappler-400">{mesocycleQueue[0].weeks} weeks · {mesocycleQueue[0].periodization || 'auto'}</p>
-              </div>
-            </div>
-          )}
-
-          {/* CTAs */}
-          <div className="px-5 pb-5 flex items-center gap-2">
-            <button
-              onClick={() => onViewReport(currentMesocycle.id)}
-              className="btn btn-md gap-2 bg-grappler-700 text-grappler-200 hover:bg-grappler-600 flex-1"
-            >
-              <BarChart3 className="w-4 h-4" />
-              Report
-            </button>
-            <button
-              onClick={handleGenerateNext}
-              className="btn btn-primary btn-md gap-2 flex-1"
-            >
-              <Zap className="w-4 h-4" />
-              {mesocycleQueue.length > 0 ? 'Start Next' : 'Next Mesocycle'}
-            </button>
-          </div>
-        </motion.div>
+        <BlockCompletePhase
+          currentMesocycle={currentMesocycle}
+          mesocycleProgress={mesocycleProgress}
+          mesocycleComparison={mesocycleComparison}
+          mesocycleQueue={mesocycleQueue}
+          weightUnit={weightUnit}
+          onViewReport={onViewReport}
+          onGenerateNext={handleGenerateNext}
+        />
       ) : (
-        /* ─── NO PROGRAM — welcoming onboarding card ─── */
-        <motion.div
-          key="zone2-onboard"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl overflow-hidden border border-grappler-700/50 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/10"
-        >
-          {/* Welcome hero */}
-          <div className="pt-8 pb-5 px-5 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/15 flex items-center justify-center mx-auto mb-4">
-              <Dumbbell className="w-8 h-8 text-primary-400" />
-            </div>
-            <h2 className="text-lg font-black text-grappler-50">Ready to build your program?</h2>
-            <p className="text-xs text-grappler-400 mt-2 leading-relaxed max-w-[280px] mx-auto">
-              AI-generated periodized training built around your schedule, experience, and goals. Takes about 30 seconds.
-            </p>
-          </div>
+        <OnboardingPhase
+          onNavigate={onNavigate}
+          onQuickWorkout={handleQuickWorkout}
+        />
+      )}
 
-          {/* Feature preview pills */}
-          <div className="flex items-center justify-center gap-2 px-5 pb-4 flex-wrap">
-            <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Auto-periodization</span>
-            <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Progressive overload</span>
-            <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Deload timing</span>
-          </div>
-
-          {/* CTAs */}
-          <div className="px-5 pb-6 space-y-2">
-            <button
-              onClick={() => onNavigate('block_suggestion')}
-              className="w-full py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-accent-500 shadow-lg shadow-primary-500/20 active:scale-[0.98] transition-transform"
-            >
-              <Brain className="w-5 h-5" />
-              Create Program
-            </button>
-            <button
-              onClick={handleQuickWorkout}
-              className="w-full py-2.5 rounded-xl text-xs font-medium text-grappler-400 hover:text-grappler-200 flex items-center justify-center gap-1.5 transition-colors"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Or just do a quick 30-minute workout
-            </button>
-          </div>
-        </motion.div>
+      {/* ─── Urgent Feed Cards — time-sensitive, always visible ─── */}
+      {urgentFeedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string)).length > 0 && (
+        <div className="space-y-2">
+          {urgentFeedCards
+            .filter(card => !dismissedCards.has((card as React.ReactElement).key as string))
+            .slice(0, 2)
+            .map(card => card)}
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           BELOW THE FOLD — Secondary Content
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── Body Check-In — soreness & mobility (safety-relevant) ─── */}
-      {showSorenessCheck && (
-        <SorenessCheck
-          context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
-          isCombatAthlete={user?.trainingIdentity === 'combat'}
-          onDismiss={() => setSorenessCheckDismissed(true)}
-          onLog={handleSorenessLog}
-        />
+      {/* ─── NUTRITION STRIP — protein + water, always visible ─── */}
+      {macroTargets.protein > 0 && (
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
+            <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all duration-500',
+                  todayProtein >= macroTargets.protein ? 'bg-green-400' :
+                  todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
+                )}
+                style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
+              />
+            </div>
+            <span className={cn(
+              'text-sm tabular-nums font-medium flex-shrink-0',
+              todayProtein >= macroTargets.protein ? 'text-green-400' :
+              todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
+            )}>
+              {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
+            </span>
+          </div>
+          {waterTodayL > 0 && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Droplets className="w-3 h-3 text-blue-400/70" />
+              <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ─── Weekly Momentum — 7-day rhythm bar, expandable scorecard ─── */}
@@ -2343,81 +1777,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         weightUnit={weightUnit}
         nextBadgeDistance={nextBadgeDistance}
       />
-
-      {/* ─── Week in 10 Seconds — unified weekly snapshot card ─── */}
-      {synthesis.hasData && (() => {
-        const { stats, trends } = synthesis;
-        const trendIcon = (t: 'up' | 'down' | 'stable') => t === 'up' ? '↑' : t === 'down' ? '↓' : '→';
-        const trendColor = (t: 'up' | 'down' | 'stable') => t === 'up' ? 'text-emerald-400' : t === 'down' ? 'text-red-400' : 'text-grappler-400';
-
-        // Mental score (if check-ins exist this week)
-        const now = Date.now();
-        const weekMs = 7 * 24 * 60 * 60 * 1000;
-        const thisWeekMental = mentalCheckIns.filter(c => now - new Date(c.timestamp).getTime() < weekMs);
-        const mentalScore = thisWeekMental.length > 0
-          ? Math.round(thisWeekMental.map(c => ((c.energy + c.focus + c.confidence + c.composure) / 20) * 100).reduce((a, b) => a + b, 0) / thisWeekMental.length)
-          : null;
-
-        // Readiness
-        const readinessScore = directive.readinessScore ?? null;
-
-        // Coaching line — pick one insight or use narrative snippet
-        const coachLine = weeklyInsights.length > 0
-          ? weeklyInsights[0].text
-          : synthesis.narrative.split('.')[0] + '.';
-
-        return (
-          <div className="w-full bg-grappler-800/50 border border-grappler-700/40 rounded-xl p-3.5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-grappler-300 uppercase tracking-wide">Week in 10 seconds</span>
-              {synthesis.isMidWeek && <span className="text-[10px] text-grappler-500 bg-grappler-700/40 px-1.5 py-0.5 rounded-full">mid-week</span>}
-            </div>
-
-            {/* Stat pills */}
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center">
-                <p className="text-lg font-black text-grappler-100">{stats.workouts}</p>
-                <p className="text-[10px] text-grappler-500">sessions</p>
-                <span className={cn('text-[10px] font-medium', trendColor(trends.consistency))}>{trendIcon(trends.consistency)}</span>
-              </div>
-              <div className="text-center">
-                <p className={cn('text-lg font-black', stats.prs > 0 ? 'text-yellow-400' : 'text-grappler-100')}>{stats.prs}</p>
-                <p className="text-[10px] text-grappler-500">PRs</p>
-                <span className={cn('text-[10px] font-medium', trendColor(trends.prs))}>{trendIcon(trends.prs)}</span>
-              </div>
-              <div className="text-center">
-                <p className={cn('text-lg font-black', readinessScore !== null ? (readinessScore >= 70 ? 'text-emerald-400' : readinessScore >= 50 ? 'text-yellow-400' : 'text-red-400') : 'text-grappler-100')}>
-                  {readinessScore ?? '—'}
-                </p>
-                <p className="text-[10px] text-grappler-500">readiness</p>
-              </div>
-              <div className="text-center">
-                {mentalScore !== null ? (
-                  <>
-                    <p className={cn('text-lg font-black', mentalScore >= 70 ? 'text-violet-400' : mentalScore >= 50 ? 'text-yellow-400' : 'text-red-400')}>{mentalScore}</p>
-                    <p className="text-[10px] text-grappler-500">mental</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-lg font-black text-grappler-100">{stats.avgRPE > 0 ? stats.avgRPE.toFixed(1) : '—'}</p>
-                    <p className="text-[10px] text-grappler-500">avg RPE</p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Combat line if applicable */}
-            {stats.combatSessions > 0 && (
-              <p className="text-xs text-grappler-400">
-                {stats.combatSessions} mat session{stats.combatSessions !== 1 ? 's' : ''} · {stats.combatMinutes}min
-              </p>
-            )}
-
-            {/* Coach line */}
-            <p className="text-xs text-grappler-400 italic leading-relaxed">{coachLine}</p>
-          </div>
-        );
-      })()}
 
       {/* ─── Daily Knowledge Insight — contextual, rotates daily ─── */}
       <InsightCard
@@ -2441,18 +1800,18 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       <div>
         <button
           onClick={() => setShowInsights(v => !v)}
-          className="w-full flex items-center justify-between gap-2 py-2.5 px-1 text-xs font-semibold text-grappler-400 hover:text-grappler-200 transition-colors"
+          className="w-full flex items-center justify-between gap-2 py-3 px-3 rounded-xl bg-grappler-800/40 border border-grappler-700/30 hover:bg-grappler-800/60 transition-colors"
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Sparkles className="w-4 h-4 text-primary-400 flex-shrink-0" />
+            <span className="text-sm font-semibold text-grappler-300 truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
           </div>
           <motion.span
             animate={{ rotate: showInsights ? 180 : 0 }}
             transition={{ duration: 0.2 }}
             className="inline-flex flex-shrink-0"
           >
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-4 h-4 text-grappler-400" />
           </motion.span>
         </button>
 
@@ -2467,35 +1826,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             >
               <div className="space-y-3 pt-1">
 
-                {/* ─── NUTRITION STRIP — compact protein + water ─── */}
-                {macroTargets.protein > 0 && (
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
-                      <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-500',
-                            todayProtein >= macroTargets.protein ? 'bg-green-400' :
-                            todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
-                          )}
-                          style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
-                        />
-                      </div>
-                      <span className={cn(
-                        'text-xs tabular-nums font-medium flex-shrink-0',
-                        todayProtein >= macroTargets.protein ? 'text-green-400' :
-                        todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
-                      )}>
-                        {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
-                      </span>
-                    </div>
-                    {waterTodayL > 0 && (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Droplets className="w-3 h-3 text-blue-400/70" />
-                        <span className="text-xs text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
-                      </div>
-                    )}
-                  </div>
+                {/* ─── Body Check-In — soreness & mobility ─── */}
+                {showSorenessCheck && (
+                  <SorenessCheck
+                    context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
+                    isCombatAthlete={user?.trainingIdentity === 'combat'}
+                    onDismiss={() => setSorenessCheckDismissed(true)}
+                    onLog={handleSorenessLog}
+                  />
                 )}
 
                 {/* ─── Performance Readiness — nutrition-focused ─── */}
@@ -2800,7 +2138,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       {dockPickerOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/60"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tool picker"
           onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setDockPickerOpen(false); setDockPickerSlot(null); } }}
         >
           <div
             className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-2xl bg-grappler-900 border-t border-grappler-700/50"

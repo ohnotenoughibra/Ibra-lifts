@@ -39,6 +39,16 @@ export default function VersionUpgradePopup() {
     }
   }, [breaking]);
 
+  // Escape key dismisses the popup
+  useEffect(() => {
+    if (!show) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDismiss();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleBackup = () => {
     const backup = exportFullBackup();
     const date = new Date().toISOString().split('T')[0];

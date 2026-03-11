@@ -7,6 +7,7 @@ import {
   Trophy, Flame, Clock, Filter, Calendar,
   Navigation, Crosshair, Footprints, Bike,
 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { cn, formatNumber } from '@/lib/utils';
@@ -241,11 +242,11 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
       {/* Timeline */}
       <div className="px-4 pb-24">
         {grouped.length === 0 ? (
-          <div className="text-center py-16 space-y-3">
-            <Calendar className="w-10 h-10 text-grappler-700 mx-auto" />
-            <p className="text-sm text-grappler-400">No entries found</p>
-            <p className="text-xs text-grappler-500">{search ? 'Try a different search' : 'Start training to build your journal'}</p>
-          </div>
+          <EmptyState
+            icon={Calendar}
+            title="No entries found"
+            description={search ? 'Try a different search term.' : 'Start training to build your journal.'}
+          />
         ) : (
           grouped.map(([dateStr, entries]) => (
             <div key={dateStr} className="mt-4">
@@ -302,7 +303,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
                                   <div key={i} className="flex items-center justify-between text-xs">
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-grappler-300">{ex.exerciseName}</span>
-                                      {ex.personalRecord && <span className="text-yellow-400 text-[10px] font-bold">PR</span>}
+                                      {ex.personalRecord && <span className="text-yellow-400 text-xs font-bold">PR</span>}
                                     </div>
                                     <span className="text-grappler-500">
                                       {ex.sets.filter(s => s.completed).length} sets · {ex.sets.filter(s => s.completed).map(s => `${s.weight}×${s.reps}`).join(', ')}
@@ -363,7 +364,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
                               <div className="border-t border-grappler-800/30 p-3 space-y-2">
                                 {s.techniques && (
                                   <div>
-                                    <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">Techniques</span>
+                                    <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">Techniques</span>
                                     <p className="text-xs text-grappler-300 mt-0.5">{s.techniques}</p>
                                   </div>
                                 )}
@@ -420,7 +421,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
                                 <div className="grid grid-cols-4 gap-2 text-center">
                                   {(['energy', 'focus', 'confidence', 'composure'] as const).map(dim => (
                                     <div key={dim}>
-                                      <span className="text-[10px] text-grappler-500 capitalize">{dim}</span>
+                                      <span className="text-xs text-grappler-500 capitalize">{dim}</span>
                                       <p className={cn('text-sm font-bold', c[dim] >= 4 ? 'text-emerald-400' : c[dim] >= 3 ? 'text-yellow-400' : 'text-red-400')}>
                                         {c[dim]}/5
                                       </p>
@@ -429,13 +430,13 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
                                 </div>
                                 {c.triggers && (
                                   <div>
-                                    <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">Triggers</span>
+                                    <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">Triggers</span>
                                     <p className="text-xs text-grappler-300 mt-0.5">{c.triggers}</p>
                                   </div>
                                 )}
                                 {c.flow && (
                                   <div>
-                                    <span className="text-[10px] uppercase tracking-wider text-grappler-500 font-semibold">Flow Moments</span>
+                                    <span className="text-xs uppercase tracking-wider text-grappler-500 font-semibold">Flow Moments</span>
                                     <p className="text-xs text-grappler-300 mt-0.5">{c.flow}</p>
                                   </div>
                                 )}

@@ -139,7 +139,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
               <p className={cn('text-3xl font-black tabular-nums', colors.title)}>
                 {acwr.ratio.toFixed(2)}
               </p>
-              <p className="text-[10px] text-grappler-500 uppercase tracking-wide">ACWR</p>
+              <p className="text-xs text-grappler-500 uppercase tracking-wide">ACWR</p>
             </div>
           </div>
 
@@ -165,7 +165,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
             )}
           </div>
           {/* Zone labels — positioned to match bands */}
-          <div className="relative h-4 text-[10px] text-grappler-500 font-medium">
+          <div className="relative h-4 text-xs text-grappler-500 font-medium">
             <span className="absolute left-0">0</span>
             <span className="absolute" style={{ left: '40%', transform: 'translateX(-50%)' }}>0.8</span>
             <span className="absolute" style={{ left: '65%', transform: 'translateX(-50%)' }}>1.3</span>
@@ -186,23 +186,23 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
         {/* ── Acute vs Chronic + Delta ── */}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Acute</p>
+            <p className="text-xs text-grappler-500 uppercase tracking-wide">Acute</p>
             <p className="text-lg font-black text-grappler-100 mt-0.5 tabular-nums">{acwr.acute.toLocaleString()}</p>
-            <p className="text-[10px] text-grappler-500">7-day load</p>
+            <p className="text-xs text-grappler-500">7-day load</p>
           </div>
           <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Chronic</p>
+            <p className="text-xs text-grappler-500 uppercase tracking-wide">Chronic</p>
             <p className="text-lg font-black text-grappler-100 mt-0.5 tabular-nums">{acwr.chronic.toLocaleString()}</p>
-            <p className="text-[10px] text-grappler-500">28-day avg</p>
+            <p className="text-xs text-grappler-500">28-day avg</p>
           </div>
           <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Week Δ</p>
+            <p className="text-xs text-grappler-500 uppercase tracking-wide">Week Δ</p>
             <p className={cn('text-lg font-black mt-0.5 tabular-nums',
               weekDelta > 0 ? 'text-amber-400' : weekDelta < 0 ? 'text-blue-400' : 'text-grappler-400'
             )}>
               {weekDelta > 0 ? '+' : ''}{weekDeltaPct}%
             </p>
-            <p className="text-[10px] text-grappler-500">vs last wk</p>
+            <p className="text-xs text-grappler-500">vs last wk</p>
           </div>
         </div>
 
@@ -238,7 +238,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 + i * 0.1 }}
-                        className="absolute inset-y-0 flex items-center text-[10px] text-white/80 font-medium pl-2"
+                        className="absolute inset-y-0 flex items-center text-xs text-white/80 font-medium pl-2"
                       >
                         {week.load.toLocaleString()}
                       </motion.span>
@@ -304,7 +304,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
                 <p className="text-xs font-medium text-grappler-200">
                   {new Date(selectedHeatmapDay.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                 </p>
-                <p className="text-[11px] text-grappler-400">
+                <p className="text-xs text-grappler-400">
                   {selectedHeatmapDay.sessions} session{selectedHeatmapDay.sessions !== 1 ? 's' : ''} · {selectedHeatmapDay.intensity}% intensity
                 </p>
               </div>

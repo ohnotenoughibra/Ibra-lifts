@@ -12,10 +12,12 @@ import {
   ChevronUp,
   Plus,
   Minus,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { MealEntry, MealType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import type { useNutrition } from '@/hooks/useNutrition';
+import EmptyState from '../EmptyState';
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -153,7 +155,7 @@ function WaterRow({ glasses, target, onChange }: {
             <span className="text-[9px] font-bold text-white drop-shadow-sm">
               +{((glasses - target) * 250) >= 1000
                 ? `${(((glasses - target) * 250) / 1000).toFixed(1)}L`
-                : `${(glasses - target) * 250}ml`} extra
+                : `${Math.round((glasses - target) * 250)}ml`} extra
             </span>
           </div>
         )}
@@ -434,15 +436,12 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
         </div>
 
         {meals.length === 0 ? (
-          <button
-            onClick={onOpenLog}
-            className="w-full py-8 flex flex-col items-center gap-2 text-grappler-500 hover:text-grappler-300 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-full bg-grappler-800 flex items-center justify-center">
-              <span className="text-xl">+</span>
-            </div>
-            <span className="text-sm">Log your first meal</span>
-          </button>
+          <EmptyState
+            icon={UtensilsCrossed}
+            title="No meals logged today"
+            description="Track your nutrition to stay on top of your macros and fuel your training."
+            action={{ label: 'Log a Meal', onClick: onOpenLog }}
+          />
         ) : (
           <div className="divide-y divide-grappler-800/50">
             {meals.map(meal => (

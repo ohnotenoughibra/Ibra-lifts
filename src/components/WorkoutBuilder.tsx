@@ -418,6 +418,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
   const [workoutName, setWorkoutName] = useState('Custom Workout');
   const [workoutType, setWorkoutType] = useState<WorkoutType>('hypertrophy');
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  const [pendingTemplate, setPendingTemplate] = useState<MesocycleTemplate | null>(null);
 
   const equipment = user?.equipment || 'full_gym';
 
@@ -657,7 +658,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                         ))}
                       </div>
                       <button
-                        onClick={() => startFromTemplate(template)}
+                        onClick={() => setPendingTemplate(template)}
                         className="btn btn-primary btn-sm w-full gap-1"
                       >
                         <Play className="w-3.5 h-3.5" />
@@ -1062,6 +1063,34 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
           </div>
         )}
       </main>
+
+      {/* Template confirmation modal */}
+      {pendingTemplate && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPendingTemplate(null)}>
+          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-2">Start New Program?</h3>
+            <p className="text-sm text-grappler-400 mb-4">
+              This will start a new <span className="text-white font-medium">{pendingTemplate.name}</span> program
+              ({pendingTemplate.weeks} weeks, {pendingTemplate.sessions}x/week).
+              Your current mesocycle will be replaced.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingTemplate(null)}
+                className="flex-1 py-2.5 rounded-xl bg-grappler-700 text-white font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { startFromTemplate(pendingTemplate); setPendingTemplate(null); }}
+                className="flex-1 py-2.5 rounded-xl bg-grappler-500 text-white font-medium"
+              >
+                Start Program
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

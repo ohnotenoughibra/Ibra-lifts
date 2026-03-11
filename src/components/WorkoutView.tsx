@@ -215,7 +215,7 @@ export default function WorkoutView() {
     } else {
       // No workouts to migrate, proceed directly
       if (sessionsPerWeek && user) {
-        useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+        useAppStore.getState().updateUserFields({ sessionsPerWeek });
       }
       generateNewMesocycle(weeks, sessionMinutes);
     }
@@ -235,7 +235,7 @@ export default function WorkoutView() {
 
     // Update sessions per week if needed
     if (sessionsPerWeek && user) {
-      useAppStore.getState().setUser({ ...user, sessionsPerWeek });
+      useAppStore.getState().updateUserFields({ sessionsPerWeek });
     }
 
     // Generate the new mesocycle
@@ -313,7 +313,7 @@ export default function WorkoutView() {
     const handleWizardGenerate = () => {
       const state = useAppStore.getState();
       if (state.user) {
-        state.setUser({ ...state.user, sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
+        state.updateUserFields({ sessionsPerWeek: wizardDays, goalFocus: wizardGoal });
       }
       generateNewMesocycle(blockWeeks, sessionMinutes || undefined);
     };
@@ -754,10 +754,20 @@ export default function WorkoutView() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Import workout progress"
               onClick={() => {
                 setShowMigrateDialog(false);
                 setPendingGeneration(null);
                 setPreviousMesocycleId(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setShowMigrateDialog(false);
+                  setPendingGeneration(null);
+                  setPreviousMesocycleId(null);
+                }
               }}
             >
               <motion.div

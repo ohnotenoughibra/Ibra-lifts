@@ -239,9 +239,10 @@ function weeklyVolumeScore(weekLogs: WorkoutLog[]): number {
   // Normalize: sessions (0-7 → 0-30pts), sets (0-100 → 0-40pts), volume relative (0-30pts)
   const sessionScore = Math.min(30, weekLogs.length * 5);
   const setScore = Math.min(40, totalSets * 0.6);
-  // Volume is relative — we just scale it based on sets already done
+  // Volume is relative — normalize by a typical set volume
+  // Use 1000 as baseline (≈ 50kg × 10 reps or ≈ 100lbs × 10 reps) to reduce unit bias
   const avgVolumePerSet = totalSets > 0 ? totalVolume / totalSets : 0;
-  const volumeScore = Math.min(30, avgVolumePerSet / 100);
+  const volumeScore = Math.min(30, (avgVolumePerSet / 1000) * 30);
 
   return Math.min(100, Math.round(sessionScore + setScore + volumeScore));
 }
@@ -256,17 +257,19 @@ function weeklyAvgRPE(weekLogs: WorkoutLog[]): number {
   let count = 0;
 
   weekLogs.forEach(log => {
+    let logSetCount = 0;
     // Use per-set RPE when available for accuracy
     log.exercises.forEach(ex => {
       ex.sets.forEach(set => {
         if (set.completed && set.rpe > 0) {
           totalRPE += set.rpe;
           count++;
+          logSetCount++;
         }
       });
     });
-    // Fallback to overall RPE if no per-set data
-    if (count === 0 && log.overallRPE > 0) {
+    // Fallback to overall RPE if no per-set data for this log
+    if (logSetCount === 0 && log.overallRPE > 0) {
       totalRPE += log.overallRPE;
       count++;
     }
@@ -716,7 +719,7 @@ export function getSmartDeloadRecommendation(
   triggers.push({
     met: consecutiveHighDebt >= 2,
     urgency: consecutiveHighDebt >= 3 ? 'critical' : 'recommended',
-    reason: `Fatigue debt has been above 70 for ${consecutiveHighDebt} consecutive weeks`,
+    reason: `Fatigue debt has been above 70 for ${consecutiveHighDebt} of the last 3 weeks`,
   });
 
   // Trigger 2: 3+ exercises showing declining 1RM trend
@@ -1085,11 +1088,12 @@ export function getFatigueInsights(
   const twoWeeksAgo = Date.now() - 2 * WEEK_MS;
   const recentLogs = workoutLogs.filter(l => new Date(l.date).getTime() >= twoWeeksAgo);
   if (recentLogs.length > 0) {
-    const avgRPE = recentLogs.reduce((sum, l) => sum + l.overallRPE, 0) / recentLogs.length;
+    const logsWithRPE = recentLogs.filter(l => l.overallRPE > 0);
+    const avgRPE = logsWithRPE.length > 0 ? logsWithRPE.reduce((sum, l) => sum + l.overallRPE, 0) / logsWithRPE.length : 0;
     const prCount = recentLogs.reduce(
       (count, log) => count + log.exercises.filter(e => e.personalRecord).length, 0,
     );
-    details.push(`Last 2 weeks: ${recentLogs.length} sessions, avg RPE ${avgRPE.toFixed(1)}, ${prCount} PR${prCount !== 1 ? 's' : ''}.`);
+    details.push(`Last 2 weeks: ${recentLogs.length} sessions${avgRPE > 0 ? `, avg RPE ${avgRPE.toFixed(1)}` : ''}, ${prCount} PR${prCount !== 1 ? 's' : ''}.`);
   }
 
   // Wearable context

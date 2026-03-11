@@ -26,6 +26,7 @@ import {
 } from 'recharts';
 import { generateWeeklySummary, getCoachMessage } from '@/lib/ai-coach';
 import { useAppStore } from '@/lib/store';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import { WeeklySummary } from '@/lib/types';
 import { formatNumber, formatDate } from '@/lib/utils';
 
@@ -50,6 +51,7 @@ const itemVariants = {
 
 export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   const { workoutLogs, user, gamificationStats } = useAppStore();
+  const computed = useComputedGamification();
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [coachMessage, setCoachMessage] = useState('');
@@ -69,9 +71,9 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
 
   // Get a contextual coach greeting
   useEffect(() => {
-    const message = getCoachMessage(workoutLogs, gamificationStats.currentStreak);
+    const message = getCoachMessage(workoutLogs, computed.currentStreak);
     setCoachMessage(message);
-  }, [workoutLogs, gamificationStats.currentStreak]);
+  }, [workoutLogs, computed.currentStreak]);
 
   async function loadSummary() {
     setLoading(true);

@@ -48,6 +48,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge, SessionsPerWeek } from '@/lib/types';
@@ -225,16 +226,17 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
-  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle, workoutLogs } = useAppStore(
+  const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, updateUserFields, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle, workoutLogs } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
-      resetStore: s.resetStore, setUser: s.setUser, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
+      resetStore: s.resetStore, setUser: s.setUser, updateUserFields: s.updateUserFields, restartOnboarding: s.restartOnboarding, generateNewMesocycle: s.generateNewMesocycle,
       colorTheme: s.colorTheme, setColorTheme: s.setColorTheme, homeGymEquipment: s.homeGymEquipment, setHomeGymEquipment: s.setHomeGymEquipment,
       recalculateGamificationStats: s.recalculateGamificationStats, workoutLogCount: (s.workoutLogs || []).length,
       currentMesocycle: s.currentMesocycle,
       workoutLogs: s.workoutLogs || [],
     }))
   );
+  const computed = useComputedGamification();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
   const weightUnit = user?.weightUnit || 'kg';
@@ -262,8 +264,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const [liftDraft, setLiftDraft] = useState('');
   const liftSavedRef = useRef(false);
 
-  const progress = levelProgress(gamificationStats?.totalPoints ?? 0);
-  const pointsNeeded = pointsToNextLevel(gamificationStats?.totalPoints ?? 0);
+  const progress = levelProgress(computed.totalPoints);
+  const pointsNeeded = pointsToNextLevel(computed.totalPoints);
   const badgesList = Array.isArray(gamificationStats?.badges) ? gamificationStats.badges : [];
   const earnedBadgeIds = new Set(badgesList.map(b => b.badgeId));
 
@@ -445,8 +447,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   // ── Helpers ────────────────────────────────────────────────────────────────
   const updateUser = useCallback((patch: Partial<NonNullable<typeof user>>) => {
     if (!user) return;
-    setUser({ ...user, ...patch, updatedAt: new Date() });
-  }, [user, setUser]);
+    updateUserFields(patch);
+  }, [user, updateUserFields]);
 
   const displayWeight = (kg: number | undefined) => {
     if (!kg) return '';
@@ -502,23 +504,23 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
     if (req.includes('personal_records')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.personalRecords ?? 0;
+      current = computed.personalRecords;
       label = 'PRs';
     } else if (req.includes('total_workouts')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.totalWorkouts ?? workoutLogCount;
+      current = computed.totalWorkouts;
       label = 'workouts';
     } else if (req.startsWith('streak')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.currentStreak ?? 0;
+      current = computed.currentStreak;
       label = 'day streak';
     } else if (req.includes('total_volume')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.totalVolume ?? 0;
+      current = computed.totalVolume;
       label = weightUnit;
     } else if (req.includes('level')) {
       target = parseInt(req.split('>=')[1].trim());
-      current = gamificationStats?.level ?? 0;
+      current = computed.level;
       label = 'level';
     } else if (req.includes('mesocycles_completed')) {
       target = parseInt(req.split('>=')[1].trim());
@@ -534,7 +536,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
     const pct = target > 0 ? Math.min((current / target) * 100, 99.9) : 0;
     return { current: Math.min(current, target), target, pct, label };
-  }, [nextBadge, gamificationStats, workoutLogCount, weightUnit]);
+  }, [nextBadge, computed, workoutLogCount, weightUnit]);
 
   // ── Strength Standards computation ───────────────────────────────────────
   const COMPOUND_IDS: Record<string, string[]> = {
@@ -1096,7 +1098,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
 
           {/* Horizontal layout: Ring left, Identity right */}
           <div className="relative flex items-center gap-3 pt-1">
-            <LevelRing progress={progress} level={gamificationStats.level} size={72} stroke={4} />
+            <LevelRing progress={progress} level={computed.level} size={72} stroke={4} />
 
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-black text-grappler-50 tracking-tight truncate">
@@ -1105,7 +1107,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Crown className="w-3 h-3 text-primary-400" />
                 <span className="text-xs text-primary-400 font-semibold">
-                  {getLevelTitle(gamificationStats.level)}
+                  {getLevelTitle(computed.level)}
                 </span>
               </div>
 
@@ -1119,8 +1121,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                     className="h-full rounded-full bg-gradient-to-r from-primary-500 to-accent-500"
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-grappler-500 mt-1 tabular-nums">
-                  <span>{formatNumber(gamificationStats.totalPoints)} XP</span>
+                <div className="flex justify-between text-xs text-grappler-500 mt-1 tabular-nums">
+                  <span>{formatNumber(computed.totalPoints)} XP</span>
                   <span>{formatNumber(pointsNeeded)} to next</span>
                 </div>
               </div>
@@ -1131,9 +1133,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         {/* Stats Banner — compact */}
         <div className="grid grid-cols-4 divide-x divide-grappler-700/30 px-2">
           {([
-            { value: gamificationStats.totalWorkouts, label: 'Workouts' },
-            { value: gamificationStats.personalRecords, label: 'PRs' },
-            { value: gamificationStats.currentStreak, label: 'Streak' },
+            { value: computed.totalWorkouts, label: 'Workouts' },
+            { value: computed.personalRecords, label: 'PRs' },
+            { value: computed.currentStreak, label: 'Streak' },
             { value: badgesList.length, label: 'Badges' },
           ]).map((s) => (
             <div key={s.label} className="text-center py-2">
@@ -1160,7 +1162,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             </div>
             <button
               onClick={() => { setShowAllBadges(!showAllBadges); hapticLight(); }}
-              className="text-[10px] text-primary-400 hover:text-primary-300 font-medium flex items-center gap-0.5"
+              className="text-xs text-primary-400 hover:text-primary-300 font-medium flex items-center gap-0.5"
             >
               <span className="tabular-nums">{badgesList.length}/{badges.length}</span>
               <ChevronRight className="w-3 h-3" />
@@ -1204,10 +1206,10 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                                 <span className="text-[9px] text-primary-400 font-bold">+{activeBadge.badge.points} XP</span>
                               </div>
                               <h4 className="text-sm font-bold text-grappler-50 mt-0.5 truncate">{activeBadge.badge.name}</h4>
-                              <p className="text-[11px] text-grappler-400 mt-0.5 line-clamp-2 leading-relaxed">{activeBadge.badge.description}</p>
+                              <p className="text-xs text-grappler-400 mt-0.5 line-clamp-2 leading-relaxed">{activeBadge.badge.description}</p>
                               <div className="flex items-center gap-1.5 mt-1.5">
                                 <Check className="w-3 h-3 text-green-400" />
-                                <span className="text-[10px] text-grappler-500">
+                                <span className="text-xs text-grappler-500">
                                   {new Date(activeBadge.earnedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </span>
                               </div>
@@ -1243,7 +1245,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                     🏆
                   </div>
                   <p className="text-xs text-grappler-400 font-medium">No badges yet</p>
-                  <p className="text-[10px] text-grappler-600 mt-0.5">Complete workouts to start earning</p>
+                  <p className="text-xs text-grappler-600 mt-0.5">Complete workouts to start earning</p>
                 </div>
               )}
 
@@ -1266,8 +1268,8 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                       {badgeProgress ? (
                         <div className="mt-1.5">
                           <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-[10px] text-grappler-500">{badgeProgress.current}/{badgeProgress.target} {badgeProgress.label}</span>
-                            <span className="text-[10px] text-primary-400 font-bold tabular-nums">{Math.round(badgeProgress.pct)}%</span>
+                            <span className="text-xs text-grappler-500">{badgeProgress.current}/{badgeProgress.target} {badgeProgress.label}</span>
+                            <span className="text-xs text-primary-400 font-bold tabular-nums">{Math.round(badgeProgress.pct)}%</span>
                           </div>
                           <div className="h-1.5 bg-grappler-700/50 rounded-full overflow-hidden">
                             <motion.div
@@ -1279,7 +1281,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[10px] text-grappler-500 mt-0.5 truncate">{nextBadge.description}</p>
+                        <p className="text-xs text-grappler-500 mt-0.5 truncate">{nextBadge.description}</p>
                       )}
                     </div>
                   </div>
@@ -1311,7 +1313,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               </div>
               {/* Locked badges */}
               <div className="pt-2 border-t border-grappler-700/50">
-                <p className="text-[10px] text-grappler-500 mb-2 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Locked</p>
+                <p className="text-xs text-grappler-500 mb-2 flex items-center gap-1"><Lock className="w-2.5 h-2.5" /> Locked</p>
                 <div className="grid grid-cols-5 gap-2">
                   {badges.filter(b => !earnedBadgeIds.has(b.id)).map((badge) => (
                     <button
@@ -1340,19 +1342,19 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         className="grid grid-cols-2 gap-1.5"
       >
         {([
-          { icon: Dumbbell, label: 'Total Volume', value: formatNumber(gamificationStats.totalVolume), suffix: weightUnit, color: 'from-primary-500/15 to-primary-500/5' },
-          { icon: Flame, label: 'Best Streak', value: `${gamificationStats.longestStreak}`, suffix: 'days', color: 'from-orange-500/15 to-orange-500/5' },
-          { icon: Star, label: 'Total Points', value: formatNumber(gamificationStats.totalPoints), suffix: '', color: 'from-yellow-500/15 to-yellow-500/5' },
-          { icon: Medal, label: 'Current Streak', value: `${gamificationStats.currentStreak}`, suffix: 'days', color: 'from-accent-500/15 to-accent-500/5' },
+          { icon: Dumbbell, label: 'Total Volume', value: formatNumber(computed.totalVolume), suffix: weightUnit, color: 'from-primary-500/15 to-primary-500/5' },
+          { icon: Flame, label: 'Best Streak', value: `${computed.longestStreak}`, suffix: 'days', color: 'from-orange-500/15 to-orange-500/5' },
+          { icon: Star, label: 'Total Points', value: formatNumber(computed.totalPoints), suffix: '', color: 'from-yellow-500/15 to-yellow-500/5' },
+          { icon: Medal, label: 'Current Streak', value: `${computed.currentStreak}`, suffix: 'days', color: 'from-accent-500/15 to-accent-500/5' },
         ] as const).map((stat) => (
           <div key={stat.label} className={cn('card p-2.5 bg-gradient-to-br', stat.color)}>
             <div className="flex items-center gap-1.5 mb-1">
               <stat.icon className="w-3 h-3 text-grappler-400" />
-              <p className="text-[10px] text-grappler-400 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-xs text-grappler-400 uppercase tracking-wider">{stat.label}</p>
             </div>
             <p className="text-base font-bold text-grappler-50 tabular-nums leading-tight">
               {stat.value}
-              {stat.suffix && <span className="text-[10px] text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
+              {stat.suffix && <span className="text-xs text-grappler-400 ml-1 font-normal">{stat.suffix}</span>}
             </p>
           </div>
         ))}
@@ -1373,7 +1375,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               <span className="text-xs text-grappler-500 ml-auto">1RM · {weightUnit}</span>
             </div>
             {user?.bodyWeightKg && (
-              <p className="text-[10px] text-grappler-500 mb-3 ml-6">
+              <p className="text-xs text-grappler-500 mb-3 ml-6">
                 Based on {weightUnit === 'kg' ? Math.round(user.bodyWeightKg) : Math.round(user.bodyWeightKg * 2.205)} {weightUnit} bodyweight
               </p>
             )}
@@ -1404,7 +1406,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {delta !== null && delta !== 0 && (
-                          <span className={cn('text-[10px] font-semibold flex items-center gap-0.5', delta > 0 ? 'text-green-400' : 'text-red-400')}>
+                          <span className={cn('text-xs font-semibold flex items-center gap-0.5', delta > 0 ? 'text-green-400' : 'text-red-400')}>
                             <TrendingUp className={cn('w-3 h-3', delta < 0 && 'rotate-180')} />
                             {delta > 0 ? '+' : ''}{delta}
                           </span>
@@ -1424,7 +1426,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                               onBlur={() => saveLift(lift.key, liftDraft)}
                               className="w-16 bg-grappler-900 border border-primary-500/50 rounded px-2 py-0.5 text-xs text-right text-grappler-100 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
-                            <span className="text-[10px] text-grappler-500">{weightUnit}</span>
+                            <span className="text-xs text-grappler-500">{weightUnit}</span>
                           </div>
                         ) : (
                           <button
@@ -1433,7 +1435,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           >
                             <span className="text-sm font-black text-grappler-50 tabular-nums">
                               {displayValue ? Math.round(displayValue) : '—'}
-                              {displayValue > 0 && <span className="text-[10px] font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
+                              {displayValue > 0 && <span className="text-xs font-normal text-grappler-400 ml-0.5">{weightUnit}</span>}
                             </span>
                             <Pencil className="w-2.5 h-2.5 text-grappler-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
@@ -1478,7 +1480,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                         {/* Tier labels + ratio */}
                         <div className="flex items-center justify-between mt-1">
                           <span className={cn(
-                            'text-[10px] font-semibold',
+                            'text-xs font-semibold',
                             tier.tierName === 'Elite' ? 'text-yellow-400' :
                             tier.tierName === 'Advanced' ? 'text-primary-400' :
                             tier.tierName === 'Intermediate' ? 'text-grappler-300' :
@@ -1486,7 +1488,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                           )}>
                             {tier.tierName}
                           </span>
-                          <span className="text-[10px] text-grappler-500 tabular-nums">
+                          <span className="text-xs text-grappler-500 tabular-nums">
                             {tier.ratio}× BW
                           </span>
                         </div>
@@ -1578,7 +1580,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   }}
                   className="flex flex-col items-center gap-1.5"
                 >
-                  <span className="text-[10px] text-grappler-500 font-medium">{day}</span>
+                  <span className="text-xs text-grappler-500 font-medium">{day}</span>
                   <div className={cn(
                     'w-8 h-8 rounded-full transition-all active:scale-90 flex items-center justify-center',
                     isBoth ? 'bg-gradient-to-br from-green-500 to-purple-500 shadow-md shadow-green-500/20'
@@ -1604,7 +1606,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               { color: 'bg-purple-500/30 ring-1 ring-purple-500/50', label: 'Combat' },
               { color: 'bg-gradient-to-br from-green-500 to-purple-500', label: 'Both' },
             ].map(l => (
-              <div key={l.label} className="flex items-center gap-1.5 text-[10px] text-grappler-500">
+              <div key={l.label} className="flex items-center gap-1.5 text-xs text-grappler-500">
                 <div className={cn('w-2 h-2 rounded-full', l.color)} />
                 {l.label}
               </div>
@@ -1819,7 +1821,11 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={confirmDialog.title}
             onClick={() => setConfirmDialog(null)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDialog(null); }}
           >
             <motion.div
               initial={{ opacity: 0, y: 40, scale: 0.97 }}

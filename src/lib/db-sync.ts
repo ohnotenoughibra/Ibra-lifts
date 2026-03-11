@@ -56,6 +56,36 @@ export async function loadFromDatabase(userId: string): Promise<{ data: Record<s
 }
 
 /**
+ * Normalize workoutLogs: ensures every set in a completed workout has `completed: true`.
+ * Imported/DB-inserted workouts may lack this field, which breaks ~50 places
+ * in the codebase that filter on `set.completed`.
+ */
+export function normalizeWorkoutLogs(data: Record<string, unknown>): Record<string, unknown> {
+  const logs = data.workoutLogs;
+  if (!Array.isArray(logs) || logs.length === 0) return data;
+
+  let mutated = false;
+  for (const log of logs as Array<Record<string, unknown>>) {
+    // Only normalize completed workouts (active workouts may have incomplete sets)
+    if (!log.completed) continue;
+    const exercises = log.exercises as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(exercises)) continue;
+    for (const ex of exercises) {
+      const sets = ex.sets as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(sets)) continue;
+      for (const set of sets) {
+        if (set.completed === undefined && set.weight != null && set.reps != null) {
+          set.completed = true;
+          mutated = true;
+        }
+      }
+    }
+  }
+
+  return mutated ? { ...data, workoutLogs: logs } : data;
+}
+
+/**
  * Resolve conflicts between local and remote data.
  *
  * Strategy:
@@ -67,8 +97,8 @@ export function resolveConflicts(
   local: Record<string, unknown>,
   remote: Record<string, unknown>
 ): Record<string, unknown> {
-  if (!remote) return local;
-  if (!local) return remote;
+  if (!remote) return normalizeWorkoutLogs(local);
+  if (!local) return normalizeWorkoutLogs(remote);
 
   const merged: Record<string, unknown> = { ...remote };
 
@@ -84,6 +114,7 @@ export function resolveConflicts(
     // Previously missing — remote silently overwrote local:
     'mesocycleHistory', 'mesocycleQueue',
     'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles',
+    'mealStamps',
   ];
 
   for (const field of arrayFields) {
@@ -100,6 +131,7 @@ export function resolveConflicts(
         continue;
       }
       // Object arrays: union by ID, prefer newer entry for conflicts
+      // Tombstone rule: if either side has _deleted, the tombstone wins
       const map = new Map<string, Record<string, unknown>>();
       const getKey = (item: Record<string, unknown>): string =>
         item.id != null ? String(item.id) : JSON.stringify(item);
@@ -112,15 +144,27 @@ export function resolveConflicts(
         if (!existing) {
           map.set(key, item);
         } else {
-          // Prefer the newer entry
-          const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
-          const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
-          if (localDate > remoteDate) {
+          // Tombstone always wins — once deleted, stays deleted
+          if (item._deleted && !existing._deleted) {
             map.set(key, item);
+          } else if (existing._deleted && !item._deleted) {
+            // Keep existing tombstone
+          } else {
+            // Neither or both deleted — prefer the newer entry
+            const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
+            const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
+            if (localDate > remoteDate) {
+              map.set(key, item);
+            }
           }
         }
       }
-      merged[field] = Array.from(map.values());
+      // GC tombstones older than 30 days
+      const gcCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const mergedArr = Array.from(map.values()).filter(item =>
+        !item._deleted || !item._deletedAt || (item._deletedAt as number) > gcCutoff
+      );
+      merged[field] = mergedArr;
     } else if (Array.isArray(localArr)) {
       merged[field] = localArr;
     }
@@ -146,33 +190,65 @@ export function resolveConflicts(
     }
   }
 
-  // ── User profile: prefer whichever side has the newer updatedAt ──
-  // Prevents cloud sync from overwriting local profile changes (e.g. training days)
-  // when the push hasn't completed yet (sendBeacon dropped, offline, race condition).
+  // ── User profile: field-level merge when _fieldTimestamps exist ──
+  // Each field picks the side with the newer per-field timestamp. Falls back
+  // to whole-object updatedAt comparison when no field timestamps exist.
   const localUser = local.user as Record<string, unknown> | undefined;
   const remoteUser = remote.user as Record<string, unknown> | undefined;
   if (localUser && remoteUser) {
-    const localUserTs = new Date((localUser.updatedAt || 0) as string).getTime();
-    const remoteUserTs = new Date((remoteUser.updatedAt || 0) as string).getTime();
-    if (localUserTs > remoteUserTs) {
-      merged.user = localUser;
+    const localFT = (localUser._fieldTimestamps || {}) as Record<string, number>;
+    const remoteFT = (remoteUser._fieldTimestamps || {}) as Record<string, number>;
+    const hasFieldTimestamps = Object.keys(localFT).length > 0 || Object.keys(remoteFT).length > 0;
+
+    if (hasFieldTimestamps) {
+      // Field-level merge: start from remote, overlay local fields that are newer
+      const mergedUser: Record<string, unknown> = { ...remoteUser };
+      const mergedFT: Record<string, number> = { ...remoteFT };
+      for (const key of Object.keys(localUser)) {
+        if (key === '_fieldTimestamps') continue;
+        const localTs = localFT[key] || 0;
+        const remoteTs = remoteFT[key] || 0;
+        if (localTs > remoteTs) {
+          mergedUser[key] = localUser[key];
+          mergedFT[key] = localTs;
+        }
+      }
+      // Ensure local-only fields are preserved
+      for (const key of Object.keys(localFT)) {
+        if (!(key in remoteFT) || localFT[key] > (remoteFT[key] || 0)) {
+          mergedFT[key] = localFT[key];
+        }
+      }
+      mergedUser._fieldTimestamps = mergedFT;
+      // updatedAt = max of both sides
+      const localUpdated = new Date((localUser.updatedAt || 0) as string).getTime();
+      const remoteUpdated = new Date((remoteUser.updatedAt || 0) as string).getTime();
+      mergedUser.updatedAt = localUpdated > remoteUpdated ? localUser.updatedAt : remoteUser.updatedAt;
+      merged.user = mergedUser;
+    } else {
+      // Fallback: whole-object, prefer newer updatedAt
+      const localUserTs = new Date((localUser.updatedAt || 0) as string).getTime();
+      const remoteUserTs = new Date((remoteUser.updatedAt || 0) as string).getTime();
+      if (localUserTs > remoteUserTs) {
+        merged.user = localUser;
+      }
     }
   } else if (localUser) {
     merged.user = localUser;
   }
 
-  // ── gamificationStats: smart merge — XP/level can never regress ──
-  // totalPoints is monotonically increasing; badges are union-merged by badgeId.
-  // This prevents a stale server snapshot from reverting a freshly-earned level.
+  // ── gamificationStats: merge event-based fields + union badges ──
+  // Streak, XP, level, totalWorkouts, totalVolume, personalRecords are now
+  // COMPUTED from workoutLogs on every render (see computed-gamification.ts).
+  // The merge only needs to handle badges (union) and event counters (max).
   const localGS = local.gamificationStats as Record<string, unknown> | undefined;
   const remoteGS = remote.gamificationStats as Record<string, unknown> | undefined;
   if (localGS && remoteGS) {
     const localPts = (localGS.totalPoints as number) || 0;
     const remotePts = (remoteGS.totalPoints as number) || 0;
-    // Base: pick the side with more XP (the authoritative progression)
+    // Base: pick the side with more XP as the "winner" for non-computed fields
     const winner = localPts >= remotePts ? localGS : remoteGS;
     const loser  = localPts >= remotePts ? remoteGS : localGS;
-    const maxPoints = Math.max(localPts, remotePts);
 
     // Union-merge badges by badgeId so no badge is ever lost
     const winnerBadges = Array.isArray(winner.badges) ? winner.badges as Array<Record<string, unknown>> : [];
@@ -183,17 +259,17 @@ export function resolveConflicts(
 
     merged.gamificationStats = {
       ...winner,
-      totalPoints: maxPoints,
-      level: calculateLevel(maxPoints),
-      currentStreak: Math.max(
-        (localGS.currentStreak as number) || 0,
-        (remoteGS.currentStreak as number) || 0,
-      ),
-      longestStreak: Math.max(
-        (localGS.longestStreak as number) || 0,
-        (remoteGS.longestStreak as number) || 0,
-      ),
+      // Keep stored totalPoints as max (computed hook takes Math.max anyway)
+      totalPoints: Math.max(localPts, remotePts),
+      level: calculateLevel(Math.max(localPts, remotePts)),
       badges: Array.from(badgeMap.values()),
+      // Event counters: take max from both sides
+      comebackCount: Math.max((localGS.comebackCount as number) || 0, (remoteGS.comebackCount as number) || 0),
+      challengesCompleted: Math.max((localGS.challengesCompleted as number) || 0, (remoteGS.challengesCompleted as number) || 0),
+      smartRestDays: Math.max((localGS.smartRestDays as number) || 0, (remoteGS.smartRestDays as number) || 0),
+      // Streak/XP/totalWorkouts/totalVolume/personalRecords are NOT merged —
+      // they're computed from workoutLogs on every render. Any value stored
+      // here is just a cache that the computed hook will override.
     };
   } else if (localGS) {
     merged.gamificationStats = localGS;
@@ -213,9 +289,35 @@ export function resolveConflicts(
     merged.baselineLifts = localBL;
   }
 
+  // ── Object fields with updatedAt: prefer whichever side is newer ──
+  // These are critical structured fields that can regress if the wrong side wins.
+  // Each gets its own updatedAt-based merge (like user and baselineLifts above).
+  const updatedAtFields = ['currentMesocycle', 'activeDietPhase', 'macroTargets',
+    'muscleEmphasis', 'activeEquipmentProfile', 'combatNutritionProfile',
+    'notificationPreferences', 'onboardingData', 'subscription', 'nutritionPeriodPlan'];
+  for (const field of updatedAtFields) {
+    const localVal = local[field] as Record<string, unknown> | undefined;
+    const remoteVal = remote[field] as Record<string, unknown> | undefined;
+    if (localVal && remoteVal) {
+      // Prefer the side with the newer updatedAt; fall back to lastSyncAt comparison
+      const localTs = new Date((localVal.updatedAt || 0) as string).getTime();
+      const remoteTs = new Date((remoteVal.updatedAt || 0) as string).getTime();
+      if (localTs > 0 || remoteTs > 0) {
+        merged[field] = localTs >= remoteTs ? localVal : remoteVal;
+      } else {
+        // No updatedAt on either side — fall back to lastSyncAt
+        merged[field] = localSync >= remoteSync ? localVal : remoteVal;
+      }
+    } else if (localVal) {
+      merged[field] = localVal;
+    }
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
-  // Previously only 4 scalars were protected. Now ALL local scalars win when local is newer.
-  const specialFields = new Set([...arrayFields, ...objectFields, 'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts']);
+  const specialFields = new Set([
+    ...arrayFields, ...objectFields, ...updatedAtFields,
+    'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts',
+  ]);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
       if (!specialFields.has(key) && local[key] !== undefined) {
@@ -224,7 +326,7 @@ export function resolveConflicts(
     }
   }
 
-  return merged;
+  return normalizeWorkoutLogs(merged);
 }
 
 /**
@@ -397,6 +499,26 @@ export function flushPendingSync(): void {
 
   // Fallback: fire-and-forget fetch (may or may not complete)
   doSync(userId, data).catch(() => queueForBackgroundSync(userId, data));
+}
+
+/**
+ * Immediately flush any pending debounced sync via fetch (not sendBeacon).
+ * Called after critical mutations (completeWorkout, addMeal, etc.) to ensure
+ * data reaches the server within seconds instead of waiting for debounce.
+ */
+export async function flushImmediateSync(): Promise<void> {
+  if (!pendingPayload) return;
+  const { userId, data } = pendingPayload;
+  pendingPayload = null;
+
+  if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
+  if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
+
+  try {
+    await doSync(userId, data);
+  } catch {
+    await queueForBackgroundSync(userId, data);
+  }
 }
 
 /**

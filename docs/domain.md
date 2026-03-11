@@ -106,6 +106,31 @@ Manages the interference between strength training and sport practice:
 - Grip strength tracking module
 - Sparring load tracking
 
+### Combat Sport Exercise Selection Rationale
+Exercise selection is informed by combat sports science research. Each category addresses a specific demand of combat athletics:
+
+**Neck Training**
+- Collins et al. 2014: Each 1 lb increase in neck strength reduces concussion risk by 5%
+- Neck exercises are essential for all combat athletes to reduce head trauma risk during strikes, takedowns, and scrambles
+
+**Grip & Forearm Training**
+- Grappling demands sustained grip endurance for collar ties, wrist control, and submission attempts
+- Key exercises: farmer carries, dead hangs, towel pull-ups
+- Grip strength is tracked as a peripheral fatigue marker (see Recovery Model)
+
+**Rotational Power**
+- Striking power is generated through kinetic chain rotation (hips → core → shoulders)
+- Key exercises: Pallof press (anti-rotation stability), medicine ball rotational throws (power output), cable woodchops (rotational strength through range)
+
+**Hip Mobility**
+- Guard passing, leg lock defense, and high kicks require exceptional hip mobility
+- Key exercises: hip CARs, 90/90 stretches, deep squat holds
+
+**Posterior Chain**
+- Takedown power and sprawl defense require strong hip extension
+- Key exercises: deadlift variations, hip thrusts, Nordic curls
+- Nordic curls also reduce hamstring injury risk (Al Attar et al. 2017)
+
 ---
 
 ## Nutrition Model

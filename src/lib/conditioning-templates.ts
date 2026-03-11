@@ -128,7 +128,7 @@ const CONDITIONING_TEMPLATES: ConditioningTemplate[] = [
       'Short, all-out bursts of sprawls and shots that mimic the explosive scramble exchanges in wrestling and no-gi grappling.',
     targetSport: ['grappling'],
     difficulty: 'beginner',
-    totalDuration: 12,
+    totalDuration: 10,
     workInterval: 30,
     restInterval: 30,
     rounds: 10,
@@ -372,7 +372,7 @@ const CONDITIONING_TEMPLATES: ConditioningTemplate[] = [
     description:
       'The original Tabata protocol applied to four bodyweight exercises. 20 seconds of all-out work, 10 seconds rest, repeated for 8 rounds per exercise. Pure anaerobic suffering.',
     targetSport: ['general'],
-    difficulty: 'beginner',
+    difficulty: 'advanced',
     totalDuration: 16,
     workInterval: 20,
     restInterval: 10,

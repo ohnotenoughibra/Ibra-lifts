@@ -13,6 +13,7 @@
  * - Hickson 1980: Interference effect in concurrent strength/endurance training
  * - Doma & Deakin 2013: Residual fatigue from aerobic training on strength
  * - Schumann et al. 2015: Order effects in concurrent training
+ * - Murlasits et al. 2018: 6-8 hours between sessions eliminates interference
  */
 
 import type {
@@ -137,7 +138,7 @@ const INTENSITY_MULTIPLIERS: Record<TrainingIntensity, number> = {
  */
 const FATIGUE_TYPE_MAP: Record<ActivityCategory, FatigueType> = {
   grappling: 'both',
-  striking: 'peripheral',
+  striking: 'both',
   mma: 'both',
   cardio: 'peripheral',
   outdoor: 'peripheral',
@@ -151,7 +152,7 @@ const FATIGUE_TYPE_MAP: Record<ActivityCategory, FatigueType> = {
  */
 const PEAK_MUSCLE_GROUPS: Record<ActivityCategory, string[]> = {
   grappling: ['grip', 'posterior_chain', 'core'],
-  striking: ['shoulders', 'core', 'calves'],
+  striking: ['shoulders', 'core', 'calves', 'hips'],
   mma: ['full_body'],
   cardio: ['quads', 'calves', 'core'],
   outdoor: ['quads', 'core'],
@@ -214,6 +215,43 @@ function decayWeight(daysAgo: number): number {
  */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Computes the interference attenuation factor based on time separation
+ * between a sport session and a lifting session on the same day.
+ *
+ * Murlasits et al. 2018: 6-8 hours between sessions eliminates interference
+ * Schumann et al. 2015: Strength before endurance attenuates interference
+ *
+ * @param sportSessionHour - Hour of day (0-23) the sport session started, or undefined if unknown.
+ * @param liftingSessionHour - Hour of day (0-23) the lifting session starts, or undefined if unknown.
+ * @returns A multiplier for the volume/intensity reduction:
+ *          0.0 = full elimination (no interference — 6+ hours apart)
+ *          0.5 = partial attenuation (3-6 hours apart)
+ *          1.0 = full interference (< 3 hours apart or timing unknown)
+ */
+function getTimeSeparationFactor(
+  sportSessionHour: number | undefined,
+  liftingSessionHour: number | undefined,
+): number {
+  // If either hour is unavailable, assume worst case (full interference)
+  if (sportSessionHour == null || liftingSessionHour == null) {
+    return 1.0;
+  }
+
+  const hoursBetween = Math.abs(liftingSessionHour - sportSessionHour);
+
+  if (hoursBetween >= 6) {
+    // Murlasits et al. 2018: 6-8 hours separation eliminates interference
+    return 0.0;
+  } else if (hoursBetween >= 3) {
+    // Partial attenuation — linear interpolation from 1.0 at 3h to 0.0 at 6h
+    return 1.0 - (hoursBetween - 3) / 3;
+  } else {
+    // < 3 hours: full interference
+    return 1.0;
+  }
 }
 
 // ─── Core Functions ─────────────────────────────────────────────────────────
@@ -343,10 +381,10 @@ export function calculateCumulativeSportLoad(
     ? chronicDays.reduce((sum, d) => sum + d.load, 0) / CHRONIC_WINDOW_DAYS
     : 0;
 
-  // ACWR — guard against division by zero
-  const acuteChronicRatio = chronicLoad > 0
+  // ACWR — guard against division by zero and cold-start spikes
+  const acuteChronicRatio = chronicLoad > 0.5
     ? Math.round((acuteLoad / chronicLoad) * 100) / 100
-    : 0;
+    : acuteLoad > 5 ? 2.0 : 0;
 
   // Risk classification (Gabbett 2016 thresholds)
   let riskLevel: ACRRiskLevel;
@@ -395,6 +433,8 @@ export function calculateCumulativeSportLoad(
 export function getSessionAdjustments(
   recentSessions: TrainingSession[],
   plannedWorkout: { type: string; exercises: { muscleGroups: string[] }[] },
+  /** Hour of day (0-23) the lifting session is planned. Used for time-separation interference attenuation. */
+  liftingSessionHour?: number,
 ): SessionAdjustment {
   const now = new Date();
 
@@ -437,31 +477,57 @@ export function getSessionAdjustments(
     let timingLabel: string;
 
     if (isSameDay && session.timing === 'before_lifting') {
-      // Same-day combat before lifting: 15-25% volume reduction
-      timingLabel = 'same-day (before lifting)';
-      if (intensity === 'competition_prep') {
-        baseVolumeReduction = 0.25;
-        baseIntensityReduction = 0.10;
-      } else if (intensity === 'hard_sparring') {
-        baseVolumeReduction = 0.22;
-        baseIntensityReduction = 0.08;
+      // Same-day combat before lifting: 15-25% volume reduction (pre-attenuation)
+      // Murlasits et al. 2018: 6-8 hours between sessions eliminates interference
+      // Schumann et al. 2015: Strength before endurance attenuates interference
+      const separationFactor = getTimeSeparationFactor(session.sessionHour, liftingSessionHour);
+
+      if (separationFactor === 0) {
+        timingLabel = 'same-day (6h+ separation — no interference)';
+        baseVolumeReduction = 0;
+        baseIntensityReduction = 0;
       } else {
-        // moderate
-        baseVolumeReduction = 0.15;
-        baseIntensityReduction = 0.05;
+        timingLabel = separationFactor < 1
+          ? `same-day (before lifting, ${Math.round((1 - separationFactor) * 100)}% attenuation from time separation)`
+          : 'same-day (before lifting)';
+
+        if (intensity === 'competition_prep') {
+          baseVolumeReduction = 0.25 * separationFactor;
+          baseIntensityReduction = 0.10 * separationFactor;
+        } else if (intensity === 'hard_sparring') {
+          baseVolumeReduction = 0.22 * separationFactor;
+          baseIntensityReduction = 0.08 * separationFactor;
+        } else {
+          // moderate
+          baseVolumeReduction = 0.15 * separationFactor;
+          baseIntensityReduction = 0.05 * separationFactor;
+        }
       }
     } else if (isSameDay) {
-      // Same-day but separate or after lifting — still impactful
-      timingLabel = 'same-day';
-      if (intensity === 'competition_prep') {
-        baseVolumeReduction = 0.20;
-        baseIntensityReduction = 0.08;
-      } else if (intensity === 'hard_sparring') {
-        baseVolumeReduction = 0.18;
-        baseIntensityReduction = 0.07;
+      // Same-day but separate or after lifting
+      // Murlasits et al. 2018: 6-8 hours between sessions eliminates interference
+      // Schumann et al. 2015: Strength before endurance attenuates interference
+      const separationFactor = getTimeSeparationFactor(session.sessionHour, liftingSessionHour);
+
+      if (separationFactor === 0) {
+        timingLabel = 'same-day (6h+ separation — no interference)';
+        baseVolumeReduction = 0;
+        baseIntensityReduction = 0;
       } else {
-        baseVolumeReduction = 0.12;
-        baseIntensityReduction = 0.04;
+        timingLabel = separationFactor < 1
+          ? `same-day (${Math.round((1 - separationFactor) * 100)}% attenuation from time separation)`
+          : 'same-day';
+
+        if (intensity === 'competition_prep') {
+          baseVolumeReduction = 0.20 * separationFactor;
+          baseIntensityReduction = 0.08 * separationFactor;
+        } else if (intensity === 'hard_sparring') {
+          baseVolumeReduction = 0.18 * separationFactor;
+          baseIntensityReduction = 0.07 * separationFactor;
+        } else {
+          baseVolumeReduction = 0.12 * separationFactor;
+          baseIntensityReduction = 0.04 * separationFactor;
+        }
       }
     } else if (isYesterday) {
       // Hard sparring yesterday: 20-30% volume, 5-10% intensity

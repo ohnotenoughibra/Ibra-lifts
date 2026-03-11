@@ -67,6 +67,7 @@ export interface UserProfile {
   disclaimerAcceptedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  _fieldTimestamps?: Record<string, number>;
 }
 
 // Baseline lift estimates for programming
@@ -171,6 +172,7 @@ export interface Mesocycle {
   status: 'active' | 'completed' | 'upcoming';
   volumeWarnings?: string[];
   createdAt: Date;
+  updatedAt?: string; // ISO string — used by sync merge to prefer newer side
 }
 
 // Queue for planning upcoming mesocycles
@@ -442,6 +444,8 @@ export interface BodyWeightEntry {
   weight: number;
   unit: WeightUnit;
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Quick logging entries (water, sleep, energy, readiness, mobility)
@@ -507,6 +511,8 @@ export interface MealEntry {
   fat: number;
   portion?: string;  // e.g. "1 cup", "200g", "2 scoops"
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 export interface DailyNutrition {
@@ -870,6 +876,8 @@ export interface TrainingSession {
   actualIntensity?: TrainingIntensity; // Set after session if different from planned
   // Timing relative to lifting
   timing?: SessionTiming;
+  /** Hour of day the session started (0-23). Used for inter-session timing calculations. */
+  sessionHour?: number;
   duration: number; // minutes
   rounds?: number;
   roundDuration?: number; // minutes per round
@@ -1286,6 +1294,7 @@ export interface DietPhase {
   currentMacros: MacroTargets;
   weeksCompleted: number;
   isActive: boolean;
+  updatedAt?: string; // ISO string — used by sync merge to prefer newer side
 }
 
 export interface CompletedDietPhase {

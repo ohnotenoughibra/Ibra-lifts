@@ -2,17 +2,17 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAppStore } from './store';
-import { loadFromDatabase, saveToDatabase, resolveConflicts, initDatabase, flushPendingSync, forcePushToCloud } from './db-sync';
+import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud, flushImmediateSync } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
-import { saveLatestSnapshot, loadSnapshot, onSyncFailure } from './data-safety';
+import { saveLatestSnapshot, onSyncFailure } from './data-safety';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 
 // Minimum interval between re-syncs on focus (30 seconds)
 const RESYNC_COOLDOWN_MS = 30_000;
 
-// Heartbeat: push to server every 5 minutes as a safety net
-const HEARTBEAT_INTERVAL_MS = 5 * 60_000;
+// Heartbeat: push then pull every 2 minutes to keep devices in sync
+const HEARTBEAT_INTERVAL_MS = 2 * 60_000;
 
 // Fields to restore from the database
 const RESTORE_FIELDS = [
@@ -31,6 +31,8 @@ const RESTORE_FIELDS = [
   // Mental / knowledge base tracking
   'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
   'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
+  // Nutrition planning / meal shortcuts (previously local-only)
+  'nutritionPeriodPlan', 'mealStamps',
 ];
 
 /**
@@ -74,14 +76,18 @@ function applyRemoteData(
 
   // Helper: apply all RESTORE_FIELDS from source into the store
   const applyFields = (source: Record<string, unknown>, label: string) => {
+    // Normalize workoutLogs before applying (ensures set.completed exists)
+    const normalized = normalizeWorkoutLogs(source);
     const fieldsToMerge: Record<string, unknown> = {};
     for (const field of RESTORE_FIELDS) {
-      if (source[field] !== undefined) fieldsToMerge[field] = source[field];
+      if (normalized[field] !== undefined) fieldsToMerge[field] = normalized[field];
     }
-    if (source.isOnboarded !== undefined) fieldsToMerge.isOnboarded = source.isOnboarded;
+    if (normalized.isOnboarded !== undefined) fieldsToMerge.isOnboarded = normalized.isOnboarded;
 
     if (Object.keys(fieldsToMerge).length > 0) {
       useAppStore.setState(fieldsToMerge);
+      // Streak/XP/level are now computed from workoutLogs on every render
+      // (see computed-gamification.ts) — no recalculation needed after sync.
       if (process.env.NODE_ENV === 'development') {
         console.log(`[db-sync] ${label}`);
       }
@@ -148,6 +154,22 @@ function applyRemoteData(
     const conflictFields = buildConflictFields(localData, remoteData);
 
     if (conflictFields.length > 0) {
+      // Even though workout logs conflict, merge non-conflicting data immediately
+      // (meals, water, supplements, etc.) so nutrition data isn't held hostage
+      const fullLocal = buildFullLocal();
+      const premerged = resolveConflicts(fullLocal, dbData);
+      // Apply everything EXCEPT the conflicting workout fields (those wait for user resolution)
+      const conflictFieldNames = new Set(conflictFields.map(f => f.field));
+      const safeUpdates: Record<string, unknown> = {};
+      for (const field of RESTORE_FIELDS) {
+        if (!conflictFieldNames.has(field) && premerged[field] !== undefined) {
+          safeUpdates[field] = premerged[field];
+        }
+      }
+      if (Object.keys(safeUpdates).length > 0) {
+        useAppStore.setState(safeUpdates);
+      }
+
       const dbUpdated = new Date((dbData.user as Record<string, unknown>)?.updatedAt as string || 0).getTime();
       const localUpdated = new Date(store.user?.updatedAt || 0).getTime();
       useAppStore.setState({
@@ -227,16 +249,25 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   }, []);
 
   // Core sync-from-cloud function (used for initial load and re-syncs)
-  const pullFromCloud = useCallback(async (userId: string, isResync: boolean) => {
+  // Returns true if data was successfully fetched, false otherwise.
+  const pullFromCloud = useCallback(async (userId: string, isResync: boolean): Promise<boolean> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSyncStatus('offline');
-      return;
+      return false;
     }
     setSyncStatus('syncing');
     try {
       const result = await loadFromDatabase(userId);
       if (result) {
         applyRemoteData(result.data, isResync, result.serverUpdatedAt);
+        // CRITICAL: Set lastSyncAt to NOW after pull, not the server's stale value.
+        // Without this, a device restores another device's old timestamp and the
+        // scalar merge in resolveConflicts picks the wrong "winner" on next push.
+        useAppStore.setState({ lastSyncAt: Date.now() });
+      } else {
+        // loadFromDatabase returned null — API 401 (auth not ready) or no data
+        setSyncStatus('idle');
+        return false;
       }
 
       // ── Deep recovery: if user_store was empty, try recovering from DB tables ──
@@ -271,19 +302,29 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
       // Clear success status after 3 seconds
       setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+      return true;
     } catch (err) {
       console.error('[db-sync] Sync failed:', err);
       setSyncStatus('error');
       // Clear error status after 5 seconds
       setTimeout(() => setSyncStatus(prev => prev === 'error' ? 'idle' : prev), 5000);
+      return false;
     }
   }, []);
 
+  // Track whether a SUCCESSFUL pull has happened (not just an attempt)
+  const hasPulledSuccessfully = useRef(false);
+
   // Load from database on mount (if user exists)
+  // CRITICAL: Only mark initialLoadDone if pull actually succeeded (got data from server).
+  // Previously, a 401 (auth not ready) would mark done → push stale data → never retry pull.
   useEffect(() => {
     if (!effectiveUserId || initialLoadDone.current) return;
 
-    pullFromCloud(effectiveUserId, false).then(() => {
+    pullFromCloud(effectiveUserId, false).then((success) => {
+      if (success) {
+        hasPulledSuccessfully.current = true;
+      }
       initialLoadDone.current = true;
       setIsInitialLoadComplete(true);
     });
@@ -296,6 +337,22 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       setIsInitialLoadComplete(true);
     }
   }, [effectiveUserId, sessionStatus]);
+
+  // ── Retry pull when auth resolves if initial pull failed ──────────────
+  // Handles the race where localStorage has user.id → pull fires before
+  // NextAuth resolves → API 401 → pull is a no-op → data never arrives.
+  // When sessionStatus transitions to 'authenticated', retry the pull.
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated' || !effectiveUserId) return;
+    if (hasPulledSuccessfully.current) return; // Already got data, no need
+
+    // Auth just resolved — retry the pull that previously failed
+    pullFromCloud(effectiveUserId, false).then((success) => {
+      if (success) {
+        hasPulledSuccessfully.current = true;
+      }
+    });
+  }, [sessionStatus, effectiveUserId, pullFromCloud]);
 
   // ── Re-sync when app regains focus (multi-device support) ──────────────
   useEffect(() => {
@@ -383,7 +440,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       notificationPreferences: s.notificationPreferences,
       workoutSkips: s.workoutSkips, illnessLogs: s.illnessLogs,
       cycleLogs: s.cycleLogs, mealReminders: s.mealReminders,
-      dailyLoginBonus: s.dailyLoginBonus, lastSyncAt: s.lastSyncAt,
+      dailyLoginBonus: s.dailyLoginBonus, lastSyncAt: Date.now(),
       colorTheme: s.colorTheme, dietPhaseHistory: s.dietPhaseHistory,
       weightCutPlans: s.weightCutPlans, combatNutritionProfile: s.combatNutritionProfile,
       fightCampPlans: s.fightCampPlans, activeSupplements: s.activeSupplements,
@@ -393,6 +450,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       seenInsights: s.seenInsights, dismissedInsights: s.dismissedInsights,
       readArticles: s.readArticles, bookmarkedArticles: s.bookmarkedArticles,
       lastInsightDate: s.lastInsightDate,
+      nutritionPeriodPlan: s.nutritionPeriodPlan, mealStamps: s.mealStamps,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
       // Quick Access pins (stored in localStorage, not Zustand)
@@ -430,6 +488,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
+
+    // CRITICAL: Don't push until we've successfully pulled from server at least once.
+    // Without this, a device with stale localStorage pushes old data before the pull
+    // completes (e.g., pull fails with 401 because auth isn't ready yet), and the
+    // server merge uses the stale timestamps/data, corrupting other devices' state.
+    if (!hasPulledSuccessfully.current) return;
 
     // Safety: never push empty/fresh state that could overwrite real server data
     const hasRealData = store.isOnboarded && store.user && (store.workoutLogs?.length > 0 || store.trainingSessions?.length > 0 || store.meals?.length > 0);
@@ -475,7 +539,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       cycleLogs: store.cycleLogs,
       mealReminders: store.mealReminders,
       dailyLoginBonus: store.dailyLoginBonus,
-      lastSyncAt: store.lastSyncAt,
+      lastSyncAt: Date.now(),
       // Combat / nutrition / supplements (previously missing from sync)
       colorTheme: store.colorTheme,
       dietPhaseHistory: store.dietPhaseHistory,
@@ -495,6 +559,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       readArticles: store.readArticles,
       bookmarkedArticles: store.bookmarkedArticles,
       lastInsightDate: store.lastInsightDate,
+      // Nutrition planning / meal shortcuts
+      nutritionPeriodPlan: store.nutritionPeriodPlan,
+      mealStamps: store.mealStamps,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
@@ -523,6 +590,12 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       lastSyncRef.current = fingerprint;
       saveToDatabase(effectiveUserId, syncData);
       setLastSyncedAt(new Date());
+
+      // Write-through: if a critical mutation flagged urgent, flush immediately
+      if (store._syncUrgent) {
+        useAppStore.setState({ _syncUrgent: false });
+        flushImmediateSync().catch(() => {});
+      }
     }
   }, [
     store.user,
@@ -581,6 +654,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.readArticles,
     store.bookmarkedArticles,
     store.lastInsightDate,
+    // Nutrition planning / meal shortcuts
+    store.nutritionPeriodPlan,
+    store.mealStamps,
     deviceType,
   ]);
 
@@ -589,18 +665,33 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;
 
-    const heartbeat = setInterval(() => {
+    const heartbeat = setInterval(async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-      const payload = buildSyncPayload();
-      if (payload) {
-        forcePushToCloud(effectiveUserId, payload).catch(() => {
-          // Heartbeat failure is logged by recordSyncFailure in doSync
-        });
+
+      // Only push if we've pulled successfully at least once (prevents stale overwrites)
+      if (hasPulledSuccessfully.current) {
+        const payload = buildSyncPayload();
+        if (payload) {
+          try {
+            await forcePushToCloud(effectiveUserId, payload);
+          } catch {
+            // Heartbeat push failure is logged by recordSyncFailure in doSync
+          }
+        }
+      }
+      // Pull after push so other devices' changes propagate within 2 min
+      try {
+        const success = await pullFromCloud(effectiveUserId, true);
+        if (success && !hasPulledSuccessfully.current) {
+          hasPulledSuccessfully.current = true;
+        }
+      } catch {
+        // Non-critical — next heartbeat will retry
       }
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => clearInterval(heartbeat);
-  }, [effectiveUserId, buildSyncPayload]);
+  }, [effectiveUserId, buildSyncPayload, pullFromCloud]);
 
   // ── IndexedDB snapshot: save known-good state every 5 minutes ──────────
   // Survives localStorage clears — second line of defense after server backup
@@ -622,31 +713,6 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
 
     return () => clearInterval(snapshotInterval);
   }, [isInitialLoadComplete, buildSyncPayload]);
-
-  // ── IndexedDB recovery: if localStorage was empty, try IndexedDB before server ──
-  useEffect(() => {
-    if (!initialLoadDone.current || !isInitialLoadComplete) return;
-    const s = useAppStore.getState();
-    const stillEmpty = !s.isOnboarded && !s.user;
-    if (!stillEmpty) return;
-
-    // localStorage was empty — check IndexedDB for a recent snapshot
-    loadSnapshot().then(snapshot => {
-      if (!snapshot?.data) return;
-      const data = snapshot.data as Record<string, unknown>;
-      if (!data.isOnboarded || !data.user) return;
-
-      console.log('[db-sync] Recovering from IndexedDB snapshot (localStorage was empty)');
-      const fieldsToMerge: Record<string, unknown> = {};
-      for (const field of RESTORE_FIELDS) {
-        if (data[field] !== undefined) fieldsToMerge[field] = data[field];
-      }
-      if (data.isOnboarded !== undefined) fieldsToMerge.isOnboarded = data.isOnboarded;
-      if (Object.keys(fieldsToMerge).length > 0) {
-        useAppStore.setState(fieldsToMerge);
-      }
-    }).catch(() => {});
-  }, [isInitialLoadComplete]);
 
   // ── Sync failure listener: surface persistent failures to user ──────────
   const [syncFailureCount, setSyncFailureCount] = useState(0);

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatDate, getRelativeTime } from '@/lib/utils';
 import { getLevelTitle } from '@/lib/gamification';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import { detectFightCampPhase, getPhaseConfig } from '@/lib/fight-camp-engine';
 import { Apple } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
     user, gamificationStats, workoutLogs, currentMesocycle, mesocycleHistory, bodyWeightLog,
     meals, competitions, trainingSessions,
   } = useAppStore();
+  const computed = useComputedGamification();
   const [activeTab, setActiveTab] = useState<ShareTab>('summary');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
     const phaseConfig = phase && phase !== 'off_season' ? getPhaseConfig(phase, (user?.sex || 'male') as 'male' | 'female') : null;
 
     // Body weight change
-    const recentWeights = (bodyWeightLog || []).filter(w => new Date(w.date).getTime() > weekAgo);
+    const recentWeights = (bodyWeightLog || []).filter(w => !w._deleted && new Date(w.date).getTime() > weekAgo);
     const weightDelta = recentWeights.length >= 2
       ? +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1)
       : null;
@@ -165,9 +167,9 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
     const lines = [
       `${user?.name || 'Athlete'}'s Training Summary`,
       ``,
-      `Level ${gamificationStats.level} ${getLevelTitle(gamificationStats.level)}`,
-      `${gamificationStats.totalWorkouts} workouts | ${formatNumber(Math.round(stats.totalVolume))} ${weightUnit} total volume`,
-      `${gamificationStats.currentStreak} day streak | ${gamificationStats.personalRecords} PRs`,
+      `Level ${computed.level} ${getLevelTitle(computed.level)}`,
+      `${computed.totalWorkouts} workouts | ${formatNumber(Math.round(stats.totalVolume))} ${weightUnit} total volume`,
+      `${computed.currentStreak} day streak | ${computed.personalRecords} PRs`,
       ``,
     ];
     if (stats.bestPRs.length > 0) {
@@ -207,14 +209,14 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
 
   const buildMilestoneShare = () => {
     const milestones: string[] = [];
-    if (gamificationStats.totalWorkouts > 0 && gamificationStats.totalWorkouts % 10 === 0) {
-      milestones.push(`${gamificationStats.totalWorkouts} workouts completed!`);
+    if (computed.totalWorkouts > 0 && computed.totalWorkouts % 10 === 0) {
+      milestones.push(`${computed.totalWorkouts} workouts completed!`);
     }
-    if (gamificationStats.currentStreak >= 7) {
-      milestones.push(`${gamificationStats.currentStreak} day training streak!`);
+    if (computed.currentStreak >= 7) {
+      milestones.push(`${computed.currentStreak} day training streak!`);
     }
-    if (gamificationStats.personalRecords >= 5) {
-      milestones.push(`${gamificationStats.personalRecords} personal records set!`);
+    if (computed.personalRecords >= 5) {
+      milestones.push(`${computed.personalRecords} personal records set!`);
     }
     if (mesocycleHistory.length > 0) {
       milestones.push(`${mesocycleHistory.length + (currentMesocycle ? 1 : 0)} training blocks completed!`);
@@ -224,8 +226,8 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       ``,
       ...milestones.map(m => `  ${m}`),
       ``,
-      `Level ${gamificationStats.level} ${getLevelTitle(gamificationStats.level)}`,
-      `${formatNumber(gamificationStats.totalPoints)} XP earned`,
+      `Level ${computed.level} ${getLevelTitle(computed.level)}`,
+      `${formatNumber(computed.totalPoints)} XP earned`,
       ``,
       `-- Roots Gains`,
     ].join('\n');
@@ -293,16 +295,16 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                 <div>
                   <h3 className="font-bold text-grappler-50">{user?.name || 'Athlete'}</h3>
                   <p className="text-xs text-grappler-400">
-                    Level {gamificationStats.level} {getLevelTitle(gamificationStats.level)}
+                    Level {computed.level} {getLevelTitle(computed.level)}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2">
                 {[
-                  { label: 'Workouts', value: gamificationStats.totalWorkouts, icon: Target, color: 'text-green-400' },
-                  { label: 'Streak', value: gamificationStats.currentStreak, icon: Flame, color: 'text-blue-400' },
-                  { label: 'PRs', value: gamificationStats.personalRecords, icon: Trophy, color: 'text-yellow-400' },
+                  { label: 'Workouts', value: computed.totalWorkouts, icon: Target, color: 'text-green-400' },
+                  { label: 'Streak', value: computed.currentStreak, icon: Flame, color: 'text-blue-400' },
+                  { label: 'PRs', value: computed.personalRecords, icon: Trophy, color: 'text-yellow-400' },
                   { label: 'Badges', value: gamificationStats.badges.length, icon: Award, color: 'text-purple-400' },
                 ].map(stat => (
                   <div key={stat.label} className="text-center bg-grappler-900/50 rounded-lg p-2">
@@ -329,7 +331,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
 
               <div className="flex items-center justify-between pt-2 border-t border-grappler-700/50">
                 <span className="text-xs text-grappler-400">
-                  {formatNumber(gamificationStats.totalPoints)} XP
+                  {formatNumber(computed.totalPoints)} XP
                   {currentMesocycle ? ` | ${currentMesocycle.name}` : ''}
                 </span>
                 <span className="text-xs text-grappler-600">Roots Gains</span>
@@ -391,7 +393,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   </h4>
                   <button
                     onClick={() => handleShare(
-                      `Training Consistency\n\n${stats.avgPerWeek} workouts/week (last 4 weeks)\n${gamificationStats.currentStreak} day streak\n${gamificationStats.totalWorkouts} total workouts\n\n-- Roots Gains`,
+                      `Training Consistency\n\n${stats.avgPerWeek} workouts/week (last 4 weeks)\n${computed.currentStreak} day streak\n${computed.totalWorkouts} total workouts\n\n-- Roots Gains`,
                       'consistency'
                     )}
                     className="p-1.5 rounded-lg bg-grappler-700 hover:bg-grappler-600 transition-colors"
@@ -579,11 +581,11 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
             {/* Milestone cards */}
             <div className="space-y-3">
               {[
-                { label: 'Total Workouts', value: gamificationStats.totalWorkouts, icon: Target, color: 'from-green-500/20 to-emerald-500/10 border-green-500/20', textColor: 'text-green-400' },
-                { label: 'Training Streak', value: `${gamificationStats.currentStreak} days`, icon: Flame, color: 'from-blue-500/20 to-sky-500/10 border-blue-500/20', textColor: 'text-blue-400' },
-                { label: 'Personal Records', value: gamificationStats.personalRecords, icon: Trophy, color: 'from-yellow-500/20 to-sky-500/10 border-yellow-500/20', textColor: 'text-yellow-400' },
+                { label: 'Total Workouts', value: computed.totalWorkouts, icon: Target, color: 'from-green-500/20 to-emerald-500/10 border-green-500/20', textColor: 'text-green-400' },
+                { label: 'Training Streak', value: `${computed.currentStreak} days`, icon: Flame, color: 'from-blue-500/20 to-sky-500/10 border-blue-500/20', textColor: 'text-blue-400' },
+                { label: 'Personal Records', value: computed.personalRecords, icon: Trophy, color: 'from-yellow-500/20 to-sky-500/10 border-yellow-500/20', textColor: 'text-yellow-400' },
                 { label: 'Total Volume', value: `${formatNumber(Math.round(stats.totalVolume))} ${weightUnit}`, icon: BarChart3, color: 'from-primary-500/20 to-sky-500/10 border-primary-500/20', textColor: 'text-primary-400' },
-                { label: 'Longest Streak', value: `${gamificationStats.longestStreak} days`, icon: Zap, color: 'from-purple-500/20 to-violet-500/10 border-purple-500/20', textColor: 'text-purple-400' },
+                { label: 'Longest Streak', value: `${computed.longestStreak} days`, icon: Zap, color: 'from-purple-500/20 to-violet-500/10 border-purple-500/20', textColor: 'text-purple-400' },
                 { label: 'Blocks Completed', value: mesocycleHistory.length, icon: Calendar, color: 'from-cyan-500/20 to-blue-500/10 border-cyan-500/20', textColor: 'text-cyan-400' },
               ].map(milestone => (
                 <div

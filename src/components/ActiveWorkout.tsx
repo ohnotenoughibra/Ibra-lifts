@@ -38,6 +38,7 @@ import {
   ArrowUp,
   Info,
   Pause,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
@@ -154,7 +155,7 @@ export default function ActiveWorkout() {
   // Store selectors for full readiness (used by throttle engine)
   const storeWorkoutLogs = useAppStore(s => s.workoutLogs);
   const trainingSessions = useAppStore(s => s.trainingSessions ?? []);
-  const meals = useAppStore(s => s.meals ?? []);
+  const meals = useAppStore(s => (s.meals ?? []).filter(m => !m._deleted));
   const macroTargets = useAppStore(s => s.macroTargets ?? { calories: 2500, protein: 180, carbs: 300, fat: 80 });
   const waterLog = useAppStore(s => s.waterLog ?? {});
   const quickLogs = useAppStore(s => s.quickLogs ?? []);
@@ -167,6 +168,7 @@ export default function ActiveWorkout() {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [isResting, setIsResting] = useState(false);
   const [restMinimized, setRestMinimized] = useState(false);
+  const [showRestTips, setShowRestTips] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
   const [showPRCelebration, setShowPRCelebration] = useState(false);
@@ -233,6 +235,10 @@ export default function ActiveWorkout() {
   const [showVolumeGapPrompt, setShowVolumeGapPrompt] = useState(false);
   const [volumeGapDismissed, setVolumeGapDismissed] = useState(false);
   const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
+
+  // ── First-time swipe gesture hint ──
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [confirmZeroReps, setConfirmZeroReps] = useState(false);
 
   const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
   const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
@@ -332,6 +338,7 @@ export default function ActiveWorkout() {
     wouldRepeat: true
   });
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
+  const [showMoreFeedback, setShowMoreFeedback] = useState(false);
 
   // Workout timer — uses startTime timestamp so it survives app backgrounding
   const [, forceUpdate] = useState(0);
@@ -342,8 +349,21 @@ export default function ActiveWorkout() {
     return () => clearInterval(timer);
   }, []);
 
+  // Show swipe gesture hint on first active workout
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('hasSeenSwipeHint')) {
+      setShowSwipeHint(true);
+      const hintTimer = setTimeout(() => {
+        setShowSwipeHint(false);
+        localStorage.setItem('hasSeenSwipeHint', 'true');
+      }, 4000);
+      return () => clearTimeout(hintTimer);
+    }
+  }, []);
+
   // Rest timer — timestamp-based so it keeps counting while app is backgrounded
   const [restEndTime, setRestEndTime] = useState<number | null>(null);
+  const [restDuration, setRestDuration] = useState(0);
   const restTimer = restEndTime ? Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000)) : 0;
   const warned10sRef = useRef(false);
 
@@ -513,6 +533,11 @@ export default function ActiveWorkout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResting]);
 
+  // Reset zero-reps confirmation when set changes
+  useEffect(() => {
+    setConfirmZeroReps(false);
+  }, [currentSetIndex, currentExerciseIndex]);
+
   const completeSet = () => {
     // Save undo info before modifying
     setUndoInfo({
@@ -538,12 +563,13 @@ export default function ActiveWorkout() {
       setTempoTotalTUT(0);
     }
 
-    // Carry forward weight/reps to next set so the user doesn't have to re-enter
+    // Carry forward weight/reps/rpe to next set so the user doesn't have to re-enter
     if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
       newSets[currentSetIndex + 1] = {
         ...newSets[currentSetIndex + 1],
         weight: newSets[currentSetIndex].weight,
         reps: newSets[currentSetIndex].reps,
+        rpe: newSets[currentSetIndex + 1].rpe || newSets[currentSetIndex].rpe,
       };
     }
 
@@ -576,9 +602,13 @@ export default function ActiveWorkout() {
     }
 
     // Start rest timer — store end timestamp so it survives backgrounding
-    setRestEndTime(Date.now() + currentExercise.prescription.restSeconds * 1000);
-    setIsResting(true);
-    setRestMinimized(false);
+    const restSecs = currentExercise.prescription.restSeconds;
+    if (restSecs > 0) {
+      setRestDuration(restSecs);
+      setRestEndTime(Date.now() + restSecs * 1000);
+      setIsResting(true);
+      setRestMinimized(false);
+    }
 
     // ── Corner Coach: generate coaching messages after set completion ──
     try {
@@ -2741,7 +2771,7 @@ export default function ActiveWorkout() {
                     restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
                   )}
                   strokeDasharray={2 * Math.PI * 96}
-                  strokeDashoffset={2 * Math.PI * 96 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                  strokeDashoffset={2 * Math.PI * 96 * (1 - restTimer / Math.max(restDuration, 1))}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -2757,95 +2787,16 @@ export default function ActiveWorkout() {
                   {formatRestTime(restTimer)}
                 </motion.div>
                 <p className="text-xs text-grappler-400 mt-1">
-                  of {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')}
+                  of {Math.floor(restDuration / 60)}:{(restDuration % 60).toString().padStart(2, '0')}
                 </p>
               </div>
             </div>
 
-            {/* Weight bump suggestion — shown inside rest overlay */}
-            {weightSuggestion && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 mx-6 bg-primary-500/15 border border-primary-500/30 rounded-xl p-3 flex items-center justify-between gap-3 max-w-sm"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <TrendingUp className="w-4 h-4 text-primary-400 flex-shrink-0" />
-                  <p className="text-xs text-primary-300">{weightSuggestion.message}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setExactValue('weight', weightSuggestion.suggestedWeight);
-                      setWeightSuggestion(null);
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-500 text-white"
-                  >
-                    {weightSuggestion.suggestedWeight} {weightUnit}
-                  </button>
-                  <button
-                    onClick={() => setWeightSuggestion(null)}
-                    className="text-grappler-500 hover:text-grappler-300"
-                    aria-label="Dismiss weight suggestion"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* RPE Auto-Regulator suggestion */}
-            {rpeRegulation && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  'mb-4 mx-6 rounded-xl p-3 flex items-center justify-between gap-3 max-w-sm border',
-                  rpeRegulation.type === 'drop'
-                    ? 'bg-orange-500/15 border-orange-500/30'
-                    : 'bg-emerald-500/15 border-emerald-500/30'
-                )}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {rpeRegulation.type === 'drop'
-                    ? <ArrowDown className="w-4 h-4 text-orange-400 flex-shrink-0" />
-                    : <ArrowUp className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-                  <div className="min-w-0">
-                    <p className={cn('text-xs font-medium', rpeRegulation.type === 'drop' ? 'text-orange-300' : 'text-emerald-300')}>
-                      {rpeRegulation.message}
-                    </p>
-                    <p className="text-xs text-grappler-400 mt-0.5">{rpeRegulation.reason}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setExactValue('weight', rpeRegulation.suggestedWeight);
-                      setRpeRegulation(null);
-                    }}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg text-xs font-medium text-white',
-                      rpeRegulation.type === 'drop' ? 'bg-orange-500' : 'bg-emerald-500'
-                    )}
-                  >
-                    {rpeRegulation.suggestedWeight} {weightUnit}
-                  </button>
-                  <button
-                    onClick={() => setRpeRegulation(null)}
-                    className="text-grappler-500 hover:text-grappler-300"
-                    aria-label="Dismiss RPE adjustment"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Compact stats + skip */}
+            {/* Core actions: skip + undo + stats */}
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-xs text-grappler-400">{completedSets}/{totalSets} sets</span>
-              <span className="text-xs text-grappler-600">·</span>
-              <span className="text-xs text-grappler-400">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
+              <span className="text-sm text-grappler-400">{completedSets}/{totalSets} sets</span>
+              <span className="text-grappler-600">·</span>
+              <span className="text-sm text-grappler-400">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">
@@ -2860,133 +2811,222 @@ export default function ActiveWorkout() {
 
             {/* What's next — one-line hint */}
             {!isLastSet && (
-              <p className="mt-4 text-xs text-grappler-400 text-center">
-                Next: Set {currentSetIndex + 2}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
+              <p className="mt-4 text-sm text-grappler-400 text-center">
+                Next: Set {currentSetIndex + 1}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
               </p>
             )}
             {isLastSet && !allExercisesDone && (
-              <p className="mt-4 text-xs text-grappler-400 text-center">
+              <p className="mt-4 text-sm text-grappler-400 text-center">
                 Next: {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.name} · {activeWorkout.session.exercises[currentExerciseIndex]?.sets} sets
               </p>
             )}
-            {/* Form Video + Swap for next exercise — shown during rest after last set */}
-            {lastCompletedExerciseIndex !== null && !allExercisesDone && (
-              <div className="mt-4 flex items-center justify-center gap-2">
-                {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.videoUrl && (
-                  <a
-                    href={activeWorkout.session.exercises[currentExerciseIndex].exercise.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
-                  >
-                    <Video className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">Form Video</span>
-                  </a>
-                )}
-                <button
-                  onClick={() => setShowSwapModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
-                >
-                  <Shuffle className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium">Swap Exercise</span>
-                </button>
-              </div>
-            )}
             {allExercisesDone && (
-              <div className="mt-6 text-center">
+              <div className="mt-4 text-center">
                 <p className="text-sm font-medium text-green-400">
                   All exercises done — ready to finish!
                 </p>
               </div>
             )}
             {isLastExercise && !allExercisesDone && hasIncompleteExercises && (
-              <div className="mt-4 text-center">
-                <p className="text-xs text-yellow-400">
+              <div className="mt-3 text-center">
+                <p className="text-sm text-yellow-400">
                   Some exercises still have incomplete sets
                 </p>
               </div>
             )}
 
-            {/* Add Extra Set option — shown after completing last set of an exercise */}
+            {/* Add Extra Set — always visible */}
             {lastCompletedExerciseIndex !== null && (
               <button
                 onClick={() => addExtraSet(lastCompletedExerciseIndex)}
-                className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors text-sm font-medium"
+                className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
                 Add Extra Set — {activeWorkout.exerciseLogs[lastCompletedExerciseIndex]?.exerciseName}
               </button>
             )}
 
-            {/* Plate calc moved to weight input section */}
-
-            {/* Corner Coach Messages during rest */}
-            {coachMessages.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="absolute bottom-20 left-4 right-4 space-y-2"
+            {/* ─── Tips & Suggestions toggle ─── */}
+            {(weightSuggestion || rpeRegulation || coachMessages.length > 0 || showTip || (lastCompletedExerciseIndex !== null && !allExercisesDone)) && (
+              <button
+                onClick={() => setShowRestTips(v => !v)}
+                className="mt-5 flex items-center gap-2 text-sm text-grappler-500 hover:text-grappler-300 transition-colors"
               >
-                {coachMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      'rounded-xl p-3.5 border backdrop-blur-sm flex items-start gap-3',
-                      msg.tone === 'hype' ? 'bg-emerald-500/15 border-emerald-500/30' :
-                      msg.tone === 'warning' ? 'bg-red-500/15 border-red-500/30' :
-                      msg.tone === 'celebrate' ? 'bg-yellow-500/15 border-yellow-500/30' :
-                      msg.tone === 'tactical' ? 'bg-blue-500/15 border-blue-500/30' :
-                      'bg-grappler-800/80 border-grappler-700/50'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
-                      msg.tone === 'hype' ? 'bg-emerald-500/20' :
-                      msg.tone === 'warning' ? 'bg-red-500/20' :
-                      msg.tone === 'celebrate' ? 'bg-yellow-500/20' :
-                      msg.tone === 'tactical' ? 'bg-blue-500/20' :
-                      'bg-grappler-700/50'
-                    )}>
-                      {msg.tone === 'celebrate' ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
-                       msg.tone === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> :
-                       msg.tone === 'hype' ? <Zap className="w-3.5 h-3.5 text-emerald-400" /> :
-                       msg.tone === 'tactical' ? <Brain className="w-3.5 h-3.5 text-blue-400" /> :
-                       <Lightbulb className="w-3.5 h-3.5 text-grappler-400" />}
+                <Lightbulb className="w-4 h-4" />
+                <span>{showRestTips ? 'Hide' : 'Show'} tips & suggestions</span>
+                <motion.span animate={{ rotate: showRestTips ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-4 h-4" />
+                </motion.span>
+                {(weightSuggestion || rpeRegulation) && !showRestTips && (
+                  <span className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" />
+                )}
+              </button>
+            )}
+
+            <AnimatePresence>
+              {showRestTips && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden w-full max-w-sm mt-3 space-y-3"
+                >
+                  {/* Weight bump suggestion */}
+                  {weightSuggestion && (
+                    <div className="bg-primary-500/15 border border-primary-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <TrendingUp className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                        <p className="text-sm text-primary-300">{weightSuggestion.message}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setExactValue('weight', weightSuggestion.suggestedWeight);
+                            setWeightSuggestion(null);
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-500 text-white"
+                        >
+                          {weightSuggestion.suggestedWeight} {weightUnit}
+                        </button>
+                        <button
+                          onClick={() => setWeightSuggestion(null)}
+                          className="text-grappler-500 hover:text-grappler-300"
+                          aria-label="Dismiss weight suggestion"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <p className={cn(
-                      'text-sm flex-1',
-                      msg.tone === 'hype' ? 'text-emerald-300' :
-                      msg.tone === 'warning' ? 'text-red-300' :
-                      msg.tone === 'celebrate' ? 'text-yellow-300' :
-                      msg.tone === 'tactical' ? 'text-blue-300' :
-                      'text-grappler-300'
-                    )}>{msg.text}</p>
-                    <button
-                      onClick={() => setCoachMessages(prev => prev.filter(m => m.id !== msg.id))}
-                      className="text-grappler-600 hover:text-grappler-400 flex-shrink-0"
-                      aria-label="Dismiss coach message"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </motion.div>
-            )}
+                  )}
 
-            {/* Tip during rest (hidden when coach messages are showing) */}
-            {showTip && coachMessages.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-20 left-4 right-4 card p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <Lightbulb className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                  <p className="text-sm text-grappler-300">{tip.content}</p>
-                </div>
-              </motion.div>
-            )}
+                  {/* RPE Auto-Regulator */}
+                  {rpeRegulation && (
+                    <div className={cn(
+                      'rounded-xl p-3 flex items-center justify-between gap-3 border',
+                      rpeRegulation.type === 'drop'
+                        ? 'bg-orange-500/15 border-orange-500/30'
+                        : 'bg-emerald-500/15 border-emerald-500/30'
+                    )}>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {rpeRegulation.type === 'drop'
+                          ? <ArrowDown className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                          : <ArrowUp className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                        <div className="min-w-0">
+                          <p className={cn('text-sm font-medium', rpeRegulation.type === 'drop' ? 'text-orange-300' : 'text-emerald-300')}>
+                            {rpeRegulation.message}
+                          </p>
+                          <p className="text-sm text-grappler-400 mt-0.5">{rpeRegulation.reason}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setExactValue('weight', rpeRegulation.suggestedWeight);
+                            setRpeRegulation(null);
+                          }}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-sm font-medium text-white',
+                            rpeRegulation.type === 'drop' ? 'bg-orange-500' : 'bg-emerald-500'
+                          )}
+                        >
+                          {rpeRegulation.suggestedWeight} {weightUnit}
+                        </button>
+                        <button
+                          onClick={() => setRpeRegulation(null)}
+                          className="text-grappler-500 hover:text-grappler-300"
+                          aria-label="Dismiss RPE adjustment"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Form Video + Swap for next exercise */}
+                  {lastCompletedExerciseIndex !== null && !allExercisesDone && (
+                    <div className="flex items-center justify-center gap-2">
+                      {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.videoUrl && (
+                        <a
+                          href={activeWorkout.session.exercises[currentExerciseIndex].exercise.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                          <span className="text-sm font-medium">Form Video</span>
+                        </a>
+                      )}
+                      <button
+                        onClick={() => setShowSwapModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
+                      >
+                        <Shuffle className="w-3.5 h-3.5" />
+                        <span className="text-sm font-medium">Swap Exercise</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Coach Messages */}
+                  {coachMessages.length > 0 && (
+                    <div className="space-y-2">
+                      {coachMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={cn(
+                            'rounded-xl p-3 border flex items-start gap-3',
+                            msg.tone === 'hype' ? 'bg-emerald-500/15 border-emerald-500/30' :
+                            msg.tone === 'warning' ? 'bg-red-500/15 border-red-500/30' :
+                            msg.tone === 'celebrate' ? 'bg-yellow-500/15 border-yellow-500/30' :
+                            msg.tone === 'tactical' ? 'bg-blue-500/15 border-blue-500/30' :
+                            'bg-grappler-800/80 border-grappler-700/50'
+                          )}
+                        >
+                          <div className={cn(
+                            'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
+                            msg.tone === 'hype' ? 'bg-emerald-500/20' :
+                            msg.tone === 'warning' ? 'bg-red-500/20' :
+                            msg.tone === 'celebrate' ? 'bg-yellow-500/20' :
+                            msg.tone === 'tactical' ? 'bg-blue-500/20' :
+                            'bg-grappler-700/50'
+                          )}>
+                            {msg.tone === 'celebrate' ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
+                             msg.tone === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> :
+                             msg.tone === 'hype' ? <Zap className="w-3.5 h-3.5 text-emerald-400" /> :
+                             msg.tone === 'tactical' ? <Brain className="w-3.5 h-3.5 text-blue-400" /> :
+                             <Lightbulb className="w-3.5 h-3.5 text-grappler-400" />}
+                          </div>
+                          <p className={cn(
+                            'text-sm flex-1',
+                            msg.tone === 'hype' ? 'text-emerald-300' :
+                            msg.tone === 'warning' ? 'text-red-300' :
+                            msg.tone === 'celebrate' ? 'text-yellow-300' :
+                            msg.tone === 'tactical' ? 'text-blue-300' :
+                            'text-grappler-300'
+                          )}>{msg.text}</p>
+                          <button
+                            onClick={() => setCoachMessages(prev => prev.filter(m => m.id !== msg.id))}
+                            className="text-grappler-600 hover:text-grappler-400 flex-shrink-0"
+                            aria-label="Dismiss coach message"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tip */}
+                  {showTip && coachMessages.length === 0 && (
+                    <div className="card p-3">
+                      <div className="flex items-start gap-3">
+                        <Lightbulb className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-grappler-300">{tip.content}</p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -3016,7 +3056,7 @@ export default function ActiveWorkout() {
                       restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
                     )}
                     strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(currentExercise.prescription.restSeconds, 1))}
+                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(restDuration, 1))}
                   />
                 </svg>
                 <span className={cn(
@@ -3038,7 +3078,7 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="p-4 pb-32">
+      <main className="p-4 pb-40">
         {/* Inline Exercise Feedback Bar */}
         <AnimatePresence>
           {inlineFeedbackIndex !== null && (
@@ -3174,7 +3214,49 @@ export default function ActiveWorkout() {
           </button>
         </div>
 
+        {/* Exercise Jump Pills — horizontal scrollable exercise picker */}
+        {activeWorkout.session.exercises.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+            {activeWorkout.session.exercises.map((ex, i) => {
+              const log = activeWorkout.exerciseLogs[i];
+              const completedSetsCount = log?.sets.filter(s => s.completed).length ?? 0;
+              const totalSetsCount = log?.sets.length ?? ex.sets;
+              const allDone = completedSetsCount === totalSetsCount && totalSetsCount > 0;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { setCurrentExerciseIndex(i); setCurrentSetIndex(0); }}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all active:scale-95',
+                    i === currentExerciseIndex
+                      ? 'bg-primary-500/20 text-primary-400 border border-primary-500/40'
+                      : allDone
+                      ? 'bg-green-500/10 text-green-400/80 border border-green-500/20'
+                      : 'bg-grappler-800/50 text-grappler-400 border border-grappler-700/30'
+                  )}
+                >
+                  {allDone && <Check className="w-3 h-3" />}
+                  <span className="max-w-[120px] truncate">{ex.exercise.name}</span>
+                  <span className="text-[10px] opacity-60">{completedSetsCount}/{totalSetsCount}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Exercise Card — swipe left/right to change exercise */}
+        <div className="relative">
+          {showSwipeHint && (
+            <div
+              className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center z-50 pointer-events-auto"
+              onClick={() => { setShowSwipeHint(false); localStorage.setItem('hasSeenSwipeHint', 'true'); }}
+            >
+              <div className="bg-grappler-800/90 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-grappler-700/50">
+                <ArrowLeftRight className="w-5 h-5 text-primary-400" />
+                <span className="text-sm text-grappler-200">Swipe left/right to navigate exercises</span>
+              </div>
+            </div>
+          )}
         <motion.div
           key={currentExerciseIndex}
           initial={{ opacity: 0, x: 20 }}
@@ -3429,6 +3511,24 @@ export default function ActiveWorkout() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Repeat Last Set shortcut */}
+          {currentSetIndex > 0 && !currentSet.completed && currentSet.weight === 0 && currentSet.reps === 0 && (() => {
+            const prevSet = currentLog.sets[currentSetIndex - 1];
+            return prevSet?.completed ? (
+              <button
+                onClick={() => {
+                  setExactValue('weight', prevSet.weight);
+                  setExactValue('reps', prevSet.reps);
+                  if (prevSet.rpe) setExactValue('rpe', prevSet.rpe);
+                }}
+                className="w-full mb-4 py-3 rounded-xl bg-primary-500/15 border border-primary-500/30 text-primary-400 font-medium text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Repeat last set ({prevSet.weight}{weightUnit} × {prevSet.reps})
+              </button>
+            ) : null;
+          })()}
 
           {/* Input Fields */}
           <div className="space-y-4">
@@ -3737,27 +3837,7 @@ export default function ActiveWorkout() {
             </AnimatePresence>
           )}
 
-          {/* Complete Set Button */}
-          <button
-            onClick={completeSet}
-            disabled={currentSet.completed}
-            className={cn(
-              'btn btn-lg w-full mt-6 gap-2',
-              currentSet.completed ? 'btn-secondary opacity-50' : 'btn-primary'
-            )}
-          >
-            {currentSet.completed ? (
-              <>
-                <Check className="w-5 h-5" />
-                Set Completed
-              </>
-            ) : (
-              <>
-                <Check className="w-5 h-5" />
-                Complete Set
-              </>
-            )}
-          </button>
+          {/* Complete Set Button — handled by fixed bottom bar */}
           {/* Undo last set */}
           {undoInfo && !isResting && (
             <button
@@ -3769,6 +3849,7 @@ export default function ActiveWorkout() {
             </button>
           )}
         </motion.div>
+        </div>
 
         {/* Cues — collapsed by default */}
         {currentExercise.exercise.cues.length > 0 && (
@@ -3839,6 +3920,35 @@ export default function ActiveWorkout() {
           </div>
         </details>
       </main>
+
+      {/* Fixed Complete Set Button */}
+      {!showOverview && !isResting && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-700/50 z-40">
+          {currentSet.reps <= 0 && currentSet.weight > 0 && !confirmZeroReps && !currentSet.completed ? (
+            <button
+              onClick={() => setConfirmZeroReps(true)}
+              className="w-full py-4 rounded-xl font-bold text-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 gap-2 flex items-center justify-center"
+            >
+              <AlertTriangle className="w-5 h-5" />
+              Complete with 0 reps?
+            </button>
+          ) : (
+            <button
+              onClick={completeSet}
+              disabled={currentSet.completed}
+              className={cn(
+                'w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2',
+                currentSet.completed
+                  ? 'bg-grappler-700 text-grappler-400 opacity-50'
+                  : 'bg-primary-500 text-white active:scale-[0.98] transition-transform'
+              )}
+            >
+              <Check className="w-5 h-5" />
+              {currentSet.completed ? 'Set Completed' : 'Complete Set'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Cancel Confirmation Modal */}
       <AnimatePresence>
@@ -4029,6 +4139,42 @@ export default function ActiveWorkout() {
             >
               <h2 className="text-xl font-bold text-grappler-50 mb-4">Finish Workout</h2>
 
+              {/* Workout Summary */}
+              {(() => {
+                const elapsedMs = Date.now() - new Date(activeWorkout!.startTime).getTime();
+                const durationMin = durationOverride ?? Math.round(elapsedMs / 1000 / 60);
+                const exercisesCompleted = activeWorkout!.exerciseLogs.filter(
+                  log => log.sets.some(s => s.completed)
+                ).length;
+                const prCount = activeWorkout!.exerciseLogs.filter(log => log.personalRecord).length;
+                return (
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{durationMin}</div>
+                      <div className="text-xs text-grappler-400">Minutes</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{totalVolumeCompleted.toLocaleString()}</div>
+                      <div className="text-xs text-grappler-400">{weightUnit} Volume</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{completedSets}/{totalSets}</div>
+                      <div className="text-xs text-grappler-400">Sets</div>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
+                      <div className="text-2xl font-bold text-white">{exercisesCompleted}</div>
+                      <div className="text-xs text-grappler-400">Exercises</div>
+                    </div>
+                    {prCount > 0 && (
+                      <div className="col-span-2 bg-primary-500/10 border border-primary-500/30 rounded-xl p-3 text-center">
+                        <div className="text-2xl font-bold text-primary-400">{prCount}</div>
+                        <div className="text-xs text-primary-400">PR{prCount > 1 ? 's' : ''} Hit</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="space-y-4">
                 {/* Overall RPE */}
                 <div>
@@ -4053,6 +4199,17 @@ export default function ActiveWorkout() {
                   </div>
                 </div>
 
+                {/* More details toggle */}
+                <button
+                  onClick={() => setShowMoreFeedback(!showMoreFeedback)}
+                  className="flex items-center gap-2 text-sm text-grappler-400 hover:text-grappler-300 transition-colors"
+                >
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', showMoreFeedback && 'rotate-180')} />
+                  {showMoreFeedback ? 'Less details' : 'More details'}
+                </button>
+
+                {showMoreFeedback && (
+                <>
                 {/* Performance vs Expectations */}
                 <div>
                   <label className="text-sm text-grappler-400 mb-2 block">
@@ -4175,6 +4332,8 @@ export default function ActiveWorkout() {
                     className="input min-h-[80px] resize-none"
                   />
                 </div>
+                </>
+                )}
 
                 {/* Duration override — show when elapsed time is unrealistically short */}
                 {(() => {

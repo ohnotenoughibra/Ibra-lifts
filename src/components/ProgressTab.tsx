@@ -33,6 +33,7 @@ import {
   Medal,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import type { WorkoutLog, GamificationStats } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import { isCurrentWeek, computeChallengeProgress, badges as allBadges } from '@/lib/gamification';
@@ -49,6 +50,7 @@ import {
   type MuscleVolumeGauge,
 } from '@/lib/progress-analytics';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
+import EmptyState from './EmptyState';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
 
@@ -601,11 +603,15 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
                 <div
                   key={di}
                   onClick={() => canClick && onDayClick(day.date)}
+                  onKeyDown={canClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDayClick!(day.date); } } : undefined}
+                  tabIndex={canClick ? 0 : undefined}
+                  role={canClick ? 'button' : undefined}
+                  aria-label={canClick ? getDayTitle(day) : undefined}
                   className={cn(
                     'w-3 h-3 rounded-sm transition-colors',
                     getDayColor(day),
                     day.isToday && 'ring-1 ring-primary-400',
-                    canClick && 'cursor-pointer hover:ring-1 hover:ring-white/40'
+                    canClick && 'cursor-pointer hover:ring-1 hover:ring-white/40 focus-visible:ring-1 focus-visible:ring-primary-400 focus-visible:outline-none'
                   )}
                   title={getDayTitle(day)}
                 />
@@ -663,6 +669,7 @@ const PERF_FACTOR_EXPLAINERS: Record<string, { what: string; action: string }> =
 };
 
 function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: WorkoutLog[]; gamificationStats: GamificationStats }) {
+  const computed = useComputedGamification();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [expandedFactor, setExpandedFactor] = useState<string | null>(null);
 
@@ -733,7 +740,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
 
     // Engagement (10%): streak, badges, challenges
     const engagementScore = Math.min(100,
-      (gamificationStats.currentStreak >= 7 ? 40 : gamificationStats.currentStreak * 5) +
+      (computed.currentStreak >= 7 ? 40 : computed.currentStreak * 5) +
       Math.min(30, gamificationStats.badges.length * 3) +
       (gamificationStats.challengesCompleted * 10)
     );
@@ -747,7 +754,7 @@ function PerformanceScore({ workoutLogs, gamificationStats }: { workoutLogs: Wor
     );
 
     return { total, consistency: Math.round(consistencyScore), strength: Math.round(strengthScore), volume: Math.round(volumeScore), recovery: Math.round(recoveryScore), engagement: Math.round(engagementScore) };
-  }, [workoutLogs, gamificationStats]);
+  }, [workoutLogs, gamificationStats, computed]);
 
   // Animated ring fill on mount
   const [animatedValue, setAnimatedValue] = useState(0);
@@ -1302,7 +1309,7 @@ function PlateauAnalysisCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 
 function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
   const user = useAppStore(s => s.user);
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const weightUnit = user?.weightUnit || 'lbs';
 
   const benchmarks = useMemo(() => {
@@ -1754,7 +1761,7 @@ function OverviewSkeleton() {
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
   const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats }))
+    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats }))
   );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
@@ -1930,21 +1937,31 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
       {view === 'dashboard' && !hydrated && <OverviewSkeleton />}
       {view === 'dashboard' && hydrated && (
         <div className="space-y-4">
-          {/* Post-workout session recap (visible for 2h after workout) */}
-          <SessionRecapCard />
+          {workoutLogs.length === 0 ? (
+            <EmptyState
+              icon={TrendingUp}
+              title="No progress data yet"
+              description="Complete your first workout to unlock trends, PRs, and performance insights."
+            />
+          ) : (
+            <>
+              {/* Post-workout session recap (visible for 2h after workout) */}
+              <SessionRecapCard />
 
-          {/* E1RM Trends with goals — your lifts at a glance */}
-          <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+              {/* E1RM Trends with goals — your lifts at a glance */}
+              <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
 
-          {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
-          <HardMetricsCard workoutLogs={workoutLogs} />
+              {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
+              <HardMetricsCard workoutLogs={workoutLogs} />
 
-          {/* Current block performance — bridges program and progress */}
-          <BlockPerformanceCard />
+              {/* Current block performance — bridges program and progress */}
+              <BlockPerformanceCard />
 
-          {/* Engagement hooks — challenges, streak */}
-          <WeeklyChallengeCard gamificationStats={gamificationStats} />
-          <StreakHeatmap workoutLogs={workoutLogs} />
+              {/* Engagement hooks — challenges, streak */}
+              <WeeklyChallengeCard gamificationStats={gamificationStats} />
+              <StreakHeatmap workoutLogs={workoutLogs} />
+            </>
+          )}
         </div>
       )}
       {view === 'progress' && hydrated && (

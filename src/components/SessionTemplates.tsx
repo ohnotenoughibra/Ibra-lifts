@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import EmptyState from './EmptyState';
 import { useAppStore } from '@/lib/store';
 import { SessionTemplate, WorkoutSession, EquipmentType, GoalFocus, SessionsPerWeek } from '@/lib/types';
 import { formatDate, getRelativeTime } from '@/lib/utils';
@@ -559,9 +560,11 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
       name,
       type: 'hypertrophy' as const,
       dayNumber: 1,
-      exercises: log.exercises.map(ex => ({
+      exercises: log.exercises.map(ex => {
+        const foundExercise = allExercises.find(e => e.id === ex.exerciseId);
+        return {
         exerciseId: ex.exerciseId,
-        exercise: {
+        exercise: foundExercise ? { ...foundExercise } : {
           id: ex.exerciseId,
           name: ex.exerciseName,
           category: 'compound' as const,
@@ -584,7 +587,8 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
           rpe: ex.sets[0]?.rpe ?? 7,
           restSeconds: 120
         }
-      })),
+      };
+      }),
       estimatedDuration: log.duration,
       warmUp: ['General warm-up'],
       coolDown: ['Light stretching']
@@ -924,17 +928,12 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             })}
 
             {filteredPrograms.length === 0 && (
-              <div className="text-center py-12">
-                <BookOpen className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-grappler-300 mb-2">No matching programs</h3>
-                <p className="text-sm text-grappler-500">Try adjusting your filters</p>
-                <button
-                  onClick={() => { setProgramFilterGoal(null); setProgramFilterSessions(null); setProgramFilterWeeks(null); }}
-                  className="mt-3 text-primary-400 text-sm font-medium hover:underline"
-                >
-                  Clear all filters
-                </button>
-              </div>
+              <EmptyState
+                icon={BookOpen}
+                title="No matching programs"
+                description="Try adjusting your filters to find a program."
+                action={{ label: 'Clear all filters', onClick: () => { setProgramFilterGoal(null); setProgramFilterSessions(null); setProgramFilterWeeks(null); } }}
+              />
             )}
           </motion.div>
         )}
@@ -1051,16 +1050,12 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             })}
 
             {filteredQuickPresets.length === 0 && (
-              <div className="text-center py-12">
-                <Dumbbell className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-grappler-300 mb-2">No matching workouts</h3>
-                <button
-                  onClick={() => setQuickFilter(null)}
-                  className="mt-2 text-primary-400 text-sm font-medium hover:underline"
-                >
-                  Show all
-                </button>
-              </div>
+              <EmptyState
+                icon={Dumbbell}
+                title="No matching workouts"
+                description="No workouts match the current filter."
+                action={{ label: 'Show all', onClick: () => setQuickFilter(null) }}
+              />
             )}
           </motion.div>
         )}
@@ -1073,25 +1068,12 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             className="space-y-4"
           >
             {sessionTemplates.length === 0 ? (
-              <div className="text-center py-12">
-                <Star className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-grappler-300 mb-2">No templates saved yet</h3>
-                <p className="text-sm text-grappler-500 max-w-xs mx-auto mb-4">
-                  Templates let you start a workout instantly — outside your regular program. Useful for days you want to do your own thing.
-                </p>
-                <div className="space-y-2 max-w-xs mx-auto">
-                  <button
-                    onClick={() => setActiveSection('presets')}
-                    className="btn btn-primary btn-sm w-full gap-2"
-                  >
-                    <Shield className="w-4 h-4" />
-                    Browse Grappling Templates
-                  </button>
-                  <p className="text-xs text-grappler-400">
-                    Or save sessions from your program using the &quot;Save Current&quot; tab
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={Star}
+                title="No templates saved yet"
+                description="Templates let you start a workout instantly. Browse presets or save sessions from your program."
+                action={{ label: 'Browse Grappling Templates', onClick: () => setActiveSection('presets') }}
+              />
             ) : (
               sessionTemplates.map(template => {
                 const isExpanded = expandedTemplateId === template.id;
@@ -1441,13 +1423,11 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             className="space-y-4"
           >
             {recentUniqueLogs.length === 0 ? (
-              <div className="text-center py-16">
-                <Clock className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-grappler-300 mb-2">No Workout History</h3>
-                <p className="text-sm text-grappler-500">
-                  Complete some workouts first, then you can save them as templates here.
-                </p>
-              </div>
+              <EmptyState
+                icon={Clock}
+                title="No Workout History"
+                description="Complete some workouts first, then you can save them as templates here."
+              />
             ) : (
               <>
                 <div className="mb-2">

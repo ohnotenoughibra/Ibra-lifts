@@ -11,21 +11,26 @@
  *   Tier 3 — Nothing known: conservative defaults
  *
  * All estimates are working weight for the target rep range, NOT 1RM.
- * A 10–15% safety margin is applied for beginners.
+ * A 5–15% safety margin is applied based on experience level.
  */
 
 import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts } from './types';
 
-// ── 1RM ↔ Working Weight Conversion (Epley 1985) ───────────────────────────
+// ── 1RM ↔ Working Weight Conversion (Brzycki 1993) ──────────────────────────
 
 export function workingWeightFrom1RM(oneRM: number, targetReps: number): number {
+  if (oneRM <= 0) return 0;
   if (targetReps <= 1) return oneRM;
-  return oneRM / (1 + targetReps / 30);
+  return oneRM * (1.0278 - 0.0278 * targetReps);
 }
 
 export function estimate1RMFromReps(weight: number, reps: number): number {
+  if (weight <= 0 || reps <= 0) return 0;
   if (reps <= 1) return weight;
-  return weight * (1 + reps / 30);
+  // Brzycki for 2-10 reps (most accurate), Epley for 11+ reps
+  // Consistent with calc1RM in progress-analytics.ts and performance-model.ts
+  if (reps > 10) return weight * (1 + reps / 30);
+  return weight / (1.0278 - 0.0278 * reps);
 }
 
 // ── BW-based 1RM Multipliers by Sex + Experience ────────────────────────────
@@ -211,13 +216,15 @@ export function estimateFirstTimeWeight(
     if (ref1RM && ref1RM > 0) {
       const estimated1RM = ref1RM * ratio.ratio;
       let working = workingWeightFrom1RM(estimated1RM, targetReps);
-      // Safety margin for beginners
+      // Safety margin by experience level
       if (safeExp === 'beginner') working *= 0.85;
+      else if (safeExp === 'intermediate') working *= 0.90;
+      else if (safeExp === 'advanced') working *= 0.95;
       const inUnit = weightUnit === 'lbs' ? working * 2.205 : working;
       return {
         weight: round(inUnit),
         confidence: 'high',
-        source: `Based on your ${getReferenceLabel(ratio.reference)} (Epley formula)`,
+        source: `Based on your ${getReferenceLabel(ratio.reference)} (Brzycki formula)`,
       };
     }
   }
@@ -232,7 +239,10 @@ export function estimateFirstTimeWeight(
       if (compound1RM_kg > 0) {
         const estimated1RM = compound1RM_kg * ratio.ratio;
         let working = workingWeightFrom1RM(estimated1RM, targetReps);
+        // Safety margin by experience level
         if (safeExp === 'beginner') working *= 0.85;
+        else if (safeExp === 'intermediate') working *= 0.90;
+        else if (safeExp === 'advanced') working *= 0.95;
         const inUnit = weightUnit === 'lbs' ? working * 2.205 : working;
         return {
           weight: round(inUnit),
@@ -249,7 +259,10 @@ export function estimateFirstTimeWeight(
       const fallbackRatio = exercise.category === 'isolation' ? 0.30 : 0.65;
       const estimated1RM = compound1RM_kg * fallbackRatio;
       let working = workingWeightFrom1RM(estimated1RM, targetReps);
+      // Safety margin by experience level
       if (safeExp === 'beginner') working *= 0.85;
+      else if (safeExp === 'intermediate') working *= 0.90;
+      else if (safeExp === 'advanced') working *= 0.95;
       const inUnit = weightUnit === 'lbs' ? working * 2.205 : working;
       return {
         weight: round(inUnit),
@@ -305,7 +318,7 @@ function getCompound1RM_BW(
   switch (ref) {
     case 'bench': return bw * multipliers.benchPress;
     case 'squat': return bw * multipliers.squat;
-    case 'deadlift': return bw * (multipliers.squat * 1.15); // deadlift ≈ 115% of squat
+    case 'deadlift': return bw * multipliers.deadlift;
     case 'ohp': return bw * multipliers.overheadPress;
     case 'row': return bw * multipliers.barbellRow;
   }

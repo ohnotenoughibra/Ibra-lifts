@@ -24,21 +24,23 @@ import {
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 
-// Volume landmarks per muscle group (weekly sets)
-// Based on RP/scientific literature: MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume
+// Volume landmarks per muscle group (weekly direct sets)
+// Updated to Israetel / RP 2023 values ("Scientific Principles of Hypertrophy Training")
+// MEV = Minimum Effective Volume, MAV = Maximum Adaptive Volume, MRV = Maximum Recoverable Volume
+// These population defaults are overridden by individualized landmarks from volume-landmarks.ts
 export const VOLUME_LANDMARKS: Record<string, { mev: number; mav: number; mrv: number }> = {
   chest: { mev: 8, mav: 16, mrv: 22 },
-  back: { mev: 8, mav: 16, mrv: 22 },
-  shoulders: { mev: 6, mav: 14, mrv: 20 },
-  biceps: { mev: 4, mav: 12, mrv: 18 },
-  triceps: { mev: 4, mav: 10, mrv: 16 },
-  quadriceps: { mev: 6, mav: 14, mrv: 20 },
-  hamstrings: { mev: 4, mav: 12, mrv: 18 },
-  glutes: { mev: 4, mav: 12, mrv: 18 },
-  calves: { mev: 4, mav: 10, mrv: 16 },
+  back: { mev: 10, mav: 18, mrv: 25 },      // back tolerates and needs more volume
+  shoulders: { mev: 8, mav: 18, mrv: 26 },   // delts recover fast, high MRV
+  biceps: { mev: 5, mav: 16, mrv: 26 },      // small muscles recover fast, high MRV
+  triceps: { mev: 4, mav: 12, mrv: 18 },
+  quadriceps: { mev: 8, mav: 16, mrv: 20 },  // quads need higher MEV
+  hamstrings: { mev: 4, mav: 12, mrv: 20 },
+  glutes: { mev: 4, mav: 14, mrv: 20 },
+  calves: { mev: 6, mav: 14, mrv: 20 },      // calves are volume-resistant
   core: { mev: 4, mav: 10, mrv: 16 },
   forearms: { mev: 2, mav: 8, mrv: 14 },
-  traps: { mev: 4, mav: 10, mrv: 16 },
+  traps: { mev: 4, mav: 12, mrv: 18 },
   full_body: { mev: 4, mav: 10, mrv: 16 },
 };
 
@@ -528,7 +530,7 @@ function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPresc
     targetReps: randomBetween(config.reps[0], config.reps[1]),
     minReps: config.reps[0],
     maxReps: config.reps[1],
-    rpe: +(randomBetween(config.rpe[0] * 10, config.rpe[1] * 10) / 10).toFixed(1),
+    rpe: Math.round(randomBetween(config.rpe[0] * 2, config.rpe[1] * 2)) / 2,
     restSeconds: randomBetween(config.restSeconds[0], config.restSeconds[1]),
     tempo: config.tempo,
     percentageOf1RM: randomBetween(config.percentageOf1RM[0], config.percentageOf1RM[1])
@@ -571,7 +573,8 @@ function selectExercisesForType(
   muscleEmphasis?: MuscleGroupConfig,
   availableEquipment?: EquipmentType[],
   trainingIdentity?: TrainingIdentity,
-  combatSport?: CombatSport
+  combatSport?: CombatSport,
+  sessionsPerWeek: number = 3
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
   const availableExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
@@ -647,7 +650,7 @@ function selectExercisesForType(
   };
 
   // Pick movement pattern template based on split type
-  const splitType = determineSplitType(0, trainingIdentity, combatSport); // just for pattern lookup
+  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport); // just for pattern lookup
   const patternSource = MOVEMENT_PATTERNS_PER_SESSION[splitType] ?? MOVEMENT_PATTERNS_PER_SESSION.full_body;
   const targetPatterns: string[] = type in patternSource
     ? (patternSource as any)[type] as string[]
@@ -730,9 +733,10 @@ function generateWorkoutSession(
   combatSport?: CombatSport,
   experienceLevel?: ExperienceLevel,
   sex?: BiologicalSex,
-  dietGoal?: DietGoal
+  dietGoal?: DietGoal,
+  sessionsPerWeek: number = 3
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport);
+  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek);
   const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
@@ -1001,7 +1005,7 @@ function generateMesocycleWeek(
   } else if (periodizationType === 'linear') {
     // Linear: steady 5% per week (simple, predictable for beginners)
     // 3% per week for beginners (was 5% — too aggressive for novices)
-    volumeMultiplier = 1 + (weekNumber - 1) * 0.03;
+    volumeMultiplier = Math.min(1.15, 1 + (weekNumber - 1) * 0.03);
     intensityMultiplier = 1 + (weekNumber - 1) * 0.015;
   } else if (periodizationType === 'conjugate') {
     // Conjugate: stable progression, autoregulated via RPE (Simmons 2007)
@@ -1059,7 +1063,8 @@ function generateMesocycleWeek(
       combatSport,
       experienceLevel,
       sex,
-      dietGoal
+      dietGoal,
+      sessionsPerWeek
     );
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
@@ -1076,7 +1081,7 @@ function generateMesocycleWeek(
 
       const adjustedRPE = isDeload
         ? Math.max(5, ex.prescription.rpe - 2)
-        : Math.min(10, +(ex.prescription.rpe * intensityMultiplier).toFixed(1));
+        : Math.round(Math.min(10, +(ex.prescription.rpe + (intensityMultiplier - 1) * 15).toFixed(1)) * 2) / 2;
 
       // Progressive rep targets: Week 1 targets top of range (accumulation),
       // final training week targets bottom of range (intensification)
@@ -1195,6 +1200,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
 
 // Calculate estimated 1RM from weight and reps
 export function calculate1RM(weight: number, reps: number): number {
+  if (weight <= 0 || reps <= 0) return 0;
   // Brzycki formula - accurate for reps under 10
   if (reps === 1) return weight;
   if (reps > 10) {
@@ -1286,7 +1292,8 @@ export function generateQuickWorkout(
   volumeGaps?: { muscle: MuscleGroup; deficit: number }[],
 ): WorkoutSession {
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
-                            goalFocus === 'hypertrophy' ? 'hypertrophy' : 'power';
+                            goalFocus === 'hypertrophy' ? 'hypertrophy' :
+                            goalFocus === 'balanced' ? 'hypertrophy' : 'power';
 
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
   const compounds = allAvailable

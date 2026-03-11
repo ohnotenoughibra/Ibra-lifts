@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
+import { useComputedGamification } from '@/lib/computed-gamification';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
 import type { MentalCheckInContext, ConfidenceEntryType } from '@/lib/types';
 import {
@@ -117,6 +118,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
     deleteConfidenceEntry: s.deleteConfidenceEntry,
   })));
 
+  const computed = useComputedGamification();
   const [view, setView] = useState<View>('home');
 
   // ─── Check-in State ─────────────────────────────────────────────────────
@@ -301,10 +303,10 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
   // Auto-generated confidence stats
   const autoConfidence = useMemo(() => {
     const stats = {
-      totalPRs: gamificationStats.personalRecords || 0,
-      currentStreak: gamificationStats.currentStreak || 0,
-      longestStreak: gamificationStats.longestStreak || 0,
-      totalWorkouts: gamificationStats.totalWorkouts || 0,
+      totalPRs: computed.personalRecords || 0,
+      currentStreak: computed.currentStreak || 0,
+      longestStreak: computed.longestStreak || 0,
+      totalWorkouts: computed.totalWorkouts || 0,
       comebacks: gamificationStats.comebackCount || 0,
       totalTrainingSessions: trainingSessions.length,
     };

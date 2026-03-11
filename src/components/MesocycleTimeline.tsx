@@ -69,7 +69,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
         <div className="flex items-center gap-3">
           {daysToCompetition != null && daysToCompetition > 0 && (
             <span className={cn(
-              'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
+              'text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full',
               daysToCompetition <= 7 ? 'bg-red-500/20 text-red-400' :
               daysToCompetition <= 21 ? 'bg-amber-500/20 text-amber-400' :
               'bg-blue-500/20 text-blue-400'
@@ -103,7 +103,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                 <Check className="w-3 h-3 text-green-400" />
               </div>
               <p className={cn('text-xs font-semibold truncate', config.color)}>{config.label}</p>
-              <p className="text-[10px] text-grappler-500">{block.weeks.length}w · {totalSessions}s</p>
+              <p className="text-xs text-grappler-500">{block.weeks.length}w · {totalSessions}s</p>
             </div>
           );
         })}
@@ -132,10 +132,10 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                 <div className={cn('w-5 h-5 rounded-md flex items-center justify-center', config.bg)}>
                   <Icon className={cn('w-3 h-3', config.color)} />
                 </div>
-                <span className="text-[10px] font-bold text-primary-400 uppercase">Active</span>
+                <span className="text-xs font-bold text-primary-400 uppercase">Active</span>
               </div>
               <p className={cn('text-xs font-bold truncate', config.color)}>{config.label}</p>
-              <p className="text-[10px] text-grappler-400">{current.weeks.length}w · {totalSessions}s</p>
+              <p className="text-xs text-grappler-400">{current.weeks.length}w · {totalSessions}s</p>
               {/* Mini progress bar */}
               <div className="mt-1.5 h-1 bg-grappler-700 rounded-full overflow-hidden">
                 <div
@@ -145,7 +145,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                   style={{ width: `${Math.min(100, currentProgress)}%` }}
                 />
               </div>
-              <p className="text-[10px] text-grappler-500 mt-0.5">{currentProgress}%</p>
+              <p className="text-xs text-grappler-500 mt-0.5">{currentProgress}%</p>
             </div>
           );
         })()}
@@ -175,10 +175,10 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                 <div className={cn('w-5 h-5 rounded-md flex items-center justify-center bg-grappler-700')}>
                   <Brain className="w-3 h-3 text-grappler-400" />
                 </div>
-                <span className="text-[10px] font-bold text-grappler-400 uppercase">Next</span>
+                <span className="text-xs font-bold text-grappler-400 uppercase">Next</span>
               </div>
               <p className={cn('text-xs font-semibold truncate', config.color)}>{config.label}</p>
-              <p className="text-[10px] text-grappler-500">{suggestion.suggestedWeeks}w · {suggestion.confidence}% sure</p>
+              <p className="text-xs text-grappler-500">{suggestion.suggestedWeeks}w · {suggestion.confidence}% sure</p>
             </button>
           );
         })()}
@@ -259,14 +259,14 @@ export function VolumeWave({ weeks, currentWeekIndex, completedSessionIds }: Vol
     <div className="px-1">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-grappler-500 uppercase tracking-wider font-medium">Volume Wave</span>
+          <span className="text-xs text-grappler-500 uppercase tracking-wider font-medium">Volume Wave</span>
           {currentWeekIndex >= 0 && (
-            <span className={cn('text-[10px] font-bold uppercase tracking-wider', phaseColor)}>
+            <span className={cn('text-xs font-bold uppercase tracking-wider', phaseColor)}>
               {currentPhase}
             </span>
           )}
         </div>
-        <span className="text-[10px] text-grappler-500">
+        <span className="text-xs text-grappler-500">
           {currentWeekIndex >= 0 ? `Week ${currentWeekIndex + 1} of ${weeks.length}` : 'Complete'}
         </span>
       </div>
@@ -374,7 +374,7 @@ export function AICoachInsight({ suggestion, onAccept, compact }: AICoachInsight
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-xs text-grappler-400">{suggestion.confidence}%</p>
-            <p className="text-[10px] text-grappler-500">confidence</p>
+            <p className="text-xs text-grappler-500">confidence</p>
           </div>
           <ChevronRight className="w-4 h-4 text-grappler-500 flex-shrink-0" />
         </div>
@@ -411,7 +411,7 @@ export function AICoachInsight({ suggestion, onAccept, compact }: AICoachInsight
             <div key={i} className="flex items-center gap-2 bg-grappler-800/50 rounded-lg px-2.5 py-1.5">
               {trendIcon(m.trend)}
               <div className="min-w-0">
-                <p className="text-[10px] text-grappler-500 truncate">{m.label}</p>
+                <p className="text-xs text-grappler-500 truncate">{m.label}</p>
                 <p className="text-xs font-semibold text-grappler-200">{m.value}</p>
               </div>
             </div>
@@ -449,7 +449,7 @@ export function AICoachInsight({ suggestion, onAccept, compact }: AICoachInsight
 
       {/* Alternative */}
       {suggestion.alternativeFocus && suggestion.alternativeReason && (
-        <p className="text-[10px] text-grappler-500 italic">
+        <p className="text-xs text-grappler-500 italic">
           Alt: {getFocusConfig(suggestion.alternativeFocus).label} — {suggestion.alternativeReason}
         </p>
       )}

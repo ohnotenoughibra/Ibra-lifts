@@ -88,7 +88,7 @@ export default function DietCoach() {
     addWeeklyCheckIn,
     incrementPhaseWeek,
     setMacroTargets,
-    setUser,
+    updateUserFields,
     mealReminders,
     setMealReminders,
     getActiveIllness,
@@ -292,7 +292,7 @@ export default function DietCoach() {
   const handleStartPhase = () => {
     // Save height & sex to user profile
     if (user) {
-      setUser({ ...user, heightCm, sex: formSex, updatedAt: new Date() });
+      updateUserFields({ heightCm, sex: formSex });
     }
 
     const newMacros = calculateMacros({
@@ -1273,7 +1273,7 @@ function PhaseTimeline({
               key={phase.id}
               onClick={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
               className={`
-                relative flex items-center justify-center text-[10px] font-medium transition-all
+                relative flex items-center justify-center text-xs font-medium transition-all
                 ${colors.bg} ${isActive ? `${colors.border} border ring-1 ring-white/10` : 'border border-transparent'}
                 ${isPast ? 'opacity-40' : ''}
                 ${isActive ? 'z-10' : ''}
@@ -1299,7 +1299,7 @@ function PhaseTimeline({
             {phaseContext.label}
           </p>
           {phaseContext.lookAhead && (
-            <p className="text-[10px] text-gray-500">{phaseContext.lookAhead}</p>
+            <p className="text-xs text-gray-500">{phaseContext.lookAhead}</p>
           )}
         </div>
       )}
@@ -1325,14 +1325,14 @@ function PhaseTimeline({
                 {phaseContext.transitionReason === 'metabolic_adaptation' ? (
                   <button
                     onClick={onInsertDietBreak}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors"
+                    className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors"
                   >
                     Insert diet break
                   </button>
                 ) : (
                   <button
                     onClick={onAdvance}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 font-medium transition-colors flex items-center gap-0.5"
+                    className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors flex items-center gap-0.5"
                   >
                     {phaseContext.recommendedNextPhase
                       ? `Switch to ${PHASE_COLORS[phaseContext.recommendedNextPhase]?.label || phaseContext.recommendedNextPhase}`
@@ -1365,25 +1365,25 @@ function PhaseTimeline({
               <div className={`p-2.5 ${colors.bg} ${colors.border} border rounded-lg space-y-1.5`}>
                 <div className="flex items-center justify-between">
                   <p className={`text-xs font-medium ${colors.text}`}>{colors.label}</p>
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-xs text-gray-500">
                     {phase.startDate} → {phase.endDate}
                   </p>
                 </div>
-                <p className="text-[10px] text-gray-400">{phase.reasoning}</p>
-                <div className="flex gap-3 text-[10px] text-gray-500">
+                <p className="text-xs text-gray-400">{phase.reasoning}</p>
+                <div className="flex gap-3 text-xs text-gray-500">
                   <span>{phase.plannedWeeks} weeks</span>
                   <span>·</span>
                   <span>{Math.round(phase.calorieFactor * 100)}% TDEE</span>
                   <span>·</span>
                   <span>{phase.proteinGKg}g/kg protein</span>
                 </div>
-                <div className="flex gap-3 text-[10px] text-gray-500">
+                <div className="flex gap-3 text-xs text-gray-500">
                   <span>Training: {phase.pairedTrainingFocus}</span>
                   {phase.dietBreakRecommended && <span className="text-cyan-400">· Diet break at midpoint</span>}
                 </div>
                 {isActive && phaseContext && (
                   <div className="pt-1 border-t border-white/5">
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Week {phaseContext.weeksCompleted + 1} of {phase.plannedWeeks} · {phaseContext.weeksRemaining} weeks remaining
                     </p>
                   </div>

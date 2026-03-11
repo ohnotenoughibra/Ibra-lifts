@@ -107,6 +107,8 @@ interface AppState {
     exerciseLogs: ExerciseLog[];
     startTime: Date;
     preCheckIn?: PreWorkoutCheckIn;
+    pausedAt?: Date;
+    totalPausedMs?: number;
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -226,6 +228,9 @@ interface AppState {
   syncConflict: SyncConflict | null;
   pendingRemoteData: Record<string, unknown> | null;
 
+  // Write-through: when true, next sync fires immediately (no debounce)
+  _syncUrgent: boolean;
+
   // Subscription
   subscription: Subscription | null;
 
@@ -253,6 +258,7 @@ interface AppState {
 
   // Actions
   setUser: (user: UserProfile | null) => void;
+  updateUserFields: (fields: Partial<UserProfile>) => void;
   setAuthenticated: (auth: boolean) => void;
   updateOnboardingData: (data: Partial<OnboardingData>) => void;
   completeOnboarding: (authUserId?: string) => void;
@@ -284,6 +290,7 @@ interface AppState {
     importable: WorkoutLog[];
   };
   importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => void;
+  repairMesocycleProgress: () => { fixed: number; orphanedMesoId: string | null };
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -612,6 +619,7 @@ export const useAppStore = create<AppState>()(
       lastCompletedWorkout: null,
       syncConflict: null,
       pendingRemoteData: null,
+      _syncUrgent: false,
       subscription: null,
       notificationPreferences: {
         enabled: false,
@@ -639,6 +647,19 @@ export const useAppStore = create<AppState>()(
 
       // User actions
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+      updateUserFields: (fields) => {
+        const { user } = get();
+        if (!user) return;
+        const now = Date.now();
+        const stamps = { ...(user._fieldTimestamps || {}) };
+        for (const key of Object.keys(fields)) {
+          if (key !== '_fieldTimestamps' && key !== 'updatedAt') {
+            stamps[key] = now;
+          }
+        }
+        set({ user: { ...user, ...fields, updatedAt: new Date(), _fieldTimestamps: stamps } });
+      },
 
       setAuthenticated: (auth) => set({ isAuthenticated: auth }),
 
@@ -1174,7 +1195,12 @@ export const useAppStore = create<AppState>()(
           periodizationType: periodizationStyle,
         });
 
-        set({ currentMesocycle: newMesocycle });
+        set({ currentMesocycle: { ...newMesocycle, updatedAt: new Date().toISOString() } });
+
+        // Auto-migrate orphaned workout logs from old mesocycle to new one
+        if (currentMesocycle) {
+          get().migrateWorkoutLogsToMesocycle(currentMesocycle.id, newMesocycle.id);
+        }
       },
 
       completeMesocycle: () => {
@@ -1214,7 +1240,7 @@ export const useAppStore = create<AppState>()(
         // The current one was generated right after — delete it
         set({
           mesocycleHistory: newHistory,
-          currentMesocycle: { ...restored, status: 'active' as const },
+          currentMesocycle: { ...restored, status: 'active' as const, updatedAt: new Date().toISOString() },
           gamificationStats: {
             ...gamificationStats,
             totalPoints: Math.max(0, gamificationStats.totalPoints - 200),
@@ -1470,6 +1496,54 @@ export const useAppStore = create<AppState>()(
         get().recalculatePRs();
       },
 
+      repairMesocycleProgress: () => {
+        const { currentMesocycle, workoutLogs } = get();
+        if (!currentMesocycle) return { fixed: 0, orphanedMesoId: null };
+
+        // Check if current mesocycle already has logs — if so, no repair needed
+        const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+        if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
+
+        // Collect ALL recent logs that should belong to this mesocycle
+        // (any log dated after the mesocycle start, from any source)
+        const mesoStart = new Date(currentMesocycle.startDate);
+        const recentLogs = workoutLogs
+          .filter(l =>
+            l.mesocycleId !== currentMesocycle.id &&
+            l.mesocycleId !== 'standalone' &&
+            new Date(l.date) >= mesoStart
+          )
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        if (recentLogs.length === 0) return { fixed: 0, orphanedMesoId: null };
+
+        // Build flat session list in week/day order
+        const allSessions = currentMesocycle.weeks.flatMap(week => week.sessions);
+
+        // Build a set of log IDs to migrate for fast lookup
+        const logsToMigrate = new Set(recentLogs.map(l => l.id));
+
+        // Map logs (sorted by date) to sessions positionally
+        const updatedLogs = workoutLogs.map(log => {
+          if (!logsToMigrate.has(log.id)) return log;
+
+          const posIndex = recentLogs.indexOf(log);
+          if (posIndex < 0 || posIndex >= allSessions.length) return log;
+
+          return {
+            ...log,
+            mesocycleId: currentMesocycle.id,
+            sessionId: allSessions[posIndex].id,
+          };
+        });
+
+        set({ workoutLogs: updatedLogs, _syncUrgent: true });
+        get().recalculatePRs();
+        get().recalculateGamificationStats();
+
+        return { fixed: recentLogs.length, orphanedMesoId: recentLogs[0].mesocycleId };
+      },
+
       // Workout actions
       startWorkout: (session) => {
         const { workoutLogs, user, injuryLog } = get();
@@ -1555,9 +1629,21 @@ export const useAppStore = create<AppState>()(
       updateExerciseLog: (exerciseIndex, log) => {
         const { activeWorkout } = get();
         if (!activeWorkout) return;
+        if (exerciseIndex < 0 || exerciseIndex >= activeWorkout.exerciseLogs.length) return;
+
+        // Sanitize set values
+        const sanitizedLog = {
+          ...log,
+          sets: log.sets.map(s => ({
+            ...s,
+            weight: Math.max(0, s.weight ?? 0),
+            reps: Math.max(0, s.reps ?? 0),
+            rpe: Math.min(10, Math.max(0, s.rpe ?? 0)),
+          })),
+        };
 
         const updatedLogs = [...activeWorkout.exerciseLogs];
-        updatedLogs[exerciseIndex] = log;
+        updatedLogs[exerciseIndex] = sanitizedLog;
 
         set({
           activeWorkout: {
@@ -1589,14 +1675,18 @@ export const useAppStore = create<AppState>()(
         const { activeWorkout } = get();
         if (!activeWorkout) return;
 
-        // Update logs
+        // Update logs — prefill weight from history if available
         const updatedLogs = [...activeWorkout.exerciseLogs];
         const oldLog = updatedLogs[exerciseIndex];
+        const { workoutLogs } = get();
+        const swapSuggestedWeight = getSuggestedWeight(newExerciseId, workoutLogs) ?? 0;
+        const oldPrescriptionForSwap = activeWorkout.session.exercises[exerciseIndex];
+        const targetReps = oldPrescriptionForSwap?.prescription?.targetReps ?? 0;
         updatedLogs[exerciseIndex] = {
           ...oldLog,
           exerciseId: newExerciseId,
           exerciseName: newExerciseName,
-          sets: oldLog.sets.map(s => ({ ...s, weight: 0, completed: false })),
+          sets: oldLog.sets.map(s => ({ ...s, weight: swapSuggestedWeight, reps: targetReps, completed: false })),
           personalRecord: false,
           estimated1RM: undefined,
           feedback: undefined
@@ -1644,14 +1734,15 @@ export const useAppStore = create<AppState>()(
           },
         };
 
+        const bonusSuggestedWeight = getSuggestedWeight(exercise.id, get().workoutLogs) ?? 0;
         const newLog: ExerciseLog = {
           exerciseId: exercise.id,
           exerciseName: exercise.name,
           sets: Array.from({ length: sets }, (_, i) => ({
             setNumber: i + 1,
-            weight: 0,
-            reps: 0,
-            rpe: 0,
+            weight: bonusSuggestedWeight,
+            reps: reps,
+            rpe: 7,
             completed: false,
           })),
           personalRecord: false,
@@ -1698,6 +1789,7 @@ export const useAppStore = create<AppState>()(
           currentMesocycle: {
             ...currentMesocycle,
             weeks: updatedWeeks,
+            updatedAt: new Date().toISOString(),
           },
         });
       },
@@ -1832,11 +1924,11 @@ export const useAppStore = create<AppState>()(
           }, 0);
         }, 0);
 
-        // Calculate duration — use override if provided (retroactive logging)
+        // Calculate duration — subtract paused time, use override if provided
         // Wrap startTime in new Date() because localStorage deserializes it as a string
-        const duration = feedback.durationOverride ?? Math.round(
-          (new Date().getTime() - new Date(activeWorkout.startTime).getTime()) / 1000 / 60
-        );
+        const elapsedMs = new Date().getTime() - new Date(activeWorkout.startTime).getTime();
+        const pausedMs = activeWorkout.totalPausedMs || 0;
+        const duration = feedback.durationOverride ?? Math.max(1, Math.round((elapsedMs - pausedMs) / 1000 / 60));
 
         // Check for PRs
         const hadPR = activeWorkout.exerciseLogs.some((ex) => ex.personalRecord);
@@ -2088,13 +2180,40 @@ export const useAppStore = create<AppState>()(
 
         // Check for new badges
         get().checkAndAwardBadges();
+
+        // Write-through: sync immediately after workout completion
+        set({ _syncUrgent: true });
       },
 
       cancelWorkout: () => set({ activeWorkout: null, workoutMinimized: false }),
 
-      pauseWorkout: () => set({ workoutMinimized: true }),
+      pauseWorkout: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            pausedAt: new Date(),
+          },
+          workoutMinimized: true,
+        });
+      },
 
-      resumeWorkout: () => set({ workoutMinimized: false }),
+      resumeWorkout: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        const pausedMs = activeWorkout.pausedAt
+          ? new Date().getTime() - new Date(activeWorkout.pausedAt).getTime()
+          : 0;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            pausedAt: undefined,
+            totalPausedMs: (activeWorkout.totalPausedMs || 0) + pausedMs,
+          },
+          workoutMinimized: false,
+        });
+      },
 
       getWeightUnit: () => {
         const { user } = get();
@@ -2144,6 +2263,8 @@ export const useAppStore = create<AppState>()(
         }
 
         // Calculate current streak and longest historical streak from sorted dates
+        // Uses 2-day gap tolerance (consistent with calculateStreak) — training
+        // Mon/Wed/Fri still counts as a streak since rest days are expected.
         const sortedDates = Array.from(allTrainingDates).sort().reverse(); // newest first
         let currentStreak = 0;
         let longestStreak = 0;
@@ -2151,21 +2272,20 @@ export const useAppStore = create<AppState>()(
         if (sortedDates.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const todayStr = fmtDate(today);
-          const yesterday = new Date(today);
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = fmtDate(yesterday);
+          const todayMs = today.getTime();
+          const mostRecentMs = new Date(sortedDates[0]).getTime();
+          const DAY_MS = 86400000;
 
-          // Current streak: only counts if trained today or yesterday
-          if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+          // Current streak: only counts if most recent activity within 2 days
+          if ((todayMs - mostRecentMs) <= 2 * DAY_MS) {
             currentStreak = 1;
             let prevDate = new Date(sortedDates[0]);
 
             for (let i = 1; i < sortedDates.length; i++) {
               const checkDate = new Date(sortedDates[i]);
-              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24));
+              const diffDays = Math.floor((prevDate.getTime() - checkDate.getTime()) / DAY_MS);
 
-              if (diffDays === 1) {
+              if (diffDays <= 2) {
                 currentStreak++;
                 prevDate = checkDate;
               } else {
@@ -2174,7 +2294,7 @@ export const useAppStore = create<AppState>()(
             }
           }
 
-          // Longest historical streak: scan all dates (oldest first) to find best run
+          // Longest historical streak: scan all dates (oldest first) with same 2-day tolerance
           const chronological = [...sortedDates].reverse(); // oldest first
           let runLength = 1;
           longestStreak = 1;
@@ -2182,9 +2302,9 @@ export const useAppStore = create<AppState>()(
           for (let i = 1; i < chronological.length; i++) {
             const prev = new Date(chronological[i - 1]);
             const curr = new Date(chronological[i]);
-            const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.floor((curr.getTime() - prev.getTime()) / DAY_MS);
 
-            if (diffDays === 1) {
+            if (diffDays <= 2) {
               runLength++;
             } else {
               runLength = 1;
@@ -2749,14 +2869,14 @@ export const useAppStore = create<AppState>()(
           unit: user?.weightUnit || 'lbs',
           notes
         };
-        set({ bodyWeightLog: [...bodyWeightLog, entry] });
+        set({ bodyWeightLog: [...bodyWeightLog, entry], _syncUrgent: true });
         // Award XP for consistent weight tracking
         get().awardPoints(pointRewards.bodyWeightLog, 'Body weight logged');
       },
 
       deleteBodyWeight: (id) => {
         const { bodyWeightLog } = get();
-        set({ bodyWeightLog: bodyWeightLog.filter(e => e.id !== id) });
+        set({ bodyWeightLog: bodyWeightLog.map(e => e.id === id ? { ...e, _deleted: true, _deletedAt: Date.now() } : e), _syncUrgent: true });
       },
 
       // Quick log actions
@@ -3133,6 +3253,9 @@ export const useAppStore = create<AppState>()(
             macrosHit,
           });
         }
+
+        // Write-through: sync meals immediately
+        set({ _syncUrgent: true });
       },
 
       updateMeal: (id, updates) => {
@@ -3142,7 +3265,7 @@ export const useAppStore = create<AppState>()(
 
       deleteMeal: (id) => {
         const { meals } = get();
-        set({ meals: meals.filter(m => m.id !== id) });
+        set({ meals: meals.map(m => m.id === id ? { ...m, _deleted: true, _deletedAt: Date.now() } : m), _syncUrgent: true });
       },
 
       setMacroTargets: (targets) => set({ macroTargets: targets }),
@@ -3172,7 +3295,7 @@ export const useAppStore = create<AppState>()(
       startDietPhase: (phase) => {
         const { mealReminders } = get();
         set({
-          activeDietPhase: { ...phase, id: uuidv4() },
+          activeDietPhase: { ...phase, id: uuidv4(), updatedAt: new Date().toISOString() },
           macroTargets: phase.currentMacros,
           // Auto-enable meal reminders when starting a diet phase
           mealReminders: { ...mealReminders, enabled: true },
@@ -3227,6 +3350,7 @@ export const useAppStore = create<AppState>()(
             activeDietPhase: {
               ...activeDietPhase,
               weeksCompleted: activeDietPhase.weeksCompleted + 1,
+              updatedAt: new Date().toISOString(),
             },
           });
         }
@@ -3301,7 +3425,7 @@ export const useAppStore = create<AppState>()(
 
       deleteMealStamp: (id) => {
         const { mealStamps } = get();
-        set({ mealStamps: mealStamps.filter(s => s.id !== id) });
+        set({ mealStamps: mealStamps.map(s => s.id === id ? { ...s, _deleted: true, _deletedAt: Date.now() } : s), _syncUrgent: true });
       },
 
       useMealStamp: (id) => {
@@ -3363,52 +3487,62 @@ export const useAppStore = create<AppState>()(
           return;
         }
 
+        // All syncable fields — must match RESTORE_FIELDS in useDbSync.ts
+        const SYNC_FIELDS = [
+          'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
+          'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
+          'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
+          'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
+          'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
+          'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
+          'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
+          'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
+          'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
+          'weightCutPlans', 'combatNutritionProfile', 'fightCampPlans',
+          'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
+          'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
+          'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
+          'nutritionPeriodPlan', 'mealStamps',
+        ];
+
         if (resolution === 'local') {
-          // Keep local data, overwrite remote on next sync
-          set({ syncConflict: null, pendingRemoteData: null });
+          // Keep local data, but still merge non-conflicting remote data
+          // (e.g., meals/supplements from phone should still come through)
+          const localState = get();
+          const fullLocal: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            const val = (localState as unknown as Record<string, unknown>)[field];
+            if (val !== undefined) fullLocal[field] = val;
+          }
+          fullLocal.isOnboarded = localState.isOnboarded;
+          const merged = resolveConflicts(fullLocal, pendingRemoteData);
+          const updates: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            if (merged[field] !== undefined) updates[field] = merged[field];
+          }
+          set({ ...updates, syncConflict: null, pendingRemoteData: null });
         } else if (resolution === 'remote') {
-          // Use remote data
+          // Use remote data for all fields
           const fieldsToMerge: Record<string, unknown> = {};
-          if (pendingRemoteData.workoutLogs) fieldsToMerge.workoutLogs = pendingRemoteData.workoutLogs;
-          if (pendingRemoteData.bodyWeightLog) fieldsToMerge.bodyWeightLog = pendingRemoteData.bodyWeightLog;
-          if (pendingRemoteData.gamificationStats) fieldsToMerge.gamificationStats = pendingRemoteData.gamificationStats;
-          if (pendingRemoteData.injuryLog) fieldsToMerge.injuryLog = pendingRemoteData.injuryLog;
-          if (pendingRemoteData.customExercises) fieldsToMerge.customExercises = pendingRemoteData.customExercises;
-          if (pendingRemoteData.sessionTemplates) fieldsToMerge.sessionTemplates = pendingRemoteData.sessionTemplates;
-          if (pendingRemoteData.hrSessions) fieldsToMerge.hrSessions = pendingRemoteData.hrSessions;
-          if (pendingRemoteData.trainingSessions) fieldsToMerge.trainingSessions = pendingRemoteData.trainingSessions;
-          if (pendingRemoteData.currentMesocycle) fieldsToMerge.currentMesocycle = pendingRemoteData.currentMesocycle;
-          if (pendingRemoteData.mesocycleHistory) fieldsToMerge.mesocycleHistory = pendingRemoteData.mesocycleHistory;
-          if (pendingRemoteData.baselineLifts) fieldsToMerge.baselineLifts = pendingRemoteData.baselineLifts;
-          if (pendingRemoteData.user) fieldsToMerge.user = pendingRemoteData.user;
+          for (const field of SYNC_FIELDS) {
+            if (pendingRemoteData[field] !== undefined) fieldsToMerge[field] = pendingRemoteData[field];
+          }
+          if (pendingRemoteData.isOnboarded !== undefined) fieldsToMerge.isOnboarded = pendingRemoteData.isOnboarded;
           set({ ...fieldsToMerge, syncConflict: null, pendingRemoteData: null });
         } else {
-          // Smart merge: union arrays, prefer newest for scalars
+          // Smart merge: union arrays, prefer newest for scalars — ALL fields
           const localState = get();
-          const localData: Record<string, unknown> = {
-            workoutLogs: localState.workoutLogs,
-            bodyWeightLog: localState.bodyWeightLog,
-            gamificationStats: localState.gamificationStats,
-            injuryLog: localState.injuryLog,
-            customExercises: localState.customExercises,
-            sessionTemplates: localState.sessionTemplates,
-            hrSessions: localState.hrSessions,
-            trainingSessions: localState.trainingSessions,
-            currentMesocycle: localState.currentMesocycle,
-            mesocycleHistory: localState.mesocycleHistory,
-            lastSyncAt: localState.lastSyncAt || 0,
-            user: localState.user,
-          };
-          const merged = resolveConflicts(localData, pendingRemoteData);
+          const fullLocal: Record<string, unknown> = {};
+          for (const field of SYNC_FIELDS) {
+            const val = (localState as unknown as Record<string, unknown>)[field];
+            if (val !== undefined) fullLocal[field] = val;
+          }
+          fullLocal.isOnboarded = localState.isOnboarded;
+          const merged = resolveConflicts(fullLocal, pendingRemoteData);
           const updates: Record<string, unknown> = {};
-          if (merged.workoutLogs) updates.workoutLogs = merged.workoutLogs;
-          if (merged.bodyWeightLog) updates.bodyWeightLog = merged.bodyWeightLog;
-          if (merged.gamificationStats) updates.gamificationStats = merged.gamificationStats;
-          if (merged.injuryLog) updates.injuryLog = merged.injuryLog;
-          if (merged.customExercises) updates.customExercises = merged.customExercises;
-          if (merged.sessionTemplates) updates.sessionTemplates = merged.sessionTemplates;
-          if (merged.hrSessions) updates.hrSessions = merged.hrSessions;
-          if (merged.trainingSessions) updates.trainingSessions = merged.trainingSessions;
+          for (const field of SYNC_FIELDS) {
+            if (merged[field] !== undefined) updates[field] = merged[field];
+          }
           set({ ...updates, syncConflict: null, pendingRemoteData: null });
         }
       },
@@ -3865,6 +3999,7 @@ export const useAppStore = create<AppState>()(
         weeklyCheckIns: state.weeklyCheckIns,
         mealReminders: state.mealReminders,
         mealStamps: state.mealStamps,
+        nutritionPeriodPlan: state.nutritionPeriodPlan,
         bodyComposition: state.bodyComposition,
         muscleEmphasis: state.muscleEmphasis,
         competitions: state.competitions,
@@ -3903,4 +4038,9 @@ export const useCurrentMesocycle = () => useAppStore((state) => state.currentMes
 export const useActiveWorkout = () => useAppStore((state) => state.activeWorkout);
 export const useWorkoutLogs = () => useAppStore((state) => state.workoutLogs);
 export const useGamificationStats = () => useAppStore((state) => state.gamificationStats);
-export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog);
+export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog.filter(e => !e._deleted));
+export const useBodyWeightLogRaw = () => useAppStore((state) => state.bodyWeightLog);
+export const useMeals = () => useAppStore((state) => state.meals.filter(m => !m._deleted));
+export const useMealsRaw = () => useAppStore((state) => state.meals);
+export const useMealStamps = () => useAppStore((state) => state.mealStamps.filter(s => !s._deleted));
+export const useMealStampsRaw = () => useAppStore((state) => state.mealStamps);

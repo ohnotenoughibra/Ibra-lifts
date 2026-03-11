@@ -249,12 +249,13 @@ function estimateStrengthDelta(
   _muscle: string,
   allWeeks: WeekGroup[],
 ): number {
-  // Simple: compare average weight used this week vs previous week for same exercises
-  if (allWeeks.length < 2) return 0;
-  const currentAvgWeight = avgExerciseWeight(currentLogs);
-  // We don't have the previous week in this context cleanly,
-  // so we return a simplified delta based on this week's performance
-  return currentAvgWeight > 0 ? 1 : 0; // Positive if training occurred
+  const currentIdx = allWeeks.findIndex(w => w.logs === currentLogs);
+  if (currentIdx < 1) return 0;
+  const prevLogs = allWeeks[currentIdx - 1].logs;
+  const currentAvg = avgExerciseWeight(currentLogs);
+  const prevAvg = avgExerciseWeight(prevLogs);
+  if (prevAvg === 0) return 0;
+  return (currentAvg - prevAvg) / prevAvg; // percentage change
 }
 
 function avgExerciseWeight(logs: WorkoutLog[]): number {

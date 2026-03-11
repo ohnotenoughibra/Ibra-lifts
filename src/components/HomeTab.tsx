@@ -885,11 +885,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         .map(log => log.sessionId)
     );
 
-    // Build flat session list
-    const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; isDeload: boolean }[] = [];
+    // Build flat session list with day numbers
+    const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
     for (const week of currentMesocycle.weeks) {
-      for (const session of week.sessions) {
-        allSessions.push({ session, weekNumber: week.weekNumber, isDeload: week.isDeload });
+      for (let i = 0; i < week.sessions.length; i++) {
+        allSessions.push({ session: week.sessions[i], weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload });
       }
     }
 

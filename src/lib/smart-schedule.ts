@@ -21,6 +21,7 @@ const WORKOUT_COST: Record<WorkoutType, number> = {
   strength: 8,
   power: 6,
   hypertrophy: 5,
+  strength_endurance: 4, // high-rep, low-load — metabolic cost, low CNS cost
 };
 
 interface DayPlan {

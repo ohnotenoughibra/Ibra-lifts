@@ -39,6 +39,12 @@ const typeConfig: Record<WorkoutType, { label: string; color: string; bg: string
     bg: 'bg-blue-500/20',
     icon: Zap,
   },
+  strength_endurance: {
+    label: 'Endurance',
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/20',
+    icon: Target,
+  },
 };
 
 export default function PeriodizationCalendar({ onClose }: PeriodizationCalendarProps) {

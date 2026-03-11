@@ -184,8 +184,8 @@ function Step1_AboutYou({
 }) {
   const identities: { value: TrainingIdentity; icon: any; title: string; desc: string; color: string }[] = [
     { value: 'combat', icon: Swords, title: 'Combat Sports', desc: 'MMA, BJJ, Wrestling, Striking', color: 'red' },
-    { value: 'recreational', icon: Dumbbell, title: 'Recreational Lifter', desc: 'I lift because I enjoy it', color: 'primary' },
-    { value: 'general_fitness', icon: Heart, title: 'General Fitness', desc: 'Feel better, look better', color: 'green' },
+    { value: 'recreational', icon: Dumbbell, title: 'Serious Lifter', desc: 'I train with a program and track progress', color: 'primary' },
+    { value: 'general_fitness', icon: Heart, title: 'Casual Fitness', desc: 'Stay healthy, look good — no strict program', color: 'green' },
   ];
 
   const combatSports: { value: CombatSport; title: string; desc: string }[] = [

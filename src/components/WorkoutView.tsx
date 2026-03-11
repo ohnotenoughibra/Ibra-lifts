@@ -23,6 +23,7 @@ import {
   Undo2,
   ChevronRight,
   Video,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
@@ -413,6 +414,8 @@ export default function WorkoutView() {
       case 'strength': return Zap;
       case 'hypertrophy': return Heart;
       case 'power': return Flame;
+      case 'strength_endurance': return Target;
+      default: return Zap;
     }
   };
 
@@ -421,6 +424,8 @@ export default function WorkoutView() {
       case 'strength': return 'text-red-400 bg-red-500/10';
       case 'hypertrophy': return 'text-purple-400 bg-purple-500/10';
       case 'power': return 'text-blue-400 bg-blue-500/10';
+      case 'strength_endurance': return 'text-amber-400 bg-amber-500/10';
+      default: return 'text-red-400 bg-red-500/10';
     }
   };
 

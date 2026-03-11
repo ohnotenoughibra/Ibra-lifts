@@ -69,6 +69,7 @@ import {
   WellnessDomain,
   WellnessStats,
   NutritionPeriodPlan,
+  WorkoutType,
 } from './types';
 import type { MealStamp } from './food-database';
 import type { CycleLog } from './female-athlete';
@@ -1332,7 +1333,7 @@ export const useAppStore = create<AppState>()(
         );
 
         // Get workout type from source mesocycle
-        const getWorkoutType = (sessionId: string): 'strength' | 'hypertrophy' | 'power' | null => {
+        const getWorkoutType = (sessionId: string): WorkoutType | null => {
           if (sourceMeso) {
             for (const week of sourceMeso.weeks) {
               const session = week.sessions.find(s => s.id === sessionId);
@@ -1437,7 +1438,7 @@ export const useAppStore = create<AppState>()(
         const logsToImport = workoutLogs.filter(log => logIds.includes(log.id));
 
         // Try to determine workout type from the old mesocycle or exercises
-        const getWorkoutType = (log: WorkoutLog): 'strength' | 'hypertrophy' | 'power' | null => {
+        const getWorkoutType = (log: WorkoutLog): WorkoutType | null => {
           // First, try to find the original session in mesocycle history
           for (const meso of mesocycleHistory) {
             for (const week of meso.weeks) {

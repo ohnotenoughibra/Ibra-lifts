@@ -118,7 +118,7 @@ export interface Exercise {
 }
 
 // Workout Programming Types
-export type WorkoutType = 'strength' | 'hypertrophy' | 'power';
+export type WorkoutType = 'strength' | 'hypertrophy' | 'power' | 'strength_endurance';
 export type SplitType = 'full_body' | 'upper_lower' | 'push_pull_legs' | 'grappler_hybrid' | 'striker_power' | 'wrestler_strength' | 'mma_hybrid';
 
 export interface SetPrescription {

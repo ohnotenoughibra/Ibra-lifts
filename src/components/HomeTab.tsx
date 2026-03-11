@@ -86,6 +86,7 @@ import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
 import { useComputedGamification } from '@/lib/computed-gamification';
+import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -551,11 +552,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
     if (!prevMeso) return false;
     const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const completedSessionIds = new Set(
-      workoutLogs.filter(l => l.mesocycleId === prevMeso.id).map(l => l.sessionId)
-    );
+    const completed = getCompletedSessionIds(prevMeso, workoutLogs);
     const completedCount = prevMeso.weeks.reduce((sum, w) =>
-      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+      sum + w.sessions.filter(s => completed.has(s.id)).length, 0
     );
     return completedCount >= totalSessions;
   }, [lastCompletedWorkout, currentMesocycle, mesocycleHistory, workoutLogs]);
@@ -909,119 +908,39 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
 
-  const getNextWorkout = () => {
-    if (!currentMesocycle) return null;
-    const completedSessionIds = new Set(
-      workoutLogs
-        .filter(log => log.mesocycleId === currentMesocycle.id)
-        .map(log => log.sessionId)
-    );
-
-    // Build flat session list sorted by week then day — handles out-of-order weeks array
-    const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
-    for (const week of currentMesocycle.weeks) {
-      for (let i = 0; i < week.sessions.length; i++) {
-        allSessions.push({ session: week.sessions[i], weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload });
-      }
-    }
-    allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
-
-    // Find the FURTHEST completed position (highest index among all completed sessions)
-    let lastCompletedIndex = -1;
-    let matchedCount = 0;
-    for (let i = 0; i < allSessions.length; i++) {
-      if (completedSessionIds.has(allSessions[i].session.id)) {
-        lastCompletedIndex = i;
-        matchedCount++;
-      }
-    }
-
-    // If sessionIds match: use position-based forward search
-    if (lastCompletedIndex >= 0) {
-      for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
-        if (!completedSessionIds.has(allSessions[i].session.id)) {
-          return allSessions[i];
-        }
-      }
-    }
-
-    // Count-based fallback: if we have logs for this mesocycle but sessionIds
-    // don't match (stale after migration), use log count as position
-    const mesoLogCount = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id).length;
-    if (mesoLogCount > 0 && matchedCount === 0) {
-      const nextIndex = Math.min(mesoLogCount, allSessions.length - 1);
-      if (nextIndex < allSessions.length) {
-        return allSessions[nextIndex];
-      }
-    }
-
-    // Fallback: first uncompleted from start (fresh mesocycle)
-    for (const entry of allSessions) {
-      if (!completedSessionIds.has(entry.session.id)) {
-        return entry;
-      }
-    }
-
-    return null;
-  };
-
-  const nextWorkoutInfo = getNextWorkout();
+  // Position-based next workout — survives UUID changes from regeneration/sync/migration
+  const nextWorkoutInfo = useMemo(() => {
+    return getNextSession(currentMesocycle, workoutLogs);
+  }, [currentMesocycle, workoutLogs]);
   const nextWorkout = nextWorkoutInfo?.session ?? null;
 
   const mesocycleProgress = useMemo(() => {
     if (!currentMesocycle) return null;
     const totalSessions = currentMesocycle.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const mesoLogs = workoutLogs.filter(log => log.mesocycleId === currentMesocycle.id);
-    const completedSessionIds = new Set(mesoLogs.map(log => log.sessionId));
-    // Count sessions whose IDs match log sessionIds
-    let completedCount = currentMesocycle.weeks.reduce((sum, w) =>
-      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    const completed = getCompletedSessionIds(currentMesocycle, workoutLogs);
+    const completedCount = currentMesocycle.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completed.has(s.id)).length, 0
     );
-    // If logs exist but no sessionIds match (stale after migration), use log count
-    if (completedCount === 0 && mesoLogs.length > 0) {
-      completedCount = Math.min(mesoLogs.length, totalSessions);
-    }
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0 };
   }, [currentMesocycle, workoutLogs]);
 
   // Progress for the mesocycle the last completed workout belongs to
-  // (may differ from currentMesocycle if the block transitioned after completion)
   const completedWorkoutProgress = (() => {
     if (!lastCompletedWorkout) return mesocycleProgress;
     const log = lastCompletedWorkout.log;
-    // If the workout belongs to the current mesocycle, just use current progress
     if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return mesocycleProgress;
-    // The workout belongs to a previous mesocycle — find it and compute its progress
     const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
     if (!prevMeso) return mesocycleProgress;
     const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
-    const completedSessionIds = new Set(
-      workoutLogs
-        .filter(l => l.mesocycleId === prevMeso.id)
-        .map(l => l.sessionId)
-    );
+    const completed = getCompletedSessionIds(prevMeso, workoutLogs);
     const completedCount = prevMeso.weeks.reduce((sum, w) =>
-      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+      sum + w.sessions.filter(s => completed.has(s.id)).length, 0
     );
     return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
   })();
 
-  // Detect orphaned progress: mesocycle has 0 completed sessions but recent workout logs exist
-  // pointing to other mesocycle IDs (from history or unknown). These should have been migrated.
-  const needsProgressRepair = useMemo(() => {
-    if (!currentMesocycle) return false;
-    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-    if (currentLogs.length > 0) return false;
-
-    // Check for recent logs that should be in the current mesocycle
-    const mesoStart = new Date(currentMesocycle.startDate);
-    const orphanedLogs = workoutLogs.filter(l =>
-      l.mesocycleId !== currentMesocycle.id &&
-      l.mesocycleId !== 'standalone' &&
-      new Date(l.date) >= mesoStart
-    );
-    return orphanedLogs.length >= 3;
-  }, [currentMesocycle, workoutLogs]);
+  // Position-based matching eliminates orphaned progress — no repair needed
+  const needsProgressRepair = false;
 
   const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;

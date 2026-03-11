@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Exercise,
+  Equipment,
   MuscleGroup,
   ExerciseCategory,
   MovementPattern,
@@ -313,6 +314,18 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
 
   // ─── ATHLETIC ───
   {
+    id: 'strength_endurance',
+    name: 'Strength Endurance',
+    description: 'High-rep, short-rest circuits for sustained output. Built for 3-5 minute rounds — train your muscles to resist fatigue under load.',
+    sessions: 3,
+    weeks: 5,
+    focus: 'balanced',
+    periodization: 'undulating',
+    category: 'athletic',
+    tags: ['Combat', 'Work Capacity', 'Round-Ready'],
+    icon: '🔥'
+  },
+  {
     id: 'power_athlete',
     name: 'Power Athlete',
     description: 'Explosive training for speed, power, and athletic performance. Olympic lifts + plyometrics.',
@@ -400,12 +413,102 @@ const CATEGORY_LABELS: Record<string, string> = {
   grappling_specific: 'Grappling', grip: 'Grip'
 };
 
+// Quick inline custom exercise creator — minimal, focused
+function QuickCustomExercise({ onSave, onClose }: {
+  onSave: (exercise: Omit<import('@/lib/types').CustomExercise, 'isCustom' | 'createdAt'>) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [muscle, setMuscle] = useState<import('@/lib/types').MuscleGroup>('chest');
+  const [pattern, setPattern] = useState<import('@/lib/types').MovementPattern>('push');
+
+  const muscles: import('@/lib/types').MuscleGroup[] = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'core', 'forearms', 'traps'];
+  const patterns: { v: import('@/lib/types').MovementPattern; l: string }[] = [
+    { v: 'push', l: 'Push' }, { v: 'pull', l: 'Pull' }, { v: 'squat', l: 'Squat' },
+    { v: 'hinge', l: 'Hinge' }, { v: 'carry', l: 'Carry' }, { v: 'rotation', l: 'Rotation' }, { v: 'explosive', l: 'Explosive' }
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 200 }}
+        animate={{ y: 0 }}
+        exit={{ y: 200 }}
+        className="bg-grappler-800 rounded-t-2xl p-5 max-w-md w-full space-y-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-bold text-white">Create Exercise</h3>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Exercise name (e.g. Razor Curl)"
+          className="input w-full"
+          autoFocus
+        />
+        <div>
+          <p className="text-xs text-grappler-400 mb-1.5">Primary Muscle</p>
+          <div className="flex flex-wrap gap-1.5">
+            {muscles.map(m => (
+              <button key={m} onClick={() => setMuscle(m)}
+                className={cn('px-2 py-1 rounded-full text-xs font-medium capitalize',
+                  muscle === m ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                )}>{m.replace('_', ' ')}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs text-grappler-400 mb-1.5">Movement Pattern</p>
+          <div className="flex flex-wrap gap-1.5">
+            {patterns.map(p => (
+              <button key={p.v} onClick={() => setPattern(p.v)}
+                className={cn('px-2 py-1 rounded-full text-xs font-medium',
+                  pattern === p.v ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                )}>{p.l}</button>
+            ))}
+          </div>
+        </div>
+        <button
+          disabled={!name.trim()}
+          onClick={() => {
+            if (!name.trim()) return;
+            onSave({
+              id: `custom-${Date.now().toString(36)}`,
+              name: name.trim(),
+              description: `Custom exercise: ${name.trim()}`,
+              category: 'isolation',
+              primaryMuscles: [muscle],
+              secondaryMuscles: [],
+              movementPattern: pattern,
+              equipmentRequired: ['full_gym'],
+              equipmentTypes: [],
+              strengthValue: 5,
+              aestheticValue: 5,
+              grapplerFriendly: false,
+              cues: [],
+            });
+          }}
+          className="btn btn-primary w-full"
+        >
+          Create &amp; Add to Database
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 interface WorkoutBuilderProps {
   onClose: () => void;
 }
 
 export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
-  const { user, startWorkout, generateNewMesocycle } = useAppStore();
+  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise } = useAppStore();
   const [view, setView] = useState<BuilderView>('templates');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'all'>('all');
@@ -422,9 +525,20 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
   const equipment = user?.equipment || 'full_gym';
 
-  // Filtered exercises
+  const [showCustomCreator, setShowCustomCreator] = useState(false);
+
+  // Filtered exercises (includes user's custom exercises)
   const filteredExercises = useMemo(() => {
-    let result = getExercisesByEquipment(equipment);
+    const customs = (customExercises || []).map(ce => ({
+      ...ce,
+      equipmentRequired: [ce.equipmentRequired?.[0] || equipment] as Equipment[],
+      secondaryMuscles: ce.secondaryMuscles || [],
+      strengthValue: ce.strengthValue ?? 5,
+      aestheticValue: ce.aestheticValue ?? 5,
+      grapplerFriendly: ce.grapplerFriendly ?? false,
+      cues: ce.cues || [],
+    }));
+    let result = [...getExercisesByEquipment(equipment), ...customs];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -448,7 +562,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
     }
 
     return result;
-  }, [equipment, searchQuery, selectedMuscle, selectedCategory]);
+  }, [equipment, searchQuery, selectedMuscle, selectedCategory, customExercises]);
 
   const addExercise = (exercise: Exercise) => {
     if (builtExercises.find(e => e.exercise.id === exercise.id)) return;
@@ -456,6 +570,8 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
       ? { sets: 4, reps: 5, rpe: 8.5, restSeconds: 180 }
       : workoutType === 'power'
       ? { sets: 4, reps: 3, rpe: 7, restSeconds: 150 }
+      : workoutType === 'strength_endurance'
+      ? { sets: 3, reps: 15, rpe: 7, restSeconds: 60 }
       : { sets: 3, reps: 10, rpe: 8, restSeconds: 90 };
 
     setBuiltExercises([...builtExercises, { exercise, ...defaults }]);
@@ -785,9 +901,10 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
               {filteredExercises.map((exercise) => {
                 const isAdded = builtExercises.some(e => e.exercise.id === exercise.id);
                 const isExpanded = expandedExercise === exercise.id;
+                const isCustom = Boolean('isCustom' in exercise && (exercise as Exercise & { isCustom?: boolean }).isCustom);
 
                 return (
-                  <div key={exercise.id} className="card overflow-hidden">
+                  <div key={exercise.id} className={cn('card overflow-hidden', isCustom ? 'border border-primary-500/30' : '')}>
                     <button
                       onClick={() => setExpandedExercise(isExpanded ? null : exercise.id)}
                       className="w-full p-3 flex items-center gap-3 text-left"
@@ -872,6 +989,15 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   </div>
                 );
               })}
+
+              {/* Can't find it? Create custom */}
+              <button
+                onClick={() => setShowCustomCreator(true)}
+                className="w-full py-3 mt-2 rounded-lg border border-dashed border-grappler-700 text-grappler-400 text-sm hover:border-primary-500/50 hover:text-primary-400 transition-colors"
+              >
+                <Plus className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                Can&apos;t find it? Create custom exercise
+              </button>
             </div>
           </div>
         )}
@@ -893,15 +1019,16 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                 <p className="text-xs text-grappler-400 mb-2">Workout Type</p>
                 <div className="flex gap-2">
                   {([
-                    { type: 'strength', label: 'Strength', icon: Zap, color: 'bg-red-500' },
-                    { type: 'hypertrophy', label: 'Hypertrophy', icon: Heart, color: 'bg-purple-500' },
-                    { type: 'power', label: 'Power', icon: Flame, color: 'bg-blue-500' }
-                  ] as const).map((opt) => (
+                    { type: 'strength' as WorkoutType, label: 'Strength', icon: Zap, color: 'bg-red-500' },
+                    { type: 'hypertrophy' as WorkoutType, label: 'Hypertrophy', icon: Heart, color: 'bg-purple-500' },
+                    { type: 'power' as WorkoutType, label: 'Power', icon: Flame, color: 'bg-blue-500' },
+                    { type: 'strength_endurance' as WorkoutType, label: 'Endurance', icon: Target, color: 'bg-amber-500' }
+                  ]).map((opt) => (
                     <button
                       key={opt.type}
                       onClick={() => setWorkoutType(opt.type)}
                       className={cn(
-                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all',
+                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
                         workoutType === opt.type
                           ? `${opt.color} text-white`
                           : 'bg-grappler-800 text-grappler-400'
@@ -1050,6 +1177,14 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   <span className="text-sm font-medium">Add Exercise</span>
                 </button>
 
+                {/* Superset hint — shown when 2+ exercises exist */}
+                {builtExercises.length >= 2 && (
+                  <p className="text-xs text-grappler-500 text-center">
+                    <Layers className="w-3 h-3 inline mr-1 -mt-0.5" />
+                    Supersets auto-detect during the workout — pair push + pull for time-efficient training
+                  </p>
+                )}
+
                 {/* Start Button */}
                 <button
                   onClick={startCustomWorkout}
@@ -1063,6 +1198,19 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
           </div>
         )}
       </main>
+
+      {/* Quick Custom Exercise Creator */}
+      <AnimatePresence>
+        {showCustomCreator && (
+          <QuickCustomExercise
+            onSave={(exercise) => {
+              addCustomExercise(exercise);
+              setShowCustomCreator(false);
+            }}
+            onClose={() => setShowCustomCreator(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Template confirmation modal */}
       {pendingTemplate && (

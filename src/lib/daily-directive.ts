@@ -629,9 +629,9 @@ function getNextWorkout(
   const mesoLogs = logs.filter(l => l.mesocycleId === mesocycle.id);
   const completedIds = new Set(mesoLogs.map(l => l.sessionId));
 
-  // Build a flat ordered list of all sessions with their position
-  const allSessions: { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean; flatIndex: number }[] = [];
-  let idx = 0;
+  // Build a flat ordered list of all sessions, sorted by week then day
+  // to guarantee correct order regardless of weeks array ordering
+  const allSessions: { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
   for (const week of mesocycle.weeks) {
     for (let i = 0; i < week.sessions.length; i++) {
       allSessions.push({
@@ -639,28 +639,23 @@ function getNextWorkout(
         weekNumber: week.weekNumber,
         dayNumber: i + 1,
         isDeload: week.isDeload,
-        flatIndex: idx++,
       });
     }
   }
+  // Sort by weekNumber then dayNumber — handles out-of-order weeks array
+  allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
 
-  // Find the position of the most recently completed session (by log date)
+  // Find the FURTHEST completed position in the block (highest index among all completed sessions).
+  // Using position-based tracking instead of date-based prevents pointer from going backwards
+  // when logs have date mismatches or were migrated from a different mesocycle.
   let lastCompletedIndex = -1;
-  if (mesoLogs.length > 0) {
-    // Sort logs by date descending to find most recent
-    const sortedLogs = [...mesoLogs].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    for (const log of sortedLogs) {
-      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
-      if (pos !== -1) {
-        lastCompletedIndex = pos;
-        break;
-      }
+  for (let i = 0; i < allSessions.length; i++) {
+    if (completedIds.has(allSessions[i].session.id)) {
+      lastCompletedIndex = i;
     }
   }
 
-  // Look for next uncompleted session starting AFTER the most recently completed one
+  // Look for next uncompleted session starting AFTER the furthest completed one
   if (lastCompletedIndex >= 0) {
     for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
       if (!completedIds.has(allSessions[i].session.id)) {

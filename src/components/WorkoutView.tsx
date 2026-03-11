@@ -66,7 +66,7 @@ export default function WorkoutView() {
   const nextUpSession = useMemo(() => {
     if (!currentMesocycle) return null;
 
-    // Build flat session list
+    // Build flat session list sorted by week then position
     const allSessions: { session: WorkoutSession; weekIndex: number; weekNumber: number }[] = [];
     for (let wIdx = 0; wIdx < currentMesocycle.weeks.length; wIdx++) {
       const week = currentMesocycle.weeks[wIdx];
@@ -74,18 +74,13 @@ export default function WorkoutView() {
         allSessions.push({ session, weekIndex: wIdx, weekNumber: week.weekNumber });
       }
     }
+    allSessions.sort((a, b) => a.weekNumber - b.weekNumber);
 
-    // Find position of most recently completed session (by workout log date)
-    const mesoLogs = workoutLogs
-      .filter(log => log.mesocycleId === currentMesocycle.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+    // Find the FURTHEST completed position (highest index among all completed sessions)
     let lastCompletedIndex = -1;
-    for (const log of mesoLogs) {
-      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
-      if (pos !== -1) {
-        lastCompletedIndex = pos;
-        break;
+    for (let i = 0; i < allSessions.length; i++) {
+      if (completedSessionIds.has(allSessions[i].session.id)) {
+        lastCompletedIndex = i;
       }
     }
 

@@ -917,29 +917,25 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         .map(log => log.sessionId)
     );
 
-    // Build flat session list with day numbers
+    // Build flat session list sorted by week then day — handles out-of-order weeks array
     const allSessions: { session: typeof currentMesocycle.weeks[0]['sessions'][0]; weekNumber: number; dayNumber: number; isDeload: boolean }[] = [];
     for (const week of currentMesocycle.weeks) {
       for (let i = 0; i < week.sessions.length; i++) {
         allSessions.push({ session: week.sessions[i], weekNumber: week.weekNumber, dayNumber: i + 1, isDeload: week.isDeload });
       }
     }
+    allSessions.sort((a, b) => a.weekNumber - b.weekNumber || a.dayNumber - b.dayNumber);
 
-    // Find position of most recently completed session (by log date)
-    const mesoLogs = workoutLogs
-      .filter(log => log.mesocycleId === currentMesocycle.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+    // Find the FURTHEST completed position (highest index among all completed sessions)
+    // instead of most-recent-by-date — prevents pointer from going backwards after migrations
     let lastCompletedIndex = -1;
-    for (const log of mesoLogs) {
-      const pos = allSessions.findIndex(s => s.session.id === log.sessionId);
-      if (pos !== -1) {
-        lastCompletedIndex = pos;
-        break;
+    for (let i = 0; i < allSessions.length; i++) {
+      if (completedSessionIds.has(allSessions[i].session.id)) {
+        lastCompletedIndex = i;
       }
     }
 
-    // Look forward from the most recently completed session
+    // Look forward from the furthest completed session
     if (lastCompletedIndex >= 0) {
       for (let i = lastCompletedIndex + 1; i < allSessions.length; i++) {
         if (!completedSessionIds.has(allSessions[i].session.id)) {

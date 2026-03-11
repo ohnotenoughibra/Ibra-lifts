@@ -686,6 +686,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
   }, [directive.todayType, directive.readinessLevel, workoutLogs, awardSmartRest, showToast]);
 
+  // ─── Auto-repair orphaned sessionIds — logs have correct mesocycleId but stale sessionIds ───
+  const sessionRepairDone = useRef(false);
+  useEffect(() => {
+    if (sessionRepairDone.current || !currentMesocycle) return;
+    const mesoLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    if (mesoLogs.length === 0) return;
+    const allSessionIds = new Set(currentMesocycle.weeks.flatMap(w => w.sessions.map(s => s.id)));
+    const hasOrphaned = mesoLogs.some(l => !allSessionIds.has(l.sessionId));
+    if (hasOrphaned) {
+      sessionRepairDone.current = true;
+      const result = repairMesocycleProgress();
+      if (result.fixed > 0) {
+        showToast(`Synced ${result.fixed} workouts to your program`, 'success');
+      }
+    }
+  }, [currentMesocycle, workoutLogs, repairMesocycleProgress, showToast]);
+
   // ─── Post-workout nutrition nudge (sport-aware) ───
   const postWorkoutNutritionNudge = useMemo(() => {
     if (!lastCompletedWorkout) return null;

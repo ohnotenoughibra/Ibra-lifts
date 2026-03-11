@@ -25,13 +25,15 @@ interface PostWorkoutPhaseProps {
     newStreak: number;
   } | null;
   postWorkoutNutritionNudge: { text: string; urgent: boolean } | null;
-  mesocycleProgress: { total: number; completed: number; percent: number } | null;
+  mesocycleProgress: { total: number; completed: number; percent: number; blockName?: string; isComplete?: boolean } | null;
   forwardLook: string | null;
   weightUnit: string;
   shareCopied: boolean;
   onShare: () => void;
   onDismiss: () => void;
   onNavigate: (view: OverlayView, context?: string) => void;
+  onViewReport?: (mesoId: string) => void;
+  prevBlockJustCompleted?: boolean;
 }
 
 export default function PostWorkoutPhase({
@@ -45,6 +47,8 @@ export default function PostWorkoutPhase({
   onShare,
   onDismiss,
   onNavigate,
+  onViewReport,
+  prevBlockJustCompleted,
 }: PostWorkoutPhaseProps) {
   return (
     <motion.div
@@ -221,11 +225,30 @@ export default function PostWorkoutPhase({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.65, duration: 0.25 }}
-          className="flex items-center gap-2 mt-3"
+          className="mt-3"
         >
-          <span className="text-xs text-grappler-500">Block</span>
-          <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
-          <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+          {(mesocycleProgress.isComplete || prevBlockJustCompleted) ? (
+            <div className="bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20 rounded-xl p-3 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Trophy className="w-4 h-4 text-primary-400" />
+                <span className="text-sm font-black text-primary-300">Block Complete!</span>
+              </div>
+              <p className="text-xs text-grappler-400">
+                All {mesocycleProgress.total} sessions{mesocycleProgress.blockName ? ` in ${mesocycleProgress.blockName}` : ''} done
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs text-grappler-500">Block</span>
+                <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-primary-400/80 rounded-full" style={{ width: '100%' }} /></div>
+                <span className="text-xs text-primary-400 font-bold">{mesocycleProgress.total}/{mesocycleProgress.total}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-grappler-500">Block</span>
+              <div className="flex-1 h-1.5 bg-grappler-700 rounded-full overflow-hidden"><div className="h-full bg-green-500/60 rounded-full" style={{ width: `${mesocycleProgress.percent}%` }} /></div>
+              <span className="text-xs text-grappler-400">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
+            </div>
+          )}
         </motion.div>
       )}
 

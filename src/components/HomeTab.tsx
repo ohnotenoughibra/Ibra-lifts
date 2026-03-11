@@ -541,6 +541,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     });
   };
 
+  // Check if the last completed workout finishes a previous block
+  const prevBlockJustCompleted = useMemo(() => {
+    if (!lastCompletedWorkout) return false;
+    const log = lastCompletedWorkout.log;
+    if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return false;
+    const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
+    if (!prevMeso) return false;
+    const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+    const completedSessionIds = new Set(
+      workoutLogs.filter(l => l.mesocycleId === prevMeso.id).map(l => l.sessionId)
+    );
+    const completedCount = prevMeso.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    return completedCount >= totalSessions;
+  }, [lastCompletedWorkout, currentMesocycle, mesocycleHistory, workoutLogs]);
+
   // ─── Victory sequence: Confetti + Haptic ───
   const confettiFired = useRef(false);
   useEffect(() => {
@@ -549,10 +566,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const hasBadge = lastCompletedWorkout.newBadges && lastCompletedWorkout.newBadges.length > 0;
     const isSGrade = directive.todayPerformance?.grade === 'S';
     const manyPRs = (directive.todayPerformance?.prs ?? 0) >= 3;
-    if (hasPR || hasBadge || isSGrade) {
+    if (hasPR || hasBadge || isSGrade || prevBlockJustCompleted) {
       confettiFired.current = true;
-      // Sync confetti with victory animation — elite gets delayed for dramatic reveal
-      const isElite = isSGrade || manyPRs;
+      // Sync confetti with victory animation — elite/block-complete gets delayed for dramatic reveal
+      const isElite = isSGrade || manyPRs || prevBlockJustCompleted;
       setTimeout(() => fireConfetti(), isElite ? 1500 : 600);
       // Haptic at grade stamp moment
       setTimeout(() => {
@@ -561,7 +578,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         }
       }, 500);
     }
-  }, [lastCompletedWorkout, directive.todayPerformance]);
+  }, [lastCompletedWorkout, directive.todayPerformance, prevBlockJustCompleted]);
   // Reset confetti flag when workout summary is dismissed
   useEffect(() => {
     if (!lastCompletedWorkout) confettiFired.current = false;
@@ -942,6 +959,28 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
     return orphanedLogs.length >= 3;
   }, [currentMesocycle, workoutLogs]);
+
+  // Progress for the mesocycle the last completed workout belongs to
+  // (may differ from currentMesocycle if the block transitioned after completion)
+  const completedWorkoutProgress = (() => {
+    if (!lastCompletedWorkout) return mesocycleProgress;
+    const log = lastCompletedWorkout.log;
+    // If the workout belongs to the current mesocycle, just use current progress
+    if (!log.mesocycleId || log.mesocycleId === currentMesocycle?.id) return mesocycleProgress;
+    // The workout belongs to a previous mesocycle — find it and compute its progress
+    const prevMeso = mesocycleHistory.find(m => m.id === log.mesocycleId);
+    if (!prevMeso) return mesocycleProgress;
+    const totalSessions = prevMeso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+    const completedSessionIds = new Set(
+      workoutLogs
+        .filter(l => l.mesocycleId === prevMeso.id)
+        .map(l => l.sessionId)
+    );
+    const completedCount = prevMeso.weeks.reduce((sum, w) =>
+      sum + w.sessions.filter(s => completedSessionIds.has(s.id)).length, 0
+    );
+    return { total: totalSessions, completed: completedCount, percent: totalSessions > 0 ? Math.round((completedCount / totalSessions) * 100) : 0, blockName: prevMeso.name, isComplete: completedCount >= totalSessions };
+  })();
 
   const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;
@@ -1615,13 +1654,15 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           todayPerformance={directive.todayPerformance}
           lastCompletedWorkout={lastCompletedWorkout}
           postWorkoutNutritionNudge={postWorkoutNutritionNudge}
-          mesocycleProgress={mesocycleProgress}
+          mesocycleProgress={completedWorkoutProgress || mesocycleProgress}
           forwardLook={directive.forwardLook}
           weightUnit={weightUnit}
           shareCopied={shareCopied}
           onShare={handleShareWorkout}
           onDismiss={dismissWorkoutSummary}
           onNavigate={onNavigate}
+          onViewReport={onViewReport}
+          prevBlockJustCompleted={prevBlockJustCompleted}
         />
 
       ) : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? (

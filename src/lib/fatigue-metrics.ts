@@ -214,15 +214,14 @@ export function calculateEnhancedACWR(
   // Return acute as 7-day sum (for display compatibility) and chronic as weekly equivalent
   const acute7dSum = dailyLoad.slice(0, 7).reduce((a, b) => a + b, 0);
   const chronic28dSum = dailyLoad.reduce((a, b) => a + b, 0);
-  const activeWeeks = Math.max(1, dailyLoad.filter((_, i) => {
-    const weekIdx = Math.floor(i / 7);
-    // Check if this week has any load
-    return dailyLoad.slice(weekIdx * 7, (weekIdx + 1) * 7).some(d => d > 0);
-  }).length > 0 ? Math.ceil(dailyLoad.filter(d => d > 0).length / 3) : 1);
+  // Count actual 7-day windows that have training (max 4)
+  const activeWeeks = Math.max(1, [0, 1, 2, 3].filter(w =>
+    dailyLoad.slice(w * 7, (w + 1) * 7).some(d => d > 0)
+  ).length);
 
   return {
     acute: Math.round(acute7dSum),
-    chronic: Math.round(chronic28dSum / Math.max(activeWeeks, 1)),
+    chronic: Math.round(chronic28dSum / activeWeeks),
     ratio: clampedRatio,
     status,
   };

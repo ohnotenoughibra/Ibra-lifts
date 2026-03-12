@@ -14,6 +14,11 @@ import type {
   TrainingSession,
 } from '@/lib/types';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -214,6 +219,10 @@ export function detectInjuryPatterns(
   workoutLogs: WorkoutLog[],
   trainingSessions: TrainingSession[],
 ): InjuryPattern[] {
+  injuries = active(injuries);
+  workoutLogs = active(workoutLogs);
+  trainingSessions = active(trainingSessions);
+
   // Group injuries by body region
   const byRegion = new Map<BodyRegion, InjuryEntry[]>();
   for (const injury of injuries) {
@@ -497,6 +506,9 @@ export function assessInjuryRisk(
   injuryHistory: InjuryEntry[],
   patterns: InjuryPattern[],
 ): InjuryRiskAssessment {
+  recentSessions = active(recentSessions);
+  injuryHistory = active(injuryHistory);
+
   const bodyRegionRisks: BodyRegionRisk[] = [];
   const warnings: string[] = [];
   const suggestions: string[] = [];
@@ -692,6 +704,8 @@ function elevateRisk(
  * @returns An array of recovery insights, one per body region that has injuries.
  */
 export function getRecoveryInsights(injuries: InjuryEntry[]): RecoveryInsight[] {
+  injuries = active(injuries);
+
   // Group by region
   const byRegion = new Map<BodyRegion, InjuryEntry[]>();
   for (const injury of injuries) {

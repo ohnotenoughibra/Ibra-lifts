@@ -161,7 +161,7 @@ function daysSince(date: Date): number {
 
 export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
   const { injuryLog: rawInjuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
-  const injuryLog = useMemo(() => rawInjuryLog.filter(i => !(i as unknown as { _deleted?: boolean })._deleted), [rawInjuryLog]);
+  const injuryLog = useMemo(() => rawInjuryLog.filter(i => !i._deleted), [rawInjuryLog]);
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);

@@ -24,6 +24,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from './Toast';
 import {
   Exercise,
   Equipment,
@@ -31,13 +32,22 @@ import {
   ExerciseCategory,
   MovementPattern,
   WorkoutType,
+  GoalFocus,
   SetPrescription,
   ExercisePrescription,
   WorkoutSession
 } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { detectSupersetCandidates } from '@/lib/superset-engine';
 
 type BuilderView = 'browse' | 'build' | 'templates';
+
+/** A pair of exercise indices that form a superset in the builder */
+interface SupersetPair {
+  indexA: number;
+  indexB: number;
+  reason: string;
+}
 
 interface BuiltExercise {
   exercise: Exercise;
@@ -55,7 +65,7 @@ interface MesocycleTemplate {
   description: string;
   sessions: number;
   weeks: number;
-  focus: 'strength' | 'hypertrophy' | 'balanced' | 'power';
+  focus: GoalFocus;
   periodization: 'undulating' | 'block' | 'linear' | 'conjugate';
   category: TemplateCategory;
   tags: string[];
@@ -319,7 +329,7 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
     description: 'High-rep, short-rest circuits for sustained output. Built for 3-5 minute rounds — train your muscles to resist fatigue under load.',
     sessions: 3,
     weeks: 5,
-    focus: 'balanced',
+    focus: 'strength_endurance',
     periodization: 'undulating',
     category: 'athletic',
     tags: ['Combat', 'Work Capacity', 'Round-Ready'],
@@ -509,6 +519,7 @@ interface WorkoutBuilderProps {
 
 export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
   const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise } = useAppStore();
+  const { showToast } = useToast();
   const [view, setView] = useState<BuilderView>('templates');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'all'>('all');
@@ -616,7 +627,10 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
       coolDown: ['Static stretching', 'Foam rolling target muscles']
     };
 
-    startWorkout(session);
+    if (startWorkout(session) === false) {
+      showToast('Finish your current workout first', 'warning');
+      return;
+    }
     onClose();
   };
 

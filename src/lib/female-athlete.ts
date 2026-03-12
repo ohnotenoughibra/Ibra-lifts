@@ -54,6 +54,8 @@ export interface CycleLog {
   symptoms: CycleSymptom[];
   energyLevel: 1 | 2 | 3 | 4 | 5;
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 export interface CycleProfile {

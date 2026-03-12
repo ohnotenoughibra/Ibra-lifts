@@ -16,8 +16,8 @@ export default function TrainingCalendar() {
     updateWorkoutLog, updateTrainingSession,
     recalculatePRs
   } = useAppStore();
-  const workoutLogs = useMemo(() => rawWorkoutLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted), [rawWorkoutLogs]);
-  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted), [rawTrainingSessions]);
+  const workoutLogs = useMemo(() => rawWorkoutLogs.filter(l => !l._deleted), [rawWorkoutLogs]);
+  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !s._deleted), [rawTrainingSessions]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteType, setConfirmDeleteType] = useState<'workout' | 'session' | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';

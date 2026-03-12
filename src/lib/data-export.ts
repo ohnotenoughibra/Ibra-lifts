@@ -79,8 +79,15 @@ export function downloadFile(content: string, filename: string, mimeType: string
   URL.revokeObjectURL(url);
 }
 
+// Filter out soft-deleted items from an array for export
+function stripDeleted<T>(arr: T[] | undefined): T[] {
+  if (!arr) return [];
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // Full app backup — exports ALL persistent state for restore/transfer.
 // Mirrors the store's partialize() exactly so nothing is ever missed.
+// Soft-deleted items are excluded to keep exports clean.
 export function exportFullBackup(): string {
   const state = useAppStore.getState();
   const backup = {
@@ -98,8 +105,8 @@ export function exportFullBackup(): string {
     mesocycleQueue: state.mesocycleQueue,
     activeWorkout: state.activeWorkout,
     // ── Workout logs ──
-    workoutLogs: state.workoutLogs,
-    trainingSessions: state.trainingSessions,
+    workoutLogs: stripDeleted(state.workoutLogs),
+    trainingSessions: stripDeleted(state.trainingSessions),
     hrSessions: state.hrSessions,
     // ── Gamification ──
     gamificationStats: state.gamificationStats,
@@ -114,12 +121,12 @@ export function exportFullBackup(): string {
     weeklyCheckIns: state.weeklyCheckIns,
     mealReminders: state.mealReminders,
     // ── Health & recovery ──
-    injuryLog: state.injuryLog,
-    illnessLogs: state.illnessLogs,
+    injuryLog: stripDeleted(state.injuryLog),
+    illnessLogs: stripDeleted(state.illnessLogs),
     workoutSkips: state.workoutSkips,
-    cycleLogs: state.cycleLogs,
+    cycleLogs: stripDeleted(state.cycleLogs),
     // ── Quick logs & grip ──
-    quickLogs: state.quickLogs,
+    quickLogs: stripDeleted(state.quickLogs),
     gripTests: state.gripTests,
     gripExerciseLogs: state.gripExerciseLogs,
     // ── Customisation ──
@@ -127,7 +134,7 @@ export function exportFullBackup(): string {
     sessionTemplates: state.sessionTemplates,
     muscleEmphasis: state.muscleEmphasis,
     activeEquipmentProfile: state.activeEquipmentProfile,
-    competitions: state.competitions,
+    competitions: stripDeleted(state.competitions),
     themeMode: state.themeMode,
   };
   return JSON.stringify(backup, null, 2);
@@ -257,14 +264,31 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     if (Array.isArray(data.weeklyCheckIns)) update.weeklyCheckIns = data.weeklyCheckIns;
     if (data.mealReminders) update.mealReminders = data.mealReminders;
 
-    // ── Health & recovery ──
-    if (Array.isArray(data.injuryLog)) update.injuryLog = data.injuryLog;
-    if (Array.isArray(data.illnessLogs)) update.illnessLogs = data.illnessLogs;
+    // ── Health & recovery — merge by id, strip expired tombstones ──
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const stripExpiredTombstones = <T,>(arr: T[]): T[] =>
+      arr.filter(item => {
+        const rec = item as Record<string, unknown>;
+        if (!rec._deleted) return true;
+        // Keep tombstones younger than 30 days so sync can propagate the delete
+        return typeof rec._deletedAt === 'number' && (Date.now() - rec._deletedAt) < THIRTY_DAYS_MS;
+      });
+
+    if (Array.isArray(data.injuryLog)) {
+      update.injuryLog = stripExpiredTombstones(mergeById(state.injuryLog || [], data.injuryLog));
+    }
+    if (Array.isArray(data.illnessLogs)) {
+      update.illnessLogs = stripExpiredTombstones(mergeById(state.illnessLogs || [], data.illnessLogs));
+    }
     if (Array.isArray(data.workoutSkips)) update.workoutSkips = data.workoutSkips;
-    if (Array.isArray(data.cycleLogs)) update.cycleLogs = data.cycleLogs;
+    if (Array.isArray(data.cycleLogs)) {
+      update.cycleLogs = stripExpiredTombstones(mergeById(state.cycleLogs || [], data.cycleLogs));
+    }
 
     // ── Quick logs & grip ──
-    if (Array.isArray(data.quickLogs)) update.quickLogs = data.quickLogs;
+    if (Array.isArray(data.quickLogs)) {
+      update.quickLogs = stripExpiredTombstones(mergeById(state.quickLogs || [], data.quickLogs));
+    }
     if (Array.isArray(data.gripTests)) update.gripTests = data.gripTests;
     if (Array.isArray(data.gripExerciseLogs)) update.gripExerciseLogs = data.gripExerciseLogs;
 
@@ -277,7 +301,9 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
     }
     if (data.muscleEmphasis !== undefined) update.muscleEmphasis = data.muscleEmphasis;
     if (data.activeEquipmentProfile) update.activeEquipmentProfile = data.activeEquipmentProfile;
-    if (Array.isArray(data.competitions)) update.competitions = data.competitions;
+    if (Array.isArray(data.competitions)) {
+      update.competitions = stripExpiredTombstones(mergeById(state.competitions || [], data.competitions));
+    }
     if (data.themeMode) update.themeMode = data.themeMode;
 
     // Apply the update

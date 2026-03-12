@@ -14,6 +14,11 @@ import type {
   UserProfile,
 } from './types';
 
+/** Filter out soft-deleted items from arrays before processing */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -153,6 +158,7 @@ export function generateVariableReward(
   gamificationStats: GamificationStats,
   workoutLogs: WorkoutLog[]
 ): VariableReward {
+  workoutLogs = active(workoutLogs);
   const roll = rewardRoll(workoutLog);
 
   // ── Context detection ──────────────────────────────────────────────────────
@@ -368,6 +374,7 @@ export function analyzeStreak(
   gamificationStats: GamificationStats,
   sessionsPerWeek: number = 3
 ): StreakAnalysis {
+  workoutLogs = active(workoutLogs);
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -533,6 +540,7 @@ export function detectDisengagement(
   workoutLogs: WorkoutLog[],
   user: UserProfile | null
 ): DisengagementSignal {
+  workoutLogs = active(workoutLogs);
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -823,6 +831,7 @@ export function checkMilestones(
   workoutLogs: WorkoutLog[],
   gamificationStats: GamificationStats
 ): Milestone[] {
+  workoutLogs = active(workoutLogs);
   const alreadyUnlocked = new Set<string>();
   gamificationStats.badges.forEach(b => {
     alreadyUnlocked.add(b.badgeId);
@@ -882,6 +891,7 @@ export function getSessionContext(
   workoutLogs: WorkoutLog[],
   gamificationStats: GamificationStats
 ): SessionContext {
+  workoutLogs = active(workoutLogs);
   const contextLines: string[] = [];
   let isPersonalBest = false;
   let isMilestone = false;

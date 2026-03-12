@@ -11,6 +11,11 @@
 
 import type { WorkoutLog, GamificationStats, Subscription } from './types';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Pricing Constants (single source of truth — easy to adjust) ───────────
 export const PRICE_PRO_MONTHLY = 9.99;
 export const PRICE_PRO_YEARLY = 95.88; // 12 * 7.99 (20% off monthly)
@@ -334,6 +339,7 @@ export function getValueMetrics(
   gamificationStats: GamificationStats,
   tier: MonetizationTier,
 ): ValueMetrics {
+  workoutLogs = active(workoutLogs);
   const totalWorkouts = gamificationStats.totalWorkouts || workoutLogs.length;
   const totalVolume = gamificationStats.totalVolume || workoutLogs.reduce((sum, l) => sum + (l.totalVolume || 0), 0);
   const prsHit = gamificationStats.personalRecords || 0;
@@ -428,6 +434,7 @@ export function shouldShowUpgradePrompt(
   tier: MonetizationTier,
   lastPromptDate?: Date | string | null,
 ): UpgradePrompt | null {
+  workoutLogs = active(workoutLogs);
   // Already on Elite — nothing to upsell
   if (tier === 'elite') return null;
 
@@ -633,7 +640,7 @@ export function isTrialEligible(
   if (subscription) return false;
 
   // Need minimum engagement before trial
-  return workoutLogs.length >= TRIAL_ACTIVATION_WORKOUTS;
+  return active(workoutLogs).length >= TRIAL_ACTIVATION_WORKOUTS;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

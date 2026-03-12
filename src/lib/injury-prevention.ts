@@ -9,6 +9,11 @@ import type {
 } from './types';
 import { getExerciseById } from './exercises';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
 
 export interface InjuryRisk {
@@ -59,6 +64,10 @@ export function analyzeInjuryRisks(
   whoopData: WearableData | null,
   user: UserProfile | null
 ): InjuryAnalysis {
+  workoutLogs = active(workoutLogs);
+  trainingHistory = active(trainingHistory);
+  injuries = active(injuries);
+
   const risks: InjuryRisk[] = [];
   const positiveFactors: string[] = [];
 

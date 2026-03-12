@@ -78,6 +78,7 @@ import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import InsightCard from './InsightCard';
+import WeeklyCalendar from './WeeklyCalendar';
 import DashboardInsights from './DashboardInsights';
 import { PostWorkoutPhase, CombatPhase, LiftPhase, BlockCompletePhase, OnboardingPhase } from './phases';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';

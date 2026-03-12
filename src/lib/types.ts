@@ -34,7 +34,7 @@ export const DEFAULT_EQUIPMENT_PROFILES: EquipmentProfile[] = [
   },
 ];
 
-export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power';
+export type GoalFocus = 'strength' | 'hypertrophy' | 'balanced' | 'power' | 'strength_endurance';
 export type SessionsPerWeek = 1 | 2 | 3 | 4 | 5 | 6;
 export type WeightUnit = 'lbs' | 'kg';
 
@@ -464,6 +464,8 @@ export interface QuickLog {
   unit?: string;
   timestamp: Date;
   notes?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Grip strength tracking
@@ -619,6 +621,8 @@ export interface CompetitionEvent {
   peakingWeeks: number;         // weeks of peaking phase before event
   taperStart?: Date;
   isActive: boolean;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Deload & Mobility
@@ -708,6 +712,8 @@ export interface InjuryEntry {
   notes?: string;
   resolved: boolean;
   resolvedDate?: Date;
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Custom Exercise
@@ -912,6 +918,8 @@ export interface TrainingSession {
     zones?: { zone: number; minutes: number }[];
   };
   whoopWorkoutId?: string; // links back to the Whoop workout for dedup
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Legacy type aliases for backward compatibility
@@ -1486,6 +1494,8 @@ export interface IllnessLog {
   medication?: string;
   notes?: string;
   updatedAt?: string; // ISO string — used by sync merge to prefer newer side
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 export interface IllnessTrainingRecommendation {

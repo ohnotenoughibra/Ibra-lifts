@@ -26,6 +26,8 @@ import {
   Target,
   Trash2,
   Minus,
+  Plus,
+  Pencil,
   Award,
   Star,
   Activity,

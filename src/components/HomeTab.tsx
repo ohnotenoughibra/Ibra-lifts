@@ -402,8 +402,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
   const confidenceLedger = useAppStore(s => s.confidenceLedger);
-  const illnessLogs = useAppStore(s => s.illnessLogs);
+  const rawIllnessLogs = useAppStore(s => s.illnessLogs);
+  const resolvedIllnessIds = useAppStore(s => s._resolvedIllnessIds);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
+  // Filter out locally-resolved illnesses so daily directive & readiness engines
+  // never see them as active, even if sync brought back stale data
+  const illnessLogs = useMemo(
+    () => rawIllnessLogs.map(il =>
+      resolvedIllnessIds.includes(il.id) ? { ...il, status: 'resolved' as const } : il
+    ),
+    [rawIllnessLogs, resolvedIllnessIds],
+  );
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [skipFrictionShown, setSkipFrictionShown] = useState(false);
@@ -1853,7 +1862,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         hasFightCamp={!!(fightCampPhase && fightCampPhase !== 'off_season')}
         hasActiveInjury={injuryLog.some(i => !i.resolved)}
         activeDietPhase={activeDietPhase?.isActive ? activeDietPhase.goal : null}
-        mesocycleWeek={currentMesocycle ? Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1) : null}
+        mesocycleWeek={currentMesocycle ? Math.min(currentMesocycle.weeks.length, Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1)) : null}
         hasCompletedWorkoutToday={directive.todayPerformance != null}
         onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
       />

@@ -616,6 +616,27 @@ export default function WorkoutView() {
               </button>
             );
           })}
+          {/* Add/Remove week controls */}
+          <div className="flex items-center gap-1 flex-shrink-0 ml-1">
+            {currentMesocycle.weeks.length > 2 && expandedWeek !== null && (
+              <button
+                onClick={() => { removeWeekFromMesocycle(expandedWeek); setExpandedWeek(null); }}
+                className="w-7 h-7 rounded-full bg-red-500/15 text-red-400 hover:bg-red-500/25 flex items-center justify-center transition-colors"
+                title="Remove selected week"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {currentMesocycle.weeks.length < 12 && (
+              <button
+                onClick={addWeekToMesocycle}
+                className="w-7 h-7 rounded-full bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 flex items-center justify-center transition-colors"
+                title="Add training week"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Selected week sessions */}
@@ -701,6 +722,7 @@ export default function WorkoutView() {
                                 sessionId={session.id}
                                 onSwap={handleSwapExercise}
                                 userEquipment={user?.equipment || 'full_gym'}
+                                totalExercises={session.exercises.length}
                               />
                             ))}
                           </div>
@@ -1498,13 +1520,17 @@ interface ExerciseCardProps {
   sessionId: string;
   onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   userEquipment: Equipment;
+  totalExercises: number;
 }
 
-function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment }: ExerciseCardProps) {
+function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment, totalExercises }: ExerciseCardProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showFormVideo, setShowFormVideo] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
+  const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
+  const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
 
   const alternatives: ExerciseRecommendation[] = showAlternatives
     ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8)
@@ -1576,7 +1602,19 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
               <Video className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => setShowAlternatives(!showAlternatives)}
+              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); }}
+              className={cn(
+                'p-1.5 rounded-lg transition-colors',
+                showEditor
+                  ? 'bg-primary-500/20 text-primary-400'
+                  : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
+              )}
+              title="Edit prescription"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); }}
               className={cn(
                 'p-1.5 rounded-lg transition-colors',
                 showAlternatives
@@ -1587,9 +1625,71 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
             >
               <Shuffle className="w-3.5 h-3.5" />
             </button>
+            {totalExercises > 1 && (
+              <button
+                onClick={() => removeExercise(weekIndex, sessionId, index)}
+                className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
+                title="Remove exercise"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Inline Prescription Editor */}
+      <AnimatePresence>
+        {showEditor && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-grappler-600/50 px-3 py-3 space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                {/* Sets */}
+                <div>
+                  <label className="text-xs text-grappler-400 block mb-1">Sets</label>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.max(1, ex.sets - 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.sets}</span>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.min(10, ex.sets + 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                  </div>
+                </div>
+                {/* Reps */}
+                <div>
+                  <label className="text-xs text-grappler-400 block mb-1">Reps</label>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { targetReps: Math.max(1, ex.prescription.targetReps - 1), minReps: Math.max(1, ex.prescription.minReps - 1), maxReps: Math.max(1, ex.prescription.maxReps - 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription.targetReps}</span>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { targetReps: ex.prescription.targetReps + 1, minReps: ex.prescription.minReps + 1, maxReps: ex.prescription.maxReps + 1 })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                  </div>
+                </div>
+                {/* RPE */}
+                <div>
+                  <label className="text-xs text-grappler-400 block mb-1">RPE</label>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.max(5, ex.prescription.rpe - 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription.rpe}</span>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.min(10, ex.prescription.rpe + 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                  </div>
+                </div>
+              </div>
+              {/* Rest time */}
+              <div>
+                <label className="text-xs text-grappler-400 block mb-1">Rest (seconds)</label>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.max(30, ex.prescription.restSeconds - 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                  <span className="text-sm font-bold text-grappler-100 w-10 text-center">{ex.prescription.restSeconds}s</span>
+                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.min(300, ex.prescription.restSeconds + 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Alternatives Panel — matches workout swap quality */}
       <AnimatePresence>

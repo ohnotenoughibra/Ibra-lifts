@@ -421,69 +421,20 @@ function AdaptiveRecoveryCard() {
     ? 'text-amber-400'
     : 'text-red-400';
 
-  const gaugeBg = readiness >= 80
-    ? 'bg-green-500/15'
-    : readiness >= 60
-    ? 'bg-yellow-500/15'
-    : readiness >= 40
-    ? 'bg-amber-500/15'
-    : 'bg-red-500/15';
+  // Don't show if readiness is already high — the ring says it all
+  if (isReady && isOptimalSoon) return null;
 
-  const barColor = readiness >= 80
-    ? 'bg-green-400'
-    : readiness >= 60
-    ? 'bg-yellow-400'
-    : readiness >= 40
-    ? 'bg-amber-400'
-    : 'bg-red-400';
-
+  // Single-line training window insight — no competing percentage
   return (
-    <div className={cn(
-      'rounded-xl border px-3.5 py-3',
-      isOptimalSoon && isReady
-        ? 'bg-green-500/10 border-green-500/30'
-        : 'bg-grappler-800/60 border-grappler-700/40'
-    )}>
-      <div className="flex items-center gap-3">
-        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', gaugeBg)}>
-          <Battery className={cn('w-5 h-5', gaugeColor)} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-medium text-grappler-100">
-              {isReady
-                ? isOptimalSoon
-                  ? "You're primed \u2014 go train"
-                  : 'Recovery complete'
-                : `Ready in ${hoursLeft < 1 ? '<1' : Math.ceil(hoursLeft)}h`
-              }
-            </p>
-            <span className={cn('text-xs font-bold tabular-nums', gaugeColor)}>
-              {readiness}%
-            </span>
-          </div>
-
-          <div className="h-1.5 rounded-full bg-grappler-700/60 overflow-hidden">
-            <div
-              className={cn('h-full rounded-full transition-all duration-500', barColor)}
-              style={{ width: `${Math.min(100, readiness)}%` }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-xs text-grappler-500">
-              {isReady
-                ? `Optimal window: ${Math.round(rw.optimalTrainingWindow.start)}\u2013${Math.round(rw.optimalTrainingWindow.end)}h`
-                : `${Math.ceil(hoursLeft)}h until ${confidence === 'low' ? '~' : ''}70% readiness`
-              }
-            </p>
-            {confidence === 'low' && (
-              <span className="text-xs text-grappler-600">Learning...</span>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="flex items-center gap-2 px-1 py-1">
+      <Battery className={cn('w-3.5 h-3.5 flex-shrink-0', gaugeColor)} />
+      <p className="text-xs text-grappler-400">
+        {isReady
+          ? `Training window: next ${Math.round(rw.optimalTrainingWindow.end)}h`
+          : `Recovery: ~${Math.ceil(hoursLeft)}h until ready`
+        }
+        {confidence === 'low' && ' · learning your patterns'}
+      </p>
     </div>
   );
 }
@@ -1500,7 +1451,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
   }
 
-  // 3. Deload CRITICAL → CRITICAL tier; recommended/optional → regular feed
+  // 3. Deload card — downgrade urgency when readiness is high to avoid contradictions
+  //    (readiness ring says "all green" but deload says "COMPLETE REST" is confusing)
+  const effectiveDeloadUrgency = deloadRec.needed
+    ? (directive.readinessScore >= 67 && deloadRec.urgency === 'critical')
+      ? 'recommended' as const  // Don't scream COMPLETE REST when athlete feels great
+      : deloadRec.urgency
+    : deloadRec.urgency;
+
   if (deloadRec.needed) {
     const urgencyColors = {
       optional: 'from-yellow-500/15 to-sky-500/10 border-yellow-500/30',
@@ -1513,13 +1471,13 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       critical: 'text-red-400',
     };
     const deloadCard = (
-      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[deloadRec.urgency])}>
+      <div key="smart-deload" className={cn('rounded-xl p-3.5 border bg-gradient-to-r', urgencyColors[effectiveDeloadUrgency])}>
         <div className="flex items-start gap-3">
-          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[deloadRec.urgency])} />
+          <AlertTriangle className={cn('w-5 h-5 flex-shrink-0 mt-0.5', urgencyIcon[effectiveDeloadUrgency])} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h3 className={cn('font-bold text-sm', urgencyIcon[deloadRec.urgency])}>
-                {deloadRec.urgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
+              <h3 className={cn('font-bold text-sm', urgencyIcon[effectiveDeloadUrgency])}>
+                {effectiveDeloadUrgency === 'critical' ? 'Deload Now' : 'Deload Recommended'}
               </h3>
               <span className="text-xs text-grappler-400">Fatigue: {fatigueDebt.currentDebt}/100</span>
             </div>
@@ -1532,7 +1490,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       </div>
     );
-    if (deloadRec.urgency === 'critical') {
+    if (effectiveDeloadUrgency === 'critical') {
       criticalAlerts.push(deloadCard);
     } else {
       urgentFeedCards.push(deloadCard);

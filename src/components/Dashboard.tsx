@@ -31,6 +31,7 @@ import UpgradePrompt from './UpgradePrompt';
 // ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
+import CardErrorBoundary from './CardErrorBoundary';
 import { hapticLight } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
@@ -732,7 +733,9 @@ export default function Dashboard({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <WorkoutView />
+              <CardErrorBoundary fallbackLabel="Program tab">
+                <WorkoutView />
+              </CardErrorBoundary>
             </motion.div>
           )}
           {activeTab === 'explore' && (

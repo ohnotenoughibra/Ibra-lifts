@@ -29,9 +29,6 @@ import {
   Star,
   Activity,
   BarChart3,
-  Plus,
-  Minus,
-  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';

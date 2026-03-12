@@ -2087,10 +2087,22 @@ export const useAppStore = create<AppState>()(
         // Ensure deload is always the last week
         const deloadWeek = updatedWeeks.find(w => w.isDeload);
         if (deloadWeek) {
+          // Move existing deload to end
           updatedWeeks = [
             ...updatedWeeks.filter(w => !w.isDeload),
             deloadWeek,
           ];
+        } else {
+          // Removed the deload — convert last training week to deload
+          const lastIdx = updatedWeeks.length - 1;
+          if (lastIdx >= 0) {
+            updatedWeeks[lastIdx] = {
+              ...updatedWeeks[lastIdx],
+              isDeload: true,
+              volumeMultiplier: 0.5,
+              intensityMultiplier: 0.85,
+            };
+          }
         }
 
         // Re-number weeks and recalculate volume/intensity multipliers

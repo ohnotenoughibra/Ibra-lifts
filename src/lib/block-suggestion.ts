@@ -24,6 +24,7 @@ import type {
   GoalFocus,
   MuscleGroup,
   NutritionPeriodPlan,
+  PlannedMesocycle,
 } from './types';
 import { getExerciseById } from './exercises';
 import { getRecommendedTrainingFocus, getActivePhaseContext } from './periodization-planner';
@@ -216,7 +217,38 @@ export function suggestNextBlock(opts: {
   wearableHistory: WearableData[];
   competitions: { date: Date; type: string }[];
   nutritionPeriodPlan?: NutritionPeriodPlan | null;
+  mesocycleQueue?: PlannedMesocycle[];
 }): BlockSuggestion {
+  // ── Queue-first: if user has queued blocks, that IS the plan ──────────
+  if (opts.mesocycleQueue && opts.mesocycleQueue.length > 0) {
+    const next = opts.mesocycleQueue[0];
+    const goalToFocus: Record<GoalFocus, BlockFocus> = {
+      strength: 'strength',
+      hypertrophy: 'hypertrophy',
+      power: 'power',
+      balanced: 'base_building',
+    };
+    return {
+      recommendedFocus: goalToFocus[next.focus],
+      confidence: 100,
+      reasoning: [
+        `Your queued block "${next.name}" is up next`,
+        `${next.weeks} weeks · ${next.focus} focus · ${next.periodization || 'undulating'} periodization`,
+        opts.mesocycleQueue.length > 1
+          ? `${opts.mesocycleQueue.length - 1} more block${opts.mesocycleQueue.length > 2 ? 's' : ''} queued after this`
+          : 'This is the only block in your queue',
+      ],
+      suggestedWeeks: next.weeks,
+      keyMetrics: [
+        { label: 'Source', value: 'Your queue', trend: 'stable' as const },
+        { label: 'Queue depth', value: `${opts.mesocycleQueue.length} block${opts.mesocycleQueue.length > 1 ? 's' : ''}`, trend: 'stable' as const },
+      ],
+      weakPoints: [],
+      strongPoints: [],
+      isFromQueue: true,
+    };
+  }
+
   const reasoning: string[] = [];
   const keyMetrics: BlockSuggestion['keyMetrics'] = [];
   let confidence = 50; // baseline

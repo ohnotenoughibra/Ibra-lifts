@@ -41,7 +41,7 @@ import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mes
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function WorkoutView() {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress, deleteMesocycle } = useAppStore(
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress, deleteMesocycle, updateExercisePrescription, removeExerciseFromSession, addWeekToMesocycle, removeWeekFromMesocycle, mesocycleQueue } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
@@ -50,6 +50,9 @@ export default function WorkoutView() {
       mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
       injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
       repairMesocycleProgress: s.repairMesocycleProgress, deleteMesocycle: s.deleteMesocycle,
+      updateExercisePrescription: s.updateExercisePrescription, removeExerciseFromSession: s.removeExerciseFromSession,
+      addWeekToMesocycle: s.addWeekToMesocycle, removeWeekFromMesocycle: s.removeWeekFromMesocycle,
+      mesocycleQueue: s.mesocycleQueue,
     }))
   );
 
@@ -92,10 +95,11 @@ export default function WorkoutView() {
         workoutLogs, trainingSessions, injuryLog,
         wearableHistory: wearableHistory || [],
         competitions: (competitions || []).map(c => ({ date: new Date(c.date), type: c.type })),
+        mesocycleQueue,
       });
     } catch { return null; }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMesocycle?.id, workoutLogs.length]);
+  }, [currentMesocycle?.id, workoutLogs.length, mesocycleQueue]);
 
   // Fight countdown for combat athletes
   const daysToCompetition = useMemo(() => {

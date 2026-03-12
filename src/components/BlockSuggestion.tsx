@@ -121,8 +121,9 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
       injuryLog,
       wearableHistory,
       competitions: competitions.map((c: { date: Date; type: string }) => ({ date: new Date(c.date), type: c.type })),
+      mesocycleQueue,
     });
-  }, [user, currentMesocycle, mesocycleHistory, workoutLogs, trainingSessions, injuryLog, wearableHistory, competitions]);
+  }, [user, currentMesocycle, mesocycleHistory, workoutLogs, trainingSessions, injuryLog, wearableHistory, competitions, mesocycleQueue]);
 
   const config = FOCUS_CONFIG[suggestion.recommendedFocus];
   const altConfig = suggestion.alternativeFocus ? FOCUS_CONFIG[suggestion.alternativeFocus] : null;
@@ -183,28 +184,35 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
           <p className="text-sm opacity-80 leading-relaxed mb-3">
             {config.description}
           </p>
-          <button
-            onClick={() => handleQueueBlock(suggestion.recommendedFocus, suggestion.suggestedWeeks, 'main')}
-            disabled={queued === 'main'}
-            className={cn(
-              'w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2',
-              queued === 'main'
-                ? 'bg-green-500/20 text-green-400 border border-green-500/40'
-                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-            )}
-          >
-            {queued === 'main' ? (
-              <>
-                <Check className="w-4 h-4" />
-                Added to queue{mesocycleQueue.length > 0 ? ` (${mesocycleQueue.length} in queue)` : ''}
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Add to Queue as Mesocycle
-              </>
-            )}
-          </button>
+          {suggestion.isFromQueue ? (
+            <div className="w-full py-2.5 rounded-lg text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/40 flex items-center justify-center gap-2">
+              <Check className="w-4 h-4" />
+              Already queued — starts when current block completes
+            </div>
+          ) : (
+            <button
+              onClick={() => handleQueueBlock(suggestion.recommendedFocus, suggestion.suggestedWeeks, 'main')}
+              disabled={queued === 'main'}
+              className={cn(
+                'w-full py-2.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2',
+                queued === 'main'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              )}
+            >
+              {queued === 'main' ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Added to queue{mesocycleQueue.length > 0 ? ` (${mesocycleQueue.length} in queue)` : ''}
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add to Queue as Mesocycle
+                </>
+              )}
+            </button>
+          )}
         </motion.div>
 
         {/* Reasoning */}

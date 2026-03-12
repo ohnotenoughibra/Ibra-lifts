@@ -402,8 +402,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const cycleLogs = useAppStore(s => s.cycleLogs);
   const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
   const confidenceLedger = useAppStore(s => s.confidenceLedger);
-  const illnessLogs = useAppStore(s => s.illnessLogs);
+  const rawIllnessLogs = useAppStore(s => s.illnessLogs);
+  const resolvedIllnessIds = useAppStore(s => s._resolvedIllnessIds);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);
+  // Filter out locally-resolved illnesses so daily directive & readiness engines
+  // never see them as active, even if sync brought back stale data
+  const illnessLogs = useMemo(
+    () => rawIllnessLogs.map(il =>
+      resolvedIllnessIds.includes(il.id) ? { ...il, status: 'resolved' as const } : il
+    ),
+    [rawIllnessLogs, resolvedIllnessIds],
+  );
   const [shareCopied, setShareCopied] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [skipFrictionShown, setSkipFrictionShown] = useState(false);

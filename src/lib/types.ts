@@ -1480,6 +1480,7 @@ export interface IllnessLog {
   doctorVisit: boolean;
   medication?: string;
   notes?: string;
+  updatedAt?: string; // ISO string — used by sync merge to prefer newer side
 }
 
 export interface IllnessTrainingRecommendation {

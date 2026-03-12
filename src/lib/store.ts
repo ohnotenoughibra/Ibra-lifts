@@ -84,6 +84,7 @@ import { getActiveInjuryAdaptations } from './injury-science';
 import { getCompletedSessionIds } from './session-matching';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
 import { calculateCompositeWellnessScore } from './wellness-score';
+import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AppState {
@@ -1193,6 +1194,17 @@ export const useAppStore = create<AppState>()(
         // Get active diet phase to influence training programming
         const { activeDietPhase } = get();
 
+        // Autoregulated deload: check ACWR to decide if deload week is needed
+        // Bosquet et al. 2007 — deload is recovery tool, not ritual. Skip when fatigue is low.
+        const { workoutLogs, trainingSessions } = get();
+        const acwr = calculateEnhancedACWR(
+          workoutLogs.filter(l => !((l as unknown as { _deleted?: boolean })._deleted)),
+          trainingSessions,
+        );
+        // Include deload by default; skip only when athlete is clearly undertrained/fresh
+        // ACWR < 0.85 = low training stimulus, no accumulated fatigue to recover from
+        const shouldIncludeDeload = acwr.status === 'no_data' || acwr.ratio >= 0.85;
+
         // Generate new mesocycle with granular equipment, sport load, and diet phase scaling
         const newMesocycle = generateMesocycle({
           userId: user.id,
@@ -1212,6 +1224,7 @@ export const useAppStore = create<AppState>()(
           sportSessionsPerWeek,
           avgSportIntensity,
           periodizationType: periodizationStyle,
+          includeDeload: shouldIncludeDeload,
         });
 
         set({ currentMesocycle: { ...newMesocycle, updatedAt: new Date().toISOString() } });

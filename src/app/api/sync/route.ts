@@ -76,6 +76,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
+    // Payload size limit: 5 MB
+    const MAX_PAYLOAD = 5 * 1024 * 1024; // 5 MB
+    const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
+    if (contentLength > MAX_PAYLOAD) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+
     // Verify auth session
     const session = await auth();
     if (!session?.user?.id) {
@@ -83,6 +90,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+
+    // Safety net: check actual parsed body size (content-length can be missing/spoofed)
+    const bodySize = new TextEncoder().encode(JSON.stringify(body)).byteLength;
+    if (bodySize > MAX_PAYLOAD) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+
     const { userId, data } = body;
 
     if (!userId || !data) {
@@ -157,6 +171,9 @@ export async function POST(request: Request) {
           incomingScore,
         });
       }
+
+      // ── Preserve server subscription: never trust client-side subscription data ──
+      data.subscription = serverData.subscription;
 
       // ── SERVER-SIDE MERGE: merge incoming with existing server data ──
       // This is the bulletproof fix for multi-device sync. Instead of blindly

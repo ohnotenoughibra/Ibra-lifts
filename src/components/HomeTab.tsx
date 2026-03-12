@@ -72,7 +72,6 @@ import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-
 import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
 import type { CycleLog } from '@/lib/female-athlete';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
-import PerformanceReadiness from './PerformanceReadiness';
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
 import WeeklyMomentum from './WeeklyMomentum';
@@ -463,6 +462,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const computed = useComputedGamification();
   const { showToast } = useToast();
   const { data: session } = useSession();
+
+  // Profile completeness gate — prevents NaN values from engines that need weight/height/age/sex
+  const profileComplete = !!(user?.bodyWeightKg && user.bodyWeightKg > 0 && user?.heightCm && user.heightCm > 0 && user?.age && user.age > 0 && user?.sex);
+
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
@@ -1742,6 +1745,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
+      {/* Profile completeness banner — shown when critical fields are missing */}
+      {!profileComplete && (
+        <div className="rounded-xl p-4 border border-primary-500/30 bg-primary-500/10">
+          <p className="text-sm font-medium text-primary-300">Complete your profile</p>
+          <p className="text-xs text-grappler-400 mt-1">
+            Add your {!user?.bodyWeightKg ? 'weight' : !user?.heightCm ? 'height' : !user?.age ? 'age' : 'sex'} to unlock personalized coaching, nutrition targets, and readiness tracking.
+          </p>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════
           ABOVE THE FOLD — Hero Section: 3-Second Rule
           Readiness ring + Start Workout + Streak counter
@@ -1797,9 +1810,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           </div>
         </div>
 
-        {/* Readiness breakdown — expandable via ring tap */}
+        {/* Readiness breakdown — expandable via ring tap (hidden when profile incomplete to avoid NaN) */}
         <AnimatePresence>
-          {readinessExpanded && (
+          {profileComplete && readinessExpanded && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
               <CardErrorBoundary fallbackLabel="Readiness">
                 <ReadinessCard />
@@ -2010,8 +2023,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           BELOW THE FOLD — Secondary Content
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── NUTRITION STRIP — protein + water, always visible ─── */}
-      {macroTargets.protein > 0 && (
+      {/* ─── NUTRITION STRIP — protein + water, always visible (gated on profile to avoid NaN) ─── */}
+      {profileComplete && macroTargets.protein > 0 && (
         <div className="flex items-center gap-3 px-1">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
@@ -2041,7 +2054,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
       {/* Contextual nutrition adjustment line */}
-      {contextMacroDelta && macroTargets.protein > 0 && (
+      {profileComplete && contextMacroDelta && macroTargets.protein > 0 && (
         <div className="flex items-center gap-1.5 px-1 -mt-1">
           <Zap className="w-3 h-3 text-primary-400 flex-shrink-0" />
           <span className="text-xs text-primary-300 font-medium">
@@ -2248,8 +2261,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   />
                 )}
 
-                {/* ─── Performance Readiness — nutrition-focused ─── */}
-                {!showReadiness && <PerformanceReadiness />}
+                {/* Performance Readiness removed — readiness ring (performance-engine) is the single source of truth */}
 
                 {/* ─── INTEL FEED — flat, priority-ranked, no nested accordions ─── */}
                 {(() => {

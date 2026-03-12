@@ -5,8 +5,8 @@ import { sql } from '@vercel/postgres';
 async function verifyWebhookSignature(request: NextRequest, body: unknown): Promise<boolean> {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   if (!webhookId) {
-    console.warn('[webhook] PAYPAL_WEBHOOK_ID not set — skipping signature verification');
-    return true; // Allow in development, but log warning
+    console.error('[webhook] PAYPAL_WEBHOOK_ID not set — rejecting unverified webhook');
+    return false;
   }
 
   const transmissionId = request.headers.get('paypal-transmission-id');
@@ -26,8 +26,8 @@ async function verifyWebhookSignature(request: NextRequest, body: unknown): Prom
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      console.warn('[webhook] PayPal credentials not configured — skipping verification');
-      return true;
+      console.error('[webhook] PayPal credentials not configured — rejecting unverified webhook');
+      return false;
     }
 
     // Get access token

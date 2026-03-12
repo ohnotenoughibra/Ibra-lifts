@@ -251,6 +251,7 @@ export default function DietCoach() {
         weeklyTrainingSessions: recentTrainingSessions,
         weeklyLiftingSessions: recentLiftingSessions,
       });
+      if (!newMacros) return; // Profile incomplete — cannot calculate
       endDietPhase();
       startDietPhase({
         goal: params.goal,
@@ -308,6 +309,7 @@ export default function DietCoach() {
       weeklyTrainingSessions: recentTrainingSessions,
       weeklyLiftingSessions: recentLiftingSessions,
     });
+    if (!newMacros) return; // Profile incomplete — cannot calculate
     const rate = getTargetRate(selectedGoal, bodyWeightKg, formSex);
 
     startDietPhase({
@@ -343,6 +345,7 @@ export default function DietCoach() {
       weeklyTrainingSessions: recentTrainingSessions,
       weeklyLiftingSessions: recentLiftingSessions,
     });
+    if (!newMacros) return; // Profile incomplete — cannot calculate
     const rate = getTargetRate(newGoal, bodyWeightKg, formSex);
 
     endDietPhase();
@@ -614,7 +617,7 @@ export default function DietCoach() {
                                 <p className="text-xs text-grappler-400">{config.description}</p>
                               </div>
                             </div>
-                            {isSelected && (
+                            {isSelected && previewMacros && (
                               <div className="text-right">
                                 <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
                                 <p className="text-xs text-grappler-400">
@@ -764,7 +767,7 @@ export default function DietCoach() {
                                   <p className="text-xs text-grappler-400">{config.description}</p>
                                 </div>
                               </div>
-                              {!isCurrent && (
+                              {!isCurrent && previewMacros && (
                                 <div className="text-right flex-shrink-0">
                                   <p className="text-xs text-grappler-300">{previewMacros.calories} kcal</p>
                                   <p className="text-xs text-grappler-400">
@@ -869,6 +872,7 @@ export default function DietCoach() {
                                   weeklyTrainingSessions: recentTrainingSessions,
                                   weeklyLiftingSessions: recentLiftingSessions,
                                 });
+                                if (!newMacros) return; // Profile incomplete
                                 endDietPhase();
                                 startDietPhase({
                                   goal: phaseStatus.nextGoal!,

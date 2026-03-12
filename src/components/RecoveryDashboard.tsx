@@ -28,7 +28,9 @@ import {
   Area
 } from 'recharts';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { calculateEnhancedACWR } from '@/lib/fatigue-metrics';
+import { getReadinessSummary } from '@/lib/performance-engine';
 
 interface RecoveryDashboardProps {
   onClose: () => void;
@@ -74,7 +76,21 @@ function metricColor(good: boolean, mid: boolean): string {
 }
 
 export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
-  const { workoutLogs, bodyWeightLog, trainingSessions } = useAppStore();
+  const { workoutLogs, bodyWeightLog, trainingSessions, user, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
+    useShallow(s => ({
+      workoutLogs: s.workoutLogs,
+      bodyWeightLog: s.bodyWeightLog,
+      trainingSessions: s.trainingSessions,
+      user: s.user,
+      latestWhoopData: s.latestWhoopData,
+      wearableHistory: s.wearableHistory,
+      meals: s.meals.filter(m => !m._deleted),
+      macroTargets: s.macroTargets,
+      waterLog: s.waterLog,
+      injuryLog: s.injuryLog,
+      quickLogs: s.quickLogs,
+    }))
+  );
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'trends'>('overview');
 
@@ -126,57 +142,22 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
     };
   }, [workoutLogs, trainingSessions]);
 
-  // Compute composite recovery score (0-100)
+  // Use performance-engine as the single source of truth for readiness score
   const recoveryScore = useMemo(() => {
-    if (logsWithCheckIn.length === 0) return 50; // default neutral
-
-    // Use the most recent 3 check-ins for averaging
-    const recent = logsWithCheckIn.slice(0, 3);
-
-    // Average sleep quality (1-5 scale) -> normalize to 0-100
-    const avgSleep = recent.reduce((sum, l) => sum + l.preCheckIn!.sleepQuality, 0) / recent.length;
-    const sleepScore = ((avgSleep - 1) / 4) * 100;
-
-    // Average soreness (1-5 scale, lower is better) -> invert and normalize
-    const avgSoreness = recent.reduce((sum, l) => sum + l.preCheckIn!.soreness, 0) / recent.length;
-    const sorenessScore = ((5 - avgSoreness) / 4) * 100;
-
-    // Average stress (1-5 scale, lower is better) -> invert and normalize
-    const avgStress = recent.reduce((sum, l) => sum + l.preCheckIn!.stress, 0) / recent.length;
-    const stressScore = ((5 - avgStress) / 4) * 100;
-
-    // RPE trend from recent workouts (lower recent RPE = better recovery)
-    const recentRPE = sortedLogs.slice(0, 5);
-    let rpeScore = 50;
-    if (recentRPE.length > 0) {
-      const avgRPE = recentRPE.reduce((sum, l) => sum + l.overallRPE, 0) / recentRPE.length;
-      // RPE 1-10, ideal around 7. Score penalizes very high RPE
-      rpeScore = Math.max(0, Math.min(100, (10 - avgRPE) / 4 * 100));
-    }
-
-    // Training load ratio contribution
-    let loadScore = 50;
-    if (trainingLoad.ratio > 0) {
-      if (trainingLoad.isOptimal) {
-        loadScore = 80;
-      } else if (trainingLoad.isTooHigh) {
-        loadScore = Math.max(0, 80 - (trainingLoad.ratio - 1.3) * 100);
-      } else {
-        loadScore = 60;
-      }
-    }
-
-    // Weighted composite
-    const composite = (
-      sleepScore * 0.30 +
-      sorenessScore * 0.25 +
-      stressScore * 0.20 +
-      rpeScore * 0.15 +
-      loadScore * 0.10
-    );
-
-    return Math.round(Math.max(0, Math.min(100, composite)));
-  }, [logsWithCheckIn, sortedLogs, trainingLoad]);
+    const summary = getReadinessSummary({
+      user,
+      workoutLogs,
+      trainingSessions,
+      wearableData: latestWhoopData,
+      wearableHistory,
+      meals,
+      macroTargets,
+      waterLog,
+      injuryLog,
+      quickLogs,
+    });
+    return summary?.score ?? 50;
+  }, [user, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs]);
 
   // Recovery recommendations
   const recommendations = useMemo(() => {

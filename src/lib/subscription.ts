@@ -129,7 +129,7 @@ export function getEffectiveTier(subscription: Subscription | null, userEmail?: 
  */
 export function hasFeatureAccess(feature: string, tier: SubscriptionTier): boolean {
   const requiredTier = FEATURE_GATES[feature];
-  if (!requiredTier) return true; // Unknown features default to allowed
+  if (!requiredTier) return false; // Unknown features default to denied
   return TIER_RANK[tier] >= TIER_RANK[requiredTier];
 }
 

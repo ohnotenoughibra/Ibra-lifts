@@ -203,7 +203,9 @@ function analyzeWeightVsHistory(ctx: CoachContext): CoachMessage[] {
   const lastLog = findLastExerciseLog(currentExercise.exerciseId, previousLogs);
   if (!lastLog || lastLog.sets.length === 0) return [];
 
-  const lastWeight = Math.max(...lastLog.sets.filter(s => s.completed).map(s => s.weight));
+  const completedWeights = lastLog.sets.filter(s => s.completed).map(s => s.weight);
+  if (completedWeights.length === 0) return [];
+  const lastWeight = Math.max(...completedWeights);
   const currentWeight = justCompletedSet.weight;
   const weightDiff = currentWeight - lastWeight;
 
@@ -357,7 +359,8 @@ function analyzeMilestones(ctx: CoachContext): CoachMessage[] {
   // Check for weight PR
   const lastLog = findLastExerciseLog(currentExercise.exerciseId, previousLogs);
   if (lastLog) {
-    const allTimeBest = Math.max(...lastLog.sets.map(s => s.weight), 0);
+    const setWeights = lastLog.sets.map(s => s.weight);
+    const allTimeBest = setWeights.length > 0 ? Math.max(...setWeights) : 0;
     if (justCompletedSet.weight > allTimeBest && justCompletedSet.weight > 0) {
       return [{
         id: makeId(),

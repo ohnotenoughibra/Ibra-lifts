@@ -118,64 +118,56 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
-      <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 p-4 flex items-center justify-between">
-        <button onClick={onClose} className="btn btn-ghost btn-sm">
+      <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-3 py-2 flex items-center justify-between">
+        <button onClick={onClose} className="p-1.5 -ml-1 text-grappler-400 hover:text-grappler-200">
           <X className="w-5 h-5" />
         </button>
-        <h1 className="font-bold text-grappler-50">Training Load</h1>
-        <div className="w-10" />
+        <h1 className="text-sm font-bold text-grappler-50">Training Load</h1>
+        <div className="w-8" />
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-5">
+      <div className="flex-1 overflow-y-auto px-3 py-3 pb-safe space-y-4">
 
         {/* ── ACWR Hero Card ── */}
-        <div className={cn('rounded-2xl p-5 border', colors.bg, colors.border)}>
+        <div className={cn('rounded-xl p-3.5 border', colors.bg, colors.border)}>
           {/* Zone label + ratio */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', colors.icon)}>
-                <ZoneIcon className={cn('w-6 h-6', colors.iconText)} />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', colors.icon)}>
+                <ZoneIcon className={cn('w-4.5 h-4.5', colors.iconText)} />
               </div>
               <div>
-                <h2 className={cn('text-lg font-bold', colors.title)}>
+                <h2 className={cn('text-sm font-bold leading-tight', colors.title)}>
                   {acwr.status === 'no_data' ? 'No Data' : zone.label}
                 </h2>
-                <p className="text-xs text-grappler-400">
-                  Acute:Chronic Workload Ratio
-                </p>
+                <p className="text-[10px] text-grappler-400">ACWR</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className={cn('text-3xl font-black tabular-nums', colors.title)}>
-                {acwr.ratio.toFixed(2)}
-              </p>
-              <p className="text-xs text-grappler-500 uppercase tracking-wide">ACWR</p>
-            </div>
+            <p className={cn('text-2xl font-black tabular-nums', colors.title)}>
+              {acwr.ratio.toFixed(2)}
+            </p>
           </div>
 
-          {/* ACWR Zone Bar — correctly proportioned */}
-          <div className="relative h-4 bg-grappler-800 rounded-full overflow-hidden mb-1.5">
-            {/* Zone bands — mathematically correct for 0-2 scale */}
+          {/* ACWR Zone Bar */}
+          <div className="relative h-3 bg-grappler-800 rounded-full overflow-hidden mb-1">
             <div className="absolute inset-y-0 left-0 bg-blue-500/30" style={{ width: '40%' }} />
             <div className="absolute inset-y-0 bg-green-500/40" style={{ left: '40%', width: '25%' }} />
             <div className="absolute inset-y-0 bg-yellow-500/35" style={{ left: '65%', width: '10%' }} />
             <div className="absolute inset-y-0 right-0 bg-red-500/30" style={{ width: '25%' }} />
-            {/* Needle with glow */}
             {acwr.ratio > 0 && (
               <motion.div
                 initial={{ left: '0%' }}
                 animate={{ left: `${needlePosition}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="absolute top-[-2px] bottom-[-2px] w-1.5 -ml-[0.75px] rounded-full"
+                className="absolute top-[-1px] bottom-[-1px] w-1 -ml-[0.5px] rounded-full"
                 style={{
                   background: 'white',
-                  boxShadow: '0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(255,255,255,0.3)',
+                  boxShadow: '0 0 6px rgba(255,255,255,0.5)',
                 }}
               />
             )}
           </div>
-          {/* Zone labels — positioned to match bands */}
-          <div className="relative h-4 text-xs text-grappler-500 font-medium">
+          <div className="relative h-3.5 text-[10px] text-grappler-500 font-medium">
             <span className="absolute left-0">0</span>
             <span className="absolute" style={{ left: '40%', transform: 'translateX(-50%)' }}>0.8</span>
             <span className="absolute" style={{ left: '65%', transform: 'translateX(-50%)' }}>1.3</span>
@@ -183,79 +175,66 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
             <span className="absolute right-0">2.0</span>
           </div>
 
-          {/* Description */}
-          <p className="text-xs text-grappler-400 mt-2 leading-relaxed">{zone.desc}</p>
-
           {/* Actionable CTA */}
-          <div className={cn('mt-3 rounded-lg px-3 py-2 border flex items-center gap-2', colors.action)}>
-            <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
-            <p className="text-xs font-medium">{zone.action}</p>
+          <div className={cn('mt-2 rounded-lg px-2.5 py-1.5 border flex items-center gap-2', colors.action)}>
+            <ArrowRight className="w-3 h-3 flex-shrink-0" />
+            <p className="text-[11px] font-medium leading-snug">{zone.action}</p>
           </div>
         </div>
 
         {/* ── Acute vs Chronic + Delta ── */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-xs text-grappler-500 uppercase tracking-wide">Acute</p>
-            <p className="text-lg font-black text-grappler-100 mt-0.5 tabular-nums">{acwr.acute.toLocaleString()}</p>
-            <p className="text-xs text-grappler-500">7-day load</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
+            <p className="text-[10px] text-grappler-500 uppercase">7-day</p>
+            <p className="text-base font-black text-grappler-100 tabular-nums">{acwr.acute.toLocaleString()}</p>
           </div>
-          <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-xs text-grappler-500 uppercase tracking-wide">Chronic</p>
-            <p className="text-lg font-black text-grappler-100 mt-0.5 tabular-nums">{acwr.chronic.toLocaleString()}</p>
-            <p className="text-xs text-grappler-500">28-day avg</p>
+          <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
+            <p className="text-[10px] text-grappler-500 uppercase">28-day avg</p>
+            <p className="text-base font-black text-grappler-100 tabular-nums">{acwr.chronic.toLocaleString()}</p>
           </div>
-          <div className="rounded-xl p-3 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-xs text-grappler-500 uppercase tracking-wide">Week Δ</p>
-            <p className={cn('text-lg font-black mt-0.5 tabular-nums',
+          <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
+            <p className="text-[10px] text-grappler-500 uppercase">Week Δ</p>
+            <p className={cn('text-base font-black tabular-nums',
               weekDelta > 0 ? 'text-amber-400' : weekDelta < 0 ? 'text-blue-400' : 'text-grappler-400'
             )}>
               {weekDelta > 0 ? '+' : ''}{weekDeltaPct}%
             </p>
-            <p className="text-xs text-grappler-500">vs last wk</p>
           </div>
         </div>
 
         {/* ── Weekly Load Bars ── */}
         <div>
-          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <BarChart3 className="w-3.5 h-3.5" /> Weekly Load Trend
+          <h3 className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <BarChart3 className="w-3 h-3" /> Weekly Load
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {weeklyLoads.map((week, i) => {
               const isThisWeek = i === weeklyLoads.length - 1;
               const loadPct = (week.load / maxWeeklyLoad) * 100;
-              // Color based on week-over-week trend
               const barColor = isThisWeek
                 ? (acwr.ratio >= 1.5 ? 'bg-red-500' : acwr.ratio >= 1.3 ? 'bg-yellow-500' : 'bg-primary-500')
                 : 'bg-grappler-600';
 
               return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={cn('text-xs w-[72px] flex-shrink-0 tabular-nums', isThisWeek ? 'text-grappler-200 font-semibold' : 'text-grappler-500')}>
+                <div key={i} className="flex items-center gap-1.5">
+                  <span className={cn('text-[11px] w-14 flex-shrink-0 tabular-nums', isThisWeek ? 'text-grappler-200 font-semibold' : 'text-grappler-500')}>
                     {week.label}
                   </span>
-                  <div className="flex-1 h-7 bg-grappler-800/50 rounded-lg overflow-hidden relative">
+                  <div className="flex-1 h-6 bg-grappler-800/50 rounded-md overflow-hidden relative">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${loadPct}%` }}
-                      transition={{ duration: 0.6, delay: i * 0.1 }}
-                      className={cn('h-full rounded-lg', barColor)}
+                      transition={{ duration: 0.6, delay: i * 0.08 }}
+                      className={cn('h-full rounded-md', barColor)}
                     />
-                    {/* Inline load label for bars wide enough */}
-                    {loadPct > 25 && (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 + i * 0.1 }}
-                        className="absolute inset-y-0 flex items-center text-xs text-white/80 font-medium pl-2"
-                      >
+                    {loadPct > 30 && (
+                      <span className="absolute inset-y-0 flex items-center text-[11px] text-white/80 font-medium pl-2">
                         {week.load.toLocaleString()}
-                      </motion.span>
+                      </span>
                     )}
                   </div>
-                  {loadPct <= 25 && (
-                    <span className="text-xs text-grappler-500 w-12 text-right font-medium tabular-nums">
+                  {loadPct <= 30 && (
+                    <span className="text-[11px] text-grappler-500 w-10 text-right font-medium tabular-nums">
                       {week.load.toLocaleString()}
                     </span>
                   )}
@@ -267,8 +246,8 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
 
         {/* ── 28-Day Intensity Heatmap ── */}
         <div>
-          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" /> 28-Day Intensity
+          <h3 className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+            <Calendar className="w-3 h-3" /> 28-Day Intensity
           </h3>
           {/* Day-of-week labels */}
           <div className="grid grid-cols-7 gap-1 mb-1">

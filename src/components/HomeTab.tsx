@@ -423,6 +423,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
 
@@ -1143,7 +1144,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity,
       gaps.length > 0 ? gaps.map(g => ({ muscle: g.muscle, deficit: g.deficit })) : undefined,
     );
-    startWorkout(quickSession);
+    if (startWorkout(quickSession) === false) {
+      showToast('Finish your current workout first', 'warning');
+      return;
+    }
   };
 
   const handleGenerateNext = () => {
@@ -1837,6 +1841,34 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
+      {/* ─── BELOW FOLD TOGGLE ─── */}
+      <button
+        onClick={() => setShowMore(v => !v)}
+        className="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-xl bg-grappler-800/30 border border-grappler-700/20 hover:bg-grappler-800/50 transition-colors"
+      >
+        <span className="text-xs font-medium text-grappler-500">
+          {showMore ? 'Less' : 'Insights, momentum & quick access'}
+        </span>
+        <motion.span
+          animate={{ rotate: showMore ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="inline-flex flex-shrink-0"
+        >
+          <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />
+        </motion.span>
+      </button>
+
+      <AnimatePresence>
+        {showMore && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3">
+
       {/* ─── Weekly Momentum — 7-day rhythm bar, expandable scorecard ─── */}
       <WeeklyMomentum
         currentStreak={currentStreak}
@@ -2209,6 +2241,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           })()}
         </div>
       </div>
+
+            </div>{/* end space-y-3 below-fold content */}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Tool Picker ─── no glass, no backdrop-blur, solid bg */}
       {dockPickerOpen && (

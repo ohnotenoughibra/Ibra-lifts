@@ -50,6 +50,7 @@ import {
   type MuscleVolumeGauge,
 } from '@/lib/progress-analytics';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
+import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import EmptyState from './EmptyState';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
@@ -1760,8 +1761,8 @@ function OverviewSkeleton() {
 
 export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
   const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
-  const { workoutLogs, user, bodyWeightLog, gamificationStats } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats }))
+  const { workoutLogs, user, bodyWeightLog, gamificationStats, trainingSessions } = useAppStore(
+    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats, trainingSessions: s.trainingSessions ?? [] }))
   );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
@@ -1769,6 +1770,12 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
+
+  const narrative = useMemo(() => generatePerformanceNarrative({
+    workoutLogs,
+    trainingSessions,
+    user,
+  }), [workoutLogs, trainingSessions, user]);
 
   const handleExportCSV = () => {
     const csv = exportToCSV(workoutLogs, weightUnit);
@@ -1945,6 +1952,32 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
             />
           ) : (
             <>
+              {/* Progress Headline */}
+              {narrative.hasData && (
+                <div className="card p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <p className="text-sm text-grappler-200 leading-relaxed">{narrative.summary}</p>
+                  </div>
+                  {narrative.highlights.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {narrative.highlights.slice(0, 3).map((h, i) => (
+                        <div key={i} className={cn(
+                          'px-2.5 py-1 rounded-lg text-xs font-medium border',
+                          h.sentiment === 'positive' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          h.sentiment === 'negative' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                          'bg-grappler-700/50 text-grappler-300 border-grappler-700'
+                        )}>
+                          <span className="font-bold">{h.stat}</span> {h.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Post-workout session recap (visible for 2h after workout) */}
               <SessionRecapCard />
 

@@ -3512,6 +3512,20 @@ export default function ActiveWorkout() {
             )}
           </AnimatePresence>
 
+          {/* Quick Complete — one-tap when values are pre-populated */}
+          {!currentSet.completed && currentSet.weight > 0 && currentSet.reps > 0 && (
+            <button
+              onClick={completeSet}
+              className="w-full mb-4 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg flex items-center justify-center gap-3 active:scale-[0.97] transition-transform shadow-lg shadow-green-500/20"
+            >
+              <Check className="w-6 h-6" />
+              <span>
+                {currentSet.weight}{weightUnit} × {currentSet.reps}
+                {currentSet.rpe ? ` @ RPE ${currentSet.rpe}` : ''}
+              </span>
+            </button>
+          )}
+
           {/* Repeat Last Set shortcut */}
           {currentSetIndex > 0 && !currentSet.completed && currentSet.weight === 0 && currentSet.reps === 0 && (() => {
             const prevSet = currentLog.sets[currentSetIndex - 1];

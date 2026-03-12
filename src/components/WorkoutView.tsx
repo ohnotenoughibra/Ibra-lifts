@@ -289,7 +289,7 @@ export default function WorkoutView() {
   const handleSwapExercise = (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => {
     // Capture old exercise name for undo toast
     const oldExercise = currentMesocycle?.weeks[weekIndex]?.sessions
-      .find(s => s.id === sessionId)?.exercises[exerciseIndex];
+      ?.find(s => s.id === sessionId)?.exercises?.[exerciseIndex];
     const oldExerciseId = oldExercise?.exerciseId || '';
     const oldExerciseName = oldExercise?.exercise?.name || 'exercise';
 
@@ -543,7 +543,7 @@ export default function WorkoutView() {
           : 'from-blue-500/20 to-blue-900/10 border-blue-500/30';
         const heroIntensity = session.type === 'strength' ? 'Heavy' : session.type === 'power' ? 'Explosive' : 'Moderate';
         const heroIntensityColor = session.type === 'strength' ? 'text-red-400' : session.type === 'power' ? 'text-blue-400' : 'text-purple-400';
-        const muscleGroups = Array.from(new Set(session.exercises.flatMap(ex => ex.exercise.primaryMuscles || []).filter(Boolean)));
+        const muscleGroups = Array.from(new Set(session.exercises.flatMap(ex => ex.exercise?.primaryMuscles || []).filter(Boolean)));
         return (
           <div className={cn('card p-5 bg-gradient-to-br border', typeBg)}>
             <div className="flex items-center gap-3 mb-4">
@@ -692,7 +692,7 @@ export default function WorkoutView() {
                             </div>
                             {!isSessionExpanded && (
                               <p className="text-xs text-grappler-400 mt-1 truncate">
-                                {session.exercises.slice(0, 3).map(ex => ex.exercise.name).join(' · ')}
+                                {session.exercises.slice(0, 3).map(ex => ex.exercise?.name || 'Exercise').join(' · ')}
                                 {session.exercises.length > 3 ? ` +${session.exercises.length - 3}` : ''}
                               </p>
                             )}
@@ -1539,7 +1539,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
   const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
 
-  const alternatives: ExerciseRecommendation[] = showAlternatives
+  const alternatives: ExerciseRecommendation[] = showAlternatives && ex.exerciseId
     ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8)
     : [];
 
@@ -1558,7 +1558,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
     return null;
   };
 
-  const lastPerf = getAltHistory(ex.exerciseId);
+  const lastPerf = ex.exerciseId ? getAltHistory(ex.exerciseId) : null;
 
   // Suggest next weight based on last RPE
   const suggestedWeight = lastPerf && lastPerf.weight > 0 ? (() => {
@@ -1573,9 +1573,9 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
       <div className="p-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-grappler-100">{ex.exercise.name}</p>
+            <p className="font-medium text-grappler-100">{ex.exercise?.name || 'Unknown Exercise'}</p>
             <p className="text-sm text-grappler-400">
-              {ex.sets} x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
+              {ex.sets} x {ex.prescription?.targetReps ?? '?'} reps @ RPE {ex.prescription?.rpe ?? '?'}
             </p>
             {lastPerf && lastPerf.weight > 0 && (
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -1593,9 +1593,9 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
           <div className="flex items-center gap-2">
             <div className="text-right">
               <p className="text-xs text-grappler-400">
-                Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
+                Rest: {Math.floor((ex.prescription?.restSeconds ?? 120) / 60)}:{((ex.prescription?.restSeconds ?? 120) % 60).toString().padStart(2, '0')}
               </p>
-              {ex.prescription.percentageOf1RM && (
+              {ex.prescription?.percentageOf1RM && (
                 <p className="text-xs text-grappler-400">
                   ~{ex.prescription.percentageOf1RM}% 1RM
                 </p>
@@ -1660,27 +1660,27 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                 <div>
                   <label className="text-xs text-grappler-400 block mb-1">Sets</label>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.max(1, ex.sets - 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
-                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.sets}</span>
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.min(10, ex.sets + 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.max(1, (ex.sets ?? 3) - 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.sets ?? 3}</span>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { sets: Math.min(10, (ex.sets ?? 3) + 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                   </div>
                 </div>
                 {/* Reps */}
                 <div>
                   <label className="text-xs text-grappler-400 block mb-1">Reps</label>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { targetReps: Math.max(1, ex.prescription.targetReps - 1), minReps: Math.max(1, ex.prescription.minReps - 1), maxReps: Math.max(1, ex.prescription.maxReps - 1) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
-                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription.targetReps}</span>
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { targetReps: ex.prescription.targetReps + 1, minReps: ex.prescription.minReps + 1, maxReps: ex.prescription.maxReps + 1 })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                    <button onClick={() => { const p = ex.prescription; if (!p) return; updatePrescription(weekIndex, sessionId, index, { targetReps: Math.max(1, p.targetReps - 1), minReps: Math.max(1, p.minReps - 1), maxReps: Math.max(1, p.maxReps - 1) }); }} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription?.targetReps ?? '?'}</span>
+                    <button onClick={() => { const p = ex.prescription; if (!p) return; updatePrescription(weekIndex, sessionId, index, { targetReps: p.targetReps + 1, minReps: p.minReps + 1, maxReps: p.maxReps + 1 }); }} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                   </div>
                 </div>
                 {/* RPE */}
                 <div>
                   <label className="text-xs text-grappler-400 block mb-1">RPE</label>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.max(5, ex.prescription.rpe - 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
-                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription.rpe}</span>
-                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.min(10, ex.prescription.rpe + 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.max(5, (ex.prescription?.rpe ?? 7) - 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                    <span className="text-sm font-bold text-grappler-100 w-6 text-center">{ex.prescription?.rpe ?? '?'}</span>
+                    <button onClick={() => updatePrescription(weekIndex, sessionId, index, { rpe: Math.min(10, (ex.prescription?.rpe ?? 7) + 0.5) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                   </div>
                 </div>
               </div>
@@ -1688,9 +1688,9 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
               <div>
                 <label className="text-xs text-grappler-400 block mb-1">Rest (seconds)</label>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.max(30, ex.prescription.restSeconds - 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
-                  <span className="text-sm font-bold text-grappler-100 w-10 text-center">{ex.prescription.restSeconds}s</span>
-                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.min(300, ex.prescription.restSeconds + 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.max(30, (ex.prescription?.restSeconds ?? 120) - 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                  <span className="text-sm font-bold text-grappler-100 w-10 text-center">{ex.prescription?.restSeconds ?? 120}s</span>
+                  <button onClick={() => updatePrescription(weekIndex, sessionId, index, { restSeconds: Math.min(300, (ex.prescription?.restSeconds ?? 120) + 15) })} className="w-7 h-7 rounded bg-grappler-700 text-grappler-300 hover:bg-grappler-600 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                 </div>
               </div>
             </div>
@@ -1771,8 +1771,8 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
 
                         {/* Muscle info */}
                         <p className="text-xs text-grappler-400 mt-1">
-                          {rec.exercise.primaryMuscles.join(', ')}
-                          {rec.exercise.secondaryMuscles.length > 0 && (
+                          {rec.exercise.primaryMuscles?.join(', ')}
+                          {(rec.exercise.secondaryMuscles?.length ?? 0) > 0 && (
                             <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
                           )}
                         </p>
@@ -1787,7 +1787,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
       </AnimatePresence>
 
       {/* Form Check Video Modal */}
-      {showFormVideo && (
+      {showFormVideo && ex.exercise && (
         <YouTubeEmbed
           exerciseName={ex.exercise.name}
           videoUrl={ex.exercise.videoUrl}

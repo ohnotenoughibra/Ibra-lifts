@@ -8,12 +8,13 @@ import {
   Apple, Grip, Flame, Gauge,
   Swords, Navigation, Move,
   Search, Clock, Pin, Check,
-  Crown, Hammer, Eye, Wind,
+  Hammer, Eye, Wind,
   BookOpen, Timer, Brain, Thermometer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
+import { useCurrentTier } from '@/lib/useFeatureAccess';
 import { getTopTools } from '@/lib/tool-affinity';
 import type { OverlayView } from './dashboard-types';
 
@@ -152,6 +153,9 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
+
+  const tier = useCurrentTier();
+  const isFree = tier !== 'pro';
 
   // PIN MODE — like iOS home screen jiggle mode
   // When true, tapping ANY card toggles its pin. When false, tapping navigates.
@@ -323,6 +327,16 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         </div>
       )}
 
+      {/* Plan summary */}
+      {!pinMode && !isSearching && (
+        <p className="text-xs text-grappler-500 px-1">
+          {tier === 'pro'
+            ? `All ${ALL_TOOLS.length} tools unlocked`
+            : `${ALL_TOOLS.filter(t => !t.isPro).length} of ${ALL_TOOLS.length} tools free · ${ALL_TOOLS.filter(t => t.isPro).length} Pro`
+          }
+        </p>
+      )}
+
       {/* Pinned tools row — shown in normal mode only */}
       {!pinMode && !isSearching && pinnedTools.length > 0 && (
         <div>
@@ -335,12 +349,18 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 key={tool.id}
                 onClick={() => handleNavigate(tool.id)}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
+                  'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
                   'border-2 border-primary-500/40 active:scale-95 transition-all select-none',
-                  tool.color
+                  tool.color,
+                  isFree && tool.isPro && 'opacity-50'
                 )}
                 style={{ touchAction: 'manipulation' }}
               >
+                {tool.isPro && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
+                    Pro
+                  </span>
+                )}
                 <tool.icon className="w-5 h-5" />
                 <span className="text-xs font-medium text-grappler-200 text-center leading-tight line-clamp-1">
                   {tool.label}
@@ -363,11 +383,17 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 key={tool.id}
                 onClick={() => handleNavigate(tool.id)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-b border border-grappler-800/50 whitespace-nowrap flex-shrink-0',
+                  'relative flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-b border border-grappler-800/50 whitespace-nowrap flex-shrink-0',
                   'hover:border-grappler-700 active:scale-95 transition-all',
-                  tool.color
+                  tool.color,
+                  isFree && tool.isPro && 'opacity-50'
                 )}
               >
+                {tool.isPro && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
+                    Pro
+                  </span>
+                )}
                 <tool.icon className="w-4 h-4" />
                 <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
                 {reason === 'recent' && usageMap[tool.id] && (
@@ -396,6 +422,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 tool={tool}
                 isPinned={pinnedIds.includes(tool.id)}
                 pinMode={false}
+                isFree={isFree}
                 onTap={handleCardTap}
               />
             ))}
@@ -424,6 +451,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 tool={tool}
                 isPinned={pinnedIds.includes(tool.id)}
                 pinMode={pinMode}
+                isFree={isFree}
                 onTap={handleCardTap}
               />
             ))}
@@ -441,10 +469,11 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
  * In pin mode: shows checkmark if pinned, tap toggles pin state.
  * In normal mode: tap navigates to the tool.
  */
-function ToolCard({ tool, isPinned, pinMode, onTap }: {
+function ToolCard({ tool, isPinned, pinMode, isFree, onTap }: {
   tool: Tool;
   isPinned: boolean;
   pinMode: boolean;
+  isFree: boolean;
   onTap: (id: NonNullable<OverlayView>) => void;
 }) {
   return (
@@ -459,7 +488,9 @@ function ToolCard({ tool, isPinned, pinMode, onTap }: {
         // Normal mode visual states
         !pinMode && isPinned && 'border-2 border-primary-500/40',
         !pinMode && !isPinned && 'border border-grappler-800/50',
-        tool.color
+        tool.color,
+        // Dim Pro cards for free users
+        isFree && tool.isPro && !pinMode && 'opacity-50'
       )}
       style={{ touchAction: 'manipulation' }}
     >
@@ -471,10 +502,9 @@ function ToolCard({ tool, isPinned, pinMode, onTap }: {
       )}
 
       {/* Normal mode: PRO badge (purely decorative, not interactive) */}
-      {!pinMode && !isPinned && tool.isPro && (
-        <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400 pointer-events-none">
-          <Crown className="w-2.5 h-2.5" />
-          <span className="text-[8px] font-bold leading-none">PRO</span>
+      {tool.isPro && !pinMode && (
+        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
+          Pro
         </span>
       )}
 

@@ -166,7 +166,7 @@ function daysSince(date: Date): number {
 
 export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
   const {
-    trainingSessions,
+    trainingSessions: rawTrainingSessions,
     addTrainingSession,
     updateTrainingSession,
     deleteTrainingSession,
@@ -174,12 +174,15 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
     user,
   } = useAppStore();
 
+  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted), [rawTrainingSessions]);
+
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'log' | 'combat' | 'lifting'>('log');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingIntensityId, setEditingIntensityId] = useState<string | null>(null);
   const [statsPeriod, setStatsPeriod] = useState<'30d' | '3m' | 'year' | 'all'>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Form state
   const [formType, setFormType] = useState<ActivityType>('bjj_nogi');
@@ -1184,13 +1187,25 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
                             {/* Delete */}
                             <div className="flex justify-end">
-                              <button
-                                onClick={() => deleteTrainingSession(session.id)}
-                                className="flex items-center gap-1.5 text-xs text-grappler-400 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Delete
-                              </button>
+                              {confirmDeleteId === session.id ? (
+                                <div className="flex items-center gap-1.5">
+                                  <button onClick={() => { deleteTrainingSession(session.id); setConfirmDeleteId(null); }} className="flex items-center gap-1 text-xs text-red-400 p-1.5 rounded-lg bg-red-500/10">
+                                    <Check className="w-3.5 h-3.5" />
+                                    Confirm
+                                  </button>
+                                  <button onClick={() => setConfirmDeleteId(null)} className="flex items-center gap-1 text-xs text-grappler-400 p-1.5 rounded-lg hover:bg-grappler-700/50">
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(session.id)}
+                                  className="flex items-center gap-1.5 text-xs text-grappler-400 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </div>
                         </motion.div>

@@ -150,11 +150,21 @@ export function resolveConflicts(
           } else if (existing._deleted && !item._deleted) {
             // Keep existing tombstone
           } else {
-            // Neither or both deleted — prefer the newer entry
-            const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
-            const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
-            if (localDate > remoteDate) {
+            // Status finality rule: "resolved" beats "active"/"recovering"
+            // (same principle as tombstones — once resolved, never un-resolve)
+            const itemResolved = (item as Record<string, unknown>).status === 'resolved';
+            const existingResolved = (existing as Record<string, unknown>).status === 'resolved';
+            if (itemResolved && !existingResolved) {
               map.set(key, item);
+            } else if (!itemResolved && existingResolved) {
+              // Keep existing resolved entry
+            } else {
+              // Neither or both resolved — prefer the newer entry
+              const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
+              const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
+              if (localDate > remoteDate) {
+                map.set(key, item);
+              }
             }
           }
         }

@@ -14,21 +14,21 @@
 ## Valid Criticisms
 
 ### P0 — Fix Now
-- [ ] **Template quality**: PPL, Upper/Lower, Full Body 3x templates don't match their labels. Wrong exercises, too few sets, weird rest periods (3:32, 4:43). Destroys trust with knowledgeable users
-- [ ] **Add strength endurance workout type**: Current types are `strength | hypertrophy | power`. Missing strength endurance — critical for combat athletes doing 3-5 min rounds
+- [x] **Template quality**: PPL, Upper/Lower, Full Body 3x templates rewritten with correct exercises, proper set counts (4 compounds, 3 accessories), clean rest periods (120s/180s/90s)
+- [x] **Add strength endurance workout type**: Added `strength_endurance` to GoalFocus type — 12-20 reps, 30-60s rest, 40-60% 1RM. Propagated across 30+ files
 
 ### P1 — Next Sprint
-- [ ] **Surface superset UI**: Engine exists but scientist couldn't find it. Discoverability problem
-- [ ] **Custom exercise name input**: No free-text option in WorkoutBuilder. "Razor curl" not in DB = dead end
-- [ ] **Weekly calendar view on Home**: Smart scheduler exists (`smart-schedule.ts`) but no weekly day-level UI
+- [x] **Surface superset UI**: `detectSupersetCandidates` wired into WorkoutBuilder with SupersetPair support and visual pairing
+- [x] **Custom exercise name input**: `createCustomExercise()` + registry pattern in exercises.ts, store persistence for custom exercises
+- [x] **Weekly calendar view on Home**: WeeklyCalendar.tsx component created, integrated into HomeTab showing Mon-Sun schedule
 - [ ] **Program template preview**: Can't view day-by-day content before committing to a mesocycle
 
 ### P2 — Polish
-- [ ] **Clarify "Recreational Lifter" vs "General Fitness"**: Distinction too subtle in onboarding
-- [ ] **Training day selection in onboarding**: Can't designate lifting vs combat days during setup
-- [ ] **Round rest periods**: Auto-generated values like 3:32, 4:43 look unpolished. Round to clean numbers
-- [ ] **"+" button tooltip**: First-time user guidance missing
-- [ ] **"Change Workout" CTA on Program page**: No obvious path to Explore page from current program
+- [x] **Clarify "Recreational Lifter" vs "General Fitness"**: Renamed to "Combat Athlete" / "Dedicated Lifter" / "Casual Training" with clear descriptions and "who it's for" text
+- [x] **Training day selection in onboarding**: Tap-to-cycle day grid (Rest→Lift→Combat) added to onboarding step 2
+- [x] **Round rest periods**: All template rest periods rounded to clean numbers. Diet phase multiplier also re-rounds to 15s increments
+- [x] **"+" button tooltip**: First-time tooltip "Start a workout" appears 1.2s after load, auto-dismisses after 6s, persisted to localStorage
+- [x] **"Change Workout" CTA on Program page**: "Explore Programs" button added to WorkoutView with Compass icon, navigates to Explore tab
 
 ### P3 — Future
 - [ ] **Polar & Garmin integration**: Only Whoop exists. Polar/Garmin dominant in combat sports

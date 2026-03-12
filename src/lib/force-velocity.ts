@@ -145,6 +145,7 @@ export function getExerciseSelectionWeights(
     hypertrophy: { forceWeight: 0.5, velocityWeight: 0.5 },
     power: { forceWeight: 0.4, velocityWeight: 0.6 },
     balanced: { forceWeight: 0.5, velocityWeight: 0.5 },
+    strength_endurance: { forceWeight: 0.4, velocityWeight: 0.6 }, // Favor velocity — sustained output > max force
   };
 
   const base = goalWeights[currentGoal];

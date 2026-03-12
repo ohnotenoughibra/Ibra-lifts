@@ -1,3 +1,23 @@
+# gstack
+
+Use the gstack skills for structured workflows.
+
+For all web browsing, UI testing, screenshot verification, console error checking, form filling, navigation, or anything requiring a real browser: always use the /browse skill from gstack. Never use mcp__claude-in-chrome__* or other browser tools.
+
+Available gstack skills:
+/plan-ceo-review — high-level product + strategy review
+/plan-eng-review — engineering plan + architecture review
+/review — code + PR review
+/ship — one-command deploy
+/browse — QA Engineer: browser automation + visual verification with Playwright (goto, fill, click, screenshot, read screenshot, console, text, etc.)
+/retro — engineering retrospective
+
+When asked to test, QA, verify staging/production, check UI flows, take screenshots, or debug live behavior: invoke /browse with clear instructions.
+
+If gstack skills aren't working (e.g. binary missing), run:
+cd ~/.claude/skills/gstack && ./setup
+(or cd .claude/skills/gstack && ./setup if project-local)
+
 # Ibra-Lifts (Roots Gains)
 
 Combat-sport-focused fitness PWA built with Next.js 14, TypeScript, Tailwind CSS, and Zustand.

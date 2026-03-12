@@ -39,6 +39,8 @@ import {
 } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { detectSupersetCandidates } from '@/lib/superset-engine';
+import { getExerciseAdjustments, type ExerciseScoreAdjustment } from '@/lib/exercise-recommender';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 type BuilderView = 'browse' | 'build' | 'templates';
 
@@ -518,7 +520,7 @@ interface WorkoutBuilderProps {
 }
 
 export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
-  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise } = useAppStore();
+  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise, workoutLogs } = useAppStore();
   const { showToast } = useToast();
   const [view, setView] = useState<BuilderView>('templates');
   const [searchQuery, setSearchQuery] = useState('');
@@ -574,6 +576,31 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
     return result;
   }, [equipment, searchQuery, selectedMuscle, selectedCategory, customExercises]);
+
+  // ─── Smart Recommendations — exercise-level scoring adjustments ───
+  const adjustmentMap = useMemo(() => {
+    if (!workoutLogs || workoutLogs.length < 3) return new Map<string, ExerciseScoreAdjustment>();
+    const adjustments = getExerciseAdjustments(workoutLogs, {
+      prioritizeResponders: true,
+      avoidPlateaus: true,
+      freshnessBias: true,
+    });
+    const map = new Map<string, ExerciseScoreAdjustment>();
+    for (const adj of adjustments) {
+      map.set(adj.exerciseId, adj);
+    }
+    return map;
+  }, [workoutLogs]);
+
+  // Sort exercises: those with positive adjustments first, negative last
+  const sortedFilteredExercises = useMemo(() => {
+    if (adjustmentMap.size === 0) return filteredExercises;
+    return [...filteredExercises].sort((a, b) => {
+      const adjA = adjustmentMap.get(a.id)?.adjustment ?? 0;
+      const adjB = adjustmentMap.get(b.id)?.adjustment ?? 0;
+      return adjB - adjA;
+    });
+  }, [filteredExercises, adjustmentMap]);
 
   const addExercise = (exercise: Exercise) => {
     if (builtExercises.find(e => e.exercise.id === exercise.id)) return;
@@ -907,15 +934,16 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
 
             {/* Results Count */}
             <p className="text-xs text-grappler-400">
-              {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+              {sortedFilteredExercises.length} exercise{sortedFilteredExercises.length !== 1 ? 's' : ''} found
             </p>
 
             {/* Exercise List */}
             <div className="space-y-2">
-              {filteredExercises.map((exercise) => {
+              {sortedFilteredExercises.map((exercise) => {
                 const isAdded = builtExercises.some(e => e.exercise.id === exercise.id);
                 const isExpanded = expandedExercise === exercise.id;
                 const isCustom = Boolean('isCustom' in exercise && (exercise as Exercise & { isCustom?: boolean }).isCustom);
+                const adjustment = adjustmentMap.get(exercise.id);
 
                 return (
                   <div key={exercise.id} className={cn('card overflow-hidden', isCustom ? 'border border-primary-500/30' : '')}>
@@ -931,10 +959,30 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                               Rootsler
                             </span>
                           )}
+                          {adjustment && adjustment.adjustment >= 2 && (
+                            <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 flex-shrink-0">
+                              <TrendingUp className="w-3 h-3" />
+                              +{adjustment.adjustment}
+                            </span>
+                          )}
+                          {adjustment && adjustment.adjustment <= -2 && (
+                            <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 flex-shrink-0">
+                              <TrendingDown className="w-3 h-3" />
+                              {adjustment.adjustment}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-grappler-400">
                           {exercise.primaryMuscles.map(m => MUSCLE_GROUP_LABELS[m] || m).join(', ')} · {CATEGORY_LABELS[exercise.category] || exercise.category}
                         </p>
+                        {adjustment && (
+                          <p className={cn(
+                            'text-xs mt-0.5',
+                            adjustment.adjustment >= 2 ? 'text-green-400/70' : adjustment.adjustment <= -2 ? 'text-red-400/70' : 'text-grappler-500'
+                          )}>
+                            {adjustment.reason}
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); addExercise(exercise); }}

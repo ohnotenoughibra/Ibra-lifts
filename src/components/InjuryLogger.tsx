@@ -28,6 +28,7 @@ import {
 } from '@/lib/types';
 import { analyzeInjuryRisks, getPrehabRecommendations, type InjuryAnalysis, type RiskLevel } from '@/lib/injury-prevention';
 import { classifyInjury, getInjuryTimeline } from '@/lib/injury-science';
+import { detectInjuryPatterns, getRecoveryInsights, type InjuryPattern, type RecoveryInsight } from '@/lib/injury-patterns';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -184,6 +185,22 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
   const prehabExercises = useMemo(() => {
     return getPrehabRecommendations(analysis);
   }, [analysis]);
+
+  // Injury pattern detection
+  const injuryPatterns = useMemo<InjuryPattern[]>(() => {
+    if (injuryLog.length < 2) return [];
+    return detectInjuryPatterns(injuryLog, workoutLogs, trainingSessions);
+  }, [injuryLog, workoutLogs, trainingSessions]);
+
+  const significantPatterns = useMemo(
+    () => injuryPatterns.filter(p => p.confidence === 'medium' || p.confidence === 'high'),
+    [injuryPatterns],
+  );
+
+  const recoveryInsights = useMemo<RecoveryInsight[]>(() => {
+    if (injuryLog.length === 0) return [];
+    return getRecoveryInsights(injuryLog);
+  }, [injuryLog]);
 
   const getRiskColor = (level: RiskLevel) => {
     switch (level) {
@@ -445,6 +462,100 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                         <Info className="w-3 h-3 mt-0.5 shrink-0" />
                         {exercise.reason}
                       </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Pattern Insights ─────────────────────────────────────── */}
+            {significantPatterns.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-amber-400" />
+                  Pattern Insights
+                </h3>
+                {significantPatterns.map((pattern) => {
+                  const confNum = pattern.confidence === 'high' ? 1 : 0.65;
+                  const confColor = pattern.confidence === 'high' ? 'bg-red-500' : 'bg-amber-500';
+                  const confLabel = pattern.confidence === 'high' ? 'High' : 'Medium';
+                  return (
+                    <div
+                      key={pattern.id}
+                      className="bg-grappler-800 rounded-xl p-4 border border-grappler-700 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span className="font-medium text-sm text-grappler-100">
+                            {BODY_REGIONS.find(r => r.id === pattern.bodyRegion)?.label ?? pattern.bodyRegion}
+                          </span>
+                        </div>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 shrink-0">
+                          {pattern.dataPoints} injuries
+                        </span>
+                      </div>
+
+                      {/* Trigger description */}
+                      <p className="text-xs text-grappler-300 leading-relaxed">
+                        {pattern.triggers[0]?.details}
+                      </p>
+
+                      {/* Confidence bar */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-grappler-400">Confidence</span>
+                          <span className="text-grappler-300 font-medium">{confLabel}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-500', confColor)}
+                            style={{ width: `${Math.round(confNum * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Recommendation */}
+                      <div className="bg-grappler-700/50 rounded-lg p-2.5 flex items-start gap-2">
+                        <Shield className="w-3.5 h-3.5 text-primary-400 mt-0.5 shrink-0" />
+                        <p className="text-xs text-primary-300 leading-relaxed">{pattern.recommendation}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Recovery Insights ───────────────────────────────────────── */}
+            {recoveryInsights.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-grappler-200 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-400" />
+                  Recovery Insights
+                </h3>
+                <div className="grid gap-2">
+                  {recoveryInsights.map((ri) => (
+                    <div
+                      key={ri.bodyRegion}
+                      className="bg-grappler-800 rounded-xl p-3 border border-grappler-700 flex items-start gap-3"
+                    >
+                      <Activity className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-grappler-100">
+                            {BODY_REGIONS.find(r => r.id === ri.bodyRegion)?.label ?? ri.bodyRegion}
+                          </span>
+                          {ri.isChronic && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400">Chronic</span>
+                          )}
+                        </div>
+                        {ri.avgRecoveryDays !== null && (
+                          <p className="text-xs text-grappler-300">
+                            Average recovery: <span className="font-medium text-grappler-100">{ri.avgRecoveryDays} days</span>
+                          </p>
+                        )}
+                        <p className="text-xs text-grappler-400 leading-relaxed">{ri.insight}</p>
+                      </div>
                     </div>
                   ))}
                 </div>

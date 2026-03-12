@@ -10,6 +10,7 @@ import {
   Search, Clock, Pin, Check,
   Hammer, Eye, Wind,
   BookOpen, Timer, Brain, Thermometer,
+  BookMarked, Share2, Trophy, MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -49,6 +50,7 @@ const CATEGORIES: Category[] = [
       { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
       { id: 'plate_calc', label: 'Plate Calculator', desc: 'What plates to load', longDesc: 'Enter a target weight and see exactly which plates to load on each side of the bar', keywords: 'plate calculator barbell loading weight plates per side warm up ramp', icon: Calculator, color: 'from-amber-500/20 to-amber-500/5 text-amber-400' },
       { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues technique how to movement muscles create new custom machine cable dumbbell barbell add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
+      { id: 'warm_up', label: 'Warm-Up Protocols', desc: 'Dynamic warm-up routines for your session', longDesc: 'Follow guided warm-up sequences tailored to your upcoming workout — dynamic stretches, activation drills, and ramp-up sets', keywords: 'warm up warmup dynamic stretch activation ramp prep routine movement prep pre workout', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
     ],
   },
   {
@@ -62,6 +64,7 @@ const CATEGORIES: Category[] = [
       { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', isPro: true },
       { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for competition', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
       { id: 'conditioning', label: 'Conditioning', desc: 'Cardio & interval protocols', longDesc: 'Build and run combat-sport conditioning — EMOM, Tabata, AMRAP, custom circuits, shark tanks, and intervals with execution timer', keywords: 'conditioning cardio interval emom tabata amrap circuit shark tank gpp endurance stamina aerobic anaerobic hiit builder custom create timer', icon: Timer, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
+      { id: 'training_journal', label: 'Training Journal', desc: 'Session notes, reflections & training journal', longDesc: 'Log session notes, reflections, and personal insights after every workout — build a searchable training diary over time', keywords: 'journal notes reflect diary log write session recap thoughts training', icon: BookOpen, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
     ],
   },
   {
@@ -89,6 +92,24 @@ const CATEGORIES: Category[] = [
       { id: 'fighters_mind', label: "Fighter's Mind", desc: 'Mental state & confidence', longDesc: 'Track mental state before and after training, surface patterns in your psychology, and build an evidence-based confidence ledger', keywords: 'mental mind psychology confidence focus composure anxiety stress self talk visualization brain check in mood emotion journal reflect', icon: Brain, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
       { id: 'breathing', label: 'Breathing', desc: 'Guided breathing protocols', longDesc: 'Interactive breathing timers — box breathing, 4-7-8, Wim Hof, tactical breathing, and more for recovery and performance', keywords: 'breathing breathe meditation calm anxiety relax box wim hof tactical 4-7-8 recovery sleep', icon: Wind, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'wellness_xp', label: 'Wellness', desc: 'Off-mat habit tracking', longDesc: 'See your supplement, nutrition, water, sleep, and mobility consistency. Training XP scales with how many habits you hit each day.', keywords: 'wellness supplements nutrition water sleep mobility mental streak habits consistency off mat recovery', icon: Activity, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: false },
+    ],
+  },
+  {
+    title: 'Learn',
+    icon: BookMarked,
+    accent: 'text-indigo-400',
+    tools: [
+      { id: 'knowledge_hub', label: 'Knowledge Hub', desc: 'Science-backed articles & training insights', longDesc: 'Browse a curated library of science-backed articles on strength, nutrition, recovery, and combat sports training', keywords: 'articles knowledge learn science research evidence based tips education read study training insights', icon: BookMarked, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
+      { id: 'corner_coach', label: 'Corner Coach', desc: 'Between-set coaching cues', longDesc: 'Get contextual coaching cues and reminders between sets — form tips, breathing cues, and motivational prompts', keywords: 'coach cue tip reminder form technique between sets rest advice guidance corner', icon: MessageCircle, color: 'from-violet-500/20 to-violet-500/5 text-violet-400' },
+    ],
+  },
+  {
+    title: 'Social',
+    icon: Share2,
+    accent: 'text-emerald-400',
+    tools: [
+      { id: 'community_share', label: 'Community Share', desc: 'Share progress & achievements', longDesc: 'Share your workout summaries, PRs, and achievements with the community or export to social media', keywords: 'share post social community export achievement pr workout summary progress friends', icon: Share2, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400' },
+      { id: 'badge_showcase', label: 'Badge Showcase', desc: 'View & celebrate your badges', longDesc: 'Browse all earned and upcoming badges — milestones, streaks, PRs, and special achievements', keywords: 'badge achievement trophy milestone reward earned streak unlock celebrate gamification', icon: Trophy, color: 'from-amber-500/20 to-amber-500/5 text-amber-400' },
     ],
   },
 ];

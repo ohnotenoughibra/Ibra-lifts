@@ -548,7 +548,17 @@ export function calculateHardMetrics(
   const trendPcts: number[] = [];
   Object.values(exerciseE1RMs).forEach(data => {
     if (data.length >= 2) {
-      const sorted = [...data].sort((a, b) => a.date - b.date);
+      let sorted = [...data].sort((a, b) => a.date - b.date);
+      // Filter outliers (warm-up sets / logging errors) using IQR
+      const vals = sorted.map(d => d.e1rm).sort((a, b) => a - b);
+      const q1 = vals[Math.floor(vals.length * 0.25)];
+      const q3 = vals[Math.floor(vals.length * 0.75)];
+      const iqr = q3 - q1;
+      if (iqr > 0) {
+        const lb = q1 - 1.5 * iqr;
+        sorted = sorted.filter(d => d.e1rm >= lb);
+      }
+      if (sorted.length < 2) return;
       const first = sorted[0].e1rm;
       const last = sorted[sorted.length - 1].e1rm;
       if (first > 0) trendPcts.push(((last - first) / first) * 100);

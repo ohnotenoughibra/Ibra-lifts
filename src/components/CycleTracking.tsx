@@ -36,7 +36,10 @@ const ENERGY_LABELS = ['', 'Very Low', 'Low', 'Moderate', 'High', 'Peak'];
 interface CycleTrackingProps { onClose: () => void }
 
 export default function CycleTracking({ onClose }: CycleTrackingProps) {
-  const { cycleLogs, addCycleLog, deleteCycleLog, workoutLogs, macroTargets } = useAppStore();
+  const { cycleLogs: rawCycleLogs, addCycleLog, deleteCycleLog, workoutLogs, macroTargets } = useAppStore();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cycleLogs = useMemo(() => rawCycleLogs.filter(l => !(l as any)._deleted), [rawCycleLogs]);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [phase, setPhase] = useState<CyclePhase>('menstrual');
@@ -333,9 +336,20 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                       )}
                       {log.notes && <p className="text-xs text-grappler-400 mt-1 truncate">{log.notes}</p>}
                     </div>
-                    <button onClick={() => deleteCycleLog(log.id)} className="shrink-0 text-grappler-600 hover:text-red-400 transition-colors p-0.5" title="Delete entry">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {confirmDeleteId === log.id ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => { deleteCycleLog(log.id); setConfirmDeleteId(null); }} className="p-0.5 rounded bg-red-500/20 text-red-400 text-[10px]" title="Confirm delete">
+                          yes
+                        </button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="p-0.5 text-[10px] text-grappler-400 hover:text-grappler-200">
+                          no
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(log.id)} className="shrink-0 text-grappler-600 hover:text-red-400 transition-colors p-0.5" title="Delete entry">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 );
               })}

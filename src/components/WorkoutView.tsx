@@ -678,11 +678,23 @@ export default function WorkoutView() {
           })}
           {/* Add/Remove week controls */}
           <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-            {currentMesocycle.weeks.length > 2 && expandedWeek !== null && (
+            {currentMesocycle.weeks.length > 2 && (
               <button
-                onClick={() => { removeWeekFromMesocycle(expandedWeek); setExpandedWeek(null); }}
+                onClick={() => {
+                  // Always remove the last training week (before deload)
+                  const trainingWeeks = currentMesocycle.weeks
+                    .map((w, i) => ({ ...w, idx: i }))
+                    .filter(w => !w.isDeload);
+                  if (trainingWeeks.length > 1) {
+                    const lastTraining = trainingWeeks[trainingWeeks.length - 1];
+                    removeWeekFromMesocycle(lastTraining.idx);
+                    if (expandedWeek !== null && expandedWeek >= currentMesocycle.weeks.length - 1) {
+                      setExpandedWeek(Math.max(0, currentMesocycle.weeks.length - 2));
+                    }
+                  }
+                }}
                 className="w-7 h-7 rounded-full bg-red-500/15 text-red-400 hover:bg-red-500/25 flex items-center justify-center transition-colors"
-                title="Remove selected week"
+                title="Remove last training week"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>

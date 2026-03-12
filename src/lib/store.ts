@@ -311,7 +311,7 @@ interface AppState {
   removeWeekFromMesocycle: (weekIndex: number) => void;
 
   // Workout actions
-  startWorkout: (session: WorkoutSession) => void;
+  startWorkout: (session: WorkoutSession, force?: boolean) => false | void;
   setPreCheckIn: (checkIn: PreWorkoutCheckIn) => void;
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
@@ -870,7 +870,7 @@ export const useAppStore = create<AppState>()(
 
       deleteCompetition: (id) => {
         const { competitions } = get();
-        set({ competitions: competitions.filter(c => c.id !== id) });
+        set({ competitions: competitions.map(c => c.id === id ? { ...c, _deleted: true, _deletedAt: Date.now() } : c), _syncUrgent: true });
       },
 
       // ── Weight Cut Plan actions ───────────────────────────────────────
@@ -1674,8 +1674,11 @@ export const useAppStore = create<AppState>()(
       },
 
       // Workout actions
-      startWorkout: (session) => {
-        const { workoutLogs, user, injuryLog } = get();
+      startWorkout: (session, force) => {
+        const { workoutLogs, user, injuryLog, activeWorkout } = get();
+
+        // Guard: refuse to silently overwrite an active workout
+        if (activeWorkout && !force) return false;
 
         // Autoregulate: adjust session based on recent feedback (intermediate+ only)
         let activeSession = session;
@@ -1778,14 +1781,18 @@ export const useAppStore = create<AppState>()(
         if (!activeWorkout) return;
         if (exerciseIndex < 0 || exerciseIndex >= activeWorkout.exerciseLogs.length) return;
 
-        // Sanitize set values
+        // Sanitize set values — clamp to valid ranges, guard against NaN/Infinity
+        const safeNum = (v: unknown, fallback: number) => {
+          const n = Number(v ?? fallback);
+          return Number.isFinite(n) ? n : fallback;
+        };
         const sanitizedLog = {
           ...log,
           sets: log.sets.map(s => ({
             ...s,
-            weight: Math.max(0, s.weight ?? 0),
-            reps: Math.max(0, s.reps ?? 0),
-            rpe: Math.min(10, Math.max(0, s.rpe ?? 0)),
+            weight: Math.max(0, Math.min(1500, safeNum(s.weight, 0))),
+            reps: Math.max(0, Math.min(999, safeNum(s.reps, 0))),
+            rpe: Math.min(10, Math.max(0, safeNum(s.rpe, 0))),
           })),
         };
 
@@ -3190,7 +3197,7 @@ export const useAppStore = create<AppState>()(
 
       deleteWorkoutLog: (logId) => {
         const { workoutLogs } = get();
-        set({ workoutLogs: workoutLogs.filter(log => log.id !== logId) });
+        set({ workoutLogs: workoutLogs.map(log => log.id === logId ? { ...log, _deleted: true, _deletedAt: Date.now() } : log), _syncUrgent: true });
       },
 
       addPastWorkout: (workout) => {
@@ -3301,7 +3308,7 @@ export const useAppStore = create<AppState>()(
 
       deleteQuickLog: (id) => {
         const { quickLogs } = get();
-        set({ quickLogs: quickLogs.filter(l => l.id !== id), _syncUrgent: true });
+        set({ quickLogs: quickLogs.map(l => l.id === id ? { ...l, _deleted: true, _deletedAt: Date.now() } : l), _syncUrgent: true });
       },
 
       // Cycle tracking actions
@@ -3315,7 +3322,7 @@ export const useAppStore = create<AppState>()(
       },
       deleteCycleLog: (id) => {
         const { cycleLogs } = get();
-        set({ cycleLogs: cycleLogs.filter(l => l.id !== id) });
+        set({ cycleLogs: cycleLogs.map(l => l.id === id ? { ...l, _deleted: true, _deletedAt: Date.now() } : l), _syncUrgent: true });
       },
 
       // Grip strength actions
@@ -3358,13 +3365,14 @@ export const useAppStore = create<AppState>()(
         set({
           injuryLog: injuryLog.map(i =>
             i.id === id ? { ...i, resolved: true, resolvedDate: new Date() } : i
-          )
+          ),
+          _syncUrgent: true,
         });
       },
 
       deleteInjury: (id) => {
         const { injuryLog } = get();
-        set({ injuryLog: injuryLog.filter(i => i.id !== id) });
+        set({ injuryLog: injuryLog.map(i => i.id === id ? { ...i, _deleted: true, _deletedAt: Date.now() } : i), _syncUrgent: true });
       },
 
       // Illness actions
@@ -3438,7 +3446,7 @@ export const useAppStore = create<AppState>()(
 
       deleteIllness: (illnessId) => {
         const { illnessLogs } = get();
-        set({ illnessLogs: illnessLogs.filter(il => il.id !== illnessId), _syncUrgent: true });
+        set({ illnessLogs: illnessLogs.map(il => il.id === illnessId ? { ...il, _deleted: true, _deletedAt: Date.now() } : il), _syncUrgent: true });
       },
 
       getActiveIllness: () => {
@@ -3597,7 +3605,7 @@ export const useAppStore = create<AppState>()(
 
       deleteTrainingSession: (id) => {
         const { trainingSessions } = get();
-        set({ trainingSessions: trainingSessions.filter(s => s.id !== id), _syncUrgent: true });
+        set({ trainingSessions: trainingSessions.map(s => s.id === id ? { ...s, _deleted: true, _deletedAt: Date.now() } : s), _syncUrgent: true });
       },
 
       // Theme actions
@@ -4296,22 +4304,28 @@ export const useAppStore = create<AppState>()(
 
         if (fromVersion < 3) {
           // v2 → v3: Recalculate streak from ALL historical data (lifting + combat + mobility)
-          const workoutLogs = (state.workoutLogs || []) as Array<{ date: string }>;
-          const trainingSessions = (state.trainingSessions || []) as Array<{ date: string }>;
-          const quickLogs = (state.quickLogs || []) as Array<{ type: string; timestamp: string | Date }>;
-          const gamStats = (state.gamificationStats || {}) as Record<string, unknown>;
+          try {
+            const workoutLogs = (state.workoutLogs || []) as Array<{ date: string }>;
+            const trainingSessions = (state.trainingSessions || []) as Array<{ date: string }>;
+            const quickLogs = (state.quickLogs || []) as Array<{ type: string; timestamp: string | Date }>;
+            const gamStats = (state.gamificationStats || {}) as Record<string, unknown>;
 
-          const recalculated = calculateStreak(
-            workoutLogs as never[],
-            trainingSessions as never[],
-            quickLogs as never[],
-          );
+            const recalculated = calculateStreak(
+              workoutLogs as never[],
+              trainingSessions as never[],
+              quickLogs as never[],
+            );
 
-          state.gamificationStats = {
-            ...gamStats,
-            currentStreak: Math.max(recalculated, (gamStats.currentStreak as number) || 0),
-            longestStreak: Math.max(recalculated, (gamStats.longestStreak as number) || 0),
-          };
+            if (Number.isFinite(recalculated) && recalculated >= 0) {
+              state.gamificationStats = {
+                ...gamStats,
+                currentStreak: Math.max(recalculated, (gamStats.currentStreak as number) || 0),
+                longestStreak: Math.max(recalculated, (gamStats.longestStreak as number) || 0),
+              };
+            }
+          } catch (e) {
+            console.error('[migration v2→v3] streak recalculation failed, skipping:', e);
+          }
         }
         // Future: if (fromVersion < 4) { ... }
 
@@ -4429,3 +4443,9 @@ export const useMeals = () => useAppStore((state) => state.meals.filter(m => !m.
 export const useMealsRaw = () => useAppStore((state) => state.meals);
 export const useMealStamps = () => useAppStore((state) => state.mealStamps.filter(s => !s._deleted));
 export const useMealStampsRaw = () => useAppStore((state) => state.mealStamps);
+export const useInjuryLog = () => useAppStore((state) => state.injuryLog.filter(i => !(i as unknown as { _deleted?: boolean })._deleted));
+export const useIllnessLogs = () => useAppStore((state) => state.illnessLogs.filter(il => !(il as unknown as { _deleted?: boolean })._deleted));
+export const useTrainingSessions = () => useAppStore((state) => state.trainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted));
+export const useCycleLogs = () => useAppStore((state) => state.cycleLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted));
+export const useCompetitions = () => useAppStore((state) => state.competitions.filter(c => !(c as unknown as { _deleted?: boolean })._deleted));
+export const useQuickLogs = () => useAppStore((state) => state.quickLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted));

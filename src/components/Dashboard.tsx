@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import {
@@ -658,6 +658,7 @@ export default function Dashboard({
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <ToastProvider>
     <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-20">
       {/* Header */}
@@ -1068,5 +1069,6 @@ export default function Dashboard({
       </AnimatePresence>
     </div>
     </ToastProvider>
+    </MotionConfig>
   );
 }

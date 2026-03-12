@@ -246,6 +246,7 @@ function calculateVelocityScore(logs: WorkoutLog[]): number {
 function estimateDataWeeks(logs: WorkoutLog[]): number {
   if (logs.length === 0) return 0;
   const dates = logs.map(l => new Date(l.date).getTime());
+  if (dates.length === 0) return 0;
   const minDate = Math.min(...dates);
   const maxDate = Math.max(...dates);
   return Math.round((maxDate - minDate) / (7 * 24 * 60 * 60 * 1000));

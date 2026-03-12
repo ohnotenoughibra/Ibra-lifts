@@ -22,6 +22,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { analyzeRecovery, getRecoveryTips, type RecoveryCoachAnalysis, type AlertPriority } from '@/lib/recovery-coach';
+import { getReadinessSummary } from '@/lib/performance-engine';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 
 interface RecoveryCoachProps {
@@ -31,11 +33,27 @@ interface RecoveryCoachProps {
 export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
   const {
     latestWhoopData,
+    wearableHistory,
     workoutLogs,
     trainingSessions,
     injuryLog,
     user,
-  } = useAppStore();
+    meals,
+    macroTargets,
+    waterLog,
+    quickLogs,
+  } = useAppStore(useShallow(s => ({
+    latestWhoopData: s.latestWhoopData,
+    wearableHistory: s.wearableHistory,
+    workoutLogs: s.workoutLogs,
+    trainingSessions: s.trainingSessions,
+    injuryLog: s.injuryLog,
+    user: s.user,
+    meals: s.meals.filter(m => !m._deleted),
+    macroTargets: s.macroTargets,
+    waterLog: s.waterLog,
+    quickLogs: s.quickLogs,
+  })));
 
   // Create a simple history from latest whoop data for now
   const whoopHistory = latestWhoopData ? [latestWhoopData] : [];
@@ -51,26 +69,40 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
     );
   }, [latestWhoopData, whoopHistory, workoutLogs, trainingSessions, injuryLog, user]);
 
+  // Use performance-engine as the single source of truth for readiness score
+  const performanceReadiness = useMemo(() => {
+    const summary = getReadinessSummary({
+      user,
+      workoutLogs,
+      trainingSessions,
+      wearableData: latestWhoopData,
+      wearableHistory,
+      meals,
+      macroTargets,
+      waterLog,
+      injuryLog,
+      quickLogs,
+    });
+    return summary?.score ?? analysis.readiness.score;
+  }, [user, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, analysis.readiness.score]);
+
   const tips = useMemo(() => getRecoveryTips(analysis), [analysis]);
 
-  const getReadinessColor = (category: RecoveryCoachAnalysis['readiness']['category']) => {
-    switch (category) {
-      case 'optimal': return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'ready': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
-      case 'moderate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
-      case 'compromised': return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
-      case 'rest_recommended': return 'bg-red-500/20 text-red-400 border-red-500/50';
-    }
+  // Derive readiness color/label from performance-engine score (single source of truth)
+  const getReadinessColorFromScore = (score: number) => {
+    if (score >= 80) return 'bg-green-500/20 text-green-400 border-green-500/50';
+    if (score >= 67) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50';
+    if (score >= 50) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
+    if (score >= 34) return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
+    return 'bg-red-500/20 text-red-400 border-red-500/50';
   };
 
-  const getReadinessLabel = (category: RecoveryCoachAnalysis['readiness']['category']) => {
-    switch (category) {
-      case 'optimal': return 'Optimal';
-      case 'ready': return 'Ready';
-      case 'moderate': return 'Moderate';
-      case 'compromised': return 'Compromised';
-      case 'rest_recommended': return 'Rest Needed';
-    }
+  const getReadinessLabelFromScore = (score: number) => {
+    if (score >= 80) return 'Optimal';
+    if (score >= 67) return 'Ready';
+    if (score >= 50) return 'Moderate';
+    if (score >= 34) return 'Compromised';
+    return 'Rest Needed';
   };
 
   const getAlertIcon = (priority: AlertPriority) => {
@@ -133,7 +165,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
         {/* Training Readiness Score */}
         <div className={cn(
           'rounded-xl p-4 border',
-          getReadinessColor(analysis.readiness.category)
+          getReadinessColorFromScore(performanceReadiness)
         )}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -141,7 +173,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
               <span className="font-semibold">Training Readiness</span>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold">{analysis.readiness.score}</span>
+              <span className="text-2xl font-bold">{performanceReadiness}</span>
               <span className="text-sm opacity-70">/100</span>
             </div>
           </div>
@@ -149,9 +181,9 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
           <div className="flex items-center justify-between mb-3">
             <span className={cn(
               'px-2 py-0.5 rounded-full text-xs font-medium',
-              getReadinessColor(analysis.readiness.category)
+              getReadinessColorFromScore(performanceReadiness)
             )}>
-              {getReadinessLabel(analysis.readiness.category)}
+              {getReadinessLabelFromScore(performanceReadiness)}
             </span>
           </div>
 

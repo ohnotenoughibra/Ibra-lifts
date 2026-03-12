@@ -60,7 +60,11 @@ export function generatePerformanceNarrative(opts: {
   const storyParts: string[] = [];
 
   // ── Consistency ──
-  const oldestLogTime = Math.min(...recentLogs.map(l => new Date(l.date).getTime()));
+  const logTimes = recentLogs.map(l => new Date(l.date).getTime());
+  if (logTimes.length === 0) {
+    return { summary: 'Not enough data to build your training story yet.', highlights: [], timeframeDays: 90, hasData: false };
+  }
+  const oldestLogTime = Math.min(...logTimes);
   const totalDays = Math.ceil((now - oldestLogTime) / (1000 * 60 * 60 * 24)) || 1;
   const weeksTracked = Math.max(1, Math.round(totalDays / 7));
   const sessionsPerWeek = +(recentLogs.length / weeksTracked).toFixed(1);

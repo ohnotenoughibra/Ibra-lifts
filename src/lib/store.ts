@@ -4211,43 +4211,56 @@ export const useAppStore = create<AppState>()(
               // ── Safety net: snapshot full unpruned data to IndexedDB before pruning ──
               // IndexedDB has ~50MB+ quota vs localStorage's ~5MB. This ensures
               // the complete dataset is preserved locally even after pruning.
+              // CRITICAL: Pruning MUST wait for backup to complete to prevent data loss.
+              const pruneAndSave = () => {
+                console.warn('[storage] Data approaching localStorage limit — pruning old entries.');
+                if (data?.state?.workoutLogs?.length > 50) {
+                  data.state.workoutLogs = data.state.workoutLogs.slice(-50);
+                }
+                if (data?.state?.meals?.length > 200) {
+                  data.state.meals = data.state.meals.slice(-200);
+                }
+                if (data?.state?.mesocycleHistory?.length > 10) {
+                  data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-10);
+                }
+                if (data?.state) {
+                  data.state._storageWarning = 'Storage is nearly full. Your full data is backed up to the cloud — old entries have been trimmed from this device.';
+                }
+                // Sync to server after backup (fire-and-forget is OK here — data is in IndexedDB)
+                const userId = data?.state?.user?.id;
+                if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+                  fetch('/api/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
+                  }).then(res => {
+                    if (!res.ok) console.error('[storage] Emergency pre-prune sync failed:', res.status);
+                  }).catch(err => {
+                    console.error('[storage] Emergency pre-prune sync network error:', err);
+                  });
+                }
+                localStorage.setItem(name, JSON.stringify(data));
+              };
+
               try {
                 import('./data-safety').then(({ savePrePruneSnapshot }) => {
-                  savePrePruneSnapshot(data).catch(() => {});
+                  savePrePruneSnapshot(data).then(() => {
+                    // Backup succeeded — now safe to prune
+                    pruneAndSave();
+                  }).catch(() => {
+                    // Backup failed, but we must prune anyway (approaching quota)
+                    console.error('[storage] CRITICAL: Pre-prune backup failed, data may be lost');
+                    pruneAndSave();
+                  });
+                }).catch(() => {
+                  // Dynamic import resolved but module failed — prune anyway
+                  console.error('[storage] CRITICAL: data-safety module load failed, pruning without backup');
+                  pruneAndSave();
                 });
-              } catch { /* dynamic import not available — server backup is the fallback */ }
-
-              // Trigger an emergency sync BEFORE pruning
-              // so the full dataset is safe on the server
-              const userId = data?.state?.user?.id;
-              if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
-                fetch('/api/sync', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
-                }).then(res => {
-                  if (!res.ok) console.error('[storage] Emergency pre-prune sync failed:', res.status);
-                }).catch(err => {
-                  console.error('[storage] Emergency pre-prune sync network error:', err);
-                });
+              } catch {
+                // Dynamic import not available (e.g. SSR) — prune anyway
+                pruneAndSave();
               }
-
-              // Now prune — data is in IndexedDB + queued for server
-              console.warn('[storage] Data approaching localStorage limit — saved to IndexedDB + synced to server, now pruning old entries.');
-              if (data?.state?.workoutLogs?.length > 50) {
-                data.state.workoutLogs = data.state.workoutLogs.slice(-50);
-              }
-              if (data?.state?.meals?.length > 200) {
-                data.state.meals = data.state.meals.slice(-200);
-              }
-              if (data?.state?.mesocycleHistory?.length > 10) {
-                data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-10);
-              }
-              // Surface warning to the user via store state
-              if (data?.state) {
-                data.state._storageWarning = 'Storage is nearly full. Your full data is backed up to the cloud — old entries have been trimmed from this device.';
-              }
-              localStorage.setItem(name, JSON.stringify(data));
             } else {
               localStorage.setItem(name, json);
             }
@@ -4258,30 +4271,46 @@ export const useAppStore = create<AppState>()(
                 const data = JSON.parse(JSON.stringify(value));
 
                 // Save full data to IndexedDB before emergency pruning
+                // CRITICAL: Pruning MUST wait for backup to prevent data loss.
+                const emergencyPruneAndSave = () => {
+                  if (data?.state) {
+                    if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
+                    if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);
+                    if (data.state.mesocycleHistory?.length > 3) data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-3);
+                    if (data.state.bodyComposition?.length > 30) data.state.bodyComposition = data.state.bodyComposition.slice(-30);
+                    data.state._storageWarning = 'Storage was full. Your data is backed up — old entries were trimmed from this device.';
+                  }
+                  // Emergency sync to server (fire-and-forget OK — data is in IndexedDB)
+                  const userId = data?.state?.user?.id;
+                  if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
+                    fetch('/api/sync', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
+                    }).catch(() => {});
+                  }
+                  localStorage.setItem(name, JSON.stringify(data));
+                };
+
                 try {
                   import('./data-safety').then(({ savePrePruneSnapshot }) => {
-                    savePrePruneSnapshot(data).catch(() => {});
+                    savePrePruneSnapshot(data).then(() => {
+                      // Backup succeeded — now safe to prune
+                      emergencyPruneAndSave();
+                    }).catch(() => {
+                      // Backup failed, but we must prune anyway (quota full)
+                      console.error('[storage] CRITICAL: Pre-prune backup failed, data may be lost');
+                      emergencyPruneAndSave();
+                    });
+                  }).catch(() => {
+                    // Module load failed — prune anyway
+                    console.error('[storage] CRITICAL: data-safety module load failed during emergency prune');
+                    emergencyPruneAndSave();
                   });
-                } catch { /* not critical */ }
-
-                // Emergency sync to server before pruning
-                const userId = data?.state?.user?.id;
-                if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
-                  fetch('/api/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, data: data.state, lastSyncAt: Date.now() }),
-                  }).catch(() => {});
+                } catch {
+                  // Dynamic import not available — prune anyway
+                  emergencyPruneAndSave();
                 }
-
-                if (data?.state) {
-                  if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
-                  if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);
-                  if (data.state.mesocycleHistory?.length > 3) data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-3);
-                  if (data.state.bodyComposition?.length > 30) data.state.bodyComposition = data.state.bodyComposition.slice(-30);
-                  data.state._storageWarning = 'Storage was full. Your data is backed up — old entries were trimmed from this device.';
-                }
-                localStorage.setItem(name, JSON.stringify(data));
               } catch {
                 // Last resort: clear and save fresh — but NEVER without an IndexedDB snapshot
                 console.error('[storage] localStorage full even after pruning — clearing and rewriting');
@@ -4401,59 +4430,44 @@ export const useAppStore = create<AppState>()(
 
         return merged;
       },
+      // ── Selective persistence ──────────────────────────────────────────
+      // Only persist essential + trimmed data to localStorage.
+      // Full data lives in the in-memory Zustand store and syncs from server.
+      // This keeps localStorage writes small (~50-80 KB vs 500 KB+), preventing
+      // 200-300 ms main-thread blocks on mobile.
       partialize: (state) => ({
+        // ── Essential scalars (always persist in full) ──
         user: state.user,
         isAuthenticated: state.isAuthenticated,
         isOnboarded: state.isOnboarded,
         onboardingData: state.onboardingData,
         baselineLifts: state.baselineLifts,
         currentMesocycle: state.currentMesocycle,
-        mesocycleHistory: state.mesocycleHistory,
-        mesocycleQueue: state.mesocycleQueue,
-        activeWorkout: state.activeWorkout,
+        activeWorkout: state.activeWorkout,           // CRITICAL for crash recovery
         workoutMinimized: state.workoutMinimized,
-        workoutLogs: state.workoutLogs,
         gamificationStats: state.gamificationStats,
-        bodyWeightLog: state.bodyWeightLog,
-        quickLogs: state.quickLogs,
-        gripTests: state.gripTests,
-        gripExerciseLogs: state.gripExerciseLogs,
-        injuryLog: state.injuryLog,
-        illnessLogs: state.illnessLogs,
-        _resolvedIllnessIds: state._resolvedIllnessIds,
-        workoutSkips: state.workoutSkips,
-        cycleLogs: state.cycleLogs,
-        customExercises: state.customExercises,
-        sessionTemplates: state.sessionTemplates,
-        hrSessions: state.hrSessions,
-        trainingSessions: state.trainingSessions,
+        subscription: state.subscription,
+        macroTargets: state.macroTargets,
+        activeDietPhase: state.activeDietPhase,
+        lastSyncAt: state.lastSyncAt,
         themeMode: state.themeMode,
         colorTheme: state.colorTheme,
-        meals: state.meals,
-        macroTargets: state.macroTargets,
-        waterLog: state.waterLog,
-        activeDietPhase: state.activeDietPhase,
-        dietPhaseHistory: state.dietPhaseHistory,
-        weeklyCheckIns: state.weeklyCheckIns,
-        mealReminders: state.mealReminders,
-        mealStamps: state.mealStamps,
-        nutritionPeriodPlan: state.nutritionPeriodPlan,
-        bodyComposition: state.bodyComposition,
-        muscleEmphasis: state.muscleEmphasis,
-        competitions: state.competitions,
-        weightCutPlans: state.weightCutPlans,
-        combatNutritionProfile: state.combatNutritionProfile,
-        fightCampPlans: state.fightCampPlans,
-        activeSupplements: state.activeSupplements,
-        supplementStack: state.supplementStack,
-        supplementIntakes: state.supplementIntakes,
+        customExercises: state.customExercises,
+        sessionTemplates: state.sessionTemplates,
+        mesocycleQueue: state.mesocycleQueue,
         activeEquipmentProfile: state.activeEquipmentProfile,
         homeGymEquipment: state.homeGymEquipment,
-        lastSyncAt: state.lastSyncAt,
-        subscription: state.subscription,
         notificationPreferences: state.notificationPreferences,
         dailyLoginBonus: state.dailyLoginBonus,
-        // Mental / knowledge base tracking (previously missing — lost on refresh)
+        muscleEmphasis: state.muscleEmphasis,
+        combatNutritionProfile: state.combatNutritionProfile,
+        nutritionPeriodPlan: state.nutritionPeriodPlan,
+        mealReminders: state.mealReminders,
+        bodyComposition: state.bodyComposition,
+        activeSupplements: state.activeSupplements,
+        supplementStack: state.supplementStack,
+
+        // Mental / knowledge base tracking (small — persist in full)
         mentalCheckIns: state.mentalCheckIns,
         confidenceLedger: state.confidenceLedger,
         featureFeedback: state.featureFeedback,
@@ -4462,6 +4476,39 @@ export const useAppStore = create<AppState>()(
         readArticles: state.readArticles,
         bookmarkedArticles: state.bookmarkedArticles,
         lastInsightDate: state.lastInsightDate,
+
+        // ── Trimmed arrays (full data syncs from server) ──
+        workoutLogs: state.workoutLogs?.slice(-30) ?? [],
+        meals: state.meals?.filter(m => {
+          const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          return new Date(m.date).getTime() > weekAgo;
+        }) ?? [],
+        bodyWeightLog: state.bodyWeightLog?.slice(-30) ?? [],
+        mesocycleHistory: state.mesocycleHistory?.slice(-3) ?? [],
+        trainingSessions: state.trainingSessions?.slice(-30) ?? [],
+        quickLogs: state.quickLogs?.slice(-50) ?? [],
+        mealStamps: state.mealStamps?.slice(-50) ?? [],
+        supplementIntakes: state.supplementIntakes?.slice(-50) ?? [],
+        hrSessions: state.hrSessions?.slice(-20) ?? [],
+        waterLog: state.waterLog ? Object.fromEntries(
+          Object.entries(state.waterLog)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .slice(-14)
+        ) : {},
+        weeklyCheckIns: state.weeklyCheckIns?.slice(-8) ?? [],
+        dietPhaseHistory: state.dietPhaseHistory?.slice(-5) ?? [],
+        gripTests: state.gripTests?.slice(-20) ?? [],
+        gripExerciseLogs: state.gripExerciseLogs?.slice(-30) ?? [],
+        cycleLogs: state.cycleLogs?.slice(-6) ?? [],
+        workoutSkips: state.workoutSkips?.slice(-20) ?? [],
+        fightCampPlans: state.fightCampPlans?.slice(-3) ?? [],
+        weightCutPlans: state.weightCutPlans?.slice(-3) ?? [],
+
+        // Small arrays — persist as-is
+        injuryLog: state.injuryLog ?? [],
+        illnessLogs: state.illnessLogs ?? [],
+        _resolvedIllnessIds: state._resolvedIllnessIds ?? [],
+        competitions: state.competitions ?? [],
       })
     }
   )

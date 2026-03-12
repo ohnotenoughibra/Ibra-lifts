@@ -144,11 +144,14 @@ export function resolveConflicts(
         if (!existing) {
           map.set(key, item);
         } else {
-          // Tombstone always wins — once deleted, stays deleted
-          if (item._deleted && !existing._deleted) {
-            map.set(key, item);
-          } else if (existing._deleted && !item._deleted) {
-            // Keep existing tombstone
+          // Tombstone always wins — once deleted, stays deleted.
+          // If EITHER side has _deleted: true, the merged result is deleted.
+          // This prevents resurrection when a non-deleted version has a newer timestamp.
+          const eitherDeleted = item._deleted || existing._deleted;
+          if (eitherDeleted) {
+            // Pick whichever version is the tombstone; if both, prefer newer
+            const tombstone = item._deleted ? item : existing;
+            map.set(key, tombstone);
           } else {
             // Status finality rule: "resolved" beats "active"/"recovering"
             // (same principle as tombstones — once resolved, never un-resolve)

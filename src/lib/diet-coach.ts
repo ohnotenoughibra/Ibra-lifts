@@ -249,7 +249,13 @@ export function calculateMacros({
   occupation,
   weeklyTrainingSessions,
   weeklyLiftingSessions,
-}: MacroInput): MacroTargets & { bmr: number; tdee: number; leanMassKg?: number } {
+}: MacroInput): (MacroTargets & { bmr: number; tdee: number; leanMassKg?: number }) | null {
+  // Guard: return null if critical profile fields are missing or invalid.
+  // This prevents NaN from propagating to the UI when a user hasn't set up their profile.
+  if (!bodyWeightKg || bodyWeightKg <= 0 || !heightCm || heightCm <= 0 || !age || age <= 0 || !sex) {
+    return null;
+  }
+
   const bw = bodyWeightKg;
   const isFemale = sex === 'female';
 

@@ -552,7 +552,8 @@ export function assessInjuryRisk(
     // Check 1: Active injury in this region
     if (activeInjuryRegions.has(region)) {
       const activeInRegion = activeInjuries.filter((i) => i.bodyRegion === region);
-      const maxSeverity = Math.max(...activeInRegion.map((i) => i.severity));
+      const severities = activeInRegion.map((i) => i.severity);
+      const maxSeverity = severities.length > 0 ? Math.max(...severities) : 0;
 
       if (maxSeverity >= 4) {
         risk = 'high';

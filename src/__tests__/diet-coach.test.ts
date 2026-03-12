@@ -28,7 +28,7 @@ describe('calculateMacros', () => {
   };
 
   it('calculates reasonable maintenance calories for male', () => {
-    const macros = calculateMacros(maleInput);
+    const macros = calculateMacros(maleInput)!;
     // BMR = 10*80 + 6.25*180 - 5*25 + 5 = 800 + 1125 - 125 + 5 = 1805
     // Maintenance = 1805 * 1.55 ≈ 2798
     expect(macros.calories).toBeGreaterThan(2400);
@@ -36,7 +36,7 @@ describe('calculateMacros', () => {
   });
 
   it('calculates reasonable maintenance calories for female', () => {
-    const macros = calculateMacros(femaleInput);
+    const macros = calculateMacros(femaleInput)!;
     // BMR = 10*65 + 6.25*165 - 5*25 - 161 = 650 + 1031 - 125 - 161 = 1395
     // Maintenance = 1395 * 1.55 ≈ 2162
     expect(macros.calories).toBeGreaterThan(1800);
@@ -44,21 +44,21 @@ describe('calculateMacros', () => {
   });
 
   it('creates 20% deficit on cut', () => {
-    const maintain = calculateMacros({ ...maleInput, goal: 'maintain' });
-    const cut = calculateMacros({ ...maleInput, goal: 'cut' });
+    const maintain = calculateMacros({ ...maleInput, goal: 'maintain' })!;
+    const cut = calculateMacros({ ...maleInput, goal: 'cut' })!;
     const ratio = cut.calories / maintain.calories;
     expect(ratio).toBeCloseTo(0.8, 1);
   });
 
   it('creates ~12% surplus on male bulk', () => {
-    const maintain = calculateMacros({ ...maleInput, goal: 'maintain' });
-    const bulk = calculateMacros({ ...maleInput, goal: 'bulk' });
+    const maintain = calculateMacros({ ...maleInput, goal: 'maintain' })!;
+    const bulk = calculateMacros({ ...maleInput, goal: 'bulk' })!;
     expect(bulk.calories).toBeGreaterThan(maintain.calories);
   });
 
   it('gives women higher protein per kg on cut', () => {
-    const maleCut = calculateMacros({ ...maleInput, goal: 'cut' });
-    const femaleCut = calculateMacros({ ...femaleInput, goal: 'cut' });
+    const maleCut = calculateMacros({ ...maleInput, goal: 'cut' })!;
+    const femaleCut = calculateMacros({ ...femaleInput, goal: 'cut' })!;
     // Male: 2.4 g/kg, Female: 2.0 g/kg
     const maleProteinPerKg = maleCut.protein / maleInput.bodyWeightKg;
     const femaleProteinPerKg = femaleCut.protein / femaleInput.bodyWeightKg;
@@ -67,13 +67,13 @@ describe('calculateMacros', () => {
   });
 
   it('gives women higher fat floor', () => {
-    const femaleCut = calculateMacros({ ...femaleInput, goal: 'cut' });
+    const femaleCut = calculateMacros({ ...femaleInput, goal: 'cut' })!;
     // Female fat floor: 1.0 g/kg = 65g
     expect(femaleCut.fat).toBeGreaterThanOrEqual(65);
   });
 
   it('macros sum to approximately the calorie target', () => {
-    const macros = calculateMacros(maleInput);
+    const macros = calculateMacros(maleInput)!;
     const summedCalories = macros.protein * 4 + macros.carbs * 4 + macros.fat * 9;
     expect(Math.abs(summedCalories - macros.calories)).toBeLessThan(10);
   });
@@ -81,14 +81,21 @@ describe('calculateMacros', () => {
   it('never produces negative carbs', () => {
     // Extreme case: very low calorie with high protein and fat
     const extremeInput = { bodyWeightKg: 120, heightCm: 160, age: 60, sex: 'male' as const, goal: 'cut' as const };
-    const macros = calculateMacros(extremeInput);
+    const macros = calculateMacros(extremeInput)!;
     expect(macros.carbs).toBeGreaterThanOrEqual(0);
   });
 
   it('respects custom activity multiplier', () => {
-    const sedentary = calculateMacros({ ...maleInput, activityMultiplier: 1.2 });
-    const veryActive = calculateMacros({ ...maleInput, activityMultiplier: 1.9 });
+    const sedentary = calculateMacros({ ...maleInput, activityMultiplier: 1.2 })!;
+    const veryActive = calculateMacros({ ...maleInput, activityMultiplier: 1.9 })!;
     expect(veryActive.calories).toBeGreaterThan(sedentary.calories);
+  });
+
+  it('returns null when profile fields are missing or zero', () => {
+    expect(calculateMacros({ ...maleInput, bodyWeightKg: 0 })).toBeNull();
+    expect(calculateMacros({ ...maleInput, heightCm: 0 })).toBeNull();
+    expect(calculateMacros({ ...maleInput, age: 0 })).toBeNull();
+    expect(calculateMacros({ ...maleInput, sex: '' as any })).toBeNull();
   });
 });
 

@@ -122,7 +122,7 @@ export function getFeatureGates(): FeatureGate[] {
  */
 export function isFeatureAvailable(featureId: string, userTier: MonetizationTier): boolean {
   const gate = FEATURE_GATE_LIST.find(g => g.id === featureId);
-  if (!gate) return true; // Unknown features default to allowed
+  if (!gate) return false; // Unknown features default to denied
   return TIER_RANK[userTier] >= TIER_RANK[gate.tier];
 }
 

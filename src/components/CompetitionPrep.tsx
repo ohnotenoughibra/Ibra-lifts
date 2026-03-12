@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar,
@@ -16,6 +16,7 @@ import {
   Zap,
   X,
   AlertTriangle,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CompetitionType, CompetitionEvent, WeighInType } from '@/lib/types';
@@ -245,13 +246,14 @@ function getWeightProgress(current?: number, target?: number): number {
 
 export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const {
-    user, competitions: events, addCompetition, deleteCompetition,
+    user, competitions: rawEvents, addCompetition, deleteCompetition,
     weightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
   } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [showWeightCutDashboard, setShowWeightCutDashboard] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -261,6 +263,8 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const [formPeakingWeeks, setFormPeakingWeeks] = useState(3);
   const [formWeighInType, setFormWeighInType] = useState<WeighInType>('day_before');
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const events = useMemo(() => rawEvents.filter(e => !(e as any)._deleted), [rawEvents]);
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
   const isCombatAthlete = user?.trainingIdentity === 'combat';
 
@@ -286,6 +290,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const handleDeleteEvent = (id: string) => {
     deleteCompetition(id);
     if (selectedEventId === id) setSelectedEventId(null);
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -452,7 +457,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
               key={selectedEvent.id}
               event={selectedEvent}
               onBack={() => setSelectedEventId(null)}
-              onDelete={() => handleDeleteEvent(selectedEvent.id)}
+              onDelete={() => confirmDeleteId === selectedEvent.id ? handleDeleteEvent(selectedEvent.id) : setConfirmDeleteId(selectedEvent.id)}
               weightUnit={weightUnit}
               isCombatAthlete={isCombatAthlete}
               weightCutPlan={weightCutPlans.find(p => p.competitionId === selectedEvent.id)}
@@ -511,7 +516,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                     event={event}
                     index={i}
                     onSelect={() => setSelectedEventId(event.id)}
-                    onDelete={() => handleDeleteEvent(event.id)}
+                    onDelete={() => confirmDeleteId === event.id ? handleDeleteEvent(event.id) : setConfirmDeleteId(event.id)}
                     weightUnit={weightUnit}
                   />
                 ))

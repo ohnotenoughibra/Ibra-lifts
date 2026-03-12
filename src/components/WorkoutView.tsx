@@ -24,6 +24,11 @@ import {
   ChevronRight,
   Video,
   Target,
+  Trash2,
+  Award,
+  Star,
+  Activity,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
@@ -32,10 +37,11 @@ import { fireConfetti } from '@/lib/confetti';
 import { suggestNextBlock } from '@/lib/block-suggestion';
 import { BlockTimeline, VolumeWave, AICoachInsight } from './MesocycleTimeline';
 import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
+import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mesocycle-report';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 
 export default function WorkoutView() {
-  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress } = useAppStore(
+  const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress, deleteMesocycle } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
@@ -43,7 +49,7 @@ export default function WorkoutView() {
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
       mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
       injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
-      repairMesocycleProgress: s.repairMesocycleProgress,
+      repairMesocycleProgress: s.repairMesocycleProgress, deleteMesocycle: s.deleteMesocycle,
     }))
   );
 
@@ -134,6 +140,7 @@ export default function WorkoutView() {
   const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek } | null>(null);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
   const [viewingBlock, setViewingBlock] = useState<typeof mesocycleHistory[0] | null>(null);
+  const [showDeleteBlockConfirm, setShowDeleteBlockConfirm] = useState(false);
 
   // New block success flash — shows summary after generation
   const [blockFlash, setBlockFlash] = useState<{ name: string; weeks: number; sessions: number; focus: string } | null>(null);
@@ -933,7 +940,7 @@ export default function WorkoutView() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center"
-            onClick={() => setViewingBlock(null)}
+            onClick={() => { setViewingBlock(null); setShowDeleteBlockConfirm(false); }}
           >
             <motion.div
               initial={{ y: '100%' }}
@@ -943,16 +950,58 @@ export default function WorkoutView() {
               className="w-full max-w-lg bg-grappler-900 rounded-t-2xl border-t border-grappler-700 max-h-[80vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
+              {/* Delete confirmation overlay */}
+              {showDeleteBlockConfirm && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                  onClick={() => setShowDeleteBlockConfirm(false)}
+                >
+                  <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-grappler-100">Delete Block?</h3>
+                    <p className="text-sm text-grappler-400">
+                      This will permanently delete <span className="text-grappler-200 font-medium">{viewingBlock.name}</span> and all workout logs associated with it. This cannot be undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowDeleteBlockConfirm(false)}
+                        className="flex-1 py-2.5 rounded-xl bg-grappler-700 text-grappler-200 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          deleteMesocycle(viewingBlock.id);
+                          setViewingBlock(null);
+                          setShowDeleteBlockConfirm(false);
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-500"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 border-b border-grappler-800 sticky top-0 bg-grappler-900 z-10">
                 <div className="w-10 h-1 bg-grappler-700 rounded-full mx-auto mb-3" />
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-grappler-100">{viewingBlock.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold text-grappler-100 truncate">{viewingBlock.name}</h3>
                     <p className="text-xs text-grappler-400 capitalize">{viewingBlock.goalFocus} focus · {viewingBlock.weeks.length}w · {viewingBlock.weeks.reduce((s, w) => s + w.sessions.length, 0)} sessions</p>
                   </div>
-                  <button onClick={() => setViewingBlock(null)} className="p-2 rounded-lg bg-grappler-800 text-grappler-400">
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowDeleteBlockConfirm(true)}
+                      className="p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                      aria-label="Delete block"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setViewingBlock(null)} className="p-2 rounded-lg bg-grappler-800 text-grappler-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="p-4 space-y-3">
@@ -960,36 +1009,176 @@ export default function WorkoutView() {
                   const blockLogs = workoutLogs
                     .filter(l => l.mesocycleId === viewingBlock.id)
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                  const totalVolume = blockLogs.reduce((s, l) => s + l.totalVolume, 0);
-                  const avgRPE = blockLogs.length > 0
-                    ? (blockLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / blockLogs.length).toFixed(1)
-                    : '-';
-                  const totalDuration = blockLogs.reduce((s, l) => s + (l.duration || 0), 0);
+
+                  // Find previous mesocycle for comparison
+                  const historyIndex = mesocycleHistory.findIndex(m => m.id === viewingBlock.id);
+                  const prevMeso = historyIndex > 0 ? mesocycleHistory[historyIndex - 1] : null;
+
+                  const report = generateMesocycleReport(viewingBlock, workoutLogs, prevMeso, prevMeso ? workoutLogs : undefined);
+                  const unit = user?.weightUnit === 'kg' ? 'kg' : 'lbs';
 
                   return (
                     <>
-                      {/* Summary stats */}
+                      {/* Completion banner */}
+                      <div className={cn(
+                        'rounded-xl p-3 text-center',
+                        report.completionRate >= 90
+                          ? 'bg-green-500/10 border border-green-500/20'
+                          : report.completionRate >= 70
+                            ? 'bg-yellow-500/10 border border-yellow-500/20'
+                            : report.completionRate > 0
+                              ? 'bg-grappler-800/50 border border-grappler-700'
+                              : 'bg-grappler-800/30 border border-grappler-800'
+                      )}>
+                        <div className="text-2xl font-black text-grappler-100">{report.completionRate}%</div>
+                        <p className="text-xs text-grappler-400">
+                          {report.workoutsCompleted} of {report.workoutsPlanned} sessions completed
+                        </p>
+                        {report.workoutsPlanned > 0 && (
+                          <div className="w-full h-1.5 bg-grappler-700 rounded-full mt-2 overflow-hidden">
+                            <div
+                              className={cn(
+                                'h-full rounded-full transition-all',
+                                report.completionRate >= 90 ? 'bg-green-500' : report.completionRate >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                              )}
+                              style={{ width: `${report.completionRate}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Summary stats grid */}
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-grappler-800 rounded-lg p-3 text-center">
-                          <p className="text-lg font-bold text-grappler-100">{blockLogs.length}</p>
-                          <p className="text-xs text-grappler-400">Sessions</p>
+                          <Dumbbell className="w-3.5 h-3.5 mx-auto mb-0.5 text-primary-400" />
+                          <p className="text-lg font-bold text-grappler-100">{formatVolume(report.totalVolume)}</p>
+                          <p className="text-xs text-grappler-400">Volume ({unit})</p>
                         </div>
                         <div className="bg-grappler-800 rounded-lg p-3 text-center">
-                          <p className="text-lg font-bold text-grappler-100">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(0)}k` : totalVolume}</p>
-                          <p className="text-xs text-grappler-400">Volume (kg)</p>
-                        </div>
-                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
-                          <p className="text-lg font-bold text-grappler-100">{avgRPE}</p>
+                          <Activity className="w-3.5 h-3.5 mx-auto mb-0.5 text-blue-400" />
+                          <p className="text-lg font-bold text-grappler-100">{report.avgRPE || '—'}</p>
                           <p className="text-xs text-grappler-400">Avg RPE</p>
                         </div>
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <Star className="w-3.5 h-3.5 mx-auto mb-0.5 text-yellow-400" />
+                          <p className="text-lg font-bold text-grappler-100">{report.totalPRs}</p>
+                          <p className="text-xs text-grappler-400">PRs Hit</p>
+                        </div>
                       </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <Clock className="w-3.5 h-3.5 mx-auto mb-0.5 text-sky-400" />
+                          <p className="text-lg font-bold text-grappler-100">{formatDuration(report.totalDuration)}</p>
+                          <p className="text-xs text-grappler-400">Total Time</p>
+                        </div>
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <BarChart3 className="w-3.5 h-3.5 mx-auto mb-0.5 text-accent-400" />
+                          <p className="text-lg font-bold text-grappler-100">{formatVolume(report.avgVolumePerSession)}</p>
+                          <p className="text-xs text-grappler-400">Vol/Session</p>
+                        </div>
+                        <div className="bg-grappler-800 rounded-lg p-3 text-center">
+                          <Clock className="w-3.5 h-3.5 mx-auto mb-0.5 text-emerald-400" />
+                          <p className="text-lg font-bold text-grappler-100">{report.avgDuration}m</p>
+                          <p className="text-xs text-grappler-400">Avg Duration</p>
+                        </div>
+                      </div>
+
+                      {/* PR exercises */}
+                      {report.prExercises.length > 0 && (
+                        <div className="bg-grappler-800/50 rounded-xl p-3">
+                          <h4 className="text-xs font-semibold text-grappler-300 flex items-center gap-1.5 mb-2">
+                            <Award className="w-3.5 h-3.5 text-yellow-400" />
+                            Personal Records
+                          </h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {report.prExercises.map(name => (
+                              <span key={name} className="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 text-xs rounded-full border border-yellow-500/20">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Volume by week bars */}
+                      {report.volumeByWeek.some(v => v > 0) && (
+                        <div className="bg-grappler-800/50 rounded-xl p-3">
+                          <h4 className="text-xs font-semibold text-grappler-300 flex items-center gap-1.5 mb-2">
+                            <TrendingUp className="w-3.5 h-3.5 text-primary-400" />
+                            Volume by Week
+                          </h4>
+                          <div className="space-y-1.5">
+                            {report.weekSummaries.map((week, i) => {
+                              const maxWeekVol = Math.max(...report.volumeByWeek, 1);
+                              return (
+                                <div key={i} className="flex items-center gap-2">
+                                  <span className={cn('text-xs w-8 text-right shrink-0', week.isDeload ? 'text-teal-400' : 'text-grappler-400')}>
+                                    {week.isDeload ? 'DL' : `W${week.weekNumber}`}
+                                  </span>
+                                  <div className="flex-1 h-4 bg-grappler-800 rounded-full overflow-hidden relative">
+                                    <div
+                                      className={cn(
+                                        'h-full rounded-full',
+                                        week.isDeload ? 'bg-teal-500/60' : 'bg-gradient-to-r from-primary-500 to-accent-500'
+                                      )}
+                                      style={{ width: `${maxWeekVol > 0 ? (report.volumeByWeek[i] / maxWeekVol) * 100 : 0}%` }}
+                                    />
+                                    {report.volumeByWeek[i] > 0 && (
+                                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-grappler-200">
+                                        {formatVolume(report.volumeByWeek[i])}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-grappler-500 w-8 text-right">
+                                    {week.workoutsCompleted}/{week.workoutsPlanned}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Top exercises */}
+                      {report.topExercisesByVolume.length > 0 && (
+                        <div className="bg-grappler-800/50 rounded-xl p-3">
+                          <h4 className="text-xs font-semibold text-grappler-300 flex items-center gap-1.5 mb-2">
+                            <Target className="w-3.5 h-3.5 text-accent-400" />
+                            Top Exercises
+                          </h4>
+                          <div className="space-y-2">
+                            {report.topExercisesByVolume.slice(0, 5).map((ex, i) => (
+                              <div key={ex.exerciseId} className="flex items-center gap-2">
+                                <span className={cn(
+                                  'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                                  i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                                  i === 1 ? 'bg-grappler-400/20 text-grappler-300' :
+                                  i === 2 ? 'bg-blue-500/20 text-blue-400' :
+                                  'bg-grappler-700/50 text-grappler-500'
+                                )}>
+                                  {i + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-grappler-200 truncate flex items-center gap-1">
+                                    {ex.exerciseName}
+                                    {ex.hadPR && <Star className="w-2.5 h-2.5 text-yellow-400 shrink-0" />}
+                                  </p>
+                                  <p className="text-[10px] text-grappler-500">
+                                    {ex.totalSets} sets · {formatVolume(ex.totalVolume)} {unit} · Best: {ex.bestWeight}{unit}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Per-week breakdown */}
                       {viewingBlock.weeks
                         .sort((a, b) => a.weekNumber - b.weekNumber)
                         .map(week => {
                           const weekLogs = blockLogs.filter(l => {
-                            // Match by weekNumber if available, else by session ID
                             if (l.weekNumber != null) return l.weekNumber === week.weekNumber;
                             return week.sessions.some(s => s.id === l.sessionId);
                           });
@@ -1011,7 +1200,7 @@ export default function WorkoutView() {
                                         </span>
                                       </div>
                                       <div className="flex items-center gap-3 text-grappler-400">
-                                        <span>{log.totalVolume >= 1000 ? `${(log.totalVolume / 1000).toFixed(1)}k` : log.totalVolume} kg</span>
+                                        <span>{log.totalVolume >= 1000 ? `${(log.totalVolume / 1000).toFixed(1)}k` : log.totalVolume} {unit}</span>
                                         <span>RPE {log.overallRPE}</span>
                                         <span>{log.duration}m</span>
                                       </div>
@@ -1027,6 +1216,41 @@ export default function WorkoutView() {
 
                       {blockLogs.length === 0 && (
                         <p className="text-sm text-grappler-400 text-center py-4">No workout data for this block</p>
+                      )}
+
+                      {/* Comparison to previous block */}
+                      {report.comparison && (
+                        <div className="bg-grappler-800/50 rounded-xl p-3">
+                          <h4 className="text-xs font-semibold text-grappler-300 mb-2">
+                            vs {report.comparison.prevName}
+                          </h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
+                              <p className="text-[10px] text-grappler-500">Volume</p>
+                              <p className={cn('text-xs font-medium', report.comparison.volumeDeltaPct > 0 ? 'text-green-400' : report.comparison.volumeDeltaPct < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                                {report.comparison.volumeDeltaPct > 0 ? '+' : ''}{report.comparison.volumeDeltaPct}%
+                              </p>
+                            </div>
+                            <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
+                              <p className="text-[10px] text-grappler-500">RPE</p>
+                              <p className={cn('text-xs font-medium', report.comparison.rpeDelta < 0 ? 'text-green-400' : report.comparison.rpeDelta > 0 ? 'text-red-400' : 'text-grappler-400')}>
+                                {report.comparison.rpeDelta > 0 ? '+' : ''}{report.comparison.rpeDelta}
+                              </p>
+                            </div>
+                            <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
+                              <p className="text-[10px] text-grappler-500">Sessions</p>
+                              <p className={cn('text-xs font-medium', report.comparison.sessionsDelta > 0 ? 'text-green-400' : report.comparison.sessionsDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                                {report.comparison.sessionsDelta > 0 ? '+' : ''}{report.comparison.sessionsDelta}
+                              </p>
+                            </div>
+                            <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
+                              <p className="text-[10px] text-grappler-500">PRs</p>
+                              <p className={cn('text-xs font-medium', report.comparison.prsDelta > 0 ? 'text-green-400' : report.comparison.prsDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                                {report.comparison.prsDelta > 0 ? '+' : ''}{report.comparison.prsDelta}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </>
                   );

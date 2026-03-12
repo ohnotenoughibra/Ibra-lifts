@@ -154,7 +154,7 @@ export default function WorkoutView() {
   const [blockFlash, setBlockFlash] = useState<{
     name: string; weeks: number; sessions: number; focus: string;
     split: string; deloadWeek: number | null; sessionsPerWeek: number;
-    firstSessionName: string | null;
+    firstSessionName: string | null; deloadSkipped: boolean;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -204,6 +204,7 @@ export default function WorkoutView() {
           deloadWeek: deloadWeek ? deloadWeek.weekNumber : null,
           sessionsPerWeek,
           firstSessionName: firstSession?.name || null,
+          deloadSkipped: !deloadWeek,
         });
       }
     }, 100);
@@ -499,12 +500,17 @@ export default function WorkoutView() {
                   <Activity className="w-3.5 h-3.5 text-grappler-500" />
                   <span>{blockFlash.sessions} total sessions across {blockFlash.weeks} weeks</span>
                 </div>
-                {blockFlash.deloadWeek && (
+                {blockFlash.deloadWeek ? (
                   <div className="flex items-center gap-2 text-xs text-grappler-400">
                     <TrendingDown className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Deload in week {blockFlash.deloadWeek} for recovery</span>
+                    <span>Deload in week {blockFlash.deloadWeek} — intensity maintained, volume reduced</span>
                   </div>
-                )}
+                ) : blockFlash.deloadSkipped ? (
+                  <div className="flex items-center gap-2 text-xs text-grappler-400">
+                    <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>No deload — fatigue is low, you&apos;re fresh to push</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center gap-2 text-xs text-grappler-400">
                   <TrendingUp className="w-3.5 h-3.5 text-green-400" />
                   <span>Volume ramps up weekly with progressive overload</span>

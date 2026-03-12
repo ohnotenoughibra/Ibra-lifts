@@ -483,6 +483,7 @@ interface GeneratorOptions {
   // Sport training load for adaptive volume scaling
   sportSessionsPerWeek?: number;           // Number of sport training sessions per week
   avgSportIntensity?: 'light' | 'moderate' | 'hard';  // Average intensity of sport sessions
+  includeDeload?: boolean;  // Default true. Set false when fatigue is low (autoregulated deload)
 }
 
 // Experience-level modifiers for volume and intensity
@@ -1093,9 +1094,10 @@ function generateMesocycleWeek(
   const sexMod = SEX_MODIFIERS[sex || 'male'];
 
   if (isDeload) {
-    // Women need less aggressive deloads — faster recovery between mesocycles
+    // Deload: cut volume aggressively, MAINTAIN intensity (Bosquet et al. 2007, Mujika & Padilla 2003)
+    // Reducing intensity causes faster detraining than reducing volume
     volumeMultiplier = sexMod.deloadVolumeMultiplier;
-    intensityMultiplier = sex === 'female' ? 0.88 : 0.85;
+    intensityMultiplier = sex === 'female' ? 0.97 : 0.95;
   } else if (periodizationType === 'linear') {
     // Linear: steady 5% per week (simple, predictable for beginners)
     // 3% per week for beginners (was 5% — too aggressive for novices)
@@ -1179,8 +1181,10 @@ function generateMesocycleWeek(
         Math.round(basePercentage * intensityMultiplier)
       );
 
+      // Deload: RPE -1 maintains neural drive while reducing fatigue (Helms et al. 2018)
+      // RPE 8→7 still feels like training; -2 would be warm-up territory
       const adjustedRPE = isDeload
-        ? Math.max(5, ex.prescription.rpe - 2)
+        ? Math.max(5, ex.prescription.rpe - 1)
         : Math.round(Math.min(10, +(ex.prescription.rpe + (intensityMultiplier - 1) * 15).toFixed(1)) * 2) / 2;
 
       // Progressive rep targets: Week 1 targets top of range (accumulation),
@@ -1248,8 +1252,10 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     periodizationType = 'undulating';
   }
 
+  const includeDeload = options.includeDeload !== false; // Default true
+
   for (let i = 1; i <= weeks; i++) {
-    const isDeload = i === weeks;
+    const isDeload = includeDeload && i === weeks;
     const weekIndex = i - 1;
     mesocycleWeeks.push(
       generateMesocycleWeek(

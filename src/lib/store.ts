@@ -1258,11 +1258,15 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteMesocycle: (mesocycleId) => {
-        const { mesocycleHistory, workoutLogs } = get();
-        set({
+        const { mesocycleHistory, workoutLogs, currentMesocycle } = get();
+        const updates: Record<string, unknown> = {
           mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
           workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
-        });
+        };
+        if (currentMesocycle?.id === mesocycleId) {
+          updates.currentMesocycle = null;
+        }
+        set(updates);
       },
 
       addToMesocycleQueue: (block) => {

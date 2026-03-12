@@ -25,6 +25,7 @@ import {
   Video,
   Target,
   Trash2,
+  Minus,
   Award,
   Star,
   Activity,

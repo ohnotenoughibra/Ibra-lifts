@@ -2010,7 +2010,8 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
         </ProgressCharts>
       )}
       {view === 'log' && <WorkoutHistory />}
-      {view === 'weight' && <BodyWeightTracker />}
+      {view === 'weight' && hydrated && <BodyWeightTracker />}
+      {view === 'weight' && !hydrated && <OverviewSkeleton />}
     </div>
   );
 }

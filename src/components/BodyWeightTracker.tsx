@@ -743,11 +743,13 @@ export default function BodyWeightTracker() {
           {latestWeight && latestBF != null && (() => {
             const wKg = weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight;
             const leanMass = wKg * (1 - latestBF / 100);
+            if (!leanMass || leanMass <= 0 || isNaN(leanMass)) return null;
             const ea = calculateEnergyAvailability(
               macroTargets?.calories || 0,
               0, // simplified — no exercise cost here
               leanMass,
             );
+            if (isNaN(ea.ea) || !isFinite(ea.ea)) return null;
             const color = ea.status === 'critical' ? 'text-red-400 border-red-500/30 bg-red-500/10'
               : ea.status === 'low' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10'
               : ea.status === 'caution' ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'

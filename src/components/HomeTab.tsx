@@ -46,6 +46,7 @@ import {
   MoreHorizontal,
   Droplets,
   Plus,
+  Battery,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -63,7 +64,9 @@ import { generateDailyDirective } from '@/lib/daily-directive';
 import { generateWeeklySynthesis, generatePostWorkoutCoachingLine, generateWeeklyInsights } from '@/lib/weekly-synthesis';
 import type { WeeklyInsight } from '@/lib/weekly-synthesis';
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
+import { detectInjuryPatterns, assessInjuryRisk, type InjuryPattern } from '@/lib/injury-patterns';
 import { buildPerformanceProfiles } from '@/lib/performance-model';
+import { buildRecoveryProfile, findOptimalTrainingWindow, type RecoveryWindow } from '@/lib/adaptive-readiness';
 import { generateVariableReward, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
 import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-deload';
 import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
@@ -77,6 +80,7 @@ import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
+import { getContextualNutrition, type TrainingDayType } from '@/lib/contextual-nutrition';
 import InsightCard from './InsightCard';
 import WeeklyCalendar from './WeeklyCalendar';
 import DashboardInsights from './DashboardInsights';
@@ -88,6 +92,7 @@ import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
+import { calculateCumulativeSportLoad, getSessionAdjustments } from '@/lib/concurrent-training';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -367,6 +372,119 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
         </button>
       </div>
     </motion.div>
+  );
+}
+
+// ─── Adaptive Recovery Status Card ─────────────────────────────────────────
+function AdaptiveRecoveryCard() {
+  const { workoutLogs, trainingSessions } = useAppStore(
+    useShallow(s => ({ workoutLogs: s.workoutLogs, trainingSessions: s.trainingSessions }))
+  );
+
+  const recoveryData = useMemo(() => {
+    if (!workoutLogs || workoutLogs.length < 2) return null;
+
+    const profile = buildRecoveryProfile(workoutLogs, trainingSessions || []);
+
+    // Find the most recent workout
+    const sorted = [...workoutLogs].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    const lastWorkout = sorted[0];
+    if (!lastWorkout) return null;
+
+    const rw = findOptimalTrainingWindow(
+      {
+        lastWorkoutDate: lastWorkout.date instanceof Date ? lastWorkout.date.toISOString() : String(lastWorkout.date),
+        lastWorkoutRPE: lastWorkout.overallRPE,
+        soreness: lastWorkout.soreness,
+      },
+      profile,
+    );
+
+    return { window: rw, confidence: profile.confidence };
+  }, [workoutLogs, trainingSessions]);
+
+  if (!recoveryData) return null;
+
+  const { window: rw, confidence } = recoveryData;
+  const readiness = Math.round(rw.currentReadiness);
+  const hoursLeft = rw.estimatedRecoveryTime;
+  const isReady = readiness >= 70;
+  const isOptimalSoon = rw.optimalTrainingWindow.start <= 2;
+
+  const gaugeColor = readiness >= 80
+    ? 'text-green-400'
+    : readiness >= 60
+    ? 'text-yellow-400'
+    : readiness >= 40
+    ? 'text-amber-400'
+    : 'text-red-400';
+
+  const gaugeBg = readiness >= 80
+    ? 'bg-green-500/15'
+    : readiness >= 60
+    ? 'bg-yellow-500/15'
+    : readiness >= 40
+    ? 'bg-amber-500/15'
+    : 'bg-red-500/15';
+
+  const barColor = readiness >= 80
+    ? 'bg-green-400'
+    : readiness >= 60
+    ? 'bg-yellow-400'
+    : readiness >= 40
+    ? 'bg-amber-400'
+    : 'bg-red-400';
+
+  return (
+    <div className={cn(
+      'rounded-xl border px-3.5 py-3',
+      isOptimalSoon && isReady
+        ? 'bg-green-500/10 border-green-500/30'
+        : 'bg-grappler-800/60 border-grappler-700/40'
+    )}>
+      <div className="flex items-center gap-3">
+        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', gaugeBg)}>
+          <Battery className={cn('w-5 h-5', gaugeColor)} />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium text-grappler-100">
+              {isReady
+                ? isOptimalSoon
+                  ? "You're primed \u2014 go train"
+                  : 'Recovery complete'
+                : `Ready in ${hoursLeft < 1 ? '<1' : Math.ceil(hoursLeft)}h`
+              }
+            </p>
+            <span className={cn('text-xs font-bold tabular-nums', gaugeColor)}>
+              {readiness}%
+            </span>
+          </div>
+
+          <div className="h-1.5 rounded-full bg-grappler-700/60 overflow-hidden">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', barColor)}
+              style={{ width: `${Math.min(100, readiness)}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-grappler-500">
+              {isReady
+                ? `Optimal window: ${Math.round(rw.optimalTrainingWindow.start)}\u2013${Math.round(rw.optimalTrainingWindow.end)}h`
+                : `${Math.ceil(hoursLeft)}h until ${confidence === 'low' ? '~' : ''}70% readiness`
+              }
+            </p>
+            {confidence === 'low' && (
+              <span className="text-xs text-grappler-600">Learning...</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -853,6 +971,70 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const waterTodayL = parseFloat((waterTodayGlasses * 0.25).toFixed(1)); // glasses → liters (1 glass = 250ml)
   const activeDietPhase = useAppStore(s => s.activeDietPhase);
 
+  // ─── Contextual Nutrition — adjusted macros based on today's training type ───
+  const contextualNutrition = useMemo(() => {
+    const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+    const bwLbs = latestWeight
+      ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
+      : 175;
+    // Find today's workout session from mesocycle
+    let todaySession = null;
+    if (currentMesocycle) {
+      const todayLog = todayWorkouts[0];
+      if (todayLog) {
+        for (const week of currentMesocycle.weeks) {
+          const session = week.sessions.find(s => s.id === todayLog.sessionId);
+          if (session) { todaySession = session; break; }
+        }
+      }
+    }
+    // Nearest competition
+    const now = Date.now();
+    const nearestComp = (competitions || [])
+      .filter(c => new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+    const daysToComp = nearestComp
+      ? Math.ceil((new Date(nearestComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
+      : undefined;
+    const activeIllness = getActiveIllness();
+    return getContextualNutrition(
+      macroTargets,
+      bwLbs,
+      todaySession,
+      todayTraining,
+      latestWhoopData,
+      user,
+      activeIllness,
+      daysToComp != null ? { daysToCompetition: daysToComp } : undefined,
+    );
+  }, [macroTargets, bodyWeightLog, currentMesocycle, todayWorkouts, todayTraining, latestWhoopData, user, competitions, getActiveIllness]);
+
+  const contextDayLabel = useMemo(() => {
+    const labels: Record<TrainingDayType, string> = {
+      strength: 'Strength', hypertrophy: 'Hypertrophy', power: 'Power',
+      strength_endurance: 'Strength Endurance',
+      grappling_hard: 'Hard Grappling', grappling_light: 'Light Grappling',
+      two_a_day: 'Two-a-Day', sparring: 'Sparring',
+      fight_week: 'Fight Week', tournament_day: 'Tournament',
+      travel: 'Travel', rest: 'Rest',
+    };
+    return labels[contextualNutrition.dayType] || 'Rest';
+  }, [contextualNutrition.dayType]);
+
+  const contextMacroDelta = useMemo(() => {
+    const base = contextualNutrition.baseTargets;
+    const adj = contextualNutrition.adjustedTargets;
+    if (adj.calories === base.calories && adj.protein === base.protein && adj.carbs === base.carbs) return null;
+    const parts: string[] = [];
+    const calDiff = adj.calories - base.calories;
+    const protDiff = adj.protein - base.protein;
+    const carbDiff = adj.carbs - base.carbs;
+    if (calDiff !== 0) parts.push(`${calDiff > 0 ? '+' : ''}${calDiff} kcal`);
+    if (protDiff !== 0) parts.push(`${protDiff > 0 ? '+' : ''}${protDiff}g protein`);
+    if (carbDiff !== 0) parts.push(`${carbDiff > 0 ? '+' : ''}${carbDiff}g carbs`);
+    return parts.join(', ');
+  }, [contextualNutrition]);
+
   // ─── Time-Aware Coaching — one adaptive line that changes throughout the day ───
   const timeCoaching = useMemo(() => {
     const hasTrainedToday = directive.todayPerformance != null;
@@ -990,6 +1172,45 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getNextSession(currentMesocycle, workoutLogs);
   }, [currentMesocycle, workoutLogs]);
   const nextWorkout = nextWorkoutInfo?.session ?? null;
+
+  // ─── Injury pattern risk alert for today's workout ───
+  const injuryRiskAlert = useMemo(() => {
+    if (!injuryLog || injuryLog.filter(i => !i._deleted).length < 2) return null;
+    const activeInjuries = injuryLog.filter(i => !i._deleted);
+    const patterns = detectInjuryPatterns(activeInjuries, workoutLogs, trainingSessions);
+    const highConfidence = patterns.filter(p => p.confidence === 'high' || p.confidence === 'medium');
+    if (highConfidence.length === 0) return null;
+
+    if (!nextWorkout) {
+      // No upcoming workout — show top pattern as general warning only if high confidence
+      const top = highConfidence.find(p => p.confidence === 'high');
+      return top ? { pattern: top, isWorkoutSpecific: false, warnings: [] as string[], suggestions: [] as string[] } : null;
+    }
+
+    // Get recent 48h training sessions
+    const now = Date.now();
+    const recentSessions = trainingSessions.filter(s => !s._deleted && now - new Date(s.date).getTime() <= 48 * 60 * 60 * 1000);
+
+    const planned = {
+      exercises: nextWorkout.exercises.map((e) => ({
+        exerciseId: e.exerciseId,
+        exerciseName: e.exercise.name,
+        targetRPE: e.prescription.rpe,
+      })),
+    };
+
+    const risk = assessInjuryRisk(planned, recentSessions, activeInjuries, highConfidence);
+    if (risk.overallRisk === 'high' || risk.overallRisk === 'moderate') {
+      return {
+        pattern: highConfidence[0],
+        isWorkoutSpecific: true,
+        warnings: risk.warnings,
+        suggestions: risk.suggestions,
+      };
+    }
+
+    return null;
+  }, [injuryLog, workoutLogs, trainingSessions, nextWorkout]);
 
   const mesocycleProgress = useMemo(() => {
     if (!currentMesocycle) return null;
@@ -1628,6 +1849,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ─── Adaptive Recovery Status ─── */}
+        <CardErrorBoundary fallbackLabel="Recovery">
+          <AdaptiveRecoveryCard />
+        </CardErrorBoundary>
       </section>
 
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}
@@ -1807,6 +2033,21 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
+      {/* ─── Injury Risk Alert — high-confidence pattern warning ─── */}
+      {injuryRiskAlert && (
+        <div className="rounded-xl p-3 border bg-amber-500/8 border-amber-500/25 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-medium text-amber-300">
+              Watch out: {injuryRiskAlert.pattern.triggers[0]?.details || injuryRiskAlert.pattern.pattern}
+            </p>
+            {injuryRiskAlert.isWorkoutSpecific && injuryRiskAlert.suggestions.length > 0 && (
+              <p className="text-xs text-amber-400/80">{injuryRiskAlert.suggestions[0]}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════
           BELOW THE FOLD — Secondary Content
           ═══════════════════════════════════════════════════════════════════ */}
@@ -1839,6 +2080,18 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
             </div>
           )}
+        </div>
+      )}
+      {/* Contextual nutrition adjustment line */}
+      {contextMacroDelta && macroTargets.protein > 0 && (
+        <div className="flex items-center gap-1.5 px-1 -mt-1">
+          <Zap className="w-3 h-3 text-primary-400 flex-shrink-0" />
+          <span className="text-xs text-primary-300 font-medium">
+            Adjusted for {contextDayLabel.toLowerCase()} day
+          </span>
+          <span className="text-xs text-grappler-500">
+            {contextMacroDelta}
+          </span>
         </div>
       )}
 
@@ -1899,6 +2152,98 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         hasCompletedWorkoutToday={directive.todayPerformance != null}
         onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
       />
+
+
+      {/* ─── Combat Load Alert — concurrent training interference ─── */}
+      {user?.trainingIdentity === 'combat' && trainingSessions.length > 0 && (() => {
+        const cumulativeLoad = calculateCumulativeSportLoad(trainingSessions);
+        const dummyWorkout = { type: 'hypertrophy', exercises: [{ muscleGroups: ['full_body'] }] };
+        const adj = getSessionAdjustments(
+          trainingSessions.filter(s => {
+            const d = new Date(s.date);
+            const now = new Date();
+            const msPerDay = 86_400_000;
+            return (now.getTime() - d.getTime()) / msPerDay <= 2;
+          }),
+          dummyWorkout,
+        );
+        const volPct = Math.round((1 - adj.overallVolumeMultiplier) * 100);
+        const intPct = Math.round((1 - adj.overallIntensityMultiplier) * 100);
+
+        if (adj.shouldSkip) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl p-3.5 bg-red-500/10 border border-red-500/30"
+            >
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-4 h-4 text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-red-300">Recovery day recommended</h4>
+                  <p className="text-xs text-grappler-400 mt-0.5">
+                    High combat fatigue detected — skip lifting or do mobility/recovery work.
+                  </p>
+                  {adj.warnings.length > 0 && (
+                    <div className="mt-1.5 space-y-0.5">
+                      {adj.warnings.map((w, i) => (
+                        <p key={i} className="text-xs text-red-400/80 flex items-start gap-1">
+                          <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>{w}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          );
+        }
+
+        if (adj.overallVolumeMultiplier < 0.8) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl p-3.5 bg-amber-500/10 border border-amber-500/30"
+            >
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-amber-300">
+                    Lifting adjusted: volume &minus;{volPct}%, intensity &minus;{intPct}%
+                  </h4>
+                  <p className="text-xs text-grappler-400 mt-0.5">
+                    Recent combat training detected — auto-throttling today&apos;s lifting to manage interference.
+                  </p>
+                  {cumulativeLoad.riskLevel === 'caution' || cumulativeLoad.riskLevel === 'danger' ? (
+                    <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
+                      <Activity className="w-3 h-3" />
+                      ACWR {cumulativeLoad.acuteChronicRatio} — {cumulativeLoad.riskLevel === 'danger' ? 'high injury risk zone' : 'elevated load'}
+                    </p>
+                  ) : null}
+                  {adj.warnings.length > 0 && (
+                    <div className="mt-1.5 space-y-0.5">
+                      {adj.warnings.map((w, i) => (
+                        <p key={i} className="text-xs text-amber-400/70 flex items-start gap-1">
+                          <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>{w}</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          );
+        }
+
+        return null;
+      })()}
 
       {/* ─── PULSE — horizontal scroll of analysis micro-chips, always visible ─── */}
       <DashboardInsights onNavigate={onNavigate} />

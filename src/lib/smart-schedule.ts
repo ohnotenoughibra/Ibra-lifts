@@ -454,7 +454,7 @@ export interface DualSessionPlan {
 export function planDualSessionDay(
   gymType: WorkoutType,
   matIntensity: CombatIntensity,
-  goalFocus?: 'strength' | 'hypertrophy' | 'power' | 'balanced',
+  goalFocus?: 'strength' | 'hypertrophy' | 'power' | 'balanced' | 'strength_endurance',
 ): DualSessionPlan {
   // Hard sparring + heavy lifting = high interference risk
   if (matIntensity === 'hard' && (gymType === 'strength' || gymType === 'power')) {

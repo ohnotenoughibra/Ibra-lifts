@@ -384,27 +384,94 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
     : contextualNutrition.dayType === 'travel' ? 'Travel'
     : 'Rest';
 
-  const isDifferentFromBase = contextualNutrition.adjustedTargets.calories !== contextualNutrition.baseTargets.calories;
+  const isDifferentFromBase = contextualNutrition.adjustedTargets.calories !== contextualNutrition.baseTargets.calories
+    || contextualNutrition.adjustedTargets.protein !== contextualNutrition.baseTargets.protein
+    || contextualNutrition.adjustedTargets.carbs !== contextualNutrition.baseTargets.carbs;
+
+  const [showBaseVsAdj, setShowBaseVsAdj] = useState(false);
 
   return (
     <div className="space-y-5">
-      {/* Context pill */}
+      {/* Contextual adjustment banner */}
       {isDifferentFromBase && (
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center"
+          className="space-y-0"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-500/10 border border-primary-500/20 rounded-full">
-            <div className="w-1.5 h-1.5 rounded-full bg-primary-400" />
-            <span className="text-xs font-medium text-primary-300">
-              {dayLabel} Day
-            </span>
-            <span className="text-xs text-grappler-400">
-              {contextualNutrition.adjustedTargets.calories > contextualNutrition.baseTargets.calories ? '+' : ''}
-              {contextualNutrition.adjustedTargets.calories - contextualNutrition.baseTargets.calories} kcal adjusted
-            </span>
-          </div>
+          <button
+            onClick={() => setShowBaseVsAdj(v => !v)}
+            className="w-full flex items-center justify-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-500/10 border border-primary-500/20 rounded-full hover:bg-primary-500/15 transition-colors">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary-400" />
+              <span className="text-xs font-medium text-primary-300">
+                Today&apos;s targets adjusted for {dayLabel.toLowerCase()} day
+              </span>
+              <ChevronDown className={cn(
+                'w-3 h-3 text-grappler-500 transition-transform',
+                showBaseVsAdj && 'rotate-180'
+              )} />
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {showBaseVsAdj && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 px-3 py-2.5 bg-grappler-800/50 border border-grappler-700/30 rounded-xl">
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div>
+                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Calories</p>
+                      <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.calories}</p>
+                      <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.calories}</p>
+                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.calories >= contextualNutrition.baseTargets.calories ? 'text-green-400' : 'text-red-400')}>
+                        {contextualNutrition.adjustedTargets.calories >= contextualNutrition.baseTargets.calories ? '+' : ''}
+                        {contextualNutrition.adjustedTargets.calories - contextualNutrition.baseTargets.calories}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Protein</p>
+                      <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.protein}g</p>
+                      <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.protein}g</p>
+                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.protein >= contextualNutrition.baseTargets.protein ? 'text-green-400' : 'text-red-400')}>
+                        {contextualNutrition.adjustedTargets.protein >= contextualNutrition.baseTargets.protein ? '+' : ''}
+                        {contextualNutrition.adjustedTargets.protein - contextualNutrition.baseTargets.protein}g
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Carbs</p>
+                      <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.carbs}g</p>
+                      <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.carbs}g</p>
+                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.carbs >= contextualNutrition.baseTargets.carbs ? 'text-green-400' : 'text-red-400')}>
+                        {contextualNutrition.adjustedTargets.carbs >= contextualNutrition.baseTargets.carbs ? '+' : ''}
+                        {contextualNutrition.adjustedTargets.carbs - contextualNutrition.baseTargets.carbs}g
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Fat</p>
+                      <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.fat}g</p>
+                      <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.fat}g</p>
+                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.fat >= contextualNutrition.baseTargets.fat ? 'text-green-400' : 'text-red-400')}>
+                        {contextualNutrition.adjustedTargets.fat >= contextualNutrition.baseTargets.fat ? '+' : ''}
+                        {contextualNutrition.adjustedTargets.fat - contextualNutrition.baseTargets.fat}g
+                      </p>
+                    </div>
+                  </div>
+                  {contextualNutrition.carbCycleNote && (
+                    <p className="text-xs text-grappler-400 mt-2 pt-2 border-t border-grappler-700/30 text-center">
+                      {contextualNutrition.carbCycleNote}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 

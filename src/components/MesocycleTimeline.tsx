@@ -124,11 +124,13 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
           const Icon = config.icon;
           const totalSessions = current.weeks.reduce((s, w) => s + w.sessions.length, 0);
           return (
-            <div
+            <button
               data-active="true"
+              onClick={() => onBlockClick?.(current)}
               className={cn(
-                'flex-shrink-0 w-28 rounded-xl p-2.5 border-2 transition-all ring-2',
-                config.border, config.ring, 'bg-grappler-800'
+                'flex-shrink-0 w-28 rounded-xl p-2.5 border-2 transition-all ring-2 text-left',
+                config.border, config.ring, 'bg-grappler-800',
+                onBlockClick && 'active:scale-95 cursor-pointer'
               )}
             >
               <div className="flex items-center gap-1.5 mb-1.5">
@@ -149,7 +151,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                 />
               </div>
               <p className="text-xs text-grappler-500 mt-0.5">{currentProgress}%</p>
-            </div>
+            </button>
           );
         })()}
 

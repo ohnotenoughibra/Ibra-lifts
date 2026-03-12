@@ -1381,7 +1381,7 @@ function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 
 function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
   const { mesocycleHistory, currentMesocycle } = useAppStore(
-    useShallow(s => ({ mesocycleHistory: s.mesocycleHistory, currentMesocycle: s.currentMesocycle }))
+    useShallow(s => ({ mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), currentMesocycle: s.currentMesocycle }))
   );
 
   const blocks = useMemo(() => {
@@ -1638,7 +1638,7 @@ function SessionRecapCard() {
 
 function BlockPerformanceCard() {
   const { currentMesocycle, workoutLogs, mesocycleHistory } = useAppStore(
-    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory }))
+    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted) }))
   );
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
 

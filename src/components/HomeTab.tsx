@@ -382,7 +382,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
-      mesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
+      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), competitions: s.competitions,
       trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,

@@ -345,7 +345,7 @@ export default function Dashboard({
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, currentMesocycle: s.currentMesocycle, activeWorkout: s.activeWorkout,
       workoutMinimized: s.workoutMinimized, resumeWorkout: s.resumeWorkout,
-      workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory, deleteMesocycle: s.deleteMesocycle,
+      workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), deleteMesocycle: s.deleteMesocycle,
       syncConflict: s.syncConflict, resolveSyncConflict: s.resolveSyncConflict, dismissSyncConflict: s.dismissSyncConflict,
       ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
     }))

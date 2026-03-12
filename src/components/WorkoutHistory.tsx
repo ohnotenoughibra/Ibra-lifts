@@ -27,14 +27,24 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
-import { SetLog, ExerciseLog, MuscleGroup } from '@/lib/types';
+import { SetLog, ExerciseLog, MuscleGroup, Mesocycle } from '@/lib/types';
 import { exercises as exerciseLibrary, getExerciseById } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 import TrainingCalendar from './TrainingCalendar';
+import { useShallow } from 'zustand/react/shallow';
+import { Layers } from 'lucide-react';
 
 export default function WorkoutHistory() {
-  const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog } = useAppStore();
-  const [historyView, setHistoryView] = useState<'list' | 'calendar'>('list');
+  const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog, mesocycleHistory } = useAppStore(
+    useShallow(s => ({
+      workoutLogs: s.workoutLogs.filter(l => !l._deleted),
+      user: s.user,
+      updateWorkoutLog: s.updateWorkoutLog,
+      deleteWorkoutLog: s.deleteWorkoutLog,
+      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted),
+    }))
+  );
+  const [historyView, setHistoryView] = useState<'list' | 'calendar' | 'blocks'>('list');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, Record<number, Partial<SetLog>>>>({});
@@ -367,7 +377,7 @@ export default function WorkoutHistory() {
     return projections;
   }, [workoutLogs]);
 
-  if (workoutLogs.length === 0) {
+  if (workoutLogs.length === 0 && mesocycleHistory.length === 0) {
     return (
       <EmptyState
         icon={Dumbbell}
@@ -395,6 +405,16 @@ export default function WorkoutHistory() {
               <List className="w-4 h-4" />
             </button>
             <button
+              onClick={() => setHistoryView('blocks')}
+              className={cn(
+                'p-1.5 rounded-md transition-colors',
+                historyView === 'blocks' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+              )}
+              title="Training blocks"
+            >
+              <Layers className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setHistoryView('calendar')}
               className={cn(
                 'p-1.5 rounded-md transition-colors',
@@ -414,12 +434,88 @@ export default function WorkoutHistory() {
               <FileDown className="w-4 h-4" />
             </button>
           )}
-          <span className="text-sm text-grappler-400">{workoutLogs.length} workouts</span>
+          <span className="text-sm text-grappler-400">
+            {historyView === 'blocks' ? `${mesocycleHistory.length} blocks` : `${workoutLogs.length} workouts`}
+          </span>
         </div>
       </div>
 
       {/* Calendar View */}
       {historyView === 'calendar' && <TrainingCalendar />}
+
+      {/* Blocks View */}
+      {historyView === 'blocks' && (
+        <div className="space-y-3">
+          {mesocycleHistory.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              title="No completed blocks yet"
+              description="Completed training blocks will appear here with volume, PRs, and progression data."
+            />
+          ) : (
+            [...mesocycleHistory].sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()).map((meso) => {
+              const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
+              const totalVol = mesoLogs.reduce((s, l) => s + l.totalVolume, 0);
+              const totalSessions = mesoLogs.length;
+              const totalWeeks = meso.weeks?.length || 0;
+              const plannedSessions = meso.weeks?.reduce((s, w) => s + w.sessions.length, 0) || 0;
+              const completionRate = plannedSessions > 0 ? Math.round((totalSessions / plannedSessions) * 100) : 0;
+              const avgRPE = mesoLogs.length > 0 ? (mesoLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / mesoLogs.length).toFixed(1) : '-';
+              const totalDuration = mesoLogs.reduce((s, l) => s + (l.duration || 0), 0);
+              const prs = mesoLogs.reduce((s, l) => s + (l.exercises?.filter(ex => ex.personalRecord)?.length || 0), 0);
+
+              return (
+                <motion.div
+                  key={meso.id}
+                  layout
+                  className="card p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="font-semibold text-grappler-100 text-sm">{meso.name}</p>
+                      <p className="text-xs text-grappler-400">
+                        {formatDate(meso.startDate)} — {formatDate(meso.endDate)}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-medium',
+                      completionRate >= 90 ? 'bg-green-500/20 text-green-400' :
+                      completionRate >= 70 ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    )}>
+                      {completionRate}% done
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+                      <p className="text-sm font-bold text-grappler-100">{totalSessions}</p>
+                      <p className="text-[10px] text-grappler-500 uppercase">Sessions</p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+                      <p className="text-sm font-bold text-grappler-100">{formatNumber(Math.round(totalVol))}</p>
+                      <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+                      <p className="text-sm font-bold text-grappler-100">{avgRPE}</p>
+                      <p className="text-[10px] text-grappler-500 uppercase">Avg RPE</p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
+                      <p className="text-sm font-bold text-primary-400">{prs}</p>
+                      <p className="text-[10px] text-grappler-500 uppercase">PRs</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-grappler-400">
+                    <span>{totalWeeks} weeks &middot; {meso.goalFocus} &middot; {meso.splitType}</span>
+                    <span>{Math.round(totalDuration / 60)}h total</span>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* List View */}
       {historyView === 'list' && (<>

@@ -2048,8 +2048,8 @@ export const useAppStore = create<AppState>()(
           let volumeMultiplier: number;
           let intensityMultiplier: number;
           if (w.isDeload) {
-            volumeMultiplier = 0.5;
-            intensityMultiplier = 0.85;
+            volumeMultiplier = 0.55;
+            intensityMultiplier = 0.95;
           } else {
             const trainingWeeks = Math.max(1, totalWeeks - 1);
             const progress = (weekNum - 1) / Math.max(1, trainingWeeks - 1);
@@ -2106,8 +2106,8 @@ export const useAppStore = create<AppState>()(
             updatedWeeks[lastIdx] = {
               ...updatedWeeks[lastIdx],
               isDeload: true,
-              volumeMultiplier: 0.5,
-              intensityMultiplier: 0.85,
+              volumeMultiplier: 0.55,
+              intensityMultiplier: 0.95,
             };
           }
         }
@@ -2119,8 +2119,8 @@ export const useAppStore = create<AppState>()(
           let volumeMultiplier: number;
           let intensityMultiplier: number;
           if (w.isDeload) {
-            volumeMultiplier = 0.5;
-            intensityMultiplier = 0.85;
+            volumeMultiplier = 0.55;
+            intensityMultiplier = 0.95;
           } else {
             const trainingWeeks = Math.max(1, totalWeeks - 1);
             const progress = (weekNum - 1) / Math.max(1, trainingWeeks - 1);

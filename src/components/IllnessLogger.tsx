@@ -202,7 +202,7 @@ function LevelPicker({
 
 export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
   const {
-    illnessLogs,
+    illnessLogs: rawIllnessLogs,
     logIllness,
     updateIllnessCheckin,
     updateIllnessStatus,
@@ -211,9 +211,12 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
     getActiveIllness,
   } = useAppStore();
 
+  const illnessLogs = useMemo(() => rawIllnessLogs.filter(il => !(il as unknown as { _deleted?: boolean })._deleted), [rawIllnessLogs]);
+
   // ── UI State ──────────────────────────────────────────────────────────
   const [view, setView] = useState<'main' | 'new' | 'checkin'>('main');
   const [showHistory, setShowHistory] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // ── New Illness Form State ────────────────────────────────────────────
   const [newSymptoms, setNewSymptoms] = useState<IllnessSymptom[]>([]);
@@ -730,13 +733,24 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                                   )}
                                 </div>
                               </div>
-                              <button
-                                onClick={() => deleteIllness(illness.id)}
-                                className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-500 hover:text-red-400 transition-colors shrink-0"
-                                title="Delete"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
+                              {confirmDeleteId === illness.id ? (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button onClick={() => { deleteIllness(illness.id); setConfirmDeleteId(null); }} className="p-1 rounded-lg bg-red-500/20 text-red-400 transition-colors" title="Confirm delete">
+                                    <Check className="w-3 h-3" />
+                                  </button>
+                                  <button onClick={() => setConfirmDeleteId(null)} className="p-1 rounded-lg hover:bg-grappler-700/50 text-grappler-400 transition-colors" title="Cancel">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDeleteId(illness.id)}
+                                  className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-500 hover:text-red-400 transition-colors shrink-0"
+                                  title="Delete"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           );
                         })}

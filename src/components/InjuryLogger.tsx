@@ -160,13 +160,15 @@ function daysSince(date: Date): number {
 // ---------------------------------------------------------------------------
 
 export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
-  const { injuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
+  const { injuryLog: rawInjuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
+  const injuryLog = useMemo(() => rawInjuryLog.filter(i => !(i as unknown as { _deleted?: boolean })._deleted), [rawInjuryLog]);
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
   const [activeTab, setActiveTab] = useState<'log' | 'prevention'>('prevention');
   const [expandedInjuryId, setExpandedInjuryId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Injury prevention analysis
   const analysis = useMemo<InjuryAnalysis>(() => {
@@ -800,13 +802,24 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                     >
                       <Check className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => deleteInjury(injury.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-400 hover:text-red-400 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteId === injury.id ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => { deleteInjury(injury.id); setConfirmDeleteId(null); }} className="p-1 rounded-lg bg-red-500/20 text-red-400 transition-colors" title="Confirm delete">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="p-1 rounded-lg hover:bg-grappler-700/50 text-grappler-400 transition-colors" title="Cancel">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(injury.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-400 hover:text-red-400 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1043,13 +1056,24 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={() => deleteInjury(injury.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-500 hover:text-red-400 transition-colors shrink-0"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {confirmDeleteId === injury.id ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => { deleteInjury(injury.id); setConfirmDeleteId(null); }} className="p-1 rounded-lg bg-red-500/20 text-red-400 transition-colors" title="Confirm delete">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => setConfirmDeleteId(null)} className="p-1 rounded-lg hover:bg-grappler-700/50 text-grappler-400 transition-colors" title="Cancel">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(injury.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/20 text-grappler-400 hover:text-red-400 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </motion.div>

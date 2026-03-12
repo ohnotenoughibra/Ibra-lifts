@@ -3,19 +3,23 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, Plus, Calendar, Edit3, Minus, Search, X, Save, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, Plus, Calendar, Edit3, Minus, Search, X, Save, ChevronDown, Check } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { WorkoutLog, TrainingSession, ExerciseLog, SetLog } from '@/lib/types';
 import { exercises as allExercises } from '@/lib/exercises';
 
 export default function TrainingCalendar() {
   const {
-    workoutLogs, trainingSessions, user,
+    workoutLogs: rawWorkoutLogs, trainingSessions: rawTrainingSessions, user,
     addTrainingSession, addPastWorkout,
     deleteWorkoutLog, deleteTrainingSession,
     updateWorkoutLog, updateTrainingSession,
     recalculatePRs
   } = useAppStore();
+  const workoutLogs = useMemo(() => rawWorkoutLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted), [rawWorkoutLogs]);
+  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted), [rawTrainingSessions]);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteType, setConfirmDeleteType] = useState<'workout' | 'session' | null>(null);
   const weightUnit = user?.weightUnit || 'lbs';
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
@@ -359,12 +363,19 @@ export default function TrainingCalendar() {
                           >
                             <Calendar className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => deleteWorkoutLog(lift.id)}
-                            className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {confirmDeleteId === lift.id && confirmDeleteType === 'workout' ? (
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => { deleteWorkoutLog(lift.id); setConfirmDeleteId(null); setConfirmDeleteType(null); }} className="p-1 text-red-400 bg-red-500/20 rounded" title="Confirm"><Check className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { setConfirmDeleteId(null); setConfirmDeleteType(null); }} className="p-1 text-grappler-400 hover:bg-grappler-700/50 rounded" title="Cancel"><X className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setConfirmDeleteId(lift.id); setConfirmDeleteType('workout'); }}
+                              className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -393,12 +404,19 @@ export default function TrainingCalendar() {
                           >
                             <Calendar className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => deleteTrainingSession(session.id)}
-                            className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {confirmDeleteId === session.id && confirmDeleteType === 'session' ? (
+                            <div className="flex items-center gap-0.5">
+                              <button onClick={() => { deleteTrainingSession(session.id); setConfirmDeleteId(null); setConfirmDeleteType(null); }} className="p-1 text-red-400 bg-red-500/20 rounded" title="Confirm"><Check className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => { setConfirmDeleteId(null); setConfirmDeleteType(null); }} className="p-1 text-grappler-400 hover:bg-grappler-700/50 rounded" title="Cancel"><X className="w-3.5 h-3.5" /></button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setConfirmDeleteId(session.id); setConfirmDeleteType('session'); }}
+                              className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

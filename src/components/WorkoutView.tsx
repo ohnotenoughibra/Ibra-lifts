@@ -19,6 +19,7 @@ import {
   Check,
   Shuffle,
   TrendingUp,
+  TrendingDown,
   History,
   Undo2,
   ChevronRight,
@@ -149,8 +150,12 @@ export default function WorkoutView() {
   const [viewingBlock, setViewingBlock] = useState<typeof mesocycleHistory[0] | null>(null);
   const [showDeleteBlockConfirm, setShowDeleteBlockConfirm] = useState(false);
 
-  // New block success flash — shows summary after generation
-  const [blockFlash, setBlockFlash] = useState<{ name: string; weeks: number; sessions: number; focus: string } | null>(null);
+  // New block created modal — shows overview after generation
+  const [blockFlash, setBlockFlash] = useState<{
+    name: string; weeks: number; sessions: number; focus: string;
+    split: string; deloadWeek: number | null; sessionsPerWeek: number;
+    firstSessionName: string | null;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get workout logs breakdown by type for the current mesocycle
@@ -183,30 +188,26 @@ export default function WorkoutView() {
   // Check for existing workouts and prompt migration
   // Show success flash and scroll to top after block generation
   const showBlockCreatedFlash = () => {
-    // Read fresh state — the mesocycle was just generated
     setTimeout(() => {
       const meso = useAppStore.getState().currentMesocycle;
       if (meso) {
         const totalSessions = meso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+        const deloadWeek = meso.weeks.find(w => w.isDeload);
+        const sessionsPerWeek = meso.weeks[0]?.sessions?.length || 0;
+        const firstSession = meso.weeks[0]?.sessions?.[0];
         setBlockFlash({
           name: meso.name,
           weeks: meso.weeks.length,
           sessions: totalSessions,
           focus: meso.goalFocus,
+          split: meso.splitType,
+          deloadWeek: deloadWeek ? deloadWeek.weekNumber : null,
+          sessionsPerWeek,
+          firstSessionName: firstSession?.name || null,
         });
-        // Scroll to top so user sees the new "Next Up" card
-        containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }, 100);
   };
-
-  // Auto-dismiss block flash
-  useEffect(() => {
-    if (!blockFlash) return;
-    const timer = setTimeout(() => setBlockFlash(null), 4000);
-    return () => clearTimeout(timer);
-  }, [blockFlash]);
 
   const handleGenerateWithMigrationCheck = (weeks: number, sessionMinutes?: number, sessionsPerWeek?: SessionsPerWeek) => {
     // Get fresh state from store to avoid stale closure issues
@@ -446,28 +447,80 @@ export default function WorkoutView() {
 
   return (
     <div ref={containerRef} className="space-y-6">
-      {/* New Block Created Flash */}
+      {/* New Block Created Modal */}
       <AnimatePresence>
         {blockFlash && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
             onClick={() => setBlockFlash(null)}
-            className="card p-4 bg-gradient-to-r from-primary-500/20 to-primary-500/5 border border-primary-500/30 cursor-pointer"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                <Check className="w-5 h-5 text-primary-400" />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-grappler-900 border border-grappler-700 overflow-hidden shadow-2xl"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-br from-primary-500/20 to-primary-500/5 p-5 text-center border-b border-grappler-800">
+                <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center mx-auto mb-3">
+                  <Check className="w-6 h-6 text-primary-400" />
+                </div>
+                <h2 className="text-lg font-bold text-grappler-50">{blockFlash.name}</h2>
+                <p className="text-xs text-grappler-400 mt-1">New training block generated</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-grappler-50 text-sm">{blockFlash.name}</p>
-                <p className="text-xs text-grappler-400">
-                  {blockFlash.weeks} weeks &middot; {blockFlash.sessions} sessions &middot; {blockFlash.focus} focus
-                </p>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 gap-px bg-grappler-800 mx-4 mt-4 rounded-xl overflow-hidden">
+                <div className="bg-grappler-900 p-3 text-center">
+                  <p className="text-lg font-black text-grappler-100">{blockFlash.weeks}</p>
+                  <p className="text-[10px] text-grappler-500 uppercase">Weeks</p>
+                </div>
+                <div className="bg-grappler-900 p-3 text-center">
+                  <p className="text-lg font-black text-grappler-100">{blockFlash.sessionsPerWeek}</p>
+                  <p className="text-[10px] text-grappler-500 uppercase">Days/Week</p>
+                </div>
+                <div className="bg-grappler-900 p-3 text-center">
+                  <p className="text-lg font-black text-grappler-100 capitalize">{blockFlash.focus}</p>
+                  <p className="text-[10px] text-grappler-500 uppercase">Focus</p>
+                </div>
+                <div className="bg-grappler-900 p-3 text-center">
+                  <p className="text-lg font-black text-grappler-100 capitalize">{blockFlash.split.replace(/_/g, ' ')}</p>
+                  <p className="text-[10px] text-grappler-500 uppercase">Split</p>
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-primary-400/70 mt-2">Your first session is ready below</p>
+
+              {/* Details */}
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-grappler-400">
+                  <Activity className="w-3.5 h-3.5 text-grappler-500" />
+                  <span>{blockFlash.sessions} total sessions across {blockFlash.weeks} weeks</span>
+                </div>
+                {blockFlash.deloadWeek && (
+                  <div className="flex items-center gap-2 text-xs text-grappler-400">
+                    <TrendingDown className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Deload in week {blockFlash.deloadWeek} for recovery</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-xs text-grappler-400">
+                  <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                  <span>Volume ramps up weekly with progressive overload</span>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="p-4 pt-1">
+                <button
+                  onClick={() => setBlockFlash(null)}
+                  className="w-full py-3 rounded-xl bg-primary-500 text-white font-semibold text-sm hover:bg-primary-600 transition-colors"
+                >
+                  {blockFlash.firstSessionName ? `Start with ${blockFlash.firstSessionName}` : 'View Program'}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

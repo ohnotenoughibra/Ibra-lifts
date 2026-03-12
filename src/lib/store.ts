@@ -136,6 +136,9 @@ interface AppState {
 
   // Illness tracking
   illnessLogs: IllnessLog[];
+  // Local-only: IDs of illnesses the user has resolved. NEVER synced to server.
+  // This prevents sync from ever resurrecting a resolved illness in the UI.
+  _resolvedIllnessIds: string[];
 
   // Workout skips
   workoutSkips: WorkoutSkip[];
@@ -587,6 +590,7 @@ export const useAppStore = create<AppState>()(
       gripExerciseLogs: [],
       injuryLog: [],
       illnessLogs: [],
+      _resolvedIllnessIds: [],
       workoutSkips: [],
       cycleLogs: [],
       customExercises: [],
@@ -3187,13 +3191,17 @@ export const useAppStore = create<AppState>()(
       },
 
       resolveIllness: (illnessId) => {
-        const { illnessLogs } = get();
+        const { illnessLogs, _resolvedIllnessIds } = get();
         set({
           illnessLogs: illnessLogs.map(il =>
             il.id === illnessId
               ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0], updatedAt: new Date().toISOString() }
               : il
           ),
+          // Write to the local-only resolved set — sync can never undo this
+          _resolvedIllnessIds: _resolvedIllnessIds.includes(illnessId)
+            ? _resolvedIllnessIds
+            : [..._resolvedIllnessIds, illnessId],
           _syncUrgent: true,
         });
       },
@@ -3204,8 +3212,11 @@ export const useAppStore = create<AppState>()(
       },
 
       getActiveIllness: () => {
-        const { illnessLogs } = get();
-        return illnessLogs.find(il => il.status === 'active' || il.status === 'recovering') || null;
+        const { illnessLogs, _resolvedIllnessIds } = get();
+        return illnessLogs.find(il =>
+          (il.status === 'active' || il.status === 'recovering') &&
+          !_resolvedIllnessIds.includes(il.id)
+        ) || null;
       },
 
       // Workout skip actions
@@ -3818,6 +3829,7 @@ export const useAppStore = create<AppState>()(
           gripExerciseLogs: [],
           injuryLog: [],
           illnessLogs: [],
+          _resolvedIllnessIds: [],
           workoutSkips: [],
           cycleLogs: [],
           customExercises: [],
@@ -4101,6 +4113,7 @@ export const useAppStore = create<AppState>()(
         if (!Array.isArray(merged.workoutLogs)) merged.workoutLogs = [];
         if (!Array.isArray(merged.trainingSessions)) merged.trainingSessions = [];
         if (!Array.isArray(merged.bodyWeightLog)) merged.bodyWeightLog = [];
+        if (!Array.isArray(merged._resolvedIllnessIds)) merged._resolvedIllnessIds = [];
 
         return merged;
       },
@@ -4123,6 +4136,7 @@ export const useAppStore = create<AppState>()(
         gripExerciseLogs: state.gripExerciseLogs,
         injuryLog: state.injuryLog,
         illnessLogs: state.illnessLogs,
+        _resolvedIllnessIds: state._resolvedIllnessIds,
         workoutSkips: state.workoutSkips,
         cycleLogs: state.cycleLogs,
         customExercises: state.customExercises,

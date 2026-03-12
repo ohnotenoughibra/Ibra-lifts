@@ -2007,35 +2007,60 @@ export const useAppStore = create<AppState>()(
         const weeks = currentMesocycle.weeks;
         const deloadIdx = weeks.findIndex(w => w.isDeload);
 
-        // Clone the last non-deload week as a template for the new training week
+        // Clone the last non-deload week as a template
         const lastTrainingWeek = [...weeks].reverse().find(w => !w.isDeload) || weeks[0];
-        const newWeekNumber = deloadIdx >= 0 ? weeks[deloadIdx].weekNumber : weeks.length + 1;
+        const insertAt = deloadIdx >= 0 ? deloadIdx : weeks.length;
 
         const newWeek: MesocycleWeek = {
           ...JSON.parse(JSON.stringify(lastTrainingWeek)),
-          weekNumber: newWeekNumber,
+          weekNumber: insertAt + 1,
           isDeload: false,
         };
-        // Give new sessions fresh UUIDs
         newWeek.sessions = newWeek.sessions.map(s => ({
           ...s,
           id: uuidv4(),
-          name: s.name.replace(/W\d+/, `W${newWeekNumber}`),
+          name: s.name.replace(/W\d+/, `W${insertAt + 1}`),
         }));
 
+        // Insert before deload (or at end), deload stays last
         let updatedWeeks: MesocycleWeek[];
         if (deloadIdx >= 0) {
-          // Insert before deload, bump deload's weekNumber
           updatedWeeks = [
             ...weeks.slice(0, deloadIdx),
             newWeek,
-            { ...weeks[deloadIdx], weekNumber: newWeekNumber + 1 },
+            weeks[deloadIdx],
           ];
         } else {
           updatedWeeks = [...weeks, newWeek];
         }
 
-        // Update endDate to reflect new duration
+        // Re-number all weeks and recalculate multipliers
+        const totalWeeks = updatedWeeks.length;
+        updatedWeeks = updatedWeeks.map((w, i) => {
+          const weekNum = i + 1;
+          let volumeMultiplier: number;
+          let intensityMultiplier: number;
+          if (w.isDeload) {
+            volumeMultiplier = 0.5;
+            intensityMultiplier = 0.85;
+          } else {
+            const trainingWeeks = Math.max(1, totalWeeks - 1);
+            const progress = (weekNum - 1) / Math.max(1, trainingWeeks - 1);
+            volumeMultiplier = 1.0 + progress * 0.15;
+            intensityMultiplier = 1.0 + Math.max(0, progress - 0.3) * 0.085;
+          }
+          return {
+            ...w,
+            weekNumber: weekNum,
+            volumeMultiplier,
+            intensityMultiplier,
+            sessions: w.sessions.map(s => ({
+              ...s,
+              name: s.name.replace(/W\d+/, `W${weekNum}`),
+            })),
+          };
+        });
+
         const newEndDate = new Date(currentMesocycle.startDate);
         newEndDate.setDate(newEndDate.getDate() + updatedWeeks.length * 7);
 
@@ -2057,16 +2082,44 @@ export const useAppStore = create<AppState>()(
         const week = currentMesocycle.weeks[weekIndex];
         if (!week) return;
 
-        // Don't remove the deload week if it's the only one
-        if (week.isDeload && currentMesocycle.weeks.filter(w => w.isDeload).length <= 1) {
-          // Just remove and let the last week become deload
+        let updatedWeeks = currentMesocycle.weeks.filter((_, i) => i !== weekIndex);
+
+        // Ensure deload is always the last week
+        const deloadWeek = updatedWeeks.find(w => w.isDeload);
+        if (deloadWeek) {
+          updatedWeeks = [
+            ...updatedWeeks.filter(w => !w.isDeload),
+            deloadWeek,
+          ];
         }
 
-        const updatedWeeks = currentMesocycle.weeks
-          .filter((_, i) => i !== weekIndex)
-          .map((w, i) => ({ ...w, weekNumber: i + 1 })); // Re-number
+        // Re-number weeks and recalculate volume/intensity multipliers
+        const totalWeeks = updatedWeeks.length;
+        updatedWeeks = updatedWeeks.map((w, i) => {
+          const weekNum = i + 1;
+          let volumeMultiplier: number;
+          let intensityMultiplier: number;
+          if (w.isDeload) {
+            volumeMultiplier = 0.5;
+            intensityMultiplier = 0.85;
+          } else {
+            const trainingWeeks = Math.max(1, totalWeeks - 1);
+            const progress = (weekNum - 1) / Math.max(1, trainingWeeks - 1);
+            volumeMultiplier = 1.0 + progress * 0.15;
+            intensityMultiplier = 1.0 + Math.max(0, progress - 0.3) * 0.085;
+          }
+          return {
+            ...w,
+            weekNumber: weekNum,
+            volumeMultiplier,
+            intensityMultiplier,
+            sessions: w.sessions.map(s => ({
+              ...s,
+              name: s.name.replace(/W\d+/, `W${weekNum}`),
+            })),
+          };
+        });
 
-        // Update endDate
         const newEndDate = new Date(currentMesocycle.startDate);
         newEndDate.setDate(newEndDate.getDate() + updatedWeeks.length * 7);
 

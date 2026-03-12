@@ -59,6 +59,7 @@ import { getActiveInjuryAdaptations } from '@/lib/injury-science';
 import { Building2, Home, Backpack, Search } from 'lucide-react';
 import Confetti from 'react-confetti';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
+import { getSessionAdjustments } from '@/lib/concurrent-training';
 
 // ---------------------------------------------------------------------------
 // Mini Plate Calculator — shown during rest overlay
@@ -1940,6 +1941,45 @@ export default function ActiveWorkout() {
                 </motion.div>
               )}
 
+
+              {/* ─── Combat Load Banner — concurrent training interference ─── */}
+              {(() => {
+                const isCombat = user?.trainingIdentity === 'combat';
+                if (!isCombat || !trainingSessions || trainingSessions.length === 0) return null;
+                const recent = trainingSessions.filter((s: { date: string | Date }) => {
+                  const d = new Date(s.date);
+                  const now = new Date();
+                  return (now.getTime() - d.getTime()) / 86_400_000 <= 2;
+                });
+                if (recent.length === 0) return null;
+                const exercises = activeWorkout?.exerciseLogs?.map((log) => {
+                  const exDef = getExerciseById(log.exerciseId);
+                  return { muscleGroups: exDef?.primaryMuscles as string[] ?? ['full_body'] };
+                }) ?? [{ muscleGroups: ['full_body'] }];
+                const workoutType = activeWorkout?.session?.type ?? 'hypertrophy';
+                const adj = getSessionAdjustments(recent, { type: workoutType, exercises });
+                if (adj.overallVolumeMultiplier >= 0.95) return null;
+                const volPct = Math.round((1 - adj.overallVolumeMultiplier) * 100);
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      'h-8 flex items-center justify-center gap-1.5 rounded-lg mb-3 text-xs font-medium',
+                      adj.shouldSkip
+                        ? 'bg-red-500/15 border border-red-500/30 text-red-300'
+                        : adj.overallVolumeMultiplier < 0.8
+                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
+                          : 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
+                    )}
+                  >
+                    <Shield className="w-3 h-3" />
+                    {adj.shouldSkip
+                      ? 'High combat fatigue — consider recovery instead'
+                      : `Combat load detected: volume -${volPct}%`}
+                  </motion.div>
+                );
+              })()}
               {/* Smart Warm-Up Card */}
               {warmUpProtocol && warmUpProtocol.steps.length > 0 && (
                 <div className="mb-4">

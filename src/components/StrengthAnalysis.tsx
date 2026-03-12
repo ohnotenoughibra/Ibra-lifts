@@ -13,7 +13,10 @@ import {
   Zap,
   BarChart3,
   Activity,
-  Shield
+  Shield,
+  Gauge,
+  Dumbbell,
+  Info,
 } from 'lucide-react';
 import {
   LineChart,
@@ -33,6 +36,7 @@ import { useAppStore } from '@/lib/store';
 import { analyzeStickingPoints } from '@/lib/ai-coach';
 import { StickingPointAnalysis } from '@/lib/types';
 import { getAccessoryPrescription, type StickingPointPrescription } from '@/lib/sticking-point-data';
+import { estimateForceVelocityProfile, type FVProfileResult } from '@/lib/force-velocity';
 
 interface StrengthAnalysisProps {
   onClose: () => void;
@@ -69,12 +73,20 @@ const stickingPointConfig: Record<
 };
 
 export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
-  const { workoutLogs, user } = useAppStore();
+  const { workoutLogs, user, baselineLifts } = useAppStore();
   const weightUnit = user?.weightUnit || 'lbs';
   const [analyses, setAnalyses] = useState<StickingPointAnalysis[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<StickingPointAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Force-Velocity Profile
+  const fvProfile: FVProfileResult | null = useMemo(() => {
+    if (workoutLogs.length === 0) return null;
+    const bodyWeightKg = user?.bodyWeightKg || 75;
+    const sex = user?.sex || 'male';
+    return estimateForceVelocityProfile(workoutLogs, baselineLifts, bodyWeightKg, sex);
+  }, [workoutLogs, baselineLifts, user?.bodyWeightKg, user?.sex]);
 
   // Generate sticking point analyses for compound lifts with multiple sessions
   useEffect(() => {
@@ -618,7 +630,10 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
               </div>
             </div>
 
-            {/* 2. PLATEAUS / STICKING POINTS (actionable) */}
+            {/* 2. POWER PROFILE — Force-Velocity */}
+            {fvProfile && <PowerProfileSection fvProfile={fvProfile} />}
+
+            {/* 3. PLATEAUS / STICKING POINTS (actionable) */}
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
@@ -908,6 +923,201 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                 </AnimatePresence>
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ─── Power Profile Section (Force-Velocity) ─────────────────────────────────
+
+const PROFILE_CONFIG: Record<
+  FVProfileResult['profile'],
+  { label: string; color: string; bg: string; icon: typeof Dumbbell }
+> = {
+  force_dominant: {
+    label: 'Force Dominant',
+    color: 'text-red-400',
+    bg: 'bg-red-500/15 border-red-500/30',
+    icon: Dumbbell,
+  },
+  velocity_dominant: {
+    label: 'Velocity Dominant',
+    color: 'text-sky-400',
+    bg: 'bg-sky-500/15 border-sky-500/30',
+    icon: Zap,
+  },
+  balanced: {
+    label: 'Balanced',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/15 border-emerald-500/30',
+    icon: Target,
+  },
+};
+
+const FV_CONFIDENCE = {
+  low: { label: 'Low confidence', color: 'text-grappler-400' },
+  medium: { label: 'Moderate confidence', color: 'text-yellow-400' },
+  high: { label: 'High confidence', color: 'text-emerald-400' },
+} as const;
+
+function PowerProfileSection({ fvProfile }: { fvProfile: FVProfileResult }) {
+  const [expanded, setExpanded] = useState(false);
+  const { profile, imbalance, confidence, prescription, explanation } = fvProfile;
+  const config = PROFILE_CONFIG[profile];
+  const confConfig = FV_CONFIDENCE[confidence];
+
+  // Imbalance bar: -100 (force) to +100 (velocity)
+  // Map to 0-100% for positioning (0% = force, 50% = balanced, 100% = velocity)
+  const markerPct = ((imbalance + 100) / 200) * 100;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card overflow-hidden"
+    >
+      {/* Header — always visible */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 text-left"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Gauge className="w-5 h-5 text-primary-400" />
+            <h3 className="text-base font-semibold text-grappler-50">Power Profile</h3>
+          </div>
+          <ChevronDown
+            className={`w-5 h-5 text-grappler-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          />
+        </div>
+
+        {/* Profile badge + imbalance bar (compact) */}
+        <div className="flex items-center gap-3">
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${config.bg} ${config.color}`}>
+            {config.label}
+          </span>
+          <span className={`text-xs ${confConfig.color}`}>{confConfig.label}</span>
+        </div>
+
+        {/* Imbalance bar — always shown */}
+        <div className="mt-3">
+          <div className="flex justify-between text-[10px] text-grappler-500 mb-1">
+            <span>Force</span>
+            <span>Balanced</span>
+            <span>Velocity</span>
+          </div>
+          <div className="relative h-3 rounded-full bg-grappler-800 overflow-hidden">
+            {/* Gradient background */}
+            <div className="absolute inset-0 flex">
+              <div className="flex-1 bg-red-500/15" />
+              <div className="flex-1 bg-emerald-500/15" />
+              <div className="flex-1 bg-sky-500/15" />
+            </div>
+            {/* Center line */}
+            <div className="absolute inset-y-0 left-1/2 w-px bg-grappler-600" />
+            {/* Marker */}
+            <motion.div
+              className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-md z-10 ${
+                profile === 'force_dominant' ? 'bg-red-400' :
+                profile === 'velocity_dominant' ? 'bg-sky-400' :
+                'bg-emerald-400'
+              }`}
+              style={{ left: `${markerPct}%`, marginLeft: '-6px' }}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, delay: 0.1 }}
+            />
+          </div>
+          <div className="text-center mt-1">
+            <span className="text-xs text-grappler-400 tabular-nums">
+              Imbalance: <span className={config.color}>{imbalance > 0 ? '+' : ''}{imbalance}</span>
+            </span>
+          </div>
+        </div>
+      </button>
+
+      {/* Expanded details */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-3">
+              {/* Explanation */}
+              <div className="bg-grappler-800/40 rounded-lg p-3 flex items-start gap-2">
+                <Info className="w-4 h-4 text-grappler-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-grappler-300 leading-relaxed">{explanation}</p>
+              </div>
+
+              {/* Prescription split */}
+              <div className="bg-grappler-800/40 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-grappler-100 mb-2">Training Prescription</h4>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-red-400">{prescription.forcePercent}%</div>
+                    <div className="text-[10px] text-grappler-500 uppercase">Force</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-grappler-200">{prescription.balancedPercent}%</div>
+                    <div className="text-[10px] text-grappler-500 uppercase">Balanced</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-sky-400">{prescription.velocityPercent}%</div>
+                    <div className="text-[10px] text-grappler-500 uppercase">Velocity</div>
+                  </div>
+                </div>
+                {/* Visual split bar */}
+                <div className="h-2 rounded-full overflow-hidden flex">
+                  <div className="bg-red-500/60" style={{ width: `${prescription.forcePercent}%` }} />
+                  <div className="bg-grappler-400/40" style={{ width: `${prescription.balancedPercent}%` }} />
+                  <div className="bg-sky-500/60" style={{ width: `${prescription.velocityPercent}%` }} />
+                </div>
+              </div>
+
+              {/* Rep ranges + rest */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-grappler-800/40 rounded-lg p-3">
+                  <p className="text-[10px] text-grappler-500 uppercase mb-1">Rep Ranges</p>
+                  <p className="text-xs text-grappler-200">{prescription.repRanges}</p>
+                </div>
+                <div className="bg-grappler-800/40 rounded-lg p-3">
+                  <p className="text-[10px] text-grappler-500 uppercase mb-1">Rest Periods</p>
+                  <p className="text-xs text-grappler-200">{prescription.restPeriods}</p>
+                </div>
+              </div>
+
+              {/* Exercise recommendations */}
+              {prescription.exerciseFocus.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Dumbbell className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-medium text-grappler-100">Focus Exercises</h4>
+                  </div>
+                  <div className="space-y-1.5">
+                    {prescription.exerciseFocus.map((exercise, i) => (
+                      <motion.div
+                        key={exercise}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="flex items-center gap-2 bg-grappler-800 rounded-lg p-2.5"
+                      >
+                        <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-primary-400">{i + 1}</span>
+                        </div>
+                        <span className="text-xs text-grappler-200">{exercise}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -3148,7 +3148,7 @@ export const useAppStore = create<AppState>()(
           status: 'active',
           updatedAt: new Date().toISOString(),
         };
-        set({ illnessLogs: [...illnessLogs, newIllness] });
+        set({ illnessLogs: [...illnessLogs, newIllness], _syncUrgent: true });
       },
 
       updateIllnessCheckin: (illnessId, checkin) => {
@@ -3166,6 +3166,7 @@ export const useAppStore = create<AppState>()(
                 }
               : il
           ),
+          _syncUrgent: true,
         });
       },
 
@@ -3177,6 +3178,7 @@ export const useAppStore = create<AppState>()(
               ? { ...il, status, ...(endDate ? { endDate } : {}), updatedAt: new Date().toISOString() }
               : il
           ),
+          _syncUrgent: true,
         });
       },
 
@@ -3188,12 +3190,13 @@ export const useAppStore = create<AppState>()(
               ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0], updatedAt: new Date().toISOString() }
               : il
           ),
+          _syncUrgent: true,
         });
       },
 
       deleteIllness: (illnessId) => {
         const { illnessLogs } = get();
-        set({ illnessLogs: illnessLogs.filter(il => il.id !== illnessId) });
+        set({ illnessLogs: illnessLogs.filter(il => il.id !== illnessId), _syncUrgent: true });
       },
 
       getActiveIllness: () => {

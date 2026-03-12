@@ -154,12 +154,21 @@ export function calculateEnhancedACWR(
     }
   };
 
+  // Track daily timestamps to prevent double-counting when the same session
+  // appears in both workoutLogs and trainingSessions (e.g. combat athletes
+  // logging BJJ in grappling tracker AND as a completed workout)
+  const seenSlots = new Set<string>();
+
   workoutLogs.forEach(log => {
+    const slot = `${new Date(log.date).toDateString()}-${log.duration || 60}`;
+    seenSlots.add(slot);
     addLoad(log.date, log.duration || 60, log.overallRPE || 5);
   });
 
   if (trainingSessions) {
     trainingSessions.forEach(s => {
+      const slot = `${new Date(s.date).toDateString()}-${s.duration || 60}`;
+      if (seenSlots.has(slot)) return; // Skip duplicate
       addLoad(s.date, s.duration || 60, s.perceivedExertion || 5);
     });
   }

@@ -396,8 +396,8 @@ function AdaptiveRecoveryCard() {
     const rw = findOptimalTrainingWindow(
       {
         lastWorkoutDate: lastWorkout.date instanceof Date ? lastWorkout.date.toISOString() : String(lastWorkout.date),
-        lastWorkoutRPE: lastWorkout.overallRPE,
-        soreness: lastWorkout.soreness,
+        lastWorkoutRPE: lastWorkout.overallRPE ?? 6,
+        soreness: lastWorkout.soreness ?? undefined,
       },
       profile,
     );
@@ -408,8 +408,8 @@ function AdaptiveRecoveryCard() {
   if (!recoveryData) return null;
 
   const { window: rw, confidence } = recoveryData;
-  const readiness = Math.round(rw.currentReadiness);
-  const hoursLeft = rw.estimatedRecoveryTime;
+  const readiness = isNaN(rw.currentReadiness) ? 50 : Math.round(rw.currentReadiness);
+  const hoursLeft = isNaN(rw.estimatedRecoveryTime) ? 0 : rw.estimatedRecoveryTime;
   const isReady = readiness >= 70;
   const isOptimalSoon = rw.optimalTrainingWindow.start <= 2;
 

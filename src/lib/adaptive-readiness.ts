@@ -91,11 +91,17 @@ function deriveReadinessFromCheckIn(
 
   // When there is a full check-in, use it together with log-level fields.
   if (checkIn) {
-    const sorenessScore = (1 - (checkIn.soreness - 1) / 4) * 100;   // 1-5 → 100-0
-    const energyScore = ((log.energy - 1) / 9) * 100;                // 1-10 → 0-100
-    const sleepScore = ((checkIn.sleepQuality - 1) / 4) * 100;       // 1-5 → 0-100
-    const motivationScore = ((checkIn.motivation - 1) / 4) * 100;    // 1-5 → 0-100
-    const stressScore = (1 - (checkIn.stress - 1) / 4) * 100;        // 1-5 → 100-0
+    const soreness = checkIn.soreness ?? 3;
+    const energy = log.energy ?? 5;
+    const sleep = checkIn.sleepQuality ?? 3;
+    const motivation = checkIn.motivation ?? 3;
+    const stress = checkIn.stress ?? 3;
+
+    const sorenessScore = (1 - (soreness - 1) / 4) * 100;   // 1-5 → 100-0
+    const energyScore = ((energy - 1) / 9) * 100;            // 1-10 → 0-100
+    const sleepScore = ((sleep - 1) / 4) * 100;              // 1-5 → 0-100
+    const motivationScore = ((motivation - 1) / 4) * 100;    // 1-5 → 0-100
+    const stressScore = (1 - (stress - 1) / 4) * 100;        // 1-5 → 100-0
 
     return (
       sorenessScore * 0.35 +
@@ -107,9 +113,11 @@ function deriveReadinessFromCheckIn(
   }
 
   // Fallback: only log-level fields are available.
-  // soreness on WorkoutLog is 1-10, energy is 1-10.
-  const sorenessScore = (1 - (log.soreness - 1) / 9) * 100;
-  const energyScore = ((log.energy - 1) / 9) * 100;
+  // soreness on WorkoutLog is 1-10, energy is 1-10. Default to midpoint if missing.
+  const soreness = log.soreness ?? 5;
+  const energy = log.energy ?? 5;
+  const sorenessScore = (1 - (soreness - 1) / 9) * 100;
+  const energyScore = ((energy - 1) / 9) * 100;
 
   return sorenessScore * 0.55 + energyScore * 0.45;
 }
@@ -183,12 +191,15 @@ function extractObservationsFromLogs(logs: WorkoutLog[]): RecoveryObservation[] 
     const nextReadiness = deriveReadinessFromCheckIn(next);
     const sleepQuality = next.preCheckIn?.sleepQuality ?? null;
 
+    const rpe = current.overallRPE ?? 6; // Default to moderate if missing
+    if (isNaN(nextReadiness)) continue; // Skip corrupted data
+
     observations.push({
-      rpe: current.overallRPE,
+      rpe,
       hoursBetween: gap,
       nextReadiness,
       sleepQuality,
-      intensityBucket: rpeToIntensityBucket(current.overallRPE),
+      intensityBucket: rpeToIntensityBucket(rpe),
     });
   }
 
@@ -217,12 +228,14 @@ function extractObservationsFromSessions(sessions: TrainingSession[]): RecoveryO
     // with a slight boost for longer gaps (more recovery).
     const estimatedReadiness = clamp(70 + (gap - 24) * 0.5, 50, 95);
 
+    const rpe = current.perceivedExertion ?? 6;
+
     observations.push({
-      rpe: current.perceivedExertion,
+      rpe,
       hoursBetween: gap,
       nextReadiness: estimatedReadiness,
       sleepQuality: null,
-      intensityBucket: rpeToIntensityBucket(current.perceivedExertion),
+      intensityBucket: rpeToIntensityBucket(rpe),
     });
   }
 
@@ -285,8 +298,10 @@ export function buildRecoveryProfile(
   const sorenessPairs: { readiness: number; tau: number }[] = [];
 
   for (const obs of allObs) {
+    if (isNaN(obs.nextReadiness) || isNaN(obs.hoursBetween) || obs.hoursBetween <= 0) continue;
     const readinessRatio = clamp(obs.nextReadiness / 100, 0.01, 0.99);
     const tau = -obs.hoursBetween / Math.log(1 - readinessRatio);
+    if (!isFinite(tau) || isNaN(tau)) continue; // Skip degenerate data
     const clampedTau = clamp(tau, 4, 168); // between 4 hours and 7 days
 
     bucketTaus[obs.intensityBucket].push(clampedTau);
@@ -468,14 +483,16 @@ export function findOptimalTrainingWindow(
   profile: RecoveryProfile,
   minReadiness: number = 70,
 ): RecoveryWindow {
-  const bucket = rpeToIntensityBucket(currentState.lastWorkoutRPE);
-  let tau = profile.recoveryByIntensity[bucket];
+  const rpe = currentState.lastWorkoutRPE ?? 6;
+  const bucket = rpeToIntensityBucket(rpe);
+  let tau = profile.recoveryByIntensity[bucket] || 48; // Fallback to 48h if missing
 
   // Adjust tau for soreness.
-  if (currentState.soreness != null) {
+  if (currentState.soreness != null && !isNaN(currentState.soreness)) {
     const sorenessDelta = (currentState.soreness - 3) / 2;
     tau *= 1 + sorenessDelta * profile.sorenessSensitivity * 0.3;
   }
+  if (!isFinite(tau) || isNaN(tau)) tau = 48; // Hard fallback
   tau = clamp(tau, 4, 168);
 
   const elapsedHours = hoursBetween(new Date(currentState.lastWorkoutDate), new Date());

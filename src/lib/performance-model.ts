@@ -540,13 +540,40 @@ export function buildPerformanceProfiles(
     const { name, dataPoints } = value;
     const count = dataPoints.length;
 
-    // Current and peak e1rm
-    const current = dataPoints[dataPoints.length - 1].e1rm;
+    // Current and peak e1rm — filter outliers for "current" value
+    let current = dataPoints[dataPoints.length - 1].e1rm;
+    if (count >= 4) {
+      const vals = dataPoints.map(dp => dp.e1rm).sort((a, b) => a - b);
+      const q1 = vals[Math.floor(vals.length * 0.25)];
+      const q3 = vals[Math.floor(vals.length * 0.75)];
+      const iqr = q3 - q1;
+      if (iqr > 0) {
+        const lb = q1 - 1.5 * iqr;
+        // Walk backwards to find last non-outlier data point
+        for (let i = dataPoints.length - 1; i >= 0; i--) {
+          if (dataPoints[i].e1rm >= lb) {
+            current = dataPoints[i].e1rm;
+            break;
+          }
+        }
+      }
+    }
     let peak = 0;
     dataPoints.forEach(dp => { if (dp.e1rm > peak) peak = dp.e1rm; });
 
-    // Strength curve (last 20 data points for charting)
-    const curvePoints = dataPoints.slice(-20).map(dp => ({
+    // Strength curve (last 20 data points for charting, outliers excluded)
+    let curveData = dataPoints.slice(-20);
+    if (curveData.length >= 4) {
+      const cv = curveData.map(dp => dp.e1rm).sort((a, b) => a - b);
+      const cq1 = cv[Math.floor(cv.length * 0.25)];
+      const cq3 = cv[Math.floor(cv.length * 0.75)];
+      const ciqr = cq3 - cq1;
+      if (ciqr > 0) {
+        const clb = cq1 - 1.5 * ciqr;
+        curveData = curveData.filter(dp => dp.e1rm >= clb);
+      }
+    }
+    const curvePoints = curveData.map(dp => ({
       date: dp.date,
       e1rm: Math.round(dp.e1rm * 10) / 10,
     }));

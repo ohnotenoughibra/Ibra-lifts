@@ -1215,10 +1215,17 @@ export const useAppStore = create<AppState>()(
         const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue } = get();
         if (!currentMesocycle) return;
 
+        // Stamp actual completion date to prevent date-range overlap with next block
+        const completedBlock = {
+          ...currentMesocycle,
+          status: 'completed' as const,
+          endDate: new Date(),
+        };
+
         set({
           mesocycleHistory: [
             ...mesocycleHistory,
-            { ...currentMesocycle, status: 'completed' as const }
+            completedBlock
           ],
           currentMesocycle: null,
           gamificationStats: {
@@ -1581,11 +1588,17 @@ export const useAppStore = create<AppState>()(
         // Phase 2: Migrate logs from a different mesocycleId (original behavior)
         if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
 
+        // Build set of mesocycle IDs that are properly completed — their logs belong to them,
+        // not to the new block. This prevents deload-week logs from bleeding into the next block.
+        const { mesocycleHistory: mesoHistory } = get();
+        const completedMesoIds = new Set(mesoHistory.map(m => m.id));
+
         const mesoStart = new Date(currentMesocycle.startDate);
         const recentLogs = workoutLogs
           .filter(l =>
             l.mesocycleId !== currentMesocycle.id &&
             l.mesocycleId !== 'standalone' &&
+            !completedMesoIds.has(l.mesocycleId) && // Don't steal logs from completed blocks
             new Date(l.date) >= mesoStart
           )
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

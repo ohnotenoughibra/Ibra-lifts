@@ -1853,7 +1853,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         hasFightCamp={!!(fightCampPhase && fightCampPhase !== 'off_season')}
         hasActiveInjury={injuryLog.some(i => !i.resolved)}
         activeDietPhase={activeDietPhase?.isActive ? activeDietPhase.goal : null}
-        mesocycleWeek={currentMesocycle ? Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1) : null}
+        mesocycleWeek={currentMesocycle ? Math.min(currentMesocycle.weeks.length, Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1)) : null}
         hasCompletedWorkoutToday={directive.todayPerformance != null}
         onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
       />

@@ -60,7 +60,8 @@ export function generatePerformanceNarrative(opts: {
   const storyParts: string[] = [];
 
   // ── Consistency ──
-  const totalDays = Math.ceil((now - new Date(recentLogs[recentLogs.length - 1].date).getTime()) / (1000 * 60 * 60 * 24)) || 1;
+  const oldestLogTime = Math.min(...recentLogs.map(l => new Date(l.date).getTime()));
+  const totalDays = Math.ceil((now - oldestLogTime) / (1000 * 60 * 60 * 24)) || 1;
   const weeksTracked = Math.max(1, Math.round(totalDays / 7));
   const sessionsPerWeek = +(recentLogs.length / weeksTracked).toFixed(1);
   const combatPerWeek = recentSessions.length > 0 ? +(recentSessions.length / weeksTracked).toFixed(1) : 0;

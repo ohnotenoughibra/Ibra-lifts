@@ -495,7 +495,8 @@ export function findOptimalTrainingWindow(
   if (!isFinite(tau) || isNaN(tau)) tau = 48; // Hard fallback
   tau = clamp(tau, 4, 168);
 
-  const elapsedHours = hoursBetween(new Date(currentState.lastWorkoutDate), new Date());
+  const parsedDate = new Date(currentState.lastWorkoutDate);
+  const elapsedHours = isNaN(parsedDate.getTime()) ? 48 : hoursBetween(parsedDate, new Date());
 
   // Current readiness.
   const currentReadiness = clamp(

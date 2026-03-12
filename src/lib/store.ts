@@ -3146,6 +3146,7 @@ export const useAppStore = create<AppState>()(
             sleepQuality: 3,
           }],
           status: 'active',
+          updatedAt: new Date().toISOString(),
         };
         set({ illnessLogs: [...illnessLogs, newIllness] });
       },
@@ -3161,6 +3162,7 @@ export const useAppStore = create<AppState>()(
                   severity: checkin.severity,
                   hasFever: checkin.hasFever,
                   dailyCheckins: [...il.dailyCheckins.filter(c => c.date !== checkin.date), checkin],
+                  updatedAt: new Date().toISOString(),
                 }
               : il
           ),
@@ -3172,7 +3174,7 @@ export const useAppStore = create<AppState>()(
         set({
           illnessLogs: illnessLogs.map(il =>
             il.id === illnessId
-              ? { ...il, status, ...(endDate ? { endDate } : {}) }
+              ? { ...il, status, ...(endDate ? { endDate } : {}), updatedAt: new Date().toISOString() }
               : il
           ),
         });
@@ -3183,7 +3185,7 @@ export const useAppStore = create<AppState>()(
         set({
           illnessLogs: illnessLogs.map(il =>
             il.id === illnessId
-              ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0] }
+              ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0], updatedAt: new Date().toISOString() }
               : il
           ),
         });

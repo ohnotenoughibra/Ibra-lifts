@@ -1467,7 +1467,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
         <div>
           <label className="text-xs font-medium text-grappler-400 mb-2 block">Block Length</label>
           <div className="flex gap-1.5">
-            {[4, 6, 8].map((w) => (
+            {[4, 5, 6, 7, 8].map((w) => (
               <button
                 key={w}
                 onClick={() => onWeeksChange(w)}

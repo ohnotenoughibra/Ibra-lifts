@@ -164,8 +164,23 @@ function linearRegression(points: { x: number; y: number }[]): RegressionResult 
  * using linear regression on up to the last 8 sessions.
  */
 function classifyTrend(dataPoints: ExerciseDataPoint[]): 'rising' | 'plateau' | 'declining' {
-  const recent = dataPoints.slice(-8);
+  let recent = dataPoints.slice(-8);
   if (recent.length < 2) return 'plateau';
+
+  // ── Outlier filtering (IQR method) ──
+  // Warm-up sets or logging errors (e.g. 42kg when working weight is 84kg)
+  // corrupt the regression and produce false "declining" signals.
+  const e1rms = recent.map(dp => dp.e1rm);
+  const sorted = [...e1rms].sort((a, b) => a - b);
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  // Only filter if IQR is meaningful (prevents filtering when all values are similar)
+  if (iqr > 0) {
+    recent = recent.filter(dp => dp.e1rm >= lowerBound);
+    if (recent.length < 2) return 'plateau';
+  }
 
   // Normalise x to start at 0 (session index) for numeric stability
   const regressionPoints = recent.map((dp, i) => ({ x: i, y: dp.e1rm }));

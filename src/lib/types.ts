@@ -1413,6 +1413,7 @@ export interface BlockSuggestion {
   keyMetrics: { label: string; value: string; trend: 'up' | 'down' | 'stable' }[];
   weakPoints: string[];         // muscle groups needing attention
   strongPoints: string[];       // muscle groups performing well
+  isFromQueue?: boolean;        // true when suggestion comes from user's queued blocks
 }
 
 // ── Workout Skip Types ─────────────────────────────────────────────────────

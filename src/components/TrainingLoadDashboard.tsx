@@ -67,20 +67,24 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
       const weekEnd = now - w * 7 * 86400000;
       let load = 0;
       const seenSlots = new Set<string>();
+      // Sanitize duration: if >300 min (5h), assume stored in seconds
+      const sanitize = (d: number) => d > 300 ? Math.round(d / 60) : d;
       workoutLogs.forEach(log => {
         const t = new Date(log.date).getTime();
         if (t >= weekStart && t < weekEnd) {
-          const slot = `${new Date(log.date).toDateString()}-${log.duration || 60}`;
+          const dur = sanitize(log.duration || 60);
+          const slot = `${new Date(log.date).toDateString()}-${dur}`;
           seenSlots.add(slot);
-          load += (log.overallRPE || 5) * (log.duration || 60);
+          load += (log.overallRPE || 5) * dur;
         }
       });
       trainingSessions.forEach(s => {
         const t = new Date(s.date).getTime();
         if (t >= weekStart && t < weekEnd) {
-          const slot = `${new Date(s.date).toDateString()}-${s.duration || 60}`;
+          const dur = sanitize(s.duration || 60);
+          const slot = `${new Date(s.date).toDateString()}-${dur}`;
           if (!seenSlots.has(slot)) {
-            load += (s.perceivedExertion || 5) * (s.duration || 60);
+            load += (s.perceivedExertion || 5) * dur;
           }
         }
       });

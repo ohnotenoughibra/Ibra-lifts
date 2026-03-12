@@ -145,12 +145,15 @@ export function calculateEnhancedACWR(
   // Build daily load map (day offset 0 = today, 27 = 28 days ago)
   const dailyLoad = new Array(28).fill(0);
 
+  // Sanitize duration: if >300 min (5h), assume it was stored in seconds and convert
+  const sanitizeDuration = (d: number): number => d > 300 ? Math.round(d / 60) : d;
+
   const addLoad = (dateStr: string | Date, duration: number, rpe: number) => {
     const t = new Date(dateStr).getTime();
     if (t < twentyEightDaysAgo || t > now) return;
     const dayIndex = Math.floor((now - t) / DAY_MS);
     if (dayIndex >= 0 && dayIndex < 28) {
-      dailyLoad[dayIndex] += rpe * duration;
+      dailyLoad[dayIndex] += rpe * sanitizeDuration(duration);
     }
   };
 

@@ -339,9 +339,21 @@ export default function WorkoutHistory() {
       // Sort by date
       liftData.sort((a, b) => a.date.getTime() - b.date.getTime());
 
+      // IQR outlier filtering — remove warm-up sets logged as working
+      const e1rms = liftData.map(d => d.estimated1RM).sort((a, b) => a - b);
+      const q1 = e1rms[Math.floor(e1rms.length * 0.25)];
+      const q3 = e1rms[Math.floor(e1rms.length * 0.75)];
+      const iqr = q3 - q1;
+      let filtered = liftData;
+      if (iqr > 0) {
+        const lb = q1 - 1.5 * iqr;
+        filtered = liftData.filter(d => d.estimated1RM >= lb);
+      }
+      if (filtered.length < 2) continue;
+
       // Calculate weekly rate of gain (linear regression simplified)
-      const first = liftData[0];
-      const last = liftData[liftData.length - 1];
+      const first = filtered[0];
+      const last = filtered[filtered.length - 1];
       const weeksDiff = Math.max(1, (last.date.getTime() - first.date.getTime()) / (7 * 24 * 60 * 60 * 1000));
       const totalGain = last.estimated1RM - first.estimated1RM;
       const weeklyGain = totalGain / weeksDiff;
@@ -453,7 +465,10 @@ export default function WorkoutHistory() {
               description="Completed training blocks will appear here with volume, PRs, and progression data."
             />
           ) : (
-            [...mesocycleHistory].sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime()).map((meso) => {
+            [...mesocycleHistory]
+              .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())
+              .filter(meso => workoutLogs.some(l => l.mesocycleId === meso.id))
+              .map((meso) => {
               const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
               const totalVol = mesoLogs.reduce((s, l) => s + l.totalVolume, 0);
               const totalSessions = mesoLogs.length;

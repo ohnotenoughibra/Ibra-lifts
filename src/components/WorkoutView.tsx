@@ -33,6 +33,7 @@ import {
   Star,
   Activity,
   BarChart3,
+  Compass,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WorkoutSession, WorkoutType, MuscleGroupConfig, MuscleEmphasis, ExercisePrescription, Equipment, SessionsPerWeek, GoalFocus } from '@/lib/types';
@@ -43,8 +44,14 @@ import { BlockTimeline, VolumeWave, AICoachInsight } from './MesocycleTimeline';
 import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
 import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mesocycle-report';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
+import { useToast } from './Toast';
+import type { TabType } from './dashboard-types';
 
-export default function WorkoutView() {
+interface WorkoutViewProps {
+  onSwitchTab?: (tab: TabType) => void;
+}
+
+export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
   const { currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis, workoutLogs, swapProgramExercise, user, migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, mesocycleHistory, trainingSessions, injuryLog, wearableHistory, competitions, repairMesocycleProgress, deleteMesocycle, updateExercisePrescription, removeExerciseFromSession, addWeekToMesocycle, removeWeekFromMesocycle, mesocycleQueue } = useAppStore(
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout, generateNewMesocycle: s.generateNewMesocycle,
@@ -59,6 +66,8 @@ export default function WorkoutView() {
       mesocycleQueue: s.mesocycleQueue,
     }))
   );
+
+  const { showToast } = useToast();
 
   // Position-based session matching — survives UUID changes from regeneration/sync/migration
   const completedSessionIds = useMemo(
@@ -162,12 +171,12 @@ export default function WorkoutView() {
   const getWorkoutBreakdown = () => {
     const state = useAppStore.getState();
     const { currentMesocycle: meso, workoutLogs: logs } = state;
-    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0, workouts: [] };
+    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0, strength_endurance: 0, workouts: [] };
 
     const mesoLogs = logs.filter(log => log.mesocycleId === meso.id);
 
     // Match logs to sessions to get workout types
-    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0, workouts: mesoLogs };
+    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0, strength_endurance: 0, workouts: mesoLogs };
 
     mesoLogs.forEach(log => {
       // Find the session this log belongs to
@@ -177,6 +186,7 @@ export default function WorkoutView() {
           if (session.type === 'strength') breakdown.strength++;
           else if (session.type === 'hypertrophy') breakdown.hypertrophy++;
           else if (session.type === 'power') breakdown.power++;
+          else if (session.type === 'strength_endurance') breakdown.strength_endurance++;
           break;
         }
       }
@@ -319,6 +329,7 @@ export default function WorkoutView() {
       { value: 'strength', label: 'Strength', desc: 'Heavy, low reps', icon: Zap },
       { value: 'hypertrophy', label: 'Muscle', desc: 'Volume, pump', icon: Heart },
       { value: 'balanced', label: 'Both', desc: 'Best of both', icon: Flame },
+      { value: 'strength_endurance', label: 'Endurance', desc: 'High reps, short rest', icon: Target },
     ];
 
     const dayOptions: SessionsPerWeek[] = [2, 3, 4, 5, 6];
@@ -561,13 +572,24 @@ export default function WorkoutView() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowEmphasisPicker(true)}
-          className="btn btn-secondary btn-sm gap-2 w-full"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          New Block
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowEmphasisPicker(true)}
+            className="btn btn-secondary btn-sm gap-2 flex-1"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            New Block
+          </button>
+          {onSwitchTab && (
+            <button
+              onClick={() => onSwitchTab('explore')}
+              className="btn btn-ghost btn-sm gap-2 flex-1 text-grappler-400 hover:text-grappler-200"
+            >
+              <Compass className="w-4 h-4" />
+              Explore Programs
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Block Timeline — training journey across mesocycles */}
@@ -625,7 +647,11 @@ export default function WorkoutView() {
               </div>
             </div>
             <button
-              onClick={() => startWorkout(session)}
+              onClick={() => {
+                if (startWorkout(session) === false) {
+                  showToast('Finish your current workout first', 'warning');
+                }
+              }}
               className="btn btn-primary btn-md w-full gap-2 font-semibold"
             >
               <Play className="w-4 h-4" />
@@ -770,7 +796,11 @@ export default function WorkoutView() {
                           </div>
                         </button>
                         <button
-                          onClick={() => startWorkout(session)}
+                          onClick={() => {
+                            if (startWorkout(session) === false) {
+                              showToast('Finish your current workout first', 'warning');
+                            }
+                          }}
                           className="btn btn-primary btn-sm gap-1 flex-shrink-0"
                         >
                           <Play className="w-3.5 h-3.5" />

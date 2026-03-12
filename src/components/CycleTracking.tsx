@@ -37,8 +37,7 @@ interface CycleTrackingProps { onClose: () => void }
 
 export default function CycleTracking({ onClose }: CycleTrackingProps) {
   const { cycleLogs: rawCycleLogs, addCycleLog, deleteCycleLog, workoutLogs, macroTargets } = useAppStore();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cycleLogs = useMemo(() => rawCycleLogs.filter(l => !(l as any)._deleted), [rawCycleLogs]);
+  const cycleLogs = useMemo(() => rawCycleLogs.filter(l => !l._deleted), [rawCycleLogs]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);

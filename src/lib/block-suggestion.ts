@@ -29,6 +29,11 @@ import type {
 import { getExerciseById } from './exercises';
 import { getRecommendedTrainingFocus, getActivePhaseContext } from './periodization-planner';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Analysis Helpers ────────────────────────────────────────────────────
 
 interface PerformanceTrend {
@@ -219,6 +224,14 @@ export function suggestNextBlock(opts: {
   nutritionPeriodPlan?: NutritionPeriodPlan | null;
   mesocycleQueue?: PlannedMesocycle[];
 }): BlockSuggestion {
+  opts = {
+    ...opts,
+    workoutLogs: active(opts.workoutLogs),
+    trainingSessions: active(opts.trainingSessions),
+    injuryLog: active(opts.injuryLog),
+    wearableHistory: active(opts.wearableHistory),
+  };
+
   // ── Queue-first: if user has queued blocks, that IS the plan ──────────
   if (opts.mesocycleQueue && opts.mesocycleQueue.length > 0) {
     const next = opts.mesocycleQueue[0];
@@ -227,6 +240,7 @@ export function suggestNextBlock(opts: {
       hypertrophy: 'hypertrophy',
       power: 'power',
       balanced: 'base_building',
+      strength_endurance: 'base_building',
     };
     return {
       recommendedFocus: goalToFocus[next.focus],
@@ -446,6 +460,7 @@ export function suggestNextBlock(opts: {
       hypertrophy: 'hypertrophy',
       power: 'power',
       balanced: progressingCount > plateauCount ? 'hypertrophy' : 'strength',
+      strength_endurance: 'base_building',
     };
     const goalFocus = goalToFocus[currentGoal];
     if (goalFocus !== recommendedFocus) {
@@ -462,6 +477,7 @@ export function suggestNextBlock(opts: {
       hypertrophy: 'hypertrophy',
       power: 'power',
       balanced: progressingCount > plateauCount ? 'hypertrophy' : 'strength',
+      strength_endurance: 'base_building',
     };
     recommendedFocus = goalToFocus[currentGoal];
 

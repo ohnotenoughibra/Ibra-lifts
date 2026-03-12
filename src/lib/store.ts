@@ -82,7 +82,7 @@ import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, m
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
 import { getCompletedSessionIds } from './session-matching';
-import { getExerciseById, getAlternativesForExercise, exercises as allExercises } from './exercises';
+import { getExerciseById, getAlternativesForExercise, exercises as allExercises, registerCustomExercises, getAllExercises } from './exercises';
 import { calculateCompositeWellnessScore } from './wellness-score';
 import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
@@ -399,7 +399,7 @@ interface AppState {
   // Session template actions
   saveAsTemplate: (name: string, session: WorkoutSession) => void;
   deleteTemplate: (id: string) => void;
-  useTemplate: (id: string) => void;
+  useTemplate: (id: string) => boolean | void;
 
   // HR session actions
   addHRSession: (session: Omit<HRSession, 'id'>) => void;
@@ -1198,8 +1198,8 @@ export const useAppStore = create<AppState>()(
         // Bosquet et al. 2007 — deload is recovery tool, not ritual. Skip when fatigue is low.
         const { workoutLogs, trainingSessions } = get();
         const acwr = calculateEnhancedACWR(
-          workoutLogs.filter(l => !((l as unknown as { _deleted?: boolean })._deleted)),
-          trainingSessions,
+          workoutLogs.filter(l => !l._deleted),
+          trainingSessions.filter(s => !s._deleted),
         );
         // Include deload by default; skip only when athlete is clearly undertrained/fresh
         // ACWR < 0.85 = low training stimulus, no accumulated fatigue to recover from
@@ -1340,11 +1340,19 @@ export const useAppStore = create<AppState>()(
         if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
         set({ user: { ...user, ...overrides } });
         get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
-        // Restore original user settings
-        const updatedUser = get().user;
-        if (updatedUser) set({ user: { ...updatedUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions } });
-        // Remove from queue
-        set({ mesocycleQueue: mesocycleQueue.slice(1) });
+        // Restore original user settings and remove from queue in a single set()
+        // Use get() for fresh state since generateNewMesocycle may have mutated it
+        const freshState = get();
+        const freshUser = freshState.user;
+        const freshQueue = freshState.mesocycleQueue;
+        if (freshUser) {
+          set({
+            user: { ...freshUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions },
+            mesocycleQueue: freshQueue.slice(1),
+          });
+        } else {
+          set({ mesocycleQueue: freshQueue.slice(1) });
+        }
       },
 
       migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
@@ -2901,7 +2909,10 @@ export const useAppStore = create<AppState>()(
       },
 
       checkAndAwardBadges: () => {
-        const { gamificationStats, workoutLogs, mesocycleHistory, lastCompletedWorkout, trainingSessions, user } = get();
+        const { gamificationStats, workoutLogs: rawWorkoutLogs, mesocycleHistory, lastCompletedWorkout, trainingSessions: rawTrainingSessions, user } = get();
+        // Filter out soft-deleted items for accurate badge calculations
+        const workoutLogs = rawWorkoutLogs.filter(l => !l._deleted);
+        const trainingSessions = rawTrainingSessions.filter(s => !s._deleted);
 
         // Count weeks where all planned sessions were completed
         const planned = user?.sessionsPerWeek || 3;
@@ -2998,7 +3009,9 @@ export const useAppStore = create<AppState>()(
       },
 
       ensureWeeklyChallenge: () => {
-        const { gamificationStats, user, workoutLogs, trainingSessions } = get();
+        const { gamificationStats, user, workoutLogs: rawLogs, trainingSessions: rawSessions } = get();
+        const workoutLogs = rawLogs.filter(l => !l._deleted);
+        const trainingSessions = rawSessions.filter(s => !s._deleted);
         const planned = user?.sessionsPerWeek || 3;
 
         // Regenerate if: no challenge, wrong week, OR targets exceed plan (stale from old code)
@@ -3022,22 +3035,29 @@ export const useAppStore = create<AppState>()(
             dualDays: 0,
           };
           const challenge = generateWeeklyChallenge(user?.trainingIdentity, gamificationStats, recentWeeklyAvg, user?.sessionsPerWeek || 3);
+          // Combine challenge + shield refill in a single set() to avoid stale reads
+          const shield = gamificationStats.streakShield || initialStreakShield;
+          const shieldUpdate = shouldRefillShield(shield.lastRefillDate)
+            ? { streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] } }
+            : {};
           set({
             gamificationStats: {
               ...gamificationStats,
               weeklyChallenge: challenge,
+              ...shieldUpdate,
             }
           });
-        }
-        // Also refill streak shield if needed
-        const shield = gamificationStats.streakShield || initialStreakShield;
-        if (shouldRefillShield(shield.lastRefillDate)) {
-          set({
-            gamificationStats: {
-              ...get().gamificationStats,
-              streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] },
-            }
-          });
+        } else {
+          // Only refill streak shield if needed (no challenge regen)
+          const shield = gamificationStats.streakShield || initialStreakShield;
+          if (shouldRefillShield(shield.lastRefillDate)) {
+            set({
+              gamificationStats: {
+                ...gamificationStats,
+                streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] },
+              }
+            });
+          }
         }
       },
 
@@ -3110,22 +3130,20 @@ export const useAppStore = create<AppState>()(
 
         const newTotalPoints = gamificationStats.totalPoints + totalPoints;
 
-        set({
-          gamificationStats: {
-            ...gamificationStats,
-            totalPoints: newTotalPoints,
-            level: calculateLevel(newTotalPoints),
-            wellnessStats: newWellnessStats,
-          },
-        });
+        // Build updated stats BEFORE set() so badge check uses consistent state
+        const updatedGamStats = {
+          ...gamificationStats,
+          totalPoints: newTotalPoints,
+          level: calculateLevel(newTotalPoints),
+          wellnessStats: newWellnessStats,
+        };
 
-        // Check wellness badges
-        // Beast Mode = all 7 wellness domains completed in a day (not multiplier-based)
-        const allDomainCount = 7; // supplements, nutrition, water, sleep, mobility, mental, breathing
+        // Check wellness badges against the about-to-be-set state (not stale get())
+        const allDomainCount = 7;
         const beastModeDays = (ws.wellnessDays || []).filter(d => d.domains.length >= allDomainCount).length
           + (updatedDomains.length >= allDomainCount && existingDayIndex < 0 ? 1 : 0);
 
-        const wellnessBadges = checkWellnessBadges(get().gamificationStats, {
+        const wellnessBadges = checkWellnessBadges(updatedGamStats, {
           wellnessDaysCount: updatedDays.filter(d => d.domains.length >= 4).length,
           wellnessStreak: newStreaks.overall,
           supplementStreak: newStreaks.supplements,
@@ -3139,23 +3157,25 @@ export const useAppStore = create<AppState>()(
         });
 
         if (wellnessBadges.length > 0) {
-          const currentStats = get().gamificationStats;
           const newUserBadges = wellnessBadges.map(badge => ({
             id: uuidv4(),
-            userId: currentStats.userId,
+            userId: updatedGamStats.userId,
             badgeId: badge.id,
             earnedAt: new Date(),
             badge,
           }));
           const badgePoints = wellnessBadges.reduce((sum, b) => sum + b.points, 0);
+          // Single atomic set() with both wellness XP and badges
           set({
             gamificationStats: {
-              ...currentStats,
-              badges: [...currentStats.badges, ...newUserBadges],
-              totalPoints: currentStats.totalPoints + badgePoints,
-              level: calculateLevel(currentStats.totalPoints + badgePoints),
+              ...updatedGamStats,
+              badges: [...updatedGamStats.badges, ...newUserBadges],
+              totalPoints: updatedGamStats.totalPoints + badgePoints,
+              level: calculateLevel(updatedGamStats.totalPoints + badgePoints),
             },
           });
+        } else {
+          set({ gamificationStats: updatedGamStats });
         }
 
         return { points: totalPoints, breakdown, newMultiplier };
@@ -3491,12 +3511,16 @@ export const useAppStore = create<AppState>()(
           isCustom: true,
           createdAt: new Date()
         };
-        set({ customExercises: [...customExercises, custom] });
+        const updated = [...customExercises, custom];
+        set({ customExercises: updated });
+        registerCustomExercises(updated);
       },
 
       deleteCustomExercise: (id) => {
         const { customExercises } = get();
-        set({ customExercises: customExercises.filter(e => e.id !== id) });
+        const updated = customExercises.filter(e => e.id !== id);
+        set({ customExercises: updated });
+        registerCustomExercises(updated);
       },
 
       // Session template actions
@@ -3520,17 +3544,20 @@ export const useAppStore = create<AppState>()(
       useTemplate: (id) => {
         const { sessionTemplates } = get();
         const template = sessionTemplates.find(t => t.id === id);
-        if (!template) return;
+        if (!template) return false;
 
-        // Update usage stats
+        // Try to start the workout — bail if an active workout blocks it
+        const result = get().startWorkout(template.session);
+        if (result === false) return false;
+
+        // Only update usage stats if workout actually started
         set({
-          sessionTemplates: sessionTemplates.map(t =>
+          sessionTemplates: get().sessionTemplates.map(t =>
             t.id === id ? { ...t, timesUsed: t.timesUsed + 1, lastUsed: new Date() } : t
           )
         });
 
-        // Start the workout from the template
-        get().startWorkout(template.session);
+        return true;
       },
 
       // HR session actions
@@ -4456,9 +4483,9 @@ export const useMeals = () => useAppStore((state) => state.meals.filter(m => !m.
 export const useMealsRaw = () => useAppStore((state) => state.meals);
 export const useMealStamps = () => useAppStore((state) => state.mealStamps.filter(s => !s._deleted));
 export const useMealStampsRaw = () => useAppStore((state) => state.mealStamps);
-export const useInjuryLog = () => useAppStore((state) => state.injuryLog.filter(i => !(i as unknown as { _deleted?: boolean })._deleted));
-export const useIllnessLogs = () => useAppStore((state) => state.illnessLogs.filter(il => !(il as unknown as { _deleted?: boolean })._deleted));
-export const useTrainingSessions = () => useAppStore((state) => state.trainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted));
-export const useCycleLogs = () => useAppStore((state) => state.cycleLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted));
-export const useCompetitions = () => useAppStore((state) => state.competitions.filter(c => !(c as unknown as { _deleted?: boolean })._deleted));
-export const useQuickLogs = () => useAppStore((state) => state.quickLogs.filter(l => !(l as unknown as { _deleted?: boolean })._deleted));
+export const useInjuryLog = () => useAppStore((state) => state.injuryLog.filter(i => !i._deleted));
+export const useIllnessLogs = () => useAppStore((state) => state.illnessLogs.filter(il => !il._deleted));
+export const useTrainingSessions = () => useAppStore((state) => state.trainingSessions.filter(s => !s._deleted));
+export const useCycleLogs = () => useAppStore((state) => state.cycleLogs.filter(l => !l._deleted));
+export const useCompetitions = () => useAppStore((state) => state.competitions.filter(c => !c._deleted));
+export const useQuickLogs = () => useAppStore((state) => state.quickLogs.filter(l => !l._deleted));

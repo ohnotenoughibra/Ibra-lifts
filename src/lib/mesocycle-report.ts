@@ -1,6 +1,11 @@
 import { Mesocycle, WorkoutLog, ExerciseLog, WeightUnit } from './types';
 import { getExerciseById } from './exercises';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface ExerciseSummary {
@@ -110,6 +115,9 @@ export function generateMesocycleReport(
   previousMesocycle?: Mesocycle | null,
   previousLogs?: WorkoutLog[],
 ): MesocycleReport {
+  allWorkoutLogs = active(allWorkoutLogs);
+  if (previousLogs) previousLogs = active(previousLogs);
+
   // Filter logs for this mesocycle
   const logs = allWorkoutLogs
     .filter(l => l.mesocycleId === mesocycle.id)

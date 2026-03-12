@@ -17,6 +17,11 @@ import type { FatigueDebt } from './smart-deload';
 import type { HardMetrics, PlateauAnalysis, MuscleVolumeGauge, PREvent } from './progress-analytics';
 import type { OverlayView } from '@/components/dashboard-types';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface DashboardInsight {

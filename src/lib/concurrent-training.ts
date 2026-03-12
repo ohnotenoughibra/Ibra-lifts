@@ -101,6 +101,11 @@ export interface LiftingSlot {
   reason: string;
 }
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /**
@@ -323,6 +328,7 @@ export function calculateCumulativeSportLoad(
   sessions: TrainingSession[],
   windowDays: number = CHRONIC_WINDOW_DAYS,
 ): CumulativeLoad {
+  sessions = active(sessions);
   const now = new Date();
   const effectiveWindow = Math.max(windowDays, CHRONIC_WINDOW_DAYS);
 
@@ -436,6 +442,7 @@ export function getSessionAdjustments(
   /** Hour of day (0-23) the lifting session is planned. Used for time-separation interference attenuation. */
   liftingSessionHour?: number,
 ): SessionAdjustment {
+  recentSessions = active(recentSessions);
   const now = new Date();
 
   if (recentSessions.length === 0) {

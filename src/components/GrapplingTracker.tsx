@@ -174,7 +174,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
     user,
   } = useAppStore();
 
-  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !(s as unknown as { _deleted?: boolean })._deleted), [rawTrainingSessions]);
+  const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !s._deleted), [rawTrainingSessions]);
 
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);

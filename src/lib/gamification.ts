@@ -1,6 +1,11 @@
 import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog, WellnessDomain, WellnessStats, WellnessStreaks } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // Badge definitions — 52 total badges across 5 categories
 export const badges: Badge[] = [
   // ═══════════════════════════════════════════
@@ -1028,6 +1033,10 @@ export function calculateStreak(
   trainingSessions?: TrainingSession[],
   quickLogs?: QuickLog[],
 ): number {
+  workoutLogs = active(workoutLogs);
+  if (trainingSessions) trainingSessions = active(trainingSessions);
+  if (quickLogs) quickLogs = active(quickLogs);
+
   const fmtDate = (d: Date) => {
     const dt = new Date(d);
     dt.setHours(0, 0, 0, 0);
@@ -1211,6 +1220,9 @@ export function computeChallengeProgress(
   workoutLogs: WorkoutLog[],
   trainingSessions: TrainingSession[],
 ): WeeklyChallenge {
+  workoutLogs = active(workoutLogs);
+  trainingSessions = active(trainingSessions);
+
   const monday = challenge.weekStart;
   const mondayDate = new Date(monday + 'T00:00:00');
   const sundayDate = new Date(mondayDate);

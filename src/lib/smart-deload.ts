@@ -25,6 +25,11 @@ import type {
 import type { ExercisePerformanceProfile } from './performance-model';
 import { getCompletedSessionIds, flattenSessions } from './session-matching';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
 export interface FatigueDebt {
@@ -453,6 +458,9 @@ export function calculateFatigueDebt(
   wearableHistory: WearableData[],
   trainingSessions?: TrainingSession[],
 ): FatigueDebt {
+  workoutLogs = active(workoutLogs);
+  if (trainingSessions) trainingSessions = active(trainingSessions);
+
   const emptyDebt: FatigueDebt = {
     currentDebt: 0,
     debtTrend: 'stable',
@@ -658,6 +666,9 @@ export function getSmartDeloadRecommendation(
   currentMesocycle?: Mesocycle,
   trainingSessions?: TrainingSession[],
 ): DeloadRecommendation {
+  workoutLogs = active(workoutLogs);
+  if (trainingSessions) trainingSessions = active(trainingSessions);
+
   const fatigueDebt = calculateFatigueDebt(workoutLogs, wearableHistory, trainingSessions);
 
   // Default "no deload needed" response
@@ -1019,6 +1030,8 @@ export function getFatigueInsights(
   workoutLogs: WorkoutLog[],
   wearableHistory: WearableData[],
 ): FatigueInsight {
+  workoutLogs = active(workoutLogs);
+
   const { currentDebt, debtTrend, weeklyFatigueScores, primaryContributors, estimatedRecoveryDays } = fatigueDebt;
 
   // ─── Headline ───

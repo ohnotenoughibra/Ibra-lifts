@@ -74,6 +74,11 @@ export interface MuscleVolumeGauge {
   pctOfRange: number; // 0-100 within MEV-MRV range
 }
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function calc1RM(weight: number, reps: number): number {
@@ -98,6 +103,7 @@ function clamp(val: number, min: number, max: number): number {
 // ── 1. PR Timeline ────────────────────────────────────────────────────────
 
 export function extractPRTimeline(workoutLogs: WorkoutLog[]): PREvent[] {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length === 0) return [];
 
   const sorted = [...workoutLogs].sort(
@@ -175,6 +181,7 @@ export function extractPRTimeline(workoutLogs: WorkoutLog[]): PREvent[] {
 // ── 2. Synthetic Recovery ─────────────────────────────────────────────────
 
 export function calculateSyntheticRecovery(workoutLogs: WorkoutLog[]): SyntheticRecovery | null {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length < 3) return null;
 
   const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
@@ -262,6 +269,7 @@ export function calculateSyntheticRecovery(workoutLogs: WorkoutLog[]): Synthetic
 // ── 3. Plateau Detection ──────────────────────────────────────────────────
 
 export function detectPlateaus(workoutLogs: WorkoutLog[]): PlateauAnalysis[] {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length < 6) return [];
 
   const sixWeeksAgo = Date.now() - 42 * 24 * 60 * 60 * 1000;
@@ -432,6 +440,7 @@ export function calculateCombatBenchmarks(
   bodyweightKg: number,
   weightUnit: string,
 ): CombatBenchmark[] {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length === 0 || bodyweightKg <= 0) return [];
 
   const wc = getWeightClass(bodyweightKg);
@@ -511,6 +520,7 @@ export function calculateHardMetrics(
   workoutLogs: WorkoutLog[],
   currentMesocycleId: string | null,
 ): HardMetrics | null {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length < 3) return null;
 
   const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
@@ -669,6 +679,7 @@ const MUSCLE_LABELS: Record<string, string> = {
 };
 
 export function calculateMuscleVolumeGauges(workoutLogs: WorkoutLog[]): MuscleVolumeGauge[] {
+  workoutLogs = active(workoutLogs);
   if (workoutLogs.length === 0) return [];
 
   // Get last 7 days of logs for current weekly volume

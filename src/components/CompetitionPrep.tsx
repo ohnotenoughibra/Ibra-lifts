@@ -263,8 +263,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const [formPeakingWeeks, setFormPeakingWeeks] = useState(3);
   const [formWeighInType, setFormWeighInType] = useState<WeighInType>('day_before');
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const events = useMemo(() => rawEvents.filter(e => !(e as any)._deleted), [rawEvents]);
+  const events = useMemo(() => rawEvents.filter(e => !e._deleted), [rawEvents]);
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
   const isCombatAthlete = user?.trainingIdentity === 'combat';
 

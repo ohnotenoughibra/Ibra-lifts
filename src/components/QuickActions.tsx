@@ -28,6 +28,7 @@ import {
   Snowflake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from './Toast';
 import {
   ACTIVITY_CATEGORY_MAP,
   type ActivityType,
@@ -59,6 +60,7 @@ const QUICK_FOODS = [
 ] as const;
 
 export default function QuickActions({ onClose }: QuickActionsProps) {
+  const { showToast } = useToast();
   const user = useAppStore(s => s.user);
   const addQuickLog = useAppStore(s => s.addQuickLog);
   const quickLogs = useAppStore(s => s.quickLogs) ?? [];
@@ -917,7 +919,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
                 user.equipment, 30, user.goalFocus, user.availableEquipment, user.trainingIdentity,
                 gaps.length > 0 ? gaps.map(g => ({ muscle: g.muscle, deficit: g.deficit })) : undefined,
               );
-              startWorkout(session);
+              if (startWorkout(session) === false) {
+                showToast('Finish your current workout first', 'warning');
+                return;
+              }
               onClose();
             }}
             className="w-full rounded-xl border border-primary-500/30 bg-gradient-to-r from-primary-500/10 to-accent-500/5 p-3 flex items-center gap-3 text-left"

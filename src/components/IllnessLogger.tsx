@@ -211,7 +211,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
     getActiveIllness,
   } = useAppStore();
 
-  const illnessLogs = useMemo(() => rawIllnessLogs.filter(il => !(il as unknown as { _deleted?: boolean })._deleted), [rawIllnessLogs]);
+  const illnessLogs = useMemo(() => rawIllnessLogs.filter(il => !il._deleted), [rawIllnessLogs]);
 
   // ── UI State ──────────────────────────────────────────────────────────
   const [view, setView] = useState<'main' | 'new' | 'checkin'>('main');

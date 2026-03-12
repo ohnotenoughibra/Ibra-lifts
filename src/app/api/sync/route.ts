@@ -127,6 +127,10 @@ export async function POST(request: Request) {
         score += (Array.isArray(d.quickLogs) ? d.quickLogs.length : 0);
         score += (Array.isArray(d.bodyComposition) ? d.bodyComposition.length : 0);
         score += (Array.isArray(d.injuryLog) ? d.injuryLog.length : 0);
+        score += (Array.isArray(d.illnessLogs) ? d.illnessLogs.length : 0);
+        score += (Array.isArray(d.cycleLogs) ? d.cycleLogs.length : 0);
+        score += (Array.isArray(d.competitions) ? d.competitions.length : 0);
+        score += (Array.isArray(d.mealStamps) ? d.mealStamps.length : 0);
         score += (Array.isArray(d.supplementIntakes) ? d.supplementIntakes.length : 0);
         score += (Array.isArray(d.mentalCheckIns) ? d.mentalCheckIns.length : 0);
         score += (Array.isArray(d.weeklyCheckIns) ? d.weeklyCheckIns.length : 0);

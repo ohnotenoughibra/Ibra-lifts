@@ -23,8 +23,57 @@ import { formatDate, getRelativeTime } from '@/lib/utils';
 import { exercises as allExercises } from '@/lib/exercises';
 import { Shield, BookOpen, Filter, Zap, Heart, Scale, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from './Toast';
 
-// Helper to build a preset session from exercise IDs
+// Per-exercise prescription for templates — allows compound/accessory differentiation
+interface ExerciseSpec {
+  id: string;
+  sets: number;
+  reps: number;
+  rpe: number;
+  restSeconds: number; // Must be clean: 60, 90, 120, 180, etc.
+}
+
+// Helper to build a preset session from exercise specs (per-exercise sets/rest)
+function buildPresetSessionFromSpecs(
+  name: string,
+  type: 'strength' | 'hypertrophy' | 'power',
+  specs: ExerciseSpec[]
+): WorkoutSession {
+  const exercises = specs
+    .map(spec => {
+      const ex = allExercises.find(e => e.id === spec.id);
+      if (!ex) return null;
+      return {
+        exerciseId: ex.id,
+        exercise: ex,
+        sets: spec.sets,
+        prescription: {
+          targetReps: spec.reps,
+          minReps: Math.max(1, spec.reps - 2),
+          maxReps: spec.reps + 2,
+          rpe: spec.rpe,
+          restSeconds: spec.restSeconds,
+        },
+      };
+    })
+    .filter(Boolean) as WorkoutSession['exercises'];
+
+  const totalSetTime = exercises.reduce((acc, ex) => acc + ex.sets * (30 + ex.prescription.restSeconds), 0);
+
+  return {
+    id: `preset-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+    name,
+    type,
+    dayNumber: 1,
+    exercises,
+    estimatedDuration: Math.round(totalSetTime / 60),
+    warmUp: ['5 min light cardio', 'Dynamic stretching', 'Movement-specific warm-up'],
+    coolDown: ['Light stretching', 'Foam rolling'],
+  };
+}
+
+// Convenience wrapper — uniform sets/rest for all exercises (used by simple presets)
 function buildPresetSession(
   name: string,
   type: 'strength' | 'hypertrophy' | 'power',
@@ -34,31 +83,9 @@ function buildPresetSession(
   rpe: number,
   restSeconds: number
 ): WorkoutSession {
-  const exs = exerciseIds
-    .map(id => allExercises.find(e => e.id === id))
-    .filter(Boolean) as typeof allExercises;
-
-  return {
-    id: `preset-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
-    name,
-    type,
-    dayNumber: 1,
-    exercises: exs.map(ex => ({
-      exerciseId: ex.id,
-      exercise: ex,
-      sets: setsPerExercise,
-      prescription: {
-        targetReps: reps,
-        minReps: Math.max(1, reps - 2),
-        maxReps: reps + 2,
-        rpe,
-        restSeconds,
-      },
-    })),
-    estimatedDuration: Math.round(exs.length * setsPerExercise * (30 + restSeconds) / 60),
-    warmUp: ['5 min light cardio', 'Dynamic stretching', 'Movement-specific warm-up'],
-    coolDown: ['Light stretching', 'Foam rolling'],
-  };
+  return buildPresetSessionFromSpecs(name, type, exerciseIds.map(id => ({
+    id, sets: setsPerExercise, reps, rpe, restSeconds,
+  })));
 }
 
 // Built-in grappling-focused templates
@@ -82,7 +109,7 @@ const GRAPPLING_PRESETS: { name: string; description: string; build: () => Worko
     description: 'Explosive power & grip for tournament readiness',
     build: () => buildPresetSession('Competition Prep', 'power',
       ['power-clean', 'push-press', 'pull-up', 'box-jump', 'farmers-walk', 'cable-row'],
-      4, 4, 9, 150),
+      4, 4, 9, 120),
   },
   {
     name: 'Home Mat Work',
@@ -117,7 +144,7 @@ const GRAPPLING_PRESETS: { name: string; description: string; build: () => Worko
     description: 'Heavy posterior chain, neck, and grip — essential for takedown defense and top control',
     build: () => buildPresetSession('Wrestling Base', 'strength',
       ['deadlift', 'barbell-row', 'neck-curl', 'neck-extension', 'farmers-walk', 'hip-thrust', 'pull-up'],
-      4, 5, 8.5, 150),
+      4, 5, 8, 180),
   },
   {
     name: 'Guard Player',
@@ -131,69 +158,106 @@ const GRAPPLING_PRESETS: { name: string; description: string; build: () => Worko
 // General quick workout presets (not grappling-specific)
 type PresetCategory = 'push' | 'pull' | 'legs' | 'full_body' | 'upper' | 'lower' | 'arms';
 const QUICK_PRESETS: { name: string; description: string; category: PresetCategory; build: () => WorkoutSession }[] = [
+  // === PPL (Push/Pull/Legs) ===
   {
     name: 'Push Day',
     category: 'push',
-    description: 'Chest, shoulders & triceps — classic push session',
-    build: () => buildPresetSession('Push Day', 'hypertrophy',
-      ['bench-press', 'overhead-press', 'incline-bench-press', 'lateral-raise', 'tricep-pushdown', 'cable-fly'],
-      4, 10, 7, 120),
+    description: 'Bench, OHP, incline press, lateral raises, triceps — classic PPL push',
+    build: () => buildPresetSessionFromSpecs('Push Day', 'hypertrophy', [
+      { id: 'bench-press', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'overhead-press', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'dumbbell-incline-bench-press', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'lateral-raise', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'tricep-pushdown', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'overhead-tricep-extension', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
     name: 'Pull Day',
     category: 'pull',
-    description: 'Back & biceps — rows, pulldowns, and curls',
-    build: () => buildPresetSession('Pull Day', 'hypertrophy',
-      ['barbell-row', 'pull-up', 'lat-pulldown', 'face-pull', 'hammer-curl', 'rear-delt-fly'],
-      4, 10, 7, 120),
+    description: 'Rows, pull-ups, cable rows, face pulls, curls — classic PPL pull',
+    build: () => buildPresetSessionFromSpecs('Pull Day', 'hypertrophy', [
+      { id: 'barbell-row', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'pull-up', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'cable-row', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'face-pull', sets: 3, reps: 15, rpe: 7, restSeconds: 90 },
+      { id: 'bicep-curl', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'hammer-curl', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
-    name: 'Leg Day — Quad Focus',
+    name: 'Leg Day',
     category: 'legs',
-    description: 'Squat-dominant with quad isolation and calves',
-    build: () => buildPresetSession('Leg Day — Quad Focus', 'hypertrophy',
-      ['back-squat', 'leg-press', 'split-squat', 'leg-extension', 'calf-raise', 'hanging-leg-raise'],
-      4, 10, 7, 120),
+    description: 'Squat, RDL, leg press, leg curl, calves, extensions — classic PPL legs',
+    build: () => buildPresetSessionFromSpecs('Leg Day', 'hypertrophy', [
+      { id: 'back-squat', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'romanian-deadlift', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'leg-press', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'leg-curl', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'calf-raise', sets: 3, reps: 15, rpe: 7, restSeconds: 90 },
+      { id: 'leg-extension', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
+  // === Upper/Lower ===
   {
-    name: 'Leg Day — Posterior Chain',
-    category: 'legs',
-    description: 'Deadlift-dominant with hamstrings and glutes',
-    build: () => buildPresetSession('Leg Day — Posterior Chain', 'hypertrophy',
-      ['romanian-deadlift', 'hip-thrust', 'leg-curl', 'good-morning', 'nordic-curl', 'seated-calf-raise'],
-      4, 10, 7, 120),
-  },
-  {
-    name: 'Upper Body Strength',
+    name: 'Upper Body',
     category: 'upper',
-    description: 'Heavy compounds for upper body — bench, press, rows',
-    build: () => buildPresetSession('Upper Body Strength', 'strength',
-      ['bench-press', 'overhead-press', 'barbell-row', 'weighted-pull-up', 'parallel-bar-dip', 'face-pull'],
-      4, 5, 8, 180),
+    description: 'Bench, rows, OHP, pull-ups, lateral raises, arm work — upper day for UL split',
+    build: () => buildPresetSessionFromSpecs('Upper Body', 'hypertrophy', [
+      { id: 'bench-press', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'barbell-row', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'overhead-press', sets: 4, reps: 8, rpe: 8, restSeconds: 120 },
+      { id: 'pull-up', sets: 4, reps: 8, rpe: 8, restSeconds: 120 },
+      { id: 'lateral-raise', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'tricep-pushdown', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+      { id: 'bicep-curl', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
-    name: 'Lower Body Strength',
+    name: 'Lower Body',
     category: 'lower',
-    description: 'Heavy squats and deadlifts with accessories',
-    build: () => buildPresetSession('Lower Body Strength', 'strength',
-      ['back-squat', 'deadlift', 'split-squat', 'leg-curl', 'calf-raise', 'hanging-leg-raise'],
-      4, 5, 8, 180),
+    description: 'Squat, RDL, leg press, leg curl, calves — lower day for UL split',
+    build: () => buildPresetSessionFromSpecs('Lower Body', 'hypertrophy', [
+      { id: 'back-squat', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'romanian-deadlift', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'leg-press', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'leg-curl', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'calf-raise', sets: 4, reps: 15, rpe: 7, restSeconds: 90 },
+    ]),
+  },
+  // === Full Body 3x ===
+  {
+    name: 'Full Body A',
+    category: 'full_body',
+    description: 'Squat, bench, barbell row, lateral raises — full body day 1 of 3',
+    build: () => buildPresetSessionFromSpecs('Full Body A', 'hypertrophy', [
+      { id: 'back-squat', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'bench-press', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'barbell-row', sets: 4, reps: 8, rpe: 8, restSeconds: 120 },
+      { id: 'lateral-raise', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
-    name: 'Full Body Express',
+    name: 'Full Body B',
     category: 'full_body',
-    description: '30-minute full body — one push, pull, squat, hinge, and core',
-    build: () => buildPresetSession('Full Body Express', 'hypertrophy',
-      ['back-squat', 'bench-press', 'barbell-row', 'romanian-deadlift', 'plank'],
-      3, 8, 7, 90),
+    description: 'Deadlift, OHP, pull-ups, leg curl — full body day 2 of 3',
+    build: () => buildPresetSessionFromSpecs('Full Body B', 'hypertrophy', [
+      { id: 'deadlift', sets: 4, reps: 6, rpe: 8, restSeconds: 180 },
+      { id: 'overhead-press', sets: 4, reps: 8, rpe: 8, restSeconds: 180 },
+      { id: 'pull-up', sets: 4, reps: 8, rpe: 8, restSeconds: 120 },
+      { id: 'leg-curl', sets: 3, reps: 12, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
-    name: 'Full Body Heavy',
+    name: 'Full Body C',
     category: 'full_body',
-    description: 'Big 3 + accessories — squat, bench, deadlift in one session',
-    build: () => buildPresetSession('Full Body Heavy', 'strength',
-      ['back-squat', 'bench-press', 'deadlift', 'pull-up', 'overhead-press', 'face-pull'],
-      4, 5, 8, 180),
+    description: 'Leg press, incline press, cable row, face pulls — full body day 3 of 3',
+    build: () => buildPresetSessionFromSpecs('Full Body C', 'hypertrophy', [
+      { id: 'leg-press', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'dumbbell-incline-bench-press', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'cable-row', sets: 4, reps: 10, rpe: 7, restSeconds: 120 },
+      { id: 'face-pull', sets: 3, reps: 15, rpe: 7, restSeconds: 90 },
+    ]),
   },
   {
     name: 'Arms & Delts',
@@ -201,7 +265,7 @@ const QUICK_PRESETS: { name: string; description: string; category: PresetCatego
     description: 'Biceps, triceps, and shoulder isolation for the pump',
     build: () => buildPresetSession('Arms & Delts', 'hypertrophy',
       ['bicep-curl', 'skull-crusher', 'lateral-raise', 'hammer-curl', 'overhead-tricep-extension', 'rear-delt-fly', 'cable-lateral-raise'],
-      3, 12, 7, 75),
+      3, 12, 7, 90),
   },
   {
     name: 'Bodyweight Only',
@@ -241,7 +305,7 @@ const QUICK_PRESETS: { name: string; description: string; category: PresetCatego
     description: 'Deadlifts, hip thrusts, and hamstrings — the engine muscles for wrestling and grappling',
     build: () => buildPresetSession('Posterior Chain', 'strength',
       ['deadlift', 'hip-thrust', 'romanian-deadlift', 'leg-curl', 'good-morning', 'farmers-walk'],
-      4, 6, 8, 150),
+      4, 6, 8, 180),
   },
   {
     name: 'Squat Specialization',
@@ -249,7 +313,7 @@ const QUICK_PRESETS: { name: string; description: string; category: PresetCatego
     description: 'Multiple squat variations to drive quad and glute development',
     build: () => buildPresetSession('Squat Specialization', 'strength',
       ['back-squat', 'front-squat', 'split-squat', 'leg-press', 'leg-extension', 'calf-raise'],
-      4, 6, 8, 150),
+      4, 6, 8, 180),
   },
   {
     name: 'Core Fortress',
@@ -265,7 +329,7 @@ const QUICK_PRESETS: { name: string; description: string; category: PresetCatego
     description: 'Explosive movements for rate of force development — cleans, jumps, throws',
     build: () => buildPresetSession('Power Day', 'power',
       ['power-clean', 'box-jump', 'push-press', 'kettlebell-swing', 'med-ball-rotational-throw', 'broad-jump'],
-      4, 4, 8, 150),
+      4, 4, 8, 120),
   },
   {
     name: 'Bench Press Focus',
@@ -502,6 +566,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     setMuscleEmphasis,
     user,
   } = useAppStore();
+  const { showToast } = useToast();
 
   const [activeSection, setActiveSection] = useState<'programs' | 'quick' | 'templates' | 'presets' | 'save' | 'history'>('programs');
   const [quickFilter, setQuickFilter] = useState<PresetCategory | null>(null);
@@ -612,7 +677,10 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
   };
 
   const handleUseTemplate = (id: string) => {
-    useTemplate(id);
+    const result = useTemplate(id);
+    if (result === false) {
+      showToast('Finish your current workout first', 'warning');
+    }
   };
 
   const estimateDuration = (template: SessionTemplate): number => {
@@ -647,6 +715,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     hypertrophy: Heart,
     balanced: Scale,
     power: Target,
+    strength_endurance: Shield,
   };
 
   const goalColors: Record<GoalFocus, string> = {
@@ -654,6 +723,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     hypertrophy: 'text-purple-400 bg-purple-500/20 border-purple-500/30',
     balanced: 'text-primary-400 bg-primary-500/20 border-primary-500/30',
     power: 'text-blue-400 bg-blue-500/20 border-blue-500/30',
+    strength_endurance: 'text-amber-400 bg-amber-500/20 border-amber-500/30',
   };
 
   const filteredQuickPresets = quickFilter
@@ -745,7 +815,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                 >
                   All Goals
                 </button>
-                {(['strength', 'hypertrophy', 'balanced', 'power'] as GoalFocus[]).map(g => (
+                {(['strength', 'hypertrophy', 'balanced', 'power', 'strength_endurance'] as GoalFocus[]).map(g => (
                   <button
                     key={g}
                     onClick={() => setProgramFilterGoal(programFilterGoal === g ? null : g)}

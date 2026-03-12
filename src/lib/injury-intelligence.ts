@@ -17,6 +17,11 @@ import type {
 } from './types';
 import { exercises, getExerciseById } from './exercises';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Refined Movement Sub-patterns ──────────────────────────────────────────
 // The existing MovementPattern type is coarse ('push', 'pull', etc.).
 // For injury mapping we need finer resolution — vertical vs horizontal
@@ -404,6 +409,9 @@ export function getInjuryProfiles(
   injuryLog: InjuryEntry[],
   workoutLogs: WorkoutLog[],
 ): InjuryProfile[] {
+  injuryLog = active(injuryLog);
+  workoutLogs = active(workoutLogs);
+
   // Accumulate all pain events keyed by BodyRegion
   const regionEvents = new Map<BodyRegion, {
     entries: InjuryEntry[];
@@ -840,6 +848,8 @@ export function getInjuryInsights(
   injuryProfiles: InjuryProfile[],
   workoutLogs: WorkoutLog[],
 ): InjuryInsights {
+  workoutLogs = active(workoutLogs);
+
   const insights: string[] = [];
   const alerts: string[] = [];
   const recoveryProgress: RecoveryProgress[] = [];

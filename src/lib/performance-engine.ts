@@ -33,6 +33,11 @@ import type {
 } from './types';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 
+/** Filter out soft-deleted items from arrays before processing */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 // ── Factor Weights (default, redistributed if unavailable) ──────────────
 const DEFAULT_WEIGHTS: Record<ReadinessFactor['source'], number> = {
   sleep:         0.18,
@@ -63,41 +68,51 @@ export function calculateReadiness(opts: {
   quickLogs: QuickLog[];
   preCheckIn?: PreWorkoutCheckIn;
 }): ReadinessScore {
+  // Filter out soft-deleted items at the engine boundary
+  const filteredOpts = {
+    ...opts,
+    workoutLogs: active(opts.workoutLogs),
+    trainingSessions: active(opts.trainingSessions),
+    injuryLog: active(opts.injuryLog),
+    illnessLogs: opts.illnessLogs ? active(opts.illnessLogs) : undefined,
+    quickLogs: active(opts.quickLogs),
+  };
+
   const factors: ReadinessFactor[] = [];
   const recommendations: string[] = [];
 
   // 1. Sleep
-  factors.push(assessSleep(opts.wearableData, opts.preCheckIn, opts.quickLogs));
+  factors.push(assessSleep(filteredOpts.wearableData, filteredOpts.preCheckIn, filteredOpts.quickLogs));
 
   // 2. Nutrition
-  factors.push(assessNutrition(opts.meals, opts.macroTargets, opts.user));
+  factors.push(assessNutrition(filteredOpts.meals, filteredOpts.macroTargets, filteredOpts.user));
 
   // 3. Stress
-  factors.push(assessStress(opts.preCheckIn, opts.quickLogs));
+  factors.push(assessStress(filteredOpts.preCheckIn, filteredOpts.quickLogs));
 
   // 4. Recovery (wearable)
-  factors.push(assessRecovery(opts.wearableData));
+  factors.push(assessRecovery(filteredOpts.wearableData));
 
   // 5. Injury
-  factors.push(assessInjury(opts.injuryLog));
+  factors.push(assessInjury(filteredOpts.injuryLog));
 
   // 6. Training load
-  factors.push(assessTrainingLoad(opts.workoutLogs, opts.trainingSessions));
+  factors.push(assessTrainingLoad(filteredOpts.workoutLogs, filteredOpts.trainingSessions));
 
   // 7. Hydration
-  factors.push(assessHydration(opts.waterLog));
+  factors.push(assessHydration(filteredOpts.waterLog));
 
   // 8. Age
-  factors.push(assessAge(opts.user));
+  factors.push(assessAge(filteredOpts.user));
 
   // 9. HRV
-  factors.push(assessHRV(opts.wearableData, opts.wearableHistory));
+  factors.push(assessHRV(filteredOpts.wearableData, filteredOpts.wearableHistory));
 
   // 10. Soreness
-  factors.push(assessSoreness(opts.quickLogs));
+  factors.push(assessSoreness(filteredOpts.quickLogs));
 
   // 11. Illness
-  factors.push(assessIllness(opts.illnessLogs));
+  factors.push(assessIllness(filteredOpts.illnessLogs));
 
   // Redistribute weights from unavailable factors to available ones
   const availableFactors = factors.filter(f => f.available);

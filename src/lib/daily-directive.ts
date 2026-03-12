@@ -34,6 +34,11 @@ import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 
+/** Filter out soft-deleted items */
+function active<T>(arr: T[]): T[] {
+  return arr.filter(item => !(item as Record<string, unknown>)._deleted);
+}
+
 export type TodayType = 'lift' | 'combat' | 'both' | 'rest' | 'recovery';
 
 export interface TodayCombatSession {
@@ -140,16 +145,24 @@ interface DirectiveInput {
 
 export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const {
-    user, currentMesocycle, workoutLogs, trainingSessions,
+    user, currentMesocycle,
     wearableData, wearableHistory, meals, macroTargets,
-    injuryLog, quickLogs, workoutSkips,
+    workoutSkips,
   } = input;
+
+  // ─── Soft-delete filtering ───
+  const workoutLogs = active(input.workoutLogs);
+  const trainingSessions = active(input.trainingSessions);
+  const injuryLog = active(input.injuryLog);
+  const quickLogs = active(input.quickLogs);
+  const competitions = active(input.competitions || []);
+  const illnessLogs = active(input.illnessLogs || []);
 
   // ─── Readiness ───
   const readiness = calculateReadiness({
     user, workoutLogs, trainingSessions,
     wearableData, wearableHistory, meals, macroTargets,
-    waterLog: input.waterLog, injuryLog, illnessLogs: input.illnessLogs, quickLogs,
+    waterLog: input.waterLog, injuryLog, illnessLogs: illnessLogs, quickLogs,
   });
 
   // ─── Next workout ───
@@ -159,7 +172,6 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
   // ─── Fight camp context ───
   let fightCampTag: string | null = null;
-  const competitions = input.competitions || [];
   const now = Date.now();
   const nextComp = competitions
     .filter(c => c.isActive && new Date(c.date).getTime() > now)
@@ -292,7 +304,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   }
 
   // ─── Active illness gate ───
-  const activeIllness = (input.illnessLogs || []).find(
+  const activeIllness = illnessLogs.find(
     il => il.status === 'active' || il.status === 'recovering'
   ) || null;
   const illnessRec = activeIllness ? getIllnessTrainingRecommendation(activeIllness) : null;

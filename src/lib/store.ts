@@ -70,6 +70,7 @@ import {
   WellnessStats,
   NutritionPeriodPlan,
   WorkoutType,
+  MesocycleWeek,
 } from './types';
 import type { MealStamp } from './food-database';
 import type { CycleLog } from './female-athlete';
@@ -302,6 +303,12 @@ interface AppState {
   };
   importWorkoutLogsToCurrentMesocycle: (logIds: string[]) => void;
   repairMesocycleProgress: () => { fixed: number; orphanedMesoId: string | null };
+
+  // Mesocycle editing actions
+  updateExercisePrescription: (weekIndex: number, sessionId: string, exerciseIndex: number, updates: { sets?: number; targetReps?: number; minReps?: number; maxReps?: number; rpe?: number; restSeconds?: number; tempo?: string }) => void;
+  removeExerciseFromSession: (weekIndex: number, sessionId: string, exerciseIndex: number) => void;
+  addWeekToMesocycle: () => void;
+  removeWeekFromMesocycle: (weekIndex: number) => void;
 
   // Workout actions
   startWorkout: (session: WorkoutSession) => void;
@@ -1219,10 +1226,17 @@ export const useAppStore = create<AppState>()(
         const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue } = get();
         if (!currentMesocycle) return;
 
+        // Stamp actual completion date to prevent date-range overlap with next block
+        const completedBlock = {
+          ...currentMesocycle,
+          status: 'completed' as const,
+          endDate: new Date(),
+        };
+
         set({
           mesocycleHistory: [
             ...mesocycleHistory,
-            { ...currentMesocycle, status: 'completed' as const }
+            completedBlock
           ],
           currentMesocycle: null,
           gamificationStats: {
@@ -1585,11 +1599,17 @@ export const useAppStore = create<AppState>()(
         // Phase 2: Migrate logs from a different mesocycleId (original behavior)
         if (currentLogs.length > 0) return { fixed: 0, orphanedMesoId: null };
 
+        // Build set of mesocycle IDs that are properly completed — their logs belong to them,
+        // not to the new block. This prevents deload-week logs from bleeding into the next block.
+        const { mesocycleHistory: mesoHistory } = get();
+        const completedMesoIds = new Set(mesoHistory.map(m => m.id));
+
         const mesoStart = new Date(currentMesocycle.startDate);
         const recentLogs = workoutLogs
           .filter(l =>
             l.mesocycleId !== currentMesocycle.id &&
             l.mesocycleId !== 'standalone' &&
+            !completedMesoIds.has(l.mesocycleId) && // Don't steal logs from completed blocks
             new Date(l.date) >= mesoStart
           )
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -1910,6 +1930,145 @@ export const useAppStore = create<AppState>()(
           currentMesocycle: {
             ...currentMesocycle,
             weeks: updatedWeeks,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
+      updateExercisePrescription: (weekIndex, sessionId, exerciseIndex, updates) => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return;
+
+        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
+          if (wIdx !== weekIndex) return week;
+          return {
+            ...week,
+            sessions: week.sessions.map(session => {
+              if (session.id !== sessionId) return session;
+              const updatedExercises = [...session.exercises];
+              const old = updatedExercises[exerciseIndex];
+              if (!old) return session;
+              updatedExercises[exerciseIndex] = {
+                ...old,
+                sets: updates.sets ?? old.sets,
+                prescription: {
+                  ...old.prescription,
+                  ...(updates.targetReps != null && { targetReps: updates.targetReps }),
+                  ...(updates.minReps != null && { minReps: updates.minReps }),
+                  ...(updates.maxReps != null && { maxReps: updates.maxReps }),
+                  ...(updates.rpe != null && { rpe: updates.rpe }),
+                  ...(updates.restSeconds != null && { restSeconds: updates.restSeconds }),
+                  ...(updates.tempo !== undefined && { tempo: updates.tempo }),
+                },
+              };
+              return { ...session, exercises: updatedExercises };
+            }),
+          };
+        });
+
+        set({
+          currentMesocycle: { ...currentMesocycle, weeks: updatedWeeks, updatedAt: new Date().toISOString() },
+        });
+      },
+
+      removeExerciseFromSession: (weekIndex, sessionId, exerciseIndex) => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return;
+
+        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
+          if (wIdx !== weekIndex) return week;
+          return {
+            ...week,
+            sessions: week.sessions.map(session => {
+              if (session.id !== sessionId) return session;
+              if (session.exercises.length <= 1) return session; // Don't remove last exercise
+              const updatedExercises = session.exercises.filter((_, i) => i !== exerciseIndex);
+              return { ...session, exercises: updatedExercises };
+            }),
+          };
+        });
+
+        set({
+          currentMesocycle: { ...currentMesocycle, weeks: updatedWeeks, updatedAt: new Date().toISOString() },
+        });
+      },
+
+      addWeekToMesocycle: () => {
+        const { currentMesocycle, user } = get();
+        if (!currentMesocycle || !user) return;
+        if (currentMesocycle.weeks.length >= 12) return; // Hard cap
+
+        const weeks = currentMesocycle.weeks;
+        const deloadIdx = weeks.findIndex(w => w.isDeload);
+
+        // Clone the last non-deload week as a template for the new training week
+        const lastTrainingWeek = [...weeks].reverse().find(w => !w.isDeload) || weeks[0];
+        const newWeekNumber = deloadIdx >= 0 ? weeks[deloadIdx].weekNumber : weeks.length + 1;
+
+        const newWeek: MesocycleWeek = {
+          ...JSON.parse(JSON.stringify(lastTrainingWeek)),
+          weekNumber: newWeekNumber,
+          isDeload: false,
+        };
+        // Give new sessions fresh UUIDs
+        newWeek.sessions = newWeek.sessions.map(s => ({
+          ...s,
+          id: uuidv4(),
+          name: s.name.replace(/W\d+/, `W${newWeekNumber}`),
+        }));
+
+        let updatedWeeks: MesocycleWeek[];
+        if (deloadIdx >= 0) {
+          // Insert before deload, bump deload's weekNumber
+          updatedWeeks = [
+            ...weeks.slice(0, deloadIdx),
+            newWeek,
+            { ...weeks[deloadIdx], weekNumber: newWeekNumber + 1 },
+          ];
+        } else {
+          updatedWeeks = [...weeks, newWeek];
+        }
+
+        // Update endDate to reflect new duration
+        const newEndDate = new Date(currentMesocycle.startDate);
+        newEndDate.setDate(newEndDate.getDate() + updatedWeeks.length * 7);
+
+        set({
+          currentMesocycle: {
+            ...currentMesocycle,
+            weeks: updatedWeeks,
+            endDate: newEndDate,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
+      removeWeekFromMesocycle: (weekIndex) => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return;
+        if (currentMesocycle.weeks.length <= 2) return; // Keep at least 2 weeks
+
+        const week = currentMesocycle.weeks[weekIndex];
+        if (!week) return;
+
+        // Don't remove the deload week if it's the only one
+        if (week.isDeload && currentMesocycle.weeks.filter(w => w.isDeload).length <= 1) {
+          // Just remove and let the last week become deload
+        }
+
+        const updatedWeeks = currentMesocycle.weeks
+          .filter((_, i) => i !== weekIndex)
+          .map((w, i) => ({ ...w, weekNumber: i + 1 })); // Re-number
+
+        // Update endDate
+        const newEndDate = new Date(currentMesocycle.startDate);
+        newEndDate.setDate(newEndDate.getDate() + updatedWeeks.length * 7);
+
+        set({
+          currentMesocycle: {
+            ...currentMesocycle,
+            weeks: updatedWeeks,
+            endDate: newEndDate,
             updatedAt: new Date().toISOString(),
           },
         });

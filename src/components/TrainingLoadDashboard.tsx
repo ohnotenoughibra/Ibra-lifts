@@ -66,16 +66,22 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
       const weekStart = now - (w + 1) * 7 * 86400000;
       const weekEnd = now - w * 7 * 86400000;
       let load = 0;
+      const seenSlots = new Set<string>();
       workoutLogs.forEach(log => {
         const t = new Date(log.date).getTime();
         if (t >= weekStart && t < weekEnd) {
+          const slot = `${new Date(log.date).toDateString()}-${log.duration || 60}`;
+          seenSlots.add(slot);
           load += (log.overallRPE || 5) * (log.duration || 60);
         }
       });
       trainingSessions.forEach(s => {
         const t = new Date(s.date).getTime();
         if (t >= weekStart && t < weekEnd) {
-          load += (s.perceivedExertion || 5) * (s.duration || 60);
+          const slot = `${new Date(s.date).toDateString()}-${s.duration || 60}`;
+          if (!seenSlots.has(slot)) {
+            load += (s.perceivedExertion || 5) * (s.duration || 60);
+          }
         }
       });
       weeks.push({

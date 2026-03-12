@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronDown, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronDown, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap, Shield } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { getExerciseById, getExercisesByMuscle } from '@/lib/exercises';
 import { VOLUME_LANDMARKS } from '@/lib/workout-generator';
+import { analyzeVolumeLandmarks, type IndividualizedLandmarks, type MuscleLandmarks } from '@/lib/volume-landmarks';
 import { cn } from '@/lib/utils';
 import type { MuscleGroup, WorkoutLog } from '@/lib/types';
 
@@ -450,7 +451,10 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
             </div>
           </motion.div>
 
-          {/* 3. DETAILED BREAKDOWN — collapsible */}
+          {/* 3. YOUR VOLUME ZONES — personalized landmarks from training data */}
+          <VolumeZonesSection workoutLogs={workoutLogs} weeklySetVolumes={weeklySetVolumes} />
+
+          {/* 4. DETAILED BREAKDOWN — collapsible */}
           <motion.div variants={itemVariants} className="card overflow-hidden">
             <button
               onClick={() => setDetailsExpanded(!detailsExpanded)}
@@ -762,6 +766,223 @@ function MuscleVolumeBar({
           </div>
         </motion.div>
       )}
+    </motion.div>
+  );
+}
+
+// ─── Your Volume Zones — Personalized Landmarks ─────────────────────────────
+
+const CONFIDENCE_CONFIG = {
+  low: { label: 'Low', color: 'text-grappler-400', bg: 'bg-grappler-700', icon: '?' },
+  medium: { label: 'Med', color: 'text-yellow-400', bg: 'bg-yellow-500/20', icon: '~' },
+  high: { label: 'High', color: 'text-emerald-400', bg: 'bg-emerald-500/20', icon: '!' },
+} as const;
+
+const ZONE_MUSCLES_ORDER: MuscleGroup[] = [
+  'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings',
+  'glutes', 'biceps', 'triceps', 'calves', 'core', 'traps', 'forearms',
+];
+
+function VolumeZonesSection({
+  workoutLogs,
+  weeklySetVolumes,
+}: {
+  workoutLogs: WorkoutLog[];
+  weeklySetVolumes: Record<MuscleGroup, number>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const landmarks: IndividualizedLandmarks = useMemo(
+    () => analyzeVolumeLandmarks(workoutLogs, VOLUME_LANDMARKS),
+    [workoutLogs],
+  );
+
+  // Build rows: only muscles that exist in the landmarks result
+  const rows = useMemo(() => {
+    return ZONE_MUSCLES_ORDER
+      .filter(m => m in landmarks.muscles)
+      .map(m => {
+        const lm = landmarks.muscles[m];
+        const currentSets = Math.round((weeklySetVolumes[m] || 0) * 10) / 10;
+        return { muscle: m, label: MUSCLE_LABELS[m], lm, currentSets };
+      });
+  }, [landmarks, weeklySetVolumes]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <motion.div variants={itemVariants} className="card overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-4"
+      >
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-primary-400" />
+          <h2 className="text-base font-semibold text-grappler-50">Your Volume Zones</h2>
+          <span className="text-xs text-grappler-400">personalized</span>
+        </div>
+        <ChevronDown
+          className={cn(
+            'w-5 h-5 text-grappler-400 transition-transform duration-200',
+            expanded && 'rotate-180',
+          )}
+        />
+      </button>
+
+      {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="px-4 pb-4 space-y-3"
+        >
+          {/* Info blurb */}
+          <div className="bg-grappler-800/40 rounded-lg p-3 flex items-start gap-2">
+            <Info className="w-4 h-4 text-grappler-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-grappler-400">
+              Personalized volume landmarks learned from your training history.
+              More data = higher confidence. Population defaults fill gaps.
+            </p>
+          </div>
+
+          {/* Per-muscle horizontal zone bars */}
+          <div className="space-y-2">
+            {rows.map((row, i) => (
+              <VolumeZoneBar key={row.muscle} row={row} index={i} />
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs pt-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-1.5 rounded-sm bg-red-500/70" />
+              <span className="text-grappler-400">Insufficient</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-1.5 rounded-sm bg-yellow-500/70" />
+              <span className="text-grappler-400">Maintenance</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-1.5 rounded-sm bg-emerald-500/70" />
+              <span className="text-grappler-400">Optimal Growth</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-1.5 rounded-sm bg-orange-500/70" />
+              <span className="text-grappler-400">Overreaching</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+function VolumeZoneBar({
+  row,
+  index,
+}: {
+  row: { muscle: MuscleGroup; label: string; lm: MuscleLandmarks; currentSets: number };
+  index: number;
+}) {
+  const { lm, currentSets, label } = row;
+  const { mev, mav, mrv, confidence } = lm;
+  const conf = CONFIDENCE_CONFIG[confidence];
+
+  // Bar max extends 20% past MRV to show overreaching zone
+  const barMax = mrv * 1.25;
+  const mevPct = (mev / barMax) * 100;
+  const mavPct = (mav / barMax) * 100;
+  const mrvPct = (mrv / barMax) * 100;
+  // Current volume marker position (clamped to bar)
+  const markerPct = Math.min((currentSets / barMax) * 100, 100);
+
+  // Which zone is the athlete in?
+  const zoneName =
+    currentSets === 0 ? 'Untrained' :
+    currentSets < mev ? 'Insufficient' :
+    currentSets <= mav ? 'Maintenance' :
+    currentSets <= mrv ? 'Optimal Growth' :
+    'Overreaching';
+
+  const zoneColor =
+    currentSets === 0 ? 'text-grappler-500' :
+    currentSets < mev ? 'text-red-400' :
+    currentSets <= mav ? 'text-yellow-400' :
+    currentSets <= mrv ? 'text-emerald-400' :
+    'text-orange-400';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.03 }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span className={cn('text-sm font-medium', zoneColor)}>{label}</span>
+          <span className={cn('text-xs px-1 py-0.5 rounded', conf.bg, conf.color)}>
+            {conf.label}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={cn('font-medium', zoneColor)}>{zoneName}</span>
+          <span className="text-grappler-300 tabular-nums font-semibold">
+            {currentSets % 1 === 0 ? currentSets : currentSets.toFixed(1)}
+            <span className="text-grappler-500 font-normal"> sets</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Horizontal zone bar */}
+      <div className="relative h-4 rounded-md overflow-hidden bg-grappler-800/80">
+        {/* Zone bands */}
+        <div
+          className="absolute inset-y-0 left-0 bg-red-500/20"
+          style={{ width: `${mevPct}%` }}
+        />
+        <div
+          className="absolute inset-y-0 bg-yellow-500/20"
+          style={{ left: `${mevPct}%`, width: `${mavPct - mevPct}%` }}
+        />
+        <div
+          className="absolute inset-y-0 bg-emerald-500/20"
+          style={{ left: `${mavPct}%`, width: `${mrvPct - mavPct}%` }}
+        />
+        <div
+          className="absolute inset-y-0 bg-orange-500/15"
+          style={{ left: `${mrvPct}%`, right: 0 }}
+        />
+
+        {/* Zone boundary ticks */}
+        <div className="absolute inset-y-0 w-px bg-red-400/50" style={{ left: `${mevPct}%` }} />
+        <div className="absolute inset-y-0 w-px bg-yellow-400/50" style={{ left: `${mavPct}%` }} />
+        <div className="absolute inset-y-0 w-px bg-orange-400/50" style={{ left: `${mrvPct}%` }} />
+
+        {/* Current volume marker — white diamond */}
+        {currentSets > 0 && (
+          <motion.div
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-sm rotate-45 shadow-md shadow-white/20 border border-white/60 z-10"
+            style={{ left: `${markerPct}%`, marginLeft: '-5px' }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: index * 0.04 + 0.2, type: 'spring', stiffness: 300 }}
+          />
+        )}
+      </div>
+
+      {/* Landmark numbers */}
+      <div className="relative h-3 mt-0.5">
+        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}>
+          {mev}
+        </span>
+        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}>
+          {mav}
+        </span>
+        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}>
+          {mrv}
+        </span>
+      </div>
     </motion.div>
   );
 }

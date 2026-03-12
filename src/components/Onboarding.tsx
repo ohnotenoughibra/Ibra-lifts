@@ -182,10 +182,10 @@ function Step1_AboutYou({
   data: OnboardingData;
   update: (data: Partial<OnboardingData>) => void;
 }) {
-  const identities: { value: TrainingIdentity; icon: any; title: string; desc: string; color: string }[] = [
-    { value: 'combat', icon: Swords, title: 'Combat Sports', desc: 'MMA, BJJ, Wrestling, Striking', color: 'red' },
-    { value: 'recreational', icon: Dumbbell, title: 'Serious Lifter', desc: 'I train with a program and track progress', color: 'primary' },
-    { value: 'general_fitness', icon: Heart, title: 'Casual Fitness', desc: 'Stay healthy, look good — no strict program', color: 'green' },
+  const identities: { value: TrainingIdentity; icon: any; title: string; desc: string; who: string; color: string }[] = [
+    { value: 'combat', icon: Swords, title: 'Combat Athlete', desc: 'Lifting built around fight training', who: 'MMA, BJJ, wrestling, striking — plan lifts around sparring & rolling', color: 'red' },
+    { value: 'recreational', icon: Dumbbell, title: 'Dedicated Lifter', desc: '4-6x/week, structured programming', who: 'You follow a program, track PRs, and take training seriously', color: 'primary' },
+    { value: 'general_fitness', icon: Heart, title: 'Casual Training', desc: '2-3x/week, general health', who: 'Stay fit, look good, no strict schedule — we keep it simple', color: 'green' },
   ];
 
   const combatSports: { value: CombatSport; title: string; desc: string }[] = [
@@ -204,13 +204,15 @@ function Step1_AboutYou({
     { value: 'balanced', icon: Shield, title: 'Sport Performance', color: 'red' },
     { value: 'strength', icon: Zap, title: 'Get Stronger', color: 'orange' },
     { value: 'hypertrophy', icon: Flame, title: 'Build Muscle', color: 'purple' },
-    { value: 'power', icon: Trophy, title: 'Competition Prep', color: 'yellow' },
+    { value: 'strength_endurance', icon: Target, title: 'Round Endurance', color: 'yellow' },
+    { value: 'power', icon: Trophy, title: 'Competition Prep', color: 'green' },
   ];
 
   const recreationalGoals: GoalOption[] = [
     { value: 'strength', icon: Zap, title: 'Get Stronger', color: 'red' },
     { value: 'hypertrophy', icon: Flame, title: 'Build Muscle', color: 'purple' },
     { value: 'balanced', icon: Eye, title: 'Look Better', color: 'primary' },
+    { value: 'strength_endurance', icon: Target, title: 'Endurance', color: 'yellow' },
     { value: 'power', icon: Sparkles, title: 'Surprise Me', color: 'green' },
   ];
 
@@ -218,6 +220,7 @@ function Step1_AboutYou({
     { value: 'balanced', icon: Scale, title: 'Feel Better', color: 'green' },
     { value: 'strength', icon: Zap, title: 'Get Stronger', color: 'red' },
     { value: 'hypertrophy', icon: Flame, title: 'Tone Up', color: 'purple' },
+    { value: 'strength_endurance', icon: Target, title: 'Endurance', color: 'yellow' },
     { value: 'power', icon: Sparkles, title: 'Surprise Me', color: 'primary' },
   ];
 
@@ -280,8 +283,8 @@ function Step1_AboutYou({
                 )} />
               </div>
               <div>
-                <p className="font-semibold text-sm text-grappler-100">{id.title}</p>
-                <p className="text-xs text-grappler-400">{id.desc}</p>
+                <p className="font-semibold text-sm text-grappler-100">{id.title} <span className="font-normal text-grappler-400">— {id.desc}</span></p>
+                <p className="text-xs text-grappler-500 mt-0.5">{id.who}</p>
               </div>
             </button>
           ))}
@@ -571,25 +574,73 @@ function Step2_ScheduleAndGo({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.sessionsPerWeek]);
 
-  const toggleLift = (day: number) => {
-    const current = [...liftDays];
-    const idx = current.indexOf(day);
-    if (idx >= 0) {
-      current.splice(idx, 1);
-    } else {
-      if (current.length >= data.sessionsPerWeek) return;
-      current.push(day);
-    }
-    current.sort((a, b) => a - b);
-    update({ trainingDays: current });
+  // Day type for the tap-to-cycle grid: 'rest' | 'lift' | 'combat'
+  type DayType = 'rest' | 'lift' | 'combat';
+
+  const getDayType = (dayIdx: number): DayType => {
+    if (liftDays.includes(dayIdx)) return 'lift';
+    if (combatDays.some((s) => s.day === dayIdx)) return 'combat';
+    return 'rest';
   };
 
-  const combatSessionsForDay = (day: number) => combatDays.filter((s) => s.day === day);
+  const cycleDayType = (dayIdx: number) => {
+    const current = getDayType(dayIdx);
+    // Cycle order for combat athletes: rest → lift → combat → rest
+    // For non-combat: rest → lift → rest (skip combat)
+    let next: DayType;
+    if (isCombat) {
+      if (current === 'rest') next = 'lift';
+      else if (current === 'lift') next = 'combat';
+      else next = 'rest';
+    } else {
+      next = current === 'lift' ? 'rest' : 'lift';
+    }
+
+    // Apply the change
+    let newLiftDays = [...liftDays];
+    let newCombatDays = [...combatDays];
+
+    // Remove from current
+    if (current === 'lift') {
+      newLiftDays = newLiftDays.filter((d) => d !== dayIdx);
+    } else if (current === 'combat') {
+      newCombatDays = newCombatDays.filter((s) => s.day !== dayIdx);
+    }
+
+    // Add to next
+    if (next === 'lift') {
+      if (!newLiftDays.includes(dayIdx)) {
+        newLiftDays.push(dayIdx);
+        newLiftDays.sort((a, b) => a - b);
+      }
+    } else if (next === 'combat') {
+      if (!newCombatDays.some((s) => s.day === dayIdx)) {
+        newCombatDays.push({ day: dayIdx, intensity: 'moderate', timeOfDay: 'afternoon' });
+      }
+    }
+
+    // Update sessions per week to match lift days count
+    const liftCount = newLiftDays.length;
+    const clampedSessions = Math.max(1, Math.min(6, liftCount)) as SessionsPerWeek;
+
+    update({
+      trainingDays: newLiftDays,
+      combatTrainingDays: newCombatDays,
+      ...(liftCount > 0 && liftCount !== data.sessionsPerWeek ? { sessionsPerWeek: clampedSessions } : {}),
+    });
+  };
 
   const getSplitLabel = () => {
-    if (data.sessionsPerWeek <= 3) return 'Full body each session';
-    if (data.sessionsPerWeek <= 4) return 'Upper/lower split';
+    const count = liftDays.length;
+    if (count <= 3) return 'Full body each session';
+    if (count <= 4) return 'Upper/lower split';
     return 'Push/pull/legs split';
+  };
+
+  const dayTypeStyles: Record<DayType, { border: string; bg: string; text: string; label: string; icon: string }> = {
+    rest: { border: 'border-transparent', bg: 'bg-grappler-800/50', text: 'text-grappler-500', label: 'Rest', icon: '' },
+    lift: { border: 'border-primary-500/50', bg: 'bg-primary-500/10', text: 'text-primary-300', label: 'Lift', icon: '' },
+    combat: { border: 'border-red-500/50', bg: 'bg-red-500/10', text: 'text-red-300', label: 'Combat', icon: '' },
   };
 
   return (
@@ -599,76 +650,87 @@ function Step2_ScheduleAndGo({
           <CalendarDays className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-xl font-bold text-grappler-50">When do you train?</h2>
-        <p className="text-grappler-400 text-sm">Tap days to toggle — you can change this anytime</p>
+        <p className="text-grappler-400 text-sm">
+          {isCombat
+            ? 'Tap each day to cycle: Rest \u2192 Lift \u2192 Combat'
+            : 'Tap each day to toggle between Lift and Rest'}
+        </p>
       </div>
 
-      {/* Sessions per week */}
+      {/* Sessions per week — only for non-combat (combat athletes set it via the grid) */}
+      {!isCombat && (
+        <div>
+          <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
+            Lifting days per week
+            <span className="text-grappler-500 ml-1 normal-case">({liftDays.length}/{data.sessionsPerWeek})</span>
+          </label>
+          <div className="grid grid-cols-6 gap-2">
+            {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
+              <button
+                key={n}
+                onClick={() => update({ sessionsPerWeek: n })}
+                className={cn(
+                  'py-3 min-h-[48px] rounded-lg text-lg font-bold transition-all',
+                  data.sessionsPerWeek === n
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-grappler-700 text-grappler-400'
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-grappler-400 mt-1.5 text-center">{getSplitLabel()}</p>
+        </div>
+      )}
+
+      {/* Week grid — tap to cycle day type */}
       <div>
         <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
-          Lifting days per week
-          <span className="text-grappler-500 ml-1 normal-case">({liftDays.length}/{data.sessionsPerWeek})</span>
+          Your week
         </label>
-        <div className="grid grid-cols-6 gap-2">
-          {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
-            <button
-              key={n}
-              onClick={() => update({ sessionsPerWeek: n })}
-              className={cn(
-                'py-3 min-h-[48px] rounded-lg text-lg font-bold transition-all',
-                data.sessionsPerWeek === n
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-grappler-700 text-grappler-400'
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-grappler-400 mt-1.5 text-center">{getSplitLabel()}</p>
-      </div>
-
-      {/* Week grid */}
-      <div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {DAY_NAMES.map((name, dayIdx) => {
-            const hasLift = liftDays.includes(dayIdx);
-            const dayCombat = combatSessionsForDay(dayIdx);
-            const hasCombat = dayCombat.length > 0;
-            const isRest = !hasLift && !hasCombat;
+            const dtype = getDayType(dayIdx);
+            const styles = dayTypeStyles[dtype];
 
             return (
               <button
                 key={dayIdx}
-                onClick={() => toggleLift(dayIdx)}
+                onClick={() => {
+                  if (!isCombat) {
+                    // For non-combat: respect the sessionsPerWeek cap
+                    if (dtype === 'rest' && liftDays.length >= data.sessionsPerWeek) return;
+                  }
+                  cycleDayType(dayIdx);
+                }}
                 className={cn(
-                  'rounded-lg text-center transition-all py-2 min-h-[60px] flex flex-col items-center justify-start gap-1 border-2',
-                  hasLift ? 'border-primary-500/50 bg-primary-500/10' : 'border-transparent',
-                  isRest && !hasLift && 'bg-grappler-800/50',
-                  !isRest && !hasLift && 'bg-grappler-700'
+                  'rounded-xl text-center transition-all py-2.5 min-h-[72px] flex flex-col items-center justify-center gap-1 border-2',
+                  styles.border,
+                  styles.bg,
                 )}
               >
                 <span className={cn(
                   'text-xs font-medium',
-                  hasLift ? 'text-primary-300' : 'text-grappler-400'
+                  styles.text,
                 )}>{name}</span>
-                <div className="flex flex-col gap-0.5 items-center">
-                  {hasLift && (
-                    <div className="w-5 h-1.5 rounded-full bg-primary-400" title="Lift" />
-                  )}
-                  {dayCombat.map((_, ci) => (
-                    <div key={ci} className="w-5 h-1.5 rounded-full bg-red-400" title="Combat" />
-                  ))}
-                  {isRest && (
-                    <span className="text-xs text-grappler-600 mt-0.5">Rest</span>
-                  )}
-                </div>
+                <span className={cn(
+                  'text-[10px] font-bold uppercase tracking-wider mt-0.5',
+                  styles.text,
+                )}>{styles.label}</span>
+                {dtype === 'lift' && (
+                  <div className="w-5 h-1.5 rounded-full bg-primary-400 mt-0.5" />
+                )}
+                {dtype === 'combat' && (
+                  <div className="w-5 h-1.5 rounded-full bg-red-400 mt-0.5" />
+                )}
               </button>
             );
           })}
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-2">
+        <div className="flex items-center justify-center gap-4 mt-2.5">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-1.5 rounded-full bg-primary-400" />
             <span className="text-xs text-grappler-400">Lift</span>
@@ -676,55 +738,41 @@ function Step2_ScheduleAndGo({
           {isCombat && (
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-1.5 rounded-full bg-red-400" />
-              <span className="text-xs text-grappler-400">Combat (auto-scheduled)</span>
+              <span className="text-xs text-grappler-400">Combat</span>
             </div>
           )}
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1.5 rounded-full bg-grappler-600" />
+            <span className="text-xs text-grappler-400">Rest</span>
+          </div>
         </div>
       </div>
 
       {isCombat && (
-        <p className="text-xs text-grappler-400 text-center">
-          Combat sessions are auto-optimized around your lifts. Fine-tune in Settings.
-        </p>
+        <div className="p-3 rounded-xl bg-grappler-800/50 border border-grappler-700/50">
+          <p className="text-xs text-grappler-400 leading-relaxed">
+            <span className="font-semibold text-grappler-300">Tip:</span> Place heavy lifting away from hard sparring days. We will auto-adjust intensity based on your schedule. You can fine-tune in Settings later.
+          </p>
+        </div>
       )}
 
-      {/* Week Structure Preview */}
+      {/* Week summary — compact counts */}
       {liftDays.length > 0 && (
-        <div className="mt-4 p-3 rounded-xl bg-grappler-800/50 border border-grappler-700/50">
-          <p className="text-xs text-grappler-400 mb-2 font-medium">Your Week</p>
-          <div className="grid grid-cols-7 gap-1">
-            {DAY_NAMES.map((day, i) => {
-              const hasLifting = liftDays.includes(i);
-              const hasSport = combatDays.some((s) => s.day === i);
-              return (
-                <div key={day} className="text-center">
-                  <span className="text-xs text-grappler-500">{day}</span>
-                  <div className={cn(
-                    'mt-1 h-8 rounded-md flex items-center justify-center text-xs font-medium',
-                    hasLifting && hasSport
-                      ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
-                      : hasLifting
-                        ? 'bg-primary-500/20 text-primary-300'
-                        : hasSport
-                          ? 'bg-orange-500/20 text-orange-300'
-                          : 'bg-grappler-800 text-grappler-600'
-                  )}>
-                    {hasLifting && hasSport ? 'Both' : hasLifting ? 'Lift' : hasSport ? 'Sport' : 'Rest'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex gap-3 mt-2">
-            <span className="text-xs text-grappler-500 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm bg-primary-500/30" /> Lifting
+        <div className="flex items-center justify-center gap-4">
+          <span className="text-xs text-grappler-400">
+            <span className="font-bold text-primary-300">{liftDays.length}</span> lift {liftDays.length === 1 ? 'day' : 'days'}
+          </span>
+          {isCombat && combatDays.length > 0 && (
+            <span className="text-xs text-grappler-400">
+              <span className="font-bold text-red-300">{combatDays.length}</span> combat {combatDays.length === 1 ? 'day' : 'days'}
             </span>
-            {isCombat && (
-              <span className="text-xs text-grappler-500 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-sm bg-orange-500/30" /> Sport
-              </span>
-            )}
-          </div>
+          )}
+          <span className="text-xs text-grappler-400">
+            <span className="font-bold text-grappler-300">{7 - liftDays.length - combatDays.length}</span> rest
+          </span>
+          {liftDays.length > 0 && (
+            <span className="text-xs text-grappler-500 italic">{getSplitLabel()}</span>
+          )}
         </div>
       )}
 

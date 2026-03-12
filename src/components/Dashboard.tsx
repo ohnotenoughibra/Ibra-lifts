@@ -384,6 +384,29 @@ export default function Dashboard({
     }
   }, [activeTab, switchTab]);
 
+  // FAB "+" tooltip — shown once for new users who haven't tapped it yet
+  const [fabTooltipDismissed, setFabTooltipDismissed] = useState(true); // default true to avoid flash
+  const [showFabTooltip, setShowFabTooltip] = useState(false);
+  useEffect(() => {
+    const alreadyShown = localStorage.getItem('roots-fab-tooltip-shown');
+    if (!alreadyShown && user) {
+      setFabTooltipDismissed(false);
+      // Slight delay so the nav renders first, then tooltip appears
+      const timer = setTimeout(() => setShowFabTooltip(true), 1200);
+      // Auto-dismiss after 6 seconds if user doesn't interact
+      const autoDismiss = setTimeout(() => {
+        setShowFabTooltip(false);
+        setFabTooltipDismissed(true);
+        localStorage.setItem('roots-fab-tooltip-shown', 'true');
+      }, 7200);
+      return () => { clearTimeout(timer); clearTimeout(autoDismiss); };
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  // When dismissed, hide the tooltip
+  useEffect(() => {
+    if (fabTooltipDismissed) setShowFabTooltip(false);
+  }, [fabTooltipDismissed]);
+
   // Show new user guide after first workout completion (not before)
   const [showNewUserGuide, setShowNewUserGuide] = useState(false);
   useEffect(() => {
@@ -734,7 +757,7 @@ export default function Dashboard({
               exit={{ opacity: 0, y: -10 }}
             >
               <CardErrorBoundary fallbackLabel="Program tab">
-                <WorkoutView />
+                <WorkoutView onSwitchTab={setActiveTab} />
               </CardErrorBoundary>
             </motion.div>
           )}
@@ -827,13 +850,42 @@ export default function Dashboard({
 
           {/* Center: raised "+" button anchored in-flow, protruding above */}
           <div className="flex justify-center">
-            <button
-              onClick={() => setOverlayView('quick_actions')}
-              aria-label="Quick log"
-              className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setOverlayView('quick_actions');
+                  // Dismiss tooltip permanently on first tap
+                  if (!fabTooltipDismissed) {
+                    setFabTooltipDismissed(true);
+                    localStorage.setItem('roots-fab-tooltip-shown', 'true');
+                  }
+                }}
+                aria-label="Quick log"
+                className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+              {/* First-time tooltip */}
+              <AnimatePresence>
+                {showFabTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50"
+                    onClick={() => {
+                      setFabTooltipDismissed(true);
+                      localStorage.setItem('roots-fab-tooltip-shown', 'true');
+                    }}
+                  >
+                    <div className="bg-grappler-50 text-grappler-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
+                      Start a workout
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-grappler-50 rotate-45" />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Right tabs: Explore, Progress */}

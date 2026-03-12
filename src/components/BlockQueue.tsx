@@ -28,6 +28,7 @@ import {
   Minus,
   AlertTriangle,
   RefreshCw,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GoalFocus, BlockFocus } from '@/lib/types';
@@ -37,6 +38,7 @@ const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; c
   { value: 'hypertrophy', label: 'Hypertrophy', icon: <Flame className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Moderate loads, higher volume' },
   { value: 'power', label: 'Power', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-400 bg-yellow-500/20', desc: 'Explosive, speed-strength' },
   { value: 'balanced', label: 'Balanced', icon: <Shield className="w-4 h-4" />, color: 'text-blue-400 bg-blue-500/20', desc: 'Mix of strength & hypertrophy' },
+  { value: 'strength_endurance', label: 'Endurance', icon: <Target className="w-4 h-4" />, color: 'text-amber-400 bg-amber-500/20', desc: 'High reps, short rest — round simulation' },
 ];
 
 const PERIODIZATION_OPTIONS: { value: 'linear' | 'undulating' | 'block' | 'conjugate'; label: string }[] = [

@@ -240,6 +240,7 @@ const GOAL_TO_LINEAR_TYPE: Record<GoalFocus, WorkoutType> = {
   hypertrophy: 'hypertrophy',
   balanced: 'hypertrophy', // safest for beginners
   power: 'power',
+  strength_endurance: 'strength_endurance',
 };
 
 // Wave loading multipliers for DUP — monotonic ascending with mild undulation
@@ -857,7 +858,8 @@ function generateWorkoutSession(
     // Adjust RPE based on experience level and diet phase
     prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset).toFixed(1)));
     // Adjust rest periods for diet phase (longer rest during cuts — glycogen depletion)
-    prescription.restSeconds = Math.round(prescription.restSeconds * dietMod.restScale);
+    // Re-round to nearest 15s after scaling to keep clean values (60, 90, 120, 180...)
+    prescription.restSeconds = Math.round((prescription.restSeconds * dietMod.restScale) / 15) * 15;
 
     return {
       exerciseId: exercise.id,
@@ -1277,12 +1279,14 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     hypertrophy: ['Combat Muscle', 'Functional Size Block', 'Athletic Build Phase'],
     balanced: ['Grappler\'s Edge', 'Combat Ready', 'Fight Prep'],
     power: ['Explosive Fighter', 'Strike Power Phase', 'Athletic Power Block'],
+    strength_endurance: ['Round Ready', 'Combat Endurance', 'Fight Conditioning Phase'],
   };
   const generalNames: Record<GoalFocus, string[]> = {
     strength: ['Strength Foundation', 'Power Block', 'Max Effort Phase'],
     hypertrophy: ['Growth Phase', 'Muscle Building Block', 'Hypertrophy Wave'],
     balanced: ['Balanced Fitness', 'All-Round Builder', 'Functional Power'],
     power: ['Explosive Phase', 'Athletic Power', 'Speed Strength Block'],
+    strength_endurance: ['Endurance Builder', 'Work Capacity Phase', 'Sustained Strength Block'],
   };
   const namePool = trainingIdentity === 'combat' ? combatNames : generalNames;
   const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
@@ -1404,7 +1408,8 @@ export function generateQuickWorkout(
   const type: WorkoutType = goalFocus === 'strength' ? 'strength' :
                             goalFocus === 'hypertrophy' ? 'hypertrophy' :
                             goalFocus === 'balanced' ? 'hypertrophy' :
-                            goalFocus === 'power' ? 'power' : 'hypertrophy';
+                            goalFocus === 'power' ? 'power' :
+                            goalFocus === 'strength_endurance' ? 'strength_endurance' : 'hypertrophy';
 
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
   const compounds = allAvailable

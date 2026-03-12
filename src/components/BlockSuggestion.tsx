@@ -382,7 +382,7 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
                           <div>
                             <label className="text-xs text-grappler-400 mb-1 block">Focus</label>
                             <div className="grid grid-cols-2 gap-1.5">
-                              {(['hypertrophy', 'strength', 'power', 'balanced'] as GoalFocus[]).map(f => (
+                              {(['hypertrophy', 'strength', 'power', 'balanced', 'strength_endurance'] as GoalFocus[]).map(f => (
                                 <button
                                   key={f}
                                   onClick={() => updateMesocycleInQueue(block.id, { focus: f })}

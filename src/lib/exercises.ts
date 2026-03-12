@@ -1,4 +1,57 @@
-import { Exercise, Equipment, EquipmentType } from './types';
+import { Exercise, CustomExercise, Equipment, EquipmentType, ExerciseCategory, MuscleGroup, MovementPattern } from './types';
+
+// --- Custom Exercise Registry ---
+// Mutable registry that gets hydrated from store on app load.
+// This lets all pure-function engines (getExerciseById, filters, etc.)
+// resolve custom exercises without importing the store (no upward imports).
+let _customExercises: CustomExercise[] = [];
+
+/** Register custom exercises so all lookup functions can find them. Called by the store on hydrate/add/delete. */
+export function registerCustomExercises(customs: CustomExercise[]): void {
+  _customExercises = customs;
+}
+
+/** Get all exercises: built-in + custom. */
+export function getAllExercises(): Exercise[] {
+  return [...exercises, ..._customExercises];
+}
+
+/** Search exercises by name substring (case-insensitive). Returns built-in + custom. */
+export function searchExercises(query: string): Exercise[] {
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  return getAllExercises().filter(e => e.name.toLowerCase().includes(q));
+}
+
+/**
+ * Create a CustomExercise from a user-provided name with reasonable defaults.
+ * Keeps the required fields valid so the exercise works everywhere in the system.
+ */
+export function createCustomExercise(
+  name: string,
+  overrides?: Partial<Pick<Exercise, 'category' | 'primaryMuscles' | 'secondaryMuscles' | 'movementPattern' | 'equipmentRequired' | 'equipmentTypes' | 'measurementType' | 'isUnilateral'>>
+): CustomExercise {
+  const id = `custom-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now()}`;
+  return {
+    id,
+    name,
+    category: overrides?.category ?? ('isolation' as ExerciseCategory),
+    primaryMuscles: overrides?.primaryMuscles ?? (['full_body'] as MuscleGroup[]),
+    secondaryMuscles: overrides?.secondaryMuscles ?? ([] as MuscleGroup[]),
+    movementPattern: overrides?.movementPattern ?? ('push' as MovementPattern),
+    equipmentRequired: overrides?.equipmentRequired ?? (['full_gym', 'home_gym', 'bodyweight'] as Equipment[]),
+    equipmentTypes: overrides?.equipmentTypes ?? ([] as EquipmentType[]),
+    grapplerFriendly: true,
+    aestheticValue: 5,
+    strengthValue: 5,
+    description: `Custom exercise: ${name}`,
+    cues: [],
+    measurementType: overrides?.measurementType,
+    isUnilateral: overrides?.isUnilateral,
+    isCustom: true,
+    createdAt: new Date(),
+  };
+}
 
 /**
  * COMBAT SPORT EXERCISE SELECTION RATIONALE
@@ -4451,7 +4504,7 @@ export function getGrapplerExercises(): Exercise[] {
 }
 
 export function getExerciseById(id: string): Exercise | undefined {
-  return exercises.find(e => e.id === id);
+  return exercises.find(e => e.id === id) ?? _customExercises.find(e => e.id === id);
 }
 
 // Get exercises sorted by aesthetic or strength value

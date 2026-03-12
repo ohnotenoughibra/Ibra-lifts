@@ -51,7 +51,8 @@ interface ProgressChartsProps {
 }
 
 export default function ProgressCharts({ onViewReport, children }: ProgressChartsProps) {
-  const { workoutLogs, gamificationStats, mesocycleHistory, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
+  const { workoutLogs, mesocycleHistory: _rawMesoHistory, gamificationStats, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
+  const mesocycleHistory = _rawMesoHistory.filter(m => !m._deleted);
   const computed = useComputedGamification();
   const weightUnit = user?.weightUnit || 'lbs';
   const [activeView, setActiveView] = useState<ChartView>('strength');

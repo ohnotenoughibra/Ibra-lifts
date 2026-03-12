@@ -49,7 +49,8 @@ const typeConfig: Record<WorkoutType, { label: string; color: string; bg: string
 };
 
 export default function PeriodizationCalendar({ onClose }: PeriodizationCalendarProps) {
-  const { currentMesocycle, mesocycleHistory, workoutLogs } = useAppStore();
+  const { currentMesocycle, mesocycleHistory: _rawMesoHistory, workoutLogs } = useAppStore();
+  const mesocycleHistory = _rawMesoHistory.filter(m => !m._deleted);
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<number | null>(null);
   const [showLegend, setShowLegend] = useState(false);

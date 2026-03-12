@@ -50,7 +50,7 @@ export default function WorkoutView() {
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis, workoutLogs: s.workoutLogs,
       swapProgramExercise: s.swapProgramExercise, user: s.user,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount,
-      mesocycleHistory: s.mesocycleHistory, trainingSessions: s.trainingSessions,
+      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), trainingSessions: s.trainingSessions,
       injuryLog: s.injuryLog, wearableHistory: s.wearableHistory, competitions: s.competitions,
       repairMesocycleProgress: s.repairMesocycleProgress, deleteMesocycle: s.deleteMesocycle,
       updateExercisePrescription: s.updateExercisePrescription, removeExerciseFromSession: s.removeExerciseFromSession,

@@ -36,9 +36,10 @@ interface CommunityShareProps {
 
 export default function CommunityShare({ onClose }: CommunityShareProps) {
   const {
-    user, gamificationStats, workoutLogs, currentMesocycle, mesocycleHistory, bodyWeightLog,
+    user, gamificationStats, workoutLogs, currentMesocycle, mesocycleHistory: _rawMesoHistory, bodyWeightLog,
     meals, competitions, trainingSessions,
   } = useAppStore();
+  const mesocycleHistory = _rawMesoHistory.filter(m => !m._deleted);
   const computed = useComputedGamification();
   const [activeTab, setActiveTab] = useState<ShareTab>('summary');
   const [copiedId, setCopiedId] = useState<string | null>(null);

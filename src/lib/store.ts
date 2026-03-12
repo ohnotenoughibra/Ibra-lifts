@@ -1278,8 +1278,14 @@ export const useAppStore = create<AppState>()(
       deleteMesocycle: (mesocycleId) => {
         const { mesocycleHistory, workoutLogs, currentMesocycle } = get();
         const updates: Record<string, unknown> = {
-          mesocycleHistory: mesocycleHistory.filter(m => m.id !== mesocycleId),
-          workoutLogs: workoutLogs.filter(l => l.mesocycleId !== mesocycleId),
+          // Tombstone pattern — sync union merge honors _deleted flag
+          mesocycleHistory: mesocycleHistory.map(m =>
+            m.id === mesocycleId ? { ...m, _deleted: true, _deletedAt: Date.now() } : m
+          ),
+          workoutLogs: workoutLogs.map(l =>
+            l.mesocycleId === mesocycleId ? { ...l, _deleted: true, _deletedAt: Date.now() } : l
+          ),
+          _syncUrgent: true,
         };
         if (currentMesocycle?.id === mesocycleId) {
           updates.currentMesocycle = null;
@@ -4349,7 +4355,8 @@ export const useIsOnboarded = () => useAppStore((state) => state.isOnboarded);
 export const useOnboardingData = () => useAppStore((state) => state.onboardingData);
 export const useCurrentMesocycle = () => useAppStore((state) => state.currentMesocycle);
 export const useActiveWorkout = () => useAppStore((state) => state.activeWorkout);
-export const useWorkoutLogs = () => useAppStore((state) => state.workoutLogs);
+export const useWorkoutLogs = () => useAppStore((state) => state.workoutLogs.filter(l => !l._deleted));
+export const useMesocycleHistory = () => useAppStore((state) => state.mesocycleHistory.filter(m => !m._deleted));
 export const useGamificationStats = () => useAppStore((state) => state.gamificationStats);
 export const useBodyWeightLog = () => useAppStore((state) => state.bodyWeightLog.filter(e => !e._deleted));
 export const useBodyWeightLogRaw = () => useAppStore((state) => state.bodyWeightLog);

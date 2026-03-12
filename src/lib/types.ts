@@ -173,6 +173,8 @@ export interface Mesocycle {
   volumeWarnings?: string[];
   createdAt: Date;
   updatedAt?: string; // ISO string — used by sync merge to prefer newer side
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Queue for planning upcoming mesocycles
@@ -277,6 +279,8 @@ export interface WorkoutLog {
     calories: number;
     zones?: { zone: number; minutes: number }[];
   };
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Gamification Types

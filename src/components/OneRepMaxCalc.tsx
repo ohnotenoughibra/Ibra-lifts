@@ -216,7 +216,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
-      className="min-h-screen bg-grappler-900 px-4 py-6"
+      className="min-h-screen bg-grappler-900 px-4 py-6 overflow-x-hidden"
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
@@ -269,10 +269,10 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
               <label className="text-sm font-medium text-grappler-300 mb-3 block">
                 Weight Lifted ({unit})
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setWeight((prev) => Math.max(0, prev - 5))}
-                  className="w-12 h-12 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
+                  className="w-10 h-10 flex-shrink-0 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
                 >
                   -
                 </button>
@@ -280,11 +280,11 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   type="number"
                   value={weight}
                   onChange={(e) => setWeight(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
+                  className="flex-1 min-w-0 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
                 />
                 <button
                   onClick={() => setWeight((prev) => prev + 5)}
-                  className="w-12 h-12 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
+                  className="w-10 h-10 flex-shrink-0 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
                 >
                   +
                 </button>
@@ -296,10 +296,10 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
               <label className="text-sm font-medium text-grappler-300 mb-3 block">
                 Reps Performed
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setReps((prev) => Math.max(1, prev - 1))}
-                  className="w-12 h-12 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
+                  className="w-10 h-10 flex-shrink-0 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
                 >
                   -
                 </button>
@@ -309,11 +309,11 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   onChange={(e) =>
                     setReps(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))
                   }
-                  className="flex-1 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
+                  className="flex-1 min-w-0 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
                 />
                 <button
                   onClick={() => setReps((prev) => Math.min(30, prev + 1))}
-                  className="w-12 h-12 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
+                  className="w-10 h-10 flex-shrink-0 rounded-xl bg-grappler-700 hover:bg-grappler-600 text-grappler-200 font-bold text-xl transition-colors flex items-center justify-center"
                 >
                   +
                 </button>

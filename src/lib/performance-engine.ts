@@ -6,9 +6,9 @@
  * don't track certain metrics (redistributes weights to available factors).
  *
  * Science references:
- * - Walker 2017: Sleep <6h → 4× injury risk
+ * - Sleep <6h elevates injury risk (OR 1.2-8.3 depending on context; Charest & Marcotte 2017). Effect varies by training status, chronotype, and sport.
  * - Dattilo 2011: Sleep deprivation reduces anabolic hormones (GH, testosterone)
- * - Schoenfeld & Aragon 2018: Protein distribution 0.4g/kg per meal, 4+ meals/day
+ * - Protein: total daily intake (1.6-2.2g/kg) matters most; meal frequency has minimal effect when total is adequate (Stokes et al. 2022, ISSN 2023). 0.25-0.4g/kg per meal sufficient.
  * - Helms 2014: 2.3-3.1g/kg FFM during caloric deficit
  * - Stults-Kolehmainen & Sinha 2014: Psychosocial stress impairs recovery
  * - Fell & Williams 2008: Masters athletes require longer recovery
@@ -49,7 +49,7 @@ const DEFAULT_WEIGHTS: Record<ReadinessFactor['source'], number> = {
   training_load: 0.10,
   hydration:     0.04,
   age:           0.04,
-  hrv:           0.04,
+  hrv:           0.04,  // HRV shows weak correlation with readiness in strength athletes (r=0.15-0.35; Beaumont et al. 2022)
   soreness:      0.06,
 };
 
@@ -485,18 +485,18 @@ function assessAge(user: UserProfile | null): ReadinessFactor {
   base.available = true;
   const age = user.age;
 
-  // Fell & Williams 2008: masters athletes (40+) need ~20-40% more recovery time
-  // Recovery capacity model: peaks at 18-25, gradual decline after 30
-  // Base score from chronological age (narrower range: 95→60 instead of 95→48)
+  // Training experience dominates age for recovery (Rasmussen et al. 2020). Age penalty reduced per 2023 ISSN consensus.
+  // Age explains only ~10% of recovery variance — training status, sleep, and nutrition matter far more.
+  // Recovery capacity model: modest decline after 40, much smaller than previously assumed
   let ageScore: number;
   if (age < 25) ageScore = 95;
-  else if (age < 30) ageScore = 92;
-  else if (age < 35) ageScore = 88;
-  else if (age < 40) ageScore = 82;
-  else if (age < 45) ageScore = 75;
-  else if (age < 50) ageScore = 68;
-  else if (age < 55) ageScore = 62;
-  else ageScore = 56;
+  else if (age < 30) ageScore = 93;
+  else if (age < 35) ageScore = 91;
+  else if (age < 40) ageScore = 88;
+  else if (age < 45) ageScore = 84;
+  else if (age < 50) ageScore = 80;
+  else if (age < 55) ageScore = 76;
+  else ageScore = 72;
 
   // Training experience offsets age penalty — a well-trained 45yo recovers
   // better than a sedentary 25yo. Intermediate+ training adaptations improve

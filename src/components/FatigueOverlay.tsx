@@ -408,19 +408,19 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
                             <div className="h-full rounded-full" style={{ width: `${metrics.nervousSystem.sympatheticLoad}%`, backgroundColor: getNSColor(metrics.nervousSystem.sympatheticLoad) }} />
                           </div>
                         </div>
-                        {/* CNS Strain bar */}
+                        {/* Neuromuscular Strain bar */}
                         <div className="py-1">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
                               <Zap className="w-3 h-3 text-yellow-400" />
-                              <span className="text-xs text-grappler-400">CNS Strain</span>
+                              <span className="text-xs text-grappler-400">Neuromuscular Strain</span>
                             </div>
-                            <span className="text-xs font-semibold" style={{ color: getNSColor(metrics.nervousSystem.cnsStrain) }}>
-                              {metrics.nervousSystem.cnsStrain}/100
+                            <span className="text-xs font-semibold" style={{ color: getNSColor(metrics.nervousSystem.neuromuscularStrain) }}>
+                              {metrics.nervousSystem.neuromuscularStrain}/100
                             </span>
                           </div>
                           <div className="h-1.5 bg-grappler-700 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${metrics.nervousSystem.cnsStrain}%`, backgroundColor: getNSColor(metrics.nervousSystem.cnsStrain) }} />
+                            <div className="h-full rounded-full" style={{ width: `${metrics.nervousSystem.neuromuscularStrain}%`, backgroundColor: getNSColor(metrics.nervousSystem.neuromuscularStrain) }} />
                           </div>
                         </div>
                         {/* Sleep */}

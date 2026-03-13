@@ -1244,10 +1244,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     return Math.min(21, Math.round(Math.sqrt(strains.reduce((sum, s) => sum + s * s, 0)) * 10) / 10);
   }, [todayWorkouts]);
 
-  // For today: prefer cycle strain if available (rarely), otherwise use workout strain
+  // For today: prefer cycle strain if available, otherwise use combined workout strain
   const effectiveStrain = today?.strain ?? (todayWorkoutStrain > 0 ? todayWorkoutStrain : 0);
-  const isStrainFromWorkouts = today?.strain == null && todayWorkoutStrain > 0;
-  const hasNoStrainData = today?.strain == null && todayWorkoutStrain === 0;
 
   const chartData = useMemo(
     () =>
@@ -1639,21 +1637,12 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <div className="bg-grappler-800 rounded-xl p-3.5">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Zap className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-xs text-grappler-400">Strain</span>
-                  {hasNoStrainData && (
-                    <span className="relative flex h-1.5 w-1.5 ml-auto">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-400" />
-                    </span>
-                  )}
+                  <span className="text-xs text-grappler-400">Day Strain</span>
                 </div>
                 <p className={cn('text-xl font-bold', effectiveStrain > 0 ? strainColor(effectiveStrain) : 'text-grappler-500')}>
-                  {isStrainFromWorkouts ? '~' : ''}{effectiveStrain.toFixed(1)}
+                  {effectiveStrain.toFixed(1)}
                 </p>
-                {hasNoStrainData && (
-                  <p className="text-xs text-grappler-400 mt-0.5">updates after activities</p>
-                )}
-                <div className={cn('h-1 bg-grappler-700 rounded-full overflow-hidden', hasNoStrainData ? 'mt-0.5' : 'mt-1.5')}>
+                <div className="h-1 bg-grappler-700 rounded-full overflow-hidden mt-1.5">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${strainPct}%` }}

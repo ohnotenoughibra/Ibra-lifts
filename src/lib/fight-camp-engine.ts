@@ -125,7 +125,7 @@ export function getPhaseConfig(
       phase: 'intensification',
       name: 'Intensification (8-4 weeks out)',
       calorieStrategy: needsWeightCut ? '10-20% deficit' : 'Maintenance',
-      proteinGKg: { min: isFemale ? 2.3 : 2.4, max: isFemale ? 2.6 : 2.8 },
+      proteinGKg: { min: 2.4, max: 2.8 }, // Protein targets equal for both sexes during deficit; females may need equal or higher protein at low EA (Lowery et al. 2023, Mountjoy et al. 2023)
       carbsGKg: { min: 3, max: 5 },
       fatGKg: { min: 0.7, max: 0.9 },
       focus: 'Body composition, maintain training intensity',
@@ -147,7 +147,7 @@ export function getPhaseConfig(
       phase: 'fight_camp_peak',
       name: 'Fight Camp Peak (4-2 weeks out)',
       calorieStrategy: needsWeightCut ? '15-25% deficit' : 'Slight surplus on training days',
-      proteinGKg: { min: isFemale ? 2.5 : 2.8, max: isFemale ? 2.8 : 3.1 },
+      proteinGKg: { min: 2.8, max: 3.1 }, // Protein targets equal for both sexes during deficit; females may need equal or higher protein at low EA (Lowery et al. 2023, Mountjoy et al. 2023)
       carbsGKg: { min: 2.5, max: 4 },
       fatGKg: { min: 0.7, max: 0.8 },
       focus: 'Preserve muscle, sharpen weight',
@@ -171,7 +171,7 @@ export function getPhaseConfig(
       phase: 'fight_week',
       name: 'Fight Week (7-2 days out)',
       calorieStrategy: 'Controlled protocol — see weight cut engine',
-      proteinGKg: { min: isFemale ? 2.5 : 3.0, max: isFemale ? 2.8 : 3.1 },
+      proteinGKg: { min: 3.0, max: 3.1 }, // Protein targets equal for both sexes during deficit; females may need equal or higher protein at low EA (Lowery et al. 2023, Mountjoy et al. 2023)
       carbsGKg: { min: 0.5, max: 2.0 },
       fatGKg: { min: 0.5, max: 0.7 },
       focus: 'Water/sodium/glycogen manipulation',

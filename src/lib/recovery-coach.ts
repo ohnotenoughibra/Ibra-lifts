@@ -470,8 +470,8 @@ export function getRecoveryTips(analysis: RecoveryCoachAnalysis): string[] {
     tips.push('Foam rolling for 10 min can help reduce muscle tension');
   }
 
-  // General tips (evidence-based: protein timing window is 2-4 hours, not 30 min)
-  tips.push('Distribute protein evenly across meals (25-40g per meal) for optimal MPS');
+  // General tips (evidence-based: Stokes et al. 2022, Ribeiro et al. 2023)
+  tips.push('Total daily protein (1.6-2.2g/kg) matters most. Meal frequency has minimal effect when total is adequate (Stokes et al. 2022). Aim for 0.25-0.4g/kg per meal across 3-6 meals based on preference.');
   tips.push('Stay hydrated: aim for 35-40ml water per kg bodyweight');
 
   return tips.slice(0, 5); // Return top 5 tips

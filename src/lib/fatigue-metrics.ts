@@ -10,7 +10,7 @@
  * - Plews et al. 2013: HRV-guided training in elite athletes
  * - Buchheit 2014: Sympathetic/parasympathetic balance monitoring
  * - Uth et al. 2004: VO2max estimation from HR ratio
- * - Halson & Jeukendrup 2004: CNS fatigue markers in overtraining
+ * - Goodall et al. 2018: Neuromuscular fatigue (89-study review; 'CNS fatigue' as distinct entity disputed)
  */
 
 import type {
@@ -65,7 +65,7 @@ export interface SleepConsistencyResult {
 
 export interface NervousSystemMetrics {
   sympatheticLoad: number;
-  cnsStrain: number;
+  neuromuscularStrain: number;
   rhrTrend: RHRTrend;
   hrvDeviation: HRVDeviation;
   sleepConsistency: SleepConsistencyResult;
@@ -449,6 +449,11 @@ export function calculateRHRTrend(wearableHistory: WearableData[]): RHRTrend {
 /**
  * HRV deviation from personal baseline.
  * Plews et al. 2013: HRV suppression >10% from baseline indicates fatigue.
+ *
+ * CAVEAT: Absolute HRV thresholds vary 2-4x between individuals. These are population
+ * averages; individual baseline-relative deviation is more meaningful (Beaumont et al.
+ * 2022, Laborde et al. 2021). This function uses within-individual 14-day baseline
+ * deviation, which is the preferred approach over absolute thresholds.
  */
 export function calculateHRVDeviation(wearableHistory: WearableData[]): HRVDeviation {
   const withHRV = wearableHistory
@@ -520,18 +525,23 @@ export function calculateSympatheticLoad(wearableHistory: WearableData[]): numbe
     sleepScore = Math.max(0, 100 - avgSleep);
   }
 
+  // NOTE: These weights are heuristic, not from a validated instrument. Elevated RHR +
+  // suppressed HRV can indicate adaptive stress mobilization, not necessarily fatigue
+  // (Melia et al. 2023, polyvagal theory). Use as one signal among many.
   return Math.round(rhrScore * 0.4 + hrvScore * 0.4 + sleepScore * 0.2);
 }
 
 /**
- * CNS Strain Indicator (0-100).
- * Reflects central nervous system recovery debt.
+ * Neuromuscular Strain Indicator (0-100).
+ * Reflects integrated central + peripheral loading recovery debt.
  *
- * Heavy compound lifts (RPE >= 8.5) tax the CNS disproportionately.
+ * Heavy compound lifts (RPE >= 8.5) impose disproportionate neuromuscular strain.
  * For combat athletes, this combines with sparring/competition stress.
- * Halson & Jeukendrup 2004: CNS fatigue outlasts peripheral muscle fatigue.
+ * Neuromuscular strain from heavy compound loading. Note: 'CNS fatigue' as a
+ * distinct entity is disputed (Goodall et al. 2018, 89-study review); this metric
+ * reflects integrated central + peripheral loading.
  */
-export function calculateCNSStrain(
+export function calculateNeuromuscularStrain(
   workoutLogs: WorkoutLog[],
   wearableHistory: WearableData[],
   trainingSessions?: TrainingSession[],
@@ -578,7 +588,7 @@ export function calculateCNSStrain(
     : 0;
 
   // Session density component (20%)
-  // More than 5 sessions/week in the window is high density for CNS
+  // More than 5 sessions/week in the window is high density for neuromuscular recovery
   const recentLogs = workoutLogs.filter(l => new Date(l.date).getTime() >= cutoff);
   const recentSessions = trainingSessions
     ? trainingSessions.filter(s => new Date(s.date).getTime() >= cutoff)
@@ -730,7 +740,7 @@ export function calculateAllFatigueMetrics(
     matSessionCount: matTime.sessions,
     nervousSystem: {
       sympatheticLoad: calculateSympatheticLoad(wearableHistory),
-      cnsStrain: calculateCNSStrain(workoutLogs, wearableHistory, trainingSessions),
+      neuromuscularStrain: calculateNeuromuscularStrain(workoutLogs, wearableHistory, trainingSessions),
       rhrTrend: calculateRHRTrend(wearableHistory),
       hrvDeviation: calculateHRVDeviation(wearableHistory),
       sleepConsistency: calculateSleepConsistency(wearableHistory),

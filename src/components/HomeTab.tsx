@@ -2051,6 +2051,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
             </div>
           )}
+          {strain != null && strain > 0 && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Zap className="w-3 h-3 text-yellow-400/70" />
+              <span className={cn('text-sm tabular-nums font-medium',
+                strain >= 18 ? 'text-red-400/80' :
+                strain >= 14 ? 'text-yellow-400/80' :
+                'text-blue-300/70'
+              )}>{strain.toFixed(1)}</span>
+            </div>
+          )}
         </div>
       )}
       {/* Contextual nutrition adjustment line */}

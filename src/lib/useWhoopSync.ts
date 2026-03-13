@@ -165,27 +165,37 @@ function transformApiData(apiData: any): WearableData[] {
     dataMap.set(todayKey, { id: `today-${todayKey}`, date: new Date(), provider: 'whoop' });
   }
 
-  // If today's cycle strain is null, estimate from today's scored workouts
+  // If today's cycle strain is null, estimate from ALL today's scored workouts
+  // using root-sum-of-squares (strain is logarithmic 0-21, RSS approximates
+  // cumulative daily strain from multiple activities)
   const todayEntry = dataMap.get(todayKey);
   if (todayEntry && todayEntry.strain == null && apiData.workouts) {
-    let maxWorkoutStrain = 0;
+    const workoutStrains: number[] = [];
     let totalCalories = 0;
     let peakHR = 0;
+    let peakAvgHR = 0;
     for (const w of apiData.workouts) {
       if (!w.score) continue;
       const wDate = (w.end || w.start || '')?.substring?.(0, 10);
       if (wDate !== todayKey) continue;
       const wStrain = w.score?.strain ?? 0;
-      if (wStrain > maxWorkoutStrain) maxWorkoutStrain = wStrain;
+      if (wStrain > 0) workoutStrains.push(wStrain);
       totalCalories += w.score?.kilojoule ? Math.round(w.score.kilojoule * 0.239006) : 0;
       const wMax = w.score?.max_heart_rate ?? 0;
       if (wMax > peakHR) peakHR = wMax;
+      const wAvg = w.score?.average_heart_rate ?? 0;
+      if (wAvg > peakAvgHR) peakAvgHR = wAvg;
     }
-    if (maxWorkoutStrain > 0) {
+    // Combine all workout strains via RSS, capped at 21 (Whoop max)
+    const combinedStrain = workoutStrains.length > 0
+      ? Math.min(21, Math.sqrt(workoutStrains.reduce((sum, s) => sum + s * s, 0)))
+      : 0;
+    if (combinedStrain > 0) {
       mergeDay(todayKey, {
-        strain: Math.round(maxWorkoutStrain * 10) / 10,
+        strain: Math.round(combinedStrain * 10) / 10,
         ...(totalCalories > 0 && todayEntry.caloriesBurned == null ? { caloriesBurned: totalCalories } : {}),
         ...(peakHR > 0 && todayEntry.maxHeartRate == null ? { maxHeartRate: peakHR } : {}),
+        ...(peakAvgHR > 0 && todayEntry.avgHeartRate == null ? { avgHeartRate: peakAvgHR } : {}),
       });
     }
   }

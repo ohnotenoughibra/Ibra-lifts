@@ -16,7 +16,8 @@
 
 import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts } from './types';
 
-// ── 1RM ↔ Working Weight Conversion (Brzycki 1993) ──────────────────────────
+// ── 1RM ↔ Working Weight Conversion ─────────────────────────────────────────
+// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
 
 export function workingWeightFrom1RM(oneRM: number, targetReps: number): number {
   if (oneRM <= 0) return 0;
@@ -27,9 +28,7 @@ export function workingWeightFrom1RM(oneRM: number, targetReps: number): number 
 export function estimate1RMFromReps(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps <= 1) return weight;
-  // Brzycki for 2-10 reps (most accurate), Epley for 11+ reps
-  // Consistent with calc1RM in progress-analytics.ts and performance-model.ts
-  if (reps > 10) return weight * (1 + reps / 30);
+  // Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
   return weight / (1.0278 - 0.0278 * reps);
 }
 

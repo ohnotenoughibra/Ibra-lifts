@@ -305,12 +305,17 @@ export function calculateSportLoadScore(session: TrainingSession): SportLoadScor
 }
 
 /**
- * Calculates cumulative sport load over a rolling window with exponential decay.
+ * Calculates cumulative sport load over a rolling window with exponential decay,
+ * plus coupled ACWR via EWMA.
  *
- * More recent sessions contribute more to the total load. The function also
- * computes the Acute:Chronic Workload Ratio (ACWR) using 7-day (acute) and
- * 28-day (chronic) rolling windows, a well-validated injury risk metric
- * (Gabbett 2016).
+ * Coupled ACWR via EWMA (Williams et al. 2017, Borgstrom et al. 2024).
+ * Thresholds validated with this methodology (Gabbett 2016).
+ *
+ * Uses exponentially weighted moving averages (EWMA) for ACWR:
+ * - Acute EWMA:  lambda_a = 2/(7+1)  = 0.25,  applied daily
+ * - Chronic EWMA: lambda_c = 2/(28+1) = ~0.069, applied daily
+ * - EWMA_today = load_today * lambda + EWMA_yesterday * (1 - lambda)
+ * - ACWR = acute_EWMA / chronic_EWMA
  *
  * @param sessions - All training sessions in the relevant time frame.
  * @param windowDays - Number of days to look back (default 28).
@@ -366,33 +371,31 @@ export function calculateCumulativeSportLoad(
     totalLoad += load * decayWeight(daysAgo);
   });
 
-  // Sort daily loads chronologically
+  // Sort daily loads chronologically (oldest first)
   dailyLoads.sort((a, b) => a.date.localeCompare(b.date));
 
-  // Acute load: average daily load over the last 7 days
-  const acuteDays = dailyLoads.filter((d) => {
-    const daysAgo = daysBetween(new Date(d.date), now);
-    return daysAgo < ACUTE_WINDOW_DAYS;
-  });
-  const acuteLoad = acuteDays.length > 0
-    ? acuteDays.reduce((sum, d) => sum + d.load, 0) / ACUTE_WINDOW_DAYS
-    : 0;
+  // Compute coupled ACWR via EWMA over the daily loads (chronological order)
+  const LAMBDA_ACUTE = 2 / (ACUTE_WINDOW_DAYS + 1);    // 0.25
+  const LAMBDA_CHRONIC = 2 / (CHRONIC_WINDOW_DAYS + 1); // ~0.069
 
-  // Chronic load: average daily load over the last 28 days
-  const chronicDays = dailyLoads.filter((d) => {
-    const daysAgo = daysBetween(new Date(d.date), now);
-    return daysAgo < CHRONIC_WINDOW_DAYS;
-  });
-  const chronicLoad = chronicDays.length > 0
-    ? chronicDays.reduce((sum, d) => sum + d.load, 0) / CHRONIC_WINDOW_DAYS
-    : 0;
+  let acuteEWMA = dailyLoads.length > 0 ? dailyLoads[0].load : 0;
+  let chronicEWMA = dailyLoads.length > 0 ? dailyLoads[0].load : 0;
+
+  for (let i = 1; i < dailyLoads.length; i++) {
+    acuteEWMA = dailyLoads[i].load * LAMBDA_ACUTE + acuteEWMA * (1 - LAMBDA_ACUTE);
+    chronicEWMA = dailyLoads[i].load * LAMBDA_CHRONIC + chronicEWMA * (1 - LAMBDA_CHRONIC);
+  }
+
+  const acuteLoad = acuteEWMA;
+  const chronicLoad = chronicEWMA;
 
   // ACWR — guard against division by zero and cold-start spikes
+  // If chronic EWMA is very small, cap ACWR at a safe default
   const acuteChronicRatio = chronicLoad > 0.5
     ? Math.round((acuteLoad / chronicLoad) * 100) / 100
-    : acuteLoad > 5 ? 2.0 : 0;
+    : acuteLoad > 5 ? 1.0 : 0;
 
-  // Risk classification (Gabbett 2016 thresholds)
+  // Risk classification (Gabbett 2016 thresholds, validated with coupled ACWR)
   let riskLevel: ACRRiskLevel;
   if (acuteChronicRatio < 0.8) {
     riskLevel = 'undertrained';

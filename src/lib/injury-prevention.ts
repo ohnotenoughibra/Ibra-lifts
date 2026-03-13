@@ -277,9 +277,15 @@ function analyzeVolume(logs: WorkoutLog[], trainingSessions: TrainingSession[]):
 
 /**
  * Calculate Acute:Chronic Workload Ratio (ACWR) - a key injury prediction metric.
- * Based on Gabbett's research on training load and injury risk.
  *
- * ACWR = Acute Load (this week) / Chronic Load (4-week rolling average)
+ * Coupled ACWR via EWMA (Williams et al. 2017, Borgstrom et al. 2024).
+ * Thresholds validated with this methodology (Gabbett 2016).
+ *
+ * Uses exponentially weighted moving averages (EWMA) to compute coupled ACWR:
+ * - Acute EWMA:  lambda_a = 2/(7+1)  = 0.25,  applied daily
+ * - Chronic EWMA: lambda_c = 2/(28+1) = ~0.069, applied daily
+ * - EWMA_today = load_today * lambda + EWMA_yesterday * (1 - lambda)
+ * - ACWR = acute_EWMA / chronic_EWMA
  *
  * Risk zones (Gabbett 2016):
  * - 0.8-1.3: "Sweet spot" - low injury risk, optimal training adaptation
@@ -294,28 +300,35 @@ function calculateACWR(logs: WorkoutLog[], trainingSessions: TrainingSession[]):
   chronicLoad: number;
 } {
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  // Calculate loads for each of the last 4 weeks
-  const weeklyLoads: number[] = [];
-  for (let week = 0; week < 4; week++) {
-    const weekStart = new Date(now);
-    weekStart.setDate(weekStart.getDate() - (7 * (week + 1)));
-    const weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() - (7 * week));
+  // EWMA decay constants
+  const LAMBDA_ACUTE = 2 / (7 + 1);    // 0.25
+  const LAMBDA_CHRONIC = 2 / (28 + 1);  // ~0.069
 
-    // Sum workout volume for this week
-    const weekLiftingLoad = logs
+  // Build a per-day load array for the last 28 days, oldest first
+  const dailyLoads: number[] = [];
+  for (let daysAgo = 27; daysAgo >= 0; daysAgo--) {
+    const dayStart = new Date(now);
+    dayStart.setDate(dayStart.getDate() - daysAgo);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    // Sum workout volume for this day
+    const dayLiftingLoad = logs
       .filter(l => {
         const d = new Date(l.date);
-        return d >= weekStart && d < weekEnd;
+        d.setHours(0, 0, 0, 0);
+        return d >= dayStart && d < dayEnd;
       })
       .reduce((sum, l) => sum + l.totalVolume, 0);
 
-    // Sum training session load (duration × intensity factor)
-    const weekTrainingLoad = trainingSessions
+    // Sum training session load (duration x intensity factor)
+    const dayTrainingLoad = trainingSessions
       .filter(s => {
         const d = new Date(s.date);
-        return d >= weekStart && d < weekEnd;
+        d.setHours(0, 0, 0, 0);
+        return d >= dayStart && d < dayEnd;
       })
       .reduce((sum, s) => {
         const intensity = s.actualIntensity || s.plannedIntensity;
@@ -327,17 +340,24 @@ function calculateACWR(logs: WorkoutLog[], trainingSessions: TrainingSession[]):
         return sum + (s.duration * intensityMultiplier * 100); // Scale to be comparable with lifting volume
       }, 0);
 
-    weeklyLoads.push(weekLiftingLoad + weekTrainingLoad);
+    dailyLoads.push(dayLiftingLoad + dayTrainingLoad);
   }
 
-  // Acute load = this week (most recent)
-  const acuteLoad = weeklyLoads[0];
+  // Compute EWMA sequentially over the 28-day window
+  let acuteEWMA = dailyLoads[0];
+  let chronicEWMA = dailyLoads[0];
 
-  // Chronic load = 4-week rolling average
-  const chronicLoad = weeklyLoads.reduce((sum, w) => sum + w, 0) / 4;
+  for (let i = 1; i < dailyLoads.length; i++) {
+    acuteEWMA = dailyLoads[i] * LAMBDA_ACUTE + acuteEWMA * (1 - LAMBDA_ACUTE);
+    chronicEWMA = dailyLoads[i] * LAMBDA_CHRONIC + chronicEWMA * (1 - LAMBDA_CHRONIC);
+  }
+
+  const acuteLoad = acuteEWMA;
+  const chronicLoad = chronicEWMA;
 
   // Need at least some chronic load data to calculate meaningful ACWR
-  if (chronicLoad < 1000) {
+  // With EWMA, a very small chronic value means insufficient training history
+  if (chronicLoad < 50) {
     return { acwr: null, acwrRisk: null, acuteLoad, chronicLoad };
   }
 

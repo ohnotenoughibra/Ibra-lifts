@@ -137,7 +137,7 @@ export const workoutTips: KnowledgeTip[] = [
   },
   {
     id: 'tip-recovery-3',
-    content: 'Post-workout nutrition window is real but wider than thought. Aim for protein within 2-3 hours, not 30 minutes.',
+    content: 'Post-workout nutrition window is real but wider than thought. Aim for protein within 2-4 hours, not 30 minutes (Ribeiro et al. 2023).',
     category: 'recovery'
   },
   {
@@ -602,7 +602,7 @@ export const workoutTips: KnowledgeTip[] = [
   },
   {
     id: 'tip-diet-protein-timing',
-    content: 'Distribute protein evenly across 4-5 meals (30-50g each). A meta-analysis by Schoenfeld et al. (2018) found protein distribution matters more than total daily timing for muscle retention.',
+    content: 'Total daily protein (1.6-2.2g/kg) matters most for muscle retention. Aim for 0.25-0.4g/kg per meal across 3-6 meals based on preference. Meal frequency has minimal effect when total is adequate (Stokes et al. 2022; Schoenfeld et al. 2018).',
     category: 'dieting'
   },
   {
@@ -1041,7 +1041,7 @@ Not all recovery methods are created equal. Here is what the research actually s
 
 #### Nutrition Timing
 - 1.6-2.2g protein/kg/day for muscle protein synthesis
-- Post-workout protein within 2-3 hours (the anabolic window is wider than the supplement industry claims)
+- Post-workout protein within 2-4 hours (the anabolic window is far wider than 30 minutes; Ribeiro et al. 2023)
 - Carb replenishment matters more for same-day double sessions
 
 #### Progressive Overload Management
@@ -4852,11 +4852,11 @@ export const insights: Insight[] = [
   {
     id: 'ins-mps-window',
     headline: 'The anabolic window is wider than you think',
-    body: 'Muscle protein synthesis stays elevated for 24-48 hours post-training. The "30-minute window" is a myth — total daily protein matters far more than timing.',
+    body: 'Muscle protein synthesis stays elevated for 24-48 hours post-training. The post-workout window is 2-4 hours, not 30 minutes (Ribeiro et al. 2023). Total daily protein matters far more than timing.',
     category: 'muscle_science',
     context: ['post_workout', 'lift_day'],
     tags: ['protein', 'recovery', 'myth-busting'],
-    source: 'Schoenfeld & Aragon, 2018 meta-analysis'
+    source: 'Ribeiro et al. 2023; Schoenfeld & Aragon, 2018'
   },
   {
     id: 'ins-stretch-hypertrophy',

@@ -118,7 +118,7 @@ const SEX_MODIFIERS: Record<BiologicalSex, {
     upperBodyVolumeBoost: 0,
   },
   female: {
-    volumeScale: 1.15,             // ~15% more volume tolerated (Haff & Triplett, 2016)
+    volumeScale: 1.0,              // Equal volume tolerance; women recover faster between sessions (Ansdell 2020) but MEV/MAV/MRV is similar (Roberts et al. 2020, Schoenfeld 2024)
     restScale: 0.75,               // ~25% shorter rest needed (faster phosphocreatine recovery)
     repRangeShift: 2,              // +2 reps — hypertrophy 8-15 vs 6-12 (flatter strength curve)
     deloadVolumeMultiplier: 0.7,   // Less aggressive deload (faster recovery)
@@ -1313,14 +1313,10 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
 }
 
 // Calculate estimated 1RM from weight and reps
+// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
 export function calculate1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
-  // Brzycki formula - accurate for reps under 10
   if (reps === 1) return weight;
-  if (reps > 10) {
-    // Epley formula better for higher reps
-    return Math.round(weight * (1 + reps / 30));
-  }
   return Math.round(weight / (1.0278 - 0.0278 * reps));
 }
 

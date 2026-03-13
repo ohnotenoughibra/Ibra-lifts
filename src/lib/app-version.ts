@@ -41,7 +41,7 @@ export const VERSION_HISTORY: VersionInfo[] = [
     version: '2.1.0',
     releasedAt: '2026-02-14',
     highlights: [
-      'Fatigue Intelligence — sRPE-weighted ACWR, nervous system metrics, CNS strain',
+      'Fatigue Intelligence — sRPE-weighted ACWR, nervous system metrics, neuromuscular strain',
       'VO2 Max Trends — estimated VO2 max from Whoop resting HR in Progress tab',
       'Day-aware missions — Today\'s card matches your weekly schedule (lift/combat/rest)',
       'Post-session recap — volume, sets, RPE, and top lift shown after you train',

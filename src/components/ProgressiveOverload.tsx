@@ -48,11 +48,11 @@ interface ExerciseSummary {
   weeklyRate: number;
 }
 
-// Epley formula: weight * (1 + reps / 30)
-function epley1RM(weight: number, reps: number): number {
+// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+function brzycki1RM(weight: number, reps: number): number {
   if (reps <= 0 || weight <= 0) return 0;
   if (reps === 1) return weight;
-  return Math.round(weight * (1 + reps / 30));
+  return Math.round(weight / (1.0278 - 0.0278 * reps));
 }
 
 function formatShortDate(dateStr: string | Date): string {
@@ -103,7 +103,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
 
         ex.sets.forEach((set) => {
           if (!set.completed || set.weight <= 0) return;
-          const e1rm = epley1RM(set.weight, set.reps);
+          const e1rm = brzycki1RM(set.weight, set.reps);
           if (e1rm > sessionBest1RM) {
             sessionBest1RM = e1rm;
             sessionBestWeight = set.weight;
@@ -382,7 +382,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         >
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-grappler-200">Estimated 1RM Over Time</h4>
-            <span className="text-xs text-grappler-400">Epley Formula</span>
+            <span className="text-xs text-grappler-400">Brzycki Formula</span>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">

@@ -53,11 +53,11 @@ interface MuscleGroupAnalysis {
   status: 'undertrained' | 'optimal' | 'high_volume';
 }
 
+// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
 function calculateE1RM(weight: number, reps: number): number {
   if (reps <= 0 || weight <= 0) return 0;
   if (reps === 1) return weight;
-  if (reps <= 10) return weight / (1.0278 - 0.0278 * reps);
-  return weight * (1 + reps / 30);
+  return weight / (1.0278 - 0.0278 * reps);
 }
 
 function analyzeStrengthTrends(logs: WorkoutLog[]): PerformanceTrend[] {

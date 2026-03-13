@@ -101,7 +101,7 @@ function analyzeProteinDistribution(meals: MealEntry[]): ProteinGrade | null {
     const deficit = Math.round(mean - minVal);
     nudge = `Add ~${deficit}g protein to ${mealLabels[minIdx].toLowerCase()}. ${mealLabels[maxIdx]} has ${Math.round(maxVal)}g — spread it out for better recovery.`;
   } else if (cv >= 0.25) {
-    nudge = 'Aim for 25-40g protein per meal for optimal muscle protein synthesis.';
+    nudge = 'Total daily protein (1.6-2.2g/kg) matters most. Aim for 0.25-0.4g/kg per meal across 3-6 meals based on preference.';
   } else {
     nudge = 'Excellent protein spread across meals. This maximizes muscle protein synthesis.';
   }

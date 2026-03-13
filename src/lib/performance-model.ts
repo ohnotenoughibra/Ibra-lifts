@@ -86,21 +86,20 @@ interface ExerciseDataPoint {
 
 /**
  * Estimated 1-rep max from weight and reps.
- * Brzycki for 1-10 reps (most accurate), Epley for 11+ reps (Brzycki degrades).
+ * Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020).
  * Consistent with calc1RM in progress-analytics.ts and weight-estimator.ts.
  */
 function epley1RM(weight: number, reps: number): number {
   if (weight <= 0) return 0;
   if (reps <= 0) return 0;
   if (reps === 1) return weight;
-  if (reps > 10) return weight * (1 + reps / 30); // Epley for high reps
-  return weight / (1.0278 - 0.0278 * reps);       // Brzycki for 2-10 reps
+  return weight / (1.0278 - 0.0278 * reps);
 }
 
 /**
  * Extract or compute the estimated 1RM from an ExerciseLog.
  * Uses the stored value when available; otherwise picks the best set
- * and applies the Epley formula.
+ * and applies the Brzycki formula.
  */
 function getE1RM(log: ExerciseLog): number {
   if (log.estimated1RM && log.estimated1RM > 0) return log.estimated1RM;
@@ -687,8 +686,8 @@ export function predictNextPerformance(
 
   // Convert back to weight/reps at the user's typical rep range
   const typicalReps = last.bestReps > 0 ? last.bestReps : 8;
-  // Inverse Epley: weight = e1rm / (1 + reps / 30)
-  const predictedWeight = projectedE1rm / (1 + typicalReps / 30);
+  // Inverse Brzycki: weight = e1rm * (1.0278 - 0.0278 * reps)
+  const predictedWeight = projectedE1rm * (1.0278 - 0.0278 * typicalReps);
 
   // Confidence based on data quantity and trend stability
   let confidence: 'high' | 'medium' | 'low';

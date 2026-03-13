@@ -303,7 +303,7 @@ export function getContextualNutrition(
         carbMultiplier = 0.9;     // 10% carb reduction (vs old 20%)
         carbCycleNote = 'Lower carb day - prioritize protein and fats';
         recommendations.push('MPS is still elevated from training - keep calories near maintenance');
-        recommendations.push('Focus on protein distribution: 4-5 meals with 25-40g each');
+        recommendations.push('Total daily protein matters most — aim for 0.25-0.4g/kg per meal across 3-6 meals based on preference (Stokes et al. 2022)');
       } else if (user?.goalFocus === 'strength') {
         // Strength: rest days are critical for adaptation, maintain full calories
         calorieMultiplier = 1.0;  // Maintain calories

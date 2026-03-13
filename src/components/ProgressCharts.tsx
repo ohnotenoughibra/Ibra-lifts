@@ -1064,6 +1064,8 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
               const mesoLogs = workoutLogs.filter(l => l.mesocycleId === meso.id);
               const totalVol = mesoLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
               const prs = mesoLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+              // Hide empty blocks with no sessions logged
+              if (mesoLogs.length === 0) return null;
               return (
                 <button
                   key={meso.id}

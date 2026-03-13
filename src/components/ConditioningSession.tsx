@@ -595,13 +595,13 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
         </div>
 
         {/* Difficulty filter */}
-        <div className="flex gap-1 px-4 pb-3">
+        <div className="flex gap-1 px-4 pb-3 overflow-x-auto no-scrollbar">
           {DIFFICULTY_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               onClick={() => setDifficultyFilter(opt.key)}
               className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium transition-colors',
+                'px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-colors',
                 difficultyFilter === opt.key
                   ? 'bg-grappler-50 text-grappler-950'
                   : 'bg-grappler-900 text-grappler-400 hover:text-grappler-200'

@@ -738,40 +738,41 @@ export default function WorkoutHistory() {
             <div className="flex items-stretch">
               <button
                 onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                className="flex-1 p-4 text-left flex items-center justify-between min-w-0"
+                className="flex-1 p-3 sm:p-4 text-left min-w-0"
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-grappler-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Dumbbell className="w-5 h-5 text-primary-400" />
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-grappler-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-primary-400" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-grappler-100 text-sm truncate">
-                      {log.exercises.length} exercises
-                    </p>
-                    <p className="text-xs text-grappler-400">{formatDate(log.date)}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-grappler-100 text-sm truncate">
+                        {log.exercises.length} exercise{log.exercises.length !== 1 ? 's' : ''}
+                      </p>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className={cn(
+                          'px-1.5 py-0.5 rounded text-[11px] sm:text-xs font-medium',
+                          log.overallRPE >= 9 ? 'bg-red-500/20 text-red-400' :
+                          log.overallRPE >= 7 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-green-500/20 text-green-400'
+                        )}>
+                          RPE {log.overallRPE}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 text-grappler-500" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-grappler-500" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <p className="text-xs text-grappler-400">{formatDate(log.date)}</p>
+                      <span className="text-grappler-600 text-xs">·</span>
+                      <p className="text-xs text-grappler-400">{formatNumber(Math.round(log.totalVolume))} {weightUnit}</p>
+                      <span className="text-grappler-600 text-xs">·</span>
+                      <p className="text-xs text-grappler-400">{log.duration} min</p>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-grappler-200">
-                      {formatNumber(Math.round(log.totalVolume))} {weightUnit}
-                    </p>
-                    <p className="text-xs text-grappler-400">{log.duration} min</p>
-                  </div>
-                  <div className={cn(
-                    'px-2 py-0.5 rounded text-xs font-medium',
-                    log.overallRPE >= 9 ? 'bg-red-500/20 text-red-400' :
-                    log.overallRPE >= 7 ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-green-500/20 text-green-400'
-                  )}>
-                    RPE {log.overallRPE}
-                  </div>
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-grappler-500" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-grappler-500" />
-                  )}
                 </div>
               </button>
               {/* Edit shortcut icon */}

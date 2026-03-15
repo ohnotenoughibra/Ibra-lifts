@@ -42,15 +42,16 @@ export async function loadFromDatabase(userId: string): Promise<{ data: Record<s
     const res = await fetch(`/api/sync?userId=${encodeURIComponent(userId)}`, {
       cache: 'no-store',
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => '');
+      console.error(`[db-sync] Pull failed: ${res.status} ${res.statusText}`, errorText.slice(0, 200));
+      return null;
+    }
     const json = await res.json();
     if (!json.data) return null;
     return { data: json.data, serverUpdatedAt: json.serverUpdatedAt || null };
-  } catch {
-    // DB not configured or network error - that's fine, use localStorage
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[db-sync] Database not available, using localStorage only');
-    }
+  } catch (err) {
+    console.error('[db-sync] Pull network error:', err);
     return null;
   }
 }
@@ -388,25 +389,31 @@ async function doSync(userId: string, data: Record<string, unknown>): Promise<vo
     return;
   }
 
+  const body = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
+  const payloadSize = new Blob([body]).size;
+  console.log(`[db-sync] POST /api/sync payload: ${(payloadSize / 1024).toFixed(0)} KB`);
+
   const res = await fetch('/api/sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
+    body,
   });
   if (res.ok) {
-    const body = await res.json().catch(() => ({}));
-    if (body.blocked) {
-      console.warn(`[db-sync] Sync BLOCKED by server (${body.reason || 'safety guard'}) — ` +
-        `server score: ${body.serverScore}, incoming: ${body.incomingScore}`);
+    const resBody = await res.json().catch(() => ({}));
+    if (resBody.blocked) {
+      console.warn(`[db-sync] Sync BLOCKED by server (${resBody.reason || 'safety guard'}) — ` +
+        `server score: ${resBody.serverScore}, incoming: ${resBody.incomingScore}`);
       recordSyncFailure();
+      throw new Error(`Sync blocked: ${resBody.reason || 'data_regression'}`);
     } else {
       recordSyncSuccess();
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[db-sync] Data synced to database');
-      }
+      console.log('[db-sync] Push accepted by server');
     }
   } else {
+    const errorText = await res.text().catch(() => '');
+    console.error(`[db-sync] Push failed: ${res.status} ${res.statusText}`, errorText.slice(0, 200));
     recordSyncFailure();
+    throw new Error(`Sync POST failed: ${res.status}`);
   }
 }
 

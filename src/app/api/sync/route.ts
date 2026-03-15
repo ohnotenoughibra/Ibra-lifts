@@ -61,8 +61,9 @@ export async function GET(request: Request) {
         headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
       });
     }
-    console.error('Sync GET error:', error);
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    const msg = (error as any)?.message || String(error);
+    console.error('Sync GET error:', msg, (error as any)?.code);
+    return NextResponse.json({ error: 'Database error', detail: msg.slice(0, 200) }, { status: 500 });
   }
 }
 
@@ -239,8 +240,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Sync POST error:', error);
-    return NextResponse.json({ error: 'Database error' }, { status: 500 });
+  } catch (error: any) {
+    const msg = error?.message || String(error);
+    console.error('Sync POST error:', msg, error?.code, error?.detail);
+    return NextResponse.json({
+      error: 'Database error',
+      detail: msg.slice(0, 200),
+    }, { status: 500 });
   }
 }

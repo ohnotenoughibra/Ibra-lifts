@@ -263,6 +263,16 @@ export default function Dashboard({
   const overlayUsageCount = useRef<Record<string, number>>({});
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
   const featureFeedback = useAppStore(s => s.featureFeedback);
+  const colorTheme = useAppStore(s => s.colorTheme);
+
+  // ── Apply color theme to <html> so CSS variables take effect ──
+  useEffect(() => {
+    if (colorTheme && colorTheme !== 'steel') {
+      document.documentElement.setAttribute('data-theme', colorTheme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [colorTheme]);
 
   // ── Swipe-down-to-dismiss for overlays ──
   const [overlayDragY, setOverlayDragY] = useState(0);

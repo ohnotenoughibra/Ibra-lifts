@@ -612,6 +612,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
   }, [quickLogs, todayIso]);
 
+  const alreadyLoggedMobilityToday = useMemo(() => {
+    return quickLogs.some(
+      l => l.type === 'mobility' && new Date(l.timestamp).toISOString().split('T')[0] === todayIso
+    );
+  }, [quickLogs, todayIso]);
+
   const showSorenessCheck = !sorenessCheckDismissed && !alreadyLoggedSorenessToday;
 
   const handleSorenessLog = (areas: { area: SorenessArea; severity: SorenessSeverity }[]) => {
@@ -1920,6 +1926,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           waterToday={waterTodayGlasses}
           sleepHours={sleepHours ?? null}
           alreadyLoggedSoreness={alreadyLoggedSorenessToday}
+          alreadyLoggedMobility={alreadyLoggedMobilityToday}
           yesterdayWorkouts={yesterdayWorkouts}
           twoDaysAgoWorkouts={twoDaysAgoWorkouts}
           mesocycleProgress={mesocycleProgress}

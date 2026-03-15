@@ -4,12 +4,13 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Moon, Zap, Play, Dumbbell, Apple,
-  Droplets, Check, Move, ChevronRight, Star,
+  Droplets, Check, Move, ChevronRight, Star, Leaf,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WorkoutSession } from '@/lib/types';
 import type { OverlayView } from './dashboard-types';
 import { pointRewards } from '@/lib/gamification';
+import { useAppStore } from '@/lib/store';
 
 // ─── Types ───
 
@@ -28,6 +29,7 @@ interface RestDayMissionCardProps {
   waterToday: number;
   sleepHours: number | null;
   alreadyLoggedSoreness: boolean;
+  alreadyLoggedMobility: boolean;
   yesterdayWorkouts: unknown[];
   twoDaysAgoWorkouts: unknown[];
   mesocycleProgress: { completed: number; total: number; percent: number } | null;
@@ -42,6 +44,19 @@ interface RestDayMissionCardProps {
 // ─── Component ───
 
 export default function RestDayMissionCard(props: RestDayMissionCardProps) {
+  const addQuickLog = useAppStore(s => s.addQuickLog);
+
+  // One-tap body check-in — logs soreness directly without navigating away
+  const handleBodyCheckIn = () => {
+    if (props.alreadyLoggedSoreness) return;
+    addQuickLog({
+      type: 'soreness',
+      value: 'none',
+      timestamp: new Date(),
+      notes: 'Body check: feeling good',
+    });
+  };
+
   // ─── Recovery Missions ───
   const missions = useMemo(() => {
     const m: { id: string; label: string; detail: string; done: boolean; action?: () => void; Icon: typeof Apple }[] = [];
@@ -58,14 +73,24 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
       Icon: Apple,
     });
 
-    // Soreness
+    // Body check-in — one-tap to mark feeling good, or navigate to detailed soreness
     m.push({
       id: 'soreness',
       label: 'Body check-in',
-      detail: props.alreadyLoggedSoreness ? 'Logged' : 'Log soreness',
+      detail: props.alreadyLoggedSoreness ? 'Logged' : 'Tap to check in',
       done: props.alreadyLoggedSoreness,
-      action: () => props.onNavigate('mobility'),
+      action: handleBodyCheckIn,
       Icon: Move,
+    });
+
+    // Mobility
+    m.push({
+      id: 'mobility',
+      label: 'Mobility work',
+      detail: props.alreadyLoggedMobility ? 'Done' : 'Log mobility',
+      done: props.alreadyLoggedMobility,
+      action: () => props.onNavigate('mobility'),
+      Icon: Leaf,
     });
 
     // Hydration
@@ -91,7 +116,8 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
     }
 
     return m;
-  }, [props.proteinTarget, props.todayProtein, props.alreadyLoggedSoreness, props.waterToday, props.sleepHours, props.onNavigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.proteinTarget, props.todayProtein, props.alreadyLoggedSoreness, props.alreadyLoggedMobility, props.waterToday, props.sleepHours, props.onNavigate]);
 
   const completedCount = missions.filter(m => m.done).length;
   const allComplete = completedCount === missions.length;

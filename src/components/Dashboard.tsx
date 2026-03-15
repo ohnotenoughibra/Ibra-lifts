@@ -832,20 +832,21 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'relative flex flex-col items-center gap-0.5 py-1.5 px-2 rounded-xl transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
               )}
             >
-              <tab.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 w-10 h-0.5 bg-primary-500 rounded-full"
+                  className="absolute inset-0 bg-primary-500/10 rounded-xl"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
+              <tab.icon className="w-5 h-5 relative z-10" />
+              <span className="text-xs font-medium relative z-10">{tab.label}</span>
             </button>
           ))}
 
@@ -900,20 +901,21 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'relative flex flex-col items-center gap-0.5 py-1.5 px-2 rounded-xl transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
               )}
             >
-              <tab.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 w-10 h-0.5 bg-primary-500 rounded-full"
+                  className="absolute inset-0 bg-primary-500/10 rounded-xl"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
+              <tab.icon className="w-5 h-5 relative z-10" />
+              <span className="text-xs font-medium relative z-10">{tab.label}</span>
             </button>
           ))}
         </div>

@@ -2089,7 +2089,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         className="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-xl bg-grappler-800/30 border border-grappler-700/20 hover:bg-grappler-800/50 transition-colors"
       >
         <span className="text-xs font-medium text-grappler-500">
-          {showMore ? 'Less' : 'Insights, momentum & quick access'}
+          {showMore ? 'Show less' : 'More details'}
         </span>
         <motion.span
           animate={{ rotate: showMore ? 180 : 0 }}

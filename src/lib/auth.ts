@@ -31,8 +31,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials.password as string;
 
         try {
-          await ensureAuthTables();
-
           // Handle magic link sign-in
           if (password.startsWith('__magic__ml_')) {
             const mlToken = password.replace('__magic__', '');
@@ -130,11 +128,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if ((account?.provider === 'google' || account?.provider === 'apple') && user.email) {
         const email = user.email.toLowerCase().trim();
 
-        // Retry DB operations up to 3 times (handles Vercel Postgres cold starts)
+        // Look up or create user — retry up to 3 times for Postgres cold starts
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
-            await ensureAuthTables();
-
             const { rows } = await sql`
               SELECT id FROM auth_users WHERE email = ${email}
             `;
@@ -153,13 +149,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
             // Success — break out of retry loop
             break;
-          } catch (error) {
+          } catch (error: any) {
+            // If tables don't exist, create them and retry immediately
+            if (error?.message?.includes('does not exist') && attempt === 0) {
+              try {
+                await ensureAuthTables();
+                continue; // retry without backoff
+              } catch {
+                // Fall through to normal retry
+              }
+            }
             console.error(`[auth] OAuth sign-in DB error (attempt ${attempt + 1}/3):`, error);
             if (attempt < 2) {
-              // Exponential backoff: 1s, then 2s (Neon cold start can take ~1-2s)
               await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             }
-            // On final failure, block sign-in — prevents ghost accounts with orphaned sync data
             if (attempt >= 2) {
               console.error(`[auth] OAuth sign-in failed after 3 attempts — blocking sign-in for ${user.email}`);
               return false;

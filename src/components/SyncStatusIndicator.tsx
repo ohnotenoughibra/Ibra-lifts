@@ -152,7 +152,7 @@ export default function SyncStatusIndicator({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
             role="dialog"
             aria-modal="true"
             aria-label="Cloud sync status"
@@ -161,11 +161,11 @@ export default function SyncStatusIndicator({
             onKeyDown={(e) => { if (e.key === 'Escape') setShowDetail(false); }}
           >
             <motion.div
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-grappler-900 border border-grappler-700 rounded-2xl"
+              className="w-full max-w-sm max-h-[70vh] overflow-y-auto bg-grappler-900 border border-grappler-700 rounded-2xl"
             >
               {/* Header */}
               <div className="px-4 pt-4 pb-3 flex items-center justify-between">

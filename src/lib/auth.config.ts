@@ -14,7 +14,10 @@ import Apple from 'next-auth/providers/apple';
  */
 export default {
   providers: [
-    Google,
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     // Apple Sign In (requires APPLE_CLIENT_ID and APPLE_CLIENT_SECRET env vars)
     ...(process.env.APPLE_CLIENT_ID ? [Apple({
       clientId: process.env.APPLE_CLIENT_ID,

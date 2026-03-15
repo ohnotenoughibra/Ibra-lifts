@@ -124,7 +124,7 @@ export default function SyncStatusIndicator({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm bg-grappler-900 border border-grappler-700 rounded-2xl overflow-hidden"
+              className="w-full max-w-sm max-h-[85vh] bg-grappler-900 border border-grappler-700 rounded-2xl overflow-y-auto"
             >
               {/* Header */}
               <div className="p-4 border-b border-grappler-800 flex items-center justify-between">

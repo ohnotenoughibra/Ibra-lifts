@@ -26,7 +26,7 @@ interface NutritionTrackerProps {
 }
 
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('log');
 
   // Date navigation — use local dates (not UTC) to match meal date storage
   const localDateStr = (d: Date) =>
@@ -83,7 +83,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigateDate(-1)}
-              className="p-1 text-grappler-400 hover:text-grappler-200 transition-colors"
+              className="p-2.5 text-grappler-400 hover:text-grappler-200 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -101,7 +101,7 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
               onClick={() => navigateDate(1)}
               disabled={isToday}
               className={cn(
-                'p-1 transition-colors',
+                'p-2.5 transition-colors',
                 isToday ? 'text-grappler-700 cursor-not-allowed' : 'text-grappler-400 hover:text-grappler-200'
               )}
             >

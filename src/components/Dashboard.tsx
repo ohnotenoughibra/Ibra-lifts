@@ -260,6 +260,7 @@ export default function Dashboard({
   const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackShownThisSession = useRef(false);
+  const overlayUsageCount = useRef<Record<string, number>>({});
   const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
   const featureFeedback = useAppStore(s => s.featureFeedback);
 
@@ -313,17 +314,22 @@ export default function Dashboard({
       // Save scroll position before opening overlay
       scrollPositionRef.current = window.scrollY;
     }
-    // Smart feedback — only ask when it's actually useful
+    // Smart feedback — only ask after 3rd use of a specific tool, with 7-day cooldown
     if (view === null && overlayView && !ROUTINE_OVERLAYS.has(overlayView) && !feedbackShownThisSession.current) {
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const alreadyRatedRecently = featureFeedback.some(
-        f => f.feature === overlayView && new Date(f.timestamp).getTime() > weekAgo
-      );
-      if (!alreadyRatedRecently) {
-        feedbackShownThisSession.current = true;
-        setFeedbackOverlay(overlayView);
-        if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
+      // Track usage count per overlay
+      overlayUsageCount.current[overlayView] = (overlayUsageCount.current[overlayView] || 0) + 1;
+      const usageCount = overlayUsageCount.current[overlayView];
+      if (usageCount >= 3) {
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const alreadyRatedRecently = featureFeedback.some(
+          f => f.feature === overlayView && new Date(f.timestamp).getTime() > weekAgo
+        );
+        if (!alreadyRatedRecently) {
+          feedbackShownThisSession.current = true;
+          setFeedbackOverlay(overlayView);
+          if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+          feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
+        }
       }
     }
     setOverlayViewRaw(view);
@@ -505,17 +511,36 @@ export default function Dashboard({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [overlayView, upgradeFeature, levelUpDisplay, reportMesocycleId]);
 
-  // Show Ready for This when workout starts
+  // Show Ready for This when workout starts — only for special occasions
   const prevActiveWorkoutRef = useRef(activeWorkout);
+  const competitions = useAppStore(s => s.competitions?.filter(c => !c._deleted) ?? []);
   useEffect(() => {
     if (activeWorkout && !prevActiveWorkoutRef.current) {
-      setShowReadyScreen(true);
+      const now = Date.now();
+      const isFirstEverWorkout = workoutLogs.length === 0;
+
+      // Check if there's a competition within the next 7 days
+      const hasNearCompetition = competitions.some(c => {
+        const compTime = new Date(c.date).getTime();
+        return compTime >= now && compTime - now <= 7 * 24 * 60 * 60 * 1000;
+      });
+
+      // Check if last workout was 7+ days ago
+      let hasLongBreak = false;
+      if (workoutLogs.length > 0) {
+        const lastDate = Math.max(...workoutLogs.map(l => new Date(l.date).getTime()));
+        hasLongBreak = now - lastDate >= 7 * 24 * 60 * 60 * 1000;
+      }
+
+      if (isFirstEverWorkout || hasNearCompetition || hasLongBreak) {
+        setShowReadyScreen(true);
+      }
     }
     if (!activeWorkout) {
       readyScreenSkipped.current = false; // Reset for next workout
     }
     prevActiveWorkoutRef.current = activeWorkout;
-  }, [activeWorkout]);
+  }, [activeWorkout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Streak at-risk detection
   const streakAtRisk = computed.currentStreak > 0 && (() => {
@@ -615,7 +640,7 @@ export default function Dashboard({
         onTouchEnd={handleOverlayTouchEnd}
       >
         <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-grappler-600" />
+          <div className="w-12 h-1.5 rounded-full bg-grappler-500" />
         </div>
         {overlayContent}
       </div>
@@ -642,7 +667,7 @@ export default function Dashboard({
           onTouchEnd={handleOverlayTouchEnd}
         >
           <div className="flex justify-center pt-2 pb-1">
-            <div className="w-10 h-1 rounded-full bg-grappler-600" />
+            <div className="w-12 h-1.5 rounded-full bg-grappler-500" />
           </div>
           <MesocycleReportView
             mesocycle={targetMeso}

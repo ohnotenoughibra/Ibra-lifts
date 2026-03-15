@@ -191,7 +191,8 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
               {editingGoal === lift.exerciseId && (
                 <div className="mt-2 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={goalInput}
                     onChange={e => setGoalInput(e.target.value)}
                     className="w-20 bg-grappler-700 text-grappler-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
@@ -1952,6 +1953,19 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
             />
           ) : (
             <>
+              {/* New user nudge — less than 3 workouts logged */}
+              {workoutLogs.length < 3 && (
+                <div className="rounded-xl bg-grappler-900/40 border border-grappler-800 p-5 flex flex-col items-center text-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/15 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-grappler-200">Your progress story starts here</p>
+                  <p className="text-xs text-grappler-400 leading-relaxed max-w-xs">
+                    Complete a few workouts and your strength trends, volume analysis, and PR tracking will appear here.
+                  </p>
+                </div>
+              )}
+
               {/* Progress Headline */}
               {narrative.hasData && (
                 <div className="card p-4 space-y-3">

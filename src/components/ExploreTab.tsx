@@ -11,6 +11,7 @@ import {
   Hammer, Eye, Wind,
   BookOpen, Timer, Brain, Thermometer,
   BookMarked, Share2, Trophy, MessageCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -181,6 +182,17 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   // PIN MODE — like iOS home screen jiggle mode
   // When true, tapping ANY card toggles its pin. When false, tapping navigates.
   const [pinMode, setPinMode] = useState(false);
+
+  // Track which categories are expanded (all collapsed by default)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const toggleCategory = useCallback((title: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  }, []);
 
   // Sync pins with HomeTab — event-based, no polling
   useEffect(() => {
@@ -458,28 +470,47 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         </div>
       )}
 
-      {/* Category grids */}
-      {(pinMode || !isSearching) && CATEGORIES.map(category => (
-        <div key={category.title}>
-          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <category.icon className={cn('w-3.5 h-3.5', category.accent)} />
-            {category.title}
-            <span className="text-grappler-600 font-normal normal-case tracking-normal">&middot; {category.tools.length}</span>
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {category.tools.map(tool => (
-              <ToolCard
-                key={tool.id}
-                tool={tool}
-                isPinned={pinnedIds.includes(tool.id)}
-                pinMode={pinMode}
-                isFree={isFree}
-                onTap={handleCardTap}
-              />
-            ))}
+      {/* Category grids — collapsed by default, tappable header to expand */}
+      {(pinMode || !isSearching) && CATEGORIES.map(category => {
+        // In pin mode, always show expanded so users can pin anything
+        const isExpanded = pinMode || expandedCategories.has(category.title);
+        return (
+          <div key={category.title}>
+            <button
+              onClick={() => { if (!pinMode) toggleCategory(category.title); }}
+              className={cn(
+                'w-full flex items-center gap-1.5 text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2',
+                !pinMode && 'active:opacity-70 transition-opacity'
+              )}
+              style={{ touchAction: 'manipulation' }}
+            >
+              <category.icon className={cn('w-3.5 h-3.5', category.accent)} />
+              {category.title}
+              <span className="text-grappler-600 font-normal normal-case tracking-normal">&middot; {category.tools.length}</span>
+              {!pinMode && (
+                <ChevronDown className={cn(
+                  'w-3.5 h-3.5 ml-auto text-grappler-600 transition-transform duration-200',
+                  isExpanded && 'rotate-180'
+                )} />
+              )}
+            </button>
+            {isExpanded && (
+              <div className="grid grid-cols-3 gap-2">
+                {category.tools.map(tool => (
+                  <ToolCard
+                    key={tool.id}
+                    tool={tool}
+                    isPinned={pinnedIds.includes(tool.id)}
+                    pinMode={pinMode}
+                    isFree={isFree}
+                    onTap={handleCardTap}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

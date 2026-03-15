@@ -446,7 +446,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     trainingSessions, latestWhoopData, meals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, repairMesocycleProgress,
     skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
-    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips, addTrainingSession,
+    deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, activeWorkout, setWaterGlasses, workoutSkips, addTrainingSession,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
@@ -455,7 +455,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: (s.mesocycleQueue ?? []).filter((b: any) => !b._deleted), completeMesocycle: s.completeMesocycle,
-      deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
+      deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog, activeWorkout: s.activeWorkout, setWaterGlasses: s.setWaterGlasses,
       workoutSkips: (s.workoutSkips ?? []).filter((sk: any) => !sk._deleted), addTrainingSession: s.addTrainingSession,
     }))
   );
@@ -495,7 +495,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [readinessExpanded, setReadinessExpanded] = useState(false);
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
+  // showInsights removed — insights content is now flat inside "More details"
   const [showMore, setShowMore] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
@@ -1030,34 +1030,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     if (phase === 'pm') return `Afternoon window. Readiness: ${directive.readinessLevel}.`;
     return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
   }, [directive, macroTargets, todayProtein, hour, sleepHours]);
-
-  // ─── Insight Summary — context-aware toggle text ───
-  const insightSummary = useMemo(() => {
-    const parts: string[] = [];
-
-    // Volume gaps — most actionable signal
-    if (volumeGaps.length > 0) {
-      const zeroMuscles = volumeGaps.filter(g => g.currentSets === 0);
-      if (zeroMuscles.length > 0) {
-        parts.push(`${zeroMuscles.length} muscle${zeroMuscles.length > 1 ? 's' : ''} at 0 vol`);
-      } else {
-        parts.push(`${volumeGaps.length} below MEV`);
-      }
-    }
-
-    // Win or consistency
-    if (weeklyInsights.length > 0) {
-      const win = weeklyInsights.find(i => i.type === 'win');
-      if (win) parts.push(win.label === 'Big Win' ? `${synthesis.stats.prs} PR${synthesis.stats.prs !== 1 ? 's' : ''}` : 'Consistent');
-    }
-
-    // Protein status
-    if (macroTargets.protein > 0) {
-      parts.push(`${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g protein`);
-    }
-
-    return parts.length > 0 ? parts.join(' · ') : 'View coaching insights';
-  }, [volumeGaps, weeklyInsights, synthesis, macroTargets, todayProtein]);
 
   // ─── Sport Nutrition Tip icons ───
   const tipIconMap: Record<string, typeof Zap> = {
@@ -1809,12 +1781,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </div>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            {currentStreak >= 1 && (
-              <div className="flex items-center gap-1.5 text-orange-400">
-                <Flame className="w-4 h-4" />
-                <span className="text-sm font-black tabular-nums">{currentStreak}d</span>
-              </div>
-            )}
             {directive.isDeload && (
               <span className="text-xs font-medium text-amber-400 tabular-nums">Deload</span>
             )}
@@ -2057,12 +2023,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
             </span>
           </div>
-          {waterTodayL > 0 && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Droplets className="w-3 h-3 text-blue-400/70" />
-              <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
-            </div>
-          )}
+          <button
+            onClick={() => {
+              const currentGlasses = waterLog[todayIso] || 0;
+              setWaterGlasses(todayIso, currentGlasses + 1);
+              hapticMedium();
+            }}
+            className="flex items-center gap-1 flex-shrink-0 active:scale-90 transition-transform"
+            style={{ touchAction: 'manipulation' }}
+            title="Tap to add 250ml water"
+          >
+            <Droplets className="w-3 h-3 text-blue-400/70" />
+            <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL > 0 ? `${waterTodayL}L` : '+water'}</span>
+            <Plus className="w-2.5 h-2.5 text-blue-400/50" />
+          </button>
           {strain != null && strain > 0 && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <Zap className="w-3 h-3 text-yellow-400/70" />
@@ -2242,36 +2216,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       <DashboardInsights onNavigate={onNavigate} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed
+          INSIGHTS — coaching, nutrition, intel feed (flattened into More details)
           ═══════════════════════════════════════════════════════════════════ */}
-      <div>
-        <button
-          onClick={() => setShowInsights(v => !v)}
-          className="w-full flex items-center justify-between gap-2 py-3 px-3 rounded-xl bg-grappler-800/40 border border-grappler-700/30 hover:bg-grappler-800/60 transition-colors"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Sparkles className="w-4 h-4 text-primary-400 flex-shrink-0" />
-            <span className="text-sm font-semibold text-grappler-300 truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
-          </div>
-          <motion.span
-            animate={{ rotate: showInsights ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="inline-flex flex-shrink-0"
-          >
-            <ChevronDown className="w-4 h-4 text-grappler-400" />
-          </motion.span>
-        </button>
-
-        <AnimatePresence>
-          {showInsights && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div className="space-y-3 pt-1">
+      <div className="space-y-3">
 
                 {/* ─── Body Check-In — soreness & mobility ─── */}
                 {showSorenessCheck && (
@@ -2447,11 +2394,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   ) : null;
                 })()}
 
-        </div>{/* end space-y-3 pt-1 */}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>{/* end collapsible insights wrapper */}
+      </div>{/* end insights section */}
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(
@@ -2736,6 +2679,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── Floating Start Workout FAB ─── */}
+      {currentMesocycle && nextWorkout && !activeWorkout && !dockPickerOpen && !showSkipDialog && !showMigrateDialog && (
+        <button
+          onClick={() => {
+            hapticMedium();
+            if (startWorkout(nextWorkout) === false) {
+              showToast('Finish your current workout first', 'warning');
+            }
+          }}
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 active:scale-95 transition-transform"
+          style={{ touchAction: 'manipulation', paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
+        >
+          <Dumbbell className="w-5 h-5 text-white" />
+          <span className="text-sm font-bold text-white">Start Workout</span>
+        </button>
+      )}
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>

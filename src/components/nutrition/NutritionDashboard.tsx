@@ -228,7 +228,7 @@ function MealRow({ meal, onDelete, onEdit }: {
               <div className="flex gap-1">
                 <button
                   onClick={(e) => { e.stopPropagation(); onEdit(meal); }}
-                  className="p-1.5 text-grappler-500 hover:text-grappler-200 transition-colors"
+                  className="p-2.5 text-grappler-500 hover:text-grappler-200 transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
@@ -236,13 +236,13 @@ function MealRow({ meal, onDelete, onEdit }: {
                   <div className="flex gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(meal.id); }}
-                      className="p-1.5 text-red-400 hover:text-red-300 transition-colors"
+                      className="p-2.5 text-red-400 hover:text-red-300 transition-colors"
                     >
                       <Check className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
-                      className="p-1.5 text-grappler-500 hover:text-grappler-200 transition-colors"
+                      className="p-2.5 text-grappler-500 hover:text-grappler-200 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -250,7 +250,7 @@ function MealRow({ meal, onDelete, onEdit }: {
                 ) : (
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
-                    className="p-1.5 text-grappler-500 hover:text-red-400 transition-colors"
+                    className="p-2.5 text-grappler-500 hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -321,22 +321,22 @@ function EditMealModal({ meal, onSave, onClose }: {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-grappler-500 mb-1 block">Calories</label>
-            <input value={calories} onChange={e => setCalories(e.target.value)} type="number" inputMode="numeric"
+            <input value={calories} onChange={e => setCalories(e.target.value)} type="text" inputMode="decimal"
               className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
           </div>
           <div>
             <label className="text-xs text-grappler-500 mb-1 block">Protein (g)</label>
-            <input value={protein} onChange={e => setProtein(e.target.value)} type="number" inputMode="decimal"
+            <input value={protein} onChange={e => setProtein(e.target.value)} type="text" inputMode="decimal"
               className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
           </div>
           <div>
             <label className="text-xs text-grappler-500 mb-1 block">Carbs (g)</label>
-            <input value={carbs} onChange={e => setCarbs(e.target.value)} type="number" inputMode="decimal"
+            <input value={carbs} onChange={e => setCarbs(e.target.value)} type="text" inputMode="decimal"
               className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
           </div>
           <div>
             <label className="text-xs text-grappler-500 mb-1 block">Fat (g)</label>
-            <input value={fat} onChange={e => setFat(e.target.value)} type="number" inputMode="decimal"
+            <input value={fat} onChange={e => setFat(e.target.value)} type="text" inputMode="decimal"
               className="w-full bg-grappler-800 rounded-lg px-3 py-2 text-sm text-grappler-100 outline-none focus:ring-1 focus:ring-primary-500/50" />
           </div>
         </div>

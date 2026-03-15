@@ -519,7 +519,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                       Max HR (bpm)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
                       value={maxHR}
                       onChange={(e) =>
@@ -534,7 +534,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                     </label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="text"
                         inputMode="numeric"
                         value={restingHR}
                         onChange={(e) =>
@@ -835,7 +835,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                       Duration (min)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
                       value={duration}
                       onChange={(e) => setDuration(e.target.value)}
@@ -848,7 +848,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                       Avg HR (bpm)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
                       value={avgHR}
                       onChange={(e) => setAvgHR(e.target.value)}
@@ -861,7 +861,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                       Max HR (bpm)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
                       value={sessionMaxHR}
                       onChange={(e) => setSessionMaxHR(e.target.value)}
@@ -893,7 +893,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                             </span>
                           </div>
                           <input
-                            type="number"
+                            type="text"
                             inputMode="numeric"
                             value={zoneMinutes[zone]}
                             onChange={(e) =>
@@ -917,7 +917,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                     Calories Burned (optional)
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
                     value={calories}
                     onChange={(e) => setCalories(e.target.value)}

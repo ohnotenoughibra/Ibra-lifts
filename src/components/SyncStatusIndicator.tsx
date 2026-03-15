@@ -60,6 +60,7 @@ export default function SyncStatusIndicator({
   const [showDetail, setShowDetail] = useState(false);
   const [serverCounts, setServerCounts] = useState<ServerCounts | null>(null);
   const [fetchingServer, setFetchingServer] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   const localCounts = useCallback(() => {
     const s = useAppStore.getState();
@@ -90,8 +91,23 @@ export default function SyncStatusIndicator({
   }, [showDetail]);
 
   const handleForceSync = useCallback(() => {
+    const before = localCounts();
+    setSyncResult(null);
     const syncPromise = onForceSync();
     Promise.resolve(syncPromise).then(() => {
+      const after = localCounts();
+      const mealDiff = after.meals - before.meals;
+      const workoutDiff = after.workouts - before.workouts;
+      if (mealDiff === 0 && workoutDiff === 0) {
+        setSyncResult('No changes — already in sync');
+      } else {
+        const parts: string[] = [];
+        if (mealDiff > 0) parts.push(`+${mealDiff} meals`);
+        if (mealDiff < 0) parts.push(`${mealDiff} meals`);
+        if (workoutDiff > 0) parts.push(`+${workoutDiff} workouts`);
+        if (workoutDiff < 0) parts.push(`${workoutDiff} workouts`);
+        setSyncResult(parts.join(', '));
+      }
       // Re-fetch server counts after sync
       fetch('/api/debug/sync-status')
         .then(r => r.json())
@@ -106,8 +122,8 @@ export default function SyncStatusIndicator({
           }
         })
         .catch(() => {});
-    }).catch(() => {});
-  }, [onForceSync]);
+    }).catch(() => setSyncResult('Sync failed'));
+  }, [onForceSync, localCounts]);
 
   if (!isAuthenticated) return null;
 
@@ -206,6 +222,12 @@ export default function SyncStatusIndicator({
                 {syncFailureCount >= 3 && (
                   <p className="text-xs text-red-400">
                     Sync failed {syncFailureCount}x — tap Sync Now to retry
+                  </p>
+                )}
+
+                {syncResult && (
+                  <p className={cn('text-xs font-medium', syncResult.includes('failed') ? 'text-red-400' : 'text-green-400')}>
+                    {syncResult}
                   </p>
                 )}
 

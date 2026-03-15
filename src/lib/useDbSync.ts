@@ -475,29 +475,37 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     lastResyncAt.current = Date.now();
     setSyncStatus('syncing');
 
+    const before = useAppStore.getState();
+    const beforeCounts = {
+      meals: (before.meals ?? []).length,
+      workouts: (before.workoutLogs ?? []).length,
+    };
+    console.log('[db-sync] Force sync START:', beforeCounts);
+
     try {
       // Step 1: Push local data to cloud
       const payload = buildSyncPayload();
       if (payload) {
+        console.log('[db-sync] Pushing payload with', (payload.meals as unknown[])?.length ?? 0, 'meals');
         await forcePushToCloud(effectiveUserId, payload);
+        console.log('[db-sync] Push complete');
+      } else {
+        console.warn('[db-sync] buildSyncPayload returned null — skipping push');
       }
 
       // Step 2: Pull latest from cloud (merges any data from other devices)
+      console.log('[db-sync] Pulling from cloud...');
       const pullSuccess = await pullFromCloud(effectiveUserId, true);
       if (pullSuccess) {
         if (!hasPulledSuccessfully.current) hasPulledSuccessfully.current = true;
         setSyncStatus('success');
         setLastSyncedAt(new Date());
 
-        // Log what was received for debugging
-        if (process.env.NODE_ENV === 'development') {
-          const s = useAppStore.getState();
-          console.log('[db-sync] Force sync complete:', {
-            meals: s.meals?.length ?? 0,
-            waterLogDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
-            workoutLogs: s.workoutLogs?.length ?? 0,
-          });
-        }
+        const after = useAppStore.getState();
+        console.log('[db-sync] Force sync DONE:', {
+          meals: `${beforeCounts.meals} → ${(after.meals ?? []).length}`,
+          workouts: `${beforeCounts.workouts} → ${(after.workoutLogs ?? []).length}`,
+        });
       } else {
         console.warn('[db-sync] Force sync: push succeeded but pull failed');
         setSyncStatus('error');

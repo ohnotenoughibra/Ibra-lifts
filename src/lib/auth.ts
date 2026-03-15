@@ -156,8 +156,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           } catch (error) {
             console.error(`[auth] OAuth sign-in DB error (attempt ${attempt + 1}/3):`, error);
             if (attempt < 2) {
-              // Exponential backoff: 500ms, then 1500ms
-              await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+              // Exponential backoff: 1s, then 2s (Neon cold start can take ~1-2s)
+              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             }
             // On final failure, block sign-in — prevents ghost accounts with orphaned sync data
             if (attempt >= 2) {

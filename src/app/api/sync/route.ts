@@ -189,7 +189,7 @@ export async function POST(request: Request) {
 
     const jsonData = JSON.stringify(mergedData);
 
-    // ── Atomic write: backup + upsert + gamification in a single transaction ──
+    // ── Write: backup + upsert (core), then gamification (best-effort) ──
     const client = await db.connect();
     try {
       await client.sql`BEGIN`;
@@ -207,11 +207,35 @@ export async function POST(request: Request) {
         DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
       `;
 
-      // Dual-write gamification to its dedicated table (use merged data, not raw incoming)
+      await client.sql`COMMIT`;
+    } catch (txErr) {
+      await client.sql`ROLLBACK`;
+      throw txErr;
+    } finally {
+      client.release();
+    }
+
+    // Best-effort gamification dual-write (non-fatal — table may not exist yet)
+    try {
       const gam = mergedData.gamificationStats as Record<string, unknown> | undefined;
       if (gam && (Number(gam.totalPoints) > 0 || Number(gam.totalWorkouts) > 0)) {
         const badgesJson = JSON.stringify(gam.badges || []);
-        await client.sql`
+        await sql`
+          CREATE TABLE IF NOT EXISTS gamification_stats (
+            id TEXT PRIMARY KEY,
+            user_id TEXT UNIQUE NOT NULL,
+            total_points INTEGER DEFAULT 0,
+            level INTEGER DEFAULT 1,
+            current_streak INTEGER DEFAULT 0,
+            longest_streak INTEGER DEFAULT 0,
+            total_workouts INTEGER DEFAULT 0,
+            total_volume REAL DEFAULT 0,
+            personal_records INTEGER DEFAULT 0,
+            badges_json JSONB DEFAULT '[]'::jsonb,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `;
+        await sql`
           INSERT INTO gamification_stats (id, user_id, total_points, level, current_streak,
             longest_streak, total_workouts, total_volume, personal_records, badges_json)
           VALUES (${userId}, ${userId}, ${Number(gam.totalPoints) || 0}, ${Number(gam.level) || 1},
@@ -230,13 +254,8 @@ export async function POST(request: Request) {
             updated_at = NOW()
         `;
       }
-
-      await client.sql`COMMIT`;
-    } catch (txErr) {
-      await client.sql`ROLLBACK`;
-      throw txErr;
-    } finally {
-      client.release();
+    } catch {
+      // Non-fatal — gamification stats are also in user_store JSONB
     }
 
     return NextResponse.json({ success: true });

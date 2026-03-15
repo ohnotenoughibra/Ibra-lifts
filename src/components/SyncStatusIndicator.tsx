@@ -6,8 +6,6 @@ import {
   Cloud,
   CloudOff,
   RefreshCw,
-  Check,
-  AlertCircle,
   Smartphone,
   Monitor,
   Tablet,
@@ -125,24 +123,22 @@ export default function SyncStatusIndicator({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm max-h-[85vh] bg-grappler-900 border border-grappler-700 rounded-2xl overflow-y-auto"
+              className="w-full max-w-sm bg-grappler-900 border border-grappler-700 rounded-2xl"
             >
               {/* Header */}
-              <div className="p-4 border-b border-grappler-800 flex items-center justify-between">
+              <div className="px-4 pt-4 pb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-primary-400" />
                   <h3 className="text-sm font-semibold text-grappler-100">Cloud Sync</h3>
                 </div>
-                <button onClick={() => setShowDetail(false)} className="p-1 text-grappler-500 hover:text-grappler-300">
+                <button onClick={() => setShowDetail(false)} className="p-1.5 -mr-1 text-grappler-500 hover:text-grappler-300">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Status */}
-              <div className="p-4 space-y-3">
-                {/* Sync status */}
+              {/* Status rows */}
+              <div className="px-4 pb-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-grappler-400">Status</span>
                   <div className="flex items-center gap-1.5">
                     <span className={cn('w-2 h-2 rounded-full', config.dot)} />
                     <span className={cn(
@@ -155,93 +151,37 @@ export default function SyncStatusIndicator({
                       {config.label}
                     </span>
                   </div>
-                </div>
-
-                {/* Last synced */}
-                {lastSyncedAt && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-grappler-400">Last synced</span>
-                    <span className="text-xs text-grappler-200">
-                      {lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {' '}({getRelativeTime(lastSyncedAt)})
-                    </span>
-                  </div>
-                )}
-
-                {/* Current device */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-grappler-400">This device</span>
-                  <div className="flex items-center gap-1.5">
-                    <CurrentDeviceIcon className="w-3.5 h-3.5 text-grappler-300" />
-                    <span className="text-xs text-grappler-200 capitalize">{deviceType}</span>
+                  <div className="flex items-center gap-3 text-xs text-grappler-400">
+                    {lastSyncedAt && <span>{getRelativeTime(lastSyncedAt)}</span>}
+                    <div className="flex items-center gap-1">
+                      <CurrentDeviceIcon className="w-3 h-3" />
+                      <span className="capitalize">{deviceType}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Sync failure warning */}
                 {syncFailureCount >= 3 && (
-                  <div className="bg-red-900/30 border border-red-500/30 rounded-xl p-3 mt-2">
-                    <p className="text-xs text-red-300 leading-relaxed font-medium">
-                      Sync has failed {syncFailureCount} times. Your data is saved locally and backed up — tap &quot;Sync Now&quot; to retry.
-                    </p>
-                  </div>
+                  <p className="text-xs text-red-400">
+                    Sync failed {syncFailureCount}x — tap Sync Now to retry
+                  </p>
                 )}
 
-                {/* Info text */}
-                <div className="bg-grappler-800/50 rounded-xl p-3 mt-2">
-                  <p className="text-xs text-grappler-400 leading-relaxed">
-                    {syncStatus === 'offline'
-                      ? 'Changes are saved locally and will sync when you reconnect.'
-                      : 'Your data syncs automatically across devices. Switching between phone and computer? Just sign in with the same account — your workouts, progress, and settings follow you.'}
-                  </p>
-                </div>
-
-                {/* How it works */}
-                <div className="space-y-2">
-                  <p className="text-xs text-grappler-400 uppercase tracking-wide font-medium">How multi-device sync works</p>
-                  <div className="space-y-1.5">
-                    {[
-                      { icon: Check, text: 'Changes push to cloud within seconds' },
-                      { icon: RefreshCw, text: 'Pulls latest data when you switch back to the app' },
-                      { icon: AlertCircle, text: 'Conflicts? You choose which data to keep' },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <item.icon className="w-3 h-3 text-primary-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-xs text-grappler-300">{item.text}</span>
-                      </div>
-                    ))}
+                {/* Sync receipt */}
+                {syncReceipt && (
+                  <div className="flex items-center gap-3 text-xs text-grappler-300">
+                    <Database className="w-3 h-3 text-primary-400 flex-shrink-0" />
+                    <span>{syncReceipt.meals} meals · {syncReceipt.workouts} workouts · {syncReceipt.sessions} sessions</span>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Sync receipt */}
-              {syncReceipt && (
-                <div className="px-4 pt-3">
-                  <div className="bg-grappler-800/80 rounded-xl p-3 space-y-1">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Database className="w-3 h-3 text-primary-400" />
-                      <span className="text-xs font-medium text-grappler-200">After sync</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-xs text-grappler-400">Meals</span>
-                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.meals}</span>
-                      <span className="text-xs text-grappler-400">Water log days</span>
-                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.waterDays}</span>
-                      <span className="text-xs text-grappler-400">Workouts</span>
-                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.workouts}</span>
-                      <span className="text-xs text-grappler-400">Sport sessions</span>
-                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.sessions}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="p-4 border-t border-grappler-800 space-y-2">
+              {/* Buttons */}
+              <div className="px-4 pb-4 flex gap-2">
                 <button
                   onClick={handleForceSync}
                   disabled={syncStatus === 'syncing' || syncStatus === 'offline'}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all',
+                    'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all',
                     syncStatus === 'syncing' || syncStatus === 'offline'
                       ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
                       : 'bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 border border-primary-500/20'
@@ -256,7 +196,7 @@ export default function SyncStatusIndicator({
                 </button>
                 <button
                   onClick={() => setShowDetail(false)}
-                  className="w-full py-2.5 rounded-xl text-sm font-medium text-grappler-400 hover:text-grappler-200 bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium text-grappler-400 hover:text-grappler-200 bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
                 >
                   Done
                 </button>

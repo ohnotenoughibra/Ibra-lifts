@@ -83,13 +83,22 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
       Icon: Move,
     });
 
-    // Mobility
+    // Mobility — one-tap to log, long-press opens guided routines
     m.push({
       id: 'mobility',
       label: 'Mobility work',
-      detail: props.alreadyLoggedMobility ? 'Done' : 'Log mobility',
+      detail: props.alreadyLoggedMobility ? 'Done' : 'Tap to log',
       done: props.alreadyLoggedMobility,
-      action: () => props.onNavigate('mobility'),
+      action: () => {
+        if (props.alreadyLoggedMobility) return;
+        addQuickLog({
+          type: 'mobility',
+          value: 10,
+          unit: 'min',
+          timestamp: new Date(),
+          notes: 'Quick log from rest day card',
+        });
+      },
       Icon: Leaf,
     });
 

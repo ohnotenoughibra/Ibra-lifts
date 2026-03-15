@@ -71,7 +71,10 @@ export default function RootLayout({
           })();
         ` }} />
         <Providers>
-          <div className="relative min-h-screen">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary-500 focus:text-white focus:text-sm focus:font-semibold">
+            Skip to content
+          </a>
+          <div id="main-content" className="relative min-h-screen">
             {children}
           </div>
         </Providers>

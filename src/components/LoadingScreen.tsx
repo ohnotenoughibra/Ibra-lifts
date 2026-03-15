@@ -23,25 +23,13 @@ export default function LoadingScreen() {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="relative"
         >
-          <div className="w-16 h-16 rounded-2xl bg-grappler-900 flex items-center justify-center shadow-lg shadow-primary-500/20 border border-grappler-800/50">
-            <svg width="40" height="40" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="loadMark" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#2563eb"/>
-                  <stop offset="40%" stopColor="#3b82f6"/>
-                  <stop offset="100%" stopColor="#22d3ee"/>
-                </linearGradient>
-              </defs>
-              <polyline
-                points="6,22 16,8 26,22"
-                fill="none"
-                stroke="url(#loadMark)"
-                strokeWidth="4.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+          <img
+            src="/icon-192.png"
+            alt="Roots Gains"
+            width={64}
+            height={64}
+            className="rounded-2xl shadow-lg shadow-primary-500/20"
+          />
         </motion.div>
 
         {/* App Name */}

@@ -87,12 +87,14 @@ function applyRemoteData(
     if (normalized.isOnboarded !== undefined) fieldsToMerge.isOnboarded = normalized.isOnboarded;
 
     if (Object.keys(fieldsToMerge).length > 0) {
+      const before = useAppStore.getState();
       useAppStore.setState(fieldsToMerge);
-      // Streak/XP/level are now computed from workoutLogs on every render
-      // (see computed-gamification.ts) — no recalculation needed after sync.
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[db-sync] ${label}`);
-      }
+      const after = useAppStore.getState();
+      console.log(`[db-sync] ${label}:`, {
+        meals: `${(before.meals ?? []).length} → ${(after.meals ?? []).length}`,
+        workouts: `${(before.workoutLogs ?? []).length} → ${(after.workoutLogs ?? []).length}`,
+        waterDays: `${Object.keys(before.waterLog || {}).length} → ${Object.keys(after.waterLog || {}).length}`,
+      });
     }
 
     // Restore Whoop tokens from DB backup if local tokens are missing
@@ -377,7 +379,11 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       }
       // Flush any data queued during previous page-hide before pulling
       flushSyncQueue().catch(() => {});
-      pullFromCloud(effectiveUserId, true);
+      pullFromCloud(effectiveUserId, true).then(success => {
+        if (success && !hasPulledSuccessfully.current) {
+          hasPulledSuccessfully.current = true;
+        }
+      });
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);

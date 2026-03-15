@@ -35,6 +35,8 @@ const RESTORE_FIELDS = [
   'nutritionPeriodPlan', 'mealStamps',
   // Illness resolution state (previously local-only — caused "recovering" on other devices)
   '_resolvedIllnessIds',
+  // Wearable data (so sleep/strain/recovery shows on all devices, not just Whoop-connected one)
+  'latestWhoopData', 'wearableHistory', 'whoopWorkouts',
 ];
 
 /**
@@ -466,6 +468,8 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       lastInsightDate: s.lastInsightDate,
       nutritionPeriodPlan: s.nutritionPeriodPlan, mealStamps: s.mealStamps,
       _resolvedIllnessIds: s._resolvedIllnessIds,
+      latestWhoopData: s.latestWhoopData, wearableHistory: s.wearableHistory,
+      whoopWorkouts: s.whoopWorkouts,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
       // Quick Access pins (stored in localStorage, not Zustand)
@@ -602,6 +606,10 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       nutritionPeriodPlan: store.nutritionPeriodPlan,
       mealStamps: store.mealStamps,
       _resolvedIllnessIds: store._resolvedIllnessIds,
+      // Wearable data (so sleep/strain shows on all devices)
+      latestWhoopData: store.latestWhoopData,
+      wearableHistory: store.wearableHistory,
+      whoopWorkouts: store.whoopWorkouts,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',

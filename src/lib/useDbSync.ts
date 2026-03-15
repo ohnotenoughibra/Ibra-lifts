@@ -480,10 +480,26 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       }
 
       // Step 2: Pull latest from cloud (merges any data from other devices)
-      await pullFromCloud(effectiveUserId, true);
-      setSyncStatus('success');
-      setLastSyncedAt(new Date());
-      setTimeout(() => setSyncStatus(prev => prev === 'success' ? 'idle' : prev), 3000);
+      const pullSuccess = await pullFromCloud(effectiveUserId, true);
+      if (pullSuccess) {
+        if (!hasPulledSuccessfully.current) hasPulledSuccessfully.current = true;
+        setSyncStatus('success');
+        setLastSyncedAt(new Date());
+
+        // Log what was received for debugging
+        if (process.env.NODE_ENV === 'development') {
+          const s = useAppStore.getState();
+          console.log('[db-sync] Force sync complete:', {
+            meals: s.meals?.length ?? 0,
+            waterLogDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
+            workoutLogs: s.workoutLogs?.length ?? 0,
+          });
+        }
+      } else {
+        console.warn('[db-sync] Force sync: push succeeded but pull failed');
+        setSyncStatus('error');
+      }
+      setTimeout(() => setSyncStatus(prev => (prev === 'success' || prev === 'error') ? 'idle' : prev), 3000);
     } catch (err) {
       console.error('[db-sync] Force sync failed:', err);
       setSyncStatus('error');

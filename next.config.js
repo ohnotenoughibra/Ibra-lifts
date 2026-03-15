@@ -4,6 +4,8 @@ const { withSentryConfig } = require('@sentry/nextjs');
 const nextConfig = {
   reactStrictMode: true,
   env: {
+    // Build ID for version polling (detects new deploys)
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString(),
     // Dynamically set AUTH_URL per Vercel deployment so that NextAuth sends
     // Google the correct OAuth callback URL.  Without this, preview deploys
     // inherit the production AUTH_URL and redirect users to production after

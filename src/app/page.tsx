@@ -39,6 +39,56 @@ export default function Home() {
   const [swUpdateAvailable, setSwUpdateAvailable] = useState(false);
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
 
+  // Poll for new deployments every 5 minutes
+  useEffect(() => {
+    const knownBuildId = process.env.NEXT_PUBLIC_BUILD_ID || '';
+    if (!knownBuildId || knownBuildId === 'dev') return;
+
+    const CHECK_INTERVAL = 5 * 60_000; // 5 minutes
+
+    const checkForUpdate = async () => {
+      try {
+        const res = await fetch('/api/version', { cache: 'no-store' });
+        if (!res.ok) return;
+        const { buildId } = await res.json();
+        if (buildId && buildId !== knownBuildId && buildId !== 'dev') {
+          // New deploy detected — trigger SW update check
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) {
+              await reg.update();
+              // If no waiting SW after update() (e.g. non-PWA browser),
+              // show the banner directly so the user can refresh
+              setTimeout(() => {
+                if (!reg.waiting) {
+                  setSwUpdateAvailable(true);
+                }
+              }, 2000);
+            } else {
+              // No SW (regular browser) — just show the banner
+              setSwUpdateAvailable(true);
+            }
+          } else {
+            // No SW support — show banner for manual refresh
+            setSwUpdateAvailable(true);
+          }
+        }
+      } catch {
+        // Network error — skip this cycle
+      }
+    };
+
+    const interval = setInterval(checkForUpdate, CHECK_INTERVAL);
+    // Also check once on focus return (catches deploys while tab was idle)
+    const handleFocus = () => checkForUpdate();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
   // Sync Zustand store with Vercel Postgres — keyed to authenticated user
   const { isInitialLoadComplete, syncStatus, lastSyncedAt, deviceType, forceSync, isAuthenticated, syncFailureCount } = useDbSync(authUserId, sessionStatus);
 
@@ -208,6 +258,9 @@ export default function Home() {
   const handleSWUpdate = useCallback(() => {
     if (waitingSW) {
       waitingSW.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      // No waiting SW (regular browser or SW not updated yet) — hard reload
+      window.location.reload();
     }
     setSwUpdateAvailable(false);
   }, [waitingSW]);

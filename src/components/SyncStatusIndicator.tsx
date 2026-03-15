@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cloud,
@@ -13,8 +13,10 @@ import {
   Tablet,
   Loader2,
   X,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 interface SyncStatusIndicatorProps {
@@ -52,6 +54,21 @@ export default function SyncStatusIndicator({
   syncFailureCount = 0,
 }: SyncStatusIndicatorProps) {
   const [showDetail, setShowDetail] = useState(false);
+  const [syncReceipt, setSyncReceipt] = useState<{ meals: number; waterDays: number; workouts: number; sessions: number } | null>(null);
+
+  const handleForceSync = useCallback(async () => {
+    setSyncReceipt(null);
+    await onForceSync();
+    // Show receipt of what's now in the store after sync
+    const s = useAppStore.getState();
+    const localCounts = {
+      meals: (s.meals ?? []).filter(m => !m._deleted).length,
+      waterDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
+      workouts: (s.workoutLogs ?? []).filter(w => !w._deleted).length,
+      sessions: (s.trainingSessions ?? []).filter(t => !t._deleted).length,
+    };
+    setSyncReceipt(localCounts);
+  }, [onForceSync]);
 
   // Don't show for unauthenticated users
   if (!isAuthenticated) return null;
@@ -193,13 +210,32 @@ export default function SyncStatusIndicator({
                 </div>
               </div>
 
+              {/* Sync receipt */}
+              {syncReceipt && (
+                <div className="px-4 pt-3">
+                  <div className="bg-grappler-800/80 rounded-xl p-3 space-y-1">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Database className="w-3 h-3 text-primary-400" />
+                      <span className="text-xs font-medium text-grappler-200">After sync</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <span className="text-xs text-grappler-400">Meals</span>
+                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.meals}</span>
+                      <span className="text-xs text-grappler-400">Water log days</span>
+                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.waterDays}</span>
+                      <span className="text-xs text-grappler-400">Workouts</span>
+                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.workouts}</span>
+                      <span className="text-xs text-grappler-400">Sport sessions</span>
+                      <span className="text-xs text-grappler-200 text-right">{syncReceipt.sessions}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action buttons */}
               <div className="p-4 border-t border-grappler-800 space-y-2">
                 <button
-                  onClick={() => {
-                    onForceSync();
-                    setShowDetail(false);
-                  }}
+                  onClick={handleForceSync}
                   disabled={syncStatus === 'syncing' || syncStatus === 'offline'}
                   className={cn(
                     'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all',

@@ -896,7 +896,7 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteWeightCutPlan: (id) => {
-        set({ weightCutPlans: get().weightCutPlans.filter(p => p.id !== id) });
+        set({ weightCutPlans: get().weightCutPlans.map(p => p.id === id ? { ...p, _deleted: true, _deletedAt: Date.now() } : p), _syncUrgent: true });
       },
 
       addWeightCutDailyLog: (planId, log) => {
@@ -944,7 +944,7 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteFightCampPlan: (id) => {
-        set({ fightCampPlans: get().fightCampPlans.filter(p => p.id !== id) });
+        set({ fightCampPlans: get().fightCampPlans.map(p => p.id === id ? { ...p, _deleted: true, _deletedAt: Date.now() } : p), _syncUrgent: true });
       },
 
       // ── Supplement actions ────────────────────────────────────────────
@@ -954,14 +954,16 @@ export const useAppStore = create<AppState>()(
 
       addActiveSupplement: (supplement) => {
         const existing = get().activeSupplements;
-        if (!existing.some(s => s.id === supplement.id)) {
+        const active = existing.filter((s: any) => !s._deleted);
+        if (!active.some(s => s.id === supplement.id)) {
           set({ activeSupplements: [...existing, supplement] });
         }
       },
 
       removeActiveSupplement: (supplementId) => {
         set({
-          activeSupplements: get().activeSupplements.filter(s => s.id !== supplementId),
+          activeSupplements: get().activeSupplements.map(s => s.id === supplementId ? { ...s, _deleted: true, _deletedAt: Date.now() } : s),
+          _syncUrgent: true,
         });
       },
 
@@ -1029,14 +1031,15 @@ export const useAppStore = create<AppState>()(
         const { supplementIntakes, meals } = get();
         const intake = supplementIntakes.find(i => i.id === intakeId);
 
-        // Also remove the auto-logged meal entry if it exists
+        // Also soft-delete the auto-logged meal entry if it exists
         const updatedMeals = intake?.mealEntryId
-          ? meals.filter(m => m.id !== intake.mealEntryId)
+          ? meals.map(m => m.id === intake.mealEntryId ? { ...m, _deleted: true, _deletedAt: Date.now() } : m)
           : meals;
 
         set({
-          supplementIntakes: supplementIntakes.filter(i => i.id !== intakeId),
+          supplementIntakes: supplementIntakes.map(i => i.id === intakeId ? { ...i, _deleted: true, _deletedAt: Date.now() } : i),
           meals: updatedMeals,
+          _syncUrgent: true,
         });
       },
 
@@ -1319,7 +1322,7 @@ export const useAppStore = create<AppState>()(
 
       removeFromMesocycleQueue: (id) => {
         const { mesocycleQueue } = get();
-        set({ mesocycleQueue: mesocycleQueue.filter(b => b.id !== id) });
+        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, _deleted: true, _deletedAt: Date.now() } : b), _syncUrgent: true });
       },
 
       reorderMesocycleQueue: (fromIndex, toIndex) => {
@@ -3380,12 +3383,12 @@ export const useAppStore = create<AppState>()(
 
       deleteGripTest: (id) => {
         const { gripTests } = get();
-        set({ gripTests: gripTests.filter(t => t.id !== id) });
+        set({ gripTests: gripTests.map(t => t.id === id ? { ...t, _deleted: true, _deletedAt: Date.now() } : t), _syncUrgent: true });
       },
 
       deleteGripExerciseLog: (id) => {
         const { gripExerciseLogs } = get();
-        set({ gripExerciseLogs: gripExerciseLogs.filter(l => l.id !== id) });
+        set({ gripExerciseLogs: gripExerciseLogs.map(l => l.id === id ? { ...l, _deleted: true, _deletedAt: Date.now() } : l), _syncUrgent: true });
       },
 
       // Injury actions
@@ -3501,7 +3504,7 @@ export const useAppStore = create<AppState>()(
 
       deleteSkip: (skipId) => {
         const { workoutSkips } = get();
-        set({ workoutSkips: workoutSkips.filter(s => s.id !== skipId) });
+        set({ workoutSkips: workoutSkips.map(s => s.id === skipId ? { ...s, _deleted: true, _deletedAt: Date.now() } : s), _syncUrgent: true });
       },
 
       // Custom exercise actions
@@ -3519,9 +3522,9 @@ export const useAppStore = create<AppState>()(
 
       deleteCustomExercise: (id) => {
         const { customExercises } = get();
-        const updated = customExercises.filter(e => e.id !== id);
-        set({ customExercises: updated });
-        registerCustomExercises(updated);
+        const updated = customExercises.map(e => e.id === id ? { ...e, _deleted: true, _deletedAt: Date.now() } : e);
+        set({ customExercises: updated, _syncUrgent: true });
+        registerCustomExercises(updated.filter(e => !(e as any)._deleted));
       },
 
       // Session template actions
@@ -3539,7 +3542,7 @@ export const useAppStore = create<AppState>()(
 
       deleteTemplate: (id) => {
         const { sessionTemplates } = get();
-        set({ sessionTemplates: sessionTemplates.filter(t => t.id !== id) });
+        set({ sessionTemplates: sessionTemplates.map(t => t.id === id ? { ...t, _deleted: true, _deletedAt: Date.now() } : t), _syncUrgent: true });
       },
 
       useTemplate: (id) => {
@@ -3788,7 +3791,7 @@ export const useAppStore = create<AppState>()(
 
       deleteDietPhaseFromHistory: (id) => {
         const { dietPhaseHistory } = get();
-        set({ dietPhaseHistory: dietPhaseHistory.filter(p => p.id !== id) });
+        set({ dietPhaseHistory: dietPhaseHistory.map(p => p.id === id ? { ...p, _deleted: true, _deletedAt: Date.now() } : p), _syncUrgent: true });
       },
 
       editDietPhaseInHistory: (id, updates) => {
@@ -3900,7 +3903,7 @@ export const useAppStore = create<AppState>()(
 
       deleteBodyComposition: (id) => {
         const { bodyComposition } = get();
-        set({ bodyComposition: bodyComposition.filter(e => e.id !== id) });
+        set({ bodyComposition: bodyComposition.map(e => e.id === id ? { ...e, _deleted: true, _deletedAt: Date.now() } : e), _syncUrgent: true });
       },
 
       // Online status
@@ -4045,7 +4048,7 @@ export const useAppStore = create<AppState>()(
         get().awardWellnessXP('mental');
       },
       deleteMentalCheckIn: (id) => {
-        set({ mentalCheckIns: get().mentalCheckIns.filter(c => c.id !== id) });
+        set({ mentalCheckIns: get().mentalCheckIns.map(c => c.id === id ? { ...c, _deleted: true, _deletedAt: Date.now() } : c), _syncUrgent: true });
       },
       addConfidenceEntry: (entry) => {
         const full: ConfidenceLedgerEntry = { ...entry, id: crypto.randomUUID() };
@@ -4054,7 +4057,7 @@ export const useAppStore = create<AppState>()(
         get().awardPoints(pointRewards.confidenceEntry, 'Confidence evidence logged');
       },
       deleteConfidenceEntry: (id) => {
-        set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id) });
+        set({ confidenceLedger: get().confidenceLedger.map(e => e.id === id ? { ...e, _deleted: true, _deletedAt: Date.now() } : e), _syncUrgent: true });
       },
       addFeatureFeedback: (feature, rating) => {
         set({ featureFeedback: [...get().featureFeedback, { id: crypto.randomUUID(), feature, rating, timestamp: new Date().toISOString() }] });
@@ -4537,3 +4540,17 @@ export const useTrainingSessions = () => useAppStore((state) => state.trainingSe
 export const useCycleLogs = () => useAppStore((state) => state.cycleLogs.filter(l => !l._deleted));
 export const useCompetitions = () => useAppStore((state) => state.competitions.filter(c => !c._deleted));
 export const useQuickLogs = () => useAppStore((state) => state.quickLogs.filter(l => !l._deleted));
+export const useWeightCutPlans = () => useAppStore((state) => (state.weightCutPlans ?? []).filter((p: any) => !p._deleted));
+export const useFightCampPlans = () => useAppStore((state) => (state.fightCampPlans ?? []).filter((p: any) => !p._deleted));
+export const useActiveSupplements = () => useAppStore((state) => (state.activeSupplements ?? []).filter((s: any) => !s._deleted));
+export const useSupplementIntakes = () => useAppStore((state) => (state.supplementIntakes ?? []).filter((i: any) => !i._deleted));
+export const useMesocycleQueue = () => useAppStore((state) => (state.mesocycleQueue ?? []).filter((b: any) => !b._deleted));
+export const useGripTests = () => useAppStore((state) => (state.gripTests ?? []).filter((t: any) => !t._deleted));
+export const useGripExerciseLogs = () => useAppStore((state) => (state.gripExerciseLogs ?? []).filter((l: any) => !l._deleted));
+export const useWorkoutSkips = () => useAppStore((state) => (state.workoutSkips ?? []).filter((s: any) => !s._deleted));
+export const useCustomExercises = () => useAppStore((state) => (state.customExercises ?? []).filter((e: any) => !e._deleted));
+export const useSessionTemplates = () => useAppStore((state) => (state.sessionTemplates ?? []).filter((t: any) => !t._deleted));
+export const useDietPhaseHistory = () => useAppStore((state) => (state.dietPhaseHistory ?? []).filter((p: any) => !p._deleted));
+export const useBodyComposition = () => useAppStore((state) => (state.bodyComposition ?? []).filter((e: any) => !e._deleted));
+export const useMentalCheckIns = () => useAppStore((state) => (state.mentalCheckIns ?? []).filter((c: any) => !c._deleted));
+export const useConfidenceLedger = () => useAppStore((state) => (state.confidenceLedger ?? []).filter((e: any) => !e._deleted));

@@ -72,7 +72,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const meals = useAppStore(s => s.meals.filter(m => !m._deleted));
   const startWorkout = useAppStore(s => s.startWorkout);
   const supplementStack = useAppStore(s => s.supplementStack);
-  const supplementIntakes = useAppStore(s => s.supplementIntakes);
+  const supplementIntakes = useAppStore(s => (s.supplementIntakes ?? []).filter((i: any) => !i._deleted));
   const logSupplementIntake = useAppStore(s => s.logSupplementIntake);
   const removeSupplementIntake = useAppStore(s => s.removeSupplementIntake);
   const workoutLogs = useAppStore(s => s.workoutLogs);

@@ -75,11 +75,12 @@ type AddMode = null | 'pick' | 'manual' | 'ai';
 
 export default function BlockQueue() {
   const {
-    mesocycleQueue, addToMesocycleQueue, removeFromMesocycleQueue, reorderMesocycleQueue,
+    mesocycleQueue: rawMesocycleQueue, addToMesocycleQueue, removeFromMesocycleQueue, reorderMesocycleQueue,
     currentMesocycle,
     // AI suggestion data
     user, mesocycleHistory, workoutLogs, trainingSessions, injuryLog, wearableHistory, competitions,
   } = useAppStore();
+  const mesocycleQueue = (rawMesocycleQueue ?? []).filter((b: any) => !b._deleted);
 
   const [addMode, setAddMode] = useState<AddMode>(null);
   const [formFocus, setFormFocus] = useState<GoalFocus>('strength');

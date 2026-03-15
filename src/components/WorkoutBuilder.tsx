@@ -520,7 +520,8 @@ interface WorkoutBuilderProps {
 }
 
 export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
-  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise, workoutLogs } = useAppStore();
+  const { user, startWorkout, generateNewMesocycle, customExercises: rawCustomExercises, addCustomExercise, workoutLogs } = useAppStore();
+  const customExercises = (rawCustomExercises ?? []).filter((e: any) => !e._deleted);
   const { showToast } = useToast();
   const [view, setView] = useState<BuilderView>('templates');
   const [searchQuery, setSearchQuery] = useState('');

@@ -128,7 +128,9 @@ const GRIP_BENCHMARKS = {
 };
 
 export default function GripStrengthModule({ onClose }: GripStrengthModuleProps) {
-  const { gripTests = [], gripExerciseLogs = [], addGripTest, addGripExerciseLog } = useAppStore();
+  const { gripTests: rawGripTests = [], gripExerciseLogs: rawGripExerciseLogs = [], addGripTest, addGripExerciseLog } = useAppStore();
+  const gripTests = rawGripTests.filter((t: any) => !t._deleted);
+  const gripExerciseLogs = rawGripExerciseLogs.filter((l: any) => !l._deleted);
 
   const [activeTab, setActiveTab] = useState<'exercises' | 'tests' | 'progress'>('exercises');
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);

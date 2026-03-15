@@ -556,7 +556,7 @@ interface SessionTemplatesProps {
 
 export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
   const {
-    sessionTemplates,
+    sessionTemplates: rawSessionTemplates,
     currentMesocycle,
     workoutLogs,
     saveAsTemplate,
@@ -566,6 +566,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
     setMuscleEmphasis,
     user,
   } = useAppStore();
+  const sessionTemplates = (rawSessionTemplates ?? []).filter((t: any) => !t._deleted);
   const { showToast } = useToast();
 
   const [activeSection, setActiveSection] = useState<'programs' | 'quick' | 'templates' | 'presets' | 'save' | 'history'>('programs');

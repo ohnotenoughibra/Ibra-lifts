@@ -41,7 +41,7 @@ const PHASE_LABELS: Record<string, { name: string; color: string }> = {
 
 export default function WeightCutDashboard({ competitionId, onClose }: WeightCutDashboardProps) {
   const competitions = useAppStore(s => s.competitions);
-  const weightCutPlans = useAppStore(s => s.weightCutPlans ?? []);
+  const weightCutPlans = useAppStore(s => (s.weightCutPlans ?? []).filter((p: any) => !p._deleted));
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const user = useAppStore(s => s.user);
 

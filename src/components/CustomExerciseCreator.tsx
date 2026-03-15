@@ -94,7 +94,8 @@ const initialForm: FormState = {
 };
 
 export default function CustomExerciseCreator({ onClose }: CustomExerciseCreatorProps) {
-  const { customExercises, addCustomExercise, deleteCustomExercise } = useAppStore();
+  const { customExercises: rawCustomExercises, addCustomExercise, deleteCustomExercise } = useAppStore();
+  const customExercises = (rawCustomExercises ?? []).filter((e: any) => !e._deleted);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [form, setForm] = useState<FormState>(initialForm);

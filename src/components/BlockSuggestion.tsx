@@ -93,8 +93,9 @@ export default function BlockSuggestion({ onClose }: BlockSuggestionProps) {
     competitions,
     addToMesocycleQueue,
     updateMesocycleInQueue,
-    mesocycleQueue,
+    mesocycleQueue: rawMesocycleQueue,
   } = useAppStore();
+  const mesocycleQueue = (rawMesocycleQueue ?? []).filter((b: any) => !b._deleted);
 
   const [showDetails, setShowDetails] = useState(false);
   const [queued, setQueued] = useState<'main' | 'alt' | null>(null);

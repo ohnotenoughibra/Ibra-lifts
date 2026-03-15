@@ -51,7 +51,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
     waterLog: s.waterLog,
     injuryLog: s.injuryLog,
     quickLogs: s.quickLogs,
-    mentalCheckIns: s.mentalCheckIns,
+    mentalCheckIns: (s.mentalCheckIns ?? []).filter((c: any) => !c._deleted),
     activeWorkout: s.activeWorkout,
   })));
 

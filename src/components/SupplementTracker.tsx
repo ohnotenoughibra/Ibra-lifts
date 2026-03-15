@@ -33,7 +33,7 @@ import type { UserSupplement, SupplementMacros } from '@/lib/types';
 export default function SupplementTracker() {
   const user = useAppStore(s => s.user);
   const supplementStack = useAppStore(s => s.supplementStack);
-  const supplementIntakes = useAppStore(s => s.supplementIntakes);
+  const supplementIntakes = useAppStore(s => (s.supplementIntakes ?? []).filter((i: any) => !i._deleted));
   const setSupplementStack = useAppStore(s => s.setSupplementStack);
   const updateSupplementInStack = useAppStore(s => s.updateSupplementInStack);
   const logSupplementIntake = useAppStore(s => s.logSupplementIntake);

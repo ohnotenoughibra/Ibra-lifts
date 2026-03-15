@@ -79,7 +79,7 @@ export default function DietCoach() {
   const {
     user,
     activeDietPhase,
-    dietPhaseHistory,
+    dietPhaseHistory: rawDietPhaseHistory,
     weeklyCheckIns,
     bodyWeightLog,
     meals,
@@ -98,13 +98,15 @@ export default function DietCoach() {
     combatNutritionProfile,
     trainingSessions,
     competitions,
-    bodyComposition,
+    bodyComposition: rawBodyComposition,
     workoutLogs,
     nutritionPeriodPlan,
     setNutritionPeriodPlan,
     advanceNutritionPhase,
   } = useAppStore();
 
+  const dietPhaseHistory = (rawDietPhaseHistory ?? []).filter((p: any) => !p._deleted);
+  const bodyComposition = (rawBodyComposition ?? []).filter((e: any) => !e._deleted);
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
   const isIll = !!activeIllness && (activeIllness.status === 'active' || activeIllness.status === 'recovering');
 

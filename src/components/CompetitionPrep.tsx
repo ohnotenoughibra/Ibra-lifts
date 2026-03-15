@@ -247,8 +247,9 @@ function getWeightProgress(current?: number, target?: number): number {
 export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
   const {
     user, competitions: rawEvents, addCompetition, deleteCompetition,
-    weightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
+    weightCutPlans: rawWeightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
   } = useAppStore();
+  const weightCutPlans = (rawWeightCutPlans ?? []).filter((p: any) => !p._deleted);
   const weightUnit = user?.weightUnit || 'lbs';
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);

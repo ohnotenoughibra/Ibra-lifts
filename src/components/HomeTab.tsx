@@ -454,9 +454,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), competitions: s.competitions,
       trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
-      skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
+      skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: (s.mesocycleQueue ?? []).filter((b: any) => !b._deleted), completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
-      workoutSkips: s.workoutSkips, addTrainingSession: s.addTrainingSession,
+      workoutSkips: (s.workoutSkips ?? []).filter((sk: any) => !sk._deleted), addTrainingSession: s.addTrainingSession,
     }))
   );
   const computed = useComputedGamification();
@@ -473,8 +473,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
   const cycleLogs = useAppStore(s => s.cycleLogs);
-  const mentalCheckIns = useAppStore(s => s.mentalCheckIns);
-  const confidenceLedger = useAppStore(s => s.confidenceLedger);
+  const mentalCheckIns = useAppStore(s => (s.mentalCheckIns ?? []).filter((c: any) => !c._deleted));
+  const confidenceLedger = useAppStore(s => (s.confidenceLedger ?? []).filter((e: any) => !e._deleted));
   const rawIllnessLogs = useAppStore(s => s.illnessLogs);
   const resolvedIllnessIds = useAppStore(s => s._resolvedIllnessIds);
   const getActiveIllness = useAppStore(s => s.getActiveIllness);

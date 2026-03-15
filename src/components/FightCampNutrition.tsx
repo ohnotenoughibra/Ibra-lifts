@@ -47,7 +47,8 @@ const PHASE_COLORS: Record<string, { text: string; bg: string; border: string }>
 };
 
 export default function FightCampNutrition({ onClose }: FightCampNutritionProps) {
-  const { user, competitions, bodyWeightLog, combatNutritionProfile, activeSupplements, subscription } = useAppStore();
+  const { user, competitions, bodyWeightLog, combatNutritionProfile, activeSupplements: rawActiveSupplements, subscription } = useAppStore();
+  const activeSupplements = (rawActiveSupplements ?? []).filter((s: any) => !s._deleted);
   const { data: session } = useSession();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showSupplements, setShowSupplements] = useState(false);

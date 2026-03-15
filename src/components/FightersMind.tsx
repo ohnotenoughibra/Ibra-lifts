@@ -108,8 +108,8 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
     gamificationStats, addMentalCheckIn, deleteMentalCheckIn,
     addConfidenceEntry, deleteConfidenceEntry,
   } = useAppStore(useShallow(s => ({
-    mentalCheckIns: s.mentalCheckIns,
-    confidenceLedger: s.confidenceLedger,
+    mentalCheckIns: (s.mentalCheckIns ?? []).filter((c: any) => !c._deleted),
+    confidenceLedger: (s.confidenceLedger ?? []).filter((e: any) => !e._deleted),
     workoutLogs: s.workoutLogs,
     trainingSessions: s.trainingSessions,
     gamificationStats: s.gamificationStats,

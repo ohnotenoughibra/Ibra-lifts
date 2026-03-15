@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.0.0-37f2eed-1773599151';
+const CACHE_NAME = 'roots-gains-v2.0.0-a3f52b9-1773609737';
 
 // App shell files to cache on install
 const APP_SHELL = [

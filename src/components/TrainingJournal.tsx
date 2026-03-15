@@ -54,7 +54,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
   const { workoutLogs, trainingSessions, mentalCheckIns } = useAppStore(useShallow(s => ({
     workoutLogs: s.workoutLogs,
     trainingSessions: s.trainingSessions,
-    mentalCheckIns: s.mentalCheckIns,
+    mentalCheckIns: (s.mentalCheckIns ?? []).filter((c: any) => !c._deleted),
   })));
   const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
 

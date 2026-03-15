@@ -170,7 +170,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
             <Calendar className="w-5 h-5 text-primary-400" />
             <h1 className="text-lg font-display font-bold text-grappler-100">Training Journal</h1>
           </div>
-          <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

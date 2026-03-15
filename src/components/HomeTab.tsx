@@ -500,12 +500,13 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
 
-  // Pull-to-refresh
+  // Pull-to-refresh — triggers cloud sync via useDbSync event listener
   const homeContainerRef = useRef<HTMLDivElement>(null);
   const pullRefresh = usePullRefresh(homeContainerRef, {
     onRefresh: useCallback(async () => {
-      // Re-sync store data — triggers re-render
-      await new Promise(r => setTimeout(r, 600));
+      window.dispatchEvent(new Event('roots-force-sync'));
+      // Brief delay so the refreshing spinner stays visible while sync starts
+      await new Promise(r => setTimeout(r, 800));
     }, []),
   });
 
@@ -895,34 +896,38 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getCycleInsights(cycleProfile, workoutLogs);
   }, [cycleProfile, workoutLogs]);
 
-  // ─── Today's Summary Data ───
-  const today = new Date();
-  const todayStr = today.toDateString();
+  // ─── Today's Summary Data (memoized to avoid new Date() on every render) ───
+  const todayStr = useMemo(() => new Date().toDateString(), []);
 
-  const todayTraining = trainingSessions.filter(s =>
+  const todayTraining = useMemo(() => trainingSessions.filter(s =>
     new Date(s.date).toDateString() === todayStr
-  );
+  ), [trainingSessions, todayStr]);
 
-  const todayWorkouts = workoutLogs.filter(log =>
+  const todayWorkouts = useMemo(() => workoutLogs.filter(log =>
     new Date(log.date).toDateString() === todayStr
-  );
+  ), [workoutLogs, todayStr]);
 
-  const todayMeals = meals.filter(m =>
+  const todayMeals = useMemo(() => meals.filter(m =>
     new Date(m.date).toDateString() === todayStr
-  );
+  ), [meals, todayStr]);
   const todayProtein = +todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0).toFixed(1);
 
   // Yesterday's data for comparison
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toDateString();
-  const yesterdayWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === yesterdayStr);
-  const yesterdayVolume = yesterdayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
-  const yesterdayProtein = meals.filter(m => new Date(m.date).toDateString() === yesterdayStr).reduce((sum, m) => sum + (m.protein || 0), 0);
+  const { yesterdayWorkouts, yesterdayVolume, yesterdayProtein, twoDaysAgoWorkouts } = useMemo(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = yesterday.toDateString();
+    const yWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === yStr);
+    const yVolume = yWorkouts.reduce((s, l) => s + l.totalVolume, 0);
+    const yProtein = meals.filter(m => new Date(m.date).toDateString() === yStr).reduce((sum, m) => sum + (m.protein || 0), 0);
 
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDaysAgoWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === twoDaysAgo.toDateString());
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const tdaWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === twoDaysAgo.toDateString());
+
+    return { yesterdayWorkouts: yWorkouts, yesterdayVolume: yVolume, yesterdayProtein: yProtein, twoDaysAgoWorkouts: tdaWorkouts };
+  }, [workoutLogs, meals]);
 
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;

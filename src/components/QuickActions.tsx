@@ -125,17 +125,13 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const [successMessage, setSuccessMessage] = useState('');
 
   // ── Today's data ────────────────────────────────────────────────────────
-  const today = new Date();
-  const todayStr = toLocalDateStr(today);
-  today.setHours(0, 0, 0, 0);
+  const todayStr = toLocalDateStr();
 
   const todayLogs = useMemo(() =>
-    quickLogs.filter(log => {
-      const d = new Date(log.timestamp);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() === today.getTime();
-    }),
-    [quickLogs, today]
+    quickLogs.filter(log =>
+      toLocalDateStr(new Date(log.timestamp)) === todayStr
+    ),
+    [quickLogs, todayStr]
   );
 
   const todayWater = todayLogs
@@ -143,29 +139,21 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     .reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0);
 
   const todayMeals = useMemo(() =>
-    meals.filter(m => {
-      const d = new Date(m.date);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() === today.getTime();
-    }),
-    [meals, today]
+    meals.filter(m => toLocalDateStr(m.date) === todayStr),
+    [meals, todayStr]
   );
   const todayCals = todayMeals.reduce((s, m) => s + m.calories, 0);
   const todayProteinG = todayMeals.reduce((s, m) => s + m.protein, 0);
 
-  const todayWeight = bodyWeightLog?.find(w => {
-    const d = new Date(w.date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() === today.getTime();
-  });
+  const todayWeight = bodyWeightLog?.find(w =>
+    toLocalDateStr(w.date) === todayStr
+  );
 
   const todayTraining = useMemo(() =>
-    (trainingSessions ?? []).filter(s => {
-      const d = new Date(s.date);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() === today.getTime();
-    }),
-    [trainingSessions, today]
+    (trainingSessions ?? []).filter(s =>
+      toLocalDateStr(s.date) === todayStr
+    ),
+    [trainingSessions, todayStr]
   );
 
   const hasSleep = !!todayLogs.find(l => l.type === 'sleep');

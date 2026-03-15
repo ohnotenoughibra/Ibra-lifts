@@ -332,7 +332,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {view !== 'home' && (
-              <button onClick={() => { hapticLight(); setView('home'); resetCheckIn(); }} className="p-1.5 -ml-1.5 text-grappler-400">
+              <button onClick={() => { hapticLight(); setView('home'); resetCheckIn(); }} aria-label="Go back" className="p-1.5 -ml-1.5 text-grappler-400">
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
@@ -341,7 +341,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
               {view === 'home' ? "Fighter's Mind" : view === 'checkin' ? 'Mental Check-in' : view === 'patterns' ? 'Pattern Engine' : view === 'ledger' ? 'Confidence Ledger' : 'Add Evidence'}
             </h1>
           </div>
-          <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -543,6 +543,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={mode === 'active' ? stopSession : mode === 'detail' ? () => setMode('select') : onClose}
+            aria-label="Go back"
             className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-grappler-50" />

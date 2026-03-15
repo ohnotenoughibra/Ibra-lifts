@@ -130,7 +130,7 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
             <Search className="w-5 h-5" />
           </button>
           {onClose && (
-            <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200">
+            <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200">
               <X className="w-5 h-5" />
             </button>
           )}
@@ -347,7 +347,7 @@ function ArticleReader({
 
       {/* Sticky header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800/50 flex-shrink-0">
-        <button onClick={onBack} className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 py-1">
+        <button onClick={onBack} aria-label="Go back" className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 py-1">
           <ChevronLeft className="w-4 h-4" />
           Back
         </button>

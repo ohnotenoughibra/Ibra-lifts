@@ -528,6 +528,13 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     }
   }, [effectiveUserId, pullFromCloud, buildSyncPayload]);
 
+  // Listen for pull-to-refresh events from any component (e.g. HomeTab)
+  useEffect(() => {
+    const handler = () => { forceSync(); };
+    window.addEventListener('roots-force-sync', handler);
+    return () => window.removeEventListener('roots-force-sync', handler);
+  }, [forceSync]);
+
   // Save to database on meaningful state changes (debounced)
   useEffect(() => {
     if (!effectiveUserId || !initialLoadDone.current) return;

@@ -286,7 +286,7 @@ export default function Dashboard({
   }, []);
 
   const handleOverlayTouchEnd = useCallback(() => {
-    if (overlayDragY > 150) {
+    if (overlayDragY > Math.max(200, window.innerHeight * 0.25)) {
       setOverlayView(null);
     }
     setOverlayDragY(0);

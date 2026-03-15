@@ -236,7 +236,9 @@ export default function SyncStatusIndicator({
 
                     {hasMismatch && (
                       <p className="text-xs text-yellow-400 pt-1">
-                        Data mismatch — tap Sync Now to push local data
+                        {local && serverCounts && (serverCounts.meals > local.meals || serverCounts.workouts > local.workouts)
+                          ? 'Server has newer data — tap Sync Now to pull it'
+                          : 'Local data not backed up — tap Sync Now to sync'}
                       </p>
                     )}
 

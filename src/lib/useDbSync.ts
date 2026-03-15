@@ -33,6 +33,8 @@ const RESTORE_FIELDS = [
   'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
   // Nutrition planning / meal shortcuts (previously local-only)
   'nutritionPeriodPlan', 'mealStamps',
+  // Illness resolution state (previously local-only — caused "recovering" on other devices)
+  '_resolvedIllnessIds',
 ];
 
 /**
@@ -457,6 +459,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       readArticles: s.readArticles, bookmarkedArticles: s.bookmarkedArticles,
       lastInsightDate: s.lastInsightDate,
       nutritionPeriodPlan: s.nutritionPeriodPlan, mealStamps: s.mealStamps,
+      _resolvedIllnessIds: s._resolvedIllnessIds,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
       // Quick Access pins (stored in localStorage, not Zustand)
@@ -584,6 +587,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       // Nutrition planning / meal shortcuts
       nutritionPeriodPlan: store.nutritionPeriodPlan,
       mealStamps: store.mealStamps,
+      _resolvedIllnessIds: store._resolvedIllnessIds,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
@@ -679,6 +683,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     // Nutrition planning / meal shortcuts
     store.nutritionPeriodPlan,
     store.mealStamps,
+    store._resolvedIllnessIds,
     deviceType,
   ]);
 

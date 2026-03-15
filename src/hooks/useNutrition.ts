@@ -184,8 +184,13 @@ export function useNutrition(selectedDate: string) {
   }, [user?.trainingIdentity, todayTraining, todaySession]);
 
   // Today's meals + totals
+  // Use local date comparison (not UTC) so timezone doesn't shift meals to wrong day
   const todayMeals = useMemo(
-    () => meals.filter(m => new Date(m.date).toISOString().split('T')[0] === selectedDate),
+    () => meals.filter(m => {
+      const d = new Date(m.date);
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return localDate === selectedDate;
+    }),
     [meals, selectedDate]
   );
 
@@ -361,11 +366,15 @@ export function useNutrition(selectedDate: string) {
   const yesterdayStr = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, [selectedDate]);
 
   const yesterdayMeals = useMemo(
-    () => meals.filter(m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr),
+    () => meals.filter(m => {
+      const d = new Date(m.date);
+      const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return localDate === yesterdayStr;
+    }),
     [meals, yesterdayStr]
   );
 

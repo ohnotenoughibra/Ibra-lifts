@@ -28,15 +28,17 @@ interface NutritionTrackerProps {
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
-  // Date navigation
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Date navigation — use local dates (not UTC) to match meal date storage
+  const localDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const [selectedDate, setSelectedDate] = useState(() => localDateStr(new Date()));
+  const todayStr = localDateStr(new Date());
   const isToday = selectedDate === todayStr;
 
   const navigateDate = (direction: -1 | 1) => {
     const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + direction);
-    const newStr = d.toISOString().split('T')[0];
+    const newStr = localDateStr(d);
     if (newStr <= todayStr) setSelectedDate(newStr);
   };
 

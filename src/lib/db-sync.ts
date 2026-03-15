@@ -115,6 +115,8 @@ export function resolveConflicts(
     'mesocycleHistory', 'mesocycleQueue',
     'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles',
     'mealStamps',
+    // Illness resolution IDs (previously local-only)
+    '_resolvedIllnessIds',
   ];
 
   for (const field of arrayFields) {

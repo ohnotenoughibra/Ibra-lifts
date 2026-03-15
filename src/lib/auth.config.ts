@@ -15,8 +15,17 @@ import Apple from 'next-auth/providers/apple';
 export default {
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Explicit config to avoid OIDC discovery timeout on serverless cold starts
+      issuer: 'https://accounts.google.com',
+      authorization: {
+        url: 'https://accounts.google.com/o/oauth2/v2/auth',
+        params: { scope: 'openid email profile' },
+      },
+      token: { url: 'https://oauth2.googleapis.com/token' },
+      userinfo: { url: 'https://openidconnect.googleapis.com/v1/userinfo' },
+      jwks_endpoint: 'https://www.googleapis.com/oauth2/v3/certs',
     }),
     // Apple Sign In (requires APPLE_CLIENT_ID and APPLE_CLIENT_SECRET env vars)
     ...(process.env.APPLE_CLIENT_ID ? [Apple({

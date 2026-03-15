@@ -22,6 +22,7 @@ import type {
   ActivityCategory,
   WorkoutType,
 } from '@/lib/types';
+import { toLocalDateStr } from '@/lib/utils';
 
 // ─── Exported Types ─────────────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ function getEffectiveIntensity(session: TrainingSession): TrainingIntensity {
  * Strips time from a Date and returns an ISO date string (YYYY-MM-DD).
  */
 function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return toLocalDateStr(date);
 }
 
 /**

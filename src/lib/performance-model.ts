@@ -14,6 +14,7 @@ import type {
   MovementPattern,
 } from './types';
 import { getExerciseById } from './exercises';
+import { toLocalDateStr } from './utils';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -232,7 +233,7 @@ function collectDataPoints(exerciseId: string, workoutLogs: WorkoutLog[]): Exerc
 
       const dateObj = new Date(log.date);
       points.push({
-        date: dateObj.toISOString().split('T')[0],
+        date: toLocalDateStr(dateObj),
         dateMs: dateObj.getTime(),
         e1rm,
         bestWeight,
@@ -514,7 +515,7 @@ export function buildPerformanceProfiles(
 
       const dateObj = new Date(log.date);
       const dp: ExerciseDataPoint = {
-        date: dateObj.toISOString().split('T')[0],
+        date: toLocalDateStr(dateObj),
         dateMs: dateObj.getTime(),
         e1rm,
         bestWeight,

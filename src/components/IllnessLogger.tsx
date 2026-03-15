@@ -30,7 +30,7 @@ import {
   getIllnessDurationDays,
   shouldMarkResolved,
 } from '@/lib/illness-engine';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -278,7 +278,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
     const temp = newTemperature ? parseFloat(newTemperature) : undefined;
 
     logIllness({
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: toLocalDateStr(),
       symptoms: newSymptoms,
       severity: autoSeverity,
       hasFever: newFever,
@@ -301,7 +301,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
     const temp = checkinTemperature ? parseFloat(checkinTemperature) : undefined;
 
     const checkin: IllnessDailyCheckin = {
-      date: new Date().toISOString().split('T')[0],
+      date: toLocalDateStr(),
       symptoms: checkinSymptoms,
       severity: checkinSeverity,
       hasFever: checkinFever,

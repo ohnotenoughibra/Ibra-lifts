@@ -9,6 +9,7 @@
 import type { WorkoutLog, MuscleGroup } from './types';
 import { getExerciseById } from './exercises';
 import { VOLUME_LANDMARKS } from './workout-generator';
+import { toLocalDateStr } from './utils';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ function getWeekKey(date: Date | string): string {
   const day = d.getDay();
   const monday = new Date(d);
   monday.setDate(d.getDate() - ((day + 6) % 7));
-  return monday.toISOString().split('T')[0];
+  return toLocalDateStr(monday);
 }
 
 function clamp(val: number, min: number, max: number): number {

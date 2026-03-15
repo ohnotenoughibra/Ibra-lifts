@@ -17,6 +17,7 @@ import type {
 } from '@/lib/smart-deload';
 import { calculateAllFatigueMetrics } from '@/lib/fatigue-metrics';
 import type { FatigueMetricsData } from '@/lib/fatigue-metrics';
+import { toLocalDateStr } from '../lib/utils';
 
 interface FatigueOverlayProps { onClose: () => void }
 
@@ -86,7 +87,7 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
       const off = d.getDay() === 0 ? 6 : d.getDay() - 1;
       const mon = new Date(d);
       mon.setDate(d.getDate() - off);
-      weeks.add(mon.toISOString().split('T')[0]);
+      weeks.add(toLocalDateStr(mon));
     });
     return weeks.size >= 3;
   }, [workoutLogs]);

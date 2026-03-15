@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Download, ChevronRight, X, Check, AlertTriangle, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import {
   APP_VERSION,
   isUpgrade,
@@ -51,7 +51,7 @@ export default function VersionUpgradePopup() {
 
   const handleBackup = () => {
     const backup = exportFullBackup();
-    const date = new Date().toISOString().split('T')[0];
+    const date = toLocalDateStr();
     downloadFile(backup, `roots-gains-backup-pre-${APP_VERSION}-${date}.json`, 'application/json');
     setBackedUp(true);
   };

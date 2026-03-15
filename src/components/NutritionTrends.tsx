@@ -10,7 +10,7 @@ import {
   TrendingUp, Calendar, ChevronDown, ChevronUp,
   Flame, Beef, Wheat, Droplet,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import type { MealEntry, MacroTargets } from '@/lib/types';
 
 type TimeRange = '7d' | '14d' | '30d';
@@ -37,12 +37,12 @@ function aggregateDays(meals: MealEntry[], days: number): DailyTotals[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
+    const key = toLocalDateStr(d);
     const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const shortLabel = i === 0 ? 'Today' : i === 1 ? 'Yday' : d.toLocaleDateString('en-US', { weekday: 'short' });
 
     const dayMeals = meals.filter(
-      m => new Date(m.date).toISOString().split('T')[0] === key
+      m => toLocalDateStr(m.date) === key
     );
 
     result.push({
@@ -69,17 +69,17 @@ function aggregateWeeks(meals: MealEntry[], weeks: number): DailyTotals[] {
     const weekStart = new Date(weekEnd);
     weekStart.setDate(weekStart.getDate() - 6);
 
-    const startKey = weekStart.toISOString().split('T')[0];
-    const endKey = weekEnd.toISOString().split('T')[0];
+    const startKey = toLocalDateStr(weekStart);
+    const endKey = toLocalDateStr(weekEnd);
 
     const weekMeals = meals.filter(m => {
-      const mKey = new Date(m.date).toISOString().split('T')[0];
+      const mKey = toLocalDateStr(m.date);
       return mKey >= startKey && mKey <= endKey;
     });
 
     // Count days with meals logged for accurate averaging
     const daysLogged = new Set(
-      weekMeals.map(m => new Date(m.date).toISOString().split('T')[0])
+      weekMeals.map(m => toLocalDateStr(m.date))
     ).size;
     const divisor = Math.max(daysLogged, 1);
 

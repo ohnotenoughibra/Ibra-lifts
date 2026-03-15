@@ -1,3 +1,4 @@
+import { toLocalDateStr } from './utils';
 // ── Push Notification Utilities ────────────────────────────────────────────
 // Client-side notification management: permission, scheduling, local alerts
 
@@ -99,7 +100,7 @@ export function checkDailyLoginBonus(
   lastClaimedDate: string | null,
   consecutiveDays: number
 ): { points: number; day: number; isMysteryDay: boolean } | null {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr();
 
   // Already claimed today
   if (lastClaimedDate === today) return null;

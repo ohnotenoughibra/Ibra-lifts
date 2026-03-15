@@ -37,6 +37,7 @@ import type {
   WeeklyCheckIn,
   BodyWeightEntry,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ── Constants (evidence-based) ──────────────────────────────────────────────
 
@@ -170,7 +171,7 @@ export function generateNutritionPlan(input: PlannerInput): NutritionPeriodPlan 
   } = input;
 
   const today = new Date();
-  const todayStr = toISODate(today);
+  const todayStr = toLocalDateStr(today);
   const horizonEnd = addWeeks(today, horizonWeeks);
   const phases: PlannedNutritionPhase[] = [];
 
@@ -458,8 +459,8 @@ function buildCompSegment(
   campStart.setDate(campStart.getDate() - campWeeks * 7);
 
   return {
-    fightCampStart: toISODate(campStart),
-    competitionDate: toISODate(compDate),
+    fightCampStart: toLocalDateStr(campStart),
+    competitionDate: toLocalDateStr(compDate),
     campWeeks,
   };
 }
@@ -482,7 +483,7 @@ export function getActivePhaseContext(
   if (!plan || plan.phases.length === 0) return null;
 
   const today = new Date();
-  const todayStr = toISODate(today);
+  const todayStr = toLocalDateStr(today);
 
   // Find the current phase (the one whose date range contains today)
   let activeIndex = plan.activePhaseIndex;
@@ -791,7 +792,7 @@ export function advancePhase(plan: NutritionPeriodPlan): NutritionPeriodPlan {
     ...plan,
     activePhaseIndex: nextIndex,
     weeksIntoActivePhase: 0,
-    updatedAt: toISODate(new Date()),
+    updatedAt: toLocalDateStr(new Date()),
   };
 }
 
@@ -812,7 +813,7 @@ export function insertDietBreak(
   // Split current phase: truncate at today, insert break, then resume
   const updatedCurrentPhase: PlannedNutritionPhase = {
     ...currentPhase,
-    endDate: toISODate(new Date(breakStart.getTime() - 86400000)), // yesterday
+    endDate: toLocalDateStr(new Date(breakStart.getTime() - 86400000)), // yesterday
     plannedWeeks: plan.weeksIntoActivePhase,
   };
 
@@ -840,8 +841,8 @@ export function insertDietBreak(
     const p = phases[i];
     phases[i] = {
       ...p,
-      startDate: toISODate(new Date(new Date(p.startDate).getTime() + shiftDays * 86400000)),
-      endDate: toISODate(new Date(new Date(p.endDate).getTime() + shiftDays * 86400000)),
+      startDate: toLocalDateStr(new Date(new Date(p.startDate).getTime() + shiftDays * 86400000)),
+      endDate: toLocalDateStr(new Date(new Date(p.endDate).getTime() + shiftDays * 86400000)),
     };
   }
 
@@ -850,7 +851,7 @@ export function insertDietBreak(
     phases,
     activePhaseIndex: plan.activePhaseIndex + 1, // Move to diet break
     weeksIntoActivePhase: 0,
-    updatedAt: toISODate(new Date()),
+    updatedAt: toLocalDateStr(new Date()),
   };
 }
 
@@ -870,8 +871,8 @@ function createPhase(
   return {
     id: generateId(),
     type,
-    startDate: toISODate(startDate),
-    endDate: toISODate(endDate),
+    startDate: toLocalDateStr(startDate),
+    endDate: toLocalDateStr(endDate),
     plannedWeeks: weeks,
     calorieFactor: params.calorieFactor,
     targetRateKgPerWeek: params.targetRateKgPerWeek,
@@ -881,10 +882,6 @@ function createPhase(
     competitionId,
     dietBreakRecommended: false,
   };
-}
-
-function toISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
 }
 
 function addWeeks(date: Date, weeks: number): Date {

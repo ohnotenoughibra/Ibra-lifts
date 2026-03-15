@@ -24,6 +24,7 @@ import type {
 } from './types';
 import type { ExercisePerformanceProfile } from './performance-model';
 import { getCompletedSessionIds, flattenSessions } from './session-matching';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -342,7 +343,7 @@ function countTrainingWeeks(logs: WorkoutLog[]): number {
     const mondayOffset = day === 0 ? 6 : day - 1;
     const monday = new Date(date);
     monday.setDate(date.getDate() - mondayOffset);
-    weeks.add(monday.toISOString().split('T')[0]);
+    weeks.add(toLocalDateStr(monday));
   });
   return weeks.size;
 }

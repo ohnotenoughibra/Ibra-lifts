@@ -7,6 +7,7 @@ import { MealEntry, MealType } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, assessHydrationStatus } from '@/lib/electrolyte-engine';
 import { PRESET_FOODS, FOOD_DB, estimateLocally } from '@/lib/food-database';
+import { toLocalDateStr } from '../lib/utils';
 
 export type HistoryFood = {
   name: string;
@@ -76,7 +77,7 @@ export function useNutrition(selectedDate: string) {
   );
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateStr();
   const isToday = selectedDate === todayStr;
 
   // Water

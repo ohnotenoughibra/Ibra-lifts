@@ -27,6 +27,7 @@
  */
 
 import type { UserProfile, WorkoutLog } from './types';
+import { toLocalDateStr } from './utils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types & Interfaces
@@ -127,11 +128,6 @@ function parseDate(iso: string): Date {
   return d;
 }
 
-/** Format a Date as YYYY-MM-DD. */
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 /** Number of days between two dates (absolute). */
 function daysBetween(a: Date, b: Date): number {
   const MS_PER_DAY = 86_400_000;
@@ -186,7 +182,7 @@ export function buildCycleProfile(cycleLogs: CycleLog[]): CycleProfile {
       averageCycleLength: DEFAULT_CYCLE_LENGTH,
       currentPhase: 'follicular',
       dayInCycle: 1,
-      nextPeriodEstimate: toDateStr(addDays(new Date(), DEFAULT_CYCLE_LENGTH)),
+      nextPeriodEstimate: toLocalDateStr(addDays(new Date(), DEFAULT_CYCLE_LENGTH)),
       phaseHistory: [],
       symptomPatterns: [],
     };
@@ -247,7 +243,7 @@ export function buildCycleProfile(cycleLogs: CycleLog[]): CycleProfile {
 
   // ── Next period estimate ──
   const daysUntilNextPeriod = Math.max(1, averageCycleLength - dayInCycle + 1);
-  const nextPeriodEstimate = toDateStr(addDays(today, daysUntilNextPeriod));
+  const nextPeriodEstimate = toLocalDateStr(addDays(today, daysUntilNextPeriod));
 
   // ── Phase history ──
   const phaseHistory: { phase: CyclePhase; startDate: string }[] = [];
@@ -675,13 +671,13 @@ export function predictPerformanceWindow(
 
   return {
     peakWindow: {
-      start: toDateStr(peakStartDate),
-      end: toDateStr(peakEndDate),
+      start: toLocalDateStr(peakStartDate),
+      end: toLocalDateStr(peakEndDate),
       description: 'Follicular phase peak — estrogen is rising, strength and recovery are at their best. Schedule your hardest sessions here.',
     },
     cautionWindow: {
-      start: toDateStr(cautionStartDate),
-      end: toDateStr(cautionEndDate),
+      start: toLocalDateStr(cautionStartDate),
+      end: toLocalDateStr(cautionEndDate),
       description: 'Late luteal into early menstrual — energy and motivation may dip. Plan lighter sessions or active recovery. This is not a setback, it is your body cycling normally.',
     },
   };

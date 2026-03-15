@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import type { MealEntry, MacroTargets } from '@/lib/types';
 import type { HistoryFood } from '@/hooks/useNutrition';
 import { PRESET_FOODS } from '@/lib/food-database';
@@ -304,7 +304,7 @@ function computeReport(allMeals: MealEntry[], macroTargets: MacroTargets, range:
 
   // Group all meals by date
   allMeals.forEach(m => {
-    const key = new Date(m.date).toISOString().split('T')[0];
+    const key = toLocalDateStr(m.date);
     const existing = dayMap.get(key) || { calories: 0, protein: 0, carbs: 0, fat: 0 };
     dayMap.set(key, {
       calories: existing.calories + m.calories,
@@ -331,7 +331,7 @@ function computeReport(allMeals: MealEntry[], macroTargets: MacroTargets, range:
     rangeDays = range === '7d' ? 7 : range === '14d' ? 14 : 30;
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() - rangeDays);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = toLocalDateStr(cutoff);
     filteredDays = [];
     dayMap.forEach((totals, dateKey) => {
       if (dateKey >= cutoffStr) filteredDays.push(totals);

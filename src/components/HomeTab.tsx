@@ -48,7 +48,7 @@ import {
   Plus,
   Battery,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, toLocalDateStr} from '@/lib/utils';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
@@ -605,16 +605,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
 
   // ─── Soreness Check — show daily on all day types ───
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = toLocalDateStr();
   const alreadyLoggedSorenessToday = useMemo(() => {
     return quickLogs.some(
-      l => l.type === 'soreness' && new Date(l.timestamp).toISOString().split('T')[0] === todayIso
+      l => l.type === 'soreness' && toLocalDateStr(l.timestamp) === todayIso
     );
   }, [quickLogs, todayIso]);
 
   const alreadyLoggedMobilityToday = useMemo(() => {
     return quickLogs.some(
-      l => l.type === 'mobility' && new Date(l.timestamp).toISOString().split('T')[0] === todayIso
+      l => l.type === 'mobility' && toLocalDateStr(l.timestamp) === todayIso
     );
   }, [quickLogs, todayIso]);
 
@@ -2692,7 +2692,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     key={reason}
                     onClick={() => {
                       const skipId = skipWorkout({
-                        date: new Date().toISOString().split('T')[0],
+                        date: toLocalDateStr(),
                         scheduledSessionId: nextWorkout.id,
                         reason,
                         rescheduled: false,

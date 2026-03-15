@@ -19,7 +19,7 @@ import {
   Clock,
   Shield,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import {
   SUPPLEMENT_DATABASE,
   SUPPLEMENT_MACROS,
@@ -48,7 +48,7 @@ export default function SupplementTracker() {
   const [showDetails, setShowDetails] = useState(false);
   const [customizingId, setCustomizingId] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr();
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
@@ -57,7 +57,7 @@ export default function SupplementTracker() {
   // Determine training context
   const isTrainingDay = useMemo(() => {
     const todayWorkout = workoutLogs.some(l =>
-      new Date(l.date).toISOString().split('T')[0] === today
+      toLocalDateStr(l.date) === today
     );
     return !!activeWorkout || todayWorkout;
   }, [activeWorkout, workoutLogs, today]);
@@ -397,7 +397,7 @@ export default function SupplementTracker() {
                     {Array.from({ length: 7 }).map((_, i) => {
                       const d = new Date();
                       d.setDate(d.getDate() - (6 - i));
-                      const dateStr = d.toISOString().split('T')[0];
+                      const dateStr = toLocalDateStr(d);
                       const dayEnabled = supplementStack.filter(s => s.enabled);
                       const dayDone = dayEnabled.every(s =>
                         supplementIntakes.some(ii => ii.supplementId === s.supplementId && ii.date === dateStr)

@@ -7,6 +7,7 @@ import {
   getDailyLoginNotification,
   getChallengeCompleteNotification,
 } from '@/lib/notifications';
+import { toLocalDateStr } from '@/lib/utils';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // getLoginBonusXP — XP schedule: 10, 15, 20, 25, 30, 40, 50
@@ -60,7 +61,7 @@ describe('getLoginBonusXP', () => {
 // checkDailyLoginBonus
 // ═════════════════════════════════════════════════════════════════════════════
 describe('checkDailyLoginBonus', () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr();
 
   it('returns bonus for first-ever login (null lastClaimed)', () => {
     const result = checkDailyLoginBonus(null, 0);
@@ -78,7 +79,7 @@ describe('checkDailyLoginBonus', () => {
   it('increments consecutive days for day-after claim', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = toLocalDateStr(yesterday);
 
     const result = checkDailyLoginBonus(yesterdayStr, 3);
     expect(result).not.toBeNull();
@@ -89,7 +90,7 @@ describe('checkDailyLoginBonus', () => {
   it('resets streak after 2+ day gap', () => {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    const threeStr = threeDaysAgo.toISOString().split('T')[0];
+    const threeStr = toLocalDateStr(threeDaysAgo);
 
     const result = checkDailyLoginBonus(threeStr, 5);
     expect(result).not.toBeNull();
@@ -100,7 +101,7 @@ describe('checkDailyLoginBonus', () => {
   it('wraps day 7 back to day 1', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = toLocalDateStr(yesterday);
 
     const result = checkDailyLoginBonus(yesterdayStr, 7);
     expect(result).not.toBeNull();
@@ -112,7 +113,7 @@ describe('checkDailyLoginBonus', () => {
   it('day 7 is mystery day', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = toLocalDateStr(yesterday);
 
     const result = checkDailyLoginBonus(yesterdayStr, 6);
     expect(result).not.toBeNull();
@@ -124,7 +125,7 @@ describe('checkDailyLoginBonus', () => {
   it('day 6 is not mystery day', () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = toLocalDateStr(yesterday);
 
     const result = checkDailyLoginBonus(yesterdayStr, 5);
     expect(result).not.toBeNull();
@@ -135,7 +136,7 @@ describe('checkDailyLoginBonus', () => {
   it('two-day gap resets even if previous streak was long', () => {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    const twoStr = twoDaysAgo.toISOString().split('T')[0];
+    const twoStr = toLocalDateStr(twoDaysAgo);
 
     const result = checkDailyLoginBonus(twoStr, 6);
     expect(result).not.toBeNull();

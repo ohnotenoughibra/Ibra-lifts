@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Convert a Date to local YYYY-MM-DD string (avoids UTC shift from toISOString)
+export function toLocalDateStr(date?: Date | string): string {
+  if (!date) date = new Date();
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Format date for display
 export function formatDate(date: Date | string): string {
   const d = new Date(date);
@@ -239,7 +247,7 @@ export function isValidEmail(email: string): boolean {
 
 // Generate workout session ID based on date and type
 export function generateSessionId(date: Date, dayNumber: number): string {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(date);
   return `${dateStr}-day${dayNumber}`;
 }
 

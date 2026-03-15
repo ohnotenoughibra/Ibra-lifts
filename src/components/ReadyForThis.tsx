@@ -10,7 +10,7 @@ import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { getReadinessSummary } from '@/lib/performance-engine';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 
 const LEVEL_CONFIG = {
   peak: { label: 'Go Hard', color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', ring: 'stroke-emerald-400', msg: 'You\'re fresh — push it today' },
@@ -75,7 +75,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
 
   // Mental state from recent check-ins
   const recentMental = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateStr();
     const recent = mentalCheckIns
       .filter(c => c.date === today || (Date.now() - new Date(c.timestamp).getTime() < 24 * 60 * 60 * 1000))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

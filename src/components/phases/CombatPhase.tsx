@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Check, Shield, Clock, Target, Dumbbell, X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import type { SkipReason } from '@/lib/types';
 
 interface CombatSession {
@@ -115,7 +115,7 @@ export default function CombatPhase({
                     <button
                       onClick={() => {
                         onSkipWorkout({
-                          date: new Date().toISOString().split('T')[0],
+                          date: toLocalDateStr(),
                           scheduledSessionId: `combat-${i}`,
                           reason: 'schedule_conflict' as SkipReason,
                           rescheduled: false,
@@ -165,7 +165,7 @@ export default function CombatPhase({
             <button
               onClick={() => {
                 onSkipWorkout({
-                  date: new Date().toISOString().split('T')[0],
+                  date: toLocalDateStr(),
                   scheduledSessionId: 'combat-0',
                   reason: 'schedule_conflict' as SkipReason,
                   rescheduled: false,

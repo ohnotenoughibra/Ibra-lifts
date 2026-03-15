@@ -16,6 +16,7 @@ import type {
   EquipmentType,
 } from './types';
 import { exercises, getExerciseById } from './exercises';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -243,12 +244,6 @@ function getRiskyPatterns(region: BodyRegion): MovementSubPattern[] {
   return REGION_RISKY_PATTERNS[region] || [];
 }
 
-/** Normalise any Date-ish value to a YYYY-MM-DD string. */
-function toDateStr(d: Date | string): string {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  return date.toISOString().slice(0, 10);
-}
-
 /** Absolute number of days between two date strings. */
 function daysBetween(a: string, b: string): number {
   const MS_PER_DAY = 86_400_000;
@@ -436,7 +431,7 @@ export function getInjuryProfiles(
             regionEvents.set(matched, { entries: [], workoutPain: [] });
           }
           regionEvents.get(matched)!.workoutPain.push({
-            date: toDateStr(log.date),
+            date: toLocalDateStr(log.date),
             exerciseId: exLog.exerciseId,
             location: exLog.feedback.jointPainLocation,
           });
@@ -447,7 +442,7 @@ export function getInjuryProfiles(
 
   // ── Build one InjuryProfile per region ──
   const profiles: InjuryProfile[] = [];
-  const today = toDateStr(new Date());
+  const today = toLocalDateStr(new Date());
 
   Array.from(regionEvents.entries()).forEach(([region, data]) => {
     const { entries, workoutPain } = data;
@@ -462,7 +457,7 @@ export function getInjuryProfiles(
     const onsetEntry = unresolved.length > 0
       ? unresolved[unresolved.length - 1]
       : sorted[0];
-    const onsetDate = toDateStr(onsetEntry.date);
+    const onsetDate = toLocalDateStr(onsetEntry.date);
 
     // Severity from the 3 most recent entries
     const recentSeverity = sorted.slice(0, 3).reduce((mx, e) => Math.max(mx, e.severity), 1);
@@ -473,7 +468,7 @@ export function getInjuryProfiles(
 
     sorted.forEach(entry => {
       painHistory.push({
-        date: toDateStr(entry.date),
+        date: toLocalDateStr(entry.date),
         level: painLevelToTen(entry.severity),
         context: entry.duringExercise
           ? `During ${entry.duringExercise} — ${entry.painType}`
@@ -862,7 +857,7 @@ export function getInjuryInsights(
     };
   }
 
-  const today = toDateStr(new Date());
+  const today = toLocalDateStr(new Date());
 
   // ── Per-profile analysis ──
   injuryProfiles.forEach(profile => {

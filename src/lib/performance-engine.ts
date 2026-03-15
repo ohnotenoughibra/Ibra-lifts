@@ -32,6 +32,7 @@ import type {
   QuickLog,
 } from './types';
 import { getIllnessTrainingRecommendation } from './illness-engine';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items from arrays before processing */
 function active<T>(arr: T[]): T[] {
@@ -261,10 +262,10 @@ function assessNutrition(
   // Check yesterday's nutrition (today might not be complete)
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const dateStr = yesterday.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(yesterday);
 
   const dayMeals = meals.filter(m => {
-    const mDate = new Date(m.date).toISOString().split('T')[0];
+    const mDate = toLocalDateStr(m.date);
     return mDate === dateStr;
   });
 
@@ -421,16 +422,16 @@ function assessTrainingLoad(logs: WorkoutLog[], sessions: TrainingSession[]): Re
 
   // Check consecutive days (residual fatigue accumulation)
   const allDates = [
-    ...weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]),
-    ...weekSessions.map(s => new Date(s.date).toISOString().split('T')[0]),
+    ...weekLogs.map(l => toLocalDateStr(l.date)),
+    ...weekSessions.map(s => toLocalDateStr(s.date)),
   ];
   const uniqueDates = Array.from(new Set(allDates)).sort().reverse();
   let consecutive = 0;
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr();
   for (let i = 0; i < uniqueDates.length; i++) {
     const expected = new Date();
     expected.setDate(expected.getDate() - i);
-    if (uniqueDates[i] === expected.toISOString().split('T')[0]) {
+    if (uniqueDates[i] === toLocalDateStr(expected)) {
       consecutive++;
     } else break;
   }
@@ -453,7 +454,7 @@ function assessHydration(waterLog: Record<string, number>): ReadinessFactor {
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const dateStr = yesterday.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(yesterday);
   const glasses = waterLog[dateStr];
 
   if (glasses == null) return base;

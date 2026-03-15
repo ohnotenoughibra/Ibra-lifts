@@ -47,7 +47,7 @@ import {
   TrendingUp,
   Lock,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, toLocalDateStr } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
@@ -1689,7 +1689,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `roots-gains-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.download = `roots-gains-backup-${toLocalDateStr()}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
                   } catch { /* ignore */ }

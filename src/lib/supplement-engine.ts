@@ -28,6 +28,7 @@ import type {
   SupplementIntake,
   UserSupplement,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ── Supplement Macro Database ───────────────────────────────────────────────
 // Per-serving macro data for supplements that contribute meaningful nutrition.
@@ -574,7 +575,7 @@ export function getSupplementAdherence(
     for (let d = 0; d < days; d++) {
       const date = new Date(today);
       date.setDate(date.getDate() - d);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateStr(date);
       const wasTaken = intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr);
       if (wasTaken) taken++;
     }
@@ -596,7 +597,7 @@ export function getSupplementAdherence(
   for (let d = 0; d < 365; d++) {
     const date = new Date(today);
     date.setDate(date.getDate() - d);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(date);
     const allTaken = enabled.every(s =>
       intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr)
     );

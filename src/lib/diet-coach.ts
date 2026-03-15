@@ -644,7 +644,7 @@ export function analyzeWeightTrend(
   const sorted = [...entries]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map(e => ({
-      date: new Date(e.date).toISOString().split('T')[0],
+      date: toLocalDateStr(e.date),
       weight: e.unit === 'lbs' ? e.weight * 0.453592 : e.weight,
     }));
 
@@ -808,10 +808,10 @@ export function calculateAdherence(
   for (let i = 0; i < daysBack; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(d);
 
     const mealsOnDay = meals.filter(m => {
-      const mDate = new Date(m.date).toISOString().split('T')[0];
+      const mDate = toLocalDateStr(m.date);
       return mDate === dateStr;
     });
 
@@ -826,6 +826,7 @@ export function calculateAdherence(
 // ── Periodized Nutrition Integration ──────────────────────────────────────
 
 import type { NutritionPhaseType, PlannedNutritionPhase } from './types';
+import { toLocalDateStr } from './utils';
 
 /**
  * Derive diet coach parameters from a periodized nutrition phase.

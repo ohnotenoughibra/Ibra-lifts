@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Droplets, Scale, Moon, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { calculateReadiness, type ReadinessScore } from '@/lib/nudge-engine';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
@@ -86,8 +86,8 @@ export default function PerformanceReadiness() {
     const hourOfDay = now.getHours();
 
     // Calculate today's intake
-    const today = now.toISOString().split('T')[0];
-    const todayMeals = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === today);
+    const today = toLocalDateStr(now);
+    const todayMeals = meals.filter(m => toLocalDateStr(m.date) === today);
     const caloriesLogged = todayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
     const proteinLogged = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
 
@@ -101,8 +101,8 @@ export default function PerformanceReadiness() {
     // Yesterday's data for morning carry-forward
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    const yesterdayMeals = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr);
+    const yesterdayStr = toLocalDateStr(yesterday);
+    const yesterdayMeals = meals.filter(m => toLocalDateStr(m.date) === yesterdayStr);
     const yesterdayCals = yesterdayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
     const yesterdayPro = yesterdayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
     const yesterdayCalorieAdherence = macroTargets.calories > 0
@@ -124,7 +124,7 @@ export default function PerformanceReadiness() {
     // Recovery
     const whoopRecovery = latestWhoopData?.recoveryScore ?? undefined;
     const todaySleepLog = quickLogs.find(
-      l => l.type === 'sleep' && new Date(l.timestamp).toISOString().split('T')[0] === today
+      l => l.type === 'sleep' && toLocalDateStr(l.timestamp) === today
     );
     const sleepHours = latestWhoopData?.sleepHours || (todaySleepLog?.value ? Number(todaySleepLog.value) * 2 : undefined);
 
@@ -183,8 +183,8 @@ export default function PerformanceReadiness() {
           {(() => {
             const hour = new Date().getHours();
             const isEarlyMorning = hour < 10;
-            const todayStr = new Date().toISOString().split('T')[0];
-            const noDataYet = meals.filter(m => new Date(m.date).toISOString().split('T')[0] === todayStr).length === 0
+            const todayStr = toLocalDateStr();
+            const noDataYet = meals.filter(m => toLocalDateStr(m.date) === todayStr).length === 0
               && !(waterLog[todayStr]);
             if (isEarlyMorning && noDataYet) {
               return 'Morning check-in — log meals & water to update';

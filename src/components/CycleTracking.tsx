@@ -7,6 +7,7 @@ import {
   TrendingUp, Moon, Heart, AlertTriangle,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { toLocalDateStr } from '@/lib/utils';
 import type {
   CycleLog, CyclePhase, CycleSymptom, CycleProfile,
   PhaseAdjustment, CycleInsights, PerformanceWindow, CycleNutritionGuidance,
@@ -45,7 +46,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
   const [symptoms, setSymptoms] = useState<CycleSymptom[]>([]);
   const [energy, setEnergy] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [notes, setNotes] = useState('');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => toLocalDateStr());
 
   const profile = useMemo<CycleProfile>(() => buildCycleProfile(cycleLogs), [cycleLogs]);
   const adjustments = useMemo<PhaseAdjustment>(() => {
@@ -71,7 +72,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
     };
     addCycleLog(log);
     setSymptoms([]); setEnergy(3); setNotes('');
-    setStartDate(new Date().toISOString().slice(0, 10));
+    setStartDate(toLocalDateStr());
     setFormOpen(false);
   }, [startDate, phase, symptoms, energy, notes, addCycleLog]);
 

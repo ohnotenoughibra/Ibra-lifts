@@ -30,7 +30,7 @@ import {
   RefreshCw,
   Target,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import type { GoalFocus, BlockFocus } from '@/lib/types';
 
 const FOCUS_OPTIONS: { value: GoalFocus; label: string; icon: React.ReactNode; color: string; desc: string }[] = [
@@ -154,7 +154,7 @@ export default function BlockQueue() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `mesocycle-queue-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `mesocycle-queue-${toLocalDateStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

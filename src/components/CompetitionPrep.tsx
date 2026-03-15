@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import { CompetitionType, CompetitionEvent, WeighInType } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
@@ -380,7 +380,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     className="input"
-                    min={new Date().toISOString().split('T')[0]}
+                    min={toLocalDateStr()}
                   />
                 </div>
 

@@ -26,6 +26,7 @@ import type {
   WeightCutPhase, WeightCutPlan, WeightCutDailyLog, WeightCutSafetyLevel,
   WeighInType, CutExperience, MenstrualStatus, BiologicalSex,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ── Safety Thresholds ────────────────────────────────────────────────────────
 
@@ -440,7 +441,7 @@ export function generateDailyChecklist(
   }
 
   return {
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalDateStr(),
     phase,
     tasks,
     waterProtocol: water,

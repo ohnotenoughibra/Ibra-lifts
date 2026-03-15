@@ -19,6 +19,7 @@
 
 import type { WorkoutLog, ExerciseLog } from './types';
 import { VOLUME_LANDMARKS } from './workout-generator';
+import { toLocalDateStr } from './utils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ function groupByWeek(logs: WorkoutLog[]): WeekGroup[] {
     const day = d.getDay();
     const monday = new Date(d);
     monday.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-    const key = monday.toISOString().split('T')[0];
+    const key = toLocalDateStr(monday);
     const arr = map.get(key) || [];
     arr.push(log);
     map.set(key, arr);

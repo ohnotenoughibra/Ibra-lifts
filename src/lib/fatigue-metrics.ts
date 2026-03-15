@@ -20,6 +20,7 @@ import type {
   WhoopWorkout,
   ActivityCategory,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -246,7 +247,7 @@ export function calculateIntensityHeatmap(
   // Pre-index logs by date string
   const logsByDate = new Map<string, WorkoutLog[]>();
   workoutLogs.forEach(log => {
-    const key = new Date(log.date).toISOString().split('T')[0];
+    const key = toLocalDateStr(log.date);
     if (!logsByDate.has(key)) logsByDate.set(key, []);
     logsByDate.get(key)!.push(log);
   });
@@ -254,7 +255,7 @@ export function calculateIntensityHeatmap(
   const sessionsByDate = new Map<string, TrainingSession[]>();
   if (trainingSessions) {
     trainingSessions.forEach(s => {
-      const key = new Date(s.date).toISOString().split('T')[0];
+      const key = toLocalDateStr(s.date);
       if (!sessionsByDate.has(key)) sessionsByDate.set(key, []);
       sessionsByDate.get(key)!.push(s);
     });
@@ -266,7 +267,7 @@ export function calculateIntensityHeatmap(
 
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now.getTime() - i * DAY_MS);
-    const key = d.toISOString().split('T')[0];
+    const key = toLocalDateStr(d);
     const dayLogs = logsByDate.get(key) || [];
     const daySessions = sessionsByDate.get(key) || [];
 

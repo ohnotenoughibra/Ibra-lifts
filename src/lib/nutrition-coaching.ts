@@ -30,6 +30,7 @@ import type {
   WorkoutLog,
   WearableData,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ─── Exported Types ─────────────────────────────────────────────────────────
 
@@ -86,11 +87,6 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-/** Get YYYY-MM-DD string from a Date. */
-function toDateStr(d: Date): string {
-  return new Date(d).toISOString().split('T')[0];
-}
-
 /** Sum a numeric field across an array of MealEntry. */
 function sumMealField(meals: MealEntry[], field: 'calories' | 'protein' | 'carbs' | 'fat'): number {
   return meals.reduce((sum, m) => sum + (m[field] || 0), 0);
@@ -98,7 +94,7 @@ function sumMealField(meals: MealEntry[], field: 'calories' | 'protein' | 'carbs
 
 /** Filter meals to those matching a given YYYY-MM-DD date string. */
 function mealsOnDate(meals: MealEntry[], dateStr: string): MealEntry[] {
-  return meals.filter(m => toDateStr(m.date) === dateStr);
+  return meals.filter(m => toLocalDateStr(m.date) === dateStr);
 }
 
 /** Bodyweight in kg, falling back to 75 if not set. */
@@ -1075,7 +1071,7 @@ export function getWeeklyNutritionScore(
   for (let i = 0; i < dayCount; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    dateStrings.push(toDateStr(d));
+    dateStrings.push(toLocalDateStr(d));
   }
 
   // ── Per-day analysis ──
@@ -1219,17 +1215,17 @@ export function getNutritionInsights(
 ): { topInsight: string; tips: string[] } {
   const tips: string[] = [];
   const now = new Date();
-  const todayStr = toDateStr(now);
+  const todayStr = toLocalDateStr(now);
 
   // ── Gather recent data ──
   const last7Days: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    last7Days.push(toDateStr(d));
+    last7Days.push(toLocalDateStr(d));
   }
 
-  const weekMeals = meals.filter(m => last7Days.includes(toDateStr(m.date)));
+  const weekMeals = meals.filter(m => last7Days.includes(toLocalDateStr(m.date)));
   const loggedDays = last7Days.filter(dateStr =>
     mealsOnDate(meals, dateStr).length > 0
   );
@@ -1255,7 +1251,7 @@ export function getNutritionInsights(
     const diff = now.getTime() - new Date(l.date).getTime();
     return diff >= 0 && diff < 7 * 24 * 60 * 60 * 1000;
   });
-  const trainingDateStrs = recentWorkouts.map(l => toDateStr(l.date));
+  const trainingDateStrs = recentWorkouts.map(l => toLocalDateStr(l.date));
   const trainingDayMeals = trainingDateStrs
     .filter(d => loggedDays.includes(d))
     .map(d => ({
@@ -1405,11 +1401,6 @@ export interface NutritionScore {
   feedback: string;
 }
 
-/** Today's date as YYYY-MM-DD. */
-function todayDateStr(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
 function scoreToGrade(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
   if (score >= 90) return 'A';
   if (score >= 75) return 'B';
@@ -1428,7 +1419,7 @@ export function calculateNutritionScore(
   waterLog?: Record<string, number>,
   bodyWeightKg?: number
 ): NutritionScore {
-  const today = todayDateStr();
+  const today = toLocalDateStr();
   const todayMeals = mealsOnDate(meals, today);
 
   // Protein score

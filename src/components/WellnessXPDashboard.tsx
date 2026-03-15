@@ -2,6 +2,7 @@
 import { useAppStore } from '@/lib/store';
 import { defaultWellnessStats, getWellnessTitle, getBadgesByCategory } from '@/lib/gamification';
 import { WellnessDomain } from '@/lib/types';
+import { toLocalDateStr } from '../lib/utils';
 
 export default function WellnessXPDashboard() {
   const { gamificationStats } = useAppStore();
@@ -26,7 +27,7 @@ export default function WellnessXPDashboard() {
     { key: 'mental' as const, label: 'Mental', value: ws.streaks.mental },
   ];
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr();
   const todayDomains = ws.todayCompleted[today] || [];
   const multiplier = todayDomains.length >= 6 ? 2.0
     : todayDomains.length >= 5 ? 1.75
@@ -198,7 +199,7 @@ function getLast7DaysData(wellnessDays: { date: string; domains: WellnessDomain[
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(d);
     const existing = wellnessDays.find(wd => wd.date === dateStr);
     days.push({
       date: dateStr,

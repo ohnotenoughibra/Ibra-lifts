@@ -28,6 +28,7 @@ import type {
 } from './types';
 import { getExerciseById } from './exercises';
 import { getRecommendedTrainingFocus, getActivePhaseContext } from './periodization-planner';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -65,7 +66,7 @@ function analyzeStrengthTrends(logs: WorkoutLog[]): PerformanceTrend[] {
   const exerciseData = new Map<string, { date: string; e1rm: number; name: string }[]>();
 
   for (const log of logs) {
-    const dateStr = new Date(log.date).toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(log.date);
     for (const ex of log.exercises) {
       let bestE1RM = 0;
       for (const set of ex.sets) {

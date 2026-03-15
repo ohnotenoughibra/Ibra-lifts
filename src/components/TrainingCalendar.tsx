@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, Plus, Calendar, Edit3, Minus, Search, X, Save, ChevronDown, Check } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, toLocalDateStr} from '@/lib/utils';
 import { WorkoutLog, TrainingSession, ExerciseLog, SetLog } from '@/lib/types';
 import { exercises as allExercises } from '@/lib/exercises';
 
@@ -134,7 +134,7 @@ export default function TrainingCalendar() {
       setEditingSession(item as TrainingSession);
     }
     const d = new Date(item.date);
-    setNewDate(d.toISOString().split('T')[0]);
+    setNewDate(toLocalDateStr(d));
   };
 
   const saveNewDate = () => {

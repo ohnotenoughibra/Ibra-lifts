@@ -11,6 +11,7 @@
 
 import type { ContentCategory } from './types';
 import type { TodayType } from './daily-directive';
+import { toLocalDateStr } from './utils';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -152,7 +153,7 @@ export function pickContextualInsight(
  * Get today's date string for tracking daily insight rotation.
  */
 export function getTodayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateStr();
 }
 
 /**

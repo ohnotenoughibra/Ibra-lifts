@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
 import type { MentalCheckInContext, ConfidenceEntryType } from '@/lib/types';
+import { toLocalDateStr } from '@/lib/utils';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
@@ -149,7 +150,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
   const submitCheckIn = useCallback(() => {
     const now = new Date();
     addMentalCheckIn({
-      date: now.toISOString().split('T')[0],
+      date: toLocalDateStr(now),
       timestamp: now.toISOString(),
       context: ciContext,
       energy: ciEnergy,
@@ -169,7 +170,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
   const submitEvidence = useCallback(() => {
     if (!evTitle.trim()) return;
     addConfidenceEntry({
-      date: new Date().toISOString().split('T')[0],
+      date: toLocalDateStr(),
       type: evType,
       title: evTitle.trim(),
       detail: evDetail.trim() || undefined,
@@ -279,7 +280,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
     // Correlate high mental score with PRs from workoutLogs
     const prLogs = workoutLogs.filter(w => w.exercises?.some(e => e.personalRecord));
     if (prLogs.length >= 2 && sorted.length >= 5) {
-      const prDates = new Set(prLogs.map(w => new Date(w.date).toISOString().split('T')[0]));
+      const prDates = new Set(prLogs.map(w => toLocalDateStr(w.date)));
       const prDayCheckIns = sorted.filter(c => prDates.has(c.date));
       const nonPrCheckIns = sorted.filter(c => !prDates.has(c.date));
       if (prDayCheckIns.length >= 2 && nonPrCheckIns.length >= 2) {

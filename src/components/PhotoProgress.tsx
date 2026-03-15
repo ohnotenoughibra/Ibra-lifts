@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import EmptyState from './EmptyState';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -799,7 +799,7 @@ function AddPhotoModal({
   const [pose, setPose] = useState<ProgressPhoto['pose']>('front');
   const [bodyweight, setBodyweight] = useState('');
   const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => toLocalDateStr());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

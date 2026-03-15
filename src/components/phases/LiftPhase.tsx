@@ -6,7 +6,7 @@ import {
   Moon, Apple, Droplets, HeartPulse, Shield, Check, X,
   AlertTriangle, SkipForward,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateStr} from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
 import type { SkipReason } from '@/lib/types';
 
@@ -223,7 +223,7 @@ export default function LiftPhase({
               <button
                 onClick={() => {
                   onSkipWorkout({
-                    date: new Date().toISOString().split('T')[0],
+                    date: toLocalDateStr(),
                     scheduledSessionId: `combat-${i}`,
                     reason: 'schedule_conflict' as SkipReason,
                     rescheduled: false,

@@ -1,5 +1,6 @@
 import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog, WellnessDomain, WellnessStats, WellnessStreaks } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -1248,8 +1249,8 @@ export function computeChallengeProgress(
   const sessionCount = weekAllSessions.length;
 
   // Dual days: dates that have both a lift and a combat session
-  const liftDates = new Set(weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]));
-  const combatDates = new Set(weekCombatSessions.map(s => new Date(s.date).toISOString().split('T')[0]));
+  const liftDates = new Set(weekLogs.map(l => toLocalDateStr(l.date)));
+  const combatDates = new Set(weekCombatSessions.map(s => toLocalDateStr(s.date)));
   let dualDayCount = 0;
   liftDates.forEach(d => { if (combatDates.has(d)) dualDayCount++; });
 
@@ -1444,8 +1445,8 @@ export function updateWellnessStreaks(
   todayDomains: WellnessDomain[],
   lastWellnessDate: string | null,
 ): WellnessStreaks {
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = toLocalDateStr();
+  const yesterday = toLocalDateStr(new Date(Date.now() - 86400000));
   const isConsecutive = lastWellnessDate === today || lastWellnessDate === yesterday;
 
   const domainSet = new Set(todayDomains);

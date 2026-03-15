@@ -10,7 +10,7 @@ import {
 import EmptyState from './EmptyState';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, toLocalDateStr} from '@/lib/utils';
 import type { WorkoutLog, TrainingSession, MentalCheckIn } from '@/lib/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
   const grouped = useMemo(() => {
     const map = new Map<string, TimelineEntry[]>();
     for (const entry of timeline) {
-      const key = entry.date.toISOString().split('T')[0];
+      const key = toLocalDateStr(entry.date);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(entry);
     }
@@ -149,8 +149,8 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
 
   const formatDayLabel = (dateStr: string) => {
     const date = new Date(dateStr + 'T12:00:00');
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const today = toLocalDateStr();
+    const yesterday = toLocalDateStr(new Date(Date.now() - 86400000));
     if (dateStr === today) return 'Today';
     if (dateStr === yesterday) return 'Yesterday';
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

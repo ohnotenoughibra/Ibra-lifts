@@ -28,6 +28,7 @@ import type {
   FightCampPhase, FightCampPhaseConfig, MacroTargets, BiologicalSex,
   CompetitionEvent,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 // ── Phase Detection ──────────────────────────────────────────────────────────
 
@@ -381,8 +382,8 @@ export function generateFightCampTimeline(
 
     phases.push({
       phase: current.phase,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate: toLocalDateStr(startDate),
+      endDate: toLocalDateStr(endDate),
       calorieStrategy: config.calorieStrategy,
       proteinGKg: config.proteinGKg,
       carbsGKg: config.carbsGKg,

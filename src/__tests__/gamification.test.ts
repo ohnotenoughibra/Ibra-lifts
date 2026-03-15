@@ -18,6 +18,7 @@ import {
   pointRewards,
 } from '@/lib/gamification';
 import type { GamificationStats, WorkoutLog, TrainingSession, QuickLog } from '@/lib/types';
+import { toLocalDateStr } from '../lib/utils';
 
 // ── calculateLevel ──────────────────────────────────────────────────────────
 
@@ -632,7 +633,7 @@ describe('shouldRefillShield', () => {
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     d.setDate(diff);
-    const monday = d.toISOString().split('T')[0];
+    const monday = toLocalDateStr(d);
     expect(shouldRefillShield(monday)).toBe(false);
   });
 });

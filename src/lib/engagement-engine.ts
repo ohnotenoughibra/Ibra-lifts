@@ -13,6 +13,7 @@ import type {
   GamificationStats,
   UserProfile,
 } from './types';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items from arrays before processing */
 function active<T>(arr: T[]): T[] {
@@ -525,7 +526,7 @@ function getMonday(date: Date): string {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
-  return d.toISOString().split('T')[0];
+  return toLocalDateStr(d);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

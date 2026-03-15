@@ -243,7 +243,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-lg border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">

@@ -112,7 +112,7 @@ export default function KnowledgeHub({ onClose, initialCategory }: { onClose?: (
 
   // ─── LIBRARY VIEW ────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-grappler-900 px-4 pt-4 pb-24 space-y-6">
+    <div className="min-h-screen bg-grappler-900 px-4 pt-4 pb-24 space-y-6 safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

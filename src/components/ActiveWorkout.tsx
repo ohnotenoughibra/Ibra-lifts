@@ -1182,7 +1182,7 @@ export default function ActiveWorkout() {
   const adjustmentReason = getAdjustmentReason();
 
   return (
-    <div className="min-h-screen bg-grappler-900 bg-mesh">
+    <div className="min-h-screen bg-grappler-900 bg-mesh safe-area-top safe-area-bottom">
       {/* PR Celebration */}
       {showPRCelebration && (
         <>

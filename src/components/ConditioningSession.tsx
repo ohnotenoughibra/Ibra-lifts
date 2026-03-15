@@ -560,7 +560,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
   // ========================= BROWSE MODE =========================
   if (mode === 'browse') {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top">
+      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top safe-area-bottom">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
           <h1 className="text-lg font-bold text-grappler-50">Conditioning</h1>
@@ -691,7 +691,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     const cals = estimateCaloriesBurned(displayTemplate, bodyweightKg);
 
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top safe-area-bottom">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
           <button onClick={backToBrowse} className="flex items-center gap-1 text-grappler-400 hover:text-grappler-200">
@@ -944,7 +944,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     if (phase === 'complete') {
       const finalCals = estimateCaloriesBurned(activeTemplate, bodyweightKg);
       return (
-        <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col items-center justify-center px-6">
+        <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col items-center justify-center px-6 safe-area-top safe-area-bottom">
           <div className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6">
             <Trophy size={40} className="text-amber-400" />
           </div>
@@ -979,7 +979,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     }
 
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top safe-area-bottom">
         {/* Top bar with template name and close */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
           <div className="flex items-center gap-2 min-w-0">

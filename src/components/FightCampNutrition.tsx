@@ -126,7 +126,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
       >
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
@@ -153,7 +153,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
       >
         <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
@@ -181,7 +181,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
     >
       <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto space-y-4">
         {/* Header */}

@@ -537,7 +537,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
   // -----------------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 safe-area-top safe-area-bottom">
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">

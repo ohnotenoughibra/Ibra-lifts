@@ -216,7 +216,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
-      className="min-h-screen bg-grappler-900 px-4 py-6 overflow-x-hidden"
+      className="min-h-screen bg-grappler-900 px-4 py-6 overflow-x-hidden safe-area-top safe-area-bottom"
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">

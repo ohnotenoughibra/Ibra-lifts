@@ -116,7 +116,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   // -------- Empty state --------
   if (!hasWorkouts && !loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom">
         <div className="min-h-screen px-4 py-6">
           {/* Header */}
           <div className="flex items-center gap-3 mb-8">
@@ -156,7 +156,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   // -------- Loading state --------
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom">
         <div className="min-h-screen px-4 py-6">
           <div className="flex items-center gap-3 mb-8">
             <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
@@ -183,7 +183,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
 
   // -------- Main coach view --------
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom">
       <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">

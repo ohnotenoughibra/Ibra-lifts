@@ -40,7 +40,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
   const totalCount = displayBadges.length;
 
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">

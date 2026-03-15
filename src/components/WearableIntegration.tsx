@@ -1373,7 +1373,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
   // ------------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-grappler-900 bg-mesh flex items-center justify-center">
+      <div className="min-h-screen bg-grappler-900 bg-mesh flex items-center justify-center safe-area-top safe-area-bottom">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-green-400 animate-spin mx-auto mb-3" />
           <p className="text-grappler-400 text-sm">Connecting to Whoop...</p>
@@ -1390,7 +1390,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 40 }}
-      className="min-h-screen bg-grappler-900 bg-mesh pb-20"
+      className="min-h-screen bg-grappler-900 bg-mesh pb-20 safe-area-top safe-area-bottom"
     >
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">

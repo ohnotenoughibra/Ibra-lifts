@@ -298,7 +298,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
     >
       <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
         {/* Header */}

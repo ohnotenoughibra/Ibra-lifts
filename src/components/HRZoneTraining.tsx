@@ -453,7 +453,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="min-h-screen bg-grappler-950 pb-20"
+      className="min-h-screen bg-grappler-950 pb-20 safe-area-top safe-area-bottom"
     >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">

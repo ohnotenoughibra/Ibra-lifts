@@ -166,7 +166,7 @@ export default function RecoverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-grappler-950 text-grappler-100 p-4 max-w-lg mx-auto">
+    <div className="min-h-screen bg-grappler-950 text-grappler-100 p-4 max-w-lg mx-auto safe-area-top safe-area-bottom">
       <h1 className="text-xl font-bold mb-2">Data Recovery</h1>
       <p className="text-sm text-grappler-400 mb-6">
         This reads your phone&apos;s local storage and writes it to both the server and localStorage so the app picks it up.

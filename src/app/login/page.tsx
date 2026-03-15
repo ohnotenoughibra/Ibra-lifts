@@ -140,7 +140,7 @@ function LoginForm() {
   // Show a full-screen spinner while validating a magic link from URL
   if (magicValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4 safe-area-top safe-area-bottom">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 text-primary-400 animate-spin mx-auto" />
           <p className="text-grappler-300 text-sm">Signing you in...</p>
@@ -150,7 +150,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 safe-area-top safe-area-bottom">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

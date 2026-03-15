@@ -741,7 +741,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-grappler-950 text-grappler-50">
+    <div className="min-h-screen bg-grappler-950 text-grappler-50 safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">

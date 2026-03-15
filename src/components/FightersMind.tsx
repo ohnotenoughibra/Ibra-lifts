@@ -325,7 +325,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-grappler-950 z-50 overflow-y-auto"
+      className="fixed inset-0 bg-grappler-950 z-50 overflow-y-auto safe-area-top safe-area-bottom"
     >
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/90 backdrop-blur-xl border-b border-grappler-800/50">

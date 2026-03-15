@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-grappler-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-grappler-900 flex items-center justify-center p-6 safe-area-top safe-area-bottom">
       <div className="text-center max-w-sm">
         <div className="w-16 h-16 rounded-2xl bg-grappler-800 flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-grappler-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

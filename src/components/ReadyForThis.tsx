@@ -116,7 +116,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-grappler-950 z-50 flex flex-col items-center justify-center px-6"
+      className="fixed inset-0 bg-grappler-950 z-50 flex flex-col items-center justify-center px-6 safe-area-top safe-area-bottom"
     >
       {/* Readiness Ring */}
       <motion.div

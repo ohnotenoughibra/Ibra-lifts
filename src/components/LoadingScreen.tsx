@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 export default function LoadingScreen() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-grappler-900">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-grappler-900 safe-area-top safe-area-bottom">
       {/* Subtle radial glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/[0.04] rounded-full blur-3xl" />

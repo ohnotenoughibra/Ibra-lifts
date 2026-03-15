@@ -267,7 +267,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
+        className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top safe-area-bottom"
       >
         {/* Timer Header */}
         <div className="p-4 flex items-center justify-between border-b border-grappler-800">
@@ -401,7 +401,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
+        className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
@@ -559,7 +559,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
+        className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto safe-area-top safe-area-bottom"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
@@ -640,7 +640,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-grappler-900">
+    <div className="min-h-screen bg-grappler-900 safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">

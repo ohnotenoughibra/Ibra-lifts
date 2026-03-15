@@ -343,6 +343,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tools..."
+            aria-label="Search tools"
             className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50 text-sm text-grappler-200 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500/50 transition-colors"
           />
         </div>

@@ -33,6 +33,7 @@ import { getNextSession as getNextSessionFromMatching } from './session-matching
 import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
+import { toLocalDateStr } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -247,7 +248,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   }
 
   // Filter out skipped combat sessions — match by scheduledSessionId pattern "combat-{index}"
-  const todaySkips = (workoutSkips || []).filter(s => s.date === new Date().toISOString().split('T')[0]);
+  const todaySkips = (workoutSkips || []).filter(s => s.date === toLocalDateStr());
   const skippedCombatIds = new Set(
     todaySkips.filter(s => s.scheduledSessionId?.startsWith('combat-')).map(s => s.scheduledSessionId)
   );
@@ -374,7 +375,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
       headline = alreadyLiftedToday ? 'Session Complete' : 'Recovery Mode';
       break;
     case 'rest':
-      headline = activeIllness ? 'Rest — You\'re Sick' : 'Rest & Recover';
+      headline = activeIllness ? 'Rest — Recovery Priority' : 'Rest & Recover';
       break;
     case 'combat': {
       // Use the user's sport name when session type is generic (e.g. "Moderate Session")

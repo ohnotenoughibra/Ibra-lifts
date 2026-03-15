@@ -83,7 +83,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1 px-0.5">
+      <div ref={scrollRef} className="flex items-stretch gap-2 overflow-x-auto no-scrollbar pb-1 px-2">
         {/* Completed blocks */}
         {visibleHistory.map((block, i) => {
           const config = getFocusConfig(block.goalFocus);

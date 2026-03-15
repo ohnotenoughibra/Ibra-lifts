@@ -81,7 +81,7 @@ export default function ReadinessRing({ score, size = 64, strokeWidth = 4.5, mod
         <span className={cn(
           'font-black leading-none tracking-tight',
           isWhite ? 'text-white' : config.text,
-          config.word.length > 4 ? 'text-[9px]' : 'text-[11px]',
+          config.word.length > 5 ? 'text-[8px]' : config.word.length > 4 ? 'text-[10px]' : 'text-[11px]',
         )}>{isWhite ? score : config.word}</span>
         {!isWhite && (
           <span className="text-[9px] font-bold text-grappler-500 mt-0.5 tabular-nums">{score}</span>

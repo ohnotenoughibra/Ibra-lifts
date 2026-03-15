@@ -261,6 +261,39 @@ export function useWhoopSync() {
 
       if (!accessToken) return; // Whoop genuinely not connected
 
+      // ── Proactive token refresh: refresh BEFORE it expires ──
+      // Without this, we send expired tokens → 401 → repeated failures → WHOOP revokes refresh token
+      const tokenExpiresStr = getToken(LS_KEYS.tokenExpires);
+      const refreshToken = getToken(LS_KEYS.refreshToken);
+      if (tokenExpiresStr && refreshToken) {
+        const expiresAt = parseInt(tokenExpiresStr, 10);
+        const BUFFER_MS = 5 * 60 * 1000; // refresh 5 min before expiry
+        if (!isNaN(expiresAt) && Date.now() >= expiresAt - BUFFER_MS) {
+          try {
+            const refreshRes = await fetch('/api/whoop/data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              if (refreshData.new_access_token) {
+                accessToken = refreshData.new_access_token;
+                setToken(LS_KEYS.accessToken, refreshData.new_access_token);
+                if (refreshData.new_refresh_token) setToken(LS_KEYS.refreshToken, refreshData.new_refresh_token);
+                const newExp = refreshData.new_expires_in ? String(Date.now() + refreshData.new_expires_in * 1000) : '';
+                if (newExp) setToken(LS_KEYS.tokenExpires, newExp);
+                saveTokensToDb(
+                  refreshData.new_access_token,
+                  refreshData.new_refresh_token || refreshToken,
+                  newExp
+                );
+              }
+            }
+          } catch { /* will retry next sync cycle */ }
+        }
+      }
+
       // Skip if data is still fresh (use shorter threshold when strain is pending)
       const latestData = useAppStore.getState().latestWhoopData;
       const lastFetch = getToken('whoop_last_fetch');
@@ -270,7 +303,6 @@ export function useWhoopSync() {
 
       syncInFlight.current = true;
       try {
-        const refreshToken = getToken(LS_KEYS.refreshToken);
         const res = await fetch('/api/whoop/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

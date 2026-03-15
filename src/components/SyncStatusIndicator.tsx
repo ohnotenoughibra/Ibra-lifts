@@ -117,6 +117,7 @@ export default function SyncStatusIndicator({
             aria-modal="true"
             aria-label="Cloud sync status"
             onClick={() => setShowDetail(false)}
+            onTouchEnd={(e) => { if (e.target === e.currentTarget) setShowDetail(false); }}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowDetail(false); }}
           >
             <motion.div
@@ -252,6 +253,12 @@ export default function SyncStatusIndicator({
                     <RefreshCw className="w-4 h-4" />
                   )}
                   {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+                </button>
+                <button
+                  onClick={() => setShowDetail(false)}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium text-grappler-400 hover:text-grappler-200 bg-grappler-800/50 hover:bg-grappler-800 transition-colors"
+                >
+                  Done
                 </button>
               </div>
             </motion.div>

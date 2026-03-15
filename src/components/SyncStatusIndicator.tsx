@@ -56,18 +56,20 @@ export default function SyncStatusIndicator({
   const [showDetail, setShowDetail] = useState(false);
   const [syncReceipt, setSyncReceipt] = useState<{ meals: number; waterDays: number; workouts: number; sessions: number } | null>(null);
 
-  const handleForceSync = useCallback(async () => {
+  const handleForceSync = useCallback(() => {
     setSyncReceipt(null);
-    await onForceSync();
-    // Show receipt of what's now in the store after sync
-    const s = useAppStore.getState();
-    const localCounts = {
-      meals: (s.meals ?? []).filter(m => !m._deleted).length,
-      waterDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
-      workouts: (s.workoutLogs ?? []).filter(w => !w._deleted).length,
-      sessions: (s.trainingSessions ?? []).filter(t => !t._deleted).length,
-    };
-    setSyncReceipt(localCounts);
+    // Fire and forget — don't block the UI
+    const syncPromise = onForceSync();
+    // Wait for completion in the background, then show receipt
+    Promise.resolve(syncPromise).then(() => {
+      const s = useAppStore.getState();
+      setSyncReceipt({
+        meals: (s.meals ?? []).filter(m => !m._deleted).length,
+        waterDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
+        workouts: (s.workoutLogs ?? []).filter(w => !w._deleted).length,
+        sessions: (s.trainingSessions ?? []).filter(t => !t._deleted).length,
+      });
+    }).catch(() => {});
   }, [onForceSync]);
 
   // Don't show for unauthenticated users

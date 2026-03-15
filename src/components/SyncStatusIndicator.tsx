@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Cloud,
@@ -11,7 +11,6 @@ import {
   Tablet,
   Loader2,
   X,
-  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -24,6 +23,13 @@ interface SyncStatusIndicatorProps {
   isAuthenticated: boolean;
   onForceSync: () => void;
   syncFailureCount?: number;
+}
+
+interface ServerCounts {
+  meals: number;
+  workouts: number;
+  lastDevice: string | null;
+  serverUpdatedAt: string | null;
 }
 
 function getRelativeTime(date: Date): string {
@@ -52,28 +58,61 @@ export default function SyncStatusIndicator({
   syncFailureCount = 0,
 }: SyncStatusIndicatorProps) {
   const [showDetail, setShowDetail] = useState(false);
-  const [syncReceipt, setSyncReceipt] = useState<{ meals: number; waterDays: number; workouts: number; sessions: number } | null>(null);
+  const [serverCounts, setServerCounts] = useState<ServerCounts | null>(null);
+  const [fetchingServer, setFetchingServer] = useState(false);
+
+  const localCounts = useCallback(() => {
+    const s = useAppStore.getState();
+    return {
+      meals: (s.meals ?? []).filter(m => !m._deleted).length,
+      workouts: (s.workoutLogs ?? []).filter(w => !w._deleted).length,
+    };
+  }, []);
+
+  // Fetch server counts when popup opens
+  useEffect(() => {
+    if (!showDetail) return;
+    setFetchingServer(true);
+    fetch('/api/debug/sync-status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.counts) {
+          setServerCounts({
+            meals: data.counts.meals ?? 0,
+            workouts: data.counts.workoutLogs ?? 0,
+            lastDevice: data._lastDevice ?? null,
+            serverUpdatedAt: data.serverUpdatedAt ?? null,
+          });
+        }
+      })
+      .catch(() => setServerCounts(null))
+      .finally(() => setFetchingServer(false));
+  }, [showDetail]);
 
   const handleForceSync = useCallback(() => {
-    setSyncReceipt(null);
-    // Fire and forget — don't block the UI
     const syncPromise = onForceSync();
-    // Wait for completion in the background, then show receipt
     Promise.resolve(syncPromise).then(() => {
-      const s = useAppStore.getState();
-      setSyncReceipt({
-        meals: (s.meals ?? []).filter(m => !m._deleted).length,
-        waterDays: s.waterLog ? Object.keys(s.waterLog).length : 0,
-        workouts: (s.workoutLogs ?? []).filter(w => !w._deleted).length,
-        sessions: (s.trainingSessions ?? []).filter(t => !t._deleted).length,
-      });
+      // Re-fetch server counts after sync
+      fetch('/api/debug/sync-status')
+        .then(r => r.json())
+        .then(data => {
+          if (data.counts) {
+            setServerCounts({
+              meals: data.counts.meals ?? 0,
+              workouts: data.counts.workoutLogs ?? 0,
+              lastDevice: data._lastDevice ?? null,
+              serverUpdatedAt: data.serverUpdatedAt ?? null,
+            });
+          }
+        })
+        .catch(() => {});
     }).catch(() => {});
   }, [onForceSync]);
 
-  // Don't show for unauthenticated users
   if (!isAuthenticated) return null;
 
   const CurrentDeviceIcon = DeviceIcon[deviceType];
+  const local = showDetail ? localCounts() : null;
 
   const statusConfig = {
     idle: { dot: 'bg-green-400', label: 'Synced' },
@@ -84,6 +123,9 @@ export default function SyncStatusIndicator({
   };
 
   const config = statusConfig[syncStatus];
+
+  const hasMismatch = local && serverCounts &&
+    (local.meals !== serverCounts.meals || local.workouts !== serverCounts.workouts);
 
   return (
     <>
@@ -136,8 +178,9 @@ export default function SyncStatusIndicator({
                 </button>
               </div>
 
-              {/* Status rows */}
-              <div className="px-4 pb-3 space-y-2">
+              {/* Status + comparison */}
+              <div className="px-4 pb-3 space-y-3">
+                {/* Status row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className={cn('w-2 h-2 rounded-full', config.dot)} />
@@ -166,11 +209,42 @@ export default function SyncStatusIndicator({
                   </p>
                 )}
 
-                {/* Sync receipt */}
-                {syncReceipt && (
-                  <div className="flex items-center gap-3 text-xs text-grappler-300">
-                    <Database className="w-3 h-3 text-primary-400 flex-shrink-0" />
-                    <span>{syncReceipt.meals} meals · {syncReceipt.workouts} workouts · {syncReceipt.sessions} sessions</span>
+                {/* Local vs Server comparison */}
+                {local && (
+                  <div className="bg-grappler-800/50 rounded-xl p-3 space-y-1.5">
+                    <div className="grid grid-cols-3 gap-1 text-xs">
+                      <span className="text-grappler-500"></span>
+                      <span className="text-grappler-400 text-center">This device</span>
+                      <span className="text-grappler-400 text-center">Server</span>
+
+                      <span className="text-grappler-400">Meals</span>
+                      <span className="text-grappler-200 text-center font-medium">{local.meals}</span>
+                      <span className={cn('text-center font-medium', fetchingServer ? 'text-grappler-500' :
+                        serverCounts && serverCounts.meals !== local.meals ? 'text-yellow-400' : 'text-grappler-200'
+                      )}>
+                        {fetchingServer ? '...' : serverCounts ? serverCounts.meals : '—'}
+                      </span>
+
+                      <span className="text-grappler-400">Workouts</span>
+                      <span className="text-grappler-200 text-center font-medium">{local.workouts}</span>
+                      <span className={cn('text-center font-medium', fetchingServer ? 'text-grappler-500' :
+                        serverCounts && serverCounts.workouts !== local.workouts ? 'text-yellow-400' : 'text-grappler-200'
+                      )}>
+                        {fetchingServer ? '...' : serverCounts ? serverCounts.workouts : '—'}
+                      </span>
+                    </div>
+
+                    {hasMismatch && (
+                      <p className="text-xs text-yellow-400 pt-1">
+                        Data mismatch — tap Sync Now to push local data
+                      </p>
+                    )}
+
+                    {serverCounts?.lastDevice && (
+                      <p className="text-xs text-grappler-500 pt-0.5">
+                        Last synced from: {serverCounts.lastDevice}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -182,9 +256,11 @@ export default function SyncStatusIndicator({
                   disabled={syncStatus === 'syncing' || syncStatus === 'offline'}
                   className={cn(
                     'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all',
-                    syncStatus === 'syncing' || syncStatus === 'offline'
-                      ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
-                      : 'bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 border border-primary-500/20'
+                    hasMismatch
+                      ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/20'
+                      : syncStatus === 'syncing' || syncStatus === 'offline'
+                        ? 'bg-grappler-800 text-grappler-500 cursor-not-allowed'
+                        : 'bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 border border-primary-500/20'
                   )}
                 >
                   {syncStatus === 'syncing' ? (
@@ -192,7 +268,7 @@ export default function SyncStatusIndicator({
                   ) : (
                     <RefreshCw className="w-4 h-4" />
                   )}
-                  {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+                  {syncStatus === 'syncing' ? 'Syncing...' : hasMismatch ? 'Sync Now!' : 'Sync Now'}
                 </button>
                 <button
                   onClick={() => setShowDetail(false)}

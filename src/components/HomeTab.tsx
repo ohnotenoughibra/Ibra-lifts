@@ -2680,22 +2680,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         )}
       </AnimatePresence>
 
-      {/* ─── Floating Start Workout FAB ─── */}
-      {currentMesocycle && nextWorkout && !activeWorkout && !dockPickerOpen && !showSkipDialog && !showMigrateDialog && (
-        <button
-          onClick={() => {
-            hapticMedium();
-            if (startWorkout(nextWorkout) === false) {
-              showToast('Finish your current workout first', 'warning');
-            }
-          }}
-          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30 active:scale-95 transition-transform"
-          style={{ touchAction: 'manipulation', paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom))' }}
-        >
-          <Dumbbell className="w-5 h-5 text-white" />
-          <span className="text-sm font-bold text-white">Start Workout</span>
-        </button>
-      )}
 
       {/* Workout Migration Dialog */}
       <AnimatePresence>

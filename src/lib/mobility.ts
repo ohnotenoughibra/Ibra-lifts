@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
 import {
   MobilityRoutine,
   MobilityExercise,
@@ -25,7 +24,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
   return [
     // 1. Grappler's Hip Opener
     {
-      id: uuidv4(),
+      id: 'mob-hip-opener',
       name: "Rootsler's Hip Opener",
       focus: ['hips'] as MobilityFocus[],
       duration: 15,
@@ -96,7 +95,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 2. Shoulder Rescue
     {
-      id: uuidv4(),
+      id: 'mob-shoulder-rescue',
       name: 'Shoulder Rescue',
       focus: ['shoulders'] as MobilityFocus[],
       duration: 12,
@@ -157,7 +156,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 3. Full Body Flow
     {
-      id: uuidv4(),
+      id: 'mob-full-body-flow',
       name: 'Full Body Flow',
       focus: ['full_body'] as MobilityFocus[],
       duration: 20,
@@ -238,7 +237,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 4. Pre-Training Primer
     {
-      id: uuidv4(),
+      id: 'mob-pre-training',
       name: 'Pre-Training Primer',
       focus: ['hips', 'shoulders', 'thoracic'] as MobilityFocus[],
       duration: 10,
@@ -299,7 +298,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 5. Post-Training Cooldown
     {
-      id: uuidv4(),
+      id: 'mob-post-training',
       name: 'Post-Training Cooldown',
       focus: ['full_body'] as MobilityFocus[],
       duration: 10,
@@ -360,7 +359,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 6. Neck & Wrist Care
     {
-      id: uuidv4(),
+      id: 'mob-neck-wrist',
       name: 'Neck & Wrist Care',
       focus: ['neck', 'wrists'] as MobilityFocus[],
       duration: 8,
@@ -431,7 +430,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 7. Thoracic Spine Opener
     {
-      id: uuidv4(),
+      id: 'mob-thoracic',
       name: 'Thoracic Spine Opener',
       focus: ['thoracic'] as MobilityFocus[],
       duration: 12,
@@ -492,7 +491,7 @@ export function getMobilityRoutines(): MobilityRoutine[] {
 
     // 8. Ankle Mobility for Squats
     {
-      id: uuidv4(),
+      id: 'mob-ankle',
       name: 'Ankle Mobility for Squats',
       focus: ['ankles'] as MobilityFocus[],
       duration: 10,
@@ -602,7 +601,7 @@ export function generateDeloadSession(normalSession: WorkoutSession): WorkoutSes
   ];
 
   return {
-    id: uuidv4(),
+    id: `deload-${normalSession.dayNumber}`,
     name: `Deload: ${normalSession.name}`,
     type: normalSession.type,
     dayNumber: normalSession.dayNumber,
@@ -828,7 +827,7 @@ export function generateActiveRecoverySession(): WorkoutSession {
   ];
 
   return {
-    id: uuidv4(),
+    id: 'mob-active-recovery',
     name: 'Active Recovery Session',
     type: 'hypertrophy', // lightest classification; recovery is not truly strength or power
     dayNumber: 0, // not tied to a specific day in the program

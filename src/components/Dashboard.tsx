@@ -120,7 +120,7 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   nutrition: 'nutrition-tracking',
   wearable: 'wearable-integration',
   competition: 'competition-prep',
-  mobility: 'mobility-routines',
+  // mobility is free — core recovery feature, not a premium upsell
   coach: 'ai-coach',
   profiler: 'strength-analysis',
   strength: 'strength-analysis',

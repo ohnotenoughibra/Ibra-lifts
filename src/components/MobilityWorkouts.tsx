@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
@@ -94,8 +94,8 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Active recovery session data
-  const recoverySession = generateActiveRecoverySession();
+  // Active recovery session data — memoize to avoid regenerating on every render
+  const recoverySession = useMemo(() => generateActiveRecoverySession(), []);
 
   // Filter routines
   const filteredRoutines = (() => {
@@ -456,12 +456,32 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
           )}
         </AnimatePresence>
 
-        {/* Start Timer Button */}
+        {/* Start Timer + Mark Done */}
         {!timerActive && !timerCompleted && (
-          <div className="px-4 mt-4">
-            <button onClick={startTimer} className="btn btn-primary w-full gap-2 py-3">
+          <div className="px-4 mt-4 flex gap-2">
+            <button onClick={startTimer} className="btn btn-primary flex-1 gap-2 py-3">
               <Play className="w-5 h-5" />
-              Start Timer
+              Guided Timer
+            </button>
+            <button
+              onClick={() => {
+                if (!selectedRoutine) return;
+                const totalMin = Math.round(
+                  selectedRoutine.exercises.reduce((s, ex) => s + ex.duration * ex.sets, 0) / 60
+                );
+                addQuickLog({
+                  type: 'mobility',
+                  value: totalMin,
+                  unit: 'min',
+                  timestamp: new Date(),
+                  notes: selectedRoutine.name,
+                });
+                setTimerCompleted(true);
+              }}
+              className="btn btn-secondary gap-2 py-3"
+            >
+              <Check className="w-5 h-5" />
+              Done
             </button>
           </div>
         )}

@@ -494,6 +494,53 @@ const EXPERIENCE_MODIFIERS: Record<ExperienceLevel, { volumeScale: number; rpeOf
   advanced:     { volumeScale: 1.15, rpeOffset: 0.5,  maxSets: 8 },
 };
 
+// ── Training Identity Modifiers ──────────────────────────────────────────
+// Each identity gets distinct programming philosophy:
+//   combat:          Gym supports the sport — lower volume, capped RPE, save CNS for mat
+//   recreational:    Gym IS the sport — higher volume, full RPE range, classic periodization
+//   general_fitness: Stay fit, don't overthink — moderate, sustainable, enjoyable
+const IDENTITY_MODIFIERS: Record<TrainingIdentity, {
+  volumeScale: number;      // Multiplier on top of experience/sex/diet
+  rpeOffset: number;        // Shift RPE prescription (negative = easier)
+  rpeCap: number;           // Hard cap on prescribed RPE
+  minCompoundSets: number;  // Floor for compound exercises
+  maxCompoundSets: number;  // Ceiling for compound exercises
+  isolationCap: number;     // Max sets for isolation exercises
+  deloadFrequency: number;  // Deload every N weeks (0 = last week only)
+  label: string;
+}> = {
+  combat: {
+    volumeScale: 0.85,       // 15% less gym volume — sport training is the priority
+    rpeOffset: -0.5,         // Start easier — save CNS for mat
+    rpeCap: 8.5,             // Never prescribe above 8.5 — grinding hurts sport performance
+    minCompoundSets: 2,      // At least 2 working sets for stimulus
+    maxCompoundSets: 4,      // Cap at 4 — more isn't better when you grapple 6x/week
+    isolationCap: 3,         // Keep accessories brief
+    deloadFrequency: 4,      // Every 4th week (combat athletes accumulate fatigue faster)
+    label: 'Combat Athlete',
+  },
+  recreational: {
+    volumeScale: 1.0,        // Full volume — the gym is the main training stimulus
+    rpeOffset: 0,            // Standard RPE progression
+    rpeCap: 9.5,             // Allow near-max effort for experienced lifters
+    minCompoundSets: 3,      // Minimum 3 working sets for compounds
+    maxCompoundSets: 6,      // Up to 6 for advanced lifters
+    isolationCap: 4,         // More room for isolation/hypertrophy work
+    deloadFrequency: 0,      // Standard — last week of block
+    label: 'Dedicated Lifter',
+  },
+  general_fitness: {
+    volumeScale: 0.8,        // Less volume — sustainable long-term
+    rpeOffset: -1.0,         // Lower intensity — enjoyable, not grinding
+    rpeCap: 7.5,             // Never prescribe hard grinding sets
+    minCompoundSets: 2,      // Enough for stimulus
+    maxCompoundSets: 3,      // Keep it manageable
+    isolationCap: 3,         // Brief accessories
+    deloadFrequency: 0,      // Standard — last week of block (longer mesocycles absorb fatigue)
+    label: 'Casual Training',
+  },
+};
+
 // Determine split type based on sessions/week and training identity
 function determineSplitType(sessionsPerWeek: number, identity?: TrainingIdentity, combatSport?: CombatSport): SplitType {
   if (identity === 'combat') {
@@ -507,10 +554,15 @@ function determineSplitType(sessionsPerWeek: number, identity?: TrainingIdentity
     if (sessionsPerWeek <= 4) return 'upper_lower';
     return 'grappler_hybrid';
   }
-  // Recreational / general fitness
-  if (sessionsPerWeek <= 3) return 'full_body';
-  if (sessionsPerWeek <= 4) return 'upper_lower';
-  return 'push_pull_legs';
+  // Dedicated lifter: optimize for volume distribution
+  if (identity === 'recreational') {
+    if (sessionsPerWeek <= 3) return 'full_body';
+    if (sessionsPerWeek <= 4) return 'upper_lower';
+    return 'push_pull_legs';
+  }
+  // Casual / general fitness: full body as long as possible (simpler, fewer gym days)
+  if (sessionsPerWeek <= 4) return 'full_body';
+  return 'upper_lower';
 }
 
 // Filter exercises by the user's specific equipment inventory
@@ -830,11 +882,12 @@ function generateWorkoutSession(
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
   const dietMod = DIET_PHASE_MODIFIERS[dietGoal || 'none'];
+  const idMod = IDENTITY_MODIFIERS[trainingIdentity || 'recreational'];
 
   let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
-    // Adjust sets based on exercise category, experience level, and diet phase
+    // Adjust sets based on exercise category, experience level, diet phase, and training identity
     let sets = randomBetween(config.sets[0], config.sets[1]);
-    sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale * dietMod.volumeScale);
+    sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale * dietMod.volumeScale * idMod.volumeScale);
     sets = Math.max(2, Math.min(expMod.maxSets, sets));
 
     // Women: boost upper body volume (evidence-based — proportionally weaker upper body)
@@ -847,16 +900,22 @@ function generateWorkoutSession(
       ).length));
     }
 
+    // Apply identity-specific set bounds
     if (exercise.category === 'isolation') {
-      sets = Math.min(sets, 4);
+      sets = Math.min(sets, idMod.isolationCap);
     }
-    if (exercise.category === 'compound' && type === 'strength') {
-      sets = Math.max(sets, experienceLevel === 'beginner' ? 3 : 4);
+    if (exercise.category === 'compound') {
+      sets = Math.max(sets, idMod.minCompoundSets);
+      sets = Math.min(sets, idMod.maxCompoundSets);
+      // Strength days: ensure minimum working sets for adaptation
+      if (type === 'strength') {
+        sets = Math.max(sets, idMod.minCompoundSets);
+      }
     }
 
     const prescription = createSetPrescription(type, sex);
-    // Adjust RPE based on experience level and diet phase
-    prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset).toFixed(1)));
+    // Adjust RPE based on experience level, diet phase, and training identity
+    prescription.rpe = Math.max(5, Math.min(idMod.rpeCap, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset + idMod.rpeOffset).toFixed(1)));
     // Adjust rest periods for diet phase (longer rest during cuts — glycogen depletion)
     // Re-round to nearest 15s after scaling to keep clean values (60, 90, 120, 180...)
     prescription.restSeconds = Math.round((prescription.restSeconds * dietMod.restScale) / 15) * 15;
@@ -1185,9 +1244,10 @@ function generateMesocycleWeek(
 
       // Deload: RPE -1 maintains neural drive while reducing fatigue (Helms et al. 2018)
       // RPE 8→7 still feels like training; -2 would be warm-up territory
+      const idModLocal = IDENTITY_MODIFIERS[trainingIdentity || 'recreational'];
       const adjustedRPE = isDeload
         ? Math.max(5, ex.prescription.rpe - 1)
-        : Math.round(Math.min(10, +(ex.prescription.rpe + (intensityMultiplier - 1) * 15).toFixed(1)) * 2) / 2;
+        : Math.round(Math.min(idModLocal.rpeCap, +(ex.prescription.rpe + (intensityMultiplier - 1) * 15).toFixed(1)) * 2) / 2;
 
       // Progressive rep targets: Week 1 targets top of range (accumulation),
       // final training week targets bottom of range (intensification)

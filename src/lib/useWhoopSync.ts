@@ -23,14 +23,49 @@ const SYNC_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // consider data stale after 15 min
 const LIVE_STALE_THRESHOLD_MS = 5 * 60 * 1000; // re-sync sooner when strain is pending
 
+// GAP FIX: Exponential backoff for WHOOP 429 rate limiting.
+// Prevents retry storms that can get our API key banned.
+const BACKOFF_LS_KEY = 'whoop_429_backoff';
+const BACKOFF_STEPS_MS = [5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 1000]; // 5min → 15min → 60min
+
+function get429Backoff(): { nextAllowed: number; step: number } {
+  if (typeof window === 'undefined') return { nextAllowed: 0, step: 0 };
+  try {
+    const raw = localStorage.getItem(BACKOFF_LS_KEY);
+    return raw ? JSON.parse(raw) : { nextAllowed: 0, step: 0 };
+  } catch {
+    return { nextAllowed: 0, step: 0 };
+  }
+}
+
+function set429Backoff(step: number): void {
+  const backoffMs = BACKOFF_STEPS_MS[Math.min(step, BACKOFF_STEPS_MS.length - 1)];
+  const state = { nextAllowed: Date.now() + backoffMs, step };
+  try { localStorage.setItem(BACKOFF_LS_KEY, JSON.stringify(state)); } catch { /* quota */ }
+  console.warn(`[useWhoopSync] WHOOP 429 — backing off for ${backoffMs / 60000} minutes (step ${step})`);
+}
+
+function clear429Backoff(): void {
+  try { localStorage.removeItem(BACKOFF_LS_KEY); } catch { /* quota */ }
+}
+
 function getToken(key: string): string {
   if (typeof window === 'undefined') return '';
   return localStorage.getItem(key) || '';
 }
 
+// GAP FIX: Wrap localStorage.setItem to catch QuotaExceededError and prevent
+// silent data loss when storage is full (common on iOS PWA with 5MB limit).
 function setToken(key: string, value: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(key, value);
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn(
+      `[useWhoopSync] localStorage.setItem("${key}") failed — storage may be full.`,
+      e instanceof Error ? e.message : e
+    );
+  }
 }
 
 /**
@@ -261,6 +296,10 @@ export function useWhoopSync() {
 
       if (!accessToken) return; // Whoop genuinely not connected
 
+      // GAP FIX: Skip sync if we're in a 429 backoff window
+      const backoff = get429Backoff();
+      if (backoff.nextAllowed > Date.now()) return;
+
       // ── Proactive token refresh: refresh BEFORE it expires ──
       // Without this, we send expired tokens → 401 → repeated failures → WHOOP revokes refresh token
       const tokenExpiresStr = getToken(LS_KEYS.tokenExpires);
@@ -309,7 +348,19 @@ export function useWhoopSync() {
           body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
         });
 
+        // GAP FIX: Handle 429 rate limit with exponential backoff
+        if (res.status === 429) {
+          const currentBackoff = get429Backoff();
+          set429Backoff(currentBackoff.step + 1);
+          syncInFlight.current = false;
+          return;
+        }
+
         if (!res.ok) { syncInFlight.current = false; return; }
+
+        // Successful response — clear any 429 backoff
+        clear429Backoff();
+
         const data = await res.json();
 
         // Update tokens if refreshed — persist to BOTH localStorage AND DB

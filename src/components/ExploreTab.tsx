@@ -29,6 +29,7 @@ export interface Tool {
   icon: React.ElementType;
   color: string;
   isPro?: boolean;
+  core?: boolean;
 }
 
 interface Category {
@@ -44,12 +45,12 @@ const CATEGORIES: Category[] = [
     icon: Hammer,
     accent: 'text-primary-400',
     tools: [
-      { id: 'builder', label: 'Workout Builder', desc: 'Create custom sessions', longDesc: 'Design sessions from 300+ exercises with sets, reps, and RPE targets', keywords: 'create make design gym routine plan workout session custom build program training', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
+      { id: 'builder', label: 'Workout Builder', desc: 'Create custom sessions', longDesc: 'Design sessions from 300+ exercises with sets, reps, and RPE targets', keywords: 'create make design gym routine plan workout session custom build program training', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400', core: true },
       { id: 'templates', label: 'Templates', desc: 'Save & reuse workouts', longDesc: 'Save any workout as a reusable template — load it in one tap', keywords: 'save reuse preset routine copy duplicate favorite bookmark', icon: Layers, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
-      { id: 'block_suggestion', label: 'AI Program', desc: 'Auto-generate a block', longDesc: 'Auto-generate a periodized block based on your goals and schedule', keywords: 'auto generate smart suggest recommend ai mesocycle block plan program', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
+      { id: 'block_suggestion', label: 'AI Program', desc: 'Auto-generate a block', longDesc: 'Auto-generate a periodized block based on your goals and schedule', keywords: 'auto generate smart suggest recommend ai mesocycle block plan program', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true, core: true },
       { id: 'periodization', label: 'Periodization', desc: 'Plan training phases', longDesc: 'Plan mesocycles with deload weeks, peak phases, and volume waves', keywords: 'phase cycle calendar deload peak taper block mesocycle schedule week', icon: Calendar, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
-      { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
-      { id: 'plate_calc', label: 'Plate Calculator', desc: 'What plates to load', longDesc: 'Enter a target weight and see exactly which plates to load on each side of the bar', keywords: 'plate calculator barbell loading weight plates per side warm up ramp', icon: Calculator, color: 'from-amber-500/20 to-amber-500/5 text-amber-400' },
+      { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400', core: true },
+      { id: 'plate_calc', label: 'Plate Calculator', desc: 'What plates to load', longDesc: 'Enter a target weight and see exactly which plates to load on each side of the bar', keywords: 'plate calculator barbell loading weight plates per side warm up ramp', icon: Calculator, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', core: true },
       { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues technique how to movement muscles create new custom machine cable dumbbell barbell add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
       { id: 'warm_up', label: 'Warm-Up Protocols', desc: 'Dynamic warm-up routines for your session', longDesc: 'Follow guided warm-up sequences tailored to your upcoming workout — dynamic stretches, activation drills, and ramp-up sets', keywords: 'warm up warmup dynamic stretch activation ramp prep routine movement prep pre workout', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
     ],
@@ -59,11 +60,11 @@ const CATEGORIES: Category[] = [
     icon: Flame,
     accent: 'text-orange-400',
     tools: [
-      { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tools', longDesc: 'Session tracker with technique notes, sparring rounds, and mat time', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grapple training', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
-      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
+      { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tools', longDesc: 'Session tracker with technique notes, sparring rounds, and mat time', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grapple training', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true, core: true },
+      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true, core: true },
       { id: 'grip_strength', label: 'Grip Strength', desc: 'Grip training protocol', longDesc: 'Crush, pinch, and hang protocols for combat grip and deadlift lockout', keywords: 'grip hand forearm wrist crush pinch hang deadlift farmer carry hold squeeze', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400', isPro: true },
-      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', isPro: true },
-      { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for competition', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
+      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', isPro: true, core: true },
+      { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for competition', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true, core: true },
       { id: 'conditioning', label: 'Conditioning', desc: 'Cardio & interval protocols', longDesc: 'Build and run combat-sport conditioning — EMOM, Tabata, AMRAP, custom circuits, shark tanks, and intervals with execution timer', keywords: 'conditioning cardio interval emom tabata amrap circuit shark tank gpp endurance stamina aerobic anaerobic hiit builder custom create timer', icon: Timer, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
       { id: 'training_journal', label: 'Training Journal', desc: 'Session notes, reflections & training journal', longDesc: 'Log session notes, reflections, and personal insights after every workout — build a searchable training diary over time', keywords: 'journal notes reflect diary log write session recap thoughts training', icon: BookOpen, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
     ],
@@ -85,10 +86,10 @@ const CATEGORIES: Category[] = [
     icon: Heart,
     accent: 'text-rose-400',
     tools: [
-      { id: 'recovery', label: 'Recovery Hub', desc: 'Readiness, fatigue & recovery', longDesc: 'Composite readiness score from sleep, stress, and soreness. Includes fatigue debt tracking, smart deload recommendations, and personalized recovery protocols.', keywords: 'rest day off readiness soreness sore tired recover how do i feel ready sleep stress nap meditation relax nervous cns overtraining burnout advice tips fatigue exhausted worn out energy low deload debt accumulated', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
-      { id: 'wearable', label: 'Wearable', desc: 'Whoop sync & strain data', longDesc: 'Sync Whoop data, view strain and HR trends, auto-import combat sessions, and monitor recovery', keywords: 'whoop wearable heart rate sync strain recovery hrv connect watch garmin oura fitness tracker auto import combat session zone bpm pulse cardio aerobic anaerobic vo2', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400', isPro: true },
-      { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
-      { id: 'illness', label: 'Illness Log', desc: 'Symptom tracking & return-to-training', longDesc: 'Log symptoms, get evidence-based training restrictions via the Neck Check protocol, track daily recovery check-ins, and follow graduated return-to-training phases. Automatically adjusts workout intensity, freezes streaks, and modifies your mesocycle.', keywords: 'sick illness cold flu fever cough sore throat headache nausea vomiting diarrhea fatigue tired unwell symptom recovery neck check return training', icon: Thermometer, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
+      { id: 'recovery', label: 'Recovery Hub', desc: 'Readiness, fatigue & recovery', longDesc: 'Composite readiness score from sleep, stress, and soreness. Includes fatigue debt tracking, smart deload recommendations, and personalized recovery protocols.', keywords: 'rest day off readiness soreness sore tired recover how do i feel ready sleep stress nap meditation relax nervous cns overtraining burnout advice tips fatigue exhausted worn out energy low deload debt accumulated', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true, core: true },
+      { id: 'wearable', label: 'Wearable', desc: 'Whoop sync & strain data', longDesc: 'Sync Whoop data, view strain and HR trends, auto-import combat sessions, and monitor recovery', keywords: 'whoop wearable heart rate sync strain recovery hrv connect watch garmin oura fitness tracker auto import combat session zone bpm pulse cardio aerobic anaerobic vo2', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400', isPro: true, core: true },
+      { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true, core: true },
+      { id: 'illness', label: 'Illness Log', desc: 'Symptom tracking & return-to-training', longDesc: 'Log symptoms, get evidence-based training restrictions via the Neck Check protocol, track daily recovery check-ins, and follow graduated return-to-training phases. Automatically adjusts workout intensity, freezes streaks, and modifies your mesocycle.', keywords: 'sick illness cold flu fever cough sore throat headache nausea vomiting diarrhea fatigue tired unwell symptom recovery neck check return training', icon: Thermometer, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true, core: true },
       { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
       { id: 'fighters_mind', label: "Fighter's Mind", desc: 'Mental state & confidence', longDesc: 'Track mental state before and after training, surface patterns in your psychology, and build an evidence-based confidence ledger', keywords: 'mental mind psychology confidence focus composure anxiety stress self talk visualization brain check in mood emotion journal reflect', icon: Brain, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
       { id: 'breathing', label: 'Breathing', desc: 'Guided breathing protocols', longDesc: 'Interactive breathing timers — box breathing, 4-7-8, Wim Hof, tactical breathing, and more for recovery and performance', keywords: 'breathing breathe meditation calm anxiety relax box wim hof tactical 4-7-8 recovery sleep', icon: Wind, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
@@ -114,6 +115,60 @@ const CATEGORIES: Category[] = [
     ],
   },
 ];
+
+/** Reduced-mode categories — regroups the 12 core tools into 4 buckets */
+const CORE_CATEGORIES: Category[] = [
+  {
+    title: 'Train',
+    icon: Hammer,
+    accent: 'text-primary-400',
+    tools: [], // populated at runtime from CATEGORIES
+  },
+  {
+    title: 'Track',
+    icon: Flame,
+    accent: 'text-orange-400',
+    tools: [],
+  },
+  {
+    title: 'Recover',
+    icon: Heart,
+    accent: 'text-rose-400',
+    tools: [],
+  },
+  {
+    title: 'Prepare',
+    icon: Swords,
+    accent: 'text-red-400',
+    tools: [],
+  },
+];
+
+// Map core tool IDs to their reduced-mode category
+const CORE_CATEGORY_MAP: Record<string, string> = {
+  builder: 'Train',
+  block_suggestion: 'Train',
+  one_rm: 'Train',
+  plate_calc: 'Train',
+  nutrition: 'Track',
+  grappling: 'Track',
+  recovery: 'Recover',
+  wearable: 'Recover',
+  mobility: 'Recover',
+  injury: 'Recover',
+  illness: 'Recover',
+  competition: 'Prepare',
+};
+
+// Build CORE_CATEGORIES tools from ALL_TOOLS at module level
+const ALL_TOOLS_FLAT = CATEGORIES.flatMap(c => c.tools);
+for (const tool of ALL_TOOLS_FLAT) {
+  const catTitle = CORE_CATEGORY_MAP[tool.id];
+  if (catTitle) {
+    const cat = CORE_CATEGORIES.find(c => c.title === catTitle);
+    if (cat) cat.tools.push(tool);
+  }
+}
 
 export const ALL_TOOLS = CATEGORIES.flatMap(c => c.tools);
 export const TOOL_MAP = new Map<string, Tool>(ALL_TOOLS.map(t => [t.id, t]));
@@ -175,6 +230,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
+  const [showAllTools, setShowAllTools] = useState(false);
 
   const tier = useCurrentTier();
   const isFree = tier !== 'pro';
@@ -308,6 +364,12 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     return scored.sort((a, b) => b.score - a.score).map(s => s.tool);
   }, [search, pinnedIds, recentIds]);
 
+  // Visible categories — reduced mode shows 4 core categories, full mode shows all
+  const visibleCategories = useMemo(() => {
+    if (showAllTools || pinMode) return CATEGORIES;
+    return CORE_CATEGORIES.filter(c => c.tools.length > 0);
+  }, [showAllTools, pinMode]);
+
   const isSearching = search.trim().length > 0;
 
   return (
@@ -364,9 +426,11 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       {/* Plan summary */}
       {!pinMode && !isSearching && (
         <p className="text-xs text-grappler-500 px-1">
-          {tier === 'pro'
-            ? `All ${ALL_TOOLS.length} tools unlocked`
-            : `${ALL_TOOLS.filter(t => !t.isPro).length} of ${ALL_TOOLS.length} tools free · ${ALL_TOOLS.filter(t => t.isPro).length} Pro`
+          {showAllTools
+            ? (tier === 'pro'
+                ? `All ${ALL_TOOLS.length} tools unlocked`
+                : `${ALL_TOOLS.filter(t => !t.isPro).length} of ${ALL_TOOLS.length} tools free · ${ALL_TOOLS.filter(t => t.isPro).length} Pro`)
+            : `${CORE_CATEGORIES.reduce((n, c) => n + c.tools.length, 0)} core tools · ${ALL_TOOLS.length} total`
           }
         </p>
       )}
@@ -471,7 +535,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       )}
 
       {/* Category grids — collapsed by default, tappable header to expand */}
-      {(pinMode || !isSearching) && CATEGORIES.map(category => {
+      {(pinMode || !isSearching) && visibleCategories.map(category => {
         // In pin mode, always show expanded so users can pin anything
         const isExpanded = pinMode || expandedCategories.has(category.title);
         return (
@@ -511,6 +575,23 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
           </div>
         );
       })}
+
+      {/* Show all / Show fewer toggle */}
+      {!pinMode && !isSearching && (
+        <button
+          onClick={() => { hapticMedium(); setShowAllTools(prev => !prev); }}
+          className="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-xl bg-grappler-800/30 border border-grappler-700/20 hover:bg-grappler-800/50 transition-colors"
+          style={{ touchAction: 'manipulation' }}
+        >
+          <span className="text-xs font-medium text-grappler-500">
+            {showAllTools ? 'Show fewer' : 'Show all tools'}
+          </span>
+          <ChevronDown className={cn(
+            'w-4 h-4 text-grappler-500 transition-transform duration-200',
+            showAllTools && 'rotate-180'
+          )} />
+        </button>
+      )}
     </div>
   );
 }

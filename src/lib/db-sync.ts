@@ -382,6 +382,42 @@ async function queueForBackgroundSync(userId: string, data: Record<string, unkno
   }
 }
 
+// GAP FIX: Trim old data to reduce payload size below Vercel's ~1MB limit.
+// Removes workoutLogs older than 6 months and wearableHistory older than 30 days.
+const PAYLOAD_MAX_BYTES = 900 * 1024; // 900KB safety margin for Vercel's ~1MB limit
+
+function trimOldData(data: Record<string, unknown>): Record<string, unknown> {
+  const trimmed = { ...data };
+  const sixMonthsAgo = Date.now() - 180 * 24 * 60 * 60 * 1000;
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+  // Trim workoutLogs older than 6 months
+  if (Array.isArray(trimmed.workoutLogs)) {
+    const before = trimmed.workoutLogs.length;
+    trimmed.workoutLogs = (trimmed.workoutLogs as Array<Record<string, unknown>>).filter(log => {
+      const logDate = new Date((log.date || log.completedAt || 0) as string).getTime();
+      return isNaN(logDate) || logDate > sixMonthsAgo;
+    });
+    if ((trimmed.workoutLogs as unknown[]).length < before) {
+      console.warn(`[db-sync] Trimmed ${before - (trimmed.workoutLogs as unknown[]).length} workoutLogs older than 6 months to reduce payload size`);
+    }
+  }
+
+  // Trim wearableHistory older than 30 days
+  if (Array.isArray(trimmed.wearableHistory)) {
+    const before = trimmed.wearableHistory.length;
+    trimmed.wearableHistory = (trimmed.wearableHistory as Array<Record<string, unknown>>).filter(entry => {
+      const entryDate = new Date((entry.date || 0) as string).getTime();
+      return isNaN(entryDate) || entryDate > thirtyDaysAgo;
+    });
+    if ((trimmed.wearableHistory as unknown[]).length < before) {
+      console.warn(`[db-sync] Trimmed ${before - (trimmed.wearableHistory as unknown[]).length} wearableHistory entries older than 30 days to reduce payload size`);
+    }
+  }
+
+  return trimmed;
+}
+
 /** Actually perform the sync POST */
 async function doSync(userId: string, data: Record<string, unknown>): Promise<void> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -389,7 +425,23 @@ async function doSync(userId: string, data: Record<string, unknown>): Promise<vo
     return;
   }
 
-  const body = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
+  // GAP FIX: Check payload size before sending. If it exceeds 900KB (Vercel's
+  // ~1MB body limit), trim old data and retry to prevent silent 413 errors.
+  let finalData = data;
+  let body = JSON.stringify({ userId, data: finalData, lastSyncAt: Date.now() });
+  const initialSize = new Blob([body]).size;
+
+  if (initialSize > PAYLOAD_MAX_BYTES) {
+    console.warn(`[db-sync] Payload too large (${(initialSize / 1024).toFixed(0)} KB > ${PAYLOAD_MAX_BYTES / 1024} KB) — trimming old data`);
+    finalData = trimOldData(data);
+    body = JSON.stringify({ userId, data: finalData, lastSyncAt: Date.now() });
+    const trimmedSize = new Blob([body]).size;
+    if (trimmedSize > PAYLOAD_MAX_BYTES) {
+      console.warn(`[db-sync] Payload still large after trimming (${(trimmedSize / 1024).toFixed(0)} KB) — sending anyway`);
+    } else {
+      console.log(`[db-sync] Payload reduced to ${(trimmedSize / 1024).toFixed(0)} KB after trimming`);
+    }
+  }
   const payloadSize = new Blob([body]).size;
   console.log(`[db-sync] POST /api/sync payload: ${(payloadSize / 1024).toFixed(0)} KB`);
 

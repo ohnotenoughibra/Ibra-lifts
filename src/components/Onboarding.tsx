@@ -90,8 +90,8 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh px-4 py-8 safe-area-top safe-area-bottom">
-      {/* Returning user — sign in CTA */}
-      {safeStep === 1 && (
+      {/* scope-reduction: sign-in CTA moved from Step 1 to Step 2 (end of flow) */}
+      {safeStep === 2 && (
         <div className="max-w-lg mx-auto mb-6">
           <Link
             href="/login"

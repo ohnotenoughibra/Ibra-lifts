@@ -1798,10 +1798,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           )}
         </AnimatePresence>
 
-        {/* ─── Adaptive Recovery Status ─── */}
-        <CardErrorBoundary fallbackLabel="Recovery">
+        {/* scope-reduction: hidden — readiness consolidated */}
+        {/* <CardErrorBoundary fallbackLabel="Recovery">
           <AdaptiveRecoveryCard />
-        </CardErrorBoundary>
+        </CardErrorBoundary> */}
       </section>
 
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}

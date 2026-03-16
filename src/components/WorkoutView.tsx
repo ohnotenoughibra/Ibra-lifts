@@ -1635,6 +1635,7 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showFormVideo, setShowFormVideo] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
   const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
@@ -1702,46 +1703,45 @@ function ExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userE
                 </p>
               )}
             </div>
-            <button
-              onClick={() => setShowFormVideo(true)}
-              className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
-              title="Check form"
-            >
-              <Video className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); }}
-              className={cn(
-                'p-1.5 rounded-lg transition-colors',
-                showEditor
-                  ? 'bg-primary-500/20 text-primary-400'
-                  : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
-              )}
-              title="Edit prescription"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); }}
-              className={cn(
-                'p-1.5 rounded-lg transition-colors',
-                showAlternatives
-                  ? 'bg-accent-500/20 text-accent-400'
-                  : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
-              )}
-              title="Swap exercise"
-            >
-              <Shuffle className="w-3.5 h-3.5" />
-            </button>
-            {totalExercises > 1 && (
+            <div className="relative">
               <button
-                onClick={() => removeExercise(weekIndex, sessionId, index)}
-                className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
-                title="Remove exercise"
+                onClick={() => setOpenMenu(!openMenu)}
+                className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50"
+                title="Exercise options"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <span className="text-sm font-bold leading-none">&#8942;</span>
               </button>
-            )}
+              {openMenu && (
+                <div className="absolute right-0 top-full z-10 bg-grappler-800 border border-grappler-700 rounded-xl shadow-lg p-1 min-w-[140px]">
+                  <button
+                    onClick={() => { setShowFormVideo(true); setOpenMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-grappler-200 hover:bg-grappler-700/50 rounded-lg flex items-center gap-2"
+                  >
+                    <Video className="w-3.5 h-3.5" /> Check form
+                  </button>
+                  <button
+                    onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); setOpenMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-grappler-200 hover:bg-grappler-700/50 rounded-lg flex items-center gap-2"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit prescription
+                  </button>
+                  <button
+                    onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); setOpenMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-sm text-grappler-200 hover:bg-grappler-700/50 rounded-lg flex items-center gap-2"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" /> Swap exercise
+                  </button>
+                  {totalExercises > 1 && (
+                    <button
+                      onClick={() => { removeExercise(weekIndex, sessionId, index); setOpenMenu(false); }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/15 rounded-lg flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -48,6 +48,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { cn, formatNumber, toLocalDateStr } from '@/lib/utils';
+import { exportToCSV, exportToJSON, exportFullBackup, downloadFile } from '@/lib/data-export';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
 import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/gamification';
@@ -974,6 +975,45 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 )}
               </div>
             )}
+
+            {/* Export & Import */}
+            <div className="pt-3 border-t border-grappler-700/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Download className="w-3.5 h-3.5 text-grappler-300" />
+                <p className="text-xs text-grappler-300 font-semibold">Export & Import</p>
+              </div>
+              <p className="text-xs text-grappler-500 mb-2">Export your data or import from a backup.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const state = useAppStore.getState();
+                    const csv = exportToCSV(state.workoutLogs, state.user?.weightUnit || 'lbs');
+                    downloadFile(csv, `roots-gains-${toLocalDateStr()}.csv`, 'text/csv');
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-grappler-700/50 text-grappler-300 text-xs font-medium hover:bg-grappler-700 transition-colors"
+                >
+                  CSV
+                </button>
+                <button
+                  onClick={() => {
+                    const json = exportToJSON(useAppStore.getState().workoutLogs);
+                    downloadFile(json, `roots-gains-${toLocalDateStr()}.json`, 'application/json');
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-grappler-700/50 text-grappler-300 text-xs font-medium hover:bg-grappler-700 transition-colors"
+                >
+                  JSON
+                </button>
+                <button
+                  onClick={() => {
+                    const backup = exportFullBackup();
+                    downloadFile(backup, `roots-gains-backup-${toLocalDateStr()}.json`, 'application/json');
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-grappler-700/50 text-grappler-300 text-xs font-medium hover:bg-grappler-700 transition-colors"
+                >
+                  Backup
+                </button>
+              </div>
+            </div>
 
             <div className="pt-3 border-t border-red-500/10">
               <div className="flex items-center gap-2 mb-3">

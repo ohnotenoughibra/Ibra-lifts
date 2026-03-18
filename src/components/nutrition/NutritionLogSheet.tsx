@@ -59,6 +59,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
   const [showManual, setShowManual] = useState(false);
   const [showStampManager, setShowStampManager] = useState(false);
   const [loggedFeedback, setLoggedFeedback] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Quick add state
@@ -89,6 +90,39 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
       setResults([]);
     }
   }, [query, searchFoods]);
+
+  // AI estimation for foods not in local DB
+  const estimateWithAI = useCallback(async (text: string) => {
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/nutrition/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.foods && data.foods.length > 0) {
+        // Sum all food items into one entry
+        const combined = data.foods.reduce(
+          (acc: { calories: number; protein: number; carbs: number; fat: number }, f: { calories: number; protein: number; carbs: number; fat: number }) => ({
+            calories: acc.calories + f.calories,
+            protein: acc.protein + f.protein,
+            carbs: acc.carbs + f.carbs,
+            fat: acc.fat + f.fat,
+          }),
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+        const name = data.foods.map((f: { name: string }) => f.name).join(' + ');
+        const portion = data.foods.length === 1 ? data.foods[0].portion : undefined;
+        setPendingFood({ name, portion, ...combined });
+      }
+    } catch {
+      // Silently fail — user can always use manual entry
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
 
   // Log a food item
   const logFood = useCallback((item: { name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string }, mealType?: MealType) => {
@@ -617,10 +651,25 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
           )}
         </AnimatePresence>
 
-        {/* No results + estimation attempt */}
+        {/* No results — offer AI estimation */}
         {query.length >= 2 && results.length === 0 && (
-          <div className="mt-2 p-3 bg-grappler-800/50 rounded-xl">
-            <p className="text-xs text-grappler-500">No matches found. Try a different name or use Manual entry.</p>
+          <div className="mt-2 p-3 bg-grappler-800/50 rounded-xl space-y-2">
+            <p className="text-xs text-grappler-500">No matches in your history or database.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => estimateWithAI(query)}
+                disabled={aiLoading}
+                className="flex-1 py-2 rounded-lg bg-blue-500/15 text-xs font-medium text-blue-300 ring-1 ring-blue-500/20 active:bg-blue-500/25 transition-colors disabled:opacity-50"
+              >
+                {aiLoading ? 'Estimating...' : `✨ Estimate "${query.length > 20 ? query.slice(0, 20) + '…' : query}"`}
+              </button>
+              <button
+                onClick={() => setShowManual(true)}
+                className="px-3 py-2 rounded-lg bg-grappler-800/60 text-xs font-medium text-grappler-400 ring-1 ring-grappler-700/40 transition-colors"
+              >
+                Manual
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -43,7 +43,7 @@ export interface PlateauAnalysis {
   exerciseName: string;
   weeksStalled: number;
   currentE1RM: number;
-  rootCause: 'volume_low' | 'volume_high' | 'poor_recovery' | 'low_frequency' | 'stale_stimulus';
+  rootCause: 'volume_low' | 'volume_high' | 'poor_recovery' | 'low_frequency' | 'stale_stimulus' | 'possible_fatigue_masking';
   prescription: string;
 }
 
@@ -321,9 +321,14 @@ export function detectPlateaus(workoutLogs: WorkoutLog[]): PlateauAnalysis[] {
     const recentMax = Math.max(...recentEntries.map(h => h.e1rm));
     const olderMax = Math.max(...olderEntries.map(h => h.e1rm));
 
-    // Plateau = less than 2% improvement over 3+ weeks
+    // Variance-aware plateau detection
+    const allE1RMs = sorted.map(h => h.e1rm);
+    const mean = allE1RMs.reduce((s, v) => s + v, 0) / allE1RMs.length;
+    const stdDev = Math.sqrt(allE1RMs.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / allE1RMs.length);
+    const stagnationThreshold = Math.max(2, (stdDev * 2 / mean) * 100);
+
     const improvement = olderMax > 0 ? ((recentMax - olderMax) / olderMax) * 100 : 0;
-    if (improvement > 2) continue;
+    if (improvement > stagnationThreshold) continue;
 
     // Calculate weeks stalled
     const firstRecent = new Date(recentEntries[0].date);
@@ -379,8 +384,43 @@ export function detectPlateaus(workoutLogs: WorkoutLog[]): PlateauAnalysis[] {
       rootCause = 'low_frequency';
       prescription = `Only hitting this ${freqPerWeek.toFixed(1)}×/week. Increase to 2×/week for more practice and stimulus.`;
     } else {
-      rootCause = 'stale_stimulus';
-      prescription = `Try a variation — change grip, stance, or tempo. Same stimulus stops driving adaptation after ${weeksStalled} weeks.`;
+      // Check for possible fatigue masking: 4+ consecutive weeks without volume reduction
+      const weekKeys = Array.from(exerciseWeeklyFreq[exerciseId] || new Set<string>()).sort();
+      let consecutiveNoDeload = 0;
+      if (weekKeys.length >= 4) {
+        // Check weekly volume trend for deload detection
+        const weeklyVolumes: number[] = [];
+        for (const wk of weekKeys) {
+          let weekVol = 0;
+          for (const log of recentLogs) {
+            if (getWeekKey(log.date) === wk) {
+              for (const ex of log.exercises) {
+                if (ex.exerciseId === exerciseId) {
+                  weekVol += ex.sets.filter(s => s.completed).reduce((s, set) => s + set.weight * set.reps, 0);
+                }
+              }
+            }
+          }
+          weeklyVolumes.push(weekVol);
+        }
+        // Count consecutive weeks without a volume reduction (deload = week volume drops by 20%+)
+        consecutiveNoDeload = 0;
+        for (let i = 1; i < weeklyVolumes.length; i++) {
+          if (weeklyVolumes[i - 1] > 0 && weeklyVolumes[i] < weeklyVolumes[i - 1] * 0.8) {
+            consecutiveNoDeload = 0;
+          } else {
+            consecutiveNoDeload++;
+          }
+        }
+      }
+
+      if (consecutiveNoDeload >= 4) {
+        rootCause = 'possible_fatigue_masking';
+        prescription = `A deload could reveal strength you've already built — try that before changing the exercise.`;
+      } else {
+        rootCause = 'stale_stimulus';
+        prescription = `Try a variation — change grip, stance, or tempo. Same stimulus stops driving adaptation after ${weeksStalled} weeks.`;
+      }
     }
 
     const exerciseName = exercise?.name || exerciseId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -764,4 +804,54 @@ function calculateGaugesFromLogs(logs: WorkoutLog[], weekDivisor: number): Muscl
     if (aDiff !== 0) return aDiff;
     return a.label.localeCompare(b.label);
   });
+}
+
+// ── 7. RIR Confidence Scoring ──────────────────────────────────────────────
+
+export interface RIRConfidence {
+  exerciseId: string;
+  exerciseName: string;
+  avgRPE: number;
+  rir: number;
+  confidence: 'high' | 'moderate' | 'low';
+  message: string;
+}
+
+export function assessRIRConfidence(workoutLogs: WorkoutLog[]): RIRConfidence[] {
+  const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+  const recentLogs = workoutLogs.filter(l => !l._deleted && new Date(l.date).getTime() > twoWeeksAgo);
+
+  const exerciseRPEs: Record<string, { name: string; rpes: number[] }> = {};
+
+  for (const log of recentLogs) {
+    for (const ex of log.exercises) {
+      if (!exerciseRPEs[ex.exerciseId]) {
+        exerciseRPEs[ex.exerciseId] = { name: ex.exerciseName, rpes: [] };
+      }
+      for (const set of ex.sets) {
+        if (set.completed && set.rpe && set.rpe > 0) {
+          exerciseRPEs[ex.exerciseId].rpes.push(set.rpe);
+        }
+      }
+    }
+  }
+
+  const results: RIRConfidence[] = [];
+  for (const [id, data] of Object.entries(exerciseRPEs)) {
+    if (data.rpes.length < 3) continue;
+    const avg = data.rpes.reduce((s, r) => s + r, 0) / data.rpes.length;
+    const rir = 10 - avg;
+    const confidence = rir >= 4 ? 'low' : rir >= 2 ? 'moderate' : 'high';
+    if (confidence === 'low') {
+      results.push({
+        exerciseId: id,
+        exerciseName: data.name,
+        avgRPE: Math.round(avg * 10) / 10,
+        rir: Math.round(rir * 10) / 10,
+        confidence,
+        message: `${data.name}: avg RPE ${avg.toFixed(1)} (RIR ~${rir.toFixed(0)}). At RIR 4+, self-assessed effort becomes less reliable — pushing closer to failure or using weight targets gives more accurate data.`,
+      });
+    }
+  }
+  return results;
 }

@@ -1046,7 +1046,7 @@ export function getFatigueInsights(
   } else if (currentDebt < 80) {
     headline = 'Your fatigue is accumulating faster than recovery. Two options: deload this week, or reduce volume by 20% for the next two sessions.';
   } else {
-    headline = 'Critical fatigue levels — a deload or rest period is strongly recommended before continuing hard training.';
+    headline = 'Critical fatigue levels — a deload or rest period could help you recover before continuing hard training.';
   }
 
   // ─── Details ───
@@ -1109,25 +1109,25 @@ export function getFatigueInsights(
   const actionItems: string[] = [];
 
   if (currentDebt >= 80) {
-    actionItems.push('Take a deload or full rest period starting this week.');
-    actionItems.push('Prioritize 8+ hours of sleep every night.');
-    actionItems.push('Eat at maintenance or slight surplus with high protein (2g/kg bodyweight).');
+    actionItems.push('One option: a deload or full rest period starting this week.');
+    actionItems.push('Getting 8+ hours of sleep every night could accelerate recovery.');
+    actionItems.push('Eating at maintenance or slight surplus with high protein (2g/kg bodyweight) could help rebuild.');
   } else if (currentDebt >= 60) {
-    actionItems.push('Consider scheduling a deload within the next 1-2 weeks.');
-    actionItems.push('Reduce working sets by 1-2 per exercise for the next few sessions.');
+    actionItems.push('Scheduling a deload within the next 1-2 weeks could keep progress on track.');
+    actionItems.push('Reducing working sets by 1-2 per exercise for the next few sessions could help manage fatigue.');
     if (primaryContributors.some(c => c.toLowerCase().includes('sleep'))) {
-      actionItems.push('Focus on sleep hygiene — consistent bedtime, cool room, no screens 1hr before bed.');
+      actionItems.push('Sleep hygiene could help — consistent bedtime, cool room, no screens 1hr before bed.');
     }
     if (primaryContributors.some(c => c.toLowerCase().includes('rpe') || c.toLowerCase().includes('intensity'))) {
-      actionItems.push('Cap RPE at 7-8 for the next week — leave 2-3 reps in reserve.');
+      actionItems.push('Capping RPE at 7-8 for the next week — leaving 2-3 reps in reserve — could help manage intensity.');
     }
   } else if (currentDebt >= 40) {
     if (debtTrend === 'accumulating') {
-      actionItems.push('Fatigue is rising — plan a deload at the end of this training block.');
-      actionItems.push('Add an extra rest day this week if possible.');
+      actionItems.push('Fatigue is rising — planning a deload at the end of this training block could help.');
+      actionItems.push('An extra rest day this week could make a difference.');
     } else {
       actionItems.push('Continue current training — fatigue is in a normal range.');
-      actionItems.push('Ensure you are getting 7+ hours of sleep consistently.');
+      actionItems.push('Getting 7+ hours of sleep consistently could support continued progress.');
     }
   } else {
     actionItems.push('Keep training as planned — fatigue is well controlled.');
@@ -1138,12 +1138,12 @@ export function getFatigueInsights(
 
   // Universal advice when volume is a contributor
   if (primaryContributors.some(c => c.toLowerCase().includes('volume')) && currentDebt >= 50) {
-    actionItems.push('Consider dropping the last 1-2 isolation exercises from each session.');
+    actionItems.push('Dropping the last 1-2 isolation exercises from each session could help manage volume-driven fatigue.');
   }
 
   // Non-gym stressor advice
   if (primaryContributors.some(c => c.toLowerCase().includes('non-gym'))) {
-    actionItems.push('Your combat/cardio training is adding significant fatigue — reduce lifting volume on heavy sparring days.');
+    actionItems.push('Your combat/cardio training is adding significant fatigue — reducing lifting volume on heavy sparring days could help balance the load.');
   }
 
   return {

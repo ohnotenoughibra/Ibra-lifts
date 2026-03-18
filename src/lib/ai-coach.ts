@@ -132,42 +132,42 @@ export function generateWeeklySummary(
 
   if (avgRPE > 9) {
     areasToImprove.push(
-      `Average RPE of ${avgRPE} suggests you're pushing too hard - leave 1-2 reps in reserve`
+      `Average RPE of ${avgRPE} — leaving 1-2 reps in reserve could improve long-term progress`
     );
   }
 
   if (totalSessions < 2 && totalSessions > 0) {
     areasToImprove.push(
-      `Only ${totalSessions} session this week - try to hit at least 2-3 for meaningful progress`
+      `${totalSessions} session this week — 2-3 more sessions could drive meaningful progress`
     );
   }
 
   if (totalSessions === 0) {
-    areasToImprove.push('No completed sessions this week - even one session is better than none');
+    areasToImprove.push('Even one session this week could keep momentum going');
   }
 
   if (checkInCount < totalSessions && totalSessions > 0) {
     areasToImprove.push(
-      `Only ${checkInCount}/${totalSessions} sessions had a pre-workout check-in - these help optimize your training`
+      `${checkInCount}/${totalSessions} sessions had a pre-workout check-in — adding check-ins to the remaining sessions could help optimize your training`
     );
   }
 
   if (avgSleepScore !== null && avgSleepScore < 60) {
     areasToImprove.push(
-      `Average sleep score of ${avgSleepScore} is low - prioritize sleep for better recovery`
+      `Average sleep score of ${avgSleepScore} — improving sleep could be the fastest path to better recovery`
     );
   }
 
   if (avgRecoveryScore !== null && avgRecoveryScore < 50) {
     areasToImprove.push(
-      `Recovery score averaging ${avgRecoveryScore} - consider a lighter week or more rest days`
+      `Recovery score averaging ${avgRecoveryScore} — a lighter week or more rest days could help bring it up`
     );
   }
 
   const highSoreness = completedLogs.filter(l => l.soreness >= 7).length;
   if (highSoreness >= 2) {
     areasToImprove.push(
-      `High soreness reported in ${highSoreness} sessions - may need to manage volume better`
+      `High soreness reported in ${highSoreness} sessions — managing volume could help with recovery`
     );
   }
 
@@ -176,8 +176,8 @@ export function generateWeeklySummary(
 
   if (totalSessions === 0) {
     recommendation =
-      'No training logged this week. Life happens - the key is getting back on the mat and in the gym. ' +
-      'Start with a lighter session to ease back in rather than trying to make up for lost time.';
+      'No training logged this week. Life happens — getting back on the mat and in the gym is what matters. ' +
+      'One option: start with a lighter session to ease back in rather than trying to make up for lost time.';
   } else if (avgRPE > 9 && highSoreness >= 2) {
     recommendation =
       'You pushed hard this week with high RPE and soreness. Consider starting next week with a slight deload ' +
@@ -192,8 +192,8 @@ export function generateWeeklySummary(
       'Focus on adding small increments of weight or reps next week. Consistency beats intensity over time.';
   } else if (avgRPE < 6.5 && totalSessions >= 2) {
     recommendation =
-      'Your RPE is on the low side - you may not be pushing hard enough to drive adaptation. ' +
-      'Try bumping up the weight slightly on your main lifts or adding a set to your accessory work.';
+      'Your RPE is on the low side — there may be room to push harder and drive more adaptation. ' +
+      'You might try bumping up the weight slightly on your main lifts or adding a set to your accessory work.';
   } else {
     recommendation =
       'Decent week of training. Keep showing up, tracking your workouts, and listening to your body. ' +
@@ -204,13 +204,13 @@ export function generateWeeklySummary(
   let nextWeekFocus = '';
 
   if (avgRPE > 9) {
-    nextWeekFocus = 'Dial back intensity - aim for RPE 7-8 on main lifts and focus on quality reps';
+    nextWeekFocus = 'You might consider dialing back intensity — RPE 7-8 on main lifts with quality reps could pay off';
   } else if (totalSessions < 2) {
-    nextWeekFocus = 'Priority one: get to the gym consistently. Three sessions minimum.';
+    nextWeekFocus = 'When you\'re ready, consistent gym sessions could make a meaningful difference. Three sessions is a great target.';
   } else if (prsHit > 0) {
     nextWeekFocus = 'Consolidate your PRs - repeat similar weights and aim for cleaner reps with lower RPE';
   } else if (avgSleepScore !== null && avgSleepScore < 60) {
-    nextWeekFocus = 'Focus on recovery: aim for 7+ hours of sleep and manage training stress';
+    nextWeekFocus = 'Recovery could be the biggest lever right now — 7+ hours of sleep and managed training stress could help';
   } else {
     nextWeekFocus = 'Continue progressive overload on main lifts. Add a small increment or 1 rep where possible.';
   }
@@ -583,8 +583,8 @@ export function getCoachMessage(logs: WorkoutLog[], streakDays: number): string 
       );
     }
     return (
-      "You haven't logged a workout in over a week. " +
-      'Momentum matters more than perfection. Get back in and pick up where you left off.'
+      "It's been over a week since your last logged workout. " +
+      'Momentum matters more than perfection — picking up where you left off is all it takes.'
     );
   }
 
@@ -606,8 +606,8 @@ export function getCoachMessage(logs: WorkoutLog[], streakDays: number): string 
   if (avgRecentRPE > 9) {
     return (
       `Your average RPE over the last few sessions is ${avgRecentRPE.toFixed(1)}. ` +
-      "That's grinding territory. Back off 5-10% on your working weights next session. " +
-      'Productive training happens at RPE 7-8.5 most of the time. Save the grinders for competition.'
+      "That's grinding territory. You might consider backing off 5-10% on your working weights next session. " +
+      'Productive training happens at RPE 7-8.5 most of the time — saving the grinders for competition could pay off.'
     );
   }
 
@@ -615,9 +615,9 @@ export function getCoachMessage(logs: WorkoutLog[], streakDays: number): string 
   const lowEnergyCount = recentLogs.filter(l => l.energy <= 3).length;
   if (lowEnergyCount >= 2) {
     return (
-      'Multiple sessions with low energy recently. Look at your sleep, nutrition, and overall stress. ' +
-      'If you are deep into a training block, a deload might be overdue. ' +
-      'Recovery is not optional - it is where adaptation happens.'
+      'Multiple sessions with low energy recently. Sleep, nutrition, and overall stress could all be worth looking at. ' +
+      'If you are deep into a training block, a deload could help. ' +
+      'Recovery is where adaptation happens.'
     );
   }
 
@@ -642,8 +642,8 @@ export function getCoachMessage(logs: WorkoutLog[], streakDays: number): string 
   if (highSorenessRecent >= 2) {
     return (
       'You have been reporting high soreness across multiple sessions. ' +
-      'Consider foam rolling, extra sleep, or dropping volume for a session. ' +
-      'Training through excessive soreness reduces workout quality and injury risk goes up.'
+      'Foam rolling, extra sleep, or dropping volume for a session could help. ' +
+      'Easing the soreness could improve workout quality and reduce injury risk.'
     );
   }
 

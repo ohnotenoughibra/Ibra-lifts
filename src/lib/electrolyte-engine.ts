@@ -182,8 +182,8 @@ export function assessHydrationStatus(
 
   // Check intake vs target
   const intakeRatio = waterIntakeMl / targetMl;
-  if (intakeRatio < 0.5) deficitIndicators += 2;
-  else if (intakeRatio < 0.75) deficitIndicators += 1;
+  if (intakeRatio < 0.4) deficitIndicators += 2;
+  else if (intakeRatio < 0.6) deficitIndicators += 1;
 
   // Check body weight change (if before/after available)
   if (bodyWeightBeforeKg && bodyWeightAfterKg) {

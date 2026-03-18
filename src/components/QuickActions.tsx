@@ -63,6 +63,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const user = useAppStore(s => s.user);
   const addQuickLog = useAppStore(s => s.addQuickLog);
   const quickLogs = useAppStore(s => s.quickLogs) ?? [];
+  const waterLog = useAppStore(s => s.waterLog);
   const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
   const addBodyWeight = useAppStore(s => s.addBodyWeight);
   const trainingSessions = useAppStore(s => s.trainingSessions);
@@ -134,9 +135,8 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     [quickLogs, todayStr]
   );
 
-  const todayWater = todayLogs
-    .filter(l => l.type === 'water')
-    .reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0);
+  // Use waterLog (source of truth) for total, converted from glasses back to ml
+  const todayWater = (waterLog[todayStr] || 0) * 250;
 
   const todayMeals = useMemo(() =>
     meals.filter(m => toLocalDateStr(m.date) === todayStr),

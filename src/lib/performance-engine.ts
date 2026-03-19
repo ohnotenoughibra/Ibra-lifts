@@ -43,14 +43,14 @@ function active<T>(arr: T[]): T[] {
 const DEFAULT_WEIGHTS: Record<ReadinessFactor['source'], number> = {
   sleep:         0.18,
   nutrition:     0.13,
-  stress:        0.10,
+  stress:        0.12,
   recovery:      0.13,  // wearable recovery score
   injury:        0.08,
   illness:       0.10,  // active illness — high weight, critical limiter
   training_load: 0.10,
   hydration:     0.04,
   age:           0.04,
-  hrv:           0.04,  // HRV shows weak correlation with readiness in strength athletes (r=0.15-0.35; Beaumont et al. 2022)
+  hrv:           0.02,  // Saw et al. 2016, Beaumont et al. 2022: subjective wellness predicts readiness 2-3x better than HRV in strength athletes
   soreness:      0.06,
 };
 

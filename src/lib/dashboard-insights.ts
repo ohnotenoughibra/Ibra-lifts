@@ -61,10 +61,10 @@ export interface DashboardInsightsInput {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACWR_ZONES = [
-  { min: 0, max: 0.8, status: 'Undertraining', color: 'blue' as const, icon: 'trending_down' as const, body: 'Training load is below your baseline. Ramp up gradually to avoid detraining.' },
+  { min: 0, max: 0.8, status: 'Undertraining', color: 'blue' as const, icon: 'trending_down' as const, body: 'Training load is below your baseline. Ramping up gradually could help you maintain your gains.' },
   { min: 0.8, max: 1.3, status: 'Sweet Spot', color: 'green' as const, icon: 'shield' as const, body: 'Optimal load zone — injury risk is lowest. Keep stacking quality sessions.' },
   { min: 1.3, max: 1.5, status: 'Caution', color: 'yellow' as const, icon: 'alert_triangle' as const, body: 'Elevated load. You can push short-term but watch for fatigue signals.' },
-  { min: 1.5, max: 99, status: 'Danger Zone', color: 'red' as const, icon: 'alert_triangle' as const, body: 'Injury risk 2-4x higher. Consider a deload or drop volume.' },
+  { min: 1.5, max: 99, status: 'Danger Zone', color: 'red' as const, icon: 'alert_triangle' as const, body: 'Injury risk 2-4x higher. A deload or volume reduction could bring you back to the sweet spot.' },
 ];
 
 // ─── Main function ────────────────────────────────────────────────────────────
@@ -111,10 +111,10 @@ export function generateDashboardInsights(input: DashboardInsightsInput): Dashbo
       value: `${debt}${trendArrow}`,
       status: isCritical ? 'Critical' : isHigh ? 'High' : trend === 'accumulating' ? 'Rising' : 'Moderate',
       body: isCritical
-        ? `Fatigue at ${debt}/100 — deload or rest period strongly recommended.`
+        ? `Fatigue at ${debt}/100 — a deload or rest period could help you recover and come back stronger.`
         : isHigh
-          ? `Fatigue ${debt}/100 and ${trend}. Plan a deload within 1-2 weeks.`
-          : `Fatigue ${debt}/100 — normal for progressive training. ${trend === 'accumulating' ? 'Watch the trend.' : 'Recovery on track.'}`,
+          ? `Fatigue ${debt}/100 and ${trend}. Scheduling a deload within 1-2 weeks could keep progress on track.`
+          : `Fatigue ${debt}/100 — normal for progressive training. ${trend === 'accumulating' ? 'Worth keeping an eye on the trend.' : 'Recovery on track.'}`,
       target: 'fatigue',
     });
   }
@@ -134,10 +134,10 @@ export function generateDashboardInsights(input: DashboardInsightsInput): Dashbo
       value: `${st.pct > 0 ? '+' : ''}${st.value}%`,
       status: st.label,
       body: isDeclining
-        ? 'Strength declining — check recovery, sleep, and nutrition.'
+        ? 'Strength trending down — dialing in recovery, sleep, and nutrition could turn this around.'
         : isGaining
           ? `Strength up ${st.value}% over 4 weeks. Progressive overload working.`
-          : 'Strength holding steady. Consider adding stimulus to progress.',
+          : 'Strength holding steady. Adding stimulus could spark new progress.',
       target: 'strength',
     });
   }
@@ -151,9 +151,9 @@ export function generateDashboardInsights(input: DashboardInsightsInput): Dashbo
 
     if (top.zone !== 'productive') {
       const zoneConfig = {
-        over_mrv: { color: 'red' as const, icon: 'alert_triangle' as const, status: 'Over MRV', body: `${top.label} at ${top.currentSets} sets/wk — exceeds recovery capacity (MRV: ${top.mrv}). Cut volume.` },
-        near_mrv: { color: 'amber' as const, icon: 'bar_chart' as const, status: 'Near MRV', body: `${top.label} approaching max recoverable volume (${top.currentSets}/${top.mrv} sets). Monitor fatigue.` },
-        below_mev: { color: 'blue' as const, icon: 'bar_chart' as const, status: 'Below MEV', body: `${top.label} at ${top.currentSets} sets/wk — below minimum effective volume (MEV: ${top.mev}). Add sets to grow.` },
+        over_mrv: { color: 'red' as const, icon: 'alert_triangle' as const, status: 'Over MRV', body: `${top.label} at ${top.currentSets} sets/wk — exceeds recovery capacity (MRV: ${top.mrv}). Reducing volume could improve recovery and growth.` },
+        near_mrv: { color: 'amber' as const, icon: 'bar_chart' as const, status: 'Near MRV', body: `${top.label} approaching max recoverable volume (${top.currentSets}/${top.mrv} sets). Worth monitoring fatigue closely.` },
+        below_mev: { color: 'blue' as const, icon: 'bar_chart' as const, status: 'Below MEV', body: `${top.label} at ${top.currentSets} sets/wk — ${top.mev - top.currentSets} more sets to hit MEV (${top.mev}). Adding sets could drive growth.` },
       };
       const config = zoneConfig[top.zone];
 
@@ -228,10 +228,10 @@ export function generateDashboardInsights(input: DashboardInsightsInput): Dashbo
       value: `${score}%`,
       status: isLow ? 'Low' : isHigh ? 'Green' : 'Moderate',
       body: isLow
-        ? 'Recovery is low — consider technique work or lighter session today.'
+        ? 'Recovery is low — technique work or a lighter session could be a smart play today.'
         : isHigh
           ? 'Recovery is high — great day to push intensity.'
-          : 'Moderate recovery — train smart, listen to your body.',
+          : 'Moderate recovery — a good day to train smart and listen to your body.',
       target: 'recovery',
     });
   }

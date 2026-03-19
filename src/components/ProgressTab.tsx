@@ -1913,11 +1913,11 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
                 </div>
               )}
 
-              {/* Post-workout session recap (visible for 2h after workout) */}
-              <SessionRecapCard />
-
               {/* E1RM Trends with goals — your lifts at a glance */}
               <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+
+              {/* Post-workout session recap (visible for 2h after workout) */}
+              <SessionRecapCard />
 
               {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
               <HardMetricsCard workoutLogs={workoutLogs} />

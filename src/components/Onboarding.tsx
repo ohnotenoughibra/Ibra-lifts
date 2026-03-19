@@ -184,8 +184,8 @@ function Step1_AboutYou({
 }) {
   const identities: { value: TrainingIdentity; icon: any; title: string; desc: string; who: string; color: string }[] = [
     { value: 'combat', icon: Swords, title: 'Combat Athlete', desc: 'Lifting built around fight training', who: 'MMA, BJJ, wrestling, striking — plan lifts around sparring & rolling', color: 'red' },
-    { value: 'recreational', icon: Dumbbell, title: 'Dedicated Lifter', desc: '4-6x/week, structured programming', who: 'You follow a program, track PRs, and take training seriously', color: 'primary' },
-    { value: 'general_fitness', icon: Heart, title: 'Casual Training', desc: '2-3x/week, general health', who: 'Stay fit, look good, no strict schedule — we keep it simple', color: 'green' },
+    { value: 'recreational', icon: Dumbbell, title: 'Dedicated Lifter', desc: 'The gym is your sport', who: 'You follow a program, track PRs, and take training seriously', color: 'primary' },
+    { value: 'general_fitness', icon: Heart, title: 'Casual Training', desc: 'Stay fit, keep it simple', who: 'No strict schedule — just stay healthy and feel good', color: 'green' },
   ];
 
   const combatSports: { value: CombatSport; title: string; desc: string }[] = [

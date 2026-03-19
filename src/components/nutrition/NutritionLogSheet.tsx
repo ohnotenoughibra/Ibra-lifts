@@ -14,6 +14,7 @@ import {
   Check,
   Trash2,
   Minus,
+  Camera,
 } from 'lucide-react';
 import { MealType } from '@/lib/types';
 import { PRESET_FOODS } from '@/lib/food-database';
@@ -61,6 +62,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
   const [loggedFeedback, setLoggedFeedback] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Quick add state
   const [quickCal, setQuickCal] = useState('');
@@ -123,6 +125,55 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
       setAiLoading(false);
     }
   }, []);
+
+  // Photo-based AI estimation
+  const estimateFromPhoto = useCallback(async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Image too large (max 4MB). Try a smaller photo.');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/nutrition/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.foods && data.foods.length > 0) {
+        const combined = data.foods.reduce(
+          (acc: { calories: number; protein: number; carbs: number; fat: number }, f: { calories: number; protein: number; carbs: number; fat: number }) => ({
+            calories: acc.calories + f.calories,
+            protein: acc.protein + f.protein,
+            carbs: acc.carbs + f.carbs,
+            fat: acc.fat + f.fat,
+          }),
+          { calories: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+        const name = data.foods.map((f: { name: string }) => f.name).join(' + ');
+        const portion = data.foods.length === 1 ? data.foods[0].portion : undefined;
+        setPendingFood({ name, portion, ...combined });
+      }
+    } catch {
+      // Silently fail — user can always use manual entry
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
+
+  const handleCameraCapture = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) estimateFromPhoto(file);
+    // Reset so the same file can be selected again
+    e.target.value = '';
+  }, [estimateFromPhoto]);
 
   // Log a food item
   const logFood = useCallback((item: { name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string }, mealType?: MealType) => {
@@ -593,23 +644,45 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
 
       {/* Search */}
       <div className="relative">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search foods..."
+              className="w-full bg-grappler-800 rounded-xl pl-10 pr-10 py-3 text-sm text-grappler-100 placeholder-grappler-600 outline-none focus:ring-1 focus:ring-primary-500/50"
+            />
+            {query && (
+              <button
+                onClick={() => { setQuery(''); setResults([]); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500 hover:text-grappler-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={aiLoading}
+            className="shrink-0 w-11 h-11 flex items-center justify-center bg-grappler-800 hover:bg-grappler-700 rounded-xl transition-colors disabled:opacity-50"
+            title="Snap a photo to estimate macros"
+          >
+            {aiLoading ? (
+              <div className="w-4 h-4 border-2 border-grappler-500 border-t-primary-400 rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-4.5 h-4.5 text-grappler-400" />
+            )}
+          </button>
           <input
-            ref={searchRef}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search foods..."
-            className="w-full bg-grappler-800 rounded-xl pl-10 pr-10 py-3 text-sm text-grappler-100 placeholder-grappler-600 outline-none focus:ring-1 focus:ring-primary-500/50"
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleCameraCapture}
+            className="hidden"
           />
-          {query && (
-            <button
-              onClick={() => { setQuery(''); setResults([]); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500 hover:text-grappler-300"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
         {/* Search results */}

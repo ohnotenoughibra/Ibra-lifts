@@ -43,9 +43,8 @@
 - `SupplementTracker.tsx` (~570) — Supplement stack tracking
 
 ### Recovery & Readiness
+- `RecoveryDashboard.tsx` (~850) — Consolidated recovery hub (readiness, ACWR, fatigue, coaching)
 - `RecoveryCoach.tsx` (~360) — Recovery recommendations
-- `RecoveryDashboard.tsx` (~850) — Recovery overview with wearable data
-- `PerformanceReadiness.tsx` (~290) — Readiness score display
 - `WearableIntegration.tsx` (~2,100) — Whoop connection + data display
 - `SorenessCheck.tsx` (~630) — Muscle soreness tracking
 - `FatigueOverlay.tsx` (~600) — Fatigue warnings
@@ -65,13 +64,11 @@
 ### Combat Sport
 - `CompetitionPrep.tsx` (~1,150) — Competition timeline, weight cut
 - `GrapplingTracker.tsx` (~1,630) — BJJ/wrestling session logging
-- `FightersMind.tsx` (~920) — Mental check-ins, confidence
 - `WeightCutDashboard.tsx` (~350) — Weight cut progress
 
 ### Body Tracking
 - `BodyWeightTracker.tsx` (~1,290) — Weight logging + trends
 - `CycleTracking.tsx` (~350) — Menstrual cycle phases
-- `GripStrengthModule.tsx` (~910) — Grip strength metrics
 - `PhotoProgress.tsx` (~1,210) — Progress photos
 - `InjuryLogger.tsx` (~1,070) — Injury tracking
 - `IllnessLogger.tsx` (~1,060) — Illness tracking

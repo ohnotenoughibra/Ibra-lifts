@@ -4,10 +4,9 @@
 // (free / pro / elite) feature-gate, paywall, value-demonstration,
 // upgrade-prompt, trial, and pricing system.
 //
-// NOTE: The canonical SubscriptionTier in types.ts is 'free' | 'pro'.
-// This engine introduces 'elite' as a forward-looking tier. We define a
-// local MonetizationTier union so we don't touch shared types until the
-// backend is ready for 3-tier billing.
+// NOTE: Elite tier has been collapsed back to a 2-tier model (free/pro).
+// MonetizationTier is kept as a local alias for backwards compatibility
+// but 'elite' maps to 'pro' in practice.
 
 import type { WorkoutLog, GamificationStats, Subscription } from './types';
 
@@ -19,8 +18,9 @@ function active<T>(arr: T[]): T[] {
 // ── Pricing Constants (single source of truth — easy to adjust) ───────────
 export const PRICE_PRO_MONTHLY = 9.99;
 export const PRICE_PRO_YEARLY = 95.88; // 12 * 7.99 (20% off monthly)
-export const PRICE_ELITE_MONTHLY = 19.99;
-export const PRICE_ELITE_YEARLY = 191.88; // 12 * 15.99 (20% off monthly)
+// Elite tier removed — 2-tier model only
+const _PRICE_ELITE_MONTHLY = 0; // Kept for type compat
+const _PRICE_ELITE_YEARLY = 0;
 export const YEARLY_DISCOUNT_PERCENT = 20;
 export const TRIAL_DURATION_DAYS = 14;
 export const TRIAL_ACTIVATION_WORKOUTS = 3;
@@ -54,60 +54,24 @@ export interface FeatureGate {
   description: string;
 }
 
-// Master feature registry — authoritative list of every gated capability.
+// Simplified 12-gate system aligned with subscription.ts.
+// Elite tier collapsed into Pro — two tiers only.
 const FEATURE_GATE_LIST: FeatureGate[] = [
-  // ── Free tier (generous — hook them) ───────────────────────────────────
-  { id: 'workout-tracking',       name: 'Workout Tracking',              tier: 'free',  category: 'core',          description: 'Log sets, reps, weight, and RPE for every session' },
-  { id: 'manual-logging',         name: 'Manual Logging',                tier: 'free',  category: 'core',          description: 'Manually log any workout, even outside a program' },
-  { id: 'mesocycle-basic',        name: 'Mesocycle Programming',         tier: 'free',  category: 'programming',   description: 'Generate and run up to 2 mesocycles' },
-  { id: 'basic-progress-charts',  name: 'Basic Progress Charts',         tier: 'free',  category: 'analytics',     description: 'See your strength and volume trends over time' },
-  { id: 'exercise-library-basic', name: 'Exercise Library (Core)',       tier: 'free',  category: 'exercises',     description: 'Access up to 3 exercises per muscle group' },
-  { id: 'community-sharing',      name: 'Community Sharing',             tier: 'free',  category: 'social',        description: 'Share workouts and PRs with friends' },
-  { id: 'streaks-badges',         name: 'Streaks & Badges',              tier: 'free',  category: 'gamification',  description: 'Earn streaks, XP, and collect badges' },
-  { id: '1rm-calculator',         name: '1RM Calculator',                tier: 'free',  category: 'tools',         description: 'Estimate your one-rep max from any set' },
-  { id: 'quick-log',              name: 'Quick Log',                     tier: 'free',  category: 'core',          description: 'Log water, sleep, energy, and readiness quickly' },
-  { id: 'training-log',           name: 'Training Session Log',          tier: 'free',  category: 'core',          description: 'Track combat sport and cardio sessions' },
+  // ── Free tier (4 gates) ────────────────────────────────────────────────
+  { id: 'workout-tracking', name: 'Workout Tracking',  tier: 'free',  category: 'core',      description: 'Log sets, reps, weight, and RPE. One mesocycle, manual entry.' },
+  { id: 'basic-analytics',  name: 'Basic Analytics',   tier: 'free',  category: 'analytics',  description: 'Progress charts, 1RM calculator, streaks, XP, and badges.' },
+  { id: 'community',        name: 'Community',         tier: 'free',  category: 'social',     description: 'Share workouts, view leaderboards, and connect with athletes.' },
+  { id: 'quick-log',        name: 'Quick Log',         tier: 'free',  category: 'core',       description: 'Log water, sleep, energy, readiness, and training sessions.' },
 
-  // ── Pro tier ($9.99/mo) ────────────────────────────────────────────────
-  { id: 'unlimited-mesocycles',   name: 'Unlimited Mesocycles',          tier: 'pro',   category: 'programming',   description: 'Save, switch, and queue unlimited training programs' },
-  { id: 'exercise-library-full',  name: 'Full Exercise Library',         tier: 'pro',   category: 'exercises',     description: 'Access every exercise with alternatives and swaps' },
-  { id: 'ai-coach',               name: 'AI Coach',                      tier: 'pro',   category: 'coaching',      description: 'Personalized weekly summaries and training recommendations' },
-  { id: 'smart-schedule',         name: 'Smart Schedule',                tier: 'pro',   category: 'programming',   description: 'Auto-adjust sessions around your real-life schedule' },
-  { id: 'injury-tracking',        name: 'Injury & Pain Tracking',        tier: 'pro',   category: 'health',        description: 'Log injuries with return-to-training protocols' },
-  { id: 'recovery-ai',            name: 'Recovery AI',                   tier: 'pro',   category: 'health',        description: 'Readiness scoring and auto-regulation from recovery data' },
-  { id: 'performance-model',      name: 'Performance Model',             tier: 'pro',   category: 'analytics',     description: 'Exercise response profiling and sticking-point analysis' },
-  { id: 'block-suggestions',      name: 'Block Suggestions',             tier: 'pro',   category: 'programming',   description: 'AI-powered next-block recommendations based on your history' },
-  { id: 'weekly-narrative',       name: 'Weekly Coaching Narrative',     tier: 'pro',   category: 'coaching',      description: 'In-depth weekly review with strengths and areas to improve' },
-  { id: 'custom-exercises',       name: 'Custom Exercises',              tier: 'pro',   category: 'exercises',     description: 'Create and save your own exercises' },
-  { id: 'session-templates',      name: 'Session Templates',             tier: 'pro',   category: 'programming',   description: 'Save and reuse your favorite workout templates' },
-  { id: 'data-export',            name: 'Data Export',                   tier: 'pro',   category: 'tools',         description: 'Export your workout history as CSV or PDF' },
-  { id: 'advanced-gamification',  name: 'Advanced Gamification',         tier: 'pro',   category: 'gamification',  description: 'Weekly challenges, variable rewards, and bonus XP events' },
-  { id: 'illness-tracking',       name: 'Illness Tracking',              tier: 'pro',   category: 'health',        description: 'Smart return-to-training protocols after illness' },
-  { id: 'mobility-routines',      name: 'Mobility Routines',             tier: 'pro',   category: 'health',        description: 'Guided mobility and flexibility routines' },
-  { id: 'strength-analysis',      name: 'Strength Analysis',             tier: 'pro',   category: 'analytics',     description: 'Sticking-point analysis and exercise profiling' },
-  { id: 'body-composition',       name: 'Body Composition Tracking',     tier: 'pro',   category: 'health',        description: 'Track body fat, measurements, and recomp progress' },
-  { id: 'cloud-sync',             name: 'Cloud Sync',                    tier: 'pro',   category: 'tools',         description: 'Sync your data securely across all your devices' },
-
-  // ── Elite tier ($19.99/mo) ─────────────────────────────────────────────
-  { id: 'wearable-whoop',         name: 'Whoop Integration',             tier: 'elite', category: 'wearables',     description: 'Auto-import recovery, strain, and sleep from Whoop' },
-  { id: 'wearable-garmin',        name: 'Garmin Integration',            tier: 'elite', category: 'wearables',     description: 'Sync workouts and health data from Garmin devices' },
-  { id: 'wearable-oura',          name: 'Oura Integration',              tier: 'elite', category: 'wearables',     description: 'Import readiness, sleep, and activity from Oura Ring' },
-  { id: 'fatigue-debt',           name: 'Fatigue Debt Tracking',         tier: 'elite', category: 'analytics',     description: 'Track accumulated fatigue across training blocks' },
-  { id: 'female-athlete-intel',   name: 'Female Athlete Intelligence',   tier: 'elite', category: 'health',        description: 'Cycle-aware programming and recovery adjustments' },
-  { id: 'competition-prep',       name: 'Competition Prep',              tier: 'elite', category: 'programming',   description: 'Peaking, tapering, and weight-cut planning for events' },
-  { id: 'caloric-periodization',  name: 'Caloric Periodization',         tier: 'elite', category: 'nutrition',     description: 'Auto-adjust calories and macros around training days' },
-  { id: 'nutrition-coaching',     name: 'Nutrition Coaching',            tier: 'elite', category: 'nutrition',     description: 'AI-driven macro adjustments based on body composition trends' },
-  { id: 'hr-zones',               name: 'Heart Rate Zone Training',      tier: 'elite', category: 'wearables',     description: 'Personalised HR zones with time-in-zone tracking' },
-  { id: 'grip-tracking',          name: 'Grip Strength Tracking',        tier: 'elite', category: 'analytics',     description: 'Dynamometer and dead-hang tracking with trends' },
-  { id: 'advanced-analytics',     name: 'Advanced Analytics Dashboard',  tier: 'elite', category: 'analytics',     description: '1RM trends, volume heatmaps, and deep training insights' },
-
-  // ── Combat Nutrition (Pro tier) ─────────────────────────────────────────
-  { id: 'weight-cut-protocol',   name: 'Weight Cut Protocol',           tier: 'pro',   category: 'nutrition',     description: 'Safe, phased weight cut planning for combat athletes' },
-  { id: 'fight-camp-nutrition',  name: 'Fight Camp Nutrition',          tier: 'pro',   category: 'nutrition',     description: 'Periodized nutrition across fight camp phases' },
-  { id: 'supplement-protocol',   name: 'Supplement Protocol',           tier: 'pro',   category: 'nutrition',     description: 'Evidence-based supplement recommendations with pre-comp pauses' },
-  { id: 'performance-readiness', name: 'Performance Readiness',         tier: 'pro',   category: 'nutrition',     description: 'Composite nutrition readiness scoring with bottleneck detection' },
-  { id: 'energy-availability',   name: 'Energy Availability',           tier: 'pro',   category: 'nutrition',     description: 'EA tracking with RED-S warning system' },
-  { id: 'intra-training-fuel',   name: 'Intra-Training Fueling',       tier: 'pro',   category: 'nutrition',     description: 'Real-time fueling recommendations during training sessions' },
+  // ── Pro tier ($9.99/mo) — everything else ──────────────────────────────
+  { id: 'full-programming', name: 'Full Programming',  tier: 'pro',   category: 'programming', description: 'Unlimited mesocycles, templates, block suggestions, smart schedule.' },
+  { id: 'coaching',         name: 'AI Coaching',       tier: 'pro',   category: 'coaching',    description: 'Weekly coaching, recovery AI, conditioning programming, mobility.' },
+  { id: 'nutrition',        name: 'Nutrition Suite',   tier: 'pro',   category: 'nutrition',   description: 'Meal tracking, diet coaching, fight camp nutrition, supplements, cuts.' },
+  { id: 'analytics-pro',   name: 'Advanced Analytics', tier: 'pro',   category: 'analytics',   description: '1RM trends, volume heatmaps, strength analysis, body composition.' },
+  { id: 'health-tracking',  name: 'Health Tracking',   tier: 'pro',   category: 'health',      description: 'Injury/illness protocols, readiness scoring, fatigue metrics.' },
+  { id: 'wearables',        name: 'Wearable Sync',    tier: 'pro',   category: 'wearables',   description: 'Connect Whoop, Apple Health, Garmin, and Oura.' },
+  { id: 'competition',      name: 'Competition Prep',  tier: 'pro',   category: 'competition', description: 'Fight camp, peaking, tapering, female athlete intelligence.' },
+  { id: 'tools',            name: 'Pro Tools',         tier: 'pro',   category: 'tools',       description: 'Cloud sync, data export, custom exercises, barcode scanning.' },
 ];
 
 /**
@@ -132,49 +96,17 @@ export function isFeatureAvailable(featureId: string, userTier: MonetizationTier
  */
 export function getUpgradeReason(featureId: string): string {
   const reasons: Record<string, string> = {
-    // Pro features
-    'unlimited-mesocycles':   'Remove the 2-program limit and queue your entire training year.',
-    'exercise-library-full':  'Get access to every exercise variation with smart alternatives for your equipment.',
-    'ai-coach':               'Let the AI analyze your training data and give you a personalized game plan each week.',
-    'smart-schedule':         'Life happens. Smart Schedule reshuffles your week so you never miss the important sessions.',
-    'injury-tracking':        'Log injuries and get evidence-based return-to-training protocols so you come back stronger.',
-    'recovery-ai':            'Auto-adjust today\'s workout intensity based on your sleep, stress, and soreness data.',
-    'performance-model':      'Discover which exercises drive the most growth for YOUR body and which rep ranges work best.',
-    'block-suggestions':      'Take the guesswork out of periodization with AI-powered next-block recommendations.',
-    'weekly-narrative':       'Get a detailed weekly coaching review highlighting what went well and what to focus on next.',
-    'custom-exercises':       'Build and save your own exercises so your program fits your gym perfectly.',
-    'session-templates':      'Save your favorite sessions and load them in one tap for faster workout starts.',
-    'data-export':            'Export your training history to CSV or PDF for coaches, physios, or your own records.',
-    'advanced-gamification':  'Unlock weekly challenges and variable rewards that keep training fun and competitive.',
-    'illness-tracking':       'Smart protocols help you know exactly when and how hard to train after being sick.',
-    'mobility-routines':      'Follow guided mobility routines tailored to grapplers and lifters.',
-    'strength-analysis':      'Identify sticking points in your lifts and get targeted accessory recommendations.',
-    'body-composition':       'Track body fat, measurements, and visualise your recomposition progress over time.',
-    'cloud-sync':             'Never lose your data. Sync securely across all your devices.',
-
-    // Elite features
-    'wearable-whoop':         'Auto-import Whoop recovery and strain so your program adapts to how your body actually feels.',
-    'wearable-garmin':        'Sync Garmin workouts and health metrics for a complete picture of your training load.',
-    'wearable-oura':          'Import Oura Ring readiness and sleep scores to fine-tune recovery-based programming.',
-    'fatigue-debt':           'Track cumulative fatigue across blocks to prevent overtraining before it happens.',
-    'female-athlete-intel':   'Cycle-aware programming that adjusts volume and intensity with your hormonal phases.',
-    'competition-prep':       'Peaking, tapering, and weight-cut tools designed for fight week and competition day.',
-    'caloric-periodization':  'Automatically cycle calories and macros around training and rest days for optimal fueling.',
-    'nutrition-coaching':     'AI-driven macro adjustments that evolve with your body composition and training goals.',
-    'hr-zones':               'Personalised heart rate zones with time-in-zone tracking for conditioning and recovery.',
-    'grip-tracking':          'Dedicated grip strength tracking with dynamometer and dead-hang trend analysis.',
-    'advanced-analytics':     'Deep-dive analytics: 1RM trends, volume heatmaps, muscle-group balance, and more.',
-
-    // Combat nutrition
-    'weight-cut-protocol':    'Safe, science-backed weight cuts with daily tracking and safety alerts built for fighters.',
-    'fight-camp-nutrition':   'Phase-specific nutrition targets that auto-adjust as you move through fight camp.',
-    'supplement-protocol':    'Evidence-based supplement timing with auto-pauses before weigh-ins for banned substance safety.',
-    'performance-readiness':  'A composite readiness score showing exactly what to fix before your next session.',
-    'energy-availability':    'Track energy availability to prevent RED-S and keep performance on track.',
-    'intra-training-fuel':    'Real-time fueling cues during training so you never bonk in hard sessions.',
+    'full-programming': 'Unlimited mesocycles, smart scheduling, templates, and AI block suggestions — your entire training year planned.',
+    'coaching':         'Weekly AI coaching, conditioning programming, recovery recommendations, and guided mobility routines.',
+    'nutrition':        'Meal tracking, macro coaching, fight camp nutrition, weight cuts, and supplements — all evidence-based.',
+    'analytics-pro':    '1RM trends, volume heatmaps, strength analysis, body composition tracking, and deep insights.',
+    'health-tracking':  'Injury/illness protocols, readiness scoring, fatigue metrics — train smarter, recover faster.',
+    'wearables':        'Connect Whoop, Apple Health, Garmin, or Oura for recovery-driven auto-regulation.',
+    'competition':      'Fight camp planning, peaking, tapering, weight cuts, and female athlete intelligence.',
+    'tools':            'Cloud sync, data export, custom exercises, and barcode nutrition scanning.',
   };
 
-  return reasons[featureId] || 'Upgrade to unlock this feature and take your training to the next level.';
+  return reasons[featureId] || 'Upgrade to Pro to unlock this feature and take your training to the next level.';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -201,72 +133,35 @@ interface SoftPaywallConfig {
 // Soft paywalls — user sees a taste, then gets nudged
 const SOFT_PAYWALLS: SoftPaywallConfig[] = [
   {
-    featureId: 'ai-coach',
+    featureId: 'coaching',
     tier: 'pro',
-    message: 'You get 3 free AI Coach queries per week. Upgrade to Pro for unlimited coaching insights.',
-    ctaText: 'Unlock Unlimited Coaching',
-    freePreview: '3 queries/week',
+    message: 'You get a free coaching snapshot each week. Upgrade to Pro for full AI coaching with weekly reviews.',
+    ctaText: 'Unlock Full Coaching',
+    freePreview: 'Weekly snapshot',
   },
   {
-    featureId: 'block-suggestions',
+    featureId: 'analytics-pro',
     tier: 'pro',
-    message: 'You get 1 free block suggestion per month. Upgrade to see recommendations after every mesocycle.',
-    ctaText: 'Unlock Smart Programming',
-    freePreview: '1 suggestion/month',
-  },
-  {
-    featureId: 'performance-model',
-    tier: 'pro',
-    message: 'Your performance model shows the last 4 weeks. Upgrade to Pro for full historical analysis.',
-    ctaText: 'See Full Performance History',
-    freePreview: 'Last 4 weeks only',
-  },
-  {
-    featureId: 'weekly-narrative',
-    tier: 'pro',
-    message: 'You can see this week\'s coaching narrative. Upgrade to Pro for full weekly history and deeper insights.',
-    ctaText: 'Unlock Full Coaching History',
-    freePreview: 'Current week only',
-  },
-  {
-    featureId: 'advanced-analytics',
-    tier: 'elite',
-    message: 'You\'re seeing a summary view. Upgrade to Elite for 1RM trends, volume heatmaps, and deep insights.',
+    message: 'You\'re seeing basic charts. Upgrade to Pro for 1RM trends, volume heatmaps, and deep insights.',
     ctaText: 'Unlock Advanced Analytics',
-    freePreview: 'Summary view only',
+    freePreview: 'Basic charts only',
   },
   {
-    featureId: 'performance-readiness',
+    featureId: 'health-tracking',
     tier: 'pro',
-    message: 'You can see your overall score. Upgrade to Pro for component breakdown and action items.',
-    ctaText: 'Unlock Full Readiness',
+    message: 'You can see your overall readiness score. Upgrade to Pro for full breakdown and protocols.',
+    ctaText: 'Unlock Health Tracking',
     freePreview: 'Overall score only',
-  },
-  {
-    featureId: 'fight-camp-nutrition',
-    tier: 'pro',
-    message: 'You can see your current phase. Upgrade to Pro for full macro targets and phase recommendations.',
-    ctaText: 'Unlock Fight Camp Nutrition',
-    freePreview: 'Current phase only',
   },
 ];
 
 // Hard paywalls — feature is completely locked
 const HARD_PAYWALL_IDS: string[] = [
-  'wearable-whoop',
-  'wearable-garmin',
-  'wearable-oura',
-  'competition-prep',
-  'fatigue-debt',
-  'nutrition-coaching',
-  'caloric-periodization',
-  'female-athlete-intel',
-  'hr-zones',
-  'grip-tracking',
-  'weight-cut-protocol',
-  'supplement-protocol',
-  'energy-availability',
-  'intra-training-fuel',
+  'full-programming',
+  'nutrition',
+  'wearables',
+  'competition',
+  'tools',
 ];
 
 /**
@@ -279,7 +174,7 @@ export function getPaywallTrigger(featureId: string, userTier: MonetizationTier)
   const gate = FEATURE_GATE_LIST.find(g => g.id === featureId);
   if (!gate) return null;
 
-  const targetTier = gate.tier as 'pro' | 'elite';
+  const targetTier = 'pro' as const; // Only 2 tiers now
 
   // Check soft paywalls first
   const soft = SOFT_PAYWALLS.find(s => s.featureId === featureId);
@@ -299,7 +194,7 @@ export function getPaywallTrigger(featureId: string, userTier: MonetizationTier)
       featureId,
       triggerType: 'hard',
       message: getUpgradeReason(featureId),
-      ctaText: targetTier === 'elite' ? 'Upgrade to Elite' : 'Upgrade to Pro',
+      ctaText: 'Upgrade to Pro',
       tier: targetTier,
     };
   }
@@ -309,7 +204,7 @@ export function getPaywallTrigger(featureId: string, userTier: MonetizationTier)
     featureId,
     triggerType: 'hard',
     message: getUpgradeReason(featureId),
-    ctaText: targetTier === 'elite' ? 'Upgrade to Elite' : 'Upgrade to Pro',
+    ctaText: 'Upgrade to Pro',
     tier: targetTier,
   };
 }
@@ -370,14 +265,7 @@ export function getValueMetrics(
     }
   }
 
-  if (tier === 'pro') {
-    potentialGains.push('Connect your wearable for recovery-driven auto-regulation');
-    potentialGains.push('Unlock caloric periodization to fuel your training days optimally');
-    if (totalWorkouts >= 50) {
-      potentialGains.push('With 50+ workouts logged, fatigue debt tracking can fine-tune your deload timing');
-    }
-    potentialGains.push('Advanced analytics give you 1RM trends and volume heatmaps for deeper insight');
-  }
+  // Pro users already have everything — no upsell needed
 
   // Always include at least one potential gain
   if (potentialGains.length === 0) {
@@ -435,8 +323,8 @@ export function shouldShowUpgradePrompt(
   lastPromptDate?: Date | string | null,
 ): UpgradePrompt | null {
   workoutLogs = active(workoutLogs);
-  // Already on Elite — nothing to upsell
-  if (tier === 'elite') return null;
+  // Already on Pro — nothing to upsell (no elite tier)
+  if (tier === 'pro' || tier === 'elite') return null;
 
   const now = new Date();
 
@@ -458,8 +346,8 @@ export function shouldShowUpgradePrompt(
     return null;
   }
 
-  // The target tier for upsell
-  const targetTier: 'pro' | 'elite' = tier === 'free' ? 'pro' : 'elite';
+  // Only one upsell target — Pro
+  const targetTier = 'pro' as const;
 
   // ── Milestone prompts (high engagement moments) ────────────────────────
 
@@ -469,7 +357,7 @@ export function shouldShowUpgradePrompt(
       type: 'milestone',
       headline: '10 workouts in the books!',
       body: 'You\'ve built real momentum. Unlock AI coaching and unlimited programs to keep the gains coming.',
-      ctaText: targetTier === 'pro' ? 'Try Pro Free' : 'Explore Elite',
+      ctaText: 'Try Pro Free',
       targetTier,
     };
   }
@@ -480,7 +368,7 @@ export function shouldShowUpgradePrompt(
       type: 'milestone',
       headline: 'You just hit your first PR!',
       body: 'That strength increase is real. Performance modeling can help you break through even faster.',
-      ctaText: targetTier === 'pro' ? 'Unlock Performance Insights' : 'Go Elite',
+      ctaText: 'Unlock Performance Insights',
       targetTier,
     };
   }
@@ -491,7 +379,7 @@ export function shouldShowUpgradePrompt(
       type: 'milestone',
       headline: '30-day streak. Incredible.',
       body: 'Consistency like this is rare. Advanced tools like block suggestions and weekly narratives can help you make every session count.',
-      ctaText: targetTier === 'pro' ? 'Level Up to Pro' : 'Unlock Elite Features',
+      ctaText: 'Level Up to Pro',
       targetTier,
     };
   }
@@ -502,7 +390,7 @@ export function shouldShowUpgradePrompt(
       type: 'milestone',
       headline: '50 workouts completed!',
       body: 'You\'re in the top tier of consistency. Your training data is now deep enough for powerful AI-driven insights.',
-      ctaText: targetTier === 'pro' ? 'Unlock AI Coach' : 'Explore Elite Analytics',
+      ctaText: 'Unlock AI Coach',
       targetTier,
     };
   }
@@ -517,10 +405,8 @@ export function shouldShowUpgradePrompt(
     return {
       type: 'value_recap',
       headline: `This month: ${recentLogs.length} workouts${recentPRs > 0 ? `, ${recentPRs} PR${recentPRs > 1 ? 's' : ''}` : ''}.`,
-      body: tier === 'free'
-        ? 'Imagine what AI coaching and personalized block suggestions could do with this data.'
-        : 'Wearable integration and fatigue tracking could take your programming to the next level.',
-      ctaText: targetTier === 'pro' ? 'See What Pro Unlocks' : 'Discover Elite',
+      body: 'Imagine what AI coaching, wearable sync, and personalized block suggestions could do with this data.',
+      ctaText: 'See What Pro Unlocks',
       targetTier,
     };
   }
@@ -553,7 +439,6 @@ const TRIAL_HIGHLIGHT_FEATURES = [
   'unlimited-mesocycles',
   'block-suggestions',
   'weekly-narrative',
-  'performance-model',
   'custom-exercises',
   'session-templates',
   'data-export',
@@ -691,20 +576,16 @@ export function getPricingTiers(): PricingTier[] {
       period: 'monthly',
       features: [
         'Everything in Free, plus:',
-        'Unlimited mesocycles & block queue',
-        'Full exercise library with alternatives',
-        'AI Coach with weekly summaries',
-        'Smart Schedule auto-adjust',
-        'Injury & illness tracking with RTT protocols',
-        'Recovery AI & readiness scoring',
-        'Performance model & sticking-point analysis',
-        'Block suggestions',
-        'Weekly coaching narrative',
-        'Custom exercises & session templates',
-        'Data export (CSV & PDF)',
-        'Weekly challenges & variable rewards',
-        'Body composition tracking',
-        'Cloud sync',
+        'Unlimited mesocycles & smart scheduling',
+        'AI Coach with weekly coaching reviews',
+        'Conditioning programming & mobility',
+        'Full nutrition suite (macros, fight camp, supplements)',
+        'Wearable sync (Whoop, Apple Health, Garmin, Oura)',
+        'Advanced analytics & strength analysis',
+        'Health tracking (injury, illness, readiness, fatigue)',
+        'Competition prep & female athlete intelligence',
+        'Cloud sync, data export, custom exercises',
+        'Barcode nutrition scanning',
       ],
       highlighted: true,
       badge: 'Most Popular',
@@ -719,64 +600,16 @@ export function getPricingTiers(): PricingTier[] {
       yearlyDiscount: YEARLY_DISCOUNT_PERCENT,
       features: [
         'Everything in Free, plus:',
-        'Unlimited mesocycles & block queue',
-        'Full exercise library with alternatives',
-        'AI Coach with weekly summaries',
-        'Smart Schedule auto-adjust',
-        'Injury & illness tracking with RTT protocols',
-        'Recovery AI & readiness scoring',
-        'Performance model & sticking-point analysis',
-        'Block suggestions',
-        'Weekly coaching narrative',
-        'Custom exercises & session templates',
-        'Data export (CSV & PDF)',
-        'Weekly challenges & variable rewards',
-        'Body composition tracking',
-        'Cloud sync',
-      ],
-      highlighted: false,
-      badge: 'Save 20%',
-    },
-
-    // ── Elite Monthly ────────────────────────────────────────────────────
-    {
-      id: 'elite-monthly',
-      name: 'Elite',
-      price: PRICE_ELITE_MONTHLY,
-      period: 'monthly',
-      features: [
-        'Everything in Pro, plus:',
-        'Whoop, Garmin & Oura integrations',
-        'Fatigue debt tracking',
-        'Female athlete intelligence',
-        'Competition prep (peaking & weight cuts)',
-        'Caloric periodization',
-        'AI nutrition coaching',
-        'Heart rate zone training',
-        'Grip strength tracking',
-        'Advanced analytics dashboard',
-      ],
-      highlighted: false,
-    },
-
-    // ── Elite Yearly ─────────────────────────────────────────────────────
-    {
-      id: 'elite-yearly',
-      name: 'Elite',
-      price: PRICE_ELITE_YEARLY,
-      period: 'yearly',
-      yearlyDiscount: YEARLY_DISCOUNT_PERCENT,
-      features: [
-        'Everything in Pro, plus:',
-        'Whoop, Garmin & Oura integrations',
-        'Fatigue debt tracking',
-        'Female athlete intelligence',
-        'Competition prep (peaking & weight cuts)',
-        'Caloric periodization',
-        'AI nutrition coaching',
-        'Heart rate zone training',
-        'Grip strength tracking',
-        'Advanced analytics dashboard',
+        'Unlimited mesocycles & smart scheduling',
+        'AI Coach with weekly coaching reviews',
+        'Conditioning programming & mobility',
+        'Full nutrition suite (macros, fight camp, supplements)',
+        'Wearable sync (Whoop, Apple Health, Garmin, Oura)',
+        'Advanced analytics & strength analysis',
+        'Health tracking (injury, illness, readiness, fatigue)',
+        'Competition prep & female athlete intelligence',
+        'Cloud sync, data export, custom exercises',
+        'Barcode nutrition scanning',
       ],
       highlighted: false,
       badge: 'Save 20%',
@@ -827,8 +660,7 @@ export function getUnlockableFeatures(
  * Get the monthly price for a given tier (convenience helper for UI).
  */
 export function getMonthlyPrice(tier: MonetizationTier): number {
-  if (tier === 'pro') return PRICE_PRO_MONTHLY;
-  if (tier === 'elite') return PRICE_ELITE_MONTHLY;
+  if (tier === 'pro' || tier === 'elite') return PRICE_PRO_MONTHLY;
   return 0;
 }
 
@@ -836,7 +668,6 @@ export function getMonthlyPrice(tier: MonetizationTier): number {
  * Get the yearly price for a given tier (convenience helper for UI).
  */
 export function getYearlyPrice(tier: MonetizationTier): number {
-  if (tier === 'pro') return PRICE_PRO_YEARLY;
-  if (tier === 'elite') return PRICE_ELITE_YEARLY;
+  if (tier === 'pro' || tier === 'elite') return PRICE_PRO_YEARLY;
   return 0;
 }

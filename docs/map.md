@@ -40,6 +40,7 @@ Living map of how the pieces connect. When you need to change something, look he
 | Weight cut | `src/lib/weight-cut-engine.ts` | Safe phased cuts (0.7% BW/week), energy availability floor |
 | Electrolytes | `src/lib/electrolyte-engine.ts` | Sweat rate estimation, intra-training sodium/carbs |
 | Supplements | `src/lib/supplement-engine.ts` | Evidence-based stack (creatine, beta-alanine), competition pauses |
+| Barcode scanner | `src/lib/barcode-scanner.ts` | Barcode-based nutrition lookup via Open Food Facts API |
 | State | `src/lib/store.ts` lines 3017-3163 | Nutrition slice: meals, macroTargets, waterLog, dietPhase |
 
 **Flow**: `periodization-planner` generates annual phase plan → `diet-coach` calculates targets per phase → user logs meals in `NutritionTracker` → `contextual-nutrition` adjusts around sessions → `fight-camp-engine` overrides during competition prep → `weight-cut-engine` enforces safety floors → `block-suggestion` recommends training blocks aligned to nutrition phase
@@ -60,9 +61,11 @@ Living map of how the pieces connect. When you need to change something, look he
 | Recovery coach | `src/lib/recovery-coach.ts` | Sleep/nutrition/stress recommendations |
 | Recovery UI | `src/components/RecoveryCoach.tsx` | Recovery recommendations interface |
 | Readiness UI | `src/components/PerformanceReadiness.tsx` | Readiness dashboard |
+| Wearable engine | `src/lib/wearable-engine.ts` | Unified multi-wearable abstraction (Whoop, Apple Health, Garmin, Oura) |
+| Whoop API | `src/lib/whoop.ts` | Whoop-specific OAuth & API calls |
 | Whoop sync | `src/lib/useWhoopSync.ts` | Background Whoop data sync (30-min intervals) |
 
-**Flow**: Whoop data + manual logs → `performance-engine` scores readiness (redistributes weights if data missing) → `readiness-throttle` gates workout intensity → `auto-adjust` incorporates into session modifications → `recovery-coach` generates recommendations
+**Flow**: Wearable API (whoop.ts, etc.) → `wearable-engine` normalizes to common format → merges multi-provider data → `performance-engine` scores readiness (redistributes weights if data missing) → `readiness-throttle` gates workout intensity → `auto-adjust` incorporates into session modifications → `recovery-coach` generates recommendations
 
 ---
 
@@ -89,6 +92,7 @@ Living map of how the pieces connect. When you need to change something, look he
 | Core engine | `src/lib/gamification.ts` | 52 badges, XP/levels, weekly challenges, streak tracking |
 | Engagement | `src/lib/engagement-engine.ts` | Variable-ratio rewards, disengagement detection, nudges |
 | Nudges | `src/lib/nudge-engine.ts` | Contextual push notifications, churn prevention |
+| Smart notifications | `src/lib/smart-notifications.ts` | Intelligent notification scheduling with habit stacking (Clear 2018) |
 | Wellness score | `src/lib/wellness-score.ts` | Multi-domain wellness multiplier (1.0-1.5x XP) |
 | State | `src/lib/store.ts` lines 2091-2657 | Gamification slice: points, badges, streaks, challenges |
 
@@ -102,9 +106,9 @@ Living map of how the pieces connect. When you need to change something, look he
 |-------|------|---------|
 | Competition prep | `src/components/CompetitionPrep.tsx` | Competition timeline, weight cut planning |
 | Grappling tracker | `src/components/GrapplingTracker.tsx` | BJJ/wrestling session logging |
-| Fighter's mind | `src/components/FightersMind.tsx` | Mental check-ins, confidence tracking |
-| Concurrent training | `src/lib/concurrent-training.ts` | ACWR (Acute:Chronic load), gym + combat interference management |
-| Conditioning | `src/lib/conditioning-templates.ts` | Grappler-specific conditioning protocols |
+| Concurrent training | `src/lib/concurrent-training.ts` | ACWR, gym + combat interference, live interference application |
+| Conditioning data | `src/lib/conditioning-templates.ts` | Grappler-specific conditioning template data |
+| Conditioning engine | `src/lib/conditioning-programming.ts` | Prescriptive conditioning programming with progressive overload |
 | Fight camp engine | `src/lib/fight-camp-engine.ts` | Competition within 70 days triggers fight camp mode |
 | Female athlete | `src/lib/female-athlete.ts` | Menstrual cycle phases, training/nutrition adjustments, RED-S awareness |
 
@@ -156,9 +160,47 @@ Living map of how the pieces connect. When you need to change something, look he
 
 | Piece | File | Purpose |
 |-------|------|---------|
-| Subscription | `src/lib/subscription.ts` | Feature gates (free/pro), tier resolution |
-| Monetization | `src/lib/monetization-engine.ts` | Usage analytics, upgrade prompts, conversion funnels |
+| Subscription | `src/lib/subscription.ts` | Simplified feature gates (12 gates, free/pro only) |
+| Monetization | `src/lib/monetization-engine.ts` | Usage analytics, upgrade prompts (2-tier, no elite) |
 | Feature access | `src/lib/useFeatureAccess.ts` | React hook for subscription gating |
 | Checkout API | `src/app/api/subscription/checkout/` | PayPal subscription creation |
 | Status API | `src/app/api/subscription/status/` | Tier checking |
 | Webhook API | `src/app/api/subscription/webhook/` | PayPal event handling |
+
+---
+
+## Social & Community
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Social engine | `src/lib/social-engine.ts` | Gym leaderboard, friend challenges, activity feed |
+| Template marketplace | `src/lib/template-marketplace.ts` | Training block template sharing & discovery |
+
+---
+
+## Wearable Integration
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Wearable engine | `src/lib/wearable-engine.ts` | Unified multi-wearable abstraction (Whoop, Apple Health, Garmin, Oura) |
+| Whoop client | `src/lib/whoop.ts` | Whoop-specific API calls |
+| Whoop sync | `src/lib/useWhoopSync.ts` | Background Whoop data sync (30-min intervals) |
+| Barcode scanner | `src/lib/barcode-scanner.ts` | Barcode-based nutrition lookup via Open Food Facts API |
+
+---
+
+## Notifications
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Smart notifications | `src/lib/smart-notifications.ts` | Intelligent notification scheduling with habit stacking |
+| Push notifications | `src/lib/notifications.ts` | Basic push notification scheduling |
+| Nudge engine | `src/lib/nudge-engine.ts` | Contextual push notifications, churn prevention |
+
+---
+
+## Rest & Recovery Programming
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Rest day programming | `src/lib/rest-day-programming.ts` | Structured rest day prescriptions (mobility, foam rolling, active recovery) |

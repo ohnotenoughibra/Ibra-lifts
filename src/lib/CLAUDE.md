@@ -14,7 +14,8 @@ Tier 0 (Data — no internal imports)
 
 Tier 1 (Engines — import Tier 0 only)
   diet-coach.ts, workout-generator.ts, gamification.ts, sleep-score.ts,
-  performance-engine.ts, injury-science.ts, supplement-engine.ts, etc.
+  performance-engine.ts, injury-science.ts, supplement-engine.ts,
+  wearable-engine.ts, barcode-scanner.ts, smart-notifications.ts, etc.
 
 Tier 2 (Orchestrators — import Tier 0-1)
   store.ts (imports ~15 engines), daily-directive.ts, concurrent-training.ts
@@ -80,6 +81,7 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `exercise-recommender.ts` — Weak-point-based exercise suggestions
 
 ### Nutrition
+- `barcode-scanner.ts` — Barcode-based nutrition lookup via Open Food Facts API
 - `diet-coach.ts` — BMR, TDEE, macros, RED-S warnings, phase-to-macro bridge
 - `periodization-planner.ts` — Annual nutrition phase sequencing (massing/cut/maintenance cycles), training-nutrition coupling, competition-anchored planning, metabolic adaptation detection
 - `contextual-nutrition.ts` — Pre/intra/post fuel, illness-aware
@@ -110,6 +112,7 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `gamification.ts` — 52 badges, XP/levels, streaks, challenges
 - `engagement-engine.ts` — Variable-ratio rewards, churn prevention
 - `nudge-engine.ts` — Contextual push notifications
+- `smart-notifications.ts` — Intelligent notification scheduling with habit stacking
 
 ### Coaching & Knowledge
 - `ai-coach.ts` — Rule-based weekly recommendations (NOT LLM)
@@ -119,9 +122,17 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `performance-narratives.ts` — Human-readable performance summaries
 
 ### Combat Sport
-- `concurrent-training.ts` — ACWR, gym + combat interference
-- `conditioning-templates.ts` — Grappler-specific conditioning
+- `concurrent-training.ts` — ACWR, gym + combat interference, live interference application
+- `conditioning-templates.ts` — Grappler-specific conditioning template data
+- `conditioning-programming.ts` — Prescriptive conditioning programming with progressive overload
 - `female-athlete.ts` — Cycle tracking, phase-based adjustments
+
+### Social & Marketplace
+- `social-engine.ts` — Gym leaderboard, friend challenges, activity feed
+- `template-marketplace.ts` — Training block template sharing & discovery
+
+### Rest & Recovery Programming
+- `rest-day-programming.ts` — Structured rest day prescriptions (mobility, foam rolling, active recovery)
 
 ### Analytics
 - `dashboard-insights.ts` — Surfaces analysis engine data as ranked dashboard insight tiles (ACWR, fatigue, strength, volume, plateaus, PRs, recovery). Pure functions, used by `DashboardInsights.tsx`.
@@ -138,11 +149,14 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `data-safety.ts` — Sync failure tracking
 
 ### Integration
+- `wearable-engine.ts` — Unified multi-wearable abstraction (Whoop, Apple Health, Garmin, Oura)
 - `whoop.ts` — Whoop API calls
 - `useWhoopSync.ts` — Background Whoop sync hook
-- `subscription.ts` — Feature gates (free/pro)
-- `monetization-engine.ts` — Usage analytics, upgrade prompts
+- `barcode-scanner.ts` — Barcode-based nutrition lookup via Open Food Facts API
+- `subscription.ts` — Simplified feature gates (12 gates, free/pro only)
+- `monetization-engine.ts` — Usage analytics, upgrade prompts (2-tier, no elite)
 - `notifications.ts` — Push notification scheduling
+- `smart-notifications.ts` — Intelligent notification scheduling with habit stacking
 
 ### Utilities
 - `utils.ts` — cn() helper, date/weight formatting

@@ -70,24 +70,10 @@ export default function SyncStatusIndicator({
     };
   }, []);
 
-  // Fetch server counts when popup opens
+  // Debug endpoint removed — server counts no longer fetched
   useEffect(() => {
     if (!showDetail) return;
-    setFetchingServer(true);
-    fetch('/api/debug/sync-status')
-      .then(r => r.json())
-      .then(data => {
-        if (data.counts) {
-          setServerCounts({
-            meals: data.counts.meals ?? 0,
-            workouts: data.counts.workoutLogs ?? 0,
-            lastDevice: data._lastDevice ?? null,
-            serverUpdatedAt: data.serverUpdatedAt ?? null,
-          });
-        }
-      })
-      .catch(() => setServerCounts(null))
-      .finally(() => setFetchingServer(false));
+    setServerCounts(null);
   }, [showDetail]);
 
   const handleForceSync = useCallback(() => {
@@ -108,20 +94,6 @@ export default function SyncStatusIndicator({
         if (workoutDiff < 0) parts.push(`${workoutDiff} workouts`);
         setSyncResult(parts.join(', '));
       }
-      // Re-fetch server counts after sync
-      fetch('/api/debug/sync-status')
-        .then(r => r.json())
-        .then(data => {
-          if (data.counts) {
-            setServerCounts({
-              meals: data.counts.meals ?? 0,
-              workouts: data.counts.workoutLogs ?? 0,
-              lastDevice: data._lastDevice ?? null,
-              serverUpdatedAt: data.serverUpdatedAt ?? null,
-            });
-          }
-        })
-        .catch(() => {});
     }).catch(() => setSyncResult('Sync failed'));
   }, [onForceSync, localCounts]);
 

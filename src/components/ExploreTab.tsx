@@ -5,11 +5,11 @@ import {
   Dumbbell, Layers, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
   Heart, Shield, Zap, Watch,
-  Apple, Grip, Flame, Gauge,
+  Apple, Flame, Gauge,
   Swords, Navigation, Move,
   Search, Clock, Pin, Check,
-  Hammer, Eye, Wind,
-  BookOpen, Timer, Brain, Thermometer,
+  Hammer, Eye,
+  BookOpen, Timer, Thermometer,
   BookMarked, Share2, Trophy, MessageCircle,
   ChevronDown,
 } from 'lucide-react';
@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
 import { useCurrentTier } from '@/lib/useFeatureAccess';
-import { getTopTools } from '@/lib/tool-affinity';
 import type { OverlayView } from './dashboard-types';
 
 export interface Tool {
@@ -61,7 +60,6 @@ const CATEGORIES: Category[] = [
     tools: [
       { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tools', longDesc: 'Session tracker with technique notes, sparring rounds, and mat time', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grapple training', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
       { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
-      { id: 'grip_strength', label: 'Grip Strength', desc: 'Grip training protocol', longDesc: 'Crush, pinch, and hang protocols for combat grip and deadlift lockout', keywords: 'grip hand forearm wrist crush pinch hang deadlift farmer carry hold squeeze', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400', isPro: true },
       { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal planning', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', isPro: true },
       { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for competition', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
       { id: 'conditioning', label: 'Conditioning', desc: 'Cardio & interval protocols', longDesc: 'Build and run combat-sport conditioning — EMOM, Tabata, AMRAP, custom circuits, shark tanks, and intervals with execution timer', keywords: 'conditioning cardio interval emom tabata amrap circuit shark tank gpp endurance stamina aerobic anaerobic hiit builder custom create timer', icon: Timer, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
@@ -90,8 +88,6 @@ const CATEGORIES: Category[] = [
       { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region and get automatic workout modifications', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'illness', label: 'Illness Log', desc: 'Symptom tracking & return-to-training', longDesc: 'Log symptoms, get evidence-based training restrictions via the Neck Check protocol, track daily recovery check-ins, and follow graduated return-to-training phases. Automatically adjusts workout intensity, freezes streaks, and modifies your mesocycle.', keywords: 'sick illness cold flu fever cough sore throat headache nausea vomiting diarrhea fatigue tired unwell symptom recovery neck check return training', icon: Thermometer, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
       { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle log', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
-      { id: 'fighters_mind', label: "Fighter's Mind", desc: 'Mental state & confidence', longDesc: 'Track mental state before and after training, surface patterns in your psychology, and build an evidence-based confidence ledger', keywords: 'mental mind psychology confidence focus composure anxiety stress self talk visualization brain check in mood emotion journal reflect', icon: Brain, color: 'from-violet-500/20 to-violet-500/5 text-violet-400', isPro: true },
-      { id: 'breathing', label: 'Breathing', desc: 'Guided breathing protocols', longDesc: 'Interactive breathing timers — box breathing, 4-7-8, Wim Hof, tactical breathing, and more for recovery and performance', keywords: 'breathing breathe meditation calm anxiety relax box wim hof tactical 4-7-8 recovery sleep', icon: Wind, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
       { id: 'wellness_xp', label: 'Wellness', desc: 'Off-mat habit tracking', longDesc: 'See your supplement, nutrition, water, sleep, and mobility consistency. Training XP scales with how many habits you hit each day.', keywords: 'wellness supplements nutrition water sleep mobility mental streak habits consistency off mat recovery', icon: Activity, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: false },
     ],
   },
@@ -245,32 +241,15 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     [recentIds]
   );
 
-  // Tool affinity — surfaces tools the user has thumbs-upped
-  const featureFeedback = useAppStore(s => s.featureFeedback);
-  const topTools = useMemo(() => {
-    const top = getTopTools(featureFeedback, 6);
-    return top
-      .map(t => TOOL_MAP.get(t.toolId))
-      .filter(Boolean) as Tool[];
-  }, [featureFeedback]);
-
   // ─── Unified "For You" strip ───
-  // Merges RECENT + TOP TOOLS, excludes anything already pinned, dedupes.
+  // Shows recent tools, excludes anything already pinned, dedupes.
   // Each entry carries a reason tag so the UI can show why it's here.
   const forYouTools = useMemo(() => {
     const pinSet = new Set(pinnedIds);
     const seen = new Set<string>();
     const result: { tool: Tool; reason: 'recent' | 'loved' | 'both' }[] = [];
 
-    // Loved tools (from affinity) — check if also recent
-    const recentSet = new Set(recentIds);
-    for (const tool of topTools) {
-      if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
-      seen.add(tool.id);
-      result.push({ tool, reason: recentSet.has(tool.id) ? 'both' : 'loved' });
-    }
-
-    // Recent tools not already added
+    // Recent tools
     for (const tool of recentTools) {
       if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
       seen.add(tool.id);
@@ -278,7 +257,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     }
 
     return result.slice(0, 6);
-  }, [pinnedIds, recentIds, recentTools, topTools]);
+  }, [pinnedIds, recentTools]);
 
   const pinnedTools = useMemo(() =>
     pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],

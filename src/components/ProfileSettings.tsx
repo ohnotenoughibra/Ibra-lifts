@@ -322,20 +322,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         });
         setRecoverStatus('found');
       } else {
-        // Fallback: also check legacy tables via debug endpoint
-        const debugRes = await fetch('/api/debug/my-data');
-        if (debugRes.ok) {
-          const data = await debugRes.json();
-          const logs = data.workout_logs?.total_count || 0;
-          const hasProfile = !!data.profiles;
-          const hasMeso = data.mesocycles?.count > 0;
-          const hasGamification = !!data.gamification_stats;
-          if (logs > 0 || hasProfile || hasMeso || hasGamification) {
-            setRecoverStats({ workoutLogs: logs, hasProfile, mesocycles: data.mesocycles?.count || 0, hasGamification, storeEmpty: true, storeUpdatedAt: null });
-            setRecoverStatus('found');
-            return;
-          }
-        }
+        // Debug endpoints removed — rely solely on /api/sync/recover
         setRecoverStatus('nothing');
       }
     } catch { setRecoverStatus('error'); }
@@ -405,16 +392,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         }
       }
 
-      // Fallback to legacy restore
-      const res = await fetch('/api/debug/restore', { method: 'POST' });
-      if (!res.ok) throw new Error('Restore failed');
-      const result = await res.json();
-      if (result.restored) {
-        setRecoverStats(result.stats);
-        setRecoverStatus('restored');
-        showToast('Data restored! Refreshing...', 'success');
-        setTimeout(() => window.location.reload(), 1500);
-      } else { setRecoverStatus('nothing'); showToast(result.reason || 'No data to recover', 'error'); }
+      // Debug endpoints removed — no legacy fallback
+      setRecoverStatus('nothing');
+      showToast('No data found to recover', 'error');
     } catch { setRecoverStatus('error'); showToast('Restore failed. Try again.', 'error'); }
   }, [showToast, session]);
 

@@ -918,3 +918,354 @@ function getMaxIntensity(
   }
   return max;
 }
+
+// ─── Live Interference Application ──────────────────────────────────────────
+
+/**
+ * Apply ACWR-based interference to a planned workout session.
+ * This is the missing link — it takes the calculated adjustments and
+ * returns concrete modifications for the workout generator to apply.
+ *
+ * Gabbett 2016: ACWR sweet spot 0.8-1.3; injury risk spikes >1.5
+ * Wilson et al. 2012: Concurrent training interference primarily affects
+ * lower body strength when combined with high-volume running
+ * Doma & Deakin 2013: Residual fatigue from aerobic training reduces
+ * subsequent strength performance for 6-24 hours
+ */
+export function applyInterferenceToWorkout(params: {
+  plannedExercises: Array<{
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    weight: number;
+    muscleGroups: string[];
+  }>;
+  recentSportSessions: TrainingSession[];
+  readinessScore?: number;
+}): {
+  modifiedExercises: Array<{
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    weight: number;
+    muscleGroups: string[];
+    modified: boolean;
+    reason?: string;
+  }>;
+  overallReduction: number;
+  warnings: string[];
+  shouldSkipSession: boolean;
+  recommendedAlternative?: string;
+} {
+  const { plannedExercises, recentSportSessions, readinessScore } = params;
+  const activeSessions = active(recentSportSessions);
+  const warnings: string[] = [];
+
+  // Calculate ACWR from recent sport sessions
+  const cumulativeLoad = calculateCumulativeSportLoad(activeSessions);
+  const { acuteChronicRatio, riskLevel } = cumulativeLoad;
+
+  // ── Danger zone: ACWR > 1.5 — skip session entirely ──
+  // Gabbett 2016: injury risk increases 2-4x when ACWR exceeds 1.5
+  if (riskLevel === 'danger') {
+    return {
+      modifiedExercises: plannedExercises.map((ex) => ({
+        ...ex,
+        modified: true,
+        reason: `ACWR ${acuteChronicRatio} exceeds danger threshold (>1.5). Session skipped.`,
+      })),
+      overallReduction: 100,
+      warnings: [
+        `ACWR is ${acuteChronicRatio} (danger zone >1.5). Injury risk is significantly elevated.`,
+        'Skip this lifting session. Prioritize recovery, mobility, and sleep.',
+      ],
+      shouldSkipSession: true,
+      recommendedAlternative: 'recovery_mobility',
+    };
+  }
+
+  // ── Determine base volume and intensity multipliers from ACWR zone ──
+  let volumeMultiplier = 1.0;
+  let intensityMultiplier = 1.0;
+
+  if (riskLevel === 'caution') {
+    // Gabbett 2016: ACWR 1.3-1.5 — elevated risk, reduce training load
+    // Hulin et al. 2014: Moderate load reduction prevents spike-related injuries
+    volumeMultiplier = 0.70;   // 30% volume reduction
+    intensityMultiplier = 0.85; // 15% intensity reduction
+    warnings.push(
+      `ACWR is ${acuteChronicRatio} (caution zone 1.3-1.5). Volume reduced 30%, intensity reduced 15%.`,
+    );
+  } else if (riskLevel === 'undertrained') {
+    // ACWR < 0.8: detraining risk — no reduction, but flag for the user
+    // Gabbett 2016: undertrained athletes are also at elevated injury risk
+    // when they do spike training load suddenly
+    warnings.push(
+      `ACWR is ${acuteChronicRatio} (undertrained <0.8). Consider gradually increasing training frequency to build chronic load.`,
+    );
+  }
+  // riskLevel === 'optimal' (0.8-1.3): no changes needed
+
+  // ── Muscle-specific interference from yesterday's sport sessions ──
+  // Wilson et al. 2012: Lower body strength most affected by concurrent endurance
+  // Doma & Deakin 2013: 6-24h residual fatigue from sport sessions
+  const now = new Date();
+  const yesterdayMuscleGroups = new Set<string>();
+
+  for (const session of activeSessions) {
+    const daysAgo = daysBetween(new Date(session.date), now);
+    if (daysAgo <= 1) {
+      const peakGroups = PEAK_MUSCLE_GROUPS[session.category];
+      const intensity = getEffectiveIntensity(session);
+      // Only apply muscle-specific interference for moderate+ sessions
+      if (intensity !== 'light_flow') {
+        for (const mg of peakGroups) {
+          if (mg === 'full_body') {
+            // MMA taxes everything — expand to all major groups
+            ['grip', 'posterior_chain', 'core', 'shoulders', 'quads', 'calves'].forEach(
+              (g) => yesterdayMuscleGroups.add(g),
+            );
+          } else {
+            yesterdayMuscleGroups.add(mg);
+          }
+        }
+      }
+    }
+  }
+
+  // ── Readiness compounding ──
+  // Low readiness compounds the ACWR-based reduction
+  // Performance-engine.ts: readiness < 50 indicates compromised recovery state
+  let readinessMultiplier = 1.0;
+  if (readinessScore != null && readinessScore < 50) {
+    // Scale: readiness 0 → 0.7× multiplier, readiness 50 → 1.0×
+    readinessMultiplier = 0.7 + (readinessScore / 50) * 0.3;
+    warnings.push(
+      `Readiness score ${readinessScore}/100 is low. Additional ${Math.round((1 - readinessMultiplier) * 100)}% reduction applied.`,
+    );
+  }
+
+  // ── Apply modifications to each exercise ──
+  const modifiedExercises = plannedExercises.map((exercise) => {
+    let exVolumeMultiplier = volumeMultiplier;
+    let exIntensityMultiplier = intensityMultiplier;
+    const reasons: string[] = [];
+
+    // Check if this exercise's muscle groups overlap with yesterday's sport load
+    const hasOverlap = exercise.muscleGroups.some((mg) => {
+      const lowerMg = mg.toLowerCase();
+      if (yesterdayMuscleGroups.has(lowerMg)) return true;
+      // Check aliases — same mapping used in getSessionAdjustments
+      const reverseAliases: Record<string, string[]> = {
+        grip: ['forearms', 'grip', 'biceps'],
+        posterior_chain: ['back', 'hamstrings', 'glutes', 'erectors'],
+        core: ['core', 'abs', 'obliques'],
+        shoulders: ['shoulders', 'delts', 'front_delts', 'rear_delts'],
+        calves: ['calves'],
+        quads: ['quads', 'quadriceps', 'legs'],
+        hips: ['glutes', 'hips'],
+      };
+      for (const [sportGroup, aliases] of Object.entries(reverseAliases)) {
+        if (yesterdayMuscleGroups.has(sportGroup) && aliases.includes(lowerMg)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (hasOverlap) {
+      // 25% additional volume reduction for directly-taxed muscle groups
+      // Doma & Deakin 2013: residual fatigue reduces force output 8-15%
+      exVolumeMultiplier *= 0.75;
+      reasons.push('Muscle group overlap with recent sport session (-25% volume)');
+    }
+
+    // Apply readiness compounding
+    exVolumeMultiplier *= readinessMultiplier;
+    exIntensityMultiplier *= readinessMultiplier;
+
+    // Calculate modified values
+    const modifiedSets = Math.max(1, Math.round(exercise.sets * exVolumeMultiplier));
+    const modifiedReps = Math.max(1, Math.round(exercise.reps * exVolumeMultiplier));
+    const modifiedWeight = Math.round(exercise.weight * exIntensityMultiplier * 10) / 10;
+
+    const wasModified =
+      modifiedSets !== exercise.sets ||
+      modifiedReps !== exercise.reps ||
+      modifiedWeight !== exercise.weight;
+
+    if (riskLevel === 'caution') {
+      reasons.push(`ACWR ${acuteChronicRatio} in caution zone`);
+    }
+    if (readinessScore != null && readinessScore < 50) {
+      reasons.push(`Low readiness (${readinessScore}/100)`);
+    }
+
+    return {
+      exerciseId: exercise.exerciseId,
+      sets: modifiedSets,
+      reps: modifiedReps,
+      weight: modifiedWeight,
+      muscleGroups: exercise.muscleGroups,
+      modified: wasModified,
+      reason: wasModified ? reasons.join('; ') : undefined,
+    };
+  });
+
+  // Calculate overall reduction percentage
+  const totalOriginalVolume = plannedExercises.reduce(
+    (sum, ex) => sum + ex.sets * ex.reps * ex.weight,
+    0,
+  );
+  const totalModifiedVolume = modifiedExercises.reduce(
+    (sum, ex) => sum + ex.sets * ex.reps * ex.weight,
+    0,
+  );
+  const overallReduction =
+    totalOriginalVolume > 0
+      ? Math.round((1 - totalModifiedVolume / totalOriginalVolume) * 100)
+      : 0;
+
+  return {
+    modifiedExercises,
+    overallReduction: clamp(overallReduction, 0, 100),
+    warnings,
+    shouldSkipSession: false,
+  };
+}
+
+/**
+ * Get a daily interference report combining ACWR, recent sport sessions,
+ * and upcoming planned sessions into a single actionable summary.
+ *
+ * Designed to be called once per day (e.g., by the daily-directive engine)
+ * to produce a training recommendation the user can act on immediately.
+ *
+ * Gabbett 2016: ACWR zones drive risk classification
+ * Hickson 1980: Concurrent training interference increases with proximity
+ * Schumann et al. 2015: Recovery needs vary by training modality ordering
+ */
+export function getDailyInterferenceReport(params: {
+  sportSessions: TrainingSession[];
+  upcomingLiftDay: boolean;
+  readinessScore?: number;
+}): {
+  acwr: number;
+  riskLevel: ACRRiskLevel;
+  todayRecommendation:
+    | 'train_normal'
+    | 'reduce_volume'
+    | 'light_session'
+    | 'rest'
+    | 'active_recovery';
+  muscleGroupsToAvoid: string[];
+  explanation: string;
+} {
+  const { sportSessions, upcomingLiftDay, readinessScore } = params;
+  const activeSessions = active(sportSessions);
+
+  // Calculate ACWR
+  const cumulativeLoad = calculateCumulativeSportLoad(activeSessions);
+  const { acuteChronicRatio, riskLevel } = cumulativeLoad;
+
+  // Identify muscle groups taxed in the last 24 hours
+  const now = new Date();
+  const recentMuscleGroups = new Set<string>();
+
+  for (const session of activeSessions) {
+    const daysAgo = daysBetween(new Date(session.date), now);
+    if (daysAgo <= 1) {
+      const intensity = getEffectiveIntensity(session);
+      if (intensity !== 'light_flow') {
+        const peakGroups = PEAK_MUSCLE_GROUPS[session.category];
+        for (const mg of peakGroups) {
+          if (mg === 'full_body') {
+            ['grip', 'posterior_chain', 'core', 'shoulders', 'quads', 'calves'].forEach(
+              (g) => recentMuscleGroups.add(g),
+            );
+          } else {
+            recentMuscleGroups.add(mg);
+          }
+        }
+      }
+    }
+  }
+
+  const muscleGroupsToAvoid = Array.from(recentMuscleGroups);
+
+  // ── Determine recommendation based on risk level + readiness ──
+  let todayRecommendation:
+    | 'train_normal'
+    | 'reduce_volume'
+    | 'light_session'
+    | 'rest'
+    | 'active_recovery';
+  let explanation: string;
+
+  if (riskLevel === 'danger') {
+    // ACWR > 1.5: rest or active recovery only
+    todayRecommendation = 'rest';
+    explanation =
+      `ACWR is ${acuteChronicRatio} (>1.5 danger zone). ` +
+      'Training load has spiked relative to your chronic baseline. ' +
+      'Rest today to prevent injury. Light walking or mobility is fine.';
+  } else if (riskLevel === 'caution') {
+    // ACWR 1.3-1.5: can train but reduced
+    if (readinessScore != null && readinessScore < 40) {
+      todayRecommendation = 'active_recovery';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (caution zone) and readiness is low (${readinessScore}/100). ` +
+        'Do active recovery: light mobility, foam rolling, or a 20-minute walk. ' +
+        'Save the heavy work for when your body catches up.';
+    } else {
+      todayRecommendation = 'light_session';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (caution zone 1.3-1.5). ` +
+        'You can train but keep it light — reduce volume by 30% and intensity by 15%. ' +
+        'Focus on hypertrophy-style pump work rather than heavy singles.';
+    }
+  } else if (riskLevel === 'optimal') {
+    // ACWR 0.8-1.3: green light
+    if (readinessScore != null && readinessScore < 40) {
+      todayRecommendation = 'reduce_volume';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (optimal zone) but readiness is low (${readinessScore}/100). ` +
+        'Your training load is balanced but your body is fatigued. ' +
+        'Train with reduced volume — cut 1-2 sets per exercise.';
+    } else if (muscleGroupsToAvoid.length > 0 && upcomingLiftDay) {
+      todayRecommendation = 'reduce_volume';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (optimal). Recent sport sessions taxed ${muscleGroupsToAvoid.join(', ')}. ` +
+        'Train normally but reduce volume on the overlapping muscle groups, or choose exercises that target fresh muscles.';
+    } else {
+      todayRecommendation = 'train_normal';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (optimal zone 0.8-1.3). ` +
+        'Training load is well-managed. Full send — train as programmed.';
+    }
+  } else {
+    // riskLevel === 'undertrained' (ACWR < 0.8)
+    if (upcomingLiftDay) {
+      todayRecommendation = 'train_normal';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (<0.8 — undertrained). ` +
+        'Your recent training load is below your chronic baseline. ' +
+        'Train as planned, and consider adding sport sessions this week ' +
+        'to rebuild your chronic load and reduce future injury risk from sudden spikes.';
+    } else {
+      todayRecommendation = 'active_recovery';
+      explanation =
+        `ACWR is ${acuteChronicRatio} (<0.8 — undertrained). ` +
+        'No lifting planned today. Use this as an opportunity for active recovery ' +
+        'or a sport session to rebuild chronic training load.';
+    }
+  }
+
+  return {
+    acwr: acuteChronicRatio,
+    riskLevel,
+    todayRecommendation,
+    muscleGroupsToAvoid,
+    explanation,
+  };
+}

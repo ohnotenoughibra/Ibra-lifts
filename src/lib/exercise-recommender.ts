@@ -9,15 +9,37 @@
  */
 
 import type { WorkoutLog, MovementPattern } from './types';
-import {
-  buildPerformanceProfiles,
-  findStrongestLifts,
-  findWeakLinks,
-  getProgressionRate,
-  type ExercisePerformanceProfile,
-  type WeakLink,
-} from './performance-model';
 import { getExerciseById } from './exercises';
+
+// ─── Stubs for removed performance-model.ts ─────────────────────────────────
+// These were previously imported from './performance-model' which has been deleted.
+// The recommender now returns empty/neutral results for profile-dependent logic.
+
+interface ExercisePerformanceProfile {
+  exerciseId: string;
+  exerciseName: string;
+  dataPoints: number;
+  estimated1RM: { trend: 'rising' | 'plateau' | 'declining' };
+  volumeResponse: 'high' | 'moderate' | 'low';
+  fatigueSensitivity: 'high' | 'moderate' | 'low';
+}
+
+interface WeakLink {
+  exerciseId: string;
+  severity: number;
+}
+
+function buildPerformanceProfiles(_workoutLogs: WorkoutLog[]): ExercisePerformanceProfile[] {
+  return [];
+}
+
+function findWeakLinks(_workoutLogs: WorkoutLog[]): WeakLink[] {
+  return [];
+}
+
+function getProgressionRate(_exerciseId: string, _workoutLogs: WorkoutLog[]): { weeklyGainPercent: number; totalGainPercent: number } {
+  return { weeklyGainPercent: 0, totalGainPercent: 0 };
+}
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 

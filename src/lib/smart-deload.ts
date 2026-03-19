@@ -22,7 +22,15 @@ import type {
   TrainingSession,
   Mesocycle,
 } from './types';
-import type { ExercisePerformanceProfile } from './performance-model';
+// performance-model.ts has been removed; inline the type shape needed here
+interface ExercisePerformanceProfile {
+  exerciseId: string;
+  exerciseName: string;
+  dataPoints: number;
+  estimated1RM: { trend: 'rising' | 'plateau' | 'declining' };
+  volumeResponse: 'high' | 'moderate' | 'low';
+  fatigueSensitivity: 'high' | 'moderate' | 'low';
+}
 import { getCompletedSessionIds, flattenSessions } from './session-matching';
 import { toLocalDateStr } from './utils';
 

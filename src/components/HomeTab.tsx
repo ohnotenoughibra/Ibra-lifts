@@ -65,7 +65,6 @@ import { generateWeeklySynthesis, generatePostWorkoutCoachingLine, generateWeekl
 import type { WeeklyInsight } from '@/lib/weekly-synthesis';
 import { getInjuryProfiles, getInjuryInsights } from '@/lib/injury-intelligence';
 import { detectInjuryPatterns, assessInjuryRisk, type InjuryPattern } from '@/lib/injury-patterns';
-import { buildPerformanceProfiles } from '@/lib/performance-model';
 import { buildRecoveryProfile, findOptimalTrainingWindow, type RecoveryWindow } from '@/lib/adaptive-readiness';
 import { generateVariableReward, detectDisengagement, getSessionContext } from '@/lib/engagement-engine';
 import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-deload';
@@ -85,7 +84,6 @@ import WeeklyCalendar from './WeeklyCalendar';
 import DashboardInsights from './DashboardInsights';
 import { PostWorkoutPhase, CombatPhase, LiftPhase, BlockCompletePhase, OnboardingPhase } from './phases';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
-import { getDockSuggestions } from '@/lib/tool-affinity';
 import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
@@ -510,9 +508,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }, []),
   });
 
-  // ─── Tool affinity — smart dock suggestions ───
-  const featureFeedback = useAppStore(s => s.featureFeedback);
-
   // ─── Quick Access dock — event-synced with Explore tab ───
   const DOCK_SLOTS = 4;
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
@@ -849,11 +844,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getInjuryInsights(injuryProfiles, workoutLogs);
   }, [injuryProfiles, workoutLogs]);
 
-  // ─── Performance Model ───
-  const performanceProfiles = useMemo(() => {
-    return buildPerformanceProfiles(workoutLogs);
-  }, [workoutLogs]);
-
   // ─── Performance Narrative ───
   const narrative = useMemo(() => {
     return generatePerformanceNarrative({ workoutLogs, trainingSessions, user });
@@ -880,8 +870,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }, [workoutLogs, wearableHistory]);
 
   const deloadRec = useMemo(() => {
-    return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
-  }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
+    return getSmartDeloadRecommendation(workoutLogs, wearableHistory, undefined, currentMesocycle ?? undefined);
+  }, [workoutLogs, wearableHistory, currentMesocycle]);
 
   // ─── Female Athlete Intelligence ───
   const showCycle = shouldShowCycleFeatures(user);
@@ -2467,58 +2457,26 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           {(() => {
             const emptyCount = DOCK_SLOTS - Math.min(pinnedIds.length, DOCK_SLOTS);
             if (emptyCount === 0) return null;
-            const suggestions = getDockSuggestions(featureFeedback, pinnedIds, emptyCount);
-            return Array.from({ length: emptyCount }).map((_, i) => {
-              const suggestedTool = suggestions[i] ? TOOL_MAP.get(suggestions[i]) : null;
-              if (suggestedTool && !dockEditMode) {
-                // Smart suggestion — show the suggested tool faded with a tap-to-add UX
-                const SugIcon = suggestedTool.icon;
-                const textColor = suggestedTool.color.split(' ').find(c => c.startsWith('text-')) || 'text-grappler-500';
-                return (
-                  <button
-                    key={`suggest-${i}`}
-                    onClick={() => {
-                      hapticMedium();
-                      const fresh = readPins();
-                      const next = [...fresh, suggestedTool.id].slice(0, DOCK_SLOTS);
-                      writePins(next);
-                      setPinnedIds(next);
-                    }}
-                    className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
-                    style={{ touchAction: 'manipulation' }}
-                  >
-                    <div className="relative w-12 h-12 rounded-2xl border border-dashed border-grappler-700/40 bg-grappler-800/30 flex items-center justify-center">
-                      <SugIcon className={cn('w-5 h-5 opacity-30', textColor)} />
-                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-500/80 flex items-center justify-center">
-                        <Plus className="w-2.5 h-2.5 text-white" />
-                      </div>
-                    </div>
-                    <span className="text-xs text-grappler-600 font-medium truncate w-full text-center">{suggestedTool.label}</span>
-                  </button>
-                );
-              }
-              // Fallback: plain empty slot
-              return (
-                <button
-                  key={`empty-${i}`}
-                  onClick={() => {
-                    setDockEditMode(true);
-                    setDockPickerSlot(pinnedIds.length + i);
-                    setDockPickerOpen(true);
-                  }}
-                  className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  <div className={cn(
-                    'w-12 h-12 rounded-2xl border-2 border-dashed flex items-center justify-center',
-                    dockEditMode ? 'border-primary-400/40 bg-primary-500/5' : 'border-grappler-700/30'
-                  )}>
-                    <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
-                  </div>
-                  <span className="text-xs text-transparent select-none">&nbsp;</span>
-                </button>
-              );
-            });
+            return Array.from({ length: emptyCount }).map((_, i) => (
+              <button
+                key={`empty-${i}`}
+                onClick={() => {
+                  setDockEditMode(true);
+                  setDockPickerSlot(pinnedIds.length + i);
+                  setDockPickerOpen(true);
+                }}
+                className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
+                style={{ touchAction: 'manipulation' }}
+              >
+                <div className={cn(
+                  'w-12 h-12 rounded-2xl border-2 border-dashed flex items-center justify-center',
+                  dockEditMode ? 'border-primary-400/40 bg-primary-500/5' : 'border-grappler-700/30'
+                )}>
+                  <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
+                </div>
+                <span className="text-xs text-transparent select-none">&nbsp;</span>
+              </button>
+            ));
           })()}
         </div>
       </div>
@@ -2564,9 +2522,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <div className="grid grid-cols-3 gap-3">
                 {(() => {
                   const filtered = ALL_TOOLS.filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id));
-                  // Sort by affinity — loved tools first
-                  const affinityMap = new Map(getDockSuggestions(featureFeedback, [], 100).map((id, i) => [id, 100 - i]));
-                  filtered.sort((a, b) => (affinityMap.get(b.id) ?? 0) - (affinityMap.get(a.id) ?? 0));
                   return filtered;
                 })().map(tool => {
                     const Icon = tool.icon;

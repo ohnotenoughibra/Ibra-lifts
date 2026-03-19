@@ -82,14 +82,12 @@ const InjuryLogger = dynamic(() => import('./InjuryLogger'), { loading: () => <O
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
-const HRZoneTraining = dynamic(() => import('./HRZoneTraining'), { loading: () => <OverlaySkeleton /> });
 const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: () => <OverlaySkeleton /> });
 const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
 const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
-const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
 const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
 const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading: () => <OverlaySkeleton /> });
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
@@ -105,11 +103,9 @@ const WarmUpInfo = dynamic(() => import('./WarmUpInfo'), { loading: () => <Overl
 const PlateCalculator = dynamic(() => import('./PlateCalculator'), { loading: () => <OverlaySkeleton /> });
 const CircuitBuilder = dynamic(() => import('./CircuitBuilder'), { loading: () => <OverlaySkeleton /> });
 const PhotoProgress = dynamic(() => import('./PhotoProgress'), { loading: () => <OverlaySkeleton /> });
-const BreathingProtocols = dynamic(() => import('./BreathingProtocols'), { loading: () => <OverlaySkeleton /> });
 const SplitAnalyzer = dynamic(() => import('./SplitAnalyzer'), { loading: () => <OverlaySkeleton /> });
 const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
-const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <OverlaySkeleton /> });
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
@@ -128,24 +124,20 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   illness: 'injury-illness',
   custom_exercise: 'custom-exercises',
   templates: 'session-templates',
-  grip_strength: 'grip-tracking',
   recovery_coach: 'ai-coach',
   block_suggestion: 'block-suggestions',
   volume_map: 'advanced-analytics',
   periodization: 'advanced-analytics',
   overload: 'advanced-analytics',
   recovery: 'advanced-analytics',
-  hr_zones: 'wearable-integration',
   cycle_tracking: 'advanced-analytics',
   fatigue: 'advanced-analytics',
   fight_camp: 'fight-camp-nutrition',
   grappling: 'competition-prep',
   circuit_builder: 'advanced-analytics',
   photo_progress: 'advanced-analytics',
-  breathing: 'advanced-analytics',
   split_analyzer: 'advanced-analytics',
   conditioning: 'advanced-analytics',
-  fighters_mind: 'advanced-analytics',
   training_journal: 'advanced-analytics',
 };
 
@@ -604,13 +596,11 @@ export default function Dashboard({
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
       one_rm: <OneRepMaxCalc onClose={closeOverlay} />,
-      hr_zones: <HRZoneTraining onClose={closeOverlay} />,
       templates: <SessionTemplates onClose={closeOverlay} />,
       volume_map: <VolumeHeatMap onClose={closeOverlay} />,
       grappling: <GrapplingTracker onClose={closeOverlay} />,
       community_share: <CommunityShare onClose={closeOverlay} />,
       quick_actions: <QuickActions onClose={closeOverlay} />,
-      grip_strength: <GripStrengthModule onClose={closeOverlay} />,
       recovery_coach: <RecoveryCoach onClose={closeOverlay} />,
       block_suggestion: <BlockSuggestionView onClose={closeOverlay} />,
       user_guide: <NewUserGuide onComplete={closeOverlay} />,
@@ -627,11 +617,9 @@ export default function Dashboard({
       plate_calc: <PlateCalculator onClose={closeOverlay} />,
       circuit_builder: <CircuitBuilder onClose={closeOverlay} />,
       photo_progress: <PhotoProgress onClose={closeOverlay} />,
-      breathing: <BreathingProtocols onClose={closeOverlay} />,
       split_analyzer: <SplitAnalyzer onClose={closeOverlay} />,
       movement_library: <MovementLibrary onClose={closeOverlay} />,
       conditioning: <ConditioningSession onClose={closeOverlay} />,
-      fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} />,

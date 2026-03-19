@@ -95,19 +95,25 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const COMBAT_CATEGORIES: ActivityCategory[] = ['grappling', 'striking', 'mma'];
 
-// Whoop sport IDs for combat disciplines
+// Whoop sport IDs for combat disciplines (v2 API)
 const COMBAT_SPORT_IDS = new Set([
-  82,  // Brazilian Jiu Jitsu
-  83,  // Boxing
-  84,  // Kickboxing
-  85,  // MMA
-  86,  // Muay Thai
-  87,  // Wrestling
-  88,  // Martial Arts
-  43,  // Judo
-  44,  // Karate
-  45,  // Taekwondo
+  38,  // Wrestling
+  39,  // Boxing
+  57,  // Martial Arts
+  70,  // Brazilian Jiu Jitsu
+  71,  // Kickboxing
+  84,  // MMA
 ]);
+
+// Name-based fallback — Whoop sport IDs can change between API versions,
+// but sportName is always reliable. Matches combat sport names case-insensitively.
+const COMBAT_SPORT_NAME_PATTERNS = /\b(jiu[\s-]?jitsu|bjj|wrestling|boxing|kickboxing|muay[\s-]?thai|mma|mixed[\s-]?martial|martial[\s-]?arts?|judo|karate|taekwondo|sambo|grappling)\b/i;
+
+function isCombatWhoopWorkout(w: WhoopWorkout): boolean {
+  if (COMBAT_SPORT_IDS.has(w.sportId)) return true;
+  if (w.sportName && COMBAT_SPORT_NAME_PATTERNS.test(w.sportName)) return true;
+  return false;
+}
 
 const ZONE_LABELS: Record<number, string> = {
   1: 'Recovery',
@@ -388,7 +394,7 @@ export function calculateMatTime(
   // From Whoop combat sport workouts
   whoopWorkouts.forEach(w => {
     if (new Date(w.start).getTime() < cutoff) return;
-    if (COMBAT_SPORT_IDS.has(w.sportId)) {
+    if (isCombatWhoopWorkout(w)) {
       const dur = (new Date(w.end).getTime() - new Date(w.start).getTime()) / 60000;
       minutes += dur;
       sessions++;

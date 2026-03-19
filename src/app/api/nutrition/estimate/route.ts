@@ -5,9 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
  * Falls back gracefully if no API key or quota exceeded.
  *
  * POST /api/nutrition/estimate
- * Body: { query: string }
+ * Body: { query?: string, image?: string }
+ *   - query: text description of food (required if no image)
+ *   - image: base64-encoded JPEG/PNG (optional, max 4MB)
  * Returns: { foods: [{ name, calories, protein, carbs, fat, portion }], source: 'ai' }
  */
+
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB Gemini limit
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
 
@@ -39,10 +43,22 @@ Return ONLY valid JSON in this exact format, no markdown:
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json();
+    const { query, image } = await request.json();
 
-    if (!query || typeof query !== 'string' || query.trim().length < 2) {
+    // Must have at least a text query or an image
+    const hasQuery = query && typeof query === 'string' && query.trim().length >= 2;
+    const hasImage = image && typeof image === 'string' && image.length > 0;
+
+    if (!hasQuery && !hasImage) {
       return NextResponse.json({ error: 'Query too short' }, { status: 400 });
+    }
+
+    // Validate image size if provided (base64 is ~33% larger than raw bytes)
+    if (hasImage) {
+      const estimatedBytes = Math.ceil((image.length * 3) / 4);
+      if (estimatedBytes > MAX_IMAGE_SIZE_BYTES) {
+        return NextResponse.json({ error: 'Image too large (max 4MB)' }, { status: 400 });
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -50,12 +66,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI estimation not configured' }, { status: 503 });
     }
 
+    // Build content parts: optional image + text
+    const parts: Array<{ text: string } | { inline_data: { mime_type: string; data: string } }> = [];
+
+    if (hasImage) {
+      // Strip data URL prefix if present (e.g., "data:image/jpeg;base64,")
+      const base64Data = image.includes(',') ? image.split(',')[1] : image;
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: base64Data } });
+    }
+
+    const textPrompt = hasQuery
+      ? query.trim()
+      : 'Identify all foods in this image and estimate macronutrients for each.';
+    parts.push({ text: textPrompt });
+
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ parts: [{ text: query.trim() }] }],
+        contents: [{ parts }],
         generationConfig: {
           temperature: 0.1,
           maxOutputTokens: 512,

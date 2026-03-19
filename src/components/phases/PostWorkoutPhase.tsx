@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
+import type { PostSessionDelta } from '@/lib/progress-analytics';
 
 interface PostWorkoutPhaseProps {
   todayPerformance: {
@@ -37,6 +38,7 @@ interface PostWorkoutPhaseProps {
   onNavigate: (view: OverlayView, context?: string) => void;
   onViewReport?: (mesoId: string) => void;
   onGenerateNext?: () => void;
+  sessionDelta?: PostSessionDelta | null;
   prevBlockJustCompleted?: boolean;
   blockCompleteStats?: {
     mesoId: string;
@@ -65,6 +67,7 @@ export default function PostWorkoutPhase({
   onNavigate,
   onViewReport,
   onGenerateNext,
+  sessionDelta,
   prevBlockJustCompleted,
   blockCompleteStats,
 }: PostWorkoutPhaseProps) {
@@ -396,6 +399,34 @@ export default function PostWorkoutPhase({
             </motion.span>
           ))}
         </div>
+      )}
+
+      {/* Session Impact — e1RM changes */}
+      {sessionDelta && sessionDelta.e1rmChanges.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.38, duration: 0.25 }}
+          className="bg-grappler-800/40 border border-grappler-700/30 rounded-xl px-3 py-2.5 mb-3"
+        >
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <TrendingUp className="w-3 h-3 text-green-400" />
+            <span className="text-[10px] font-bold text-grappler-400 uppercase tracking-wide">Session Impact</span>
+          </div>
+          <div className="space-y-1">
+            {sessionDelta.e1rmChanges.slice(0, 4).map((change, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-xs text-grappler-300 truncate flex-1 mr-2">{change.exerciseName}</span>
+                <span className={cn(
+                  'text-xs font-bold',
+                  change.deltaKg > 0 ? 'text-green-400' : 'text-red-400'
+                )}>
+                  {change.deltaKg > 0 ? '\u25B2' : '\u25BC'} {change.deltaKg > 0 ? '+' : ''}{Math.round(change.deltaKg)}{weightUnit === 'lbs' ? 'lbs' : 'kg'} e1RM
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       )}
 
       {/* Performance metrics */}

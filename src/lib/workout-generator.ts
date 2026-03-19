@@ -857,6 +857,24 @@ function selectExercisesForType(
     selected.push(...gripWork);
   }
 
+  // GAP FIX: If filtering produced zero exercises (e.g., extreme equipment
+  // restrictions or empty split-day intersection), fall back to the first 4
+  // compound exercises from the unfiltered pool so the session isn't blank.
+  if (selected.length === 0) {
+    console.warn(
+      '[workout-generator] selectExercisesForType returned 0 exercises — ' +
+      'falling back to first 4 compounds from unfiltered pool. ' +
+      `splitDayRole=${splitDayRole}, equipment=${equipment}, type=${type}`
+    );
+    const fallbackPool = allAvailable.length > 0
+      ? allAvailable.filter(e => e.category === 'compound')
+      : exercises.filter(e => e.category === 'compound');
+    for (const ex of fallbackPool.slice(0, 4)) {
+      selected.push(ex);
+      usedExerciseIds.add(ex.id);
+    }
+  }
+
   return selected;
 }
 

@@ -62,6 +62,7 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
     wearableHistory,
     latestWhoopData,
     currentMesocycle,
+    meals,
   } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
@@ -69,6 +70,7 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
       wearableHistory: s.wearableHistory ?? [],
       latestWhoopData: s.latestWhoopData,
       currentMesocycle: s.currentMesocycle,
+      meals: s.meals?.filter(m => !m._deleted) ?? [],
     }))
   );
 
@@ -96,10 +98,12 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
       recoveryScore: latestWhoopData?.recoveryScore ?? null,
       workoutCount: workoutLogs.length,
       weeklyWorkoutCount,
+      workoutLogs,
+      meals,
     });
 
     return { insights: ins, volumeGauges: gauges };
-  }, [workoutLogs, trainingSessions, wearableHistory, latestWhoopData, currentMesocycle]);
+  }, [workoutLogs, trainingSessions, wearableHistory, latestWhoopData, currentMesocycle, meals]);
 
   // Volume summary for collapsed header
   const volumeSummary = useMemo(() => {

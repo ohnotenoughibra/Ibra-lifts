@@ -855,3 +855,122 @@ export function assessRIRConfidence(workoutLogs: WorkoutLog[]): RIRConfidence[] 
   }
   return results;
 }
+
+// ── 8. Post-Session Progress Delta ──────────────────────────────────────────
+
+export interface PostSessionDelta {
+  e1rmChanges: {
+    exerciseName: string;
+    previousE1RM: number;
+    currentE1RM: number;
+    deltaKg: number;
+  }[];
+  weeklyVolumeProgress: {
+    muscle: string;
+    currentSets: number;
+    targetSets: number;
+  }[];
+}
+
+/**
+ * Calculate immediate concrete gains after completing a workout.
+ * Shows e1RM changes per exercise and weekly volume progress per muscle.
+ */
+export function calculatePostSessionDelta(
+  completedLog: WorkoutLog,
+  allLogs: WorkoutLog[],
+  volumeTargets?: Record<string, number>,
+): PostSessionDelta {
+  const e1rmChanges: PostSessionDelta['e1rmChanges'] = [];
+
+  // Previous logs: everything except the completed log
+  const previousLogs = active(allLogs).filter(l => l.id !== completedLog.id);
+
+  // Build a map of previous best e1RM per exercise
+  const prevBestE1RM: Record<string, number> = {};
+  for (const log of previousLogs) {
+    for (const ex of log.exercises) {
+      const completedSets = ex.sets.filter(s => s.completed && s.weight > 0);
+      for (const set of completedSets) {
+        const e1rm = calc1RM(set.weight, set.reps);
+        if (e1rm > (prevBestE1RM[ex.exerciseId] ?? 0)) {
+          prevBestE1RM[ex.exerciseId] = e1rm;
+        }
+      }
+    }
+  }
+
+  // Calculate e1RM for each exercise in the completed log
+  for (const ex of completedLog.exercises) {
+    const completedSets = ex.sets.filter(s => s.completed && s.weight > 0);
+    if (completedSets.length === 0) continue;
+
+    let bestE1rm = 0;
+    for (const set of completedSets) {
+      const e1rm = calc1RM(set.weight, set.reps);
+      if (e1rm > bestE1rm) bestE1rm = e1rm;
+    }
+
+    if (bestE1rm <= 0) continue;
+
+    const previousBest = prevBestE1RM[ex.exerciseId] ?? 0;
+    const delta = previousBest > 0 ? bestE1rm - previousBest : 0;
+
+    // Only include if there's a previous reference point and e1RM changed
+    if (previousBest > 0 && delta !== 0) {
+      e1rmChanges.push({
+        exerciseName: ex.exerciseName,
+        previousE1RM: previousBest,
+        currentE1RM: bestE1rm,
+        deltaKg: delta,
+      });
+    }
+  }
+
+  // Sort: biggest positive gains first, then negative
+  e1rmChanges.sort((a, b) => b.deltaKg - a.deltaKg);
+
+  // ── Weekly volume progress ──
+  const weeklyVolumeProgress: PostSessionDelta['weeklyVolumeProgress'] = [];
+
+  // Count sets per muscle group in the last 7 days (including this log)
+  const sevenDaysAgo = new Date(completedLog.date).getTime() - 7 * 24 * 60 * 60 * 1000;
+  const weekLogs = active(allLogs).filter(l => {
+    const t = new Date(l.date).getTime();
+    return t > sevenDaysAgo && t <= new Date(completedLog.date).getTime();
+  });
+
+  const muscleSets: Record<string, number> = {};
+  for (const log of weekLogs) {
+    for (const ex of log.exercises) {
+      const exercise = getExerciseById(ex.exerciseId);
+      if (!exercise) continue;
+      const sets = ex.sets.filter(s => s.completed).length;
+      for (const m of exercise.primaryMuscles) {
+        muscleSets[m] = (muscleSets[m] || 0) + sets;
+      }
+    }
+  }
+
+  // Use provided volumeTargets or fall back to MEV from VOLUME_LANDMARKS
+  const targets = volumeTargets ?? {};
+  for (const [muscle, currentSets] of Object.entries(muscleSets)) {
+    if (muscle === 'full_body') continue;
+    const target = targets[muscle] ?? VOLUME_LANDMARKS[muscle]?.mev;
+    if (!target) continue;
+    weeklyVolumeProgress.push({
+      muscle: MUSCLE_LABELS[muscle] || muscle,
+      currentSets,
+      targetSets: target,
+    });
+  }
+
+  // Sort: closest to or exceeding target first
+  weeklyVolumeProgress.sort((a, b) => {
+    const aRatio = a.currentSets / a.targetSets;
+    const bRatio = b.currentSets / b.targetSets;
+    return bRatio - aRatio;
+  });
+
+  return { e1rmChanges, weeklyVolumeProgress };
+}

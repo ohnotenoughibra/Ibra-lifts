@@ -394,15 +394,16 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       stat: todayWeight ? `${todayWeight.weight}${weightUnit}` : null,
       done: !!todayWeight,
     },
-    {
-      id: 'supplements' as QuickLogType,
-      icon: Pill,
-      label: 'Supps',
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/15',
-      stat: totalSupps > 0 ? `${takenSupps}/${totalSupps}` : null,
-      done: totalSupps > 0 && takenSupps === totalSupps,
-    },
+    // scope-reduction: hidden
+    // {
+    //   id: 'supplements' as QuickLogType,
+    //   icon: Pill,
+    //   label: 'Supps',
+    //   color: 'text-emerald-400',
+    //   bg: 'bg-emerald-500/15',
+    //   stat: totalSupps > 0 ? `${takenSupps}/${totalSupps}` : null,
+    //   done: totalSupps > 0 && takenSupps === totalSupps,
+    // },
   ];
 
   const secondaryActions = [
@@ -415,21 +416,20 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       stat: hasSleep ? 'Logged' : null,
       done: hasSleep,
     },
-    {
-      id: 'energy' as QuickLogType,
-      icon: Zap,
-      label: 'Energy',
-      color: 'text-yellow-400',
-      bg: 'bg-yellow-500/15',
-      stat: hasEnergy ? `${todayLogs.find(l => l.type === 'energy')?.value}/5` : null,
-      done: hasEnergy,
-    },
+    // scope-reduction: hidden
+    // {
+    //   id: 'energy' as QuickLogType,
+    //   icon: Zap,
+    //   label: 'Energy',
+    //   color: 'text-yellow-400',
+    //   bg: 'bg-yellow-500/15',
+    //   stat: hasEnergy ? `${todayLogs.find(l => l.type === 'energy')?.value}/5` : null,
+    //   done: hasEnergy,
+    // },
     {
       id: 'training' as QuickLogType,
       icon: Shield,
-      label: user?.combatSport === 'striking' ? 'Striking' :
-             user?.combatSport === 'mma' ? 'MMA' :
-             user?.combatSport === 'grappling_gi' || user?.combatSport === 'grappling_nogi' ? 'Grappling' : 'Training',
+      label: 'Session', // scope-reduction: merged Training + Sparring into one with type picker
       color: 'text-lime-400',
       bg: 'bg-lime-500/15',
       stat: todayTraining.length > 0 ? `${todayTraining.reduce((s, t) => s + t.duration, 0)}min` : null,
@@ -438,54 +438,59 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     {
       id: 'mobility' as QuickLogType,
       icon: Leaf,
-      label: 'Mobility',
+      label: 'Wellness', // scope-reduction: merged Recovery + Mobility into one
       color: 'text-emerald-400',
       bg: 'bg-teal-500/15',
-      stat: todayLogs.filter(l => l.type === 'mobility').reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0) > 0
-        ? `${todayLogs.filter(l => l.type === 'mobility').reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0)}min`
+      stat: todayLogs.filter(l => l.type === 'mobility' || l.notes?.includes('Recovery')).reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0) > 0
+        ? `${todayLogs.filter(l => l.type === 'mobility' || l.notes?.includes('Recovery')).reduce((s, l) => s + (typeof l.value === 'number' ? l.value : 0), 0)}min`
         : null,
-      done: todayLogs.filter(l => l.type === 'mobility').length > 0,
+      done: todayLogs.filter(l => l.type === 'mobility' || l.notes?.includes('Recovery')).length > 0,
     },
   ];
 
   // Combat-specific actions
-  const combatActions = [
-    {
-      id: 'sparring' as QuickLogType,
-      icon: Swords,
-      label: 'Sparring',
-      color: 'text-red-400',
-      bg: 'bg-red-500/15',
-      stat: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0 ? 'Logged' : null,
-      done: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0,
-    },
-    {
-      id: 'pain' as QuickLogType,
-      icon: ThermometerSun,
-      label: 'Pain Check',
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/15',
-      stat: null,
-      done: false,
-    },
-    {
-      id: 'recovery' as QuickLogType,
-      icon: Snowflake,
-      label: 'Recovery',
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-500/15',
-      stat: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0 ? 'Logged' : null,
-      done: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0,
-    },
-    {
-      id: 'mental' as QuickLogType,
-      icon: Brain,
-      label: 'Mental',
-      color: 'text-violet-400',
-      bg: 'bg-violet-500/15',
-      stat: null,
-      done: false,
-    },
+  // scope-reduction: hidden — all combat actions commented out (sparring merged into Session, recovery merged into Wellness)
+  const combatActions: typeof primaryActions = [
+    // scope-reduction: hidden
+    // {
+    //   id: 'sparring' as QuickLogType,
+    //   icon: Swords,
+    //   label: 'Sparring',
+    //   color: 'text-red-400',
+    //   bg: 'bg-red-500/15',
+    //   stat: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0 ? 'Logged' : null,
+    //   done: todayTraining.filter(t => t.notes?.includes('Sparring')).length > 0,
+    // },
+    // scope-reduction: hidden
+    // {
+    //   id: 'pain' as QuickLogType,
+    //   icon: ThermometerSun,
+    //   label: 'Pain Check',
+    //   color: 'text-amber-400',
+    //   bg: 'bg-amber-500/15',
+    //   stat: null,
+    //   done: false,
+    // },
+    // scope-reduction: hidden
+    // {
+    //   id: 'recovery' as QuickLogType,
+    //   icon: Snowflake,
+    //   label: 'Recovery',
+    //   color: 'text-cyan-400',
+    //   bg: 'bg-cyan-500/15',
+    //   stat: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0 ? 'Logged' : null,
+    //   done: todayLogs.filter(l => l.notes?.includes('Recovery')).length > 0,
+    // },
+    // scope-reduction: hidden
+    // {
+    //   id: 'mental' as QuickLogType,
+    //   icon: Brain,
+    //   label: 'Mental',
+    //   color: 'text-violet-400',
+    //   bg: 'bg-violet-500/15',
+    //   stat: null,
+    //   done: false,
+    // },
   ];
 
   // ── Render input forms ──────────────────────────────────────────────────

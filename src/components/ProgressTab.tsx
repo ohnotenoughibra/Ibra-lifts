@@ -1859,87 +1859,8 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
             {tab.label}
           </button>
         ))}
-        {/* Export/Import overflow menu */}
-        <button
-          onClick={() => setShowExport(!showExport)}
-          className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200 flex-shrink-0"
-          title="Export / Import Data"
-          aria-label="Export or import data"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+        {/* scope-reduction: export/import moved to ProfileSettings */}
       </div>
-
-      {/* Import status toast */}
-      <AnimatePresence>
-        {importStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={cn(
-              'rounded-xl px-4 py-3 text-sm font-medium',
-              importStatus.type === 'success'
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-            )}
-          >
-            {importStatus.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Export / Import panel */}
-      <AnimatePresence>
-        {showExport && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="card p-4 space-y-4">
-              <div>
-                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
-                <div className="flex gap-3">
-                  <button onClick={handleExportCSV} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <FileSpreadsheet className="w-3.5 h-3.5" /> CSV
-                  </button>
-                  <button onClick={handleExportJSON} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <FileJson className="w-3.5 h-3.5" /> JSON
-                  </button>
-                </div>
-              </div>
-              <div className="border-t border-grappler-800 pt-3">
-                <p className="text-sm text-grappler-300 mb-2 font-medium">Full backup</p>
-                <div className="flex gap-3">
-                  <button onClick={handleExportBackup} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <Download className="w-3.5 h-3.5" /> Export Backup
-                  </button>
-                  {!confirmImport ? (
-                    <button
-                      onClick={() => setConfirmImport(true)}
-                      className="btn btn-secondary gap-2 text-xs py-2 px-3"
-                    >
-                      <History className="w-3.5 h-3.5" /> Import Backup
-                    </button>
-                  ) : (
-                    <label className="btn btn-primary gap-2 text-xs py-2 px-3 cursor-pointer">
-                      <History className="w-3.5 h-3.5" /> Choose File
-                      <input type="file" accept=".json" className="hidden" onChange={handleImportFile} />
-                    </label>
-                  )}
-                </div>
-                {confirmImport && (
-                  <p className="text-xs text-sky-400 mt-2">
-                    This will replace all current data. Make sure you have a backup first.
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Content */}
       {view === 'dashboard' && !hydrated && <OverviewSkeleton />}

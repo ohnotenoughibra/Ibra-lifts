@@ -771,12 +771,24 @@ export function getSmartDeloadRecommendation(
     });
   }
 
-  // Trigger 5: 4+ weeks of progressive overload without a deload
+  // Trigger 5: 4+ weeks overload — reactive: only when performance/recovery confirms fatigue
   const overloadWeeks = countConsecutiveOverloadWeeks(fatigueDebt.weeklyFatigueScores);
+  const hasPerformanceDecline = (performanceProfiles ?? []).filter(
+    p => p.estimated1RM.trend === 'declining' && p.dataPoints >= 3
+  ).length >= 1;
+  const decliningNames = (performanceProfiles ?? [])
+    .filter(p => p.estimated1RM.trend === 'declining' && p.dataPoints >= 3)
+    .map(p => p.exerciseName).slice(0, 2);
+  const hasHighFatigue = fatigueDebt.currentDebt >= 50;
+  const reactiveSignal = hasPerformanceDecline || hasHighFatigue;
+  const reactiveDetails = [
+    hasPerformanceDecline ? `declining ${decliningNames.join(', ')} performance` : '',
+    hasHighFatigue ? `high fatigue debt (${fatigueDebt.currentDebt}/100)` : '',
+  ].filter(Boolean).join(' and ');
   triggers.push({
-    met: overloadWeeks >= 4,
-    urgency: overloadWeeks >= 6 ? 'recommended' : 'optional',
-    reason: `${overloadWeeks} consecutive weeks of progressive overload without a deload — accumulated fatigue risk`,
+    met: overloadWeeks >= 4 && reactiveSignal,
+    urgency: overloadWeeks >= 6 && hasPerformanceDecline ? 'recommended' : 'optional',
+    reason: `${overloadWeeks} overload weeks with ${reactiveDetails} — reactive deload warranted`,
   });
 
   // ─── Determine if deload is needed ────────────────────────────────────

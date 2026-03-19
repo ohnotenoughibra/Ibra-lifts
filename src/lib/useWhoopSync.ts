@@ -205,12 +205,18 @@ function transformApiData(apiData: any): WearableData[] {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
+// Subset of Whoop v2 sport IDs — only what we need for display names.
+// The API also returns sport_name directly, which takes priority (see transformWorkouts).
 const WHOOP_SPORTS: Record<number, string> = {
-  0: 'Running', 1: 'Cycling', 38: 'Wrestling', 39: 'Boxing', 43: 'Pilates',
-  44: 'Yoga', 47: 'HIIT', 48: 'Weightlifting', 49: 'CrossFit',
-  52: 'Functional Fitness', 57: 'Martial Arts', 63: 'Stretching',
-  70: 'Brazilian Jiu Jitsu', 71: 'Kickboxing', 73: 'Calisthenics',
-  84: 'MMA', 85: 'Judo', 87: 'Muay Thai', 88: 'Sambo',
+  [-1]: 'Activity',
+  0: 'Running', 1: 'Cycling', 33: 'Swimming',
+  38: 'Wrestling', 39: 'Boxing', 43: 'Pilates', 44: 'Yoga',
+  45: 'Weightlifting', 47: 'Cross Country Skiing', 48: 'Functional Fitness',
+  52: 'HIIT', 53: 'Hiking', 57: 'Martial Arts', 63: 'Snowboarding',
+  66: 'Walking', 70: 'Brazilian Jiu Jitsu', 71: 'Kickboxing',
+  73: 'Meditation', 74: 'Other', 77: 'Stretching',
+  84: 'MMA', 89: 'Strength Training', 96: 'HIIT',
+  126: 'Assault Bike', 127: 'Kickboxing', 128: 'Stretching',
 };
 
 function transformWorkouts(apiData: any): WhoopWorkout[] {
@@ -220,7 +226,7 @@ function transformWorkouts(apiData: any): WhoopWorkout[] {
     .map((w: any) => ({
       id: w.id?.toString() || '',
       sportId: w.sport_id ?? -1,
-      sportName: WHOOP_SPORTS[w.sport_id ?? -1] || `Sport ${w.sport_id}`,
+      sportName: w.sport_name || WHOOP_SPORTS[w.sport_id ?? -1] || `Sport ${w.sport_id}`,
       start: new Date(w.start),
       end: new Date(w.end),
       strain: w.score?.strain ?? null,

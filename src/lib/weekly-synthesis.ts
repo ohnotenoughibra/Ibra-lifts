@@ -288,7 +288,7 @@ function buildNarrative(data: {
       );
     } else if (sessionsComplete) {
       // Only mention a dip when the user has done the same number of sessions
-      parts.push(`Volume dipped ${Math.abs(volDelta)}% from last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
+      parts.push(`${Math.abs(volDelta)}% more volume to match last week${data.avgRPE > 8.5 ? ' — could be accumulated fatigue' : ''}.`);
     }
     // If volume is down but fewer sessions completed → stay silent, week isn't done
   }
@@ -300,8 +300,8 @@ function buildNarrative(data: {
     } else if (data.avgReadiness < 40) {
       parts.push(
         midWeek
-          ? `Recovery averaging ${data.avgReadiness}% — prioritize sleep and nutrition the rest of this week.`
-          : `Recovery averaged only ${data.avgReadiness}% — consider an extra rest day or lighter sessions next week.`
+          ? `Recovery averaging ${data.avgReadiness}% — sleep and nutrition this week could help bring it up.`
+          : `Recovery averaged ${data.avgReadiness}% — an extra rest day or lighter sessions next week could help recharge.`
       );
     }
   }
@@ -325,14 +325,14 @@ function buildNarrative(data: {
       // Mid-week: encouraging tone, not judgmental
       parts.push(
         data.proteinAdherence < 60
-          ? `Protein adherence is at ${data.proteinAdherence}% — there's still time to tighten it up this week. Aim for ${data.proteinTarget}g today.`
-          : `Protein adherence: ${data.proteinAdherence}% — almost there, keep pushing for 85%+.`
+          ? `Protein adherence is at ${data.proteinAdherence}% — there's still time to bring it up this week. Hitting ${data.proteinTarget}g today could make a difference.`
+          : `Protein adherence: ${data.proteinAdherence}% — almost there, 85%+ is within reach.`
       );
     } else {
       if (data.proteinAdherence < 60) {
         parts.push(
           `Protein adherence was ${data.proteinAdherence}% (target: ${data.proteinTarget}g/day). ` +
-          `This may limit recovery and strength gains — try adding a post-workout shake.`
+          `Closing that gap could boost recovery and strength gains — one option: a post-workout shake.`
         );
       } else {
         parts.push(`Protein adherence: ${data.proteinAdherence}% — close, aim for 85%+ next week.`);
@@ -343,7 +343,7 @@ function buildNarrative(data: {
   // Stalled exercises
   if (data.stalledExercises.length > 0) {
     const names = data.stalledExercises.slice(0, 2).join(' and ');
-    parts.push(`${names} may be plateauing — consider adjusting rep range or adding volume next block.`);
+    parts.push(`${names} may be plateauing — adjusting rep range or adding volume next block could break through.`);
   }
 
   // Combat training insights
@@ -352,9 +352,9 @@ function buildNarrative(data: {
     if (data.lastCombatSessions > 0) {
       const matDelta = data.combatMinutes - data.lastCombatMinutes;
       if (matDelta > 30) {
-        parts.push(`Mat time is up ${matDelta}min from last week — make sure your lifting doesn't interfere with recovery.`);
+        parts.push(`Mat time is up ${matDelta}min from last week — keeping lifting recovery-friendly could help you absorb that load.`);
       } else if (matDelta < -30 && !midWeek) {
-        parts.push(`Mat time dropped ${Math.abs(matDelta)}min from last week.`);
+        parts.push(`${Math.abs(matDelta)} more minutes of mat time to match last week.`);
       }
     }
 
@@ -365,7 +365,7 @@ function buildNarrative(data: {
 
     // Combat-specific intensity advice
     if (data.combatMinutes >= 300 && data.avgRPE >= 8.0) {
-      parts.push(`High mat volume (${data.combatMinutes}min) combined with heavy lifting RPE — consider a lighter lift day next week.`);
+      parts.push(`High mat volume (${data.combatMinutes}min) combined with heavy lifting RPE — a lighter lift day next week could help you recover.`);
     }
   }
 
@@ -469,7 +469,7 @@ export function generateWeeklyInsights(opts: {
     const fatigueNote = stats.avgRPE > 8.5 ? ' RPE is high — could be accumulated fatigue.' : '';
     insights.push({
       type: 'trend', icon: 'trending', label: 'Volume',
-      text: `${Math.abs(volDelta)}% less volume than last week.${fatigueNote}`,
+      text: `${Math.abs(volDelta)}% more volume to match last week.${fatigueNote}`,
       color: 'red',
     });
   }
@@ -484,7 +484,7 @@ export function generateWeeklyInsights(opts: {
   } else if (stats.avgRPE > 0 && stats.avgRPE <= 6.5 && stats.workouts >= 3) {
     insights.push({
       type: 'trend', icon: 'trending', label: 'Intensity',
-      text: `Avg RPE ${stats.avgRPE} — there's room to push harder. Add weight or reps.`,
+      text: `Avg RPE ${stats.avgRPE} — there's room to push harder. You might try adding weight or reps.`,
       color: 'green',
     });
   }
@@ -494,7 +494,7 @@ export function generateWeeklyInsights(opts: {
     const names = stalledExercises.slice(0, 2).join(' and ');
     insights.push({
       type: 'warning', icon: 'alert', label: 'Plateau',
-      text: `${names} stalled vs last week — try different rep range or add a back-off set.`,
+      text: `${names} stalled vs last week — you might try a different rep range or adding a back-off set.`,
       color: 'amber',
     });
   }
@@ -510,7 +510,7 @@ export function generateWeeklyInsights(opts: {
     } else if (stats.proteinAdherence < 60) {
       insights.push({
         type: 'nutrition', icon: 'target', label: 'Nutrition',
-        text: `Protein adherence at ${stats.proteinAdherence}% of days hitting target — you're leaving recovery and gains on the table.`,
+        text: `Protein adherence at ${stats.proteinAdherence}% — hitting target more consistently could unlock more recovery and gains.`,
         color: 'blue',
       });
     }
@@ -536,7 +536,7 @@ export function generateWeeklyInsights(opts: {
     if (stats.avgReadiness < 40) {
       insights.push({
         type: 'warning', icon: 'alert', label: 'Recovery',
-        text: `Recovery averaging ${stats.avgReadiness}% — ${isMidWeek ? 'prioritize sleep and nutrition this week' : 'consider an extra rest day next week'}.`,
+        text: `Recovery averaging ${stats.avgReadiness}% — ${isMidWeek ? 'sleep and nutrition this week could help bring it up' : 'an extra rest day next week could help recharge'}.`,
         color: 'amber',
       });
     }
@@ -568,22 +568,22 @@ function pickOneThing(
 ): string {
   // Priority order: biggest limiting factor first
   if (stats.proteinAdherence !== null && stats.proteinAdherence < 60) {
-    return `Hit your protein target 5 of 7 days next week. Everything else follows recovery.`;
+    return `When you're ready, hitting your protein target 5 of 7 days could make a meaningful difference. Everything else follows recovery.`;
   }
   if (stats.avgRPE >= 9.0 && stats.workouts >= 3) {
-    return `Leave 1-2 reps in the tank next week. RPE 7-8 builds more than RPE 10.`;
+    return `You might consider leaving 1-2 reps in the tank next week. RPE 7-8 builds more than RPE 10.`;
   }
   if (stalledExercises.length > 0) {
-    return `Switch ${stalledExercises[0]} to a different rep range next block. Variation breaks plateaus.`;
+    return `One option: switch ${stalledExercises[0]} to a different rep range next block. Variation breaks plateaus.`;
   }
   if (stats.avgReadiness !== null && stats.avgReadiness < 40) {
-    return `Add 30 min to your sleep this week. Recovery is the biggest untapped lever.`;
+    return `When you're ready, adding 30 min to your sleep could make a meaningful difference. Recovery is the biggest untapped lever.`;
   }
   if (trends.volume === 'down') {
-    return `Add one extra set per exercise next week to recover volume.`;
+    return `One option: add one extra set per exercise next week to bring volume back up.`;
   }
   if (stats.proteinAdherence !== null && stats.proteinAdherence < 85) {
-    return `Push protein adherence from ${stats.proteinAdherence}% toward 85%+ next week.`;
+    return `Pushing protein adherence from ${stats.proteinAdherence}% toward 85%+ next week could accelerate your progress.`;
   }
   if (stats.prs > 0) {
     return `Keep doing exactly this. Don't change what's working.`;
@@ -621,7 +621,7 @@ export function generatePostWorkoutCoachingLine(
     if (volPct < -10) {
       // Check for sleep context
       if (wearableData?.sleepHours != null && wearableData.sleepHours < 6) {
-        return `Volume dipped today, likely from ${wearableData.sleepHours.toFixed(1)}hrs sleep. Your 4-week trend is still solid.`;
+        return `Volume was lighter today, likely from ${wearableData.sleepHours.toFixed(1)}hrs sleep. Your 4-week trend is still solid.`;
       }
       return `Volume was lower today. One session doesn't define your progress — your trend matters more.`;
     }
@@ -629,7 +629,7 @@ export function generatePostWorkoutCoachingLine(
 
   // RPE context
   if (log.overallRPE >= 9.5) {
-    return `That was a grinder. High RPE signals your body is adapting — make sure to recover well tonight.`;
+    return `That was a grinder. High RPE signals your body is adapting — recovering well tonight could maximize the payoff.`;
   }
 
   if (log.overallRPE <= 6 && log.exercises.length >= 4) {
@@ -647,4 +647,33 @@ export function generatePostWorkoutCoachingLine(
   }
 
   return null;
+}
+
+// ── Protein Distribution Flag ─────────────────────────────────────────────
+
+export function checkProteinDistribution(meals: MealEntry[], dateStr: string): {
+  flagged: boolean;
+  worstMealPct: number;
+  message: string;
+} {
+  const dayMeals = meals.filter(m => {
+    const d = new Date(m.date);
+    const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return localDate === dateStr && !m._deleted;
+  });
+  if (dayMeals.length < 2) return { flagged: false, worstMealPct: 0, message: '' };
+
+  const totalProtein = dayMeals.reduce((s, m) => s + (m.protein || 0), 0);
+  if (totalProtein < 20) return { flagged: false, worstMealPct: 0, message: '' };
+
+  const maxMealProtein = Math.max(...dayMeals.map(m => m.protein || 0));
+  const worstMealPct = Math.round((maxMealProtein / totalProtein) * 100);
+
+  return {
+    flagged: worstMealPct > 50,
+    worstMealPct,
+    message: worstMealPct > 50
+      ? `${worstMealPct}% of today's protein came from one meal. Spreading across 3-4 meals could improve muscle protein synthesis by ~25%.`
+      : '',
+  };
 }

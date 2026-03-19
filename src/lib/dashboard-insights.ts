@@ -11,10 +11,13 @@
  * but what it means and what to do about it.
  */
 
-import type { WorkoutLog, TrainingSession, WearableData, Mesocycle } from './types';
+import type { WorkoutLog, TrainingSession, WearableData, Mesocycle, MealEntry } from './types';
 import type { EnhancedACWR } from './fatigue-metrics';
 import type { FatigueDebt } from './smart-deload';
 import type { HardMetrics, PlateauAnalysis, MuscleVolumeGauge, PREvent } from './progress-analytics';
+import { assessRIRConfidence } from './progress-analytics';
+import { checkProteinDistribution } from './weekly-synthesis';
+import { toLocalDateStr } from './utils';
 import type { OverlayView } from '@/components/dashboard-types';
 
 /** Filter out soft-deleted items */
@@ -56,6 +59,8 @@ export interface DashboardInsightsInput {
   recoveryScore: number | null; // from wearable
   workoutCount: number; // total logs
   weeklyWorkoutCount: number; // this week
+  workoutLogs?: WorkoutLog[]; // for RIR confidence
+  meals?: MealEntry[]; // for protein distribution
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -234,6 +239,44 @@ export function generateDashboardInsights(input: DashboardInsightsInput): Dashbo
           : 'Moderate recovery — a good day to train smart and listen to your body.',
       target: 'recovery',
     });
+  }
+
+  // 8. RIR Confidence Warning
+  if (input.workoutLogs && input.workoutLogs.length > 0) {
+    const rirWarnings = assessRIRConfidence(input.workoutLogs);
+    if (rirWarnings.length > 0) {
+      const worst = rirWarnings[0];
+      insights.push({
+        id: 'rir_confidence',
+        priority: 9,
+        icon: 'brain',
+        color: 'sky',
+        headline: 'RIR Check',
+        value: `~${worst.rir.toFixed(0)} RIR`,
+        status: 'Low Confidence',
+        body: worst.message,
+        target: 'strength',
+      });
+    }
+  }
+
+  // 9. Protein Distribution
+  if (input.meals && input.meals.length > 0) {
+    const todayStr = toLocalDateStr();
+    const protDist = checkProteinDistribution(input.meals, todayStr);
+    if (protDist.flagged) {
+      insights.push({
+        id: 'protein_distribution',
+        priority: 10,
+        icon: 'target',
+        color: 'blue',
+        headline: 'Protein Timing',
+        value: `${protDist.worstMealPct}%`,
+        status: 'Skewed',
+        body: protDist.message,
+        target: 'nutrition',
+      });
+    }
   }
 
   // Sort by priority (lower = first) and cap at 5

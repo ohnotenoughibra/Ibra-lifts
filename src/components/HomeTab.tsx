@@ -92,6 +92,7 @@ import type { OverlayView, TabType } from './dashboard-types';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
 import { calculateCumulativeSportLoad, getSessionAdjustments } from '@/lib/concurrent-training';
+import { calculatePostSessionDelta } from '@/lib/progress-analytics';
 
 // ─── Factor explainer data ───
 const factorExplainers: Record<string, { icon: string; what: string; action: string }> = {
@@ -604,6 +605,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       lastCompletedWorkout.log, workoutLogs, latestWhoopData
     );
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
+
+  const sessionDelta = useMemo(() => {
+    if (!lastCompletedWorkout) return null;
+    return calculatePostSessionDelta(lastCompletedWorkout.log as any, workoutLogs);
+  }, [lastCompletedWorkout, workoutLogs]);
 
   // ─── Soreness Check — show daily on all day types ───
   const todayIso = toLocalDateStr();
@@ -1875,6 +1881,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onNavigate={onNavigate}
           onViewReport={onViewReport}
           onGenerateNext={handleGenerateNext}
+          sessionDelta={sessionDelta}
           prevBlockJustCompleted={prevBlockJustCompleted}
           blockCompleteStats={blockCompleteStats}
         />

@@ -72,8 +72,8 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 
 - **Framework**: Next.js 14 (App Router) at `src/app/`
 - **State**: Zustand store at `src/lib/store.ts` (~3700 lines — see `store.context.md`)
-- **Components**: `src/components/` — 86 files, ~63k lines total. Many > 1000 lines
-- **API Routes**: `src/app/api/` — auth, sync, subscriptions, whoop, workout, progress
+- **Components**: `src/components/` — 89 files, ~63k lines total. Many > 1000 lines
+- **API Routes**: `src/app/api/` — auth, sync, subscriptions, whoop, workout, progress, ai-coach, push, google-fit
 - **Libraries**: `src/lib/` — ~70 pure-function engines. See `src/lib/CLAUDE.md`
 - **Database**: Vercel Postgres via `@vercel/postgres` — monolithic JSONB sync
 - **Auth**: NextAuth with credentials, magic link, Google, Apple
@@ -100,14 +100,20 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 npm run dev          # Start dev server
 npm run build        # Production build
 npm run lint         # ESLint
-npm test             # Vitest tests
+npm test             # Vitest tests (484 tests)
 ```
+
+## Key Dependencies (New)
+
+- `@anthropic-ai/sdk` — Claude AI coaching API
+- `html5-qrcode` — Barcode scanning (lazy-loaded in `BarcodeScanner.tsx`)
+- `web-push` — Server-side VAPID push notifications
 
 ## Tips for Claude
 
 - When the user sends images (logos, screenshots), keep file reads minimal to stay within context limits
 - Use grep/search to find specific code rather than reading entire large files
-- The "AI coach" modules are rule-based, not LLM-powered (see `docs/decisions/002-rule-based-ai-coach.md`)
+- The rule-based AI coach (`ai-coach.ts`) is the offline fallback; Claude-powered coaching is via `/api/ai-coach` + `ai-coach-client.ts` (rate-limited 3/day)
 - Check `docs/map.md` before searching — it tells you exactly where things are
 - Read the relevant `CLAUDE.md` in subdirectories when working on a module
 - For store changes, consult `store.context.md` for section index and line ranges

@@ -96,6 +96,10 @@ This is intentional: local-first means the client is the source of truth. The se
 | Integration | Protocol | Files |
 |-------------|----------|-------|
 | **Whoop** | OAuth2 → REST API | `whoop.ts`, `useWhoopSync.ts`, `app/api/whoop/*` |
+| **Claude AI** | REST API (`@anthropic-ai/sdk`) | `ai-coach-client.ts`, `app/api/ai-coach/route.ts` |
+| **Google Fit** | OAuth2 → REST API | `health-import.ts`, `app/api/google-fit/route.ts` |
+| **Web Push** | VAPID (`web-push`) | `push-subscription.ts`, `app/api/push/route.ts` |
+| **OpenFoodFacts** | REST API | `barcode-lookup.ts` (cached) |
 | **PayPal** | REST API + Webhooks | `subscription.ts`, `app/api/subscription/*` |
 | **Sentry** | SDK instrumentation | `sentry.*.config.ts`, `instrumentation.ts` |
 | **Vercel Analytics** | Auto-instrumented | `layout.tsx` |
@@ -108,7 +112,7 @@ Tokens stored in BOTH localStorage AND Postgres. If localStorage is evicted (iOS
 - **Service Worker** (`public/sw.js`): Cache-first for static assets, network-first for pages, never caches `/api/sync`
 - **Background Sync**: Queued writes replay on reconnection
 - **Install prompt**: Shown after first workout logged
-- **Push notifications**: Requested after 3rd workout
+- **Push notifications**: VAPID-based via `web-push` library. Requested after 3rd workout. Preferences managed in `NotificationSettings.tsx`
 - **Update flow**: "Update available" banner → user clicks → SW skipWaiting → reload
 
 ## Subscription Tiers
@@ -121,6 +125,6 @@ Tokens stored in BOTH localStorage AND Postgres. If localStorage is evicted (iOS
 
 1. **Local-first over server-first**: User owns their data. Cloud is backup, not source of truth
 2. **JSONB blob over normalized tables**: Simpler sync, matches Zustand shape, avoids ORM complexity
-3. **Rule-based AI over LLM**: Zero latency, works offline, deterministic, no API costs
+3. **Hybrid AI coaching**: Rule-based `ai-coach.ts` for offline/instant fallback; Claude-powered `/api/ai-coach` for deep personalized coaching (rate-limited 3/day, requires `ANTHROPIC_API_KEY`)
 4. **Zustand over Redux**: Less boilerplate, simpler mental model, built-in persistence
 5. **Monolithic components over micro-components**: ActiveWorkout.tsx is 3500 lines because splitting would scatter related workout logic across dozens of files with complex prop drilling. The tradeoff is intentional

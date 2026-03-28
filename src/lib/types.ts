@@ -549,7 +549,7 @@ export interface MealReminderSettings {
 }
 
 // Wearable / Health Integration (Whoop-first)
-export type WearableProvider = 'whoop' | 'apple_health' | 'oura' | 'garmin';
+export type WearableProvider = 'whoop' | 'apple_health' | 'google_fit' | 'oura' | 'garmin';
 
 export interface WearableData {
   id: string;
@@ -1526,12 +1526,25 @@ export interface Subscription {
 }
 
 // ── Notification Types ─────────────────────────────────────────────────────
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export interface NotificationPreferences {
   enabled: boolean;
+  pushEnabled: boolean;
+  pushSubscription: PushSubscriptionData | null;
   trainingReminders: boolean;
   streakAlerts: boolean;
   challengeUpdates: boolean;
   dailyLoginReminder: boolean;
+  prCelebrations: boolean;
+  recoveryAlerts: boolean;
+  nutritionNudges: boolean;
   reminderTime: string; // HH:MM
 }
 

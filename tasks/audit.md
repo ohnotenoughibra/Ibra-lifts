@@ -23,6 +23,7 @@ But the combat sport integration is a logging layer. You can *record* that you r
 | Gamification & Engagement | B+ | Solid after rebalance |
 | Readiness & Recovery (Whoop) | B | Good foundation, weak sport integration |
 | Combat Sport Training Integration | D+ | Logging only. No intelligence |
+| AI Coaching | B | Claude-powered (3/day) + rule-based fallback |
 | Conditioning / Work Capacity | F | Doesn't exist |
 | Social / Community | F | Screenshot cards. That's it |
 
@@ -38,7 +39,7 @@ But the combat sport integration is a logging layer. You can *record* that you r
 ### Phase 4: Technical Foundation (3-4 weeks)
 - [ ] Slice Zustand store into domain stores
 - [ ] Database schema versioning
-- [ ] Component + API route tests
+- [x] Component + API route tests (484 total, 178 new: workout-generator, adaptive-readiness, fatigue-metrics, injury-science, ai-coach, daily-directive)
 - [ ] PayPal webhook signature verification
 
 ### Phase 5: Monetization & Growth (2-3 weeks)

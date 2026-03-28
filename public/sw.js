@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.0.0-25169cb-1773351173';
+const CACHE_NAME = 'roots-gains-v2.0.0-5744a7c-1774734680';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -159,16 +159,35 @@ async function replaySyncQueue() {
 }
 
 // ── Push Notifications ──
+// Handles server-sent push events via Web Push API (VAPID)
+// Payload shape: { title, body, tag, url, category }
 self.addEventListener('push', (event) => {
-  let data = { title: 'Roots Gains', body: 'Time to train!', tag: 'default' };
+  let data = { title: 'Roots Gains', body: 'Time to train!', tag: 'default', url: '/', category: '' };
 
   if (event.data) {
     try {
-      data = { ...data, ...event.data.json() };
+      const raw = event.data.json();
+      // Only allow expected fields with length limits — prevent payload injection
+      data.title = typeof raw.title === 'string' ? raw.title.substring(0, 100) : data.title;
+      data.body = typeof raw.body === 'string' ? raw.body.substring(0, 200) : data.body;
+      data.tag = typeof raw.tag === 'string' ? raw.tag.substring(0, 50) : data.tag;
+      data.url = typeof raw.url === 'string' ? raw.url.substring(0, 200) : data.url;
+      data.category = typeof raw.category === 'string' ? raw.category.substring(0, 50) : data.category;
     } catch {
       data.body = event.data.text();
     }
   }
+
+  // Category-specific icons could be added here in the future
+  const tagToAction = {
+    'streak-reminder': { action: 'train', label: 'Start Training' },
+    'training-reminder': { action: 'train', label: 'Start Training' },
+    'pr-celebration': { action: 'open', label: 'View PR' },
+    'recovery-alert': { action: 'open', label: 'View Recovery' },
+    'nutrition-nudge': { action: 'open', label: 'Log Meal' },
+  };
+
+  const customAction = tagToAction[data.tag];
 
   const options = {
     body: data.body,
@@ -176,11 +195,15 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192.png',
     tag: data.tag,
     vibrate: [100, 50, 100],
+    renotify: true,
     data: {
-      url: '/',
+      url: data.url || '/',
+      category: data.category || '',
     },
     actions: [
-      { action: 'open', title: 'Open App' },
+      customAction
+        ? { action: customAction.action, title: customAction.label }
+        : { action: 'open', title: 'Open App' },
       { action: 'dismiss', title: 'Dismiss' },
     ],
   };
@@ -190,23 +213,34 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Handle notification clicks
+// Handle notification clicks — route to the correct page
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'dismiss') return;
 
-  const urlToOpen = event.notification.data?.url || '/';
+  // Validate URL is same-origin to prevent open redirect attacks
+  let urlToOpen = '/';
+  try {
+    const raw = event.notification.data?.url || '/';
+    const parsed = new URL(raw, self.location.origin);
+    if (parsed.origin === self.location.origin) {
+      urlToOpen = parsed.pathname + parsed.search;
+    }
+  } catch { /* invalid URL, use default */ }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing tab if available
+      // Focus existing tab if available and navigate it
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
+          client.focus();
+          if (urlToOpen !== '/' && !client.url.endsWith(urlToOpen)) {
+            client.navigate(urlToOpen);
+          }
+          return client;
         }
       }
-      // Otherwise open a new tab
       return self.clients.openWindow(urlToOpen);
     })
   );

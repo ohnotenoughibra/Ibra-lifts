@@ -88,6 +88,7 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `weight-cut-engine.ts` — Safe weight cuts (0.7% BW/week)
 - `electrolyte-engine.ts` — Sweat rate, hydration, sodium
 - `supplement-engine.ts` — Evidence-based supplement stack
+- `barcode-lookup.ts` — OpenFoodFacts barcode lookup with localStorage caching
 
 ### Recovery & Readiness
 - `performance-engine.ts` — 20-factor readiness score
@@ -112,7 +113,8 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `nudge-engine.ts` — Contextual push notifications
 
 ### Coaching & Knowledge
-- `ai-coach.ts` — Rule-based weekly recommendations (NOT LLM)
+- `ai-coach.ts` — Rule-based weekly recommendations (fallback when API unavailable)
+- `ai-coach-client.ts` — Client-side helper for Claude-powered coaching (calls `/api/ai-coach`)
 - `daily-directive.ts` — "What to do today" planner
 - `corner-coach.ts` — Between-set hype/tactics messaging
 - `knowledge-engine.ts` — Contextual insight picker
@@ -143,6 +145,8 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `subscription.ts` — Feature gates (free/pro)
 - `monetization-engine.ts` — Usage analytics, upgrade prompts
 - `notifications.ts` — Push notification scheduling
+- `push-subscription.ts` — Web push subscription management (VAPID key exchange, subscribe/unsubscribe)
+- `health-import.ts` — Apple Health XML + Google Fit data import and normalization
 
 ### Utilities
 - `utils.ts` — cn() helper, date/weight formatting

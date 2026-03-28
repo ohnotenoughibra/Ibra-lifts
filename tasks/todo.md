@@ -13,16 +13,14 @@
 | Mobile UX | 7.5/10 | Good bones, needs polish |
 | Social & Community | 4/10 | **WEAK** — leaderboard structure exists, zero live features |
 | Video & Form | 0/10 | **MISSING** |
-| AI Coaching | 2/10 | **Rule-based only** — no LLM |
+| AI Coaching | 7/10 | Claude-powered coaching live (rate-limited 3/day) |
 
 ---
 
 ## The 10 Features That Would Make This Legendary
 
-### 1. AI Coach (Claude-Powered Weekly Narratives)
-**What:** Real AI coaching via Claude API — personalized weekly summaries, natural language Q&A, program adjustments based on individual response patterns.
-**Why:** Current "AI Coach" is rule-based templates. Users paying €19.99/mo expect a real coach. Claude API calls for narrative would 10x perceived value.
-**Where:** New `src/lib/ai-coach-llm.ts` + Claude API route + weekly digest UI
+### ~~1. AI Coach (Claude-Powered Weekly Narratives)~~ DONE
+**Shipped:** `/api/ai-coach` (POST, rate-limited 3/day), `ai-coach-client.ts`, `@anthropic-ai/sdk`. Rule-based `ai-coach.ts` remains as offline fallback.
 
 ### 2. Fight Film Room (Video Upload + Analysis)
 **What:** Upload sparring/fight footage. Tag rounds, strikes, positions. Track patterns across fights.
@@ -140,10 +138,20 @@ Integration points:
 - [ ] Explore: Contextual surfacing ("Suggested for you" row)
 - [ ] Combat-specific gamification badges (first tournament win, belt promotion, 100 rounds sparred)
 - [ ] Seasonal/limited-time challenges (Summer Strength League, etc.)
+- [ ] Google Fit auto-sync (background polling, currently manual import only)
+- [ ] Push notification category scheduling (quiet hours, per-category frequency caps)
+- [ ] Barcode scanner: add manual barcode entry fallback for devices without camera
 
 ---
 
 ## Completed
+- [x] Claude-powered AI coaching (`/api/ai-coach`, `ai-coach-client.ts`, `@anthropic-ai/sdk`)
+- [x] Web push notifications (`/api/push`, `push-subscription.ts`, `NotificationSettings.tsx`, `web-push`)
+- [x] Google Fit integration (`/api/google-fit`, `health-import.ts`, `HealthImport.tsx`)
+- [x] Apple Health XML import (`health-import.ts`, `HealthImport.tsx`)
+- [x] Barcode scanner for nutrition (`BarcodeScanner.tsx`, `barcode-lookup.ts`, `html5-qrcode`)
+- [x] Desktop responsive layout — Dashboard sidebar nav at lg+ breakpoint
+- [x] 178 new tests (484 total) — workout-generator, adaptive-readiness, fatigue-metrics, injury-science, ai-coach, daily-directive
 - [x] Progress Tab Redesign — Dashboard/Progress/History/Body restructure
 - [x] Profile Tab Redesign v2.2.0
 - [x] Weekly session overflow UX

@@ -643,10 +643,15 @@ export const useAppStore = create<AppState>()(
       subscription: null,
       notificationPreferences: {
         enabled: false,
+        pushEnabled: false,
+        pushSubscription: null,
         trainingReminders: true,
         streakAlerts: true,
         challengeUpdates: true,
         dailyLoginReminder: true,
+        prCelebrations: true,
+        recoveryAlerts: true,
+        nutritionNudges: true,
         reminderTime: '09:00',
       },
       dailyLoginBonus: {
@@ -4147,10 +4152,15 @@ export const useAppStore = create<AppState>()(
           subscription: null,
           notificationPreferences: {
             enabled: false,
+            pushEnabled: false,
+            pushSubscription: null,
             trainingReminders: true,
             streakAlerts: true,
             challengeUpdates: true,
             dailyLoginReminder: true,
+            prCelebrations: true,
+            recoveryAlerts: true,
+            nutritionNudges: true,
             reminderTime: '09:00',
           },
           dailyLoginBonus: {
@@ -4333,7 +4343,7 @@ export const useAppStore = create<AppState>()(
       },
       // ── Schema version: bump this when you add/rename/remove persisted fields.
       // Zustand calls `migrate` BEFORE hydrating the store, so the data is safe.
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>;
 
@@ -4396,7 +4406,17 @@ export const useAppStore = create<AppState>()(
             console.error('[migration v2→v3] streak recalculation failed, skipping:', e);
           }
         }
-        // Future: if (fromVersion < 4) { ... }
+        if (fromVersion < 4) {
+          // v3 → v4: Add push notification fields to NotificationPreferences
+          const notifPrefs = (state.notificationPreferences || {}) as Record<string, unknown>;
+          if (notifPrefs.pushEnabled === undefined) notifPrefs.pushEnabled = false;
+          if (notifPrefs.pushSubscription === undefined) notifPrefs.pushSubscription = null;
+          if (notifPrefs.prCelebrations === undefined) notifPrefs.prCelebrations = true;
+          if (notifPrefs.recoveryAlerts === undefined) notifPrefs.recoveryAlerts = true;
+          if (notifPrefs.nutritionNudges === undefined) notifPrefs.nutritionNudges = true;
+          state.notificationPreferences = notifPrefs;
+        }
+        // Future: if (fromVersion < 5) { ... }
 
         return state;
       },

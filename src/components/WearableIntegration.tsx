@@ -41,6 +41,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, ActivityCategory, TrainingIntensity } from '@/lib/types';
+import HealthImport from './HealthImport';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -2010,6 +2011,15 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <ExternalLink className="w-4 h-4" />
               Connect via Whoop
             </button>
+
+            {/* Other health sources */}
+            <div className="mt-6 pt-6 border-t border-slate-700/50">
+              <p className="text-xs text-grappler-400 mb-4">
+                Or import from other sources:
+              </p>
+              <HealthImport compact />
+            </div>
+
             <p className="text-xs text-grappler-600 mt-4">
               You can also enter data manually using the settings icon above
             </p>

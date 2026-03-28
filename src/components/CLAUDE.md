@@ -2,7 +2,7 @@
 
 ## Overview
 
-86 component files, ~63,000 lines total. All are client components (`'use client'`). Most access the Zustand store directly via `useAppStore`.
+89 component files, ~63,000 lines total. All are client components (`'use client'`). Most access the Zustand store directly via `useAppStore`.
 
 ## Large Components (Don't Read Entirely)
 
@@ -21,7 +21,7 @@
 ## Component Groups
 
 ### Page-Level (rendered as tabs in Dashboard)
-- `Dashboard.tsx` (~930) — Tab container, navigation, sync status
+- `Dashboard.tsx` (~930) — Tab container, navigation, sync status. Responsive desktop layout with sidebar nav at lg+ breakpoint
 - `HomeTab.tsx` (~2,900) — Main landing, daily directive, quick actions
 - `ProgressTab.tsx` (~1,960) — Analytics, charts, strength analysis
 - `ExploreTab.tsx` (~500) — Feature discovery
@@ -37,6 +37,7 @@
 
 ### Nutrition
 - `NutritionTracker.tsx` (~2,500) — Meal logging, macro dashboard, water
+- `BarcodeScanner.tsx` (~310) — Camera barcode scanner, OpenFoodFacts lookup, lazy-loaded
 - `DietCoach.tsx` (~1,550) — Diet phase management, weekly check-ins
 - `NutritionTrends.tsx` (~435) — Nutrition analytics
 - `FightCampNutrition.tsx` (~490) — Competition nutrition
@@ -45,7 +46,6 @@
 ### Recovery & Readiness
 - `RecoveryCoach.tsx` (~360) — Recovery recommendations
 - `RecoveryDashboard.tsx` (~850) — Recovery overview with wearable data
-- `PerformanceReadiness.tsx` (~290) — Readiness score display
 - `WearableIntegration.tsx` (~2,100) — Whoop connection + data display
 - `SorenessCheck.tsx` (~630) — Muscle soreness tracking
 - `FatigueOverlay.tsx` (~600) — Fatigue warnings
@@ -79,7 +79,6 @@
 ### Training Planning
 - `PeriodizationCalendar.tsx` (~500) — Calendar view
 - `TrainingCalendar.tsx` (~800) — Weekly calendar
-- `BlockQueue.tsx` (~670) — Mesocycle queue management
 - `BlockSuggestion.tsx` (~550) — Next block recommendations
 - `SplitAnalyzer.tsx` (~1,300) — Training split analysis
 
@@ -88,6 +87,10 @@
 - `WeeklyCoach.tsx` (~460) — Weekly AI coach summary
 - `InsightCard.tsx` (~155) — Contextual insight display
 - `CornerCoachInfo.tsx` (~180) — Between-set coaching
+
+### Health & Wearable Import
+- `HealthImport.tsx` — Apple Health / Google Fit import UI (file picker for XML, Google Fit OAuth flow)
+- `NotificationSettings.tsx` — Push notification preferences (VAPID subscription, per-category toggles)
 
 ### Onboarding & Settings
 - `Onboarding.tsx` (~680) — Multi-step onboarding flow
@@ -98,9 +101,7 @@
 - `Toast.tsx` (~140) — Toast notifications
 - `Skeleton.tsx` (~130) — Loading skeleton
 - `LoadingScreen.tsx` (~80) — Full-page loader
-- `ThemeToggle.tsx` (~52) — Dark/light toggle
 - `CardErrorBoundary.tsx` (~39) — Error boundary wrapper
-- `SuccessFlash.tsx` (~41) — Success animation
 - `StatusBar.tsx` (~100) — App status bar
 
 ## Shared Patterns

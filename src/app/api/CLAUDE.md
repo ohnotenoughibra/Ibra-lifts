@@ -33,16 +33,6 @@ All routes use `runtime = 'nodejs'` and `dynamic = 'force-dynamic'` (never cache
 | `init/route.ts` | POST | Authenticated | Initialize DB tables |
 | `recover/route.ts` | — | Authenticated | Data recovery |
 
-### Workout (`/api/workout/`)
-| Route | Method | Auth | Purpose |
-|-------|--------|------|---------|
-| `route.ts` | POST, GET | Authenticated | Generate mesocycle / quick workout |
-
-### Progress (`/api/progress/`)
-| Route | Method | Auth | Purpose |
-|-------|--------|------|---------|
-| `route.ts` | POST, GET | Authenticated | Calculate 1RM, suggest adjustments |
-
 ### Subscription (`/api/subscription/`)
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
@@ -58,6 +48,22 @@ All routes use `runtime = 'nodejs'` and `dynamic = 'force-dynamic'` (never cache
 | `callback/route.ts` | GET | Public | OAuth2 callback, token exchange |
 | `data/route.ts` | POST | Token-based (not session) | Fetch Whoop data |
 | `tokens/route.ts` | — | — | Token save/restore |
+
+### AI Coach (`/api/ai-coach/`)
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `route.ts` | POST | Authenticated (rate limited: 3/day per user) | Claude-powered coaching analysis |
+
+### Push Notifications (`/api/push/`)
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `route.ts` | GET | Public | Return VAPID public key |
+| `route.ts` | POST | Authenticated | Subscribe/send push notifications |
+
+### Google Fit (`/api/google-fit/`)
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `route.ts` | GET, POST | Authenticated | Google Fit OAuth2 flow + data fetch |
 
 ### Debug (`/api/debug/`)
 | Route | Method | Auth | Purpose |
@@ -103,8 +109,20 @@ In-memory sliding window (`src/lib/rate-limit.ts`). No external deps.
 - `register:${IP}` → 5/min
 - `magic-link:${IP}` → 3/min
 - `reset:${IP}` → 3/min
+- `ai-coach:${userId}` → 3/day (24h sliding window, keyed by user ID not IP)
 
 IP from `X-Forwarded-For` (Vercel) → `x-real-ip` fallback.
+
+## Environment Variables (API-Relevant)
+
+| Variable | Used By |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | `/api/ai-coach` — Claude coaching |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `/api/push` — client-side push subscription |
+| `VAPID_PRIVATE_KEY` | `/api/push` — server-side push sending |
+| `VAPID_EMAIL` | `/api/push` — VAPID contact email |
+| `GOOGLE_FIT_CLIENT_ID` | `/api/google-fit` — OAuth2 client |
+| `GOOGLE_FIT_CLIENT_SECRET` | `/api/google-fit` — OAuth2 secret |
 
 ## Data Regression Prevention
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -14,11 +15,14 @@ import {
   Check,
   Trash2,
   Minus,
+  ScanBarcode,
 } from 'lucide-react';
 import { MealType } from '@/lib/types';
 import { PRESET_FOODS } from '@/lib/food-database';
 import { cn } from '@/lib/utils';
 import type { useNutrition, AutocompleteItem } from '@/hooks/useNutrition';
+
+const BarcodeScanner = dynamic(() => import('@/components/BarcodeScanner'), { ssr: false });
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -58,6 +62,7 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [showStampManager, setShowStampManager] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [loggedFeedback, setLoggedFeedback] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -557,26 +562,50 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
         )}
       </AnimatePresence>
 
-      {/* Search */}
+      {/* Search + Barcode scanner */}
       <div className="relative">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
-          <input
-            ref={searchRef}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search foods..."
-            className="w-full bg-grappler-800 rounded-xl pl-10 pr-10 py-3 text-sm text-grappler-100 placeholder-grappler-600 outline-none focus:ring-1 focus:ring-primary-500/50"
-          />
-          {query && (
-            <button
-              onClick={() => { setQuery(''); setResults([]); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500 hover:text-grappler-300"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search foods..."
+              className="w-full bg-grappler-800 rounded-xl pl-10 pr-10 py-3 text-sm text-grappler-100 placeholder-grappler-600 outline-none focus:ring-1 focus:ring-primary-500/50"
+            />
+            {query && (
+              <button
+                onClick={() => { setQuery(''); setResults([]); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-grappler-500 hover:text-grappler-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowScanner(true)}
+            className="shrink-0 w-12 flex items-center justify-center bg-grappler-800 hover:bg-grappler-700 rounded-xl transition-colors"
+            aria-label="Scan barcode"
+            title="Scan barcode"
+          >
+            <ScanBarcode className="w-5 h-5 text-primary-400" />
+          </button>
         </div>
+
+        {/* Barcode scanner modal */}
+        <AnimatePresence>
+          {showScanner && (
+            <BarcodeScanner
+              onAdd={(item, mt) => {
+                logFood(item, mt);
+                setShowScanner(false);
+              }}
+              onClose={() => setShowScanner(false)}
+              defaultMealType={autoMealType()}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Search results */}
         <AnimatePresence>

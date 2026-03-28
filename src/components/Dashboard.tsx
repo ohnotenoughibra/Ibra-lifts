@@ -657,139 +657,401 @@ export default function Dashboard({
     }
   }
 
+  // Sidebar nav items (matches TABS + profile)
+  const sidebarNav = [
+    { id: 'home' as TabType, icon: Dumbbell, label: 'Home' },
+    { id: 'program' as TabType, icon: Calendar, label: 'Program' },
+    { id: 'explore' as TabType, icon: Compass, label: 'Explore' },
+    { id: 'progress' as TabType, icon: BarChart3, label: 'Progress' },
+  ];
+
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top">
-        {/* Row 1: Identity + Key Actions */}
-        <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-20 lg:pb-0">
+      <div className="max-w-screen-2xl mx-auto lg:flex lg:min-h-[100dvh]">
+
+        {/* ── Desktop Sidebar (lg+) ── */}
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-[100dvh] lg:border-r lg:border-grappler-800 lg:bg-grappler-950/80 lg:backdrop-blur-xl lg:z-40">
+          {/* Logo / Brand */}
+          <div className="px-5 pt-6 pb-4 flex items-center gap-3">
+            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
               <Dumbbell className="w-5 h-5 text-white" />
             </div>
             <div>
               <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
-              <p className="text-xs text-grappler-400">{getLevelTitle(computed.level)}</p>
+              <p className="text-xs text-grappler-500">Performance System</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Streak — the hero motivator */}
-            <div className={cn(
-              'flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-colors',
-              computed.currentStreak >= 7
-                ? 'bg-orange-500/20 border border-orange-500/30'
-                : streakAtRisk
-                  ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
-                  : 'bg-grappler-800/80'
-            )}>
-              <Flame className={cn(
-                'w-4 h-4',
-                computed.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
-              )} />
-              <span className={cn(
-                'text-sm font-bold tabular-nums',
-                computed.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
-              )}>
-                {computed.currentStreak}
-              </span>
-            </div>
-            {/* Cloud sync — moved here for PWA visibility (was hidden in XP bar) */}
-            <SyncStatusIndicator
-              syncStatus={syncStatus}
-              lastSyncedAt={lastSyncedAt}
-              deviceType={deviceType}
-              isAuthenticated={isAuthenticated}
-              onForceSync={onForceSync || (() => {})}
-              syncFailureCount={syncFailureCount}
-            />
-            {/* Settings */}
-            <button
-              onClick={() => setOverlayView('profile_settings')}
-              className="w-9 h-9 rounded-xl bg-grappler-800/80 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
-              title="Profile & Settings"
-              aria-label="Profile & Settings"
-            >
-              <Settings className="w-[18px] h-[18px] text-grappler-400" />
-            </button>
-          </div>
-        </div>
-        {/* Row 2: Level progress — full width, compact */}
-        <div className="px-4 pb-2.5 flex items-center gap-2.5">
-          <button
-            onClick={() => setOverlayView('badge_showcase')}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors flex-shrink-0"
-            title="View badges"
-          >
-            <Star className="w-3 h-3 text-yellow-500" />
-            <span className="text-xs font-bold text-grappler-300">Lv.{computed.level}</span>
-          </button>
-          <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(computed.totalPoints)} total XP · ${pointsToNextLevel(computed.totalPoints)} to Lv.${computed.level + 1}`}>
-            <motion.div
-              className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-              initial={false}
-              animate={{ width: `${levelProgress(computed.totalPoints)}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            />
-          </div>
-          <span className="text-xs text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(computed.totalPoints)} XP</span>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="px-4 pt-4 pb-2">
-        <AnimatePresence mode="popLayout">
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-2 space-y-1" role="tablist" aria-label="Main navigation" onKeyDown={handleTabKeyDown}>
+            {sidebarNav.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => switchTab(tab.id)}
+                aria-label={tab.label}
+                aria-selected={activeTab === tab.id}
+                role="tab"
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                data-tab-id={tab.id}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                  activeTab === tab.id
+                    ? 'bg-primary-500/15 text-primary-400'
+                    : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-800/60'
+                )}
+              >
+                <tab.icon className="w-5 h-5 flex-shrink-0" />
+                <span>{tab.label}</span>
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="sidebarActive"
+                    className="absolute left-0 w-1 h-6 bg-primary-500 rounded-r-full"
+                  />
+                )}
+              </button>
+            ))}
+
+            {/* Quick Actions button */}
+            <button
+              onClick={() => setOverlayView('quick_actions')}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-grappler-400 hover:text-grappler-200 hover:bg-grappler-800/60 transition-all mt-2"
+            >
+              <div className="w-5 h-5 flex-shrink-0 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+                <Plus className="w-3 h-3 text-white" />
+              </div>
+              <span>Quick Log</span>
+            </button>
+          </nav>
+
+          {/* Sidebar Footer: Level + XP + Settings */}
+          <div className="px-3 pb-4 space-y-3 border-t border-grappler-800/60 pt-3">
+            {/* XP Progress */}
+            <div className="px-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <button
+                  onClick={() => setOverlayView('badge_showcase')}
+                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                  title="View badges"
+                >
+                  <Star className="w-3.5 h-3.5 text-yellow-500" />
+                  <span className="text-xs font-bold text-grappler-300">Lv.{computed.level}</span>
+                </button>
+                <span className="text-xs text-grappler-500 tabular-nums">{formatNumber(computed.totalPoints)} XP</span>
+              </div>
+              <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(computed.totalPoints)} total XP · ${pointsToNextLevel(computed.totalPoints)} to Lv.${computed.level + 1}`}>
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+                  initial={false}
+                  animate={{ width: `${levelProgress(computed.totalPoints)}%` }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
+              </div>
+              <p className="text-xs text-grappler-600 mt-1">{getLevelTitle(computed.level)}</p>
+            </div>
+
+            {/* Streak + Sync + Settings row */}
+            <div className="flex items-center justify-between px-2">
+              <div className={cn(
+                'flex items-center gap-1 px-2 py-1 rounded-lg transition-colors',
+                computed.currentStreak >= 7
+                  ? 'bg-orange-500/20 border border-orange-500/30'
+                  : streakAtRisk
+                    ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
+                    : 'bg-grappler-800/80'
+              )}>
+                <Flame className={cn(
+                  'w-3.5 h-3.5',
+                  computed.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
+                )} />
+                <span className={cn(
+                  'text-xs font-bold tabular-nums',
+                  computed.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
+                )}>
+                  {computed.currentStreak}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <SyncStatusIndicator
+                  syncStatus={syncStatus}
+                  lastSyncedAt={lastSyncedAt}
+                  deviceType={deviceType}
+                  isAuthenticated={isAuthenticated}
+                  onForceSync={onForceSync || (() => {})}
+                  syncFailureCount={syncFailureCount}
+                />
+                <button
+                  onClick={() => setOverlayView('profile_settings')}
+                  className="w-8 h-8 rounded-lg bg-grappler-800/80 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
+                  title="Profile & Settings"
+                  aria-label="Profile & Settings"
+                >
+                  <Settings className="w-4 h-4 text-grappler-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main Content Column ── */}
+        <div className="flex-1 min-w-0 lg:flex">
+          <div className="flex-1 min-w-0 lg:max-w-4xl">
+            {/* Mobile Header (hidden on desktop — sidebar replaces it) */}
+            <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top lg:hidden">
+              {/* Row 1: Identity + Key Actions */}
+              <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+                    <Dumbbell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
+                    <p className="text-xs text-grappler-400">{getLevelTitle(computed.level)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Streak — the hero motivator */}
+                  <div className={cn(
+                    'flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-colors',
+                    computed.currentStreak >= 7
+                      ? 'bg-orange-500/20 border border-orange-500/30'
+                      : streakAtRisk
+                        ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
+                        : 'bg-grappler-800/80'
+                  )}>
+                    <Flame className={cn(
+                      'w-4 h-4',
+                      computed.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
+                    )} />
+                    <span className={cn(
+                      'text-sm font-bold tabular-nums',
+                      computed.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
+                    )}>
+                      {computed.currentStreak}
+                    </span>
+                  </div>
+                  {/* Cloud sync — moved here for PWA visibility (was hidden in XP bar) */}
+                  <SyncStatusIndicator
+                    syncStatus={syncStatus}
+                    lastSyncedAt={lastSyncedAt}
+                    deviceType={deviceType}
+                    isAuthenticated={isAuthenticated}
+                    onForceSync={onForceSync || (() => {})}
+                    syncFailureCount={syncFailureCount}
+                  />
+                  {/* Settings */}
+                  <button
+                    onClick={() => setOverlayView('profile_settings')}
+                    className="w-9 h-9 rounded-xl bg-grappler-800/80 flex items-center justify-center hover:bg-grappler-700 transition-colors active:scale-95"
+                    title="Profile & Settings"
+                    aria-label="Profile & Settings"
+                  >
+                    <Settings className="w-[18px] h-[18px] text-grappler-400" />
+                  </button>
+                </div>
+              </div>
+              {/* Row 2: Level progress — full width, compact */}
+              <div className="px-4 pb-2.5 flex items-center gap-2.5">
+                <button
+                  onClick={() => setOverlayView('badge_showcase')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-grappler-800/60 hover:bg-grappler-700/60 transition-colors flex-shrink-0"
+                  title="View badges"
+                >
+                  <Star className="w-3 h-3 text-yellow-500" />
+                  <span className="text-xs font-bold text-grappler-300">Lv.{computed.level}</span>
+                </button>
+                <div className="flex-1 h-1.5 bg-grappler-800 rounded-full overflow-hidden" title={`${formatNumber(computed.totalPoints)} total XP · ${pointsToNextLevel(computed.totalPoints)} to Lv.${computed.level + 1}`}>
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
+                    initial={false}
+                    animate={{ width: `${levelProgress(computed.totalPoints)}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  />
+                </div>
+                <span className="text-xs text-grappler-500 tabular-nums flex-shrink-0">{formatNumber(computed.totalPoints)} XP</span>
+              </div>
+            </header>
+
+            {/* Desktop: minimal top bar with sync + streak (no full header) */}
+            <header className="hidden lg:flex sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 px-6 py-3 items-center justify-between">
+              <h2 className="text-lg font-bold text-grappler-100">
+                {TABS.find(t => t.id === activeTab)?.label ?? 'Home'}
+              </h2>
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-colors',
+                  computed.currentStreak >= 7
+                    ? 'bg-orange-500/20 border border-orange-500/30'
+                    : streakAtRisk
+                      ? 'bg-blue-500/20 border border-blue-500/40 animate-pulse'
+                      : 'bg-grappler-800/80'
+                )}>
+                  <Flame className={cn(
+                    'w-4 h-4',
+                    computed.currentStreak >= 7 ? 'text-orange-400' : streakAtRisk ? 'text-blue-400' : 'text-orange-500'
+                  )} />
+                  <span className={cn(
+                    'text-sm font-bold tabular-nums',
+                    computed.currentStreak >= 7 ? 'text-orange-300' : streakAtRisk ? 'text-blue-300' : 'text-grappler-100'
+                  )}>
+                    {computed.currentStreak}
+                  </span>
+                </div>
+                <SyncStatusIndicator
+                  syncStatus={syncStatus}
+                  lastSyncedAt={lastSyncedAt}
+                  deviceType={deviceType}
+                  isAuthenticated={isAuthenticated}
+                  onForceSync={onForceSync || (() => {})}
+                  syncFailureCount={syncFailureCount}
+                />
+              </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="px-4 pt-4 pb-2 lg:px-6 lg:pt-6">
+              <AnimatePresence mode="popLayout">
+                {activeTab === 'home' && (
+                  <motion.div
+                    key="home"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={setActiveTab} />
+                  </motion.div>
+                )}
+                {activeTab === 'program' && (
+                  <motion.div
+                    key="program"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <CardErrorBoundary fallbackLabel="Program tab">
+                      <WorkoutView onSwitchTab={setActiveTab} />
+                    </CardErrorBoundary>
+                  </motion.div>
+                )}
+                {activeTab === 'explore' && (
+                  <motion.div
+                    key="explore"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <ExploreTab onNavigate={setOverlayView} />
+                  </motion.div>
+                )}
+                {activeTab === 'progress' && (
+                  <motion.div
+                    key="progress"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <ProgressAndHistoryTab onViewReport={setReportMesocycleId} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </main>
+          </div>
+
+          {/* ── Desktop Right Sidebar (lg+, Home tab only) ── */}
           {activeTab === 'home' && (
-            <motion.div
-              key="home"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={setActiveTab} />
-            </motion.div>
+            <aside className="hidden lg:block lg:w-80 lg:flex-shrink-0 lg:border-l lg:border-grappler-800 lg:sticky lg:top-0 lg:h-[100dvh] lg:overflow-y-auto">
+              <div className="p-5 space-y-5">
+                {/* Quick Stats */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider">Quick Stats</h3>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="bg-grappler-800/50 rounded-xl p-3 border border-grappler-800">
+                      <p className="text-xs text-grappler-500">Workouts</p>
+                      <p className="text-lg font-bold text-grappler-100 tabular-nums">{computed.totalWorkouts}</p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 border border-grappler-800">
+                      <p className="text-xs text-grappler-500">Streak</p>
+                      <p className="text-lg font-bold text-grappler-100 tabular-nums flex items-center gap-1">
+                        <Flame className="w-4 h-4 text-orange-500" />
+                        {computed.currentStreak}
+                      </p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 border border-grappler-800">
+                      <p className="text-xs text-grappler-500">Level</p>
+                      <p className="text-lg font-bold text-grappler-100 tabular-nums flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-500" />
+                        {computed.level}
+                      </p>
+                    </div>
+                    <div className="bg-grappler-800/50 rounded-xl p-3 border border-grappler-800">
+                      <p className="text-xs text-grappler-500">Total XP</p>
+                      <p className="text-lg font-bold text-grappler-100 tabular-nums">{formatNumber(computed.totalPoints)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider">Quick Actions</h3>
+                  <div className="space-y-1.5">
+                    <button
+                      onClick={() => setOverlayView('quick_actions')}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-primary-500/10 to-accent-500/10 border border-primary-500/20 text-sm font-medium text-primary-400 hover:from-primary-500/20 hover:to-accent-500/20 transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Start Workout
+                    </button>
+                    <button
+                      onClick={() => setOverlayView('nutrition')}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-grappler-800/50 border border-grappler-800 text-sm text-grappler-400 hover:text-grappler-200 hover:bg-grappler-800/80 transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Log Nutrition
+                    </button>
+                    <button
+                      onClick={() => setOverlayView('training_journal')}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-grappler-800/50 border border-grappler-800 text-sm text-grappler-400 hover:text-grappler-200 hover:bg-grappler-800/80 transition-all"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      Training Journal
+                    </button>
+                  </div>
+                </div>
+
+                {/* Current Block */}
+                {currentMesocycle && (() => {
+                  const totalWeeks = currentMesocycle.weeks.length;
+                  const currentWeek = Math.min(totalWeeks, Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1));
+                  return (
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-semibold text-grappler-500 uppercase tracking-wider">Current Block</h3>
+                      <div className="bg-grappler-800/50 rounded-xl p-3 border border-grappler-800">
+                        <p className="text-sm font-medium text-grappler-200">{currentMesocycle.name}</p>
+                        <p className="text-xs text-grappler-500 mt-0.5">
+                          Week {currentWeek} of {totalWeeks}
+                        </p>
+                        <div className="mt-2 h-1.5 bg-grappler-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary-500 rounded-full transition-all"
+                            style={{ width: `${(currentWeek / totalWeeks) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </aside>
           )}
-          {activeTab === 'program' && (
-            <motion.div
-              key="program"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <CardErrorBoundary fallbackLabel="Program tab">
-                <WorkoutView onSwitchTab={setActiveTab} />
-              </CardErrorBoundary>
-            </motion.div>
-          )}
-          {activeTab === 'explore' && (
-            <motion.div
-              key="explore"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <ExploreTab onNavigate={setOverlayView} />
-            </motion.div>
-          )}
-          {activeTab === 'progress' && (
-            <motion.div
-              key="progress"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <ProgressAndHistoryTab onViewReport={setReportMesocycleId} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
+        </div>
+      </div>
 
       {/* Paused Workout Resume Banner */}
       {activeWorkout && workoutMinimized && (
         <button
           onClick={resumeWorkout}
-          className="fixed bottom-[68px] left-3 right-3 z-30 safe-area-bottom will-change-transform"
+          className="fixed bottom-[68px] lg:bottom-4 lg:left-[272px] left-3 right-3 z-30 safe-area-bottom will-change-transform"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -813,9 +1075,9 @@ export default function Dashboard({
         </button>
       )}
 
-      {/* Bottom Navigation — Home, Program, [+], Explore, Progress */}
+      {/* Bottom Navigation — Mobile only (hidden on lg+) */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom will-change-transform"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom will-change-transform lg:hidden"
         role="tablist"
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}

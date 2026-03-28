@@ -15,6 +15,7 @@
     "db:setup": "node scripts/setup-db.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@neondatabase/serverless": "^1.0.2",
     "@paypal/react-paypal-js": "^8.9.2",
     "@sentry/nextjs": "^10.38.0",
@@ -24,6 +25,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.2.4",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "^4.1.0",
     "lucide-react": "^0.378.0",
     "next": "^14.2.35",
@@ -36,6 +38,7 @@
     "sharp": "^0.34.5",
     "tailwind-merge": "^2.3.0",
     "uuid": "^9.0.1",
+    "web-push": "^3.6.7",
     "zod": "^3.23.8",
     "zustand": "^4.5.2"
   },
@@ -47,6 +50,7 @@
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^9.0.8",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^5.1.3",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",

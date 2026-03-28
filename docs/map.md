@@ -116,7 +116,9 @@ Living map of how the pieces connect. When you need to change something, look he
 |-------|------|---------|
 | Knowledge base | `src/lib/knowledge.ts` | ~300 articles/tips indexed by category |
 | Knowledge engine | `src/lib/knowledge-engine.ts` | Contextual insight picker with spaced repetition |
-| AI coach | `src/lib/ai-coach.ts` | Rule-based weekly recommendations (NOT LLM-powered) |
+| AI coach (rule-based) | `src/lib/ai-coach.ts` | Rule-based weekly recommendations (offline fallback) |
+| AI coach (Claude) | `src/lib/ai-coach-client.ts` | Client helper for Claude-powered coaching via `/api/ai-coach` |
+| AI coach API | `src/app/api/ai-coach/route.ts` | Claude API integration, rate-limited 3/day per user |
 | Daily directive | `src/lib/daily-directive.ts` | "What to do today" combining readiness + schedule + fight camp |
 | Corner coach | `src/lib/corner-coach.ts` | Between-set messaging (hype/tactics/warning) |
 | Narratives | `src/lib/performance-narratives.ts` | Human-readable performance summaries |
@@ -149,6 +151,21 @@ Living map of how the pieces connect. When you need to change something, look he
 | DB sync | `src/lib/db-sync.ts` | Conflict resolution, richness scoring, union merge |
 | Sync hook | `src/lib/useDbSync.ts` | React hook orchestrating load/save/conflict UI |
 | Data safety | `src/lib/data-safety.ts` | Sync failure tracking, snapshot recovery |
+
+---
+
+## Health Import & Notifications
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Health import | `src/lib/health-import.ts` | Apple Health XML parsing + Google Fit data normalization |
+| Health import UI | `src/components/HealthImport.tsx` | Apple Health / Google Fit import flow |
+| Google Fit API | `src/app/api/google-fit/route.ts` | Google Fit OAuth2 + data fetch |
+| Push subscription | `src/lib/push-subscription.ts` | VAPID key exchange, subscribe/unsubscribe |
+| Push API | `src/app/api/push/route.ts` | GET VAPID key, POST subscribe/send |
+| Notification settings | `src/components/NotificationSettings.tsx` | Push notification preferences UI |
+| Barcode scanner | `src/components/BarcodeScanner.tsx` | Camera barcode scanner (`html5-qrcode`), OpenFoodFacts lookup |
+| Barcode lookup | `src/lib/barcode-lookup.ts` | OpenFoodFacts API with localStorage cache |
 
 ---
 

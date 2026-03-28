@@ -5,12 +5,17 @@ import webpush from 'web-push';
 
 // ── VAPID Configuration ──────────────────────────────────────────────────────
 // Generate keys with: npx web-push generate-vapid-keys
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:noreply@rootsgains.com';
-
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+// Lazy init VAPID — avoid module-level calls that crash during build page data collection
+let vapidInitialized = false;
+function ensureVapid(): boolean {
+  if (vapidInitialized) return true;
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+  const priv = process.env.VAPID_PRIVATE_KEY || '';
+  const email = process.env.VAPID_EMAIL || 'mailto:noreply@rootsgains.com';
+  if (!pub || !priv) return false;
+  webpush.setVapidDetails(email, pub, priv);
+  vapidInitialized = true;
+  return true;
 }
 
 export const runtime = 'nodejs';
@@ -27,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    if (!ensureVapid()) {
       return NextResponse.json(
         { error: 'Push notifications not configured. VAPID keys missing.' },
         { status: 503 }
@@ -124,12 +129,13 @@ export async function POST(request: Request) {
 // ── GET /api/push ─────────────────────────────────────────────────────────────
 // Returns the public VAPID key so clients can subscribe
 export async function GET() {
-  if (!VAPID_PUBLIC_KEY) {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+  if (!publicKey) {
     return NextResponse.json(
       { error: 'Push notifications not configured' },
       { status: 503 }
     );
   }
 
-  return NextResponse.json({ publicKey: VAPID_PUBLIC_KEY });
+  return NextResponse.json({ publicKey });
 }

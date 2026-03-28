@@ -3316,7 +3316,7 @@ export default function ActiveWorkout() {
                   href={currentExercise.exercise.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-all text-red-400"
+                  className="w-10 h-10 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-all text-red-400"
                   title="Form Video"
                 >
                   <Video className="w-3.5 h-3.5" />
@@ -3324,7 +3324,7 @@ export default function ActiveWorkout() {
               )}
               <button
                 onClick={() => setShowSwapModal(true)}
-                className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-primary-400"
+                className="w-10 h-10 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-primary-400"
                 title="Swap Exercise"
                 aria-label="Swap exercise"
               >
@@ -3332,7 +3332,7 @@ export default function ActiveWorkout() {
               </button>
               <button
                 onClick={handleSkipExercise}
-                className="w-8 h-8 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-blue-400"
+                className="w-10 h-10 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 flex items-center justify-center transition-all text-grappler-400 hover:text-blue-400"
                 title="Skip"
                 aria-label="Skip exercise"
               >
@@ -3642,7 +3642,7 @@ export default function ActiveWorkout() {
                   <button
                     key={inc}
                     onClick={() => updateSetValue('weight', inc)}
-                    className="px-3 py-1.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
+                    className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
                   >
                     +{inc}
                   </button>
@@ -3711,7 +3711,7 @@ export default function ActiveWorkout() {
                   <button
                     key={inc}
                     onClick={() => updateSetValue('reps', inc)}
-                    className="px-3 py-1.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
+                    className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
                   >
                     +{inc}
                   </button>

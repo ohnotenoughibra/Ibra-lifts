@@ -59,7 +59,7 @@ const nextConfig = {
         {
           key: 'Content-Security-Policy',
           value:
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com https://*.paypal.com; font-src 'self' data:; connect-src 'self' https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com https://api.whoop.com https://api-7.whoop.com; frame-src 'self' https://www.paypal.com https://*.paypal.com; worker-src 'self'; manifest-src 'self'; media-src 'self'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com https://*.paypal.com; font-src 'self' data:; connect-src 'self' https://*.paypal.com https://*.sentry.io https://va.vercel-scripts.com https://api.whoop.com https://api-7.whoop.com https://world.openfoodfacts.org; frame-src 'self' https://www.paypal.com https://*.paypal.com; worker-src 'self' blob:; manifest-src 'self'; media-src 'self'",
         },
       ],
     },

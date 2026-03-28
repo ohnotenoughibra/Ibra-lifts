@@ -403,7 +403,7 @@ function Step1_AboutYou({
                 <button
                   type="button"
                   onClick={() => update({ weightUnit: data.weightUnit === 'kg' ? 'lbs' : 'kg' })}
-                  className="text-xs font-bold px-2 py-0.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
+                  className="text-sm font-bold px-3 py-1.5 rounded-full bg-grappler-700 text-grappler-300 hover:bg-grappler-600 transition-colors"
                 >
                   {data.weightUnit === 'kg' ? 'kg' : 'lbs'}
                 </button>
@@ -468,7 +468,7 @@ function Step1_AboutYou({
                       key={level.value}
                       onClick={() => update({ experienceLevel: level.value })}
                       className={cn(
-                        'py-2.5 rounded-lg text-center transition-all text-xs font-medium',
+                        'py-3 rounded-lg text-center transition-all text-sm font-medium',
                         data.experienceLevel === level.value
                           ? 'bg-primary-500 text-white'
                           : 'bg-grappler-700 text-grappler-400'

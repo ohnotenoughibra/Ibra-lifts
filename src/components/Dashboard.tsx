@@ -158,9 +158,11 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-6"
       onClick={onDismiss}
+      onKeyDown={(e) => { if (e.key === 'Escape') onDismiss(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Level up — Level ${level}`}
+      tabIndex={-1}
     >
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
@@ -668,7 +670,7 @@ export default function Dashboard({
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-20 lg:pb-0">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-24 safe-area-bottom lg:pb-0">
       <div className="max-w-screen-2xl mx-auto lg:flex lg:min-h-[100dvh]">
 
         {/* ── Desktop Sidebar (lg+) ── */}
@@ -1094,7 +1096,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 py-2.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -1162,7 +1164,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'flex flex-col items-center gap-0.5 py-2.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'

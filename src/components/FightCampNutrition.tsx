@@ -43,7 +43,7 @@ const PHASE_COLORS: Record<string, { text: string; bg: string; border: string }>
   weigh_in_day:     { text: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },
   fight_day:        { text: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' },
   tournament_day:   { text: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' },
-  post_competition: { text: 'text-gray-400', bg: 'bg-gray-500/20', border: 'border-gray-500/30' },
+  post_competition: { text: 'text-grappler-400', bg: 'bg-gray-500/20', border: 'border-gray-500/30' },
 };
 
 export default function FightCampNutrition({ onClose }: FightCampNutritionProps) {

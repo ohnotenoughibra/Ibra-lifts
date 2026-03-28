@@ -293,11 +293,11 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               <Grip className="w-5 h-5 text-blue-400" />
               Grip Strength
             </h1>
-            <p className="text-sm text-gray-400">Track and build grappling grip</p>
+            <p className="text-sm text-grappler-400">Track and build grappling grip</p>
           </div>
           {gripScore > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 rounded-lg">
-              <span className="text-xs text-gray-400">Score</span>
+              <span className="text-xs text-grappler-400">Score</span>
               <span className="text-lg font-bold text-blue-400">{gripScore}</span>
             </div>
           )}
@@ -313,7 +313,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                 "flex-1 py-2.5 text-sm font-medium transition-colors",
                 activeTab === tab
                   ? "text-blue-400 border-b-2 border-blue-400"
-                  : "text-gray-500 hover:text-gray-300"
+                  : "text-grappler-400 hover:text-gray-300"
               )}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -379,14 +379,14 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{ex.description}</p>
+                        <p className="text-xs text-grappler-400 mt-0.5 line-clamp-1">{ex.description}</p>
                         {pb && (
                           <p className="text-xs text-blue-400 mt-1">
                             PR: {pb} {ex.unit.split(' ')[0]}
                           </p>
                         )}
                       </div>
-                      <ChevronDown className="w-4 h-4 text-gray-500 -rotate-90" />
+                      <ChevronDown className="w-4 h-4 text-grappler-400 -rotate-90" />
                     </div>
                   </motion.button>
                 );
@@ -399,7 +399,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                 <Info className="w-5 h-5 text-blue-400 shrink-0" />
                 <div>
                   <h4 className="font-medium text-blue-300 text-sm">Grip Training for Grapplers</h4>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-grappler-400 mt-1">
                     Train grip 2-3x per week. Focus on hang time for endurance, towel work for gi grips,
                     and pinch holds for no-gi control. Always balance flexor work with extensor work.
                   </p>
@@ -418,7 +418,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
           >
             <button
               onClick={() => setSelectedExercise(null)}
-              className="flex items-center gap-1 text-sm text-gray-400 hover:text-white"
+              className="flex items-center gap-1 text-sm text-grappler-400 hover:text-white"
             >
               <ChevronUp className="w-4 h-4 rotate-90" />
               Back to exercises
@@ -426,7 +426,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
             <div className="card p-4">
               <h2 className="text-lg font-bold text-white">{exercise.name}</h2>
-              <p className="text-sm text-gray-400 mt-1">{exercise.description}</p>
+              <p className="text-sm text-grappler-400 mt-1">{exercise.description}</p>
 
               <div className="mt-3 p-3 bg-lime-500/10 border border-lime-500/20 rounded-lg">
                 <p className="text-xs text-lime-300">
@@ -449,7 +449,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
               {exercise.trackingType === 'time' && (
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Duration (seconds)</label>
+                  <label className="text-sm text-grappler-400">Duration (seconds)</label>
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setLogTime(Math.max(5, logTime - 5))}
@@ -475,7 +475,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
               {exercise.trackingType === 'reps' && (
                 <div className="space-y-2">
-                  <label className="text-sm text-gray-400">Reps</label>
+                  <label className="text-sm text-grappler-400">Reps</label>
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setLogReps(Math.max(1, logReps - 1))}
@@ -502,7 +502,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               {(exercise.trackingType === 'weight_reps' || exercise.trackingType === 'weight_distance') && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm text-gray-400">Weight (lbs)</label>
+                    <label className="text-sm text-grappler-400">Weight (lbs)</label>
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => setLogWeight(Math.max(5, logWeight - 5))}
@@ -527,7 +527,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
                   {exercise.trackingType === 'weight_reps' && (
                     <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Reps</label>
+                      <label className="text-sm text-grappler-400">Reps</label>
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => setLogReps(Math.max(1, logReps - 1))}
@@ -553,7 +553,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
                   {exercise.trackingType === 'weight_distance' && (
                     <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Distance (feet)</label>
+                      <label className="text-sm text-grappler-400">Distance (feet)</label>
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => setLogDistance(Math.max(10, logDistance - 10))}
@@ -580,7 +580,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               )}
 
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Notes (optional)</label>
+                <label className="text-sm text-grappler-400">Notes (optional)</label>
                 <input
                   type="text"
                   value={logNotes}
@@ -606,7 +606,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                 <div className="space-y-2">
                   {getRecentLogs(exercise.id).map((log, idx) => (
                     <div key={log.id || idx} className="flex justify-between items-center text-sm py-2 border-b border-grappler-800 last:border-0">
-                      <span className="text-gray-400">
+                      <span className="text-grappler-400">
                         {new Date(log.date).toLocaleDateString()}
                       </span>
                       <span className="font-medium text-white">
@@ -646,7 +646,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                   <h3 className="font-medium text-white">Record Grip Test</h3>
 
                   <div className="space-y-2">
-                    <label className="text-sm text-gray-400">Test Type</label>
+                    <label className="text-sm text-grappler-400">Test Type</label>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setTestType('hang_time')}
@@ -654,7 +654,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                           testType === 'hang_time'
                             ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
-                            : "bg-grappler-800 text-gray-400"
+                            : "bg-grappler-800 text-grappler-400"
                         )}
                       >
                         Hang Time
@@ -665,7 +665,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
                           testType === 'dynamometer'
                             ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
-                            : "bg-grappler-800 text-gray-400"
+                            : "bg-grappler-800 text-grappler-400"
                         )}
                       >
                         Grip Strength (lbs)
@@ -675,7 +675,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
                   {testType === 'dynamometer' && (
                     <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Hand</label>
+                      <label className="text-sm text-grappler-400">Hand</label>
                       <div className="flex gap-2">
                         {(['left', 'right', 'both'] as const).map(hand => (
                           <button
@@ -685,7 +685,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                               "flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-colors",
                               testHand === hand
                                 ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500"
-                                : "bg-grappler-800 text-gray-400"
+                                : "bg-grappler-800 text-grappler-400"
                             )}
                           >
                             {hand}
@@ -696,7 +696,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-sm text-gray-400">
+                    <label className="text-sm text-grappler-400">
                       {testType === 'hang_time' ? 'Time (seconds)' : 'Force (lbs)'}
                     </label>
                     <div className="flex items-center gap-4">
@@ -744,7 +744,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
             <div className="card p-4">
               <h3 className="font-medium text-white mb-3">Test History</h3>
               {gripTests.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-4">
+                <p className="text-sm text-grappler-400 text-center py-4">
                   No tests recorded yet. Record your first grip test to track progress.
                 </p>
               ) : (
@@ -755,10 +755,10 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                     .map((test, idx) => (
                       <div key={test.id || idx} className="flex justify-between items-center py-2 border-b border-grappler-800 last:border-0">
                         <div>
-                          <span className="text-sm text-gray-400">
+                          <span className="text-sm text-grappler-400">
                             {new Date(test.date).toLocaleDateString()}
                           </span>
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="text-xs text-grappler-400 ml-2">
                             {test.type === 'hang_time' ? 'Hang Test' : `Dynamometer (${test.hand})`}
                           </span>
                         </div>
@@ -782,7 +782,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                   <p className="text-sm font-medium text-white mb-2">Dead Hang</p>
                   <div className="grid grid-cols-4 gap-2 text-xs">
                     <div className="text-center">
-                      <div className="text-gray-500">Beginner</div>
+                      <div className="text-grappler-400">Beginner</div>
                       <div className="font-medium text-gray-300">30s</div>
                     </div>
                     <div className="text-center">
@@ -803,7 +803,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                   <p className="text-sm font-medium text-white mb-2">Towel Hang (Gi Grip)</p>
                   <div className="grid grid-cols-4 gap-2 text-xs">
                     <div className="text-center">
-                      <div className="text-gray-500">Beginner</div>
+                      <div className="text-grappler-400">Beginner</div>
                       <div className="font-medium text-gray-300">15s</div>
                     </div>
                     <div className="text-center">
@@ -830,9 +830,9 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
           <div className="space-y-4">
             {/* Grip Score Card */}
             <div className="card p-4 text-center">
-              <h3 className="text-sm text-gray-400 mb-2">Your Grip Score</h3>
+              <h3 className="text-sm text-grappler-400 mb-2">Your Grip Score</h3>
               <div className="text-5xl font-bold text-blue-400">{gripScore}</div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-grappler-400 mt-2">
                 Based on your tests and exercise PRs
               </p>
             </div>
@@ -850,7 +850,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
                   return (
                     <div key={ex.id} className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-400">{ex.name}</span>
+                      <span className="text-sm text-grappler-400">{ex.name}</span>
                       {pb ? (
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white">
@@ -885,20 +885,20 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               </h3>
               <div className="space-y-3 text-sm">
                 {gripScore < 30 && (
-                  <p className="text-gray-400">
+                  <p className="text-grappler-400">
                     Focus on <span className="text-blue-300">dead hangs</span> 3x per week.
                     Start with 3 sets to failure and track your progress.
                   </p>
                 )}
                 {gripScore >= 30 && gripScore < 60 && (
-                  <p className="text-gray-400">
+                  <p className="text-grappler-400">
                     Add <span className="text-blue-300">towel hangs</span> and{' '}
                     <span className="text-blue-300">plate pinches</span> to develop
                     grappling-specific grip strength.
                   </p>
                 )}
                 {gripScore >= 60 && (
-                  <p className="text-gray-400">
+                  <p className="text-grappler-400">
                     Strong grip! Focus on <span className="text-blue-300">gi pull-ups</span>{' '}
                     and <span className="text-blue-300">farmer&apos;s walks</span> for
                     competition-level grip endurance.

@@ -430,7 +430,7 @@ export default function DietCoach() {
           <Scale className="w-5 h-5 text-violet-400" />
           <div className="text-left">
             <p className="text-sm font-medium text-white">Diet Coach</p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-grappler-400">
               {activeDietPhase
                 ? `${GOAL_CONFIG[activeDietPhase.goal].label} — Week ${activeDietPhase.weeksCompleted + 1}`
                 : 'Evidence-based nutrition coaching'}
@@ -443,7 +443,7 @@ export default function DietCoach() {
               Check-in due
             </span>
           )}
-          {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
         </div>
       </button>
 
@@ -479,7 +479,7 @@ export default function DietCoach() {
               {/* No active phase — show setup */}
               {!activeDietPhase && !showSetup && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-grappler-400">
                     Set a nutrition goal and get adaptive macro coaching. Your macros adjust weekly based on your actual weight trend.
                   </p>
                   <button
@@ -498,7 +498,7 @@ export default function DietCoach() {
               {/* Setup flow — Step 1: Your info */}
               {showSetup && setupStep === 'info' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Your Info</p>
+                  <p className="text-xs text-grappler-400 font-medium uppercase tracking-wide">Your Info</p>
                   <p className="text-xs text-grappler-400">
                     Used for Mifflin-St Jeor BMR — the most accurate validated formula (ADA 2005).
                   </p>
@@ -591,7 +591,7 @@ export default function DietCoach() {
               {/* Setup flow — Step 2: Choose goal */}
               {showSetup && setupStep === 'goal' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Choose Your Goal</p>
+                  <p className="text-xs text-grappler-400 font-medium uppercase tracking-wide">Choose Your Goal</p>
                   <div className="space-y-2">
                     {(Object.keys(GOAL_CONFIG) as DietGoal[]).map((goal) => {
                       const config = GOAL_CONFIG[goal];
@@ -1303,7 +1303,7 @@ function PhaseTimeline({
             {phaseContext.label}
           </p>
           {phaseContext.lookAhead && (
-            <p className="text-xs text-gray-500">{phaseContext.lookAhead}</p>
+            <p className="text-xs text-grappler-400">{phaseContext.lookAhead}</p>
           )}
         </div>
       )}
@@ -1369,25 +1369,25 @@ function PhaseTimeline({
               <div className={`p-2.5 ${colors.bg} ${colors.border} border rounded-lg space-y-1.5`}>
                 <div className="flex items-center justify-between">
                   <p className={`text-xs font-medium ${colors.text}`}>{colors.label}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-grappler-400">
                     {phase.startDate} → {phase.endDate}
                   </p>
                 </div>
-                <p className="text-xs text-gray-400">{phase.reasoning}</p>
-                <div className="flex gap-3 text-xs text-gray-500">
+                <p className="text-xs text-grappler-400">{phase.reasoning}</p>
+                <div className="flex gap-3 text-xs text-grappler-400">
                   <span>{phase.plannedWeeks} weeks</span>
                   <span>·</span>
                   <span>{Math.round(phase.calorieFactor * 100)}% TDEE</span>
                   <span>·</span>
                   <span>{phase.proteinGKg}g/kg protein</span>
                 </div>
-                <div className="flex gap-3 text-xs text-gray-500">
+                <div className="flex gap-3 text-xs text-grappler-400">
                   <span>Training: {phase.pairedTrainingFocus}</span>
                   {phase.dietBreakRecommended && <span className="text-cyan-400">· Diet break at midpoint</span>}
                 </div>
                 {isActive && phaseContext && (
                   <div className="pt-1 border-t border-white/5">
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-grappler-400">
                       Week {phaseContext.weeksCompleted + 1} of {phase.plannedWeeks} · {phaseContext.weeksRemaining} weeks remaining
                     </p>
                   </div>

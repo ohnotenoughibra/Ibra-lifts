@@ -1489,7 +1489,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 </p>
                 <div className="mt-2 space-y-1.5">
                   {autoImportResult.sessions.map((session, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-400">
+                    <div key={idx} className="flex items-center gap-2 text-xs text-grappler-400">
                       <span className={cn(
                         "px-1.5 py-0.5 rounded text-xs font-medium",
                         session.type.includes('bjj') ? 'bg-blue-500/20 text-blue-300' :
@@ -1500,7 +1500,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                         {session.type.replace('_', ' ').toUpperCase()}
                       </span>
                       <span>{session.duration}min</span>
-                      <span className="text-gray-500">•</span>
+                      <span className="text-grappler-400">•</span>
                       <span className="capitalize">{session.intensity.replace('_', ' ')}</span>
                       {session.detectionMethod === 'heuristic' && (
                         <span className="text-yellow-400/70 text-xs">(auto-detected)</span>
@@ -1515,7 +1515,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   >
                     Dismiss
                   </button>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-grappler-400">
                     View in Grappling Tracker to edit
                   </span>
                 </div>

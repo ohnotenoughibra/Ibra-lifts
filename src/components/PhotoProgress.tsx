@@ -1113,7 +1113,7 @@ function ViewPhotoModal({
           </p>
         )}
         {photo.notes && (
-          <p className="text-xs text-gray-400 mt-1">{photo.notes}</p>
+          <p className="text-xs text-grappler-400 mt-1">{photo.notes}</p>
         )}
       </div>
     </motion.div>

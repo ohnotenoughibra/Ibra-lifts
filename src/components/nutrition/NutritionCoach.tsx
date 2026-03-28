@@ -69,11 +69,11 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
             <div className="text-left">
               <p className="text-sm font-medium text-white">{dayLabel}</p>
               {contextualNutrition.carbCycleNote && (
-                <p className="text-xs text-gray-400">{contextualNutrition.carbCycleNote}</p>
+                <p className="text-xs text-grappler-400">{contextualNutrition.carbCycleNote}</p>
               )}
             </div>
           </div>
-          {showContextual ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          {showContextual ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
         </button>
 
         <AnimatePresence>
@@ -88,7 +88,7 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
                 {/* Base vs Adjusted */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2 bg-grappler-800/50 rounded-lg">
-                    <p className="text-gray-500 mb-1">Base Targets</p>
+                    <p className="text-grappler-400 mb-1">Base Targets</p>
                     <p className="text-gray-300">
                       {contextualNutrition.baseTargets.calories} kcal &middot; {contextualNutrition.baseTargets.protein}g P
                     </p>
@@ -107,13 +107,13 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
                     {contextualNutrition.preworkoutTiming && (
                       <div className="flex items-start gap-2 text-xs">
                         <span className="text-yellow-400 font-medium min-w-[60px]">Pre:</span>
-                        <span className="text-gray-400">{contextualNutrition.preworkoutTiming}</span>
+                        <span className="text-grappler-400">{contextualNutrition.preworkoutTiming}</span>
                       </div>
                     )}
                     {contextualNutrition.postworkoutTiming && (
                       <div className="flex items-start gap-2 text-xs">
                         <span className="text-green-400 font-medium min-w-[60px]">Post:</span>
-                        <span className="text-gray-400">{contextualNutrition.postworkoutTiming}</span>
+                        <span className="text-grappler-400">{contextualNutrition.postworkoutTiming}</span>
                       </div>
                     )}
                   </div>
@@ -200,9 +200,9 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
                 {/* Tips */}
                 {contextualNutrition.recommendations.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-gray-500 font-medium">Tips for today:</p>
+                    <p className="text-xs text-grappler-400 font-medium">Tips for today:</p>
                     {contextualNutrition.recommendations.slice(0, 3).map((rec, i) => (
-                      <p key={i} className="text-xs text-gray-400 flex items-start gap-2">
+                      <p key={i} className="text-xs text-grappler-400 flex items-start gap-2">
                         <span className="text-primary-400">&bull;</span>
                         {rec}
                       </p>
@@ -213,11 +213,11 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
                 {/* Supplement recommendations */}
                 {supplements.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                    <p className="text-xs text-grappler-400 font-medium flex items-center gap-1">
                       <Shield className="w-3 h-3 text-emerald-400" /> Supplements
                     </p>
                     {supplements.slice(0, 6).map((sup, i) => (
-                      <p key={i} className="text-xs text-gray-400 flex items-start gap-2">
+                      <p key={i} className="text-xs text-grappler-400 flex items-start gap-2">
                         <span className="text-emerald-400">&#x2022;</span>
                         {sup}
                       </p>
@@ -246,7 +246,7 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
             <TrendingUp className="w-4 h-4 text-primary-400" />
             <span className="text-sm font-medium text-grappler-200">Nutrition Trends</span>
           </div>
-          {showTrends ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+          {showTrends ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
         </button>
         <AnimatePresence>
           {showTrends && (

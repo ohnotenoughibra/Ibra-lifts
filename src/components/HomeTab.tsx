@@ -2605,7 +2605,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </div>
 
             {/* Tool grid — scrollable */}
-            <div className="overflow-y-auto max-h-[calc(70vh-70px)] p-4 pb-safe">
+            <div className="overflow-y-auto overscroll-contain max-h-[calc(70vh-70px)] p-4 pb-safe">
               <div className="grid grid-cols-3 gap-3">
                 {(() => {
                   const filtered = ALL_TOOLS.filter(t => !pinnedIds.includes(t.id) || (dockPickerSlot != null && dockPickerSlot < pinnedIds.length && pinnedIds[dockPickerSlot] === t.id));

@@ -125,7 +125,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
     switch (trend) {
       case 'improving': return <TrendingUp className="w-4 h-4 text-green-400" />;
       case 'declining': return <TrendingDown className="w-4 h-4 text-red-400" />;
-      case 'stable': return <Minus className="w-4 h-4 text-gray-400" />;
+      case 'stable': return <Minus className="w-4 h-4 text-grappler-400" />;
       default: return null;
     }
   };
@@ -208,7 +208,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
                   <span className={cn(
                     'font-medium',
                     factor.impact === 'positive' ? 'text-green-400' :
-                      factor.impact === 'negative' ? 'text-red-400' : 'text-gray-400'
+                      factor.impact === 'negative' ? 'text-red-400' : 'text-grappler-400'
                   )}>
                     {factor.value}
                   </span>

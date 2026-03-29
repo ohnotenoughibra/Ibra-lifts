@@ -120,6 +120,7 @@ Living map of how the pieces connect. When you need to change something, look he
 | AI coach (Claude) | `src/lib/ai-coach-client.ts` | Client helper for Claude-powered coaching via `/api/ai-coach` |
 | AI coach API | `src/app/api/ai-coach/route.ts` | Claude API integration, rate-limited 3/day per user |
 | Daily directive | `src/lib/daily-directive.ts` | "What to do today" combining readiness + schedule + fight camp |
+| The One Thing | `src/lib/one-thing.ts` + `src/components/OneThingBanner.tsx` | Time-aware single directive that changes by hour, shown on HomeTab |
 | Corner coach | `src/lib/corner-coach.ts` | Between-set messaging (hype/tactics/warning) |
 | Narratives | `src/lib/performance-narratives.ts` | Human-readable performance summaries |
 

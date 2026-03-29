@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Check, Share2, Trophy,
+  Share2, Trophy,
   TrendingUp, Flame, Dumbbell, Calendar, BarChart3, Zap,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
+import FightCardModal from '../FightCard';
+import type { FightCardData } from '@/lib/fight-card-renderer';
 
 interface PostWorkoutPhaseProps {
   todayPerformance: {
@@ -37,6 +40,8 @@ interface PostWorkoutPhaseProps {
   onNavigate: (view: OverlayView, context?: string) => void;
   onViewReport?: (mesoId: string) => void;
   onGenerateNext?: () => void;
+  athleteName?: string;
+  athleteLevel?: number;
   prevBlockJustCompleted?: boolean;
   blockCompleteStats?: {
     mesoId: string;
@@ -64,10 +69,13 @@ export default function PostWorkoutPhase({
   onDismiss,
   onNavigate,
   onViewReport,
+  athleteName,
+  athleteLevel,
   onGenerateNext,
   prevBlockJustCompleted,
   blockCompleteStats,
 }: PostWorkoutPhaseProps) {
+  const [showFightCard, setShowFightCard] = useState(false);
   const isMesoComplete = prevBlockJustCompleted || lastCompletedWorkout?.isMesocycleComplete;
   const blockStats = blockCompleteStats;
 
@@ -301,7 +309,7 @@ export default function PostWorkoutPhase({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
     >
-      {/* Share button — top right */}
+      {/* Share button — top right (opens Fight Card) */}
       {lastCompletedWorkout && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -310,11 +318,11 @@ export default function PostWorkoutPhase({
           className="flex justify-end mb-2"
         >
           <button
-            onClick={onShare}
+            onClick={() => setShowFightCard(true)}
             className="text-green-400 hover:text-green-300 p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
-            title="Share workout"
+            title="Share Fight Card"
           >
-            {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            <Share2 className="w-4 h-4" />
           </button>
         </motion.div>
       )}
@@ -470,6 +478,29 @@ export default function PostWorkoutPhase({
       >
         Done
       </motion.button>
+
+      {/* Fight Card Modal */}
+      {lastCompletedWorkout && (
+        <FightCardModal
+          open={showFightCard}
+          onClose={() => setShowFightCard(false)}
+          data={{
+            athleteName: athleteName || 'Athlete',
+            level: athleteLevel || 1,
+            grade: todayPerformance.grade,
+            verdict: todayPerformance.verdict,
+            totalVolume: todayPerformance.totalVolume,
+            totalSets: todayPerformance.totalSets,
+            avgRPE: todayPerformance.avgRPE,
+            duration: durationMin,
+            weightUnit,
+            prs: todayPerformance.prs,
+            prExercises: todayPerformance.prExercises,
+            streak: lastCompletedWorkout.newStreak,
+            date: new Date(),
+          } satisfies FightCardData}
+        />
+      )}
     </motion.div>
   );
 }

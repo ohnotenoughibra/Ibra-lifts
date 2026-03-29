@@ -44,6 +44,7 @@
 - `SupplementTracker.tsx` (~570) — Supplement stack tracking
 
 ### Recovery & Readiness
+- `MorningRitual.tsx` (~240) — Once-per-day full-screen readiness reveal animation with animated ring fill, haptic feedback, time-appropriate greeting. Uses `calculateReadiness` from performance engine. Exports `shouldShowRitual()` for date gating.
 - `RecoveryCoach.tsx` (~360) — Recovery recommendations
 - `RecoveryDashboard.tsx` (~850) — Recovery overview with wearable data
 - `WearableIntegration.tsx` (~2,100) — Whoop connection + data display
@@ -86,6 +87,7 @@
 - `KnowledgeHub.tsx` (~490) — Article browser
 - `WeeklyCoach.tsx` (~460) — Weekly AI coach summary
 - `InsightCard.tsx` (~155) — Contextual insight display
+- `OneThingBanner.tsx` (~90) — "The One Thing" time-aware directive banner on HomeTab
 - `CornerCoachInfo.tsx` (~180) — Between-set coaching
 
 ### Health & Wearable Import

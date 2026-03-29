@@ -78,6 +78,8 @@ import WeeklyMomentum from './WeeklyMomentum';
 import ReadinessRing from './ReadinessRing';
 import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
+import { getOneThing } from '@/lib/one-thing';
+import OneThingBanner from './OneThingBanner';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import { getContextualNutrition, type TrainingDayType } from '@/lib/contextual-nutrition';
 import InsightCard from './InsightCard';
@@ -1021,6 +1023,38 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
   }, [directive, macroTargets, todayProtein, hour, sleepHours]);
 
+  // ─── The One Thing — single time-aware directive ───
+  const oneThing = useMemo(() => {
+    const now = Date.now();
+    const nearestComp = (competitions || [])
+      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    const daysToComp = nearestComp
+      ? Math.ceil((new Date(nearestComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
+      : null;
+
+    return getOneThing({
+      hour,
+      readinessScore: directive.readinessScore,
+      readinessLevel: directive.readinessLevel,
+      todayType: directive.todayType,
+      hasTrainedToday: directive.todayPerformance != null,
+      todayProtein,
+      proteinTarget: macroTargets.protein || 0,
+      waterGlasses: waterTodayGlasses,
+      waterTarget: 8,
+      sleepHours: sleepHours ?? null,
+      nextWorkoutName: directive.nextSession?.name ?? null,
+      nextWorkoutTime: hour < 12 ? 'afternoon' : hour < 17 ? 'evening' : null,
+      streak: computed.currentStreak,
+      todayGrade: directive.todayPerformance?.grade ?? null,
+      hasFightCamp: directive.fightCampTag != null,
+      daysToCompetition: daysToComp,
+      nextWorkoutExerciseCount: directive.nextSession?.exercises?.length,
+      nextWorkoutDuration: directive.nextSession?.estimatedDuration,
+    });
+  }, [hour, directive, todayProtein, macroTargets.protein, waterTodayGlasses, sleepHours, competitions, computed.currentStreak]);
+
   // ─── Insight Summary — context-aware toggle text ───
   const insightSummary = useMemo(() => {
     const parts: string[] = [];
@@ -1820,6 +1854,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </CardErrorBoundary>
       </section>
 
+      {/* ─── THE ONE THING — single time-aware directive ─── */}
+      <OneThingBanner
+        oneThing={oneThing}
+        onAction={oneThing.actionRoute ? () => onNavigate(oneThing.actionRoute as OverlayView) : undefined}
+      />
+
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}
       {criticalAlerts.length > 0 && (
         <div className="space-y-2">
@@ -1890,6 +1930,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onDismiss={dismissWorkoutSummary}
           onNavigate={onNavigate}
           onViewReport={onViewReport}
+          athleteName={user?.name}
+          athleteLevel={gamificationStats?.level}
           onGenerateNext={handleGenerateNext}
           prevBlockJustCompleted={prevBlockJustCompleted}
           blockCompleteStats={blockCompleteStats}

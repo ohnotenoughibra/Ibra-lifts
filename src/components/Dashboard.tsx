@@ -32,6 +32,7 @@ import UpgradePrompt from './UpgradePrompt';
 import { ToastProvider } from './Toast';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
 import CardErrorBoundary from './CardErrorBoundary';
+import MorningRitual, { shouldShowRitual } from './MorningRitual';
 import { hapticLight } from '@/lib/haptics';
 import type { OverlayView } from './dashboard-types';
 import type { TabType } from './dashboard-types';
@@ -259,6 +260,15 @@ export default function Dashboard({
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
   const [showReadyScreen, setShowReadyScreen] = useState(false);
   const readyScreenSkipped = useRef(false);
+
+  // ── Morning Ritual — once-per-day readiness reveal ──
+  const [showMorningRitual, setShowMorningRitual] = useState(false);
+  useEffect(() => {
+    // Only show on home tab, only when user exists (onboarding complete)
+    if (user && activeTab === 'home' && shouldShowRitual()) {
+      setShowMorningRitual(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const feedbackShownThisSession = useRef(false);
@@ -671,6 +681,15 @@ export default function Dashboard({
     <MotionConfig reducedMotion="user">
     <ToastProvider>
     <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-32 safe-area-bottom lg:pb-0">
+      {/* Morning Ritual — once-per-day readiness reveal animation */}
+      <AnimatePresence>
+        {showMorningRitual && activeTab === 'home' && (
+          <MorningRitual
+            onComplete={() => setShowMorningRitual(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="max-w-screen-2xl mx-auto lg:flex lg:min-h-[100dvh]">
 
         {/* ── Desktop Sidebar (lg+) ── */}

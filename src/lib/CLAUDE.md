@@ -116,6 +116,7 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `ai-coach.ts` — Rule-based weekly recommendations (fallback when API unavailable)
 - `ai-coach-client.ts` — Client-side helper for Claude-powered coaching (calls `/api/ai-coach`)
 - `daily-directive.ts` — "What to do today" planner
+- `one-thing.ts` — Time-aware single directive ("The One Thing") — changes by hour, readiness, nutrition, training status
 - `corner-coach.ts` — Between-set hype/tactics messaging
 - `knowledge-engine.ts` — Contextual insight picker
 - `performance-narratives.ts` — Human-readable performance summaries

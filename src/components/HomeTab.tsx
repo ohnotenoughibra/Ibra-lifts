@@ -497,6 +497,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [profileHintDismissed, setProfileHintDismissed] = useState(() => typeof window !== 'undefined' && localStorage.getItem('profile-hint-dismissed') === '1');
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
 
@@ -1745,72 +1746,64 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* Profile completeness banner — shown when critical fields are missing */}
-      {!profileComplete && (
-        <div className="rounded-xl p-4 border border-primary-500/30 bg-primary-500/10">
-          <p className="text-sm font-medium text-primary-300">Complete your profile</p>
-          <p className="text-xs text-grappler-400 mt-1">
-            Add your {!user?.bodyWeightKg ? 'weight' : !user?.heightCm ? 'height' : !user?.age ? 'age' : 'sex'} to unlock personalized coaching, nutrition targets, and readiness tracking.
-          </p>
-        </div>
+      {/* Profile hint — subtle, dismissible, shown once */}
+      {!profileComplete && !profileHintDismissed && !user?.heightCm && (
+        <button
+          onClick={() => {
+            setProfileHintDismissed(true);
+            localStorage.setItem('profile-hint-dismissed', '1');
+            onNavigate('profile' as any);
+          }}
+          className="text-xs text-primary-400/70 hover:text-primary-300 transition-colors px-1"
+        >
+          Add height for better coaching &rarr;
+        </button>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          ABOVE THE FOLD — Hero Section: 3-Second Rule
-          Readiness ring + Start Workout + Streak counter
+          ABOVE THE FOLD — Hero Section: Steve Jobs philosophy
+          Centered readiness ring, one-line context, streak badge
           ═══════════════════════════════════════════════════════════════════ */}
       <section className="space-y-2">
-        {/* Hero row: Readiness Ring + context | Streak */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-3">
-            <ReadinessRing
-              score={directive.readinessScore}
-              onClick={() => setReadinessExpanded(v => !v)}
-            />
-            {/* Bottleneck callout — show limiters inline when readiness is low */}
-            <div className="min-w-0">
-              {directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? (
-                <p className="text-xs text-green-400 font-medium">All green. Push today.</p>
-              ) : directive.readinessLevel === 'critical' ? (
-                <p className="text-xs text-red-400 font-medium">Take a rest day.</p>
-              ) : (() => {
-                const hints: string[] = [];
-                if (sleepHours != null && sleepHours < 6) hints.push(`Sleep ${sleepHours}h`);
-                if (recoveryScore != null && recoveryScore < 50) hints.push(`Recovery ${recoveryScore}%`);
-                if (waterTodayL < 1) hints.push('Low hydration');
-                if (todayProtein < macroTargets.protein * 0.5) hints.push('Low protein');
-                const topHints = hints.slice(0, 2);
-                return topHints.length > 0 ? (
-                  <p className="text-xs text-grappler-400">
-                    <span className={cn('font-medium', directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400')}>
-                      {topHints.join(' · ')}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="text-xs text-grappler-400">
-                    <span className={cn('font-medium', directive.readinessLevel === 'moderate' ? 'text-yellow-400' : 'text-amber-400')}>
-                      Moderate readiness
-                    </span>
-                    {' '}— tap for details
-                  </p>
-                );
-              })()}
+        <section className="flex flex-col items-center pt-2 pb-4 relative">
+          {/* Streak badge — top right */}
+          {currentStreak >= 1 && (
+            <div className="absolute top-2 right-0 flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-xs font-black text-orange-400 tabular-nums">{currentStreak}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {currentStreak >= 1 && (
-              <div className="flex items-center gap-1.5 text-orange-400">
-                <Flame className="w-4 h-4" />
-                <span className="text-sm font-black tabular-nums">{currentStreak}d</span>
-              </div>
-            )}
-            {directive.isDeload && (
-              <span className="text-xs font-medium text-amber-400 tabular-nums">Deload</span>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* Readiness breakdown — expandable via ring tap (hidden when profile incomplete to avoid NaN) */}
+          {/* Deload badge — top left */}
+          {directive.isDeload && (
+            <div className="absolute top-2 left-0 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30">
+              <span className="text-xs font-medium text-amber-400">Deload</span>
+            </div>
+          )}
+
+          {/* Hero readiness ring — centered, large */}
+          <ReadinessRing
+            score={directive.readinessScore}
+            size={140}
+            variant="hero"
+            onClick={() => setReadinessExpanded(v => !v)}
+          />
+
+          {/* One-line context */}
+          <p className={cn(
+            'text-sm font-medium mt-3',
+            directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? 'text-green-400' :
+            directive.readinessLevel === 'moderate' ? 'text-yellow-400' :
+            directive.readinessLevel === 'low' ? 'text-amber-400' : 'text-red-400'
+          )}>
+            {directive.readinessLevel === 'peak' ? 'All systems go' :
+             directive.readinessLevel === 'good' ? 'Green light' :
+             directive.readinessLevel === 'moderate' ? 'Take it easy today' :
+             directive.readinessLevel === 'low' ? 'Light work only' : 'Rest day'}
+          </p>
+        </section>
+
+        {/* Readiness breakdown — expandable via ring tap */}
         <AnimatePresence>
           {profileComplete && readinessExpanded && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
@@ -2076,35 +2069,84 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* ─── BELOW FOLD TOGGLE ─── */}
-      <button
-        onClick={() => setShowMore(v => !v)}
-        className="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-xl bg-grappler-800/30 border border-grappler-700/20 hover:bg-grappler-800/50 transition-colors"
-      >
-        <span className="text-xs font-medium text-grappler-500">
-          {showMore ? 'Less' : 'Insights, momentum & quick access'}
-        </span>
-        <motion.span
-          animate={{ rotate: showMore ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="inline-flex flex-shrink-0"
-        >
-          <ChevronDown className="w-3.5 h-3.5 text-grappler-500" />
-        </motion.span>
-      </button>
+      {/* ─── INLINE INSIGHTS — top 2 contextual, always visible ─── */}
+      {(() => {
+        const INSIGHT_ICONS: Record<string, React.ReactNode> = {
+          trophy: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
+          trending: <TrendingUp className="w-3.5 h-3.5 text-green-400" />,
+          alert: <AlertTriangle className="w-3.5 h-3.5 text-red-400" />,
+          target: <Target className="w-3.5 h-3.5 text-primary-400" />,
+          shield: <Shield className="w-3.5 h-3.5 text-purple-400" />,
+          crosshair: <Crosshair className="w-3.5 h-3.5 text-blue-400" />,
+        };
+        const INSIGHT_BG_INLINE: Record<string, string> = {
+          gold: 'bg-yellow-500/8 border-yellow-500/20', green: 'bg-green-500/8 border-green-500/20',
+          red: 'bg-red-500/8 border-red-500/20', amber: 'bg-amber-500/8 border-amber-500/20',
+          blue: 'bg-blue-500/8 border-blue-500/20', purple: 'bg-purple-500/8 border-purple-500/20',
+          primary: 'bg-primary-500/10 border-primary-500/25',
+        };
 
-      <AnimatePresence>
-        {showMore && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="space-y-3">
+        const inlineCards: React.ReactNode[] = [];
 
-      {/* ─── Weekly Momentum — 7-day rhythm bar, expandable scorecard ─── */}
+        // Weekly coaching insights — top 2
+        if (weeklyInsights.length > 0) {
+          weeklyInsights.slice(0, 2).forEach((insight, i) => {
+            inlineCards.push(
+              <div key={`inline-insight-${i}`} className={cn('rounded-xl px-3 py-2.5 border', INSIGHT_BG_INLINE[insight.color] || INSIGHT_BG_INLINE.primary)}>
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex-shrink-0">{INSIGHT_ICONS[insight.icon]}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">{insight.label}</span>
+                    <p className={cn('text-sm leading-relaxed mt-0.5', insight.type === 'one_thing' ? 'text-grappler-200 font-medium' : 'text-grappler-300')}>
+                      {insight.text}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          });
+        }
+
+        // Yesterday recap as fallback if no coaching insights
+        if (inlineCards.length === 0 && yesterdayWorkouts.length > 0 && !directive.todayPerformance) {
+          const ydayVolume = yesterdayWorkouts.reduce((s, l) => s + (l.totalVolume || 0), 0);
+          const ydayPRs = yesterdayWorkouts.reduce((s, l) => s + (l.exercises?.filter(e => e.personalRecord).length || 0), 0);
+          inlineCards.push(
+            <div key="inline-yesterday" className="rounded-xl px-3 py-2.5 border border-blue-500/20 bg-blue-500/8">
+              <div className="flex items-center gap-2.5">
+                <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                <p className="text-sm text-grappler-300">
+                  <span className="font-medium text-blue-300">Yesterday:</span>{' '}
+                  {formatNumber(ydayVolume)} {weightUnit}
+                  {ydayPRs > 0 && <span className="text-yellow-400"> · {ydayPRs} PR{ydayPRs > 1 ? 's' : ''}</span>}
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        // Narrative highlight
+        if (inlineCards.length < 2 && narrative.hasData && workoutLogs.length >= 6 && narrative.highlights.length > 0) {
+          const topHighlight = narrative.highlights[0];
+          inlineCards.push(
+            <div key="inline-narrative" className="rounded-xl px-3 py-2.5 border border-emerald-500/20 bg-emerald-500/8">
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <p className="text-sm text-grappler-300">
+                  <span className="font-bold text-emerald-400">{topHighlight.stat || topHighlight.label}</span>{' '}
+                  {topHighlight.label || narrative.summary?.slice(0, 80)}
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        return inlineCards.length > 0 ? (
+          <div className="space-y-2">{inlineCards.slice(0, 2)}</div>
+        ) : null;
+      })()}
+
+      {/* ─── Weekly Momentum — always visible ─── */}
       <WeeklyMomentum
         currentStreak={currentStreak}
         weekDone={weekDone}
@@ -2163,9 +2205,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   <Shield className="w-4 h-4 text-red-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-red-300">Recovery day recommended</h4>
-                  <p className="text-xs text-grappler-400 mt-0.5">
-                    High combat fatigue detected — skip lifting or do mobility/recovery work.
+                  <h4 className="text-xl font-bold text-red-300">Recovery day recommended</h4>
+                  <p className="text-sm text-grappler-400 mt-0.5">
+                    High combat fatigue — skip lifting or do mobility work.
                   </p>
                   {adj.warnings.length > 0 && (
                     <div className="mt-1.5 space-y-0.5">
@@ -2195,11 +2237,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   <Shield className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-amber-300">
-                    Lifting adjusted: volume &minus;{volPct}%, intensity &minus;{intPct}%
+                  <h4 className="text-xl font-bold text-amber-300">
+                    Volume &minus;{volPct}%, intensity &minus;{intPct}%
                   </h4>
-                  <p className="text-xs text-grappler-400 mt-0.5">
-                    Recent combat training detected — auto-throttling today&apos;s lifting to manage interference.
+                  <p className="text-sm text-grappler-400 mt-0.5">
+                    Auto-adjusted for recent combat training.
                   </p>
                   {cumulativeLoad.riskLevel === 'caution' || cumulativeLoad.riskLevel === 'danger' ? (
                     <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
@@ -2229,217 +2271,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       {/* ─── PULSE — horizontal scroll of analysis micro-chips, always visible ─── */}
       <DashboardInsights onNavigate={onNavigate} />
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          COLLAPSIBLE INSIGHTS — coaching, nutrition, intel feed
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div>
-        <button
-          onClick={() => setShowInsights(v => !v)}
-          className="w-full flex items-center justify-between gap-2 py-3 px-3 rounded-xl bg-grappler-800/40 border border-grappler-700/30 hover:bg-grappler-800/60 transition-colors"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Sparkles className="w-4 h-4 text-primary-400 flex-shrink-0" />
-            <span className="text-sm font-semibold text-grappler-300 truncate">{showInsights ? 'Hide insights' : insightSummary}</span>
-          </div>
-          <motion.span
-            animate={{ rotate: showInsights ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-            className="inline-flex flex-shrink-0"
-          >
-            <ChevronDown className="w-4 h-4 text-grappler-400" />
-          </motion.span>
-        </button>
+      {/* Collapsible insights removed — top 2 shown inline above */}
 
-        <AnimatePresence>
-          {showInsights && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div className="space-y-3 pt-1">
-
-                {/* ─── Body Check-In — soreness & mobility ─── */}
-                {showSorenessCheck && (
-                  <SorenessCheck
-                    context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
-                    isCombatAthlete={user?.trainingIdentity === 'combat'}
-                    onDismiss={() => setSorenessCheckDismissed(true)}
-                    onLog={handleSorenessLog}
-                  />
-                )}
-
-                {/* Performance Readiness removed — readiness ring (performance-engine) is the single source of truth */}
-
-                {/* ─── INTEL FEED — flat, priority-ranked, no nested accordions ─── */}
-                {(() => {
-                  const intelItems: { key: string; priority: number; content: React.ReactNode }[] = [];
-
-                  const INTEL_ICONS: Record<string, React.ReactNode> = {
-                    trophy: <Trophy className="w-3.5 h-3.5 text-yellow-400" />,
-                    trending: <TrendingUp className="w-3.5 h-3.5 text-green-400" />,
-                    alert: <AlertTriangle className="w-3.5 h-3.5 text-red-400" />,
-                    target: <Target className="w-3.5 h-3.5 text-primary-400" />,
-                    shield: <Shield className="w-3.5 h-3.5 text-purple-400" />,
-                    crosshair: <Crosshair className="w-3.5 h-3.5 text-blue-400" />,
-                  };
-                  const INSIGHT_BG: Record<string, string> = {
-                    gold: 'bg-yellow-500/8 border-yellow-500/20', green: 'bg-green-500/8 border-green-500/20',
-                    red: 'bg-red-500/8 border-red-500/20', amber: 'bg-amber-500/8 border-amber-500/20',
-                    blue: 'bg-blue-500/8 border-blue-500/20', purple: 'bg-purple-500/8 border-purple-500/20',
-                    primary: 'bg-primary-500/10 border-primary-500/25',
-                  };
-
-                  // ── ACTION: Volume gaps (P1 — highest when present) ──
-                  if (volumeGaps.length > 0) {
-                    const topGaps = volumeGaps.slice(0, 4);
-                    const critical = volumeGaps.filter(g => g.currentSets === 0).length;
-                    const borderColor = critical > 0 ? 'border-red-500/30' : 'border-amber-500/30';
-                    const bgColor = critical > 0 ? 'from-red-500/10 to-rose-500/5' : 'from-amber-500/10 to-yellow-500/5';
-                    const iconColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
-                    const labelColor = critical > 0 ? 'text-red-400' : 'text-amber-400';
-
-                    intelItems.push({
-                      key: 'volume-gaps',
-                      priority: 1,
-                      content: (
-                        <button
-                          onClick={handleQuickWorkout}
-                          className={cn('w-full rounded-xl p-3 border bg-gradient-to-r text-left hover:brightness-110 transition-all', borderColor, bgColor)}
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <BarChart3 className={cn('w-4 h-4 flex-shrink-0 mt-0.5', iconColor)} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className={cn('text-xs font-bold uppercase tracking-wider', labelColor)}>Volume Gaps</span>
-                                <span className="text-xs text-grappler-500 font-medium">tap to fill →</span>
-                              </div>
-                              <div className="mt-2 space-y-1.5">
-                                {topGaps.map(gap => {
-                                  const pct = Math.round((gap.currentSets / gap.mev) * 100);
-                                  const barColor = gap.currentSets === 0 ? 'bg-red-400' : 'bg-amber-400';
-                                  return (
-                                    <div key={gap.muscle} className="flex items-center gap-2">
-                                      <span className="text-xs text-grappler-300 w-20 truncate capitalize">{gap.muscle}</span>
-                                      <div className="flex-1 h-1.5 bg-black/20 rounded-full overflow-hidden">
-                                        <div
-                                          className={cn('h-full rounded-full transition-all', barColor)}
-                                          style={{ width: `${Math.max(pct, 2)}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-xs tabular-nums text-grappler-400 w-14 text-right">
-                                        {gap.currentSets}/{gap.mev} sets
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              {volumeGaps.length > 4 && (
-                                <p className="text-xs text-grappler-600 mt-1.5">+{volumeGaps.length - 4} more under MEV</p>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      ),
-                    });
-                  }
-
-                  // ── COACHING: All weekly insights, flat — no nested accordion ──
-                  if (showWeeklySynthesis && weeklyInsights.length > 0) {
-                    weeklyInsights.forEach((insight, i) => {
-                      intelItems.push({
-                        key: `coaching-${i}`,
-                        priority: 2 + i * 0.1,
-                        content: (
-                          <div className={cn('rounded-xl px-3 py-2 border', INSIGHT_BG[insight.color] || INSIGHT_BG.primary)}>
-                            <div className="flex items-start gap-2.5">
-                              <span className="mt-0.5 flex-shrink-0">{INTEL_ICONS[insight.icon]}</span>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-xs font-bold uppercase tracking-wider text-grappler-400">{insight.label}</span>
-                                <p className={cn('text-xs leading-relaxed mt-0.5', insight.type === 'one_thing' ? 'text-grappler-200 font-medium' : 'text-grappler-300')}>
-                                  {insight.text}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                      });
-                    });
-                  }
-
-                  // ── CONTEXT: Yesterday recap ──
-                  if (yesterdayWorkouts.length > 0 && !directive.todayPerformance) {
-                    const ydayVolume = yesterdayWorkouts.reduce((s, l) => s + (l.totalVolume || 0), 0);
-                    const ydayPRs = yesterdayWorkouts.reduce((s, l) => s + (l.exercises?.filter(e => e.personalRecord).length || 0), 0);
-                    intelItems.push({
-                      key: 'yesterday-recap',
-                      priority: 5,
-                      content: (
-                        <div className="card px-3 py-2.5 border-l-2 border-l-blue-400 flex items-center gap-2.5">
-                          <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                          <p className="text-xs text-grappler-300">
-                            <span className="font-medium text-blue-300">Yesterday:</span>{' '}
-                            {formatNumber(ydayVolume)} {weightUnit}
-                            {ydayPRs > 0 && <span className="text-yellow-400"> · {ydayPRs} PR{ydayPRs > 1 ? 's' : ''}</span>}
-                            {yesterdayProtein > 0 && <span className="text-grappler-500"> · {Math.round(yesterdayProtein)}g protein</span>}
-                          </p>
-                        </div>
-                      ),
-                    });
-                  }
-
-                  // ── CONTEXT: Narrative highlight ──
-                  if (narrative.hasData && workoutLogs.length >= 6 && narrative.highlights.length > 0) {
-                    const topHighlight = narrative.highlights[0];
-                    intelItems.push({
-                      key: 'narrative',
-                      priority: 6,
-                      content: (
-                        <div className="card px-3 py-2.5 border-l-2 border-l-emerald-400 flex items-center gap-2.5">
-                          <TrendingUp className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                          <p className="text-xs text-grappler-300">
-                            <span className="font-bold text-emerald-400">{topHighlight.stat || topHighlight.label}</span>{' '}
-                            {topHighlight.label || narrative.summary?.slice(0, 80)}
-                          </p>
-                        </div>
-                      ),
-                    });
-                  }
-
-                  // ── FEED: Contextual cards (deload, competition, rest tips, etc.) ──
-                  const visibleFeedCards = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
-                  visibleFeedCards.forEach((card, i) => {
-                    intelItems.push({
-                      key: `feed-${(card as React.ReactElement).key || i}`,
-                      priority: 4 + i * 0.1,
-                      content: card,
-                    });
-                  });
-
-                  // Sort by priority, take top 8 (more room now that coaching is flat)
-                  const sorted = intelItems.sort((a, b) => a.priority - b.priority).slice(0, 8);
-
-                  return sorted.length > 0 ? (
-                    <div className="space-y-2">
-                      {sorted.map(item => (
-                        <div key={item.key}>{item.content}</div>
-                      ))}
-                    </div>
-                  ) : workoutLogs.length > 0 ? (
-                    <div className="flex items-center gap-3 card p-3">
-                      <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <p className="text-xs text-grappler-400">All clear — nothing needs your attention.</p>
-                    </div>
-                  ) : null;
-                })()}
-
-        </div>{/* end space-y-3 pt-1 */}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>{/* end collapsible insights wrapper */}
+      {/* ─── Body Check-In — soreness & mobility (always visible when needed) ─── */}
+      {showSorenessCheck && (
+        <SorenessCheck
+          context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
+          isCombatAthlete={user?.trainingIdentity === 'combat'}
+          onDismiss={() => setSorenessCheckDismissed(true)}
+          onLog={handleSorenessLog}
+        />
+      )}
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(
@@ -2567,11 +2409,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           })()}
         </div>
       </div>
-
-            </div>{/* end space-y-3 below-fold content */}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ─── Tool Picker ─── no glass, no backdrop-blur, solid bg */}
       {dockPickerOpen && (

@@ -301,50 +301,48 @@ export default function PostWorkoutPhase({
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
     >
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.25 }}
-        className="flex items-center justify-between mb-1"
-      >
-        <div className="flex items-center gap-2">
-          <Check className="w-4 h-4 text-green-400" />
-          <span className="text-xs text-green-400/80 font-bold uppercase tracking-wide">Session Complete</span>
-        </div>
-        {lastCompletedWorkout && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+      {/* Share button — top right */}
+      {lastCompletedWorkout && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex justify-end mb-2"
+        >
+          <button
             onClick={onShare}
-            className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors flex-shrink-0"
+            className="text-green-400 hover:text-green-300 p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors"
             title="Share workout"
           >
-            {shareCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-          </motion.button>
-        )}
-      </motion.div>
+            {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+          </button>
+        </motion.div>
+      )}
 
-      {/* Grade stamp + verdict */}
-      <div className="flex items-center gap-3 mb-3 mt-2">
-        <div className="relative flex items-center justify-center" style={{ width: 48, height: 48 }}>
+      {/* Fight poster — centered grade stamp */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+        className="text-center mb-4"
+      >
+        <div className="relative inline-flex items-center justify-center" style={{ width: 80, height: 80 }}>
           <motion.div
             initial={{ scale: 0, opacity: 0.6 }}
-            animate={{ scale: 2.5, opacity: 0 }}
-            transition={{ delay: 0.15, duration: 0.6, ease: 'easeOut' }}
-            className={cn('absolute w-12 h-12 rounded-full',
+            animate={{ scale: 3, opacity: 0 }}
+            transition={{ delay: 0.15, duration: 0.8, ease: 'easeOut' }}
+            className={cn('absolute w-20 h-20 rounded-full',
               todayPerformance.grade === 'S' ? 'bg-yellow-400/30' :
               todayPerformance.grade === 'A' ? 'bg-green-400/25' :
               'bg-primary-400/20'
             )}
           />
           <motion.span
-            initial={{ scale: 3, opacity: 0, rotate: -12 }}
+            initial={{ scale: 4, opacity: 0, rotate: -15 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            transition={{ delay: 0.12, type: 'spring', stiffness: 300, damping: 20 }}
+            transition={{ delay: 0.12, type: 'spring', stiffness: 250, damping: 18 }}
             className={cn(
-              'text-4xl font-black leading-none relative',
+              'text-6xl font-black leading-none relative',
               todayPerformance.grade === 'S' ? 'text-yellow-400' :
               todayPerformance.grade === 'A' ? 'text-green-400' :
               todayPerformance.grade === 'B' ? 'text-primary-400' : 'text-grappler-400'
@@ -354,14 +352,33 @@ export default function PostWorkoutPhase({
           </motion.span>
         </div>
         <motion.p
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-          className="text-sm text-grappler-300 leading-snug flex-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.3 }}
+          className="text-lg font-bold text-grappler-200 mt-2"
         >
           {todayPerformance.verdict}
         </motion.p>
-      </div>
+        {/* Stat strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35, duration: 0.25 }}
+          className="flex items-center justify-center gap-4 mt-2 text-sm"
+        >
+          <span className="text-grappler-100 font-bold">{formatNumber(todayPerformance.totalVolume)} {weightUnit}</span>
+          <span className="text-grappler-500">·</span>
+          <span className="text-grappler-400">{todayPerformance.totalSets} sets</span>
+          <span className="text-grappler-500">·</span>
+          <span className="text-grappler-400">RPE {todayPerformance.avgRPE}</span>
+          {durationMin > 0 && (
+            <>
+              <span className="text-grappler-500">·</span>
+              <span className="text-grappler-400">{durationMin}m</span>
+            </>
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* PR callout */}
       {todayPerformance.prs > 0 && (

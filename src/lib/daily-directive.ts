@@ -374,7 +374,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
       headline = alreadyLiftedToday ? 'Session Complete' : 'Recovery Mode';
       break;
     case 'rest':
-      headline = activeIllness ? 'Rest — You\'re Sick' : 'Rest & Recover';
+      headline = activeIllness ? 'Rest — You\'re Sick' : 'Recovery Day';
       break;
     case 'combat': {
       // Use the user's sport name when session type is generic (e.g. "Moderate Session")
@@ -677,7 +677,7 @@ function buildSubline(
   const ctx = parts.length > 0 ? `${parts.join(' · ')} — ` : '';
 
   if (todayType === 'rest') {
-    return `${ctx}Rest day — fuel up, stretch, let your body adapt`;
+    return `${ctx}Fuel up and let your body rebuild`;
   }
 
   if (todayType === 'combat' && combatSessions.length > 0) {

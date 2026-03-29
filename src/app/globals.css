@@ -879,13 +879,19 @@
   }
 }
 
-/* Readiness ring pulse — subtle glow when peak/good */
+/* Readiness ring pulse — subtle glow when peak/good (legacy) */
 @keyframes ring-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
   50% { box-shadow: 0 0 12px 3px rgba(74, 222, 128, 0.15); }
 }
 .ring-pulse {
   animation: ring-glow 3s ease-in-out infinite;
+}
+
+/* Readiness ring breathing — physical scale pulse for peak/good */
+@keyframes ring-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }
 
 /* Animations */

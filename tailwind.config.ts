@@ -67,6 +67,7 @@ const config: Config = {
         'slide-down': 'slideDown 0.3s ease-out',
         'fade-in': 'fadeIn 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
+        'ring-breathe': 'ring-breathe 3s ease-in-out infinite',
       },
       keyframes: {
         gradient: {
@@ -88,6 +89,10 @@ const config: Config = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        'ring-breathe': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.03)' },
         },
       },
       backgroundImage: {

@@ -2016,58 +2016,36 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           BELOW THE FOLD — Secondary Content
           ═══════════════════════════════════════════════════════════════════ */}
 
-      {/* ─── NUTRITION STRIP — protein + water, always visible (gated on profile to avoid NaN) ─── */}
+      {/* ─── NUTRITION STRIP — bold numbers, no bar ─── */}
       {profileComplete && macroTargets.protein > 0 && (
-        <div className="flex items-center gap-3 px-1">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center justify-center gap-5 px-1 py-1">
+          <div className="flex items-center gap-1.5">
             <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
-            <div className="flex-1 h-1.5 bg-grappler-700/40 rounded-full overflow-hidden">
-              <div
-                className={cn('h-full rounded-full transition-all duration-500',
-                  todayProtein >= macroTargets.protein ? 'bg-green-400' :
-                  todayProtein >= macroTargets.protein * 0.7 ? 'bg-yellow-400' : 'bg-grappler-500'
-                )}
-                style={{ width: `${Math.min(100, Math.round((todayProtein / macroTargets.protein) * 100))}%` }}
-              />
-            </div>
             <span className={cn(
-              'text-sm tabular-nums font-medium flex-shrink-0',
+              'text-sm tabular-nums font-bold',
               todayProtein >= macroTargets.protein ? 'text-green-400' :
-              todayProtein >= macroTargets.protein * 0.7 ? 'text-yellow-400' : 'text-grappler-500'
+              todayProtein >= macroTargets.protein * 0.7 ? 'text-grappler-200' : 'text-grappler-500'
             )}>
               {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
             </span>
           </div>
-          {waterTodayL > 0 && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Droplets className="w-3 h-3 text-blue-400/70" />
-              <span className="text-sm text-blue-300/70 tabular-nums font-medium">{waterTodayL}L</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5">
+            <Droplets className="w-3.5 h-3.5 text-blue-400/60 flex-shrink-0" />
+            <span className="text-sm text-grappler-300 tabular-nums font-bold">{waterTodayL}L</span>
+          </div>
           {strain != null && strain > 0 && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Zap className="w-3 h-3 text-yellow-400/70" />
-              <span className={cn('text-sm tabular-nums font-medium',
-                strain >= 18 ? 'text-red-400/80' :
-                strain >= 14 ? 'text-yellow-400/80' :
-                'text-blue-300/70'
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-yellow-400/60 flex-shrink-0" />
+              <span className={cn('text-sm tabular-nums font-bold',
+                strain >= 18 ? 'text-red-400' :
+                strain >= 14 ? 'text-yellow-400' :
+                'text-grappler-300'
               )}>{strain.toFixed(1)}</span>
             </div>
           )}
         </div>
       )}
-      {/* Contextual nutrition adjustment line */}
-      {profileComplete && contextMacroDelta && macroTargets.protein > 0 && (
-        <div className="flex items-center gap-1.5 px-1 -mt-1">
-          <Zap className="w-3 h-3 text-primary-400 flex-shrink-0" />
-          <span className="text-xs text-primary-300 font-medium">
-            Adjusted for {contextDayLabel.toLowerCase()} day
-          </span>
-          <span className="text-xs text-grappler-500">
-            {contextMacroDelta}
-          </span>
-        </div>
-      )}
+      {/* Contextual adjustment removed — targets already adjusted, showing the delta is noise */}
 
       {/* ─── INLINE INSIGHTS — top 2 contextual, always visible ─── */}
       {(() => {
@@ -2142,7 +2120,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         }
 
         return inlineCards.length > 0 ? (
-          <div className="space-y-2">{inlineCards.slice(0, 2)}</div>
+          <div className="space-y-2">{inlineCards.slice(0, 1)}</div>
         ) : null;
       })()}
 
@@ -2163,18 +2141,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         nextBadgeDistance={nextBadgeDistance}
       />
 
-      {/* ─── Daily Knowledge Insight — contextual, rotates daily ─── */}
-      <InsightCard
-        todayType={directive.todayType}
-        readinessScore={directive.readinessScore}
-        isDeload={directive.isDeload}
-        hasFightCamp={!!(fightCampPhase && fightCampPhase !== 'off_season')}
-        hasActiveInjury={injuryLog.some(i => !i.resolved)}
-        activeDietPhase={activeDietPhase?.isActive ? activeDietPhase.goal : null}
-        mesocycleWeek={currentMesocycle ? Math.min(currentMesocycle.weeks.length, Math.ceil(((Date.now() - new Date(currentMesocycle.startDate).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1)) : null}
-        hasCompletedWorkoutToday={directive.todayPerformance != null}
-        onOpenLibrary={(category) => onNavigate('knowledge_hub', category)}
-      />
+      {/* Daily Knowledge Insight moved to Explore tab — home is for doing, not reading */}
 
 
       {/* ─── Combat Load Alert — concurrent training interference ─── */}

@@ -620,7 +620,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
   };
 
   return (
-    <div className="min-h-screen bg-grappler-900">
+    <div className="min-h-screen bg-grappler-900 pb-24 safe-area-top">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">

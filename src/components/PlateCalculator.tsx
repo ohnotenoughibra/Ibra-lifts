@@ -269,7 +269,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className="min-h-screen bg-grappler-950 pb-20"
+      className="min-h-screen bg-grappler-950 pb-24 safe-area-top"
     >
       {/* ── Header ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">

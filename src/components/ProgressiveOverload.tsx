@@ -252,7 +252,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 50 }}
-        className="min-h-screen bg-grappler-900 px-4 py-6"
+        className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24"
       >
         <div className="flex items-center gap-3 mb-6">
           <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
@@ -283,7 +283,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
-      className="min-h-screen bg-grappler-900 px-4 py-6"
+      className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24"
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">

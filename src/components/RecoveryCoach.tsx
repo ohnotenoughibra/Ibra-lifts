@@ -135,7 +135,7 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 40 }}
-      className="min-h-screen bg-grappler-900 bg-mesh pb-20"
+      className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
     >
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">

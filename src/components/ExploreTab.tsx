@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dumbbell, Layers, Sparkles, Calendar,
   TrendingUp, BarChart3, Target, Calculator, Activity,
@@ -11,13 +12,17 @@ import {
   Hammer, Eye,
   BookOpen, Timer, Thermometer,
   BookMarked, MessageCircle,
+  ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { useCurrentTier } from '@/lib/useFeatureAccess';
 import { getTopTools } from '@/lib/tool-affinity';
 import type { OverlayView } from './dashboard-types';
+
+// ─── Tool & Category Types ──────────────────────────────────────────────────
 
 export interface Tool {
   id: NonNullable<OverlayView>;
@@ -36,6 +41,8 @@ interface Category {
   accent: string;
   tools: Tool[];
 }
+
+// ─── Tool Database ──────────────────────────────────────────────────────────
 
 const CATEGORIES: Category[] = [
   {
@@ -102,7 +109,6 @@ export const PINNED_STORAGE_KEY = 'roots-explore-pinned';
 const STORAGE_KEY_RECENT = 'roots-explore-recent';
 const STORAGE_KEY_PINNED = PINNED_STORAGE_KEY;
 const STORAGE_KEY_USAGE = 'roots-explore-usage';
-const MAX_RECENT = 4;
 const MAX_PINNED = 4;
 const PIN_SYNC_EVENT = 'roots-pins-changed';
 
@@ -112,7 +118,6 @@ export function readPins(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY_PINNED) || '[]') as string[];
     const valid = raw.filter(id => TOOL_MAP.has(id));
-    // Auto-clean stale IDs from storage
     if (valid.length !== raw.length) {
       localStorage.setItem(STORAGE_KEY_PINNED, JSON.stringify(valid));
     }
@@ -133,18 +138,115 @@ function readJson<T>(key: string, fallback: T): T {
   catch { return fallback; }
 }
 
-function formatTimeAgo(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return 'Just now';
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return '1d ago';
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks}w ago`;
+// ─── "Right Now" Suggestion Engine ──────────────────────────────────────────
+
+interface RightNowContext {
+  hasTrainedToday: boolean;
+  hoursSinceLastWorkout: number;
+  hasActiveInjury: boolean;
+  hasActiveCut: boolean;
+  daysToCompetition: number | null;
+  mealsLoggedToday: number;
+  isRestDay: boolean;
+  hasActiveProgram: boolean;
 }
+
+interface RightNowSuggestion {
+  toolId: string;
+  reason: string;
+  gradient: string;
+}
+
+// Gradient palettes for Right Now cards — visually distinct per tool domain
+const GRADIENTS: Record<string, string> = {
+  recovery: 'from-rose-600/30 via-rose-500/15 to-rose-900/10 border-rose-500/30',
+  nutrition: 'from-green-600/30 via-green-500/15 to-green-900/10 border-green-500/30',
+  warm_up: 'from-orange-600/30 via-orange-500/15 to-orange-900/10 border-orange-500/30',
+  builder: 'from-primary-600/30 via-primary-500/15 to-primary-900/10 border-primary-500/30',
+  competition: 'from-red-600/30 via-red-500/15 to-red-900/10 border-red-500/30',
+  injury: 'from-sky-600/30 via-sky-500/15 to-sky-900/10 border-sky-500/30',
+  mobility: 'from-teal-600/30 via-teal-500/15 to-teal-900/10 border-teal-500/30',
+  knowledge_hub: 'from-indigo-600/30 via-indigo-500/15 to-indigo-900/10 border-indigo-500/30',
+  conditioning: 'from-orange-600/30 via-orange-500/15 to-orange-900/10 border-orange-500/30',
+  training_journal: 'from-amber-600/30 via-amber-500/15 to-amber-900/10 border-amber-500/30',
+};
+
+function getGradient(toolId: string): string {
+  return GRADIENTS[toolId] || 'from-grappler-700/40 via-grappler-700/20 to-grappler-800/10 border-grappler-600/30';
+}
+
+function getRightNowSuggestions(ctx: RightNowContext, pinnedIds: Set<string>): RightNowSuggestion[] {
+  const suggestions: RightNowSuggestion[] = [];
+  const used = new Set<string>();
+
+  const add = (toolId: string, reason: string) => {
+    if (used.has(toolId) || pinnedIds.has(toolId)) return;
+    if (!TOOL_MAP.has(toolId)) return;
+    used.add(toolId);
+    suggestions.push({ toolId, reason, gradient: getGradient(toolId) });
+  };
+
+  // Priority 1: Competition proximity (highest urgency)
+  if (ctx.daysToCompetition !== null && ctx.daysToCompetition <= 30) {
+    const days = ctx.daysToCompetition;
+    add('competition', days <= 1 ? 'Fight day is here — final prep' : `${days} days to competition`);
+    if (ctx.hasActiveCut) {
+      add('nutrition', 'Weight cut active — track every meal');
+    }
+  }
+
+  // Priority 2: Active injury
+  if (ctx.hasActiveInjury) {
+    add('injury', 'Active injury — log recovery progress');
+    add('mobility', 'Injured? Mobility work aids recovery');
+  }
+
+  // Priority 3: Active weight cut (no competition)
+  if (ctx.hasActiveCut && !used.has('nutrition')) {
+    add('nutrition', 'Weight cut active — track your intake');
+  }
+
+  // Priority 4: Post-workout window (trained recently)
+  if (ctx.hasTrainedToday && ctx.hoursSinceLastWorkout <= 4) {
+    const hrs = ctx.hoursSinceLastWorkout;
+    add('recovery', hrs <= 1 ? 'Just finished — time to recover' : `Trained ${hrs}h ago — check recovery`);
+    if (ctx.mealsLoggedToday === 0) {
+      add('nutrition', 'Post-workout nutrition matters — log a meal');
+    }
+    add('training_journal', 'Session fresh in mind — write it down');
+  }
+
+  // Priority 5: Haven't trained today on a training day
+  if (!ctx.hasTrainedToday && !ctx.isRestDay && ctx.hasActiveProgram) {
+    add('warm_up', 'Training day — warm up before you lift');
+    add('builder', 'Build today\'s workout');
+  }
+
+  // Priority 6: Haven't logged food today
+  if (ctx.mealsLoggedToday === 0 && !used.has('nutrition')) {
+    add('nutrition', 'No meals logged today');
+  }
+
+  // Priority 7: Rest day
+  if (ctx.isRestDay) {
+    add('mobility', 'Rest day — perfect for mobility work');
+    add('recovery', 'Rest day — check your readiness');
+    add('knowledge_hub', 'Rest day — learn something new');
+  }
+
+  // Fallback: if we have nothing yet, show helpful defaults
+  if (suggestions.length === 0) {
+    if (ctx.hasActiveProgram) {
+      add('builder', 'Ready to train? Build a session');
+    }
+    add('knowledge_hub', 'Browse training knowledge');
+    add('recovery', 'Check your recovery status');
+  }
+
+  return suggestions.slice(0, 3);
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 interface ExploreTabProps {
   onNavigate: (view: OverlayView) => void;
@@ -152,18 +254,36 @@ interface ExploreTabProps {
 
 export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   const [search, setSearch] = useState('');
-  const [recentIds, setRecentIds] = useState<string[]>(() => readJson(STORAGE_KEY_RECENT, []));
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
+  const [allToolsExpanded, setAllToolsExpanded] = useState(false);
 
   const tier = useCurrentTier();
   const isFree = tier !== 'pro';
 
-  // PIN MODE — like iOS home screen jiggle mode
-  // When true, tapping ANY card toggles its pin. When false, tapping navigates.
+  // Pin edit mode
   const [pinMode, setPinMode] = useState(false);
 
-  // Sync pins with HomeTab — event-based, no polling
+  // ─── Store data for "Right Now" engine ───
+  const {
+    workoutLogs,
+    meals,
+    injuryLog,
+    competitions,
+    weightCutPlans,
+    currentMesocycle,
+    trainingSessions,
+  } = useAppStore(useShallow(s => ({
+    workoutLogs: s.workoutLogs,
+    meals: s.meals,
+    injuryLog: s.injuryLog,
+    competitions: s.competitions,
+    weightCutPlans: s.weightCutPlans,
+    currentMesocycle: s.currentMesocycle,
+    trainingSessions: s.trainingSessions,
+  })));
+
+  // Sync pins with HomeTab
   useEffect(() => {
     const sync = () => setPinnedIds(readPins());
     window.addEventListener(PIN_SYNC_EVENT, sync);
@@ -175,21 +295,104 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     };
   }, []);
 
+  // ─── "Right Now" context computation ───
+  const rightNowSuggestions = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    // Hours since last workout
+    const allSessions = [
+      ...(workoutLogs ?? []).map(w => new Date(w.date).getTime()),
+      ...(trainingSessions ?? []).map(t => new Date(t.date).getTime()),
+    ].filter(t => !isNaN(t));
+    const lastSessionMs = allSessions.length > 0 ? Math.max(...allSessions) : 0;
+    const hoursSinceLastWorkout = lastSessionMs > 0
+      ? Math.round((now.getTime() - lastSessionMs) / (1000 * 60 * 60))
+      : 999;
+
+    // Has trained today
+    const hasTrainedToday = allSessions.some(t => {
+      const d = new Date(t);
+      return d.toISOString().slice(0, 10) === todayStr;
+    });
+
+    // Active injuries
+    const hasActiveInjury = (injuryLog ?? []).some(
+      i => !i.resolved && !i._deleted
+    );
+
+    // Active weight cut
+    const hasActiveCut = (weightCutPlans ?? []).some(
+      p => p.currentPhase !== 'completed' && p.currentPhase !== 'not_started'
+    );
+
+    // Days to nearest competition
+    let daysToCompetition: number | null = null;
+    const activeComps = (competitions ?? []).filter(c => c.isActive && !c._deleted);
+    if (activeComps.length > 0) {
+      const nearestMs = Math.min(
+        ...activeComps.map(c => new Date(c.date).getTime())
+      );
+      const days = Math.ceil((nearestMs - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (days >= 0) daysToCompetition = days;
+    }
+
+    // Meals logged today
+    const mealsLoggedToday = (meals ?? []).filter(m => {
+      if (m._deleted) return false;
+      const d = new Date(m.date);
+      return d.toISOString().slice(0, 10) === todayStr;
+    }).length;
+
+    // Is rest day — heuristic: if user hasn't trained and hoursSinceLastWorkout > 20,
+    // check if the mesocycle has sessions remaining this week
+    const hasActiveProgram = !!currentMesocycle;
+    let isRestDay = false;
+    if (currentMesocycle) {
+      const msStart = new Date(currentMesocycle.startDate).getTime();
+      const weeksSinceStart = Math.floor((now.getTime() - msStart) / (7 * 24 * 60 * 60 * 1000));
+      const currentWeek = currentMesocycle.weeks[weeksSinceStart];
+      if (currentWeek) {
+        // Count how many sessions were logged this week
+        const weekStart = new Date(msStart + weeksSinceStart * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const sessionsThisWeek = (workoutLogs ?? []).filter(w => {
+          const d = new Date(w.date).getTime();
+          return d >= weekStart.getTime() && d < weekEnd.getTime() && !w._deleted;
+        }).length;
+        // If user has completed all sessions for this week, rest day
+        isRestDay = sessionsThisWeek >= currentWeek.sessions.length;
+      } else {
+        isRestDay = true; // past the end of the program
+      }
+    }
+
+    const pinSet = new Set(pinnedIds);
+    return getRightNowSuggestions({
+      hasTrainedToday,
+      hoursSinceLastWorkout,
+      hasActiveInjury,
+      hasActiveCut,
+      daysToCompetition,
+      mealsLoggedToday,
+      isRestDay,
+      hasActiveProgram,
+    }, pinSet);
+  }, [workoutLogs, trainingSessions, meals, injuryLog, competitions, weightCutPlans, currentMesocycle, pinnedIds]);
+
   const handleNavigate = useCallback((id: NonNullable<OverlayView>) => {
     setUsageMap(prev => {
       const next = { ...prev, [id]: Date.now() };
       localStorage.setItem(STORAGE_KEY_USAGE, JSON.stringify(next));
       return next;
     });
-    setRecentIds(prev => {
-      const next = [id, ...prev.filter(r => r !== id)].slice(0, MAX_RECENT);
-      localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(next));
-      return next;
-    });
+    // Track recent
+    const recentIds: string[] = readJson(STORAGE_KEY_RECENT, []);
+    const nextRecent = [id, ...recentIds.filter(r => r !== id)].slice(0, 4);
+    localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(nextRecent));
     onNavigate(id);
   }, [onNavigate]);
 
-  // Always read fresh from localStorage — never stale closures
   const togglePin = useCallback((id: string) => {
     hapticMedium();
     const current = readPins();
@@ -200,7 +403,6 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     setPinnedIds(next);
   }, []);
 
-  // Single handler: in pin mode toggles pin, in normal mode navigates
   const handleCardTap = useCallback((id: NonNullable<OverlayView>) => {
     if (pinMode) {
       togglePin(id);
@@ -209,52 +411,12 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     }
   }, [pinMode, togglePin, handleNavigate]);
 
-  const recentTools = useMemo(() =>
-    recentIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
-    [recentIds]
-  );
-
-  // Tool affinity — surfaces tools the user has thumbs-upped
-  const featureFeedback = useAppStore(s => s.featureFeedback);
-  const topTools = useMemo(() => {
-    const top = getTopTools(featureFeedback, 6);
-    return top
-      .map(t => TOOL_MAP.get(t.toolId))
-      .filter(Boolean) as Tool[];
-  }, [featureFeedback]);
-
-  // ─── Unified "For You" strip ───
-  // Merges RECENT + TOP TOOLS, excludes anything already pinned, dedupes.
-  // Each entry carries a reason tag so the UI can show why it's here.
-  const forYouTools = useMemo(() => {
-    const pinSet = new Set(pinnedIds);
-    const seen = new Set<string>();
-    const result: { tool: Tool; reason: 'recent' | 'loved' | 'both' }[] = [];
-
-    // Loved tools (from affinity) — check if also recent
-    const recentSet = new Set(recentIds);
-    for (const tool of topTools) {
-      if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
-      seen.add(tool.id);
-      result.push({ tool, reason: recentSet.has(tool.id) ? 'both' : 'loved' });
-    }
-
-    // Recent tools not already added
-    for (const tool of recentTools) {
-      if (pinSet.has(tool.id) || seen.has(tool.id)) continue;
-      seen.add(tool.id);
-      result.push({ tool, reason: 'recent' });
-    }
-
-    return result.slice(0, 6);
-  }, [pinnedIds, recentIds, recentTools, topTools]);
-
   const pinnedTools = useMemo(() =>
     pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
     [pinnedIds]
   );
 
-  // Flat ranked search results
+  // Search
   const searchResults = useMemo(() => {
     if (!search.trim()) return null;
     const q = search.toLowerCase().trim();
@@ -271,21 +433,20 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         if (descLower.includes(w)) score += 5;
       }
       if (pinnedIds.includes(tool.id)) score += 3;
-      if (recentIds.includes(tool.id)) score += 2;
       scored.push({ tool, score });
     }
     return scored.sort((a, b) => b.score - a.score).map(s => s.tool);
-  }, [search, pinnedIds, recentIds]);
+  }, [search, pinnedIds]);
 
   const isSearching = search.trim().length > 0;
 
   return (
     <div className="space-y-5">
-      {/* Header with pin mode toggle */}
+      {/* ─── Header ─── */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-bold text-grappler-50">Explore</h2>
-          <p className="text-sm text-grappler-400">Your training toolkit</p>
+          <h2 className="text-lg font-bold text-grappler-50">Mission Control</h2>
+          <p className="text-sm text-grappler-400">Tools come to you</p>
         </div>
         <button
           onClick={() => { hapticMedium(); setPinMode(prev => !prev); }}
@@ -304,18 +465,109 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       </div>
 
       {/* Pin mode banner */}
-      {pinMode && (
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/30">
-          <p className="text-xs text-primary-300">
-            Tap any tool to pin/unpin it
+      <AnimatePresence>
+        {pinMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/30">
+              <p className="text-xs text-primary-300">
+                Tap any tool to pin/unpin it
+              </p>
+              <span className="text-xs font-bold text-primary-400">
+                {pinnedIds.length}/{MAX_PINNED}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── SECTION 1: RIGHT NOW (hero section) ─── */}
+      {!pinMode && !isSearching && rightNowSuggestions.length > 0 && (
+        <div className="space-y-2.5">
+          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            Right Now
           </p>
-          <span className="text-xs font-bold text-primary-400">
-            {pinnedIds.length}/{MAX_PINNED}
-          </span>
+          <div className="space-y-2">
+            <AnimatePresence mode="popLayout">
+              {rightNowSuggestions.map((suggestion, i) => {
+                const tool = TOOL_MAP.get(suggestion.toolId);
+                if (!tool) return null;
+                const Icon = tool.icon;
+                return (
+                  <motion.button
+                    key={suggestion.toolId}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ delay: i * 0.06, duration: 0.25 }}
+                    onClick={() => handleNavigate(tool.id)}
+                    className={cn(
+                      'w-full flex items-center gap-3.5 p-4 rounded-2xl bg-gradient-to-r border',
+                      'active:scale-[0.98] transition-transform select-none text-left',
+                      suggestion.gradient,
+                      isFree && tool.isPro && 'opacity-50'
+                    )}
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-grappler-100" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-grappler-100">{tool.label}</span>
+                        {tool.isPro && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[9px] font-bold text-white uppercase tracking-wide">
+                            Pro
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-grappler-300 mt-0.5 leading-snug">{suggestion.reason}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-grappler-500 flex-shrink-0" />
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
-      {/* Search — hidden in pin mode */}
+      {/* ─── SECTION 2: PINNED (compact icon row) ─── */}
+      {!pinMode && !isSearching && pinnedTools.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Pin className="w-3 h-3" /> Pinned
+          </p>
+          <div className="flex gap-2">
+            {pinnedTools.map(tool => {
+              const Icon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => handleNavigate(tool.id)}
+                  className={cn(
+                    'w-12 h-12 rounded-xl bg-gradient-to-b flex items-center justify-center',
+                    'border-2 border-primary-500/40 active:scale-90 transition-all select-none',
+                    tool.color,
+                    isFree && tool.isPro && 'opacity-50'
+                  )}
+                  style={{ touchAction: 'manipulation' }}
+                  title={tool.label}
+                >
+                  <Icon className="w-5 h-5" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── SEARCH BAR (always visible in normal mode) ─── */}
       {!pinMode && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
@@ -323,97 +575,13 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tools..."
+            placeholder="Search all tools..."
             className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/50 text-sm text-grappler-200 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500/50 transition-colors"
           />
         </div>
       )}
 
-      {/* Plan summary */}
-      {!pinMode && !isSearching && (
-        <p className="text-xs text-grappler-500 px-1">
-          {tier === 'pro'
-            ? `All ${ALL_TOOLS.length} tools unlocked`
-            : `${ALL_TOOLS.filter(t => !t.isPro).length} of ${ALL_TOOLS.length} tools free · ${ALL_TOOLS.filter(t => t.isPro).length} Pro`
-          }
-        </p>
-      )}
-
-      {/* Pinned tools row — shown in normal mode only */}
-      {!pinMode && !isSearching && pinnedTools.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Pin className="w-3 h-3" /> Pinned
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {pinnedTools.map(tool => (
-              <button
-                key={tool.id}
-                onClick={() => handleNavigate(tool.id)}
-                className={cn(
-                  'relative flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-gradient-to-b',
-                  'border-2 border-primary-500/40 active:scale-95 transition-all select-none',
-                  tool.color,
-                  isFree && tool.isPro && 'opacity-50'
-                )}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {tool.isPro && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
-                    Pro
-                  </span>
-                )}
-                <tool.icon className="w-5 h-5" />
-                <span className="text-xs font-medium text-grappler-200 text-center leading-tight line-clamp-1">
-                  {tool.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* For You — unified strip: recent + loved, pinned excluded, zero duplicates */}
-      {!pinMode && !isSearching && forYouTools.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-amber-400" /> For You
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {forYouTools.map(({ tool, reason }) => (
-              <button
-                key={tool.id}
-                onClick={() => handleNavigate(tool.id)}
-                className={cn(
-                  'relative flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-b border border-grappler-800/50 whitespace-nowrap flex-shrink-0',
-                  'hover:border-grappler-700 active:scale-95 transition-all',
-                  tool.color,
-                  isFree && tool.isPro && 'opacity-50'
-                )}
-              >
-                {tool.isPro && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
-                    Pro
-                  </span>
-                )}
-                <tool.icon className="w-4 h-4" />
-                <span className="text-xs font-medium text-grappler-200">{tool.label}</span>
-                {reason === 'recent' && usageMap[tool.id] && (
-                  <span className="text-xs text-grappler-500">{formatTimeAgo(usageMap[tool.id])}</span>
-                )}
-                {reason === 'loved' && (
-                  <Heart className="w-3 h-3 text-pink-400/60" />
-                )}
-                {reason === 'both' && (
-                  <Heart className="w-3 h-3 text-pink-400/60" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Search results (normal mode only) */}
+      {/* ─── Search Results ─── */}
       {!pinMode && isSearching && searchResults && searchResults.length > 0 && (
         <div>
           <p className="text-xs text-grappler-400 mb-2">{searchResults.length} result{searchResults.length === 1 ? '' : 's'}</p>
@@ -438,8 +606,63 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
         </div>
       )}
 
-      {/* Category grids */}
-      {(pinMode || !isSearching) && CATEGORIES.map(category => (
+      {/* ─── SECTION 3: ALL TOOLS (collapsed by default) ─── */}
+      {!isSearching && !pinMode && (
+        <div>
+          <button
+            onClick={() => { hapticMedium(); setAllToolsExpanded(prev => !prev); }}
+            className="w-full flex items-center justify-between px-3 py-3 rounded-xl bg-grappler-800/40 border border-grappler-700/40 active:scale-[0.98] transition-all select-none"
+            style={{ touchAction: 'manipulation' }}
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-grappler-400" />
+              <span className="text-sm font-medium text-grappler-300">
+                All {ALL_TOOLS.length} tools
+              </span>
+              <span className="text-xs text-grappler-500">
+                {tier === 'pro'
+                  ? 'all unlocked'
+                  : `${ALL_TOOLS.filter(t => !t.isPro).length} free / ${ALL_TOOLS.filter(t => t.isPro).length} Pro`
+                }
+              </span>
+            </div>
+            <motion.div
+              animate={{ rotate: allToolsExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="w-4 h-4 text-grappler-500" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence>
+            {allToolsExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-3 gap-2 pt-3">
+                  {ALL_TOOLS.map(tool => (
+                    <ToolCard
+                      key={tool.id}
+                      tool={tool}
+                      isPinned={pinnedIds.includes(tool.id)}
+                      pinMode={false}
+                      isFree={isFree}
+                      onTap={handleCardTap}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* ─── PIN MODE: Show all tools in category grids for pinning ─── */}
+      {pinMode && CATEGORIES.map(category => (
         <div key={category.title}>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <category.icon className={cn('w-3.5 h-3.5', category.accent)} />
@@ -464,13 +687,8 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
   );
 }
 
-/**
- * ToolCard — a SINGLE <button> element. No overlapping elements. No absolute positioning.
- * No stopPropagation. No event delegation. Just one button, one tap, one action.
- *
- * In pin mode: shows checkmark if pinned, tap toggles pin state.
- * In normal mode: tap navigates to the tool.
- */
+// ─── ToolCard (unchanged behavior) ──────────────────────────────────────────
+
 function ToolCard({ tool, isPinned, pinMode, isFree, onTap }: {
   tool: Tool;
   isPinned: boolean;
@@ -484,33 +702,27 @@ function ToolCard({ tool, isPinned, pinMode, isFree, onTap }: {
       className={cn(
         'relative flex flex-col items-center justify-center gap-1 p-3 rounded-xl bg-gradient-to-b min-h-[4.5rem]',
         'active:scale-95 transition-all select-none',
-        // Pin mode visual states
         pinMode && isPinned && 'border-2 border-primary-500 ring-2 ring-primary-500/30',
         pinMode && !isPinned && 'border-2 border-dashed border-grappler-600',
-        // Normal mode visual states
         !pinMode && isPinned && 'border-2 border-primary-500/40',
         !pinMode && !isPinned && 'border border-grappler-800/50',
         tool.color,
-        // Dim Pro cards for free users
         isFree && tool.isPro && !pinMode && 'opacity-50'
       )}
       style={{ touchAction: 'manipulation' }}
     >
-      {/* Pin mode: checkmark badge (purely decorative, not interactive) */}
       {pinMode && isPinned && (
         <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center pointer-events-none">
           <Check className="w-3 h-3 text-white" />
         </span>
       )}
 
-      {/* Normal mode: PRO badge (purely decorative, not interactive) */}
       {tool.isPro && !pinMode && (
         <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
           Pro
         </span>
       )}
 
-      {/* Pin mode: show pin icon instead of tool icon */}
       {pinMode ? (
         <Pin className={cn('w-5 h-5', isPinned ? 'text-primary-400' : 'text-grappler-500')} />
       ) : (

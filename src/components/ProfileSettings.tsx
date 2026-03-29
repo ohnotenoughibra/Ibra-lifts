@@ -617,7 +617,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
         initial={{ opacity: 0, x: 60 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="min-h-screen bg-grappler-900 px-4 pt-4 space-y-3 pb-4"
+        className="min-h-screen bg-grappler-900 px-4 pt-6 space-y-3 pb-24"
       >
         {/* Settings Header */}
         <div className="flex items-center gap-3 mb-1">

@@ -99,7 +99,7 @@ export default function MesocycleReport({
   };
 
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
         <div

@@ -880,7 +880,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
 
   return (
     <motion.div
-      className="min-h-screen bg-grappler-900 pb-24"
+      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}

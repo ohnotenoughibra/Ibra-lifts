@@ -281,7 +281,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
   const exercise = selectedExercise ? GRIP_EXERCISES.find(e => e.id === selectedExercise) : null;
 
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">

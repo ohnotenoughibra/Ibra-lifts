@@ -871,7 +871,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
   // ── Layout ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-grappler-950">
+    <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-xl border-b border-grappler-800/50">
         <div className="px-4 py-3 flex items-center justify-between">

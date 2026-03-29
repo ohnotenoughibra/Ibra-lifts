@@ -87,7 +87,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
   // Empty state
   if (!currentMesocycle) {
     return (
-      <div className="min-h-screen bg-grappler-900 p-4">
+      <div className="min-h-screen bg-grappler-900 p-4 pb-24">
         <div className="flex items-center gap-3 mb-6">
           <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
             <ChevronLeft className="w-5 h-5" />

@@ -127,7 +127,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
       >
-        <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
+        <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
@@ -154,7 +154,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
       >
-        <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
+        <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
               <ChevronLeft className="w-5 h-5" />
@@ -182,7 +182,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
     >
-      <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto space-y-4">
+      <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

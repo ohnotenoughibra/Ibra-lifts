@@ -299,7 +299,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
     >
-      <div className="min-h-screen px-4 py-6 max-w-2xl mx-auto">
+      <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">

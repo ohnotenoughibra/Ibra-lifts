@@ -1067,7 +1067,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const recentBadges = sortedBadges.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-grappler-900 px-4 pt-4 space-y-6 pb-4">
+    <div className="min-h-screen bg-grappler-900 px-4 pt-14 space-y-6 pb-32 safe-area-bottom safe-area-top">
 
       {/* Close button (overlay mode) */}
       {onClose && (

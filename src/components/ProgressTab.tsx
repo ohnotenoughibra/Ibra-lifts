@@ -1837,113 +1837,10 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
 
   return (
     <div className="space-y-4">
-      {/* Sub-navigation */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-        {[
-          { id: 'dashboard', label: 'Dashboard' },
-          { id: 'progress', label: 'Progress' },
-          { id: 'log', label: 'History' },
-          { id: 'weight', label: 'Body' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setView(tab.id as typeof view)}
-            className={cn(
-              'px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap flex-shrink-0',
-              view === tab.id
-                ? 'bg-primary-500 text-white'
-                : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-        {/* Export/Import overflow menu */}
-        <button
-          onClick={() => setShowExport(!showExport)}
-          className="ml-auto p-2 rounded-lg bg-grappler-800 text-grappler-400 hover:text-grappler-200 flex-shrink-0"
-          title="Export / Import Data"
-          aria-label="Export or import data"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Import status toast */}
-      <AnimatePresence>
-        {importStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={cn(
-              'rounded-xl px-4 py-3 text-sm font-medium',
-              importStatus.type === 'success'
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-red-500/20 text-red-400 border border-red-500/30'
-            )}
-          >
-            {importStatus.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Export / Import panel */}
-      <AnimatePresence>
-        {showExport && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="card p-4 space-y-4">
-              <div>
-                <p className="text-sm text-grappler-300 mb-2 font-medium">Export workout logs</p>
-                <div className="flex gap-3">
-                  <button onClick={handleExportCSV} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <FileSpreadsheet className="w-3.5 h-3.5" /> CSV
-                  </button>
-                  <button onClick={handleExportJSON} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <FileJson className="w-3.5 h-3.5" /> JSON
-                  </button>
-                </div>
-              </div>
-              <div className="border-t border-grappler-800 pt-3">
-                <p className="text-sm text-grappler-300 mb-2 font-medium">Full backup</p>
-                <div className="flex gap-3">
-                  <button onClick={handleExportBackup} className="btn btn-secondary gap-2 text-xs py-2 px-3">
-                    <Download className="w-3.5 h-3.5" /> Export Backup
-                  </button>
-                  {!confirmImport ? (
-                    <button
-                      onClick={() => setConfirmImport(true)}
-                      className="btn btn-secondary gap-2 text-xs py-2 px-3"
-                    >
-                      <History className="w-3.5 h-3.5" /> Import Backup
-                    </button>
-                  ) : (
-                    <label className="btn btn-primary gap-2 text-xs py-2 px-3 cursor-pointer">
-                      <History className="w-3.5 h-3.5" /> Choose File
-                      <input type="file" accept=".json" className="hidden" onChange={handleImportFile} />
-                    </label>
-                  )}
-                </div>
-                {confirmImport && (
-                  <p className="text-xs text-sky-400 mt-2">
-                    This will replace all current data. Make sure you have a backup first.
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Content */}
-      {view === 'dashboard' && !hydrated && <OverviewSkeleton />}
-      {view === 'dashboard' && hydrated && (
-        <div className="space-y-4">
+      {/* Single scrollable page — no sub-tabs */}
+      {!hydrated && <OverviewSkeleton />}
+      {hydrated && (
+        <>
           {workoutLogs.length === 0 ? (
             <EmptyState
               icon={TrendingUp}
@@ -1952,6 +1849,9 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
             />
           ) : (
             <>
+              {/* ── SECTION 1: STRENGTH ── */}
+              <h2 className="text-xl font-bold text-grappler-100">Strength</h2>
+
               {/* Progress Headline */}
               {narrative.hasData && (
                 <div className="card p-4 space-y-3">
@@ -1981,37 +1881,38 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
               {/* Post-workout session recap (visible for 2h after workout) */}
               <SessionRecapCard />
 
-              {/* E1RM Trends with goals — your lifts at a glance */}
+              {/* E1RM Trends with goals */}
               <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
 
-              {/* Hard Metrics — 3 numbers: Strength, Volume, Readiness */}
+              {/* Hard Metrics — Strength, Volume, Readiness */}
               <HardMetricsCard workoutLogs={workoutLogs} />
 
-              {/* Current block performance — bridges program and progress */}
+              {/* Current block performance */}
               <BlockPerformanceCard />
 
-              {/* Engagement hooks — challenges, streak */}
-              <WeeklyChallengeCard gamificationStats={gamificationStats} />
+              {/* Streak heatmap */}
               <StreakHeatmap workoutLogs={workoutLogs} />
+
+              {/* ── Section divider ── */}
+              <div className="h-px bg-grappler-700/40 my-6" />
+
+              {/* ── SECTION 2: BODY ── */}
+              <h2 className="text-xl font-bold text-grappler-100">Body</h2>
+
+              <BodyWeightTracker />
+              <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+
+              {/* ── Section divider ── */}
+              <div className="h-px bg-grappler-700/40 my-6" />
+
+              {/* ── SECTION 3: HISTORY ── */}
+              <h2 className="text-xl font-bold text-grappler-100">History</h2>
+
+              <WorkoutHistory />
             </>
           )}
-        </div>
+        </>
       )}
-      {view === 'progress' && hydrated && (
-        <ProgressCharts onViewReport={onViewReport}>
-          {/* Context-paired analytics passed as children per sub-tab */}
-          <SyntheticRecoveryCard workoutLogs={workoutLogs} />
-          <VolumeDashboard workoutLogs={workoutLogs} />
-          <PRTimelineCard workoutLogs={workoutLogs} />
-          <PlateauAnalysisCard workoutLogs={workoutLogs} />
-          <CombatBenchmarksCard workoutLogs={workoutLogs} />
-          <TrainingTimeline workoutLogs={workoutLogs} weightUnit={weightUnit} />
-          <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
-        </ProgressCharts>
-      )}
-      {view === 'log' && <WorkoutHistory />}
-      {view === 'weight' && hydrated && <BodyWeightTracker />}
-      {view === 'weight' && !hydrated && <OverviewSkeleton />}
     </div>
   );
 }

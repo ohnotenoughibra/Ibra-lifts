@@ -1439,36 +1439,17 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const feedCards: React.ReactNode[] = [];
   const urgentFeedCards: React.ReactNode[] = [];
 
-  // 1. Illness banner → CRITICAL
+  // 1. Illness — moved to merged "Training Restrictions" card below (with injury risk alert)
   const activeIllness = getActiveIllness();
-  if (activeIllness) {
-    const illnessRec = getIllnessTrainingRecommendation(activeIllness);
-    const daysSick = getIllnessDurationDays(activeIllness);
+  const illnessRec = activeIllness ? getIllnessTrainingRecommendation(activeIllness) : null;
+  const daysSick = activeIllness ? getIllnessDurationDays(activeIllness) : 0;
+  const hasActiveIllness = !!activeIllness;
+  // REMOVED: standalone illness critical alert — now merged into Training Restrictions card
+  /* if (activeIllness) {
     criticalAlerts.push(
-      <motion.div key="illness" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-rose-500/20 to-blue-500/10 border border-rose-500/30 rounded-xl p-3.5">
-        <div className="flex items-start gap-3">
-          <Thermometer className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-rose-300 text-sm">
-                {activeIllness.status === 'recovering' ? 'Recovering' : 'Feeling Sick'}
-              </h3>
-              <span className="text-xs text-rose-400/70">Day {daysSick}</span>
-            </div>
-            <p className="text-xs text-grappler-400 mt-1">{illnessRec.message}</p>
-            {!illnessRec.canTrain && (
-              <p className="text-xs text-rose-400/70 mt-1 font-medium">Training paused — streak frozen.</p>
-            )}
-            <button onClick={() => onNavigate('illness')}
-              className="mt-2 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg transition-colors">
-              {activeIllness.status === 'active' ? 'Daily Check-In' : 'View Status'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
+      <motion.div key="illness" ...>...</motion.div>
     );
-  }
+  } */
 
   // 2. Injury alerts → CRITICAL
   if (injuryInsights.alerts.length > 0) {
@@ -2039,18 +2020,35 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* ─── Injury Risk Alert — high-confidence pattern warning ─── */}
-      {injuryRiskAlert && (
-        <div className="rounded-xl p-3 border bg-amber-500/8 border-amber-500/25 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-medium text-amber-300">
-              Watch out: {injuryRiskAlert.pattern.triggers[0]?.details || injuryRiskAlert.pattern.pattern}
-            </p>
-            {injuryRiskAlert.isWorkoutSpecific && injuryRiskAlert.suggestions.length > 0 && (
-              <p className="text-xs text-amber-400/80">{injuryRiskAlert.suggestions[0]}</p>
-            )}
+      {/* ─── Training Restrictions — merged illness + injury risk alert ─── */}
+      {(injuryRiskAlert || hasActiveIllness) && (
+        <div className="rounded-xl p-3 border border-amber-500/25 bg-amber-500/8">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-sm font-bold text-amber-300">Training Restrictions</span>
           </div>
+          {injuryRiskAlert && (
+            <p className="text-xs text-amber-400/80">
+              Watch out: {injuryRiskAlert.pattern.triggers[0]?.details || injuryRiskAlert.pattern.pattern}
+              {injuryRiskAlert.isWorkoutSpecific && injuryRiskAlert.suggestions.length > 0 && (
+                <span className="block mt-0.5">{injuryRiskAlert.suggestions[0]}</span>
+              )}
+            </p>
+          )}
+          {hasActiveIllness && illnessRec && (
+            <div className="mt-1.5">
+              <p className="text-xs text-amber-400/80">
+                {activeIllness!.status === 'recovering' ? 'Recovering' : 'Feeling sick'} (day {daysSick}) — {illnessRec.message}
+              </p>
+              {!illnessRec.canTrain && (
+                <p className="text-xs text-rose-400/70 mt-0.5 font-medium">Training paused — streak frozen.</p>
+              )}
+              <button onClick={() => onNavigate('illness')}
+                className="mt-1.5 px-3 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-medium rounded-lg transition-colors">
+                {activeIllness!.status === 'active' ? 'Daily Check-In' : 'View Status'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -2277,20 +2275,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         return null;
       })()}
 
-      {/* ─── PULSE — horizontal scroll of analysis micro-chips, always visible ─── */}
-      <DashboardInsights onNavigate={onNavigate} />
+      {/* ─── PULSE — REMOVED: duplicate of Progress tab. Home = action, not analytics ─── */}
+      {/* <DashboardInsights onNavigate={onNavigate} /> */}
 
       {/* Collapsible insights removed — top 2 shown inline above */}
 
-      {/* ─── Body Check-In — soreness & mobility (always visible when needed) ─── */}
-      {showSorenessCheck && (
+      {/* ─── Body Check-In — REMOVED from Home default render. Accessible via Recovery tools in Explore ─── */}
+      {/* {showSorenessCheck && (
         <SorenessCheck
           context={directive.todayPerformance ? 'post_workout' : (directive.todayType === 'rest' || directive.todayType === 'recovery') ? 'rest_day' : 'pre_workout'}
           isCombatAthlete={user?.trainingIdentity === 'combat'}
           onDismiss={() => setSorenessCheckDismissed(true)}
           onLog={handleSorenessLog}
         />
-      )}
+      )} */}
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(

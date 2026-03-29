@@ -3648,8 +3648,8 @@ export default function ActiveWorkout() {
                   </button>
                 ))}
               </div>
-              {/* Plate breakdown — always visible below weight input */}
-              {currentSet.weight > 0 && !isTimeBased && (
+              {/* Plate breakdown — only shown for barbell exercises */}
+              {currentSet.weight > 0 && !isTimeBased && currentExercise.exercise.equipmentTypes?.includes('barbell') && (
                 <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
               )}
             </div>

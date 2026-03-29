@@ -2285,7 +2285,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(
-        'rounded-2xl p-4 max-w-md mx-auto w-full',
+        'rounded-2xl p-4 max-w-md mx-auto w-full mb-4',
         'bg-grappler-850 border',
         dockEditMode ? 'border-primary-500/40' : 'border-grappler-700/40'
       )}>

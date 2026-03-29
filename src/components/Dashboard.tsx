@@ -670,7 +670,7 @@ export default function Dashboard({
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-24 safe-area-bottom lg:pb-0">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-32 safe-area-bottom lg:pb-0">
       <div className="max-w-screen-2xl mx-auto lg:flex lg:min-h-[100dvh]">
 
         {/* ── Desktop Sidebar (lg+) ── */}

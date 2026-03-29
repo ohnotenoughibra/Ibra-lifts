@@ -680,7 +680,7 @@ export default function Dashboard({
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-32 safe-area-bottom lg:pb-0">
+    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-40 safe-area-bottom lg:pb-0">
       {/* Morning Ritual — once-per-day readiness reveal animation */}
       <AnimatePresence>
         {showMorningRitual && activeTab === 'home' && (

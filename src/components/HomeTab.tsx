@@ -2294,7 +2294,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(
-        'rounded-2xl p-4 max-w-md mx-auto w-full mb-4',
+        'rounded-2xl p-4 max-w-md mx-auto w-full mb-8',
         'bg-grappler-850 border',
         dockEditMode ? 'border-primary-500/40' : 'border-grappler-700/40'
       )}>
@@ -2418,6 +2418,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           })()}
         </div>
       </div>
+
+      {/* Bottom spacer — ensures Quick Access icons aren't hidden behind bottom nav */}
+      <div className="h-4" aria-hidden="true" />
 
       {/* ─── Tool Picker ─── no glass, no backdrop-blur, solid bg */}
       {dockPickerOpen && (

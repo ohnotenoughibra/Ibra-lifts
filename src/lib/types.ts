@@ -416,6 +416,8 @@ export type ContentCategory =
   | 'recovery' | 'nutrition' | 'dieting' | 'grappling' | 'motivation'
   | 'striking' | 'mma' | 'general_fitness';
 
+export type ArticleDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
 export interface KnowledgeArticle {
   id: string;
   title: string;
@@ -426,6 +428,19 @@ export interface KnowledgeArticle {
   readTime: number; // minutes
   source?: string;
   publishedAt: Date;
+  difficulty?: ArticleDifficulty;
+  keyTakeaways?: string[];           // 3-5 bullet distilled summary
+  relatedArticleIds?: string[];      // IDs of related articles
+  applyCta?: { label: string; overlayId: string }; // "Apply This" CTA linking to app feature
+}
+
+export interface LearningPath {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  articleIds: string[];               // Ordered sequence of articles
+  difficulty: ArticleDifficulty;
 }
 
 export interface KnowledgeTip {

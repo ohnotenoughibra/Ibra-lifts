@@ -610,7 +610,7 @@ export default function Dashboard({
       conditioning: <ConditioningSession onClose={closeOverlay} />,
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
-      knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} />,
+      knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
@@ -932,7 +932,7 @@ export default function Dashboard({
 
             {/* Main Content */}
             <main className="px-4 pt-4 pb-2 lg:px-6 lg:pt-6">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence mode="wait">
                 {activeTab === 'home' && (
                   <motion.div
                     key="home"

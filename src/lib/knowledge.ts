@@ -1,4 +1,4 @@
-import { KnowledgeArticle, KnowledgeTip, ContentCategory } from './types';
+import { KnowledgeArticle, KnowledgeTip, ContentCategory, LearningPath } from './types';
 import type { Insight } from './knowledge-engine';
 
 // In-workout tips that pop up during sessions
@@ -698,6 +698,15 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     readTime: 5,
     publishedAt: new Date('2025-01-15'),
     source: 'Based on 2023-2025 meta-analyses on periodization',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Vary intensity across the week with heavy, moderate, and light days to develop all physical qualities simultaneously',
+      'Limit lifting to 2-3 sessions per week to preserve mat time and manage fatigue',
+      'Use daily undulating periodization to prevent plateaus through constant stimulus variation',
+      'Program strength, hypertrophy, and power days in the same week for optimal grappler development',
+    ],
+    relatedArticleIds: ['article-combat-sport-periodization', 'article-grappling-strength', 'article-autoregulation', 'article-concurrent-training'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## What is Undulating Periodization?
 
@@ -735,6 +744,15 @@ This ensures you're always fresh enough for your main sport while still progress
     readTime: 7,
     publishedAt: new Date('2025-02-01'),
     source: 'Current hypertrophy research 2024-2025',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Prioritize mechanical tension through heavy compound lifts as the primary hypertrophy driver',
+      'Control the eccentric phase for 3+ seconds to maximize growth stimulus per set',
+      'Train each muscle group with 10-20 sets per week distributed across at least 2 sessions',
+      'Emphasize full range of motion with deep stretches at long muscle lengths for superior results',
+    ],
+    relatedArticleIds: ['article-eccentric-training', 'article-progressive-overload', 'article-strength-adaptations', 'article-soreness-not-progress'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## The Three Pillars of Hypertrophy
 
@@ -785,6 +803,15 @@ Going above MAV doesn't add growth and increases injury risk.
     tags: ['strength', 'science', 'neural'],
     readTime: 6,
     publishedAt: new Date('2025-01-20'),
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Train heavy (85%+ 1RM) to maximize neural adaptations and high-threshold motor unit recruitment',
+      'Expect strength gains without visible muscle growth in the first 4-8 weeks of training',
+      'Use the 4-8 rep range for the best combination of strength and hypertrophy as a grappler',
+      'Understand that light weights to failure do not fully recruit all motor units due to the size principle',
+    ],
+    relatedArticleIds: ['article-hypertrophy-science', 'article-general-strength', 'article-progressive-overload'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Neural vs. Muscular Adaptations
 
@@ -837,6 +864,15 @@ For grapplers, the 4-8 rep range offers the best of both worlds.
     tags: ['grappling', 'BJJ', 'wrestling', 'programming'],
     readTime: 10,
     publishedAt: new Date('2025-01-25'),
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Build your program around 6 movement patterns: hip hinge, squat, horizontal push, horizontal pull, vertical pull, and carries',
+      'Keep mat time as priority number one and schedule 2-3 lifting sessions around grappling',
+      'Never train legs heavy the day before competition or hard sparring',
+      'Use a DUP split with strength, hypertrophy, and power days across the week',
+    ],
+    relatedArticleIds: ['article-undulating-periodization', 'article-grip-training', 'article-grappling-conditioning', 'article-grappling-recovery'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Why Grapplers Need Strength Training
 
@@ -921,6 +957,15 @@ Never train legs heavy the day before competition or hard sparring. Plan your we
     readTime: 5,
     publishedAt: new Date('2025-02-05'),
     source: 'Based on 2025 eccentric training meta-analysis',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use 3-4 second eccentrics on key exercises to produce 15% more hypertrophy per set',
+      'Start with lighter weights when adding eccentric emphasis to avoid excessive fatigue',
+      'Focus eccentric work on stretch-position exercises like RDLs, incline curls, and flies',
+      'Limit eccentric emphasis to 2-3 exercises per session since they are highly taxing',
+    ],
+    relatedArticleIds: ['article-hypertrophy-science', 'article-progressive-overload', 'article-training-longevity'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## What is Eccentric Training?
 
@@ -971,6 +1016,15 @@ Use a tempo notation like "3-1-2-0":
     tags: ['grip', 'grappling', 'forearms'],
     readTime: 4,
     publishedAt: new Date('2025-01-10'),
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Train all four grip types: crushing, pinch, support, and wrist strength',
+      'Perform the 5-exercise grip circuit 2-3x per week at the end of sessions',
+      'Differentiate training for gi (crushing and pinch) vs no-gi (wrist control) grapplers',
+      'Schedule grip training away from hard rolling days to avoid impairing mat performance',
+    ],
+    relatedArticleIds: ['article-grappling-strength', 'article-grip-endurance-grapplers', 'article-grappling-recovery'],
+    applyCta: { label: 'Track grip strength', overlayId: 'grip_strength' },
     content: `
 ## Why Grip Matters for Grapplers
 
@@ -1026,6 +1080,15 @@ Grip work is taxing on the forearms and can affect your grappling. Schedule grip
     readTime: 6,
     publishedAt: new Date('2025-03-01'),
     source: 'Current recovery research 2024-2025',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Prioritize sleep (7-9 hours) and protein (1.6-2.2g/kg/day) as the only Tier 1 recovery methods',
+      'Use cold water immersion strategically during competition weeks, not after hypertrophy sessions',
+      'Save money on BCAAs and compression garments — they add nothing beyond protein targets',
+      'Never increase training volume more than 10% week-over-week and deload every 4-6 weeks',
+    ],
+    relatedArticleIds: ['article-sleep-performance', 'article-overtraining-vs-underrecovery', 'article-cold-exposure', 'article-nutrition-fundamentals'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Evidence-Based Recovery Methods
 
@@ -1091,6 +1154,15 @@ Not all recovery methods are created equal. Here is what the research actually s
     tags: ['nutrition', 'weight', 'grappling', 'competition'],
     readTime: 7,
     publishedAt: new Date('2025-02-15'),
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Distinguish between long-term fat loss (8-16 weeks) and acute water cuts (competition week only)',
+      'Cycle carbs higher on training days (3-5g/kg) and lower on rest days (2-3g/kg)',
+      'Keep protein at 2.0-2.4g/kg during a cut to preserve muscle mass',
+      'Limit supplements to creatine, vitamin D, omega-3, and caffeine — everything else is marketing',
+    ],
+    relatedArticleIds: ['article-nutrition-fundamentals', 'article-cutting-guide', 'article-mma-weight-management', 'article-creatine'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## Cutting Weight vs. Losing Fat
 
@@ -1141,6 +1213,15 @@ Everything else is marketing.
     tags: ['longevity', 'injury-prevention', 'programming'],
     readTime: 6,
     publishedAt: new Date('2025-03-10'),
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Extend warm-ups to 10-15 minutes with general cardio, activation, and ramping sets',
+      'Favor joint-friendly exercise alternatives like trap bar deadlifts and DB bench press',
+      'Use higher frequency with lower per-session volume for better recovery after 30',
+      'Invest in daily neck training, hip mobility, and shoulder prehab to protect your grappling career',
+    ],
+    relatedArticleIds: ['article-injury-prevention', 'article-warmup-protocol', 'article-knee-health-athletes', 'article-autoregulation'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Your Body at 30+
 
@@ -1196,6 +1277,15 @@ The goal is not to peak at 35. It is to be training at 55. Every session should 
     readTime: 5,
     publishedAt: new Date('2025-02-20'),
     source: 'Helms et al. 2024, Zourdos et al. 2023',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use RPE to adjust training intensity to your daily readiness instead of chasing fixed numbers',
+      'Apply the green/yellow/red light system based on recovery score, sleep, and stress levels',
+      'Drop RPE targets by 0.5-1 point on yellow-light days and 1-2 points on red-light days',
+      'Trust the app auto-adjustment engine — it uses your actual data, not a generic spreadsheet',
+    ],
+    relatedArticleIds: ['article-rpe-autoregulation', 'article-hrv-baselines', 'article-stress-management', 'article-overtraining-vs-underrecovery'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## Why Rigid Programs Fail
 
@@ -1255,6 +1345,15 @@ This app uses your pre-workout check-in, wearable recovery data, and per-exercis
     readTime: 6,
     publishedAt: new Date('2025-03-15'),
     source: 'Plews et al. 2024, Buchheit 2014',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Compare HRV only to your personal 14-day rolling baseline, never to internet averages',
+      'Measure HRV at the same time daily (morning, lying down) for consistent readings',
+      'Use standard deviation bands to interpret daily readings and decide training intensity',
+      'Focus on week-over-week trends rather than panicking over single-day dips',
+    ],
+    relatedArticleIds: ['article-autoregulation', 'article-recovery-science', 'article-stress-management', 'article-overtraining-vs-underrecovery'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Why Personal Baselines Matter
 
@@ -1301,6 +1400,15 @@ For accurate baselines:
     readTime: 7,
     publishedAt: new Date('2025-03-20'),
     source: 'Gabbett 2016, 2020 updates',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Keep your acute-to-chronic workload ratio between 0.8 and 1.3 to minimize injury risk',
+      'Never increase total weekly training load by more than 10% — spikes cause injuries, not high loads',
+      'Track both lifting and grappling volume as part of your total training load',
+      'Watch for competition-week spikes that can push ACWR into the danger zone above 1.5',
+    ],
+    relatedArticleIds: ['article-injury-prevention', 'article-combat-sport-periodization', 'article-concurrent-training'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## What is ACWR?
 
@@ -1340,6 +1448,15 @@ Never increase total weekly load by more than 10%. This single rule prevents mos
     readTime: 6,
     publishedAt: new Date('2025-03-25'),
     source: 'Sports science research on combat sports 2023-2025',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Follow the 48-hour rule: no hard training within 48 hours of intense sparring or competition',
+      'Perform daily neck health work including circles, chin tucks, and isometric holds',
+      'Balance grip training with finger extensor work at least 3x per week to prevent injury',
+      'Avoid heavy pulling exercises for 24-48 hours after hard gi training sessions',
+    ],
+    relatedArticleIds: ['article-recovery-science', 'article-grip-training', 'article-grappling-strength', 'article-neck-strength-fighters'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## The Grappler's Recovery Challenge
 
@@ -1387,6 +1504,15 @@ After hard grappling (competition-style rounds or tournament):
     tags: ['striking', 'boxing', 'kickboxing', 'power'],
     readTime: 6,
     publishedAt: new Date('2025-03-01'),
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Build knockout power through the 4 pillars: rotational power, hip extension, shoulder endurance, and core anti-rotation',
+      'Never lift heavy before sparring — fatigued muscles mean slower reactions and getting hit',
+      'Prioritize power and rate of force development over bodybuilder-style mass',
+      'Train neck religiously as your chin\'s insurance policy against knockouts',
+    ],
+    relatedArticleIds: ['article-power-development', 'article-shoulder-durability-strikers', 'article-neck-strength-fighters', 'article-striking-conditioning'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Why Strikers Need Strength Training
 
@@ -1466,6 +1592,15 @@ Your core must resist rotation to transfer power efficiently and absorb body sho
     tags: ['MMA', 'fighting', 'conditioning', 'programming'],
     readTime: 8,
     publishedAt: new Date('2025-03-05'),
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Train all three energy systems concurrently, adjusting emphasis based on fight schedule',
+      'Shift from 60% strength in off-season to 40% conditioning during fight camp',
+      'Keep lifting supplementary — avoid competing with 4-6x weekly martial arts sessions',
+      'Prioritize 8+ hours sleep, high protein, and deloads every 4-6 weeks for recovery',
+    ],
+    relatedArticleIds: ['article-combat-sport-periodization', 'article-concurrent-training', 'article-energy-system-development', 'article-striking-strength'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## The MMA Training Challenge
 
@@ -1556,6 +1691,15 @@ MMA is brutal on the body. You cannot out-train bad recovery:
     tags: ['beginner', 'strength', 'programming', 'basics'],
     readTime: 7,
     publishedAt: new Date('2025-02-25'),
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Build your program around the Big 5 movement patterns: squat, hinge, horizontal push, horizontal pull, and vertical pull',
+      'Start with 3 full-body sessions per week at 6-12 reps and focus on learning proper form',
+      'Apply progressive overload through weight, reps, sets, technique, ROM, tempo, or rest times',
+      'Prioritize consistency over perfection — sleep beats supplements, compound lifts beat isolation',
+    ],
+    relatedArticleIds: ['article-progressive-overload', 'article-strength-adaptations', 'article-hypertrophy-science'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Strength Training Fundamentals
 
@@ -1642,6 +1786,15 @@ The key to getting stronger: gradually increase demands over time.
     tags: ['progression', 'programming', 'intermediate', 'plateau'],
     readTime: 5,
     publishedAt: new Date('2025-03-10'),
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Use the 7 progression methods: weight, reps, sets, technique, ROM, tempo, and rest times',
+      'Follow the progression hierarchy when weight stalls — add reps first, then sets, then tempo',
+      'Track every workout to know if you are actually progressing over weeks and months',
+      'Celebrate progress in any dimension — if reps or technique improve, you are still making gains',
+    ],
+    relatedArticleIds: ['article-general-strength', 'article-hypertrophy-science', 'article-autoregulation', 'article-eccentric-training'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## What is Progressive Overload?
 
@@ -1727,6 +1880,15 @@ This app tracks all of this automatically. Use it.
     readTime: 7,
     publishedAt: new Date('2025-03-20'),
     source: 'Helms et al. 2015, Murphy & Koehler 2022, Roth et al. 2023',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'During a cut, reduce volume by 15-20% but keep loads heavy to preserve muscle',
+      'During a bulk, increase volume by 10% and push RPE slightly higher to capitalize on extra fuel',
+      'Extend rest periods by 25-30% during a deficit to maintain working loads',
+      'Deload every 3-4 weeks during a cut instead of the usual 5-6 weeks',
+    ],
+    relatedArticleIds: ['article-cutting-guide', 'article-bulking-guide', 'article-nutrition-fundamentals', 'article-autoregulation'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## Your Diet Phase Directly Affects Training
 
@@ -1777,6 +1939,15 @@ Train normally. This is your baseline programming.
     readTime: 8,
     publishedAt: new Date('2025-03-25'),
     source: 'Garthe et al. 2011, Helms et al. 2014, Byrne et al. 2017',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Lose weight at 0.5-0.7% bodyweight per week for men, 0.3-0.5% for women',
+      'Increase protein to 2.2-2.4g/kg during a cut — needs go up, not down',
+      'Never drop dietary fat below 0.8g/kg (men) or 1.0g/kg (women) for hormone health',
+      'Stop your cut immediately if you experience persistent fatigue, menstrual loss, or 10%+ strength drops',
+    ],
+    relatedArticleIds: ['article-dieting-training-integration', 'article-women-nutrition', 'article-nutrition-fundamentals', 'article-bulking-guide'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## How to Cut Without Losing Muscle
 
@@ -1843,6 +2014,15 @@ These are signs of Relative Energy Deficiency. Return to maintenance immediately
     readTime: 6,
     publishedAt: new Date('2025-03-28'),
     source: 'Helms et al. 2023, Iraki et al. 2019',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use a 10-12% caloric surplus — bigger surpluses add fat without extra muscle',
+      'Gain 0.5-1% bodyweight per month as a beginner, 0.25-0.5% as intermediate',
+      'Train harder during a bulk: add 10% volume and push RPE slightly higher',
+      'Limit bulk duration to 16-20 weeks then transition to a 4-6 week maintenance phase',
+    ],
+    relatedArticleIds: ['article-cutting-guide', 'article-dieting-training-integration', 'article-nutrition-fundamentals', 'article-hypertrophy-science'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## The Science of Gaining Muscle
 
@@ -1904,6 +2084,15 @@ After this, a maintenance phase (4-6 weeks) helps stabilize new weight before de
     readTime: 8,
     publishedAt: new Date('2025-04-01'),
     source: 'Melin et al. 2019, Loucks & Thuma 2003, Mountjoy et al. 2018',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Monitor energy availability — never drop below 30 kcal/kg FFM/day to prevent RED-S',
+      'Maintain fat intake above 1.0g/kg to protect estrogen production and bone health',
+      'Cut weight at 0.3-0.5% BW/week maximum with diet breaks every 4-6 weeks',
+      'Treat menstrual irregularity as a health red flag, not a sign of fitness',
+    ],
+    relatedArticleIds: ['article-cutting-guide', 'article-nutrition-fundamentals', 'article-female-athlete-menstrual-cycle'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## Why Women Need Different Nutrition Strategies
 
@@ -1973,6 +2162,15 @@ However, the research is still evolving. The most important factor is overall en
     tags: ['periodization', 'combat', 'MMA', 'grappling', 'striking', 'competition'],
     readTime: 7,
     publishedAt: new Date('2025-03-15'),
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Plan training in phases: off-season (build base), pre-competition (peak), competition (rest and prime), post-competition (recover)',
+      'Reduce lifting volume 30-40% as competition approaches while maintaining intensity',
+      'Adapt sport-specific priorities: grapplers need grip and pulls, strikers need rotation and power',
+      'Never increase total training load (lifting + sport) by more than 10% per week',
+    ],
+    relatedArticleIds: ['article-undulating-periodization', 'article-mma-programming', 'article-acwr-injury', 'article-concurrent-training'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## The Combat Athlete's Dilemma
 
@@ -2064,6 +2262,14 @@ Never increase total training load (lifting + sport) by more than 10% per week. 
     readTime: 7,
     publishedAt: new Date('2025-03-01'),
     source: 'Based on sport psychology research and elite athlete protocols',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Train process focus by naming one cue before each set and rating execution quality afterward',
+      'Build discomfort tolerance by deliberately choosing harder options and practicing the one-more rule',
+      'Adopt an identity-based approach — never miss twice in a row to maintain the habit chain',
+      'Reframe pre-competition anxiety as readiness — the physiological signatures are nearly identical',
+    ],
+    relatedArticleIds: ['article-motivation-consistency', 'article-visualization-motor-imagery', 'article-stress-management'],
     content: `
 ## Why Mindset Is a Trainable Skill
 
@@ -2129,6 +2335,15 @@ Mental toughness isn't built in big moments. It's built in small daily decisions
     readTime: 6,
     publishedAt: new Date('2025-03-10'),
     source: 'Walker (2017), Mah et al. (2011), Dattilo et al. (2020)',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Follow the 10-3-2-1-0 rule: no caffeine 10h, no meals 3h, no training 2h, no screens 1h before bed',
+      'Maintain 7-9 hours of sleep minimum — 5 hours drops testosterone 10-15%',
+      'Keep your bedroom at 65-68F with complete darkness and a consistent wake time',
+      'Use magnesium glycinate (200-400mg) and a cold shower after evening training to aid sleep onset',
+    ],
+    relatedArticleIds: ['article-recovery-science', 'article-sleep-architecture-athletes', 'article-stress-management', 'article-overtraining-vs-underrecovery'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Why Sleep Is Non-Negotiable
 
@@ -2194,6 +2409,15 @@ If you're doing everything right in training and nutrition but not progressing, 
     readTime: 5,
     publishedAt: new Date('2025-03-15'),
     source: 'Selye stress model; Halson (2014) overtraining research',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Treat life stress as a training variable — your body has one shared recovery budget',
+      'Scale training down during high-stress periods: reduce volume 30-50% and cap RPE at 6-7',
+      'Watch for 3+ day HRV drops, elevated resting HR, and persistent DOMS as overspent stress signals',
+      'During high stress, protect the training habit with shorter lighter sessions rather than pushing through',
+    ],
+    relatedArticleIds: ['article-overtraining-vs-underrecovery', 'article-autoregulation', 'article-hrv-baselines', 'article-sleep-performance'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Your Body Has One Stress Budget
 
@@ -2256,6 +2480,15 @@ Training is a stimulus. Recovery is when you adapt. If recovery is compromised, 
     readTime: 6,
     publishedAt: new Date('2025-03-20'),
     source: 'Helms et al. Nutrition Pyramid; Aragon & Schoenfeld, 2020',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Focus on the nutrition hierarchy: calories (70%), protein (20%), carbs/fats (8%), everything else (2%)',
+      'Hit 1.6-2.2g protein per kg bodyweight distributed across 3-5 meals daily',
+      'Get 80% of calories from whole foods and allow 20% flexibility for sustainability',
+      'Stop obsessing over supplements and timing — consistency with calories and protein is what matters',
+    ],
+    relatedArticleIds: ['article-cutting-guide', 'article-bulking-guide', 'article-weight-management', 'article-creatine'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## The Nutrition Hierarchy (In Order of Impact)
 
@@ -2316,6 +2549,15 @@ Adherence beats perfection. The best diet is the one you can follow for months, 
     readTime: 5,
     publishedAt: new Date('2025-04-01'),
     source: 'Kreher & Schwartz (2012); Meeusen et al. (2013)',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Audit sleep, nutrition, life stress, training monotony, and deload frequency before assuming overtraining',
+      'Distinguish functional overreaching (normal, recovers in 1-2 weeks) from non-functional overreaching (warning sign)',
+      'Deload every 4-6 weeks by reducing volume 40-60% while maintaining frequency',
+      'If stuck in a plateau, try training less with better recovery before training more',
+    ],
+    relatedArticleIds: ['article-recovery-science', 'article-stress-management', 'article-sleep-performance', 'article-autoregulation'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## True Overtraining Is Extremely Rare
 
@@ -2375,6 +2617,15 @@ If you're stuck in a plateau and tempted to train MORE, try training LESS with b
     readTime: 7,
     publishedAt: new Date('2025-04-10'),
     source: 'Guidetti et al. (2002); Del Vecchio et al. (2011)',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Build the aerobic base first with 3-4 Zone 2 sessions per week before adding lactate tolerance work',
+      'Train all three energy systems: phosphagen (0-10s), glycolytic (10s-2min), and aerobic (2min+)',
+      'Use sport-specific peaking during fight camp with round-length intervals matching your sport',
+      'Develop striking power through lower body force production, core rotational stiffness, and upper body RFD',
+    ],
+    relatedArticleIds: ['article-energy-system-development', 'article-power-development', 'article-striking-strength', 'article-combat-sport-periodization'],
+    applyCta: { label: 'Start conditioning', overlayId: 'conditioning' },
     content: `
 ## Why Strikers Gas Out
 
@@ -2436,6 +2687,15 @@ Key exercises:
     readTime: 8,
     publishedAt: new Date('2025-04-15'),
     source: 'Reale et al. (2017); Artioli et al. (2016)',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Stay within 8-12% of competition weight year-round to minimize brutal acute cuts',
+      'Use chronic fat loss (0.5-0.7% BW/week) during camp then acute water manipulation for the final 3-5%',
+      'Rehydrate with oral rehydration solution containing sodium — not plain water — post-weigh-in',
+      'Stop a cut immediately if resting HR exceeds 100 bpm, severe cramping occurs, or urine stays dark brown',
+    ],
+    relatedArticleIds: ['article-fight-week-protocol', 'article-making-weight-science', 'article-cutting-guide', 'article-nutrition-fundamentals'],
+    applyCta: { label: 'Fight prep', overlayId: 'competition' },
     content: `
 ## The Reality of Weight Cutting in MMA
 
@@ -2500,6 +2760,15 @@ No fight is worth permanent organ damage. Move up a weight class if cuts are con
     readTime: 6,
     publishedAt: new Date('2025-04-20'),
     source: 'Lauersen et al. (2014) meta-analysis; Gabbett (2016) ACWR',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Prioritize strength training for injury prevention — it reduces injuries by 66% vs nearly zero for stretching alone',
+      'Never increase weekly training volume by more than 10% to stay in the ACWR sweet spot',
+      'Address limb asymmetries greater than 15% with unilateral work to halve your injury risk',
+      'Use the PEACE (first 48h) and LOVE (after 48h) framework when injuries occur instead of complete rest',
+    ],
+    relatedArticleIds: ['article-acwr-injury', 'article-training-through-injuries', 'article-knee-health-athletes', 'article-warmup-protocol'],
+    applyCta: { label: 'Log an injury', overlayId: 'injury' },
     content: `
 ## Most Injuries Are Preventable
 
@@ -2556,6 +2825,14 @@ Under-recovered athletes get injured. Period.
     readTime: 5,
     publishedAt: new Date('2025-05-01'),
     source: 'Clear (2018) Atomic Habits; Duckworth (2016) Grit research',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Design your environment to make training the path of least resistance — pack bags, plan routes, set times',
+      'Apply the never-miss-twice rule to prevent one skipped session from becoming a new pattern',
+      'Use the two-minute rule on low-motivation days: commit to just showing up and starting',
+      'Avoid the all-or-nothing trap — a 20-minute maintenance workout beats zero',
+    ],
+    relatedArticleIds: ['article-mental-toughness', 'article-visualization-motor-imagery', 'article-stress-management'],
     content: `
 ## Motivation Is Unreliable. Systems Aren't.
 
@@ -2614,6 +2891,15 @@ If you've lost motivation for 2+ weeks:
     readTime: 7,
     publishedAt: new Date('2025-05-10'),
     source: 'Andreato et al. (2017); James et al. (2016)',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Build the aerobic base first — it provides 55-65% of energy in a BJJ match and drives between-exchange recovery',
+      'Layer grip endurance and core endurance on top of the aerobic base with 2-3 sessions per week',
+      'Add sport-specific intervals (30s on/30s off) only 1-2x per week and never on sparring days',
+      'Improve efficiency alongside fitness — use structure instead of muscle and breathe continuously during exchanges',
+    ],
+    relatedArticleIds: ['article-grappling-strength', 'article-grip-endurance-grapplers', 'article-energy-system-development', 'article-grappling-recovery'],
+    applyCta: { label: 'Start conditioning', overlayId: 'conditioning' },
     content: `
 ## Why Grapplers Gas Out
 
@@ -2675,6 +2961,15 @@ Elite grapplers don't just have better cardio. They're more efficient:
     readTime: 5,
     publishedAt: new Date('2025-05-15'),
     source: 'Behm et al. (2021) stretching review; Afonso et al. (2021)',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Prioritize hip mobility above all else — every combat sport demands it for guard play, kicks, and level changes',
+      'Do the minimum effective dose daily: 2-min deep squat hold, 1-min dead hang, 1-min 90/90 switches per side',
+      'Use dynamic stretching before training and save static stretching for after sessions or dedicated mobility work',
+      'Train mobility under load (loaded stretching at end-range) during dedicated 15-20 minute sessions 2-3x per week',
+    ],
+    relatedArticleIds: ['article-warmup-protocol', 'article-injury-prevention', 'article-knee-health-athletes', 'article-training-longevity'],
+    applyCta: { label: 'Mobility session', overlayId: 'mobility' },
     content: `
 ## Mobility vs. Flexibility
 
@@ -2739,6 +3034,15 @@ That's 5 minutes. Zero excuses.
     readTime: 7,
     publishedAt: new Date('2026-02-23'),
     source: 'Kreider et al. 2017; Branch 2003; Rawson & Volek 2003; Hultman et al. 1996; Rae et al. 2003',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Take 3-5g of creatine monohydrate daily — no loading, no cycling, any time of day',
+      'Expect 1-3kg of intracellular water gain initially — this is not fat and looks like fuller muscles',
+      'Start supplementation in the offseason so your weight-cut strategy accounts for creatine-loaded bodyweight',
+      'Ignore kidney damage myths — over 700 studies and up to 5 years of data show no adverse effects in healthy individuals',
+    ],
+    relatedArticleIds: ['article-caffeine', 'article-nutrition-fundamentals', 'article-weight-management'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## 700+ Studies. One Consistent Finding.
 
@@ -2824,6 +3128,15 @@ Creatine is cheap, effective, extensively studied, and safe. It improves both ph
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Goldstein et al. 2010; Grgic et al. 2020; Pickering & Kiely 2019; Beaumont et al. 2017',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Dose at 3-6mg/kg bodyweight 30-60 minutes before training for optimal ergogenic effect',
+      'Set a hard caffeine curfew at minimum 6 hours before bed to protect sleep quality',
+      'Taper caffeine 2-3 weeks before competition and withdraw fully 48-72 hours pre-fight for maximum effect',
+      'Accept that habitual use blunts subjective effects but performance benefits largely persist',
+    ],
+    relatedArticleIds: ['article-caffeine-performance', 'article-creatine', 'article-sleep-performance', 'article-nutrition-fundamentals'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## The Most Widely Used Psychoactive Substance on Earth Also Happens to Be Ergogenic
 
@@ -2921,6 +3234,15 @@ Caffeine works. But it's a tool with trade-offs. Respect the half-life, protect 
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Roberts et al. 2015; Leeder et al. 2012; Laukkanen et al. 2015; Huberman overreach critique',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use cold water immersion for tournament recovery between bouts, not after hypertrophy training',
+      'Avoid post-exercise cold exposure during training blocks — it blunts the inflammatory signals needed for adaptation',
+      'Prefer sauna over cold plunge after training — heat exposure is additive, not counterproductive',
+      'Follow the 10-15C water temperature for 10-15 minutes protocol if using CWI strategically',
+    ],
+    relatedArticleIds: ['article-recovery-science', 'article-sleep-performance', 'article-overtraining-vs-underrecovery', 'article-alcohol-performance'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Cold Plunges Are Everywhere. The Evidence Is More Complicated Than Your Feed Suggests.
 
@@ -3022,6 +3344,15 @@ Stop treating cold exposure as universally good or universally bad. It's a tool.
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Parr et al. 2014; Barnes et al. 2010; Lakicevic et al. 2019',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Keep consumption to 1-2 drinks when possible — the dose-response curve for harm is steep',
+      'Never drink after key training sessions — alcohol suppresses muscle protein synthesis by up to 37%',
+      'Eat protein before or during drinking to partially buffer MPS suppression',
+      'Avoid alcohol within 4 weeks of competition and never during weight cuts',
+    ],
+    relatedArticleIds: ['article-recovery-science', 'article-sleep-performance', 'article-sleep-architecture-athletes', 'article-nutrition-fundamentals'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## This Isn't a Lecture. It's Biochemistry.
 
@@ -3142,6 +3473,14 @@ The goal isn't abstinence guilt. It's informed decision-making. Know the cost, d
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Schoenfeld & Contreras 2013; Nosaka 2008; Damas et al. 2018',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Stop chasing soreness — DOMS reflects stimulus novelty, not growth quality',
+      'Train through mild-to-moderate soreness (2-6/10) with normal or reduced intensity',
+      'Track progressive overload, body composition, and sport performance instead of soreness as progress markers',
+      'Stick to consistent exercises long enough to track progress instead of constantly rotating for novelty',
+    ],
+    relatedArticleIds: ['article-hypertrophy-science', 'article-progressive-overload', 'article-recovery-science'],
     content: `
 ## If Soreness Meant Growth, Your First Week in the Gym Would Have Been Your Best.
 
@@ -3229,6 +3568,15 @@ Athletes who use soreness as their training barometer tend to:
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Behm & Chaouachi 2011; Tillin & Bishop 2009; McCrary et al. 2015; Behm et al. 2016',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Follow the 3-phase warm-up: general movement (3-4min), dynamic mobility (3-4min), and ramp sets (3-5min)',
+      'Never do long static stretches before lifting — they reduce maximal force production by 4-7%',
+      'Use ramp sets with progressively heavier loads to prime your nervous system for working weights',
+      'Complete the 10-minute universal warm-up every session with zero exceptions',
+    ],
+    relatedArticleIds: ['article-science-of-warming-up', 'article-injury-prevention', 'article-mobility-combat', 'article-training-longevity'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Your First Working Set Should Not Be a Surprise to Your Nervous System.
 
@@ -3371,6 +3719,15 @@ A proper warm-up costs 10 minutes and pays for itself in injury prevention, bett
     readTime: 7,
     publishedAt: new Date('2026-02-23'),
     source: 'Haff & Nimphius (2012); Suchomel et al. (2016); Loturco et al. (2022)',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Train rate of force development through ballistic exercises — velocity matters more than max strength for punch impact',
+      'Build a strength floor (1.5-2x bodyweight squat) then shift focus to speed-strength and plyometric work',
+      'Use jump squats, medicine ball throws, and plyometric push-ups for fast-twitch recruitment',
+      'Never do power work fatigued — program it when fresh and taper it into fight week',
+    ],
+    relatedArticleIds: ['article-striking-strength', 'article-striking-conditioning', 'article-combat-sport-periodization', 'article-concurrent-training'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## Why the Hardest Punchers Aren't Always the Strongest Lifters
 
@@ -3471,6 +3828,15 @@ Never do power work fatigued. If you had a brutal sparring session, skip the pow
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Eckner et al. (2014); Collins et al. (2014); Catenaccio et al. (2017)',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Train neck strength in all four directions — each pound of force reduces concussion odds by 5%',
+      'Use both isometric holds for reactive brace and dynamic reps for tissue capacity',
+      'Start embarrassingly light and progress by 1-2kg increments — ego lifting the neck causes real injury',
+      'Perform the 5-minute hand-resistance isometric protocol daily as minimum effective dose',
+    ],
+    relatedArticleIds: ['article-striking-strength', 'article-injury-prevention', 'article-shoulder-durability-strikers', 'article-grappling-recovery'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## One Muscle Group Separates Getting Rocked from Staying Standing
 
@@ -3569,6 +3935,15 @@ The excuses are always the same: "I don't have time," "it looks weird," "I've ne
     readTime: 8,
     publishedAt: new Date('2026-02-23'),
     source: 'Buchheit & Laursen (2013); Seiler (2010); Franchini et al. (2011)',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Build the aerobic base first with 2-4 cardiac output sessions per week at 120-150 BPM',
+      'Use polarized training: 80% easy, 20% hard — eliminate the moderate-intensity black hole',
+      'Layer glycolytic intervals and phosphagen sprints on top of the aerobic base as competition approaches',
+      'Periodize across camp: base building in off-season, capacity mid-camp, sharpening late camp, taper fight week',
+    ],
+    relatedArticleIds: ['article-striking-conditioning', 'article-grappling-conditioning', 'article-combat-sport-periodization', 'article-concurrent-training'],
+    applyCta: { label: 'Start conditioning', overlayId: 'conditioning' },
     content: `
 ## Every Second of a Fight Uses a Different Fuel System — and Most Fighters Only Train One
 
@@ -3696,6 +4071,15 @@ Symptoms of black hole training:
     readTime: 8,
     publishedAt: new Date('2026-02-23'),
     source: 'Reale et al. (2017); Barley et al. (2018); Artioli et al. (2016)',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Water load at 8-10L/day for 3-4 days then progressively restrict to exploit renal overshoot',
+      'Deplete glycogen in the final 2-3 days — each gram holds 3-4g of water for additional weight loss',
+      'Rehydrate with sodium-containing ORS post-weigh-in — plain water triggers urination and delays recovery',
+      'Refuel with 8-10g/kg high-glycemic carbs over the rehydration period to restore glycogen stores',
+    ],
+    relatedArticleIds: ['article-making-weight-science', 'article-mma-weight-management', 'article-combat-sport-periodization'],
+    applyCta: { label: 'Fight prep', overlayId: 'competition' },
     content: `
 ## The 7 Days Before a Fight Determine More Than the 7 Weeks of Camp Before Them
 
@@ -3814,6 +4198,15 @@ Execute this methodically, practice it in training camps before lesser-stakes ev
     readTime: 7,
     publishedAt: new Date('2026-02-23'),
     source: 'Crighton et al. (2016); Reale et al. (2017); Morton et al. (2010)',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Keep acute water cuts under 5% bodyweight — larger cuts impair performance even after 24h rehydration',
+      'Manage body composition chronically during camp so fight-week manipulation is minimal',
+      'Choose your weight class based on lean walk-around weight minus 3-5%, not pain tolerance',
+      'Lose 0.3-0.5kg per week during camp at a 300-500 kcal deficit with protein at 2.5-2.7g/kg',
+    ],
+    relatedArticleIds: ['article-fight-week-protocol', 'article-mma-weight-management', 'article-cutting-guide', 'article-women-nutrition'],
+    applyCta: { label: 'Fight prep', overlayId: 'competition' },
     content: `
 ## The Fighter Who Cuts 15 Pounds in a Week and the Fighter Who Cuts 15 Pounds Over 12 Weeks Are Playing Entirely Different Games
 
@@ -3960,6 +4353,15 @@ The goal: arrive at fight week as lean as possible so the acute cut is minimal.
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Reinold et al. (2010); Wilk et al. (2009); Kibler et al. (2013)',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Maintain external rotation strength at 66-75% of internal rotation to prevent impingement',
+      'Perform the prehab protocol 3x/week: band pull-aparts, face pulls, YTWLs, Turkish get-ups, serratus wall slides',
+      'Cap heavy bag rounds at 6-8 per session and balance punching volume with equal pulling volume',
+      'Watch for scapular winging, clicking during arm elevation, and anterior shoulder ache as warning signs',
+    ],
+    relatedArticleIds: ['article-striking-strength', 'article-injury-prevention', 'article-neck-strength-fighters', 'article-training-through-injuries'],
+    applyCta: { label: 'Log an injury', overlayId: 'injury' },
     content: `
 ## Throwing 500 Punches a Session Is an Overhead Sport — Your Shoulders Just Don't Know It Yet
 
@@ -4079,6 +4481,15 @@ The prehab protocol above is necessary but insufficient if training volume is un
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Goldstein et al. 2010; Grgic et al. 2020; Guest et al. 2021; Pickering & Kiely 2019',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Dose at 3-6mg/kg 45 minutes before your first working set for peak ergogenic effect',
+      'Cycle caffeine use — reserve full doses for key sessions and wash out 7-10 days before competition',
+      'Respect the half-life: no caffeine after early afternoon to protect slow-wave sleep and GH release',
+      'Leverage caffeine for faster reactions, higher pain tolerance, and sustained decision-making under fatigue',
+    ],
+    relatedArticleIds: ['article-caffeine', 'article-sleep-performance', 'article-creatine', 'article-nutrition-fundamentals'],
+    applyCta: { label: 'Log a meal', overlayId: 'nutrition' },
     content: `
 ## Most Athletes Use Caffeine. Almost None Use It Correctly.
 
@@ -4135,6 +4546,15 @@ For fighters, caffeine's benefits extend beyond raw strength:
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Fradkin et al. 2010; Behm & Chaouachi 2011; Bishop 2003; Tillin & Bishop 2009',
+    difficulty: 'beginner',
+    keyTakeaways: [
+      'Follow the RAMP protocol: Raise temperature, Activate stabilizers, Mobilize joints, Potentiate the nervous system',
+      'Use dynamic stretching pre-training — static stretching over 60 seconds reduces strength by 5-8%',
+      'Include post-activation potentiation with explosive ramp sets for a 3-8% boost in subsequent power output',
+      'Invest 12-15 minutes per session — the 50%+ injury risk reduction alone makes this non-negotiable',
+    ],
+    relatedArticleIds: ['article-warmup-protocol', 'article-mobility-combat', 'article-injury-prevention', 'article-power-development'],
+    applyCta: { label: 'Build a workout', overlayId: 'builder' },
     content: `
 ## A Cold Muscle Is a Slow, Weak, Injury-Prone Muscle. Full Stop.
 
@@ -4192,6 +4612,15 @@ This takes 12-15 minutes. It prevents injuries, sharpens early-round performance
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Lehman 2017; Smith et al. 2017; Glasgow et al. 2015; Khan & Scott 2009',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Train through pain at 0-3/10 on the pain scale — pain does not equal harm for most musculoskeletal issues',
+      'Substitute movements rather than eliminating patterns: knee pain means hip-dominant, shoulder pain means neutral grip',
+      'Use isometric holds (5x45s at 70% MVC) for acute tendinopathy pain relief before training',
+      'Stop training only for fractures, neurological symptoms, joint locking, night pain, or no improvement after 2-3 weeks',
+    ],
+    relatedArticleIds: ['article-injury-prevention', 'article-knee-health-athletes', 'article-shoulder-durability-strikers', 'article-training-longevity'],
+    applyCta: { label: 'Log an injury', overlayId: 'injury' },
     content: `
 ## The Worst Advice in Fitness Is "Just Rest It."
 
@@ -4263,6 +4692,15 @@ Despite the "train through it" approach, certain presentations demand medical ev
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Wilson et al. 2012; Fyfe et al. 2014; Murach & Bagley 2016; Hickson 1980',
+    difficulty: 'advanced',
+    keyTakeaways: [
+      'Separate strength and endurance sessions by 6-8 hours minimum to reduce AMPK-mTOR interference',
+      'Always train strength before cardio when same-day training is unavoidable',
+      'Replace running with cycling or sled work for conditioning to minimize eccentric interference',
+      'Accept slower hypertrophy gains as a fighter — 1-2kg lean mass per year while maintaining sport skill is excellent',
+    ],
+    relatedArticleIds: ['article-combat-sport-periodization', 'article-mma-programming', 'article-energy-system-development', 'article-undulating-periodization'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## You Cannot Specialize When Your Sport Demands Everything.
 
@@ -4345,6 +4783,15 @@ This means:
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Hartmann et al. 2013; Hewett et al. 2005; Lian et al. 2005; Schoenfeld 2010',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Squat deep — compressive forces peak at 90 degrees and full depth distributes load while building cartilage',
+      'Maintain a hamstring-to-quad ratio of 0.6 or higher — below this, ACL injury risk increases 2.5x',
+      'Follow the ACL prevention protocol (single-leg balance, lateral bounds, drop jumps) 3x/week for 15 minutes',
+      'Manage patellar tendinopathy with heavy slow resistance training, not rest — tendons strengthen under progressive load',
+    ],
+    relatedArticleIds: ['article-injury-prevention', 'article-training-through-injuries', 'article-mobility-combat', 'article-warmup-protocol'],
+    applyCta: { label: 'Log an injury', overlayId: 'injury' },
     content: `
 ## The Knee Is Not Fragile. Your Training Program Probably Is.
 
@@ -4426,6 +4873,15 @@ Lian et al. (2005) showed that patellar tendinopathy affects up to 45% of athlet
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Dias et al. 2012, Leyk et al. 2007, Cronin et al. 2017',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Train gi grip with sustained isometric holds and no-gi grip with rapid grip-release cycling — they are different',
+      'Focus on endurance ratio over peak force — maintaining 40kg through a round beats peaking at 70kg then fading',
+      'Include rice bucket work and wrist extensor training in every grip session to prevent medial epicondylitis',
+      'Train grip 2-3x per week maximum on non-consecutive days — forearm tendons recover slowly',
+    ],
+    relatedArticleIds: ['article-grip-training', 'article-grappling-strength', 'article-grappling-conditioning', 'article-grappling-recovery'],
+    applyCta: { label: 'Track grip strength', overlayId: 'grip_strength' },
     content: `
 ## The Grip Problem Nobody Trains Correctly
 
@@ -4493,6 +4949,15 @@ Grapplers develop **medial epicondylitis** (golfer's elbow) at alarming rates. T
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'Mah et al. 2011, Watson 2017, Vitale et al. 2019',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Prioritize sleep timing — SWS (physical recovery) dominates the first half of night, REM (motor learning) the second',
+      'Target sleep efficiency above 85% — time actually asleep matters more than total time in bed',
+      'Keep bedroom at 65-68F, dim lights 90 minutes pre-bed, and maintain consistent timing within 30 minutes daily',
+      'Use 20-minute or 90-minute naps only — avoid the 40-60 minute dead zone that causes severe grogginess',
+    ],
+    relatedArticleIds: ['article-sleep-performance', 'article-recovery-science', 'article-alcohol-performance', 'article-stress-management'],
+    applyCta: { label: 'Check recovery', overlayId: 'recovery' },
     content: `
 ## Your Sleep Is Probably Broken (Even If You Get 8 Hours)
 
@@ -4574,6 +5039,14 @@ Ignore the stage breakdowns. Focus on the metrics above and how you feel during 
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Jeannerod 2001, Holmes & Collins 2001, Ridderinkhof & Brass 2015',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use the PETTLEP model for motor imagery: match physical state, environment, task, timing, learning stage, emotion, and first-person perspective',
+      'Visualize process over outcomes and include adversity responses — rehearse getting hit, not just hitting',
+      'Practice 5-10 minutes of specific real-time visualization before competition for measurable performance gains',
+      'Use 3 daily 10-minute imagery sessions during injury layoffs to retain 50-70% of motor skill degradation',
+    ],
+    relatedArticleIds: ['article-mental-toughness', 'article-motivation-consistency', 'article-combat-sport-periodization'],
     content: `
 ## Your Brain Can't Tell the Difference
 
@@ -4639,6 +5112,14 @@ Multiple studies confirm that athletes returning from injury with consistent ima
     readTime: 6,
     publishedAt: new Date('2026-02-23'),
     source: 'McNulty et al. 2020, Sung et al. 2014, Mountjoy et al. 2018',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Schedule heavy strength sessions and PRs during the late follicular phase (days 8-14) when possible',
+      'Reduce training volume by 10-15% in the luteal phase if recovery feels impaired',
+      'Treat a lost menstrual cycle as RED-S until proven otherwise — increase caloric intake immediately',
+      'Track your own patterns for 3-4 cycles before making programming changes — individual variation is massive',
+    ],
+    relatedArticleIds: ['article-women-nutrition', 'article-cutting-guide', 'article-training-longevity'],
     content: `
 ## The Research Gap That's Costing Female Athletes
 
@@ -4725,6 +5206,15 @@ Relative Energy Deficiency in Sport (RED-S), formally defined by Mountjoy et al.
     readTime: 5,
     publishedAt: new Date('2026-02-23'),
     source: 'Helms et al. 2016, Zourdos et al. 2016, Hackett et al. 2012',
+    difficulty: 'intermediate',
+    keyTakeaways: [
+      'Use RPE 8 (2 RIR) as the sweet spot for most working sets — stimulative without excessive fatigue',
+      'Calibrate RPE accuracy over 4-6 weeks of honest practice before relying on it for programming',
+      'Cap RPE at 8.5 during fight camp and use daily readiness ratings to adjust targets',
+      'Track RPE-to-load relationships over time — declining loads at the same RPE signals accumulated fatigue',
+    ],
+    relatedArticleIds: ['article-autoregulation', 'article-combat-sport-periodization', 'article-concurrent-training', 'article-stress-management'],
+    applyCta: { label: 'View your program', overlayId: 'periodization' },
     content: `
 ## Your Program Is Wrong on Any Given Day
 
@@ -5431,6 +5921,90 @@ export const insights: Insight[] = [
 ];
 
 // Categories with descriptions
+// ── Learning Paths ──────────────────────────────────────────────────────────
+// Curated article sequences — guided learning journeys through the knowledge base.
+
+export const learningPaths: LearningPath[] = [
+  {
+    id: 'path-combat-fundamentals',
+    title: 'Combat Athlete Fundamentals',
+    description: 'Essential knowledge for every fighter',
+    icon: '🥊',
+    articleIds: [
+      'article-hypertrophy-science',
+      'article-strength-adaptations',
+      'article-grappling-strength',
+      'article-recovery-science',
+      'article-nutrition-fundamentals',
+      'article-sleep-performance',
+      'article-mental-toughness',
+      'article-combat-sport-periodization',
+    ],
+    difficulty: 'beginner',
+  },
+  {
+    id: 'path-nutrition-mastery',
+    title: 'Nutrition Mastery',
+    description: 'From fundamentals to fight-week fueling',
+    icon: '🍎',
+    articleIds: [
+      'article-nutrition-fundamentals',
+      'article-cutting-guide',
+      'article-bulking-guide',
+      'article-women-nutrition',
+      'article-creatine',
+      'article-caffeine',
+      'article-alcohol-performance',
+    ],
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'path-recovery-science',
+    title: 'Recovery Science',
+    description: 'Optimize rest, sleep, and adaptation',
+    icon: '😴',
+    articleIds: [
+      'article-recovery-science',
+      'article-sleep-performance',
+      'article-sleep-architecture-athletes',
+      'article-cold-exposure',
+      'article-overtraining-vs-underrecovery',
+      'article-stress-management',
+    ],
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'path-grappling-performance',
+    title: 'Grappling Performance',
+    description: 'Strength, grip, and conditioning for the mat',
+    icon: '🥋',
+    articleIds: [
+      'article-grappling-strength',
+      'article-grip-training',
+      'article-grip-endurance-grapplers',
+      'article-undulating-periodization',
+      'article-grappling-conditioning',
+      'article-grappling-recovery',
+    ],
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'path-fight-camp',
+    title: 'Fight Camp Blueprint',
+    description: 'Peak performance for competition day',
+    icon: '⚡',
+    articleIds: [
+      'article-combat-sport-periodization',
+      'article-energy-system-development',
+      'article-fight-week-protocol',
+      'article-mma-weight-management',
+      'article-mental-toughness',
+      'article-visualization-motor-imagery',
+    ],
+    difficulty: 'advanced',
+  },
+];
+
 export const categoryInfo: Record<ContentCategory, { name: string; description: string; icon: string }> = {
   muscle_science: {
     name: 'Muscle Science',

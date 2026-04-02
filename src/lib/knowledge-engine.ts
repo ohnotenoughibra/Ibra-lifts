@@ -9,7 +9,7 @@
  * 5. Connected to YOUR data — insights reference what you're actually doing
  */
 
-import type { ContentCategory } from './types';
+import type { ContentCategory, KnowledgeArticle } from './types';
 import type { TodayType } from './daily-directive';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -171,4 +171,120 @@ export function pickCategoryInsight(
     return all.length > 0 ? all[Math.floor(Math.random() * all.length)] : null;
   }
   return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// ── Context-Aware Featured Article ──────────────────────────────────────────
+
+/**
+ * Pick a featured article that's relevant to the user's current state.
+ * Falls back to random if no context match.
+ */
+export function pickFeaturedArticle(
+  articles: KnowledgeArticle[],
+  input: Partial<InsightPickerInput>,
+  readArticleIds: string[]
+): KnowledgeArticle {
+  if (articles.length === 0) return articles[0];
+
+  const readSet = new Set(readArticleIds);
+
+  // Build category relevance based on user state
+  const relevantCategories: ContentCategory[] = [];
+
+  if (input.hasFightCamp) {
+    relevantCategories.push('mma', 'striking', 'grappling');
+  }
+  if (input.activeDietPhase === 'cut') {
+    relevantCategories.push('dieting', 'nutrition');
+  }
+  if (input.activeDietPhase === 'bulk') {
+    relevantCategories.push('nutrition', 'muscle_science');
+  }
+  if (input.hasActiveInjury) {
+    relevantCategories.push('recovery', 'general_fitness');
+  }
+  if (input.isDeload) {
+    relevantCategories.push('recovery', 'periodization');
+  }
+  if (input.mesocycleWeek != null && input.mesocycleWeek <= 2) {
+    relevantCategories.push('periodization', 'muscle_science');
+  }
+
+  const now = new Date();
+  const hour = now.getHours();
+  if (hour < 12) {
+    relevantCategories.push('motivation', 'nutrition');
+  }
+  if (hour >= 20) {
+    relevantCategories.push('recovery');
+  }
+
+  // Default categories if nothing specific
+  if (relevantCategories.length === 0) {
+    relevantCategories.push('muscle_science', 'lifting_technique', 'grappling', 'recovery');
+  }
+
+  const catSet = new Set(relevantCategories);
+
+  // Score articles: unread + relevant category = best
+  const scored = articles.map(a => {
+    let score = 0;
+    if (catSet.has(a.category)) score += 2;
+    if (!readSet.has(a.id)) score += 3; // strongly prefer unread
+    // Slight randomization to prevent staleness
+    score += Math.random() * 0.5;
+    return { article: a, score };
+  }).sort((a, b) => b.score - a.score);
+
+  return scored[0].article;
+}
+
+// ── Related Articles ────────────────────────────────────────────────────────
+
+/**
+ * Get related articles for a given article.
+ * Uses explicit relatedArticleIds first, then falls back to same-category + shared tags.
+ */
+export function getRelatedArticles(
+  article: KnowledgeArticle,
+  allArticles: KnowledgeArticle[],
+  maxResults = 3
+): KnowledgeArticle[] {
+  // Use explicit related IDs if available
+  if (article.relatedArticleIds && article.relatedArticleIds.length > 0) {
+    const related = article.relatedArticleIds
+      .map(id => allArticles.find(a => a.id === id))
+      .filter(Boolean) as KnowledgeArticle[];
+    if (related.length >= maxResults) return related.slice(0, maxResults);
+    // Fill remaining with tag-based matches
+    const relatedIds = new Set(related.map(a => a.id));
+    const tagMatches = findTagMatches(article, allArticles, relatedIds);
+    return [...related, ...tagMatches].slice(0, maxResults);
+  }
+
+  // Fallback: tag-based similarity
+  return findTagMatches(article, allArticles, new Set([article.id])).slice(0, maxResults);
+}
+
+function findTagMatches(
+  article: KnowledgeArticle,
+  allArticles: KnowledgeArticle[],
+  excludeIds: Set<string>
+): KnowledgeArticle[] {
+  const articleTags = new Set(article.tags);
+  return allArticles
+    .filter(a => a.id !== article.id && !excludeIds.has(a.id))
+    .map(a => {
+      let score = 0;
+      // Same category = strong signal
+      if (a.category === article.category) score += 2;
+      // Shared tags
+      for (const t of a.tags) {
+        if (articleTags.has(t)) score += 1;
+      }
+      return { article: a, score };
+    })
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.article);
 }

@@ -23,6 +23,17 @@
   .h-screen     { height: var(--app-h) !important; }
   .max-h-screen { max-height: var(--app-h) !important; }
 
+  /* ── iOS Safari Auto-Zoom Prevention ──
+     iOS Safari zooms in when focusing inputs with font-size < 16px,
+     ignoring user-scalable=no. Force 16px on all form controls on mobile
+     to prevent the zoom. Tailwind text-sm/text-xs classes on inputs
+     still apply on larger screens. */
+  @media screen and (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+
   /* ── Color Theme Variables ──
      Default = Steel (blue). Overridden via [data-theme] on <html>. */
   :root {
@@ -574,26 +585,28 @@
 }
 
 @layer components {
-  /* Card styles */
+  /* Card styles — Raw Archive: tonal layering, no borders, sharp edges */
   .card {
-    @apply bg-grappler-800/50 backdrop-blur-sm border border-grappler-700/50 rounded-xl shadow-lg;
+    @apply bg-grappler-800/50 backdrop-blur-sm rounded-sm;
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
   body.light-mode .card {
-    @apply bg-white/80 border-slate-200/60 shadow-sm;
+    @apply bg-white/80 shadow-none;
+    border: 1px solid rgba(148, 163, 184, 0.12);
   }
 
   .card-hover {
-    @apply hover:bg-grappler-800/70 hover:border-grappler-600/50 active:scale-[0.98] transition-all duration-200;
+    @apply hover:bg-grappler-800/70 active:scale-[0.98] transition-all duration-200;
   }
 
   body.light-mode .card-hover {
-    @apply hover:bg-slate-50 hover:border-slate-300/60;
+    @apply hover:bg-slate-50;
   }
 
-  /* Button styles */
+  /* Button styles — Raw Archive: sharp corners, no glow shadows */
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200
+    @apply inline-flex items-center justify-center rounded-sm font-medium transition-all duration-200
            active:scale-95
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-grappler-900
            disabled:opacity-50 disabled:cursor-not-allowed;
@@ -604,8 +617,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500
-           shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40;
+    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500;
   }
 
   .btn-secondary {
@@ -617,8 +629,7 @@
   }
 
   .btn-accent {
-    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500
-           shadow-lg shadow-accent-500/25 hover:shadow-accent-500/40;
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-500;
   }
 
   .btn-ghost {
@@ -645,25 +656,35 @@
     @apply px-6 py-3 text-lg;
   }
 
-  /* Input styles */
+  /* Input styles — Raw Archive: underline-forward, minimal container */
   .input {
-    @apply w-full px-4 py-3 bg-grappler-800 border border-grappler-700 rounded-lg
+    @apply w-full px-4 py-3 bg-grappler-800 border-b border-grappler-700/30 rounded-sm
            text-base text-grappler-100 placeholder-grappler-500
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:border-transparent
+           focus-visible:outline-none focus-visible:border-b-2 focus-visible:border-primary-500
            transition-all duration-200;
+    border-top: none;
+    border-left: none;
+    border-right: none;
   }
 
   body.light-mode .input {
-    @apply bg-white border-slate-300 text-slate-900 placeholder-slate-400;
+    @apply bg-transparent border-slate-300/40 text-slate-900 placeholder-slate-400;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  body.light-mode .input:focus-visible {
+    @apply border-slate-900;
   }
 
   .input-error {
-    @apply border-error focus-visible:ring-error;
+    @apply border-error focus-visible:border-error;
   }
 
-  /* Badge styles */
+  /* Badge styles — Raw Archive: rectangular chips, no pill shapes */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium uppercase tracking-wider;
   }
 
   .badge-strength {
@@ -698,9 +719,9 @@
     @apply bg-green-100 text-green-700 border-green-200;
   }
 
-  /* Progress bar */
+  /* Progress bar — Raw Archive: sharp-edged, ink-filling-a-column */
   .progress-bar {
-    @apply h-2 bg-grappler-700 rounded-full overflow-hidden;
+    @apply h-2 bg-grappler-700 overflow-hidden;
   }
 
   body.light-mode .progress-bar {
@@ -708,7 +729,7 @@
   }
 
   .progress-bar-fill {
-    @apply h-full rounded-full transition-all duration-500 ease-out;
+    @apply h-full transition-all duration-500 ease-out;
   }
 
   /* Workout type colors */
@@ -724,13 +745,15 @@
     @apply bg-gradient-to-r from-teal-600 to-teal-500;
   }
 
-  /* Glass effect */
+  /* Glass effect — Raw Archive: frosted mineral */
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-white/5 backdrop-blur-xl;
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
   body.light-mode .glass {
-    @apply bg-white/60 border-slate-200/40;
+    @apply bg-white/60;
+    border: 1px solid rgba(148, 163, 184, 0.12);
   }
 
   /* Gradient text */
@@ -745,10 +768,13 @@
 
   .stat-value {
     @apply text-2xl font-bold text-grappler-50;
+    font-family: var(--font-space-grotesk), 'Space Grotesk', system-ui, sans-serif;
   }
 
   .stat-label {
-    @apply text-sm text-grappler-400;
+    @apply text-sm text-grappler-400 uppercase tracking-widest;
+    font-family: var(--font-space-grotesk), 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.65rem;
   }
 
   /* Floating label input */
@@ -766,9 +792,9 @@
            peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs;
   }
 
-  /* RPE indicator */
+  /* RPE indicator — squared off */
   .rpe-indicator {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold;
+    @apply w-8 h-8 rounded-sm flex items-center justify-center text-sm font-bold font-data;
   }
 
   .rpe-low {
@@ -814,24 +840,13 @@
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
   }
 
-  /* Gradient backgrounds — uses theme-aware CSS variables */
+  /* Mesh gradient — killed for Raw Archive aesthetic. Flat surface. */
   .bg-mesh {
-    background-image:
-      radial-gradient(at 40% 20%, rgb(var(--mesh-1) / 0.08) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgb(var(--mesh-2) / 0.06) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgb(var(--mesh-1) / 0.05) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgb(var(--mesh-3) / 0.04) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(var(--mesh-1) / 0.05) 0px, transparent 50%);
+    background-image: none;
   }
 
-  /* Light mode mesh is more subtle */
   body.light-mode .bg-mesh {
-    background-image:
-      radial-gradient(at 40% 20%, rgb(var(--mesh-1) / 0.04) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgb(var(--mesh-2) / 0.03) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, rgb(var(--mesh-1) / 0.03) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, rgb(var(--mesh-3) / 0.02) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgb(var(--mesh-1) / 0.03) 0px, transparent 50%);
+    background-image: none;
   }
 
   /* Animation delays */
@@ -853,6 +868,54 @@
 
   .animation-delay-500 {
     animation-delay: 500ms;
+  }
+
+  /* ── Editorial Typography Utilities (Raw Archive) ── */
+
+  /* Section labels — all-caps spaced, like a newspaper column header */
+  .label-editorial {
+    @apply uppercase tracking-widest text-xs font-medium text-grappler-400;
+    font-family: var(--font-space-grotesk), 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  body.light-mode .label-editorial {
+    @apply text-slate-500;
+  }
+
+  /* Display headlines — Epilogue, tight tracking, dominant */
+  .headline-editorial {
+    font-family: var(--font-epilogue), 'Epilogue', system-ui, sans-serif;
+    @apply font-extrabold tracking-tighter leading-none;
+  }
+
+  /* Data values — Space Grotesk for numbers/metrics */
+  .data-value {
+    font-family: var(--font-space-grotesk), 'Space Grotesk', system-ui, sans-serif;
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Archival photo treatment */
+  .photo-archival {
+    @apply grayscale contrast-125;
+  }
+
+  /* Coach's editorial quote block */
+  .editorial-quote {
+    @apply italic leading-relaxed text-grappler-200;
+    font-family: var(--font-epilogue), 'Epilogue', Georgia, serif;
+  }
+
+  body.light-mode .editorial-quote {
+    @apply text-slate-700;
+  }
+
+  /* Ghost border — barely visible boundary */
+  .ghost-border {
+    border: 1px solid rgba(195, 199, 202, 0.15);
+  }
+
+  body.light-mode .ghost-border {
+    border: 1px solid rgba(148, 163, 184, 0.15);
   }
 
   /* Responsive padding */

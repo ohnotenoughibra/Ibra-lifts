@@ -614,13 +614,13 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
   const recentBadges = sortedBadges.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-grappler-900 px-4 pt-14 space-y-6 pb-32 safe-area-bottom safe-area-top">
+    <div className="min-h-screen bg-grappler-900 px-4 pt-4 space-y-6 pb-32 safe-area-bottom">
 
       {/* Close button (overlay mode) */}
       {onClose && (
         <button
           onClick={() => { onClose(); hapticLight(); }}
-          className="absolute top-3 left-3 w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10"
+          className="w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10 mb-2"
           aria-label="Close"
         >
           <X className="w-4 h-4 text-grappler-400" />

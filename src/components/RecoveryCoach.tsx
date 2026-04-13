@@ -27,10 +27,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 
 interface RecoveryCoachProps {
-  onClose: () => void;
+  onClose?: () => void;
+  embedded?: boolean;
 }
 
-export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
+export default function RecoveryCoach({ onClose, embedded }: RecoveryCoachProps) {
   const {
     latestWhoopData,
     wearableHistory,
@@ -130,38 +131,8 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
-    >
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
-              <ChevronLeft className="w-5 h-5 text-grappler-200" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary-400" />
-              </div>
-              <div>
-                <h1 className="font-bold text-grappler-50 text-lg leading-tight">
-                  Recovery Coach
-                </h1>
-                <p className="text-xs text-grappler-400">
-                  AI-powered recovery insights
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+  const content = (
+    <div className={cn(embedded ? 'space-y-6' : 'px-4 py-6 space-y-6 max-w-lg mx-auto')}>
         {/* Training Readiness Score */}
         <div className={cn(
           'rounded-xl p-4 border',
@@ -385,6 +356,38 @@ export default function RecoveryCoach({ onClose }: RecoveryCoachProps) {
             </p>
           </div>
         )}
+    </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 40 }}
+      className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
+    >
+      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
+              <ChevronLeft className="w-5 h-5 text-grappler-200" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary-400" />
+              </div>
+              <div>
+                <h1 className="font-bold text-grappler-50 text-lg leading-tight">Recovery Coach</h1>
+                <p className="text-xs text-grappler-400">AI-powered recovery insights</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+        {content}
       </div>
     </motion.div>
   );

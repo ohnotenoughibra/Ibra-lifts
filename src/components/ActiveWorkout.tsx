@@ -173,25 +173,37 @@ export default function ActiveWorkout() {
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
   const [showPRCelebration, setShowPRCelebration] = useState(false);
-  const [showFinishModal, setShowFinishModal] = useState(false);
+  // ── Consolidated modal state — prevents impossible states (two modals open) ──
+  type ModalView = 'finish' | 'swap' | 'add_exercise' | 'cancel' | 'history' | 'rpe_info' | 'draft_recovery' | 'location_confirm' | null;
+  const [activeModal, setActiveModal] = useState<ModalView>(null);
+  // Convenience booleans derived from activeModal (preserves existing code paths)
+  const showFinishModal = activeModal === 'finish';
+  const setShowFinishModal = (v: boolean) => setActiveModal(v ? 'finish' : null);
+  const showSwapModal = activeModal === 'swap';
+  const setShowSwapModal = (v: boolean) => setActiveModal(v ? 'swap' : null);
+  const showAddExerciseModal = activeModal === 'add_exercise';
+  const setShowAddExerciseModal = (v: boolean) => setActiveModal(v ? 'add_exercise' : null);
+  const showCancelConfirm = activeModal === 'cancel';
+  const setShowCancelConfirm = (v: boolean) => setActiveModal(v ? 'cancel' : null);
+  const showHistoryModal = activeModal === 'history';
+  const setShowHistoryModal = (v: boolean) => setActiveModal(v ? 'history' : null);
+  const showRPEInfo = activeModal === 'rpe_info';
+  const setShowRPEInfo = (v: boolean) => setActiveModal(v ? 'rpe_info' : null);
+  const showDraftRecovery = activeModal === 'draft_recovery';
+  const setShowDraftRecovery = (v: boolean) => setActiveModal(v ? 'draft_recovery' : null);
+
   const [showOverview, setShowOverview] = useState(true);
   const [feeling, setFeeling] = useState<'great' | 'good' | 'okay' | 'rough'>('good');
   const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
-  const [showSwapModal, setShowSwapModal] = useState(false);
   const [swapShowAll, setSwapShowAll] = useState(false);
-  const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
   const [addExerciseSearch, setAddExerciseSearch] = useState('');
   const [addExerciseFilter, setAddExerciseFilter] = useState<string>('all');
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
   const [inlineFeedbackIndex, setInlineFeedbackIndex] = useState<number | null>(null);
   const [weightSuggestion, setWeightSuggestion] = useState<{ message: string; suggestedWeight: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showLocationConfirm, setShowLocationConfirm] = useState<EquipmentProfileName | null>(null);
-  const [showDraftRecovery, setShowDraftRecovery] = useState(false);
-  const [showRPEInfo, setShowRPEInfo] = useState(false);
   const [grapplingReduction, setGrapplingReduction] = useState<{ level: string; setsRemoved: number; rpeReduced: number } | null>(null);
   const [overviewSwapIndex, setOverviewSwapIndex] = useState<number | null>(null);
   const [formCheckExercise, setFormCheckExercise] = useState<{ name: string; videoUrl?: string } | null>(null);
@@ -3724,7 +3736,7 @@ export default function ActiveWorkout() {
               <div className="flex items-center justify-between">
                 <label className="text-xs text-grappler-400 uppercase tracking-wide">RPE (1-10)</label>
                 <button
-                  onClick={() => setShowRPEInfo(prev => !prev)}
+                  onClick={() => setShowRPEInfo(!showRPEInfo)}
                   className="text-grappler-500 hover:text-grappler-300 transition-colors"
                   aria-label="RPE info"
                 >

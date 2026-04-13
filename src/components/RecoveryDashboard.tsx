@@ -33,7 +33,8 @@ import { calculateEnhancedACWR } from '@/lib/fatigue-metrics';
 import { getReadinessSummary } from '@/lib/performance-engine';
 
 interface RecoveryDashboardProps {
-  onClose: () => void;
+  onClose?: () => void;
+  embedded?: boolean;
 }
 
 const containerVariants = {
@@ -75,7 +76,7 @@ function metricColor(good: boolean, mid: boolean): string {
   return good ? 'text-green-400' : mid ? 'text-yellow-400' : 'text-red-400';
 }
 
-export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
+export default function RecoveryDashboard({ onClose = () => {}, embedded }: RecoveryDashboardProps) {
   const { workoutLogs, bodyWeightLog, trainingSessions, user, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
@@ -256,30 +257,7 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
 
   const hasData = workoutLogs.length > 0;
 
-  return (
-    <motion.div
-      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-    >
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button aria-label="Go back"
-            onClick={onClose}
-            className="p-2 -ml-2 rounded-lg hover:bg-grappler-800 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-grappler-200" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-grappler-50">Recovery Dashboard</h1>
-            <p className="text-xs text-grappler-400">Sleep, stress & training load insights</p>
-          </div>
-        </div>
-      </div>
-
-      {!hasData ? (
+  const dashboardContent = !hasData ? (
         <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
           <Heart className="w-12 h-12 text-grappler-600 mb-4" />
           <h2 className="text-lg font-semibold text-grappler-200 mb-2">No Data Yet</h2>
@@ -851,7 +829,29 @@ export default function RecoveryDashboard({ onClose }: RecoveryDashboardProps) {
             </>
           )}
         </motion.div>
-      )}
+  );
+
+  if (embedded) return dashboardContent;
+
+  return (
+    <motion.div
+      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+    >
+      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <button aria-label="Go back" onClick={onClose} className="p-2 -ml-2 rounded-lg hover:bg-grappler-800 transition-colors">
+            <ChevronLeft className="w-5 h-5 text-grappler-200" />
+          </button>
+          <div>
+            <h1 className="text-lg font-bold text-grappler-50">Recovery Dashboard</h1>
+            <p className="text-xs text-grappler-400">Sleep, stress & training load insights</p>
+          </div>
+        </div>
+      </div>
+      {dashboardContent}
     </motion.div>
   );
 }

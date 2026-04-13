@@ -45,7 +45,8 @@
 
 ### Recovery & Readiness
 - `MorningRitual.tsx` (~240) — Once-per-day full-screen readiness reveal animation with animated ring fill, haptic feedback, time-appropriate greeting. Uses `calculateReadiness` from performance engine. Exports `shouldShowRitual()` for date gating.
-- `RecoveryCoach.tsx` (~360) — Recovery recommendations
+- `RecoveryHub.tsx` (~100) — Unified recovery overlay with 3 tabs: Readiness, Analytics, Deload
+- `RecoveryCoach.tsx` (~400) — Recovery recommendations (embedded in RecoveryHub readiness tab)
 - `RecoveryDashboard.tsx` (~850) — Recovery overview with wearable data
 - `WearableIntegration.tsx` (~2,100) — Whoop connection + data display
 - `SorenessCheck.tsx` (~630) — Muscle soreness tracking

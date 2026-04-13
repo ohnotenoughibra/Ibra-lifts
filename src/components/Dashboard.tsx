@@ -92,6 +92,7 @@ const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
 const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
 const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
+const RecoveryHubView = dynamic(() => import('./RecoveryHub'), { loading: () => <OverlaySkeleton /> });
 const ProgramBrowserView = dynamic(() => import('./ProgramBrowser'), { loading: () => <OverlaySkeleton /> });
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
 const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
@@ -576,7 +577,7 @@ export default function Dashboard({
       profiler: <ExerciseProfiler onClose={closeOverlay} />,
       strength: <StrengthAnalysis onClose={closeOverlay} />,
       periodization: <PeriodizationCalendar onClose={closeOverlay} />,
-      recovery: <RecoveryDashboard onClose={closeOverlay} />,
+      recovery: <RecoveryHubView onClose={closeOverlay} initialTab="analytics" />,
       injury: <InjuryLogger onClose={closeOverlay} />,
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
@@ -588,13 +589,14 @@ export default function Dashboard({
       community_share: <CommunityShare onClose={closeOverlay} />,
       quick_actions: <QuickActions onClose={closeOverlay} />,
       grip_strength: <GripStrengthModule onClose={closeOverlay} />,
-      recovery_coach: <RecoveryCoach onClose={closeOverlay} />,
+      recovery_coach: <RecoveryHubView onClose={closeOverlay} />,
+      recovery_hub: <RecoveryHubView onClose={closeOverlay} />,
       block_suggestion: <ProgramBrowserView onClose={closeOverlay} />,
       program_browser: <ProgramBrowserView onClose={closeOverlay} />,
       user_guide: <NewUserGuide onComplete={closeOverlay} />,
       illness: <IllnessLogger onClose={closeOverlay} />,
       cycle_tracking: <CycleTracking onClose={closeOverlay} />,
-      fatigue: <FatigueOverlay onClose={closeOverlay} />,
+      fatigue: <RecoveryHubView onClose={closeOverlay} initialTab="deload" />,
       fight_camp: <FightCampNutrition onClose={closeOverlay} />,
       badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
       wellness_xp: <WellnessXPDashboardOverlay onClose={closeOverlay} />,

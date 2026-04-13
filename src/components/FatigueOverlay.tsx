@@ -18,7 +18,7 @@ import type {
 import { calculateAllFatigueMetrics } from '@/lib/fatigue-metrics';
 import type { FatigueMetricsData } from '@/lib/fatigue-metrics';
 
-interface FatigueOverlayProps { onClose: () => void }
+interface FatigueOverlayProps { onClose?: () => void; embedded?: boolean }
 
 const GAUGE_COLORS = {
   green: { ring: 'text-green-400', bg: 'bg-green-500/20', label: 'text-green-400' },
@@ -74,7 +74,7 @@ function getNSLabel(score: number): string {
   return 'Critical';
 }
 
-export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
+export default function FatigueOverlay({ onClose = () => {}, embedded }: FatigueOverlayProps) {
   const { workoutLogs, wearableHistory, whoopWorkouts, trainingSessions, currentMesocycle } = useAppStore();
   const [protocolsExpanded, setProtocolsExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -143,27 +143,8 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
   const chipStyle = URGENCY_STYLES[debtColor === 'red' ? 'critical' : debtColor === 'orange' ? 'recommended' : 'optional'];
   const proto = recommendation.protocol;
 
-  return (
-    <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-              <Activity className="w-4 h-4 text-primary-400" />
-            </div>
-            <div>
-              <h1 className="font-bold text-grappler-50 text-lg leading-tight">Fatigue &amp; Recovery</h1>
-              <p className="text-xs text-grappler-400">Smart deload engine</p>
-            </div>
-          </div>
-          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm p-1">
-            <X className="w-5 h-5 text-grappler-400" />
-          </button>
-        </div>
-      </header>
-
-      <div className="px-4 py-4 space-y-5">
+  const fatigueContent = (
+    <div className={embedded ? 'space-y-5' : 'px-4 py-4 space-y-5'}>
         {!hasEnoughData ? (
           <motion.div {...fadeUp} className="bg-grappler-800 rounded-xl p-8 text-center space-y-3">
             <BatteryLow className="w-10 h-10 text-grappler-500 mx-auto" />
@@ -470,7 +451,30 @@ export default function FatigueOverlay({ onClose }: FatigueOverlayProps) {
             </motion.div>
           </>
         )}
-      </div>
+    </div>
+  );
+
+  if (embedded) return fatigueContent;
+
+  return (
+    <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top">
+      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+        <div className="px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
+              <Activity className="w-4 h-4 text-primary-400" />
+            </div>
+            <div>
+              <h1 className="font-bold text-grappler-50 text-lg leading-tight">Fatigue &amp; Recovery</h1>
+              <p className="text-xs text-grappler-400">Smart deload engine</p>
+            </div>
+          </div>
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <X className="w-5 h-5 text-grappler-400" />
+          </button>
+        </div>
+      </header>
+      {fatigueContent}
     </motion.div>
   );
 }

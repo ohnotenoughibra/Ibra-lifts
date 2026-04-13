@@ -486,9 +486,9 @@ export default function ProgramBrowser({ onClose }: ProgramBrowserProps) {
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Inline workout preview */}
+                {/* Inline workout preview (skip if already shown under AI recommendation) */}
                 <AnimatePresence>
-                  {previewingBlock === focus && expandedCard === focus && (
+                  {previewingBlock === focus && expandedCard === focus && focus !== recommendedFocus && (
                     <WorkoutPreviewPanel
                       mesocycle={previewMesocycle}
                       loading={previewLoading}

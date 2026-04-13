@@ -685,7 +685,10 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               <Zap className="w-3 h-3 text-primary-400 flex-shrink-0" />
               <span>
                 Next badge: <span className="font-semibold text-grappler-200">{nextBadge.name}</span>
-                {' '}&mdash; {badgeProgress.target - badgeProgress.current} {badgeProgress.label} away
+                {badgeProgress.target - badgeProgress.current > 0
+                  ? <>{' '}&mdash; {badgeProgress.target - badgeProgress.current} {badgeProgress.label} away</>
+                  : <>{' '}&mdash; <span className="text-green-400">ready to unlock!</span></>
+                }
               </span>
             </div>
           )}

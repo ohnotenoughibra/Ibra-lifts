@@ -1263,11 +1263,10 @@ export const useAppStore = create<AppState>()(
           }
         });
 
-        // If there's a queued mesocycle, use it; otherwise generate default
+        // If there's a queued mesocycle, advance the queue.
+        // If no queue, leave currentMesocycle null — user picks via Program Browser.
         if (mesocycleQueue.length > 0) {
           get().advanceMesocycleQueue();
-        } else {
-          get().generateNewMesocycle();
         }
         get().checkAndAwardBadges();
       },

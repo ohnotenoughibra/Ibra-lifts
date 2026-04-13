@@ -46,6 +46,7 @@ interface LiftPhaseProps {
   onStartWorkout: (session: any) => void;
   onQuickWorkout: () => void;
   onSkipWorkout: (skip: { date: string; scheduledSessionId: string; reason: SkipReason; rescheduled: boolean }) => void;
+  onNavigate: (view: OverlayView) => void;
   onDismissCard: (id: string) => void;
   onShowSkipDialog: () => void;
   showToast: (msg: string, type?: string) => void;
@@ -67,6 +68,7 @@ export default function LiftPhase({
   onStartWorkout,
   onQuickWorkout,
   onSkipWorkout,
+  onNavigate,
   onDismissCard,
   onShowSkipDialog,
   showToast,
@@ -123,13 +125,17 @@ export default function LiftPhase({
             </span>
           </div>
           {mesocycleProgress && (
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate('program_browser')}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              title="Browse programs"
+            >
               <span className="text-xs text-grappler-500">Block</span>
               <div className="w-16 h-1 bg-grappler-700 rounded-full overflow-hidden">
                 <div className={cn('h-full rounded-full', directive.todayType === 'both' ? 'bg-purple-400/60' : 'bg-primary-400/60')} style={{ width: `${mesocycleProgress.percent}%` }} />
               </div>
               <span className="text-xs text-grappler-400 tabular-nums">{mesocycleProgress.completed}/{mesocycleProgress.total}</span>
-            </div>
+            </button>
           )}
         </div>
 

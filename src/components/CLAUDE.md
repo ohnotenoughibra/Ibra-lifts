@@ -80,7 +80,7 @@
 ### Training Planning
 - `PeriodizationCalendar.tsx` (~500) — Calendar view
 - `TrainingCalendar.tsx` (~800) — Weekly calendar
-- `BlockSuggestion.tsx` (~550) — Next block recommendations
+- `ProgramBrowser.tsx` (~600) — Program catalog, AI suggestions, workout preview, queue management
 - `SplitAnalyzer.tsx` (~1,300) — Training split analysis
 
 ### Knowledge & Coaching

@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Trophy, BarChart3, Zap, ChevronRight } from 'lucide-react';
+import { Trophy, BarChart3, Zap, ChevronRight, Target } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
+import type { OverlayView } from '../dashboard-types';
 
 interface BlockCompletePhaseProps {
   currentMesocycle: { id: string; name: string };
@@ -17,6 +18,7 @@ interface BlockCompletePhaseProps {
   weightUnit: string;
   onViewReport: (mesoId: string) => void;
   onGenerateNext: () => void;
+  onNavigate: (view: OverlayView) => void;
 }
 
 export default function BlockCompletePhase({
@@ -27,6 +29,7 @@ export default function BlockCompletePhase({
   weightUnit,
   onViewReport,
   onGenerateNext,
+  onNavigate,
 }: BlockCompletePhaseProps) {
   return (
     <motion.div
@@ -93,13 +96,23 @@ export default function BlockCompletePhase({
           <BarChart3 className="w-4 h-4" />
           Report
         </button>
-        <button
-          onClick={onGenerateNext}
-          className="btn btn-primary btn-md gap-2 flex-1"
-        >
-          <Zap className="w-4 h-4" />
-          {mesocycleQueue.length > 0 ? 'Start Next' : 'Next Mesocycle'}
-        </button>
+        {mesocycleQueue.length > 0 ? (
+          <button
+            onClick={onGenerateNext}
+            className="btn btn-primary btn-md gap-2 flex-1"
+          >
+            <Zap className="w-4 h-4" />
+            Start Next
+          </button>
+        ) : (
+          <button
+            onClick={() => onNavigate('program_browser')}
+            className="btn btn-primary btn-md gap-2 flex-1"
+          >
+            <Target className="w-4 h-4" />
+            Browse Programs
+          </button>
+        )}
       </div>
     </motion.div>
   );

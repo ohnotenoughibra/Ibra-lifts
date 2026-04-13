@@ -1547,6 +1547,29 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
   }
 
+  // End-of-cycle awareness — show when ≤3 sessions remain
+  const sessionsRemaining = mesocycleProgress ? mesocycleProgress.total - mesocycleProgress.completed : null;
+  if (sessionsRemaining != null && sessionsRemaining > 0 && sessionsRemaining <= 3 && mesocycleProgress!.completed > 0 && feedCards.length < 4) {
+    feedCards.push(
+      <motion.div key="block-ending" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-primary-500/15 to-accent-500/10 border border-primary-500/30 rounded-xl p-3.5">
+        <div className="flex items-start gap-3">
+          <Target className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-primary-300 text-sm">Block ending soon</h3>
+            <p className="text-xs text-grappler-400 mt-1">
+              {sessionsRemaining} session{sessionsRemaining > 1 ? 's' : ''} left in your current block. Browse programs to plan what&apos;s next.
+            </p>
+            <button onClick={() => onNavigate('program_browser')}
+              className="mt-2 px-3 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-xs font-medium rounded-lg transition-colors">
+              Browse Programs
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   // 3. Fight camp phase detection
   const fightCampPhase = useMemo(() => {
     if (user?.trainingIdentity !== 'combat' || !nextCompetition) return null;
@@ -1989,6 +2012,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onStartWorkout={startWorkout}
           onQuickWorkout={handleQuickWorkout}
           onSkipWorkout={skipWorkout}
+          onNavigate={onNavigate}
           onDismissCard={(id) => setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(id); return n; })}
           onShowSkipDialog={() => setShowSkipDialog(true)}
           showToast={(msg, type) => showToast(msg, type as any)}
@@ -2002,6 +2026,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           weightUnit={weightUnit}
           onViewReport={onViewReport}
           onGenerateNext={handleGenerateNext}
+          onNavigate={onNavigate}
         />
       ) : (
         <OnboardingPhase

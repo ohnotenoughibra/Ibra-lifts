@@ -41,7 +41,7 @@ export default function OnboardingPhase({
       {/* CTAs */}
       <div className="px-5 pb-6 space-y-2">
         <button
-          onClick={() => onNavigate('block_suggestion')}
+          onClick={() => onNavigate('program_browser')}
           className="w-full py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-accent-500 shadow-lg shadow-primary-500/20 active:scale-[0.98] transition-transform"
         >
           <Brain className="w-5 h-5" />

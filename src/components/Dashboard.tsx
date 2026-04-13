@@ -92,7 +92,7 @@ const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
 const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
 const RecoveryCoach = dynamic(() => import('./RecoveryCoach'), { loading: () => <OverlaySkeleton /> });
-const BlockSuggestionView = dynamic(() => import('./BlockSuggestion'), { loading: () => <OverlaySkeleton /> });
+const ProgramBrowserView = dynamic(() => import('./ProgramBrowser'), { loading: () => <OverlaySkeleton /> });
 const NewUserGuide = dynamic(() => import('./NewUserGuide'), { loading: () => <OverlaySkeleton /> });
 const IllnessLogger = dynamic(() => import('./IllnessLogger'), { loading: () => <OverlaySkeleton /> });
 const CycleTracking = dynamic(() => import('./CycleTracking'), { loading: () => <OverlaySkeleton /> });
@@ -131,7 +131,7 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   templates: 'session-templates',
   grip_strength: 'grip-tracking',
   recovery_coach: 'ai-coach',
-  block_suggestion: 'block-suggestions',
+  // block_suggestion and program_browser are free — no gate
   volume_map: 'advanced-analytics',
   periodization: 'advanced-analytics',
   overload: 'advanced-analytics',
@@ -589,7 +589,8 @@ export default function Dashboard({
       quick_actions: <QuickActions onClose={closeOverlay} />,
       grip_strength: <GripStrengthModule onClose={closeOverlay} />,
       recovery_coach: <RecoveryCoach onClose={closeOverlay} />,
-      block_suggestion: <BlockSuggestionView onClose={closeOverlay} />,
+      block_suggestion: <ProgramBrowserView onClose={closeOverlay} />,
+      program_browser: <ProgramBrowserView onClose={closeOverlay} />,
       user_guide: <NewUserGuide onComplete={closeOverlay} />,
       illness: <IllnessLogger onClose={closeOverlay} />,
       cycle_tracking: <CycleTracking onClose={closeOverlay} />,

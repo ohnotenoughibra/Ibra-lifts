@@ -81,6 +81,14 @@ export function getChallengeCompleteNotification() {
   };
 }
 
+export function getBlockEndingNotification(sessionsRemaining: number) {
+  return {
+    title: `${sessionsRemaining} session${sessionsRemaining > 1 ? 's' : ''} left in your block`,
+    body: 'Plan your next training phase to keep momentum.',
+    tag: 'block-ending',
+  };
+}
+
 // ── Daily Login Bonus XP Schedule ──────────────────────────────────────────
 // Escalating XP: 10, 15, 20, 25, 30, 40, 50 over 7 consecutive days
 

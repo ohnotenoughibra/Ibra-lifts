@@ -23,7 +23,7 @@ export const FEATURE_GATES: Record<string, SubscriptionTier> = {
   'advanced-analytics': 'pro',
   'ai-coach': 'pro',
   'wearable-integration': 'pro',
-  'nutrition-tracking': 'pro',
+  'nutrition-tracking': 'free',  // Basic meal logging is free — diet coaching remains pro
   'diet-coaching': 'pro',
   'body-composition': 'pro',
   'competition-prep': 'pro',
@@ -35,7 +35,7 @@ export const FEATURE_GATES: Record<string, SubscriptionTier> = {
   'grip-tracking': 'pro',
   'mobility-routines': 'pro',
   'strength-analysis': 'pro',
-  'block-suggestions': 'pro',
+  'block-suggestions': 'free',  // Program Browser is free
 
   // ── Elite tier features (combat nutrition) ──
   'weight-cut-protocol': 'pro',

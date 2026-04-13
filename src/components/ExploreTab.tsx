@@ -273,6 +273,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     weightCutPlans,
     currentMesocycle,
     trainingSessions,
+    user,
   } = useAppStore(useShallow(s => ({
     workoutLogs: s.workoutLogs,
     meals: s.meals,
@@ -281,7 +282,10 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     weightCutPlans: s.weightCutPlans,
     currentMesocycle: s.currentMesocycle,
     trainingSessions: s.trainingSessions,
+    user: s.user,
   })));
+
+  const isCombatAthlete = user?.trainingIdentity === 'combat';
 
   // Sync pins with HomeTab
   useEffect(() => {
@@ -533,6 +537,36 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 );
               })}
             </AnimatePresence>
+          </div>
+        </div>
+      )}
+
+      {/* ─── ROLE-BASED RECOMMENDATIONS ─── */}
+      {!pinMode && !isSearching && isCombatAthlete && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-purple-400" />
+            For Fighters
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { id: 'grappling' as NonNullable<OverlayView>, label: 'Mat Sessions', desc: 'Log rolls & sparring', icon: Shield, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+              { id: 'competition' as NonNullable<OverlayView>, label: 'Fight Prep', desc: 'Competition timeline', icon: Swords, color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+              { id: 'conditioning' as NonNullable<OverlayView>, label: 'Conditioning', desc: 'Round-ready cardio', icon: Flame, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+              { id: 'fighters_mind' as NonNullable<OverlayView>, label: 'Fighter\'s Mind', desc: 'Mental game', icon: Target, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+            ]).map(tool => (
+              <button
+                key={tool.id}
+                onClick={() => handleNavigate(tool.id)}
+                className={cn('flex items-center gap-2.5 p-3 rounded-xl border transition-colors active:scale-[0.98]', tool.color)}
+              >
+                <tool.icon className="w-4 h-4 flex-shrink-0" />
+                <div className="text-left min-w-0">
+                  <p className="text-xs font-semibold text-grappler-100">{tool.label}</p>
+                  <p className="text-[10px] text-grappler-400 truncate">{tool.desc}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}

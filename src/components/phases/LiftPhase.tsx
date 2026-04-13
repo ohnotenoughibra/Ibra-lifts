@@ -1,10 +1,11 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dumbbell, Play, TrendingUp, Clock, Target, Zap,
   Moon, Apple, Droplets, HeartPulse, Shield, Check, X,
-  AlertTriangle, SkipForward,
+  AlertTriangle, SkipForward, Flame,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
@@ -26,6 +27,8 @@ interface LiftPhaseProps {
     overloadTeaser?: string | null;
     trainingModification?: string | null;
     todayCombatSessions: CombatSession[];
+    readinessScore: number;
+    readinessLevel: string;
   };
   nextWorkout: {
     id: string;
@@ -43,6 +46,7 @@ interface LiftPhaseProps {
   recoveryScore: number | null;
   weightUnit: string;
   workoutLogsLength: number;
+  currentStreak: number;
   onStartWorkout: (session: any) => void;
   onQuickWorkout: () => void;
   onSkipWorkout: (skip: { date: string; scheduledSessionId: string; reason: SkipReason; rescheduled: boolean }) => void;
@@ -72,8 +76,31 @@ export default function LiftPhase({
   onDismissCard,
   onShowSkipDialog,
   showToast,
+  currentStreak,
 }: LiftPhaseProps) {
 
+  const [showReadinessGate, setShowReadinessGate] = useState(false);
+
+  // Pre-workout readiness gate: if readiness is low/critical, confirm before starting
+  const handleStartWorkout = () => {
+    if (directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') {
+      setShowReadinessGate(true);
+    } else {
+      onStartWorkout(nextWorkout);
+    }
+  };
+
+  // Readiness label with human context
+  const readinessLabel = directive.readinessLevel === 'peak' ? 'Peak — send it'
+    : directive.readinessLevel === 'good' ? 'Good — full intensity'
+    : directive.readinessLevel === 'moderate' ? 'Moderate — dial it back'
+    : directive.readinessLevel === 'low' ? 'Low — go light today'
+    : 'Critical — rest recommended';
+
+  const readinessColor = directive.readinessLevel === 'peak' || directive.readinessLevel === 'good' ? 'text-green-400 bg-green-500/10 border-green-500/20'
+    : directive.readinessLevel === 'moderate' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+    : directive.readinessLevel === 'low' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    : 'text-red-400 bg-red-500/10 border-red-500/20';
 
   return (
     <motion.div
@@ -82,24 +109,34 @@ export default function LiftPhase({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-2"
     >
-      {/* Pre-Workout Intel Strip */}
-      {(() => {
-        const intelChips: { label: string; value: string; color: string; icon: React.ReactNode }[] = [];
-        if (sleepHours != null) intelChips.push({ label: 'Sleep', value: `${sleepHours.toFixed(1)}h`, color: sleepHours >= 7 ? 'text-green-400' : sleepHours >= 5.5 ? 'text-yellow-400' : 'text-red-400', icon: <Moon className="w-3 h-3" /> });
-        if (macroTargets.protein > 0) intelChips.push({ label: 'Protein', value: `${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g`, color: todayProtein >= macroTargets.protein * 0.5 ? 'text-green-400' : todayProtein > 0 ? 'text-yellow-400' : 'text-grappler-500', icon: <Apple className="w-3 h-3" /> });
-        if (waterTodayL > 0 || macroTargets.protein > 0) intelChips.push({ label: 'Water', value: waterTodayL > 0 ? `${waterTodayL}L` : '—', color: waterTodayL >= 1.5 ? 'text-blue-400' : waterTodayL >= 0.75 ? 'text-blue-300' : 'text-grappler-500', icon: <Droplets className="w-3 h-3" /> });
-        if (recoveryScore != null) intelChips.push({ label: 'Recovery', value: `${recoveryScore}%`, color: recoveryScore >= 67 ? 'text-green-400' : recoveryScore >= 34 ? 'text-yellow-400' : 'text-red-400', icon: <HeartPulse className="w-3 h-3" /> });
-        return intelChips.length > 0 ? (
-          <div className="flex items-center gap-1 px-1 overflow-x-auto no-scrollbar">
-            {intelChips.map(chip => (
-              <div key={chip.label} className="flex items-center gap-1.5 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2.5 py-1.5 flex-shrink-0">
-                <span className={chip.color}>{chip.icon}</span>
-                <span className={cn('text-xs font-bold tabular-nums', chip.color)}>{chip.value}</span>
-              </div>
-            ))}
+      {/* Readiness + Intel Strip */}
+      <div className="flex items-center gap-1.5 px-1 flex-wrap">
+        {/* Readiness badge — always visible */}
+        <div className={cn('flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border text-xs font-bold', readinessColor)}>
+          <HeartPulse className="w-3 h-3" />
+          <span className="tabular-nums">{directive.readinessScore}%</span>
+        </div>
+        {/* Streak badge */}
+        {currentStreak >= 2 && (
+          <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1.5">
+            <Flame className="w-3 h-3 text-orange-400" />
+            <span className="text-xs font-bold text-orange-400 tabular-nums">{currentStreak}</span>
           </div>
-        ) : null;
-      })()}
+        )}
+        {/* Intel chips */}
+        {sleepHours != null && (
+          <div className={cn('flex items-center gap-1.5 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2 py-1.5 flex-shrink-0', sleepHours >= 7 ? 'text-green-400' : sleepHours >= 5.5 ? 'text-yellow-400' : 'text-red-400')}>
+            <Moon className="w-3 h-3" />
+            <span className="text-xs font-bold tabular-nums">{sleepHours.toFixed(1)}h</span>
+          </div>
+        )}
+        {macroTargets.protein > 0 && (
+          <div className={cn('flex items-center gap-1.5 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-2 py-1.5 flex-shrink-0', todayProtein >= macroTargets.protein * 0.5 ? 'text-green-400' : todayProtein > 0 ? 'text-yellow-400' : 'text-grappler-500')}>
+            <Apple className="w-3 h-3" />
+            <span className="text-xs font-bold tabular-nums">{Math.round(todayProtein)}g</span>
+          </div>
+        )}
+      </div>
 
       {/* Training modification warning */}
       {directive.trainingModification && (
@@ -194,7 +231,7 @@ export default function LiftPhase({
         {/* START CTA */}
         <div className="px-5 pb-5">
           <button
-            onClick={() => onStartWorkout(nextWorkout)}
+            onClick={handleStartWorkout}
             className={cn(
               "w-full py-4 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg",
               directive.todayType === 'both'
@@ -259,6 +296,68 @@ export default function LiftPhase({
           <SkipForward className="w-3.5 h-3.5" />Skip
         </button>
       </div>
+
+      {/* Pre-workout readiness confirmation gate */}
+      <AnimatePresence>
+        {showReadinessGate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4"
+            onClick={() => setShowReadinessGate(false)}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={cn('p-2.5 rounded-xl', directive.readinessLevel === 'critical' ? 'bg-red-500/20' : 'bg-amber-500/20')}>
+                  <AlertTriangle className={cn('w-5 h-5', directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-amber-400')} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-grappler-100">
+                    {directive.readinessLevel === 'critical' ? 'Rest recommended' : 'Readiness is low'}
+                  </h3>
+                  <p className={cn('text-xs font-medium', directive.readinessLevel === 'critical' ? 'text-red-400' : 'text-amber-400')}>
+                    Score: {directive.readinessScore}% — {readinessLabel}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-grappler-400 mb-4">
+                {directive.readinessLevel === 'critical'
+                  ? 'Your body needs recovery. Training now increases injury risk and delays progress.'
+                  : 'You\'re not fully recovered. Consider a lighter session to protect your gains.'}
+              </p>
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => { setShowReadinessGate(false); onStartWorkout(nextWorkout); }}
+                  className="w-full py-3 rounded-xl text-sm font-bold bg-grappler-700 text-grappler-200 hover:bg-grappler-600 transition-colors"
+                >
+                  {directive.readinessLevel === 'critical' ? 'Train anyway' : 'Start at full intensity'}
+                </button>
+                <button
+                  onClick={() => { setShowReadinessGate(false); onQuickWorkout(); }}
+                  className="w-full py-3 rounded-xl text-sm font-bold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/20 transition-colors"
+                >
+                  Go easy — quick 30min session
+                </button>
+                <button
+                  onClick={() => { setShowReadinessGate(false); onShowSkipDialog(); }}
+                  className="w-full py-2.5 text-sm text-grappler-500 hover:text-grappler-300 transition-colors"
+                >
+                  Skip today — rest up
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -423,6 +423,27 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
         </div>
       )}
 
+      {/* Most-logged foods — one-tap repeat */}
+      {favoriteFoods.length > 0 && sortedStamps.length === 0 && !showManual && !showQuickAdd && query.length === 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide mb-2">
+            Most logged
+          </h3>
+          <div className="flex gap-2 flex-wrap">
+            {favoriteFoods.slice(0, 6).map((food, i) => (
+              <button
+                key={i}
+                onClick={() => selectFood(food)}
+                className="px-3 py-2 rounded-xl text-xs bg-grappler-800 hover:bg-grappler-700 text-grappler-200 active:scale-95 transition-all"
+              >
+                <span className="font-medium">{food.name}</span>
+                <span className="text-grappler-500 ml-1.5">{food.calories}kcal</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Day-of-week pattern suggestions */}
       {todayPatternMeals.length > 0 && !showManual && !showQuickAdd && query.length === 0 && (
         <div>

@@ -1570,6 +1570,30 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     );
   }
 
+  // Combat athlete quick-access — surface grappling & competition prep for fighters
+  if (user?.trainingIdentity === 'combat' && feedCards.length < 4 && !dismissedCards.has('combat-shortcuts')) {
+    feedCards.push(
+      <div key="combat-shortcuts" className="flex gap-2">
+        <button
+          onClick={() => onNavigate('grappling')}
+          className="flex-1 flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2.5 hover:bg-purple-500/15 transition-colors"
+        >
+          <Shield className="w-4 h-4 text-purple-400" />
+          <span className="text-xs font-medium text-purple-300">Log Mat Session</span>
+        </button>
+        {competitions.length > 0 && (
+          <button
+            onClick={() => onNavigate('competition')}
+            className="flex-1 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 hover:bg-red-500/15 transition-colors"
+          >
+            <Crosshair className="w-4 h-4 text-red-400" />
+            <span className="text-xs font-medium text-red-300">Fight Prep</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
   // 3. Fight camp phase detection
   const fightCampPhase = useMemo(() => {
     if (user?.trainingIdentity !== 'combat' || !nextCompetition) return null;
@@ -1834,10 +1858,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             directive.readinessLevel === 'moderate' ? 'text-yellow-400' :
             directive.readinessLevel === 'low' ? 'text-amber-400' : 'text-red-400'
           )}>
-            {directive.readinessLevel === 'peak' ? 'All systems go' :
-             directive.readinessLevel === 'good' ? 'Green light' :
-             directive.readinessLevel === 'moderate' ? 'Take it easy today' :
-             directive.readinessLevel === 'low' ? 'Light work only' : 'Rest day'}
+            {directive.readinessLevel === 'peak' ? `${directive.readinessScore}% — Peak. Send it.` :
+             directive.readinessLevel === 'good' ? `${directive.readinessScore}% — Good. Full intensity.` :
+             directive.readinessLevel === 'moderate' ? `${directive.readinessScore}% — Moderate. Dial it back.` :
+             directive.readinessLevel === 'low' ? `${directive.readinessScore}% — Low. Go light today.` :
+             `${directive.readinessScore}% — Rest recommended.`}
           </p>
         </section>
 
@@ -2016,6 +2041,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onDismissCard={(id) => setDismissedCards(prev => { const n = new Set(Array.from(prev)); n.add(id); return n; })}
           onShowSkipDialog={() => setShowSkipDialog(true)}
           showToast={(msg, type) => showToast(msg, type as any)}
+          currentStreak={currentStreak}
         />
       ) : currentMesocycle && mesocycleProgress && mesocycleProgress.completed === mesocycleProgress.total ? (
         <BlockCompletePhase
@@ -2541,6 +2567,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
               <p className="text-sm text-grappler-400 mb-4">
                 No stress — pick a reason and we&apos;ll adapt your program.
+                {currentStreak >= 3 && (
+                  <span className="block mt-1 text-amber-400 text-xs font-medium">
+                    Heads up: skipping will end your {currentStreak}-day streak.
+                  </span>
+                )}
               </p>
 
               <div className="space-y-2">

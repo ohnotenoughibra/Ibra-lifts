@@ -25,10 +25,9 @@ import { BiologicalSex, ExperienceLevel, GoalFocus, SessionsPerWeek, OnboardingD
 import { cn } from '@/lib/utils';
 import { CalendarDays, Check } from 'lucide-react';
 
-// ─── 2-Step Onboarding ─────────────────────────────────────────────────────
-// Step 1: About You (identity + goal + stats — one scrollable card)
-// Step 2: Schedule + disclaimer → go
-const TOTAL_STEPS = 2;
+// ─── 1-Step Onboarding ─────────────────────────────────────────────────────
+// Single scrollable page: identity + goal + stats + schedule + disclaimer → go
+const TOTAL_STEPS = 1;
 
 export default function Onboarding({ authUserId }: { authUserId?: string }) {
   const { onboardingData, updateOnboardingData, completeOnboarding } = useAppStore();
@@ -68,24 +67,16 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
   };
 
   const canProceed = () => {
-    switch (safeStep) {
-      case 1:
-        // Identity + goal + name + weight + sex
-        if (!onboardingData.trainingIdentity) return false;
-        if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
-        if (!onboardingData.goalFocus) return false;
-        if (onboardingData.name.length < 2) return false;
-        if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
-        if (!onboardingData.sex) return false;
-        return true;
-      case 2:
-        // Schedule + disclaimer
-        if ((onboardingData.trainingDays?.length || 0) < onboardingData.sessionsPerWeek) return false;
-        if (!onboardingData.disclaimerAccepted) return false;
-        return true;
-      default:
-        return true;
-    }
+    // All in one step
+    if (!onboardingData.trainingIdentity) return false;
+    if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
+    if (!onboardingData.goalFocus) return false;
+    if (onboardingData.name.length < 2) return false;
+    if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
+    if (!onboardingData.sex) return false;
+    if ((onboardingData.trainingDays?.length || 0) < onboardingData.sessionsPerWeek) return false;
+    if (!onboardingData.disclaimerAccepted) return false;
+    return true;
   };
 
   return (
@@ -111,61 +102,44 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
         </div>
       )}
 
-      {/* Progress bar */}
-      <div className="max-w-lg mx-auto mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-grappler-400">Step {safeStep} of {TOTAL_STEPS}</p>
-          <p className="text-xs text-grappler-400">{Math.round((safeStep / TOTAL_STEPS) * 100)}%</p>
-        </div>
-        <div className="h-1.5 bg-grappler-800 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${(safeStep / TOTAL_STEPS) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-      </div>
+      {/* Spacer */}
+      <div className="max-w-lg mx-auto mb-4" />
 
-      {/* Step content */}
+      {/* Single scrollable form */}
       <div className="max-w-lg mx-auto">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={safeStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="card p-6"
-          >
-            {safeStep === 1 && (
-              <Step1_AboutYou data={onboardingData} update={updateOnboardingData} />
-            )}
-            {safeStep === 2 && (
-              <Step2_ScheduleAndGo data={onboardingData} update={updateOnboardingData} />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="card p-6"
+        >
+          <Step1_AboutYou data={onboardingData} update={updateOnboardingData} />
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={prevStep}
-            disabled={safeStep === 1}
-            className={cn(
-              'btn btn-secondary btn-md gap-2',
-              safeStep === 1 && 'opacity-0 pointer-events-none invisible'
+          {/* Schedule section — appears after stats are filled */}
+          <AnimatePresence>
+            {onboardingData.sex && onboardingData.bodyWeightKg && onboardingData.bodyWeightKg > 0 && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="border-t border-grappler-700/50 pt-4 mt-4">
+                  <Step2_ScheduleAndGo data={onboardingData} update={updateOnboardingData} />
+                </div>
+              </motion.div>
             )}
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back
-          </button>
+          </AnimatePresence>
+        </motion.div>
+
+        {/* CTA */}
+        <div className="flex justify-center mt-6">
           <button
             onClick={nextStep}
             disabled={!canProceed()}
-            className="btn btn-primary btn-md gap-2"
+            className="btn btn-primary btn-lg gap-2 w-full"
           >
-            {safeStep === TOTAL_STEPS ? "Let's Go" : 'Continue'}
+            Let&apos;s Go
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>

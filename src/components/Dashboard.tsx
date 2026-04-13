@@ -228,10 +228,10 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
 }
 
 const TABS = [
-  { id: 'home', icon: Dumbbell, label: 'Home' },
-  { id: 'program', icon: Calendar, label: 'Program' },
-  { id: 'explore', icon: Compass, label: 'Explore' },
-  { id: 'progress', icon: BarChart3, label: 'Progress' },
+  { id: 'home', icon: Dumbbell, label: 'Today' },
+  { id: 'program', icon: Calendar, label: 'Workouts' },
+  { id: 'explore', icon: Compass, label: 'Tools' },
+  { id: 'progress', icon: BarChart3, label: 'Stats' },
 ] as const;
 
 interface DashboardProps {
@@ -674,10 +674,10 @@ export default function Dashboard({
 
   // Sidebar nav items (matches TABS + profile)
   const sidebarNav = [
-    { id: 'home' as TabType, icon: Dumbbell, label: 'Home' },
-    { id: 'program' as TabType, icon: Calendar, label: 'Program' },
-    { id: 'explore' as TabType, icon: Compass, label: 'Explore' },
-    { id: 'progress' as TabType, icon: BarChart3, label: 'Progress' },
+    { id: 'home' as TabType, icon: Dumbbell, label: 'Today' },
+    { id: 'program' as TabType, icon: Calendar, label: 'Workouts' },
+    { id: 'explore' as TabType, icon: Compass, label: 'Tools' },
+    { id: 'progress' as TabType, icon: BarChart3, label: 'Stats' },
   ];
 
   return (

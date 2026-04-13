@@ -211,6 +211,34 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
           );
         })}
       </div>
+
+      {/* Interpretation — what does this mean? */}
+      {(() => {
+        const improving = trends.filter(t => t.current > t.previous).length;
+        const declining = trends.filter(t => t.current < t.previous).length;
+        const total = trends.length;
+        if (total === 0) return null;
+
+        const bestGain = trends.reduce((best, t) => {
+          const diff = t.current - t.previous;
+          return diff > (best?.diff || 0) ? { name: t.name, diff } : best;
+        }, null as { name: string; diff: number } | null);
+
+        const message = improving > declining
+          ? `${improving}/${total} lifts trending up.${bestGain && bestGain.diff > 0 ? ` Best: ${bestGain.name} +${bestGain.diff} ${weightUnit}.` : ''} Keep pushing.`
+          : improving === declining
+          ? `Mixed signals \u2014 ${improving} up, ${declining} down. Consider varying stimulus.`
+          : `${declining}/${total} lifts down. Possible fatigue \u2014 check recovery.`;
+
+        return (
+          <p className={cn(
+            'text-xs mt-2 px-1',
+            improving > declining ? 'text-green-400/80' : improving === declining ? 'text-yellow-400/80' : 'text-amber-400/80'
+          )}>
+            {message}
+          </p>
+        );
+      })()}
     </div>
   );
 }

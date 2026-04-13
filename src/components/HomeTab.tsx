@@ -2071,6 +2071,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
+      {/* ─── Contextual Feed Cards — block ending, combat shortcuts, etc ─── */}
+      {feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string)).length > 0 && (
+        <div className="space-y-2">
+          {feedCards
+            .filter(card => !dismissedCards.has((card as React.ReactElement).key as string))
+            .slice(0, 3)
+            .map(card => card)}
+        </div>
+      )}
+
       {/* ─── Training Restrictions — merged illness + injury risk alert ─── */}
       {(injuryRiskAlert || hasActiveIllness) && (
         <div className="rounded-xl p-3 border border-amber-500/25 bg-amber-500/8">

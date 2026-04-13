@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
+import { useRestTimer } from '@/hooks/useRestTimer';
 import {
   X,
   Check,
@@ -167,8 +168,14 @@ export default function ActiveWorkout() {
   const hasActiveInjuries = injuryAdaptations.classifications.length > 0;
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
-  const [isResting, setIsResting] = useState(false);
-  const [restMinimized, setRestMinimized] = useState(false);
+
+  // Rest timer — extracted to hook for testability and reuse
+  const {
+    isResting, restMinimized, setRestMinimized, restTimer, restDuration,
+    startRest, cancelRest, setIsResting,
+  } = useRestTimer(useCallback(() => {
+    setLastCompletedExerciseIndex(null);
+  }, []));
   const [showRestTips, setShowRestTips] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
@@ -374,53 +381,7 @@ export default function ActiveWorkout() {
     }
   }, []);
 
-  // Rest timer — timestamp-based so it keeps counting while app is backgrounded
-  const [restEndTime, setRestEndTime] = useState<number | null>(null);
-  const [restDuration, setRestDuration] = useState(0);
-  const restTimer = restEndTime ? Math.max(0, Math.ceil((restEndTime - Date.now()) / 1000)) : 0;
-  const warned10sRef = useRef(false);
-
-  useEffect(() => {
-    if (!isResting || !restEndTime) return;
-    warned10sRef.current = false; // Reset warning flag for new rest period
-    const interval = setInterval(() => {
-      const remaining = Math.ceil((restEndTime - Date.now()) / 1000);
-
-      // 10-second warning — vibrate + notification when app may be backgrounded
-      if (remaining <= 10 && remaining > 0 && !warned10sRef.current) {
-        warned10sRef.current = true;
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([100, 50, 100]);
-        }
-        // Send push notification if app is backgrounded
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-          new Notification('Rest almost done!', {
-            body: '10 seconds left — get ready for your next set',
-            tag: 'rest-warning',
-            silent: false,
-          });
-        }
-      }
-
-      if (remaining <= 0) {
-        setIsResting(false);
-        setRestEndTime(null);
-        setLastCompletedExerciseIndex(null);
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
-          navigator.vibrate([200, 100, 200, 100, 300]);
-        }
-        // Send push notification if app is backgrounded
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && document.hidden) {
-          new Notification('Rest complete!', {
-            body: 'Time to lift — next set is ready',
-            tag: 'rest-complete',
-            silent: false,
-          });
-        }
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [isResting, restEndTime]);
+  // Rest timer managed by useRestTimer hook (see line 173)
 
   // Draft recovery — detect if this workout was restored from persistence
   useEffect(() => {
@@ -614,13 +575,10 @@ export default function ActiveWorkout() {
       setTimeout(() => setShowPRCelebration(false), 3000);
     }
 
-    // Start rest timer — store end timestamp so it survives backgrounding
+    // Start rest timer via hook
     const restSecs = currentExercise.prescription.restSeconds;
     if (restSecs > 0) {
-      setRestDuration(restSecs);
-      setRestEndTime(Date.now() + restSecs * 1000);
-      setIsResting(true);
-      setRestMinimized(false);
+      startRest(restSecs);
     }
 
     // ── Corner Coach: generate coaching messages after set completion ──
@@ -850,7 +808,7 @@ export default function ActiveWorkout() {
 
   const skipRest = () => {
     setIsResting(false);
-    setRestEndTime(null);
+    cancelRest();
     setLastCompletedExerciseIndex(null);
   };
 
@@ -865,7 +823,7 @@ export default function ActiveWorkout() {
     setCurrentExerciseIndex(undoInfo.exerciseIndex);
     setCurrentSetIndex(undoInfo.setIndex);
     setIsResting(false);
-    setRestEndTime(null);
+    cancelRest();
     setLastCompletedExerciseIndex(null);
     setWeightSuggestion(null);
     setUndoInfo(null);
@@ -894,7 +852,7 @@ export default function ActiveWorkout() {
 
     // End rest and clear tracking state
     setIsResting(false);
-    setRestEndTime(null);
+    cancelRest();
     setLastCompletedExerciseIndex(null);
   };
 

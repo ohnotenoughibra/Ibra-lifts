@@ -1871,11 +1871,27 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
       {hydrated && (
         <>
           {workoutLogs.length === 0 ? (
-            <EmptyState
-              icon={TrendingUp}
-              title="No progress data yet"
-              description="Complete your first workout to unlock trends, PRs, and performance insights."
-            />
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 flex items-center justify-center mb-5 ring-1 ring-primary-500/20">
+                <TrendingUp className="w-10 h-10 text-primary-400" />
+              </div>
+              <h3 className="text-xl font-bold text-grappler-100 mb-2">Your stats live here</h3>
+              <p className="text-sm text-grappler-400 max-w-[280px] mb-6">
+                After your first workout you'll see strength trends, estimated 1RMs, volume analysis, and PRs.
+              </p>
+              <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+                {[
+                  { label: 'Strength', desc: 'E1RM trends' },
+                  { label: 'Volume', desc: 'Load tracking' },
+                  { label: 'PRs', desc: 'Personal records' },
+                ].map(item => (
+                  <div key={item.label} className="bg-grappler-800/40 rounded-xl p-3 text-center ring-1 ring-grappler-700/30">
+                    <p className="text-xs font-semibold text-grappler-300">{item.label}</p>
+                    <p className="text-[10px] text-grappler-500 mt-0.5">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <>
               {/* ── SECTION 1: STRENGTH ── */}

@@ -1857,19 +1857,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
              `${directive.readinessScore}% — Rest recommended.`}
           </p>
 
-          {/* Profile hint — subtle, below readiness */}
-          {!profileComplete && !profileHintDismissed && !user?.heightCm && (
-            <button
-              onClick={() => {
-                setProfileHintDismissed(true);
-                localStorage.setItem('profile-hint-dismissed', '1');
-                onNavigate('profile_settings');
-              }}
-              className="text-xs text-primary-400/50 hover:text-primary-300 transition-colors mt-1"
-            >
-              Add height for better coaching &rarr;
-            </button>
-          )}
+          {/* Height hint removed — low-value friction */}
         </section>
 
         {/* Readiness breakdown — expandable via ring tap */}
@@ -2476,7 +2464,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   )}>
                     <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
                   </div>
-                  <span className="text-xs text-transparent select-none">&nbsp;</span>
+                  <span className="text-xs text-grappler-600 font-medium">Add</span>
                 </button>
               );
             });

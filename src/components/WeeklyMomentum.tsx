@@ -64,7 +64,8 @@ function dateKey(d: Date): string {
 // ─── Component ───
 
 export default function WeeklyMomentum(props: WeeklyMomentumProps) {
-  const [expanded, setExpanded] = useState(true);
+  const hasAnySessions = props.workoutLogs.length > 0 || props.trainingSessions.length > 0;
+  const [expanded, setExpanded] = useState(hasAnySessions);
 
   const now = new Date();
   const todayKey = dateKey(now);

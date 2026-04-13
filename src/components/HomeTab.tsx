@@ -1576,18 +1576,24 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       <div key="combat-shortcuts" className="flex gap-2">
         <button
           onClick={() => onNavigate('grappling')}
-          className="flex-1 flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2.5 hover:bg-purple-500/15 transition-colors"
+          className="flex-1 flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2.5 hover:bg-purple-500/15 transition-colors active:scale-[0.98]"
         >
-          <Shield className="w-4 h-4 text-purple-400" />
-          <span className="text-xs font-medium text-purple-300">Log Mat Session</span>
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-purple-400" />
+            <span className="text-xs font-medium text-purple-300">Log Mat Session</span>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-purple-400/50" />
         </button>
         {competitions.length > 0 && (
           <button
             onClick={() => onNavigate('competition')}
-            className="flex-1 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 hover:bg-red-500/15 transition-colors"
+            className="flex-1 flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 hover:bg-red-500/15 transition-colors active:scale-[0.98]"
           >
-            <Crosshair className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-medium text-red-300">Fight Prep</span>
+            <div className="flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-medium text-red-300">Fight Prep</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-red-400/50" />
           </button>
         )}
       </div>
@@ -1808,20 +1814,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* Profile hint — subtle, dismissible, shown once */}
-      {!profileComplete && !profileHintDismissed && !user?.heightCm && (
-        <button
-          onClick={() => {
-            setProfileHintDismissed(true);
-            localStorage.setItem('profile-hint-dismissed', '1');
-            onNavigate('profile' as any);
-          }}
-          className="text-xs text-primary-400/70 hover:text-primary-300 transition-colors px-1"
-        >
-          Add height for better coaching &rarr;
-        </button>
-      )}
-
       {/* ═══════════════════════════════════════════════════════════════════
           ABOVE THE FOLD — Hero Section: Steve Jobs philosophy
           Centered readiness ring, one-line context, streak badge
@@ -1864,6 +1856,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
              directive.readinessLevel === 'low' ? `${directive.readinessScore}% — Low. Go light today.` :
              `${directive.readinessScore}% — Rest recommended.`}
           </p>
+
+          {/* Profile hint — subtle, below readiness */}
+          {!profileComplete && !profileHintDismissed && !user?.heightCm && (
+            <button
+              onClick={() => {
+                setProfileHintDismissed(true);
+                localStorage.setItem('profile-hint-dismissed', '1');
+                onNavigate('profile_settings');
+              }}
+              className="text-xs text-primary-400/50 hover:text-primary-300 transition-colors mt-1"
+            >
+              Add height for better coaching &rarr;
+            </button>
+          )}
         </section>
 
         {/* Readiness breakdown — expandable via ring tap */}

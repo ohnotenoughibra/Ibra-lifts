@@ -540,7 +540,15 @@ function Step2_ScheduleAndGo({
       const recommended = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
       const updates: Partial<OnboardingData> = { trainingDays: recommended };
       if (isCombat && combatDays.length === 0) {
-        updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport);
+        let recCombat = getRecommendedCombatDays(data.combatSport);
+        // Ensure at least 1 rest day — remove combat days that overlap with lift days
+        const liftSet = new Set(recommended);
+        const usedDays = new Set([...recommended, ...recCombat.map(d => d.day)]);
+        if (usedDays.size >= 7) {
+          // Too many days — trim combat to leave at least 1 rest day
+          recCombat = recCombat.filter(d => !liftSet.has(d.day)).slice(0, 7 - recommended.length - 1);
+        }
+        updates.combatTrainingDays = recCombat;
       }
       update(updates);
       didInitialPrefill.current = true;

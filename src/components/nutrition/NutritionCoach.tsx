@@ -37,6 +37,7 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
 
   const [showContextual, setShowContextual] = useState(false);
   const [showTrends, setShowTrends] = useState(false);
+  const [coachTab, setCoachTab] = useState<'diet' | 'supplements' | 'trends'>('diet');
 
   const dayLabel = contextualNutrition.dayType === 'grappling_hard' ? 'Hard Grappling Day'
     : contextualNutrition.dayType === 'grappling_light' ? 'Light Grappling Day'
@@ -230,39 +231,32 @@ export default function NutritionCoach({ nutrition }: NutritionCoachProps) {
         </AnimatePresence>
       </div>
 
-      {/* Diet Coach */}
-      <DietCoach />
-
-      {/* Supplement Tracker */}
-      <SupplementTracker />
-
-      {/* Nutrition Trends */}
-      <div className="card overflow-hidden">
-        <button
-          onClick={() => setShowTrends(!showTrends)}
-          className="w-full p-3 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary-400" />
-            <span className="text-sm font-medium text-grappler-200">Nutrition Trends</span>
-          </div>
-          {showTrends ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
-        </button>
-        <AnimatePresence>
-          {showTrends && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="p-3 pt-0">
-                <NutritionTrends meals={allMeals} macroTargets={macroTargets} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Sub-tab navigation */}
+      <div className="flex gap-1 bg-grappler-800/50 rounded-xl p-1">
+        {([
+          { id: 'diet' as const, label: 'Diet Coach' },
+          { id: 'supplements' as const, label: 'Supplements' },
+          { id: 'trends' as const, label: 'Trends' },
+        ]).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setCoachTab(tab.id)}
+            className={cn(
+              'flex-1 py-2 rounded-lg text-xs font-semibold transition-all',
+              coachTab === tab.id
+                ? 'bg-grappler-700 text-grappler-100'
+                : 'text-grappler-500 hover:text-grappler-300'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* Sub-tab content */}
+      {coachTab === 'diet' && <DietCoach />}
+      {coachTab === 'supplements' && <SupplementTracker />}
+      {coachTab === 'trends' && <NutritionTrends meals={allMeals} macroTargets={macroTargets} />}
     </div>
   );
 }

@@ -50,6 +50,7 @@ import {
   type MuscleVolumeGauge,
 } from '@/lib/progress-analytics';
 import { exportToCSV, exportToJSON, downloadFile, exportFullBackup, importFullBackup, readFileAsText } from '@/lib/data-export';
+import type { OverlayView } from './dashboard-types';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import EmptyState from './EmptyState';
 import ProgressCharts from './ProgressCharts';
@@ -1759,7 +1760,7 @@ function OverviewSkeleton() {
   );
 }
 
-export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: (mesoId: string) => void }) {
+export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { onViewReport: (mesoId: string) => void; onNavigate?: (view: OverlayView, context?: string) => void }) {
   const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
   const { workoutLogs, user, bodyWeightLog, gamificationStats, trainingSessions } = useAppStore(
     useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats, trainingSessions: s.trainingSessions ?? [] }))
@@ -1883,6 +1884,32 @@ export default function ProgressAndHistoryTab({ onViewReport }: { onViewReport: 
 
               {/* E1RM Trends with goals */}
               <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+
+              {/* Deep-dive links */}
+              {onNavigate && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onNavigate('strength')}
+                    className="flex-1 flex items-center gap-2 p-3 bg-grappler-800/60 border border-grappler-700/50 rounded-xl hover:bg-grappler-700/60 transition-colors"
+                  >
+                    <Target className="w-4 h-4 text-primary-400" />
+                    <div className="text-left">
+                      <p className="text-xs font-semibold text-grappler-200">Sticking Points</p>
+                      <p className="text-[10px] text-grappler-500">Weak spots &amp; fixes</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => onNavigate('overload')}
+                    className="flex-1 flex items-center gap-2 p-3 bg-grappler-800/60 border border-grappler-700/50 rounded-xl hover:bg-grappler-700/60 transition-colors"
+                  >
+                    <ArrowUpRight className="w-4 h-4 text-green-400" />
+                    <div className="text-left">
+                      <p className="text-xs font-semibold text-grappler-200">Overload Tracker</p>
+                      <p className="text-[10px] text-grappler-500">Per-exercise progress</p>
+                    </div>
+                  </button>
+                </div>
+              )}
 
               {/* Hard Metrics — Strength, Volume, Readiness */}
               <HardMetricsCard workoutLogs={workoutLogs} />

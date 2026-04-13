@@ -975,7 +975,7 @@ export default function Dashboard({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
-                    <ProgressAndHistoryTab onViewReport={setReportMesocycleId} />
+                    <ProgressAndHistoryTab onViewReport={setReportMesocycleId} onNavigate={setOverlayView} />
                   </motion.div>
                 )}
               </AnimatePresence>

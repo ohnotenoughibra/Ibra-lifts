@@ -891,6 +891,8 @@ export default function WorkoutHistory() {
                             const editedWeight = editData[i]?.[j]?.weight;
                             const editedReps = editData[i]?.[j]?.reps;
                             const editedRpe = editData[i]?.[j]?.rpe;
+                            const editedDuration = (editData[i]?.[j] as Partial<SetLog> | undefined)?.duration;
+                            const isTimeBasedSet = typeof set.duration === 'number';
                             return (
                             <div key={j} className={cn(
                               'flex items-center justify-between text-xs',
@@ -910,14 +912,25 @@ export default function WorkoutHistory() {
                                     <span className="text-grappler-500">{weightUnit}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-grappler-500">x</span>
-                                    <input
-                                      type="number"
-                                      inputMode="numeric"
-                                      value={editedReps !== undefined ? editedReps : set.reps}
-                                      onChange={(e) => updateEditValue(i, j, 'reps', parseInt(e.target.value) || 0)}
-                                      className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
-                                    />
+                                    <span className="text-grappler-500">{isTimeBasedSet ? '·' : 'x'}</span>
+                                    {isTimeBasedSet ? (
+                                      <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        value={editedDuration !== undefined ? editedDuration : (set.duration || 0)}
+                                        onChange={(e) => updateEditValue(i, j, 'duration', parseInt(e.target.value) || 0)}
+                                        className="w-12 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                      />
+                                    ) : (
+                                      <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        value={editedReps !== undefined ? editedReps : set.reps}
+                                        onChange={(e) => updateEditValue(i, j, 'reps', parseInt(e.target.value) || 0)}
+                                        className="w-10 text-center bg-grappler-700 rounded px-1 py-0.5 text-grappler-100"
+                                      />
+                                    )}
+                                    {isTimeBasedSet && <span className="text-grappler-500">s</span>}
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <span className="text-grappler-500">RPE</span>
@@ -934,7 +947,11 @@ export default function WorkoutHistory() {
                                 </>
                               ) : (
                                 <>
-                                  <span>{set.weight} {weightUnit} x {set.reps} reps</span>
+                                  <span>
+                                    {isTimeBasedSet
+                                      ? (set.weight > 0 ? `${set.weight} ${weightUnit} · ${set.duration}s` : `${set.duration}s hold`)
+                                      : `${set.weight} ${weightUnit} x ${set.reps} reps`}
+                                  </span>
                                   <span>RPE {set.rpe}</span>
                                 </>
                               )}

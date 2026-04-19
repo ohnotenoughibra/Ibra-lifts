@@ -509,14 +509,14 @@ export function getSuggestedWeight(
 export function getPreviousSessionSets(
   exerciseId: string,
   previousLogs: WorkoutLog[]
-): { weight: number; reps: number }[] | null {
+): { weight: number; reps: number; duration?: number }[] | null {
   const sortedLogs = [...previousLogs].reverse();
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
       const completedSets = exerciseLog.sets.filter(s => s.completed);
       if (completedSets.length === 0) continue;
-      return completedSets.map(s => ({ weight: s.weight, reps: s.reps }));
+      return completedSets.map(s => ({ weight: s.weight, reps: s.reps, duration: s.duration }));
     }
   }
   return null;

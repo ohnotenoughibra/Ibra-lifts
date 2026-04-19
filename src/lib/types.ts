@@ -198,6 +198,9 @@ export interface SetLog {
   rpe: number;
   completed: boolean;
   notes?: string;
+  // For time-based exercises (measurementType === 'time'): hold duration in seconds.
+  // For rep-based exercises this is undefined and `reps` is the source of truth.
+  duration?: number;
 }
 
 export interface ExerciseLog {
@@ -206,6 +209,8 @@ export interface ExerciseLog {
   sets: SetLog[];
   personalRecord: boolean;
   estimated1RM?: number;
+  // For time-based exercises: longest hold (seconds) in this session.
+  bestDuration?: number;
   feedback?: ExerciseFeedback;
 }
 

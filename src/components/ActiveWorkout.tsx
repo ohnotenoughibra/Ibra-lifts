@@ -254,6 +254,8 @@ export default function ActiveWorkout() {
   // ── Volume Gap Fill prompt state ──
   const [showVolumeGapPrompt, setShowVolumeGapPrompt] = useState(false);
   const [volumeGapDismissed, setVolumeGapDismissed] = useState(false);
+  // Keyed by gap.muscle — user can check any subset of the proposed accessories.
+  const [selectedVolumeGaps, setSelectedVolumeGaps] = useState<Set<string>>(new Set());
   const [criticalReadinessAcknowledged, setCriticalReadinessAcknowledged] = useState(false);
 
   // ── First-time swipe gesture hint ──
@@ -403,12 +405,41 @@ export default function ActiveWorkout() {
 
   // Real-time PR detection - check if current input would beat historical best
   const prDetection = useMemo(() => {
-    if (!currentLog || currentSet.weight <= 0 || currentSet.reps <= 0) {
+    if (!currentLog) {
+      return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
+    }
+
+    const workoutLogs = useAppStore.getState().workoutLogs;
+
+    // Time-based exercises: PR = longest hold
+    if (isTimeBased) {
+      const currentDuration = currentSet.duration || 0;
+      if (currentDuration <= 0) {
+        return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
+      }
+      let bestDuration = 0;
+      let hasHistory = false;
+      for (const log of workoutLogs) {
+        for (const ex of log.exercises) {
+          if (ex.exerciseId === currentLog.exerciseId) {
+            for (const s of ex.sets) {
+              if ((s.duration || 0) > 0) {
+                hasHistory = true;
+                bestDuration = Math.max(bestDuration, s.duration || 0);
+              }
+            }
+          }
+        }
+      }
+      const isPotentialPR = !hasHistory || currentDuration > bestDuration;
+      return { isPotentialPR, currentE1RM: currentDuration, bestE1RM: bestDuration, isFirstTime: !hasHistory };
+    }
+
+    if (currentSet.weight <= 0 || currentSet.reps <= 0) {
       return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
     }
 
     const currentE1RM = calculate1RM(currentSet.weight, currentSet.reps);
-    const workoutLogs = useAppStore.getState().workoutLogs;
 
     let bestE1RM = 0;
     let hasHistory = false;
@@ -426,18 +457,19 @@ export default function ActiveWorkout() {
     const isPotentialPR = !hasHistory || currentE1RM > bestE1RM;
 
     return { isPotentialPR, currentE1RM, bestE1RM, isFirstTime: !hasHistory };
-  }, [currentLog, currentSet.weight, currentSet.reps]);
+  }, [currentLog, currentSet.weight, currentSet.reps, currentSet.duration, isTimeBased]);
 
-  const updateSetValue = (field: 'weight' | 'reps' | 'rpe', delta: number) => {
+  const updateSetValue = (field: 'weight' | 'reps' | 'rpe' | 'duration', delta: number) => {
     const newSets = [...currentLog.sets];
+    const current = newSets[currentSetIndex][field] || 0;
     newSets[currentSetIndex] = {
       ...newSets[currentSetIndex],
-      [field]: Math.max(0, newSets[currentSetIndex][field] + delta)
+      [field]: Math.max(0, (current as number) + delta)
     };
     updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: newSets });
   };
 
-  const setExactValue = (field: 'weight' | 'reps' | 'rpe', value: number) => {
+  const setExactValue = (field: 'weight' | 'reps' | 'rpe' | 'duration', value: number) => {
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = {
       ...newSets[currentSetIndex],
@@ -537,37 +569,66 @@ export default function ActiveWorkout() {
       setTempoTotalTUT(0);
     }
 
-    // Carry forward weight/reps/rpe to next set so the user doesn't have to re-enter
+    // Carry forward weight/reps/duration/rpe to next set so the user doesn't have to re-enter
     if (currentSetIndex + 1 < newSets.length && !newSets[currentSetIndex + 1].completed) {
       newSets[currentSetIndex + 1] = {
         ...newSets[currentSetIndex + 1],
         weight: newSets[currentSetIndex].weight,
         reps: newSets[currentSetIndex].reps,
         rpe: newSets[currentSetIndex + 1].rpe || newSets[currentSetIndex].rpe,
+        ...(isTimeBased && newSets[currentSetIndex].duration !== undefined
+          ? { duration: newSets[currentSetIndex].duration }
+          : {}),
       };
     }
 
     // Check for PR - compare against all previous logs for this exercise
-    const estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
     const workoutLogs = useAppStore.getState().workoutLogs;
-    let previousBest1RM = 0;
-    let hasHistoryForExercise = false;
-    for (const log of workoutLogs) {
-      for (const ex of log.exercises) {
-        if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
-          hasHistoryForExercise = true;
-          previousBest1RM = Math.max(previousBest1RM, ex.estimated1RM);
+    let isPR = false;
+    let estimated1RM = 0;
+    let bestDuration = 0;
+
+    if (isTimeBased) {
+      const currentDuration = currentSet.duration || 0;
+      let previousBestDuration = 0;
+      let hasHistoryForExercise = false;
+      for (const log of workoutLogs) {
+        for (const ex of log.exercises) {
+          if (ex.exerciseId === currentLog.exerciseId) {
+            for (const s of ex.sets) {
+              if ((s.duration || 0) > 0) {
+                hasHistoryForExercise = true;
+                previousBestDuration = Math.max(previousBestDuration, s.duration || 0);
+              }
+            }
+          }
         }
       }
+      isPR = currentDuration > 0 && (!hasHistoryForExercise || currentDuration > previousBestDuration);
+      bestDuration = Math.max(currentLog.bestDuration || 0, currentDuration);
+    } else {
+      estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
+      let previousBest1RM = 0;
+      let hasHistoryForExercise = false;
+      for (const log of workoutLogs) {
+        for (const ex of log.exercises) {
+          if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
+            hasHistoryForExercise = true;
+            previousBest1RM = Math.max(previousBest1RM, ex.estimated1RM);
+          }
+        }
+      }
+      isPR = currentSet.weight > 0 && (!hasHistoryForExercise || estimated1RM > previousBest1RM);
     }
-    // PR if: weight > 0 AND (first ever lift for this exercise OR beat previous best)
-    const isPR = currentSet.weight > 0 && (!hasHistoryForExercise || estimated1RM > previousBest1RM);
 
     updateExerciseLog(currentExerciseIndex, {
       ...currentLog,
       sets: newSets,
       personalRecord: currentLog.personalRecord || isPR,
-      estimated1RM: Math.max(currentLog.estimated1RM || 0, estimated1RM)
+      estimated1RM: isTimeBased
+        ? currentLog.estimated1RM
+        : Math.max(currentLog.estimated1RM || 0, estimated1RM),
+      ...(isTimeBased ? { bestDuration } : {}),
     });
 
     if (isPR) {
@@ -2813,8 +2874,14 @@ export default function ActiveWorkout() {
                 Skip Rest
               </button>
               {undoInfo && (
-                <button onClick={undoLastSet} className="btn btn-secondary btn-lg px-4" title="Undo last set" aria-label="Undo last set">
+                <button
+                  onClick={undoLastSet}
+                  className="btn btn-lg px-5 gap-2 bg-yellow-500/15 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-500/25 active:scale-95 transition-transform"
+                  title="Undo last set — revert the set you just logged"
+                  aria-label="Undo last set"
+                >
                   <RotateCcw className="w-5 h-5" />
+                  <span className="text-sm font-semibold">Undo</span>
                 </button>
               )}
             </div>
@@ -3624,70 +3691,90 @@ export default function ActiveWorkout() {
               )}
             </div>
 
-            {/* Reps */}
-            <div className={cn(
-              'rounded-xl p-4 transition-all duration-300',
-              prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
-                ? 'bg-yellow-500/10 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/10'
-                : 'bg-grappler-800/50'
-            )}>
-              <div className="flex items-center justify-between">
-                <label className={cn(
-                  'text-xs uppercase tracking-wide',
-                  prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
-                    ? 'text-yellow-400'
-                    : 'text-grappler-400'
-                )}>{isTimeBased ? 'Seconds' : 'Reps'}</label>
-                <span className="text-sm font-medium text-grappler-400">
-                  Target: {isTimeBased
-                    ? `${currentExercise.prescription.targetReps}s`
-                    : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}${currentExercise.exercise.isUnilateral ? ' /side' : ''}`
-                  }
-                </span>
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <button
-                  onClick={() => updateSetValue('reps', -1)}
-                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
-                  aria-label="Decrease reps"
-                >
-                  <Minus className="w-6 h-6 text-grappler-300" />
-                </button>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={currentSet.reps || ''}
-                  placeholder="0"
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setExactValue('reps', parseInt(e.target.value) || 0)}
-                  className={cn(
-                    'w-28 text-center text-4xl font-black bg-transparent focus-visible:outline-none placeholder:text-grappler-600',
-                    prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
-                      ? 'text-yellow-300'
-                      : 'text-grappler-50'
-                  )}
-                />
-                <button
-                  onClick={() => updateSetValue('reps', 1)}
-                  className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
-                  aria-label="Increase reps"
-                >
-                  <Plus className="w-6 h-6 text-grappler-300" />
-                </button>
-              </div>
-              {/* Quick-adjust rep pills */}
-              <div className="flex items-center justify-center gap-2 mt-2">
-                {[1, 2, 5].map((inc) => (
-                  <button
-                    key={inc}
-                    onClick={() => updateSetValue('reps', inc)}
-                    className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
-                  >
-                    +{inc}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Reps / Seconds */}
+            {(() => {
+              const field: 'reps' | 'duration' = isTimeBased ? 'duration' : 'reps';
+              const currentValue = isTimeBased ? (currentSet.duration || 0) : currentSet.reps;
+              const suggested = currentExercise.prescription.targetReps;
+              const showSuggestionPill = suggested > 0 && currentValue !== suggested;
+              const increments = isTimeBased ? [5, 10, 30] : [1, 2, 5];
+              const prHighlight = prDetection.isPotentialPR
+                && (isTimeBased ? currentValue > 0 : (currentSet.weight > 0 && currentSet.reps > 0))
+                && !currentSet.completed;
+              return (
+                <div className={cn(
+                  'rounded-xl p-4 transition-all duration-300',
+                  prHighlight
+                    ? 'bg-yellow-500/10 border-2 border-yellow-500/50 shadow-lg shadow-yellow-500/10'
+                    : 'bg-grappler-800/50'
+                )}>
+                  <div className="flex items-center justify-between">
+                    <label className={cn(
+                      'text-xs uppercase tracking-wide',
+                      prHighlight ? 'text-yellow-400' : 'text-grappler-400'
+                    )}>{isTimeBased ? 'Seconds' : 'Reps'}</label>
+                    {/* Prominent suggestion badge */}
+                    <button
+                      type="button"
+                      onClick={() => setExactValue(field, suggested)}
+                      disabled={!showSuggestionPill}
+                      className={cn(
+                        'text-xs font-bold px-2.5 py-1 rounded-full transition-all',
+                        showSuggestionPill
+                          ? 'bg-primary-500/20 text-primary-300 border border-primary-500/40 hover:bg-primary-500/30 active:scale-95'
+                          : 'bg-grappler-700/40 text-grappler-500 border border-grappler-700 cursor-default',
+                      )}
+                      title={showSuggestionPill ? 'Tap to use suggestion' : 'Matches suggestion'}
+                    >
+                      {showSuggestionPill ? 'Use ' : 'Target '}
+                      {isTimeBased
+                        ? `${suggested}s`
+                        : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}${currentExercise.exercise.isUnilateral ? ' /side' : ''}`}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <button
+                      onClick={() => updateSetValue(field, -(isTimeBased ? 5 : 1))}
+                      className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label={isTimeBased ? 'Decrease seconds' : 'Decrease reps'}
+                    >
+                      <Minus className="w-6 h-6 text-grappler-300" />
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={currentValue || ''}
+                      placeholder={isTimeBased ? `${suggested}` : '0'}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setExactValue(field, parseInt(e.target.value) || 0)}
+                      className={cn(
+                        'w-28 text-center text-4xl font-black bg-transparent focus-visible:outline-none placeholder:text-grappler-600',
+                        prHighlight ? 'text-yellow-300' : 'text-grappler-50'
+                      )}
+                    />
+                    <button
+                      onClick={() => updateSetValue(field, isTimeBased ? 5 : 1)}
+                      className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label={isTimeBased ? 'Increase seconds' : 'Increase reps'}
+                    >
+                      <Plus className="w-6 h-6 text-grappler-300" />
+                    </button>
+                  </div>
+                  {/* Quick-adjust pills */}
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    {increments.map((inc) => (
+                      <button
+                        key={inc}
+                        onClick={() => updateSetValue(field, inc)}
+                        className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
+                      >
+                        +{inc}{isTimeBased ? 's' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* RPE */}
             <div className="bg-grappler-800/50 rounded-xl p-4">
@@ -3948,13 +4035,18 @@ export default function ActiveWorkout() {
       {/* Fixed Complete Set Button */}
       {!showOverview && !isResting && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-700/50 z-40">
-          {currentSet.reps <= 0 && currentSet.weight > 0 && !confirmZeroReps && !currentSet.completed ? (
+          {(() => {
+            const isZeroForCurrent = isTimeBased
+              ? (currentSet.duration || 0) <= 0
+              : currentSet.reps <= 0 && currentSet.weight > 0;
+            return isZeroForCurrent && !confirmZeroReps && !currentSet.completed;
+          })() ? (
             <button
               onClick={() => setConfirmZeroReps(true)}
               className="w-full py-4 rounded-xl font-bold text-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 gap-2 flex items-center justify-center"
             >
               <AlertTriangle className="w-5 h-5" />
-              Complete with 0 reps?
+              {isTimeBased ? 'Complete with 0s?' : 'Complete with 0 reps?'}
             </button>
           ) : (
             <button
@@ -4051,12 +4143,39 @@ export default function ActiveWorkout() {
                   const exercise = gap.recommendedExercise
                     ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
                     : null;
-                  const setsNeeded = Math.min(gap.deficit, 3); // Cap at 3 sets to keep it quick
+                  const setsNeeded = Math.min(gap.deficit, 3);
+                  const checked = selectedVolumeGaps.has(gap.muscle);
+                  const selectable = !!exercise;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={gap.muscle}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-grappler-700 bg-grappler-800/50"
+                      disabled={!selectable}
+                      onClick={() => {
+                        if (!selectable) return;
+                        setSelectedVolumeGaps(prev => {
+                          const next = new Set(prev);
+                          if (next.has(gap.muscle)) next.delete(gap.muscle);
+                          else next.add(gap.muscle);
+                          return next;
+                        });
+                      }}
+                      className={cn(
+                        'w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
+                        checked
+                          ? 'border-primary-500 bg-primary-500/10'
+                          : 'border-grappler-700 bg-grappler-800/50 hover:border-grappler-600',
+                        !selectable && 'opacity-50 cursor-not-allowed',
+                      )}
                     >
+                      <div className={cn(
+                        'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+                        checked
+                          ? 'bg-primary-500 border-primary-500'
+                          : 'border-grappler-600',
+                      )}>
+                        {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-grappler-100 capitalize">
                           {gap.muscle}
@@ -4070,26 +4189,7 @@ export default function ActiveWorkout() {
                           </p>
                         )}
                       </div>
-                      {exercise && (
-                        <button
-                          onClick={() => {
-                            addBonusExercise(exercise, setsNeeded, 10);
-                            // Navigate to the new exercise
-                            setTimeout(() => {
-                              if (activeWorkout) {
-                                setCurrentExerciseIndex(activeWorkout.session.exercises.length);
-                                setCurrentSetIndex(0);
-                              }
-                            }, 50);
-                            setShowVolumeGapPrompt(false);
-                            setVolumeGapDismissed(true);
-                          }}
-                          className="shrink-0 px-3 py-1.5 rounded-lg bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 text-xs font-semibold transition-colors"
-                        >
-                          + Add
-                        </button>
-                      )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -4100,11 +4200,32 @@ export default function ActiveWorkout() {
                 </p>
               )}
 
+              {/* Quick select-all / clear */}
+              {(() => {
+                const selectableGaps = postWorkoutVolumeGaps.slice(0, 5).filter(g => g.recommendedExercise);
+                const allSelected = selectableGaps.length > 0 && selectableGaps.every(g => selectedVolumeGaps.has(g.muscle));
+                return selectableGaps.length > 1 ? (
+                  <button
+                    onClick={() => {
+                      if (allSelected) {
+                        setSelectedVolumeGaps(new Set());
+                      } else {
+                        setSelectedVolumeGaps(new Set(selectableGaps.map(g => g.muscle)));
+                      }
+                    }}
+                    className="text-xs text-primary-400 hover:text-primary-300 underline mb-3"
+                  >
+                    {allSelected ? 'Clear all' : `Select all (${selectableGaps.length})`}
+                  </button>
+                ) : null;
+              })()}
+
               <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setShowVolumeGapPrompt(false);
                     setVolumeGapDismissed(true);
+                    setSelectedVolumeGaps(new Set());
                     setShowFinishModal(true);
                   }}
                   className="btn btn-secondary btn-md flex-1"
@@ -4112,10 +4233,12 @@ export default function ActiveWorkout() {
                   Skip & Finish
                 </button>
                 <button
+                  disabled={selectedVolumeGaps.size === 0}
                   onClick={() => {
-                    // Add ALL gap exercises at once
+                    // Add only the checked gaps
                     const added: string[] = [];
                     for (const gap of postWorkoutVolumeGaps.slice(0, 5)) {
+                      if (!selectedVolumeGaps.has(gap.muscle)) continue;
                       const exercise = gap.recommendedExercise
                         ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
                         : null;
@@ -4133,10 +4256,16 @@ export default function ActiveWorkout() {
                     }
                     setShowVolumeGapPrompt(false);
                     setVolumeGapDismissed(true);
+                    setSelectedVolumeGaps(new Set());
                   }}
-                  className="btn btn-primary btn-md flex-1"
+                  className={cn(
+                    'btn btn-primary btn-md flex-1',
+                    selectedVolumeGaps.size === 0 && 'opacity-50 cursor-not-allowed',
+                  )}
                 >
-                  Add All ({postWorkoutVolumeGaps.filter(g => g.recommendedExercise).length})
+                  {selectedVolumeGaps.size === 0
+                    ? 'Add Selected'
+                    : `Add ${selectedVolumeGaps.size}`}
                 </button>
               </div>
             </motion.div>

@@ -1251,6 +1251,11 @@ export const useAppStore = create<AppState>()(
           endDate: new Date(),
         };
 
+        // Preserve week count from the completed block; duration/periodization
+        // are not persisted on Mesocycle, so generateNewMesocycle will fall back
+        // to user.sessionDurationMinutes and the default periodization.
+        const completedWeeks = currentMesocycle.weeks?.length || 5;
+
         set({
           mesocycleHistory: [
             ...mesocycleHistory,
@@ -1264,9 +1269,26 @@ export const useAppStore = create<AppState>()(
         });
 
         // If there's a queued mesocycle, advance the queue.
-        // If no queue, leave currentMesocycle null — user picks via Program Browser.
+        // Otherwise, auto-generate a new block using the completed block's settings
+        // so the user isn't stranded with currentMesocycle=null (breaks "next block" UX,
+        // breaks post-migration currentMesocycle reads, forces re-onboarding via ProgramBrowser).
         if (mesocycleQueue.length > 0) {
-          get().advanceMesocycleQueue();
+          try {
+            get().advanceMesocycleQueue();
+          } catch (e) {
+            console.error('[completeMesocycle] queue advance failed, falling back to generate', e);
+            try {
+              get().generateNewMesocycle(completedWeeks);
+            } catch (e2) {
+              console.error('[completeMesocycle] fallback generate failed', e2);
+            }
+          }
+        } else {
+          try {
+            get().generateNewMesocycle(completedWeeks);
+          } catch (e) {
+            console.error('[completeMesocycle] generateNewMesocycle failed', e);
+          }
         }
         get().checkAndAwardBadges();
       },
@@ -1747,6 +1769,9 @@ export const useAppStore = create<AppState>()(
           const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs);
           // Get per-set data from previous session to prefill reps individually
           const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs);
+          // For time-based exercises, the "target" is seconds; prefill duration
+          // from last session (if logged) or fall back to prescription target.
+          const isTimeBased = ex.exercise.measurementType === 'time';
           return {
             exerciseId: ex.exerciseId,
             exerciseName: ex.exercise.name,
@@ -1755,7 +1780,12 @@ export const useAppStore = create<AppState>()(
               weight: previousSets?.[i]?.weight ?? suggestedWeight ?? 0,
               reps: previousSets?.[i]?.reps ?? ex.prescription.targetReps,
               rpe: ex.prescription.rpe,
-              completed: false
+              completed: false,
+              ...(isTimeBased
+                ? {
+                    duration: previousSets?.[i]?.duration ?? previousSets?.[i]?.reps ?? ex.prescription.targetReps,
+                  }
+                : {}),
             })),
             personalRecord: false
           };
@@ -1818,6 +1848,10 @@ export const useAppStore = create<AppState>()(
             weight: Math.max(0, Math.min(1500, safeNum(s.weight, 0))),
             reps: Math.max(0, Math.min(999, safeNum(s.reps, 0))),
             rpe: Math.min(10, Math.max(0, safeNum(s.rpe, 0))),
+            // Duration only set for time-based exercises; cap at 1 hour per set.
+            duration: s.duration !== undefined
+              ? Math.max(0, Math.min(3600, safeNum(s.duration, 0)))
+              : undefined,
           })),
         };
 
@@ -2811,8 +2845,9 @@ export const useAppStore = create<AppState>()(
           (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
-        // Track best estimated 1RM for each exercise
+        // Track best estimated 1RM and best hold duration per exercise
         const bestE1RMs: Record<string, number> = {};
+        const bestDurations: Record<string, number> = {};
 
         // Calculate estimated 1RM using Brzycki formula
         const calcE1RM = (weight: number, reps: number) => {
@@ -2821,10 +2856,40 @@ export const useAppStore = create<AppState>()(
           return Math.round(weight / (1.0278 - 0.0278 * reps));
         };
 
+        // Time-based exercises: PR is the longest hold. Detect via duration field
+        // (preferred) or by the exercise library's measurementType. Since this
+        // function has no access to the library here, we trust the duration field.
+        const exerciseIsTimeBased = (ex: ExerciseLog): boolean => {
+          return ex.sets.some(s => typeof s.duration === 'number' && s.duration > 0);
+        };
+
         // Process each log and update PR flags
         const updatedLogs = sortedLogs.map(log => {
           const updatedExercises = log.exercises.map(ex => {
-            // Find best set in this exercise
+            const timeBased = exerciseIsTimeBased(ex);
+
+            if (timeBased) {
+              // Find longest hold in this exercise
+              let bestSetDuration = 0;
+              for (const set of ex.sets) {
+                const isCompleted = set.completed !== false && (set.duration || 0) > 0;
+                if (isCompleted) {
+                  bestSetDuration = Math.max(bestSetDuration, set.duration || 0);
+                }
+              }
+              const previousBest = bestDurations[ex.exerciseId] || 0;
+              const isPR = bestSetDuration > 0 && bestSetDuration > previousBest;
+              if (bestSetDuration > previousBest) {
+                bestDurations[ex.exerciseId] = bestSetDuration;
+              }
+              return {
+                ...ex,
+                personalRecord: isPR,
+                bestDuration: bestSetDuration > 0 ? bestSetDuration : ex.bestDuration,
+              };
+            }
+
+            // Rep-based: best e1RM across completed sets
             let bestSetE1RM = 0;
             for (const set of ex.sets) {
               // For old backups, sets may not have 'completed' flag — treat as completed if weight+reps exist
@@ -3230,6 +3295,20 @@ export const useAppStore = create<AppState>()(
           log.id === logId ? { ...log, ...updates } : log
         );
         set({ workoutLogs: updatedLogs });
+
+        // If the edit touched exercises/sets, PR flags and estimated1RMs may be
+        // stale — recalculate so accidental low entries don't overwrite real PRs
+        // and real PRs are recognised after corrections.
+        if (updates.exercises) {
+          // Defer to next tick to avoid cascading set() calls in the same frame
+          queueMicrotask(() => {
+            try {
+              get().recalculatePRs();
+            } catch (e) {
+              console.error('[updateWorkoutLog] recalculatePRs failed', e);
+            }
+          });
+        }
       },
 
       deleteWorkoutLog: (logId) => {

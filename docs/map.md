@@ -75,10 +75,29 @@ Living map of how the pieces connect. When you need to change something, look he
 | Injury intelligence | `src/lib/injury-intelligence.ts` | Pain history, body region risk, exercise risk (safe/caution/avoid) |
 | Injury patterns | `src/lib/injury-patterns.ts` | Recurring trigger detection, recovery trends |
 | Illness engine | `src/lib/illness-engine.ts` | Symptom tracking, training mods (rest vs light), nutrition adjustments |
-| Injury UI | `src/components/InjuryLogger.tsx` | Injury logging interface |
+| Rehab engine | `src/lib/rehab-engine.ts` | 5-phase rehab program with daily exercises, check-in advancement, RTS functional tests |
+| Injury-aware workout | `src/lib/injury-aware-workout.ts` | On-demand session generator with movement constraints (no_deep_knee_flexion, no_overhead, etc.) |
+| Injury UI | `src/components/InjuryLogger.tsx` | Injury logging + Rehab CTA per active injury |
+| Rehab UI | `src/components/RehabPlan.tsx` | Phased rehab plan with check-ins, advancement gate, RTS tests |
+| Injury-aware UI | `src/components/InjuryAwareWorkout.tsx` | Region + constraint picker, generates filtered workout |
 | Illness UI | `src/components/IllnessLogger.tsx` | Illness tracking interface |
 
-**Flow**: User logs injury → `injury-science` generates restrictions → `startWorkout` in store applies adaptations (volume/intensity limits, exercise substitutions) → `injury-intelligence` tracks patterns over time → `injury-prevention` flags risk before injury occurs
+**Flow**: User logs injury → `injury-science` generates restrictions → `startWorkout` in store applies adaptations (volume/intensity limits, exercise substitutions) → `injury-intelligence` tracks patterns over time → `injury-prevention` flags risk before injury occurs. Phased rehab branch: user opens RehabPlan → `rehab-engine.classifyInjury` derives current phase → `generateRehabSession` builds today's session → check-ins gate `evaluatePhaseAdvancement` → phase 5 unlocks `getReturnToSportTests`.
+
+---
+
+## Athletic Performance (Velocity / Capacity / Resilience)
+
+| Piece | File | Purpose |
+|-------|------|---------|
+| Plyometric engine | `src/lib/plyometric-engine.ts` | 6-week Verkhoshansky speed-strength block: extensive → intensive → reactive (shock method) → contrast (PAP). 25-exercise library, RSI test protocol |
+| Plyometric UI | `src/components/PlyometricsBlock.tsx` | Block setup, week-by-week sessions, RSI logger with history |
+| Athletic benchmarks | `src/lib/athletic-benchmarks.ts` | 6-test combat athletics battery with tier classification, weakest-link auto-routing |
+| Benchmarks UI | `src/components/AthleticBenchmarks.tsx` | Test cards with tier dashboard, weakest-link callout, log modal |
+| Energy systems | `src/lib/energy-systems.ts` | 5 cardio protocols (Z2 base, tempo, long aerobic, Norwegian 4×4, RSA), Tanaka + Karvonen HR-zone math |
+| Energy systems UI | `src/components/EnergySystems.tsx` | Protocol picker with HR zones display and runnable session conversion |
+
+**Flow**: Athletic Benchmarks identifies weakest attribute → routes to plyo / energy-systems / grip / conditioning. Plyo block converts to standard `WorkoutSession` via `plyoSessionToWorkoutSession` so it runs through the normal `startWorkout` flow. Energy systems likewise converts via `protocolToWorkoutSession`.
 
 ---
 

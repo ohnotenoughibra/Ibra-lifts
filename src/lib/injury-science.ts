@@ -134,8 +134,9 @@ function getPhaseFromDays(daysSinceInjury: number, healTime: HealTimeRange): {
 }
 
 // ── Exercise Avoidance by Region ────────────────────────────────────────
+// Exported so other engines (injury-aware-workout) can consume the same source.
 
-const REGION_AVOID_EXERCISES: Record<BodyRegion, string[]> = {
+export const REGION_AVOID_EXERCISES: Record<BodyRegion, string[]> = {
   neck:            ['shrug', 'upright-row', 'neck-curl'],
   left_shoulder:   ['overhead-press', 'lateral-raise', 'bench-press', 'dips', 'push-press'],
   right_shoulder:  ['overhead-press', 'lateral-raise', 'bench-press', 'dips', 'push-press'],

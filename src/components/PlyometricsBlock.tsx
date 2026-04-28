@@ -22,41 +22,50 @@ import {
   type PlyoBodyFocus,
   type PlyoExperience,
   type PlyoSession,
+  type RSIEntry,
 } from '@/lib/plyometric-engine';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
 
 interface Props { onClose: () => void }
 
-const STORAGE_KEY = 'roots-plyo-block';
-const STORAGE_RSI_KEY = 'roots-plyo-rsi-history';
-
-interface RSIEntry { date: string; rsi: number; height: number; contactTime: number }
+// Legacy localStorage keys — only used during one-time migration from pre-store version
+const LEGACY_BLOCK_KEY = 'roots-plyo-block';
+const LEGACY_RSI_KEY = 'roots-plyo-rsi-history';
 
 export default function PlyometricsBlock({ onClose }: Props) {
   const { showToast } = useToast();
   const startWorkout = useAppStore(s => s.startWorkout);
+  const block = useAppStore(s => s.activePlyoBlock);
+  const setActivePlyoBlock = useAppStore(s => s.setActivePlyoBlock);
+  const addRsiEntry = useAppStore(s => s.addRsiEntry);
 
-  const [block, setBlock] = useState<PlyoBlock | null>(null);
   const [view, setView] = useState<'overview' | 'setup' | 'sessions' | 'rsi'>('overview');
 
-  // Load saved block from localStorage on mount
+  // One-time migration from legacy localStorage keys (pre-store version)
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setBlock(parsed);
+      const legacyBlock = localStorage.getItem(LEGACY_BLOCK_KEY);
+      if (legacyBlock && !block) {
+        setActivePlyoBlock(JSON.parse(legacyBlock) as PlyoBlock);
+      }
+      if (legacyBlock) localStorage.removeItem(LEGACY_BLOCK_KEY);
+
+      const legacyRsi = localStorage.getItem(LEGACY_RSI_KEY);
+      if (legacyRsi) {
+        const entries = JSON.parse(legacyRsi) as RSIEntry[];
+        for (const entry of entries) addRsiEntry(entry);
+        localStorage.removeItem(LEGACY_RSI_KEY);
       }
     } catch {
-      // ignore
+      // ignore corrupt legacy data
     }
+    // intentionally only runs once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveBlock = (b: PlyoBlock | null) => {
-    setBlock(b);
-    if (b) localStorage.setItem(STORAGE_KEY, JSON.stringify(b));
-    else localStorage.removeItem(STORAGE_KEY);
+    setActivePlyoBlock(b);
   };
 
   const startSession = (session: PlyoSession) => {
@@ -468,16 +477,10 @@ function SessionCard({ session, onStart }: { session: PlyoSession; onStart: () =
 
 function RSIView() {
   const protocol = getRSIProtocol();
-  const [history, setHistory] = useState<RSIEntry[]>([]);
+  const history = useAppStore(s => s.rsiHistory ?? []);
+  const addRsiEntry = useAppStore(s => s.addRsiEntry);
   const [height, setHeight] = useState(0.4);
   const [contactTime, setContactTime] = useState(0.22);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_RSI_KEY);
-      if (saved) setHistory(JSON.parse(saved));
-    } catch {}
-  }, []);
 
   const rsi = contactTime > 0 ? height / contactTime : 0;
 
@@ -488,9 +491,7 @@ function RSIView() {
       height,
       contactTime,
     };
-    const next = [...history, entry];
-    setHistory(next);
-    localStorage.setItem(STORAGE_RSI_KEY, JSON.stringify(next));
+    addRsiEntry(entry);
   };
 
   const tier = rsi >= protocol.goodScoreRange.excellent ? 'Excellent (elite)' :

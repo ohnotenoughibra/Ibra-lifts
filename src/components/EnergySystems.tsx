@@ -216,12 +216,20 @@ function ZonesView({ zones, userAge, onBack }: { zones: ReturnType<typeof calcul
       <div className="space-y-2">
         {zoneMeta.map(({ key, tag }) => {
           const z = zones.zones[key];
-          const colors = key === 'zone1' ? 'emerald' : key === 'zone2' ? 'sky' : key === 'zone3' ? 'amber' : key === 'zone4' ? 'orange' : 'rose';
+          // Static class strings — Tailwind JIT cannot see template-literal interpolation
+          const ZONE_CLASSES: Record<typeof key, { bg: string; text: string }> = {
+            zone1: { bg: 'rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4', text: 'text-[10px] uppercase font-bold tracking-wider text-emerald-400' },
+            zone2: { bg: 'rounded-xl bg-sky-500/10 border border-sky-500/30 p-4',         text: 'text-[10px] uppercase font-bold tracking-wider text-sky-400' },
+            zone3: { bg: 'rounded-xl bg-amber-500/10 border border-amber-500/30 p-4',     text: 'text-[10px] uppercase font-bold tracking-wider text-amber-400' },
+            zone4: { bg: 'rounded-xl bg-orange-500/10 border border-orange-500/30 p-4',   text: 'text-[10px] uppercase font-bold tracking-wider text-orange-400' },
+            zone5: { bg: 'rounded-xl bg-rose-500/10 border border-rose-500/30 p-4',       text: 'text-[10px] uppercase font-bold tracking-wider text-rose-400' },
+          };
+          const cls = ZONE_CLASSES[key];
           return (
-            <div key={key} className={`rounded-xl bg-${colors}-500/10 border border-${colors}-500/30 p-4`}>
+            <div key={key} className={cls.bg}>
               <div className="flex items-baseline justify-between gap-2">
                 <div>
-                  <div className={`text-[10px] uppercase font-bold tracking-wider text-${colors}-400`}>
+                  <div className={cls.text}>
                     {key.toUpperCase()} · {tag}
                   </div>
                   <div className="text-xl font-bold text-white font-mono">

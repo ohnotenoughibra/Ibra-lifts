@@ -97,6 +97,13 @@ export interface RSITestProtocol {
   formula: string;
 }
 
+export interface RSIEntry {
+  date: string;        // ISO date
+  rsi: number;
+  height: number;      // meters
+  contactTime: number; // seconds
+}
+
 // ---------------------------------------------------------------------------
 // Exercise Library
 // ---------------------------------------------------------------------------

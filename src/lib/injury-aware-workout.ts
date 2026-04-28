@@ -19,6 +19,7 @@ import type {
   TrainingIdentity,
 } from './types';
 import { exercises as ALL_EXERCISES, getExercisesByEquipment } from './exercises';
+import { REGION_AVOID_EXERCISES } from './injury-science';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,28 +132,40 @@ const CONSTRAINT_FILTERS: Record<MovementConstraint, (ex: Exercise) => boolean> 
 };
 
 // ---------------------------------------------------------------------------
-// Body region → exercise IDs to avoid (mirror of injury-science.ts)
+// Body region → exercise filter
+// Single source of truth: injury-science.ts REGION_AVOID_EXERCISES.
+// We build a Set per region for O(1) lookup, plus pattern matching against
+// exercise NAMES (not just IDs) to catch DB entries with verbose names.
 // ---------------------------------------------------------------------------
 
-const REGION_AVOID: Record<BodyRegion, RegExp> = {
-  neck:            /shrug|upright.row|neck/i,
-  left_shoulder:   /overhead|military|push.press|bench|dip|fly|lateral.raise|snatch|jerk/i,
-  right_shoulder:  /overhead|military|push.press|bench|dip|fly|lateral.raise|snatch|jerk/i,
-  chest:           /bench|push.up|dip|fly|cable.cross|chest.press/i,
-  upper_back:      /barbell.row|pull.up|deadlift/i,
-  lower_back:      /deadlift(?!.*trap.bar)|good.morning|barbell.row|back.squat|bent.over/i,
-  core:            /sit.up|leg.raise|ab.wheel|deadlift/i,
-  left_elbow:      /skull.crusher|preacher|tricep.extension|close.grip|wrist.curl/i,
-  right_elbow:     /skull.crusher|preacher|tricep.extension|close.grip|wrist.curl/i,
-  left_wrist:      /wrist.curl|front.squat|clean|push.up.*hand|handstand/i,
-  right_wrist:     /wrist.curl|front.squat|clean|push.up.*hand|handstand/i,
-  left_hip:        /back.squat|front.squat|lunge|hip.thrust|leg.press/i,
-  right_hip:       /back.squat|front.squat|lunge|hip.thrust|leg.press/i,
-  left_knee:       /leg.extension|back.squat|front.squat|lunge|leg.press|jump|box.jump|pistol/i,
-  right_knee:      /leg.extension|back.squat|front.squat|lunge|leg.press|jump|box.jump|pistol/i,
-  left_ankle:      /calf.raise|jump.rope|box.jump|sprint|run|hop/i,
-  right_ankle:     /calf.raise|jump.rope|box.jump|sprint|run|hop/i,
-};
+const REGION_AVOID_SETS: Record<BodyRegion, Set<string>> = (() => {
+  const out = {} as Record<BodyRegion, Set<string>>;
+  for (const [region, ids] of Object.entries(REGION_AVOID_EXERCISES) as [BodyRegion, string[]][]) {
+    out[region] = new Set(ids);
+  }
+  return out;
+})();
+
+/**
+ * Build a name-pattern regex from the avoid list — catches exercises whose
+ * canonical name contains an avoided pattern (e.g. "Bulgarian Split Squat" for
+ * a knee with `lunges` in the avoid list).
+ */
+function regionAvoidNamePattern(region: BodyRegion): RegExp {
+  const ids = REGION_AVOID_EXERCISES[region] ?? [];
+  if (ids.length === 0) return /(?!.*)/; // matches nothing
+  // Convert exercise-id-style 'leg-extension' → 'leg[-_ ]?extension' for fuzzy name matching
+  const patterns = ids.map(id => id.replace(/-/g, '[-_ ]?'));
+  return new RegExp(patterns.join('|'), 'i');
+}
+
+const REGION_AVOID_NAME_PATTERN: Record<BodyRegion, RegExp> = (() => {
+  const out = {} as Record<BodyRegion, RegExp>;
+  for (const region of Object.keys(REGION_AVOID_EXERCISES) as BodyRegion[]) {
+    out[region] = regionAvoidNamePattern(region);
+  }
+  return out;
+})();
 
 // ---------------------------------------------------------------------------
 // Set prescription
@@ -182,7 +195,9 @@ function buildSafePool(opts: InjuryAwareWorkoutOptions): { safe: Exercise[]; exc
     opts.constraints.some(c => CONSTRAINT_FILTERS[c]?.(ex));
 
   const inAvoidedRegion = (ex: Exercise) =>
-    opts.bodyRegions.some(r => REGION_AVOID[r].test(ex.id) || REGION_AVOID[r].test(ex.name));
+    opts.bodyRegions.some(r =>
+      REGION_AVOID_SETS[r].has(ex.id) || REGION_AVOID_NAME_PATTERN[r].test(ex.name)
+    );
 
   const safe = allAvailable.filter((ex: Exercise) => !violatesConstraint(ex) && !inAvoidedRegion(ex));
   return { safe, excluded: allAvailable.length - safe.length };

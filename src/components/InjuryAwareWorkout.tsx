@@ -105,7 +105,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
   const [generated, setGenerated] = useState<ReturnType<typeof generateInjuryAwareWorkout> | null>(null);
 
   const equipment = activeEquipmentProfile === 'gym' ? 'full_gym' : activeEquipmentProfile === 'travel' ? 'minimal' : 'home_gym';
-  const granularEquipment = (homeGymEquipment as any) || undefined;
+  const granularEquipment = activeEquipmentProfile === 'home' ? homeGymEquipment : undefined;
 
   const regionsByGroup = useMemo(() => {
     const groups: Record<string, typeof REGIONS> = {};

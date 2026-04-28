@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dumbbell, Play, TrendingUp, Clock, Target, Zap,
   Moon, Apple, Droplets, HeartPulse, Shield, Check, X,
-  AlertTriangle, SkipForward, Flame,
+  AlertTriangle, SkipForward, Flame, Activity, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
@@ -80,6 +80,7 @@ export default function LiftPhase({
 }: LiftPhaseProps) {
 
   const [showReadinessGate, setShowReadinessGate] = useState(false);
+  const [showSessionSheet, setShowSessionSheet] = useState(false);
 
   // Pre-workout readiness gate: if readiness is low/critical, confirm before starting
   const handleStartWorkout = () => {
@@ -285,21 +286,62 @@ export default function LiftPhase({
         </div>
       )}
 
-      {/* Secondary actions — skip visible, quick workout accessible */}
-      <div className="flex items-center justify-center gap-3 flex-wrap">
-        <button onClick={onQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
-        <span className="text-grappler-700">·</span>
-        <button onClick={() => onNavigate('builder')} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">Custom</button>
-        <span className="text-grappler-700">·</span>
-        <button onClick={() => onNavigate('injury_aware_workout')} className="flex items-center gap-1.5 py-2 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">Injury-Aware</button>
-        <span className="text-grappler-700">·</span>
+      {/* Secondary action — bundled into a single "Different session?" sheet */}
+      <div className="flex items-center justify-center">
         <button
-          onClick={onShowSkipDialog}
-          className="flex items-center gap-1.5 py-2 text-xs text-grappler-500 hover:text-grappler-300 transition-colors"
+          onClick={() => setShowSessionSheet(true)}
+          className="py-2 px-3 text-xs text-grappler-500 hover:text-grappler-300 transition-colors underline-offset-4 hover:underline"
         >
-          <SkipForward className="w-3.5 h-3.5" />Skip
+          Different session?
         </button>
       </div>
+
+      {/* Session-options sheet */}
+      <AnimatePresence>
+        {showSessionSheet && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setShowSessionSheet(false)}
+          >
+            <motion.div
+              initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-grappler-900 rounded-2xl border border-grappler-800 p-2 space-y-1"
+            >
+              <button onClick={() => { setShowSessionSheet(false); onQuickWorkout(); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <Zap className="w-4 h-4 text-grappler-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Quick 30m</div>
+                  <div className="text-xs text-grappler-400">Auto-generated, fills volume gaps</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowSessionSheet(false); onNavigate('builder'); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <SlidersHorizontal className="w-4 h-4 text-grappler-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Custom</div>
+                  <div className="text-xs text-grappler-400">Build from scratch</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowSessionSheet(false); onNavigate('injury_aware_workout'); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <Activity className="w-4 h-4 text-amber-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Injury-aware</div>
+                  <div className="text-xs text-grappler-400">Filter out movements you can&apos;t do today</div>
+                </div>
+              </button>
+              <div className="border-t border-grappler-800 my-1" />
+              <button onClick={() => { setShowSessionSheet(false); onShowSkipDialog(); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <SkipForward className="w-4 h-4 text-grappler-500" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-grappler-300">Skip today</div>
+                  <div className="text-xs text-grappler-500">Log a missed session</div>
+                </div>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pre-workout readiness confirmation gate */}
       <AnimatePresence>

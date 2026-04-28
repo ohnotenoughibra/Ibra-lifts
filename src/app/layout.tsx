@@ -1,19 +1,39 @@
 import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import { Epilogue, Space_Grotesk, Inter } from 'next/font/google';
 import Providers from '@/components/Providers';
 import './globals.css';
 
+// Editorial brutalism stack — declared in tailwind.config.ts but never loaded until now.
+const epilogue = Epilogue({
+  subsets: ['latin'],
+  weight: ['400', '600', '800', '900'],
+  variable: '--font-epilogue',
+  display: 'swap',
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://rootsgains.com'),
-  title: 'Roots Gains — Performance System for Combat Athletes',
+  title: 'Ibra Lifts — Performance System for Combat Athletes',
   description: 'Periodized training, adaptive nutrition, recovery intelligence, and fight camp planning — built for grapplers, strikers, and combat sport athletes.',
   keywords: ['combat sports', 'martial arts', 'BJJ', 'MMA', 'strength training', 'periodization', 'fight camp', 'nutrition', 'weight cut'],
-  authors: [{ name: 'Roots Gains' }],
+  authors: [{ name: 'Ibra Lifts' }],
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Roots',
+    title: 'Ibra Lifts',
   },
   icons: {
     icon: [
@@ -26,14 +46,14 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'Roots Gains',
+    title: 'Ibra Lifts',
     description: 'Performance system for combat athletes. Periodization, adaptive nutrition, recovery, fight camp.',
     type: 'website',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Roots Gains — Performance system for combat athletes' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Ibra Lifts — Performance system for combat athletes' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Roots Gains',
+    title: 'Ibra Lifts',
     description: 'Performance system for combat athletes.',
     images: ['/og-image.png'],
   },
@@ -44,7 +64,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#0f172a',
+  themeColor: '#0a0a0a',
 };
 
 export default function RootLayout({
@@ -53,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${epilogue.variable} ${spaceGrotesk.variable} ${inter.variable}`}>
       <head>
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />

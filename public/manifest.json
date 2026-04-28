@@ -1,11 +1,11 @@
 {
-  "name": "Roots Gains",
-  "short_name": "Roots",
+  "name": "Ibra Lifts",
+  "short_name": "Ibra Lifts",
   "description": "Performance system for combat athletes — periodization, nutrition, recovery, fight camp",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
   "orientation": "natural",
   "icons": [
     {

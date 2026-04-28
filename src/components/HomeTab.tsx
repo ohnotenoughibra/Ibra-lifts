@@ -1140,7 +1140,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       exercises,
       lastCompletedWorkout.hadPR ? `\nNew Personal Record!` : '',
       `${lastCompletedWorkout.newStreak} day streak`,
-      `\n-- Roots Gains`
+      `\n-- Ibra Lifts`
     ].filter(Boolean).join('\n');
 
     if (navigator.share) {
@@ -1871,10 +1871,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           )}
         </AnimatePresence>
 
-        {/* ─── Adaptive Recovery Status ─── */}
-        <CardErrorBoundary fallbackLabel="Recovery">
-          <AdaptiveRecoveryCard />
-        </CardErrorBoundary>
+        {/* AdaptiveRecoveryCard removed — duplicated the readiness verdict already shown in the hero ring. */}
       </section>
 
       {/* ─── THE ONE THING — single time-aware directive ─── */}
@@ -2055,25 +2052,15 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         />
       )}
 
-      {/* ─── Urgent Feed Cards — time-sensitive, always visible ─── */}
-      {urgentFeedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string)).length > 0 && (
-        <div className="space-y-2">
-          {urgentFeedCards
-            .filter(card => !dismissedCards.has((card as React.ReactElement).key as string))
-            .slice(0, 2)
-            .map(card => card)}
-        </div>
-      )}
-
-      {/* ─── Contextual Feed Cards — block ending, combat shortcuts, etc ─── */}
-      {feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string)).length > 0 && (
-        <div className="space-y-2">
-          {feedCards
-            .filter(card => !dismissedCards.has((card as React.ReactElement).key as string))
-            .slice(0, 3)
-            .map(card => card)}
-        </div>
-      )}
+      {/* ─── Feed Cards — capped at 2 total (urgent first, then contextual) ─── */}
+      {(() => {
+        const urgent = urgentFeedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
+        const contextual = feedCards.filter(card => !dismissedCards.has((card as React.ReactElement).key as string));
+        // Cap at 2 total: prefer urgent. Fill remaining slots with contextual.
+        const combined = [...urgent.slice(0, 2), ...contextual.slice(0, Math.max(0, 2 - urgent.length))].slice(0, 2);
+        if (combined.length === 0) return null;
+        return <div className="space-y-2">{combined.map(card => card)}</div>;
+      })()}
 
       {/* ─── Training Restrictions — merged illness + injury risk alert ─── */}
       {(injuryRiskAlert || hasActiveIllness) && (
@@ -2220,21 +2207,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       })()}
 
       {/* ─── Weekly Momentum — always visible ─── */}
-      <WeeklyMomentum
-        currentStreak={currentStreak}
-        weekDone={weekDone}
-        weekTarget={weekTarget}
-        liftDays={user?.trainingDays || []}
-        combatDays={user?.combatTrainingDays || []}
-        workoutLogs={workoutLogs}
-        trainingSessions={trainingSessions}
-        weekStats={synthesis.stats}
-        weekTrends={synthesis.trends}
-        lastWeekVolume={periodSummaries.lastWeek.volume}
-        lastCombatLoad={synthesis.lastCombatLoad}
-        weightUnit={weightUnit}
-        nextBadgeDistance={nextBadgeDistance}
-      />
+      {/* WeeklyMomentum moved to Body tab — Home is for doing today, not reviewing the week. */}
 
       {/* Daily Knowledge Insight moved to Explore tab — home is for doing, not reading */}
 

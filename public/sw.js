@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.0.0-4153475-1777394402';
+const CACHE_NAME = 'roots-gains-v2.0.0-66a20a3-1777412055';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -162,7 +162,7 @@ async function replaySyncQueue() {
 // Handles server-sent push events via Web Push API (VAPID)
 // Payload shape: { title, body, tag, url, category }
 self.addEventListener('push', (event) => {
-  let data = { title: 'Roots Gains', body: 'Time to train!', tag: 'default', url: '/', category: '' };
+  let data = { title: 'Ibra Lifts', body: 'Time to train!', tag: 'default', url: '/', category: '' };
 
   if (event.data) {
     try {

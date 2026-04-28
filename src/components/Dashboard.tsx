@@ -85,6 +85,9 @@ const InjuryAwareWorkout = dynamic(() => import('./InjuryAwareWorkout'), { loadi
 const PlyometricsBlock = dynamic(() => import('./PlyometricsBlock'), { loading: () => <OverlaySkeleton /> });
 const AthleticBenchmarks = dynamic(() => import('./AthleticBenchmarks'), { loading: () => <OverlaySkeleton /> });
 const EnergySystems = dynamic(() => import('./EnergySystems'), { loading: () => <OverlaySkeleton /> });
+const TechniqueLog = dynamic(() => import('./TechniqueLog'), { loading: () => <OverlaySkeleton /> });
+const CampTimeline = dynamic(() => import('./CampTimeline'), { loading: () => <OverlaySkeleton /> });
+const CoachReport = dynamic(() => import('./CoachReport'), { loading: () => <OverlaySkeleton /> });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
@@ -233,10 +236,9 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
 }
 
 const TABS = [
-  { id: 'home', icon: Dumbbell, label: 'Today' },
-  { id: 'program', icon: Calendar, label: 'Workouts' },
-  { id: 'explore', icon: Compass, label: 'Tools' },
-  { id: 'progress', icon: BarChart3, label: 'Stats' },
+  { id: 'home',  icon: Dumbbell,  label: 'Today' },
+  { id: 'train', icon: Calendar,  label: 'Train' },
+  { id: 'body',  icon: BarChart3, label: 'Body' },
 ] as const;
 
 interface DashboardProps {
@@ -589,6 +591,9 @@ export default function Dashboard({
       plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
       athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
       energy_systems: <EnergySystems onClose={closeOverlay} />,
+      technique_log: <TechniqueLog onClose={closeOverlay} />,
+      camp_timeline: <CampTimeline onClose={closeOverlay} />,
+      coach_report: <CoachReport onClose={closeOverlay} />,
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
       one_rm: <OneRepMaxCalc onClose={closeOverlay} />,
@@ -684,10 +689,9 @@ export default function Dashboard({
 
   // Sidebar nav items (matches TABS + profile)
   const sidebarNav = [
-    { id: 'home' as TabType, icon: Dumbbell, label: 'Today' },
-    { id: 'program' as TabType, icon: Calendar, label: 'Workouts' },
-    { id: 'explore' as TabType, icon: Compass, label: 'Tools' },
-    { id: 'progress' as TabType, icon: BarChart3, label: 'Stats' },
+    { id: 'home'  as TabType, icon: Dumbbell,  label: 'Today' },
+    { id: 'train' as TabType, icon: Calendar,  label: 'Train' },
+    { id: 'body'  as TabType, icon: BarChart3, label: 'Body' },
   ];
 
   return (
@@ -713,7 +717,7 @@ export default function Dashboard({
               <Dumbbell className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
+              <h1 className="font-bold text-base text-grappler-50 leading-tight">Ibra Lifts</h1>
               <p className="text-xs text-grappler-500">Performance System</p>
             </div>
           </div>
@@ -840,7 +844,7 @@ export default function Dashboard({
                     <Dumbbell className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h1 className="font-bold text-base text-grappler-50 leading-tight">Roots Gains</h1>
+                    <h1 className="font-bold text-base text-grappler-50 leading-tight">Ibra Lifts</h1>
                     <p className="text-xs text-grappler-400">{getLevelTitle(computed.level)}</p>
                   </div>
                 </div>
@@ -956,36 +960,32 @@ export default function Dashboard({
                     <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={setActiveTab} />
                   </motion.div>
                 )}
-                {activeTab === 'program' && (
+                {activeTab === 'train' && (
                   <motion.div
-                    key="program"
+                    key="train"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
-                    <CardErrorBoundary fallbackLabel="Program tab">
+                    <CardErrorBoundary fallbackLabel="Train tab">
                       <WorkoutView onSwitchTab={setActiveTab} />
                     </CardErrorBoundary>
+                    <div className="mt-6">
+                      <ExploreTab onNavigate={setOverlayView} filterTab="train" />
+                    </div>
                   </motion.div>
                 )}
-                {activeTab === 'explore' && (
+                {activeTab === 'body' && (
                   <motion.div
-                    key="explore"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                  >
-                    <ExploreTab onNavigate={setOverlayView} />
-                  </motion.div>
-                )}
-                {activeTab === 'progress' && (
-                  <motion.div
-                    key="progress"
+                    key="body"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <ProgressAndHistoryTab onViewReport={setReportMesocycleId} onNavigate={setOverlayView} />
+                    <div className="mt-6">
+                      <ExploreTab onNavigate={setOverlayView} filterTab="body" />
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

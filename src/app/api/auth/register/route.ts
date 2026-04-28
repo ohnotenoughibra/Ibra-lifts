@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     // Send verification email in the background (non-blocking)
     const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Roots Gains <onboarding@resend.dev>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Ibra Lifts <onboarding@resend.dev>';
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     if (resendKey) {
@@ -69,10 +69,10 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           from: fromEmail,
           to: trimmedEmail,
-          subject: 'Verify your Roots Gains email',
+          subject: 'Verify your Ibra Lifts email',
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#111;color:#eee;border-radius:12px;">
-              <h2 style="margin:0 0 12px;color:#fff;">Welcome to Roots Gains!</h2>
+              <h2 style="margin:0 0 12px;color:#fff;">Welcome to Ibra Lifts!</h2>
               <p style="color:#999;font-size:14px;">Tap below to verify your email and enable cloud sync.</p>
               <a href="${baseUrl}/verify-email?token=${verifyToken}" style="display:inline-block;margin:24px 0;padding:12px 32px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;">
                 Verify Email

@@ -47,8 +47,12 @@ const RITUAL_KEY = 'ritual-last-shown';
 export function shouldShowRitual(): boolean {
   if (typeof window === 'undefined') return false;
   const lastShown = localStorage.getItem(RITUAL_KEY);
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  return lastShown !== today;
+  if (!lastShown) return true;
+  // Post-audit: ritual fires weekly, not daily. The hero readiness ring + phase card
+  // already show the readiness verdict on every open — the ritual was duplicate friction.
+  const lastDate = new Date(lastShown).getTime();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  return (Date.now() - lastDate) >= sevenDaysMs;
 }
 
 function markRitualShown(): void {

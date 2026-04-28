@@ -582,7 +582,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
           </button>
           {onSwitchTab && (
             <button
-              onClick={() => onSwitchTab('explore')}
+              onClick={() => onSwitchTab('train')}
               className="btn btn-ghost btn-sm gap-2 flex-1 text-grappler-400 hover:text-grappler-200"
             >
               <Compass className="w-4 h-4" />

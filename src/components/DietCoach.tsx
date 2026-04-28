@@ -1516,7 +1516,7 @@ function DietHistorySection({
   };
 
   const handleShareProgress = async () => {
-    const lines = ['Roots Gains — Diet Progress', ''];
+    const lines = ['Ibra Lifts — Diet Progress', ''];
 
     if (activeDietPhase) {
       lines.push(`Current: ${goalLabel(activeDietPhase.goal)} (Week ${activeDietPhase.weeksCompleted + 1})`);

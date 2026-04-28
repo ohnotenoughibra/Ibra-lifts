@@ -186,7 +186,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
                     {badge.earned && (
                       <button
                         onClick={async () => {
-                          const text = `${badge.icon} I earned the "${badge.name}" badge!\n${badge.description}\n\n— Roots Gains`;
+                          const text = `${badge.icon} I earned the "${badge.name}" badge!\n${badge.description}\n\n— Ibra Lifts`;
                           try {
                             if (typeof navigator !== 'undefined' && navigator.share) {
                               await navigator.share({ text });

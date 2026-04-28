@@ -138,7 +138,7 @@ export function exportProgramPdf(mesocycle: Mesocycle, weightUnit: WeightUnit = 
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.muted);
-    doc.text(`Roots Gains — ${mesocycle.name}`, margin, doc.internal.pageSize.getHeight() - 6);
+    doc.text(`Ibra Lifts — ${mesocycle.name}`, margin, doc.internal.pageSize.getHeight() - 6);
     doc.text(`Page ${i}/${totalPages}`, pageW - margin - 20, doc.internal.pageSize.getHeight() - 6);
   }
 
@@ -304,7 +304,7 @@ export function exportWorkoutHistoryPdf(logs: WorkoutLog[], weightUnit: WeightUn
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.muted);
-    doc.text('Roots Gains — Workout History', margin, doc.internal.pageSize.getHeight() - 6);
+    doc.text('Ibra Lifts — Workout History', margin, doc.internal.pageSize.getHeight() - 6);
     doc.text(`Page ${i}/${totalPages}`, pageW - margin - 20, doc.internal.pageSize.getHeight() - 6);
   }
 

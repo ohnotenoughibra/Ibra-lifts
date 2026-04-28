@@ -52,7 +52,7 @@ export default function LoadingScreen() {
           className="text-center"
         >
           <h1 className="text-2xl font-black text-grappler-50 tracking-tight font-display">
-            Roots Gains
+            Ibra Lifts
           </h1>
           <p className="text-xs text-grappler-400 mt-1.5 tracking-wide uppercase font-medium">
             Performance System

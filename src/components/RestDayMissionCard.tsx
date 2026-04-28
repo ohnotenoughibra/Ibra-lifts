@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Moon, Zap, Play, Dumbbell, Apple,
   Droplets, Check, Move, ChevronRight, Star,
+  Activity, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WorkoutSession } from '@/lib/types';
@@ -42,6 +43,8 @@ interface RestDayMissionCardProps {
 // ─── Component ───
 
 export default function RestDayMissionCard(props: RestDayMissionCardProps) {
+  const [showSessionSheet, setShowSessionSheet] = useState(false);
+
   // ─── Recovery Missions ───
   const missions = useMemo(() => {
     const m: { id: string; label: string; detail: string; done: boolean; action?: () => void; Icon: typeof Apple }[] = [];
@@ -245,19 +248,52 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
           <Play className="w-4 h-4 text-grappler-500" />
         </button>
       )}
-      <div className="flex items-center justify-center gap-3 flex-wrap">
-        <button onClick={props.onQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">
-          <Zap className="w-3.5 h-3.5" />Quick 30m
-        </button>
-        <span className="text-grappler-700">·</span>
-        <button onClick={() => props.onNavigate('builder')} className="py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">
-          Custom
-        </button>
-        <span className="text-grappler-700">·</span>
-        <button onClick={() => props.onNavigate('injury_aware_workout')} className="py-2 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">
-          Injury-Aware
+      <div className="flex items-center justify-center">
+        <button
+          onClick={() => setShowSessionSheet(true)}
+          className="py-2 px-3 text-xs text-grappler-500 hover:text-grappler-300 transition-colors underline-offset-4 hover:underline"
+        >
+          Lift anyway?
         </button>
       </div>
+
+      <AnimatePresence>
+        {showSessionSheet && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            onClick={() => setShowSessionSheet(false)}
+          >
+            <motion.div
+              initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md bg-grappler-900 rounded-2xl border border-grappler-800 p-2 space-y-1"
+            >
+              <button onClick={() => { setShowSessionSheet(false); props.onQuickWorkout(); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <Zap className="w-4 h-4 text-grappler-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Quick 30m</div>
+                  <div className="text-xs text-grappler-400">Auto-generated, fills volume gaps</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowSessionSheet(false); props.onNavigate('builder'); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <SlidersHorizontal className="w-4 h-4 text-grappler-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Custom</div>
+                  <div className="text-xs text-grappler-400">Build from scratch</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowSessionSheet(false); props.onNavigate('injury_aware_workout'); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
+                <Activity className="w-4 h-4 text-amber-400" />
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-white">Injury-aware</div>
+                  <div className="text-xs text-grappler-400">Filter out movements you can&apos;t do today</div>
+                </div>
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

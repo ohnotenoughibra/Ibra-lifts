@@ -7,7 +7,7 @@ import {
   WearableData
 } from './types';
 
-// AI Coach module for Roots Gains
+// AI Coach module for Ibra Lifts
 // Generates weekly summaries, exercise response profiles, sticking point analysis,
 // and contextual coach messages based on training data.
 

@@ -13,6 +13,7 @@ import {
   BookOpen, Timer, Thermometer,
   BookMarked, MessageCircle,
   ChevronDown, ChevronRight,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -33,6 +34,10 @@ export interface Tool {
   icon: React.ElementType;
   color: string;
   isPro?: boolean;
+  /** Which top-level tab this tile belongs to. Drives 3-tab nav split. */
+  tab?: 'train' | 'body';
+  /** Hide for users whose sex doesn't match. Currently only 'female' (cycle tracking). */
+  gendered?: 'female';
 }
 
 interface Category {
@@ -42,62 +47,32 @@ interface Category {
   tools: Tool[];
 }
 
-// ─── Tool Database ──────────────────────────────────────────────────────────
+// ─── Tool Database (post-audit cull: 32 → 14) ──────────────────────────────
+//
+// Demoted to deep-link only (engine + overlay still wired, no tile):
+//   templates, periodization, one_rm, plate_calc, warm_up, plyometrics,
+//   energy_systems (merged into conditioning), grip_strength, rehab,
+//   injury_aware_workout, training_load, wearable, training_journal,
+//   corner_coach, overload (folded into strength), profiler (folded into strength)
+//
+// Each tool now declares `tab: 'train' | 'body'` to drive the new 3-tab nav.
 
 const CATEGORIES: Category[] = [
-  {
-    title: 'BUILD',
-    icon: Hammer,
-    accent: 'text-primary-400',
-    tools: [
-      { id: 'builder', label: 'Workout Builder', desc: 'Create custom sessions', longDesc: 'Design sessions from 300+ exercises with sets, reps, and RPE targets', keywords: 'create make design gym routine plan workout session custom build program training', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400' },
-      { id: 'templates', label: 'Templates', desc: 'Save & reuse workouts', longDesc: 'Save any workout as a reusable template — load it in one tap', keywords: 'save reuse preset routine copy duplicate favorite bookmark', icon: Layers, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
-      { id: 'program_browser', label: 'Program Browser', desc: 'Browse & preview training blocks', longDesc: 'Browse all program types, preview workouts, get AI suggestions, and queue your next block', keywords: 'auto generate smart suggest recommend ai mesocycle block plan program browse preview next', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400' },
-      { id: 'periodization', label: 'Periodization', desc: 'Plan your training phases', longDesc: 'Plan mesocycles with deload weeks, peak phases, and volume waves', keywords: 'phase cycle calendar deload peak taper block mesocycle schedule week', icon: Calendar, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
-      { id: 'one_rm', label: '1RM Calculator', desc: 'Estimate your max', longDesc: 'Estimate your one-rep max from any rep range using validated formulas', keywords: 'one rep max calculator estimate weight heavy bench squat deadlift press strength', icon: Calculator, color: 'from-cyan-500/20 to-cyan-500/5 text-cyan-400' },
-      { id: 'plate_calc', label: 'Plate Calculator', desc: 'Which plates to load', longDesc: 'Enter a target weight and see exactly which plates to load on each side of the bar', keywords: 'plate calculator barbell loading weight plates per side warm up ramp', icon: Calculator, color: 'from-amber-500/20 to-amber-500/5 text-amber-400' },
-      { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues technique how to movement muscles create new custom machine cable dumbbell barbell add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
-      { id: 'warm_up', label: 'Warm-Up Protocols', desc: 'Dynamic warm-ups for sessions', longDesc: 'Follow guided warm-up sequences tailored to your upcoming workout — dynamic stretches, activation drills, and ramp-up sets', keywords: 'warm up warmup dynamic stretch activation ramp prep routine movement prep pre workout', icon: Flame, color: 'from-orange-500/20 to-orange-500/5 text-orange-400' },
-      { id: 'knowledge_hub', label: 'Knowledge Hub', desc: 'Science-backed training articles', longDesc: 'Browse a curated library of science-backed articles on strength, nutrition, recovery, and combat sports training', keywords: 'articles knowledge learn science research evidence based tips education read study training insights', icon: BookMarked, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400' },
-      { id: 'corner_coach', label: 'Corner Coach', desc: 'Between-set coaching cues', longDesc: 'Get contextual coaching cues and reminders between sets — form tips, breathing cues, and motivational prompts', keywords: 'coach cue tip reminder form technique between sets rest advice guidance corner', icon: MessageCircle, color: 'from-violet-500/20 to-violet-500/5 text-violet-400' },
-    ],
-  },
   {
     title: 'TRAIN',
     icon: Flame,
     accent: 'text-orange-400',
     tools: [
-      { id: 'plyometrics', label: 'Speed-Strength Block', desc: 'Plyometrics, jumps, RFD', longDesc: 'Periodized 6-week plyometric program (Verkhoshansky shock method): extensive → intensive → reactive → contrast. RSI testing, contact-volume tracking, contrast training pairs.', keywords: 'plyometric plyo jump explosive speed strength power rfd reactive depth jump box jump broad jump bound striking athletic verkhoshansky shock contrast pap rsi vertical velocity', icon: Zap, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
-      { id: 'energy_systems', label: 'Energy Systems', desc: 'Zone 2, threshold, RSA', longDesc: 'Structured cardio: Zone 2 base for the aerobic engine, Norwegian 4×4 for VO2max, repeated sprint ability for fight-pace recovery. HR zones calculated for you.', keywords: 'cardio energy systems zone 2 base aerobic threshold norwegian 4x4 vo2max rsa repeated sprint fight pace tempo intervals heart rate zones karvonen running cycling rowing capacity', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
-      { id: 'conditioning', label: 'Conditioning', desc: 'Cardio & interval sessions', longDesc: 'Build and run combat-sport conditioning — EMOM, Tabata, AMRAP, custom circuits, shark tanks, and intervals with execution timer', keywords: 'conditioning cardio interval emom tabata amrap circuit shark tank gpp endurance stamina aerobic anaerobic hiit builder custom create timer', icon: Timer, color: 'from-orange-500/20 to-orange-500/5 text-orange-400', isPro: true },
-      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM tracking', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging', keywords: 'stretch flexible warm up cool down rom range motion yoga foam roll mobility joint stiff tight resilience', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', isPro: true },
-      { id: 'grip_strength', label: 'Grip Strength', desc: 'Crush, pinch & hang', longDesc: 'Crush, pinch, and hang protocols for combat grip and deadlift lockout', keywords: 'grip hand forearm wrist crush pinch hang deadlift farmer carry hold squeeze durability', icon: Grip, color: 'from-slate-500/20 to-slate-500/5 text-slate-400', isPro: true },
-      { id: 'rehab', label: 'Rehab Plan', desc: 'Phased return-to-training', longDesc: 'Five-phase rehab program with daily exercises, pain check-ins, and phase-advancement gates. Built on evidence-based loading protocols (POLICE, HSR, Alfredson).', keywords: 'rehab rehabilitation injury recovery phase return train comeback heal protocol exercise daily plan progression knee shoulder back ankle hip resilience', icon: Heart, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
-      { id: 'injury_aware_workout', label: 'Injury-Aware Workout', desc: 'Train around your limitation', longDesc: 'Tell us what you can\'t do today — knee can\'t bend, shoulder pinches overhead — and get a session that swaps out risky movements automatically.', keywords: 'injury aware workout limitation knee shoulder back hurt pain modify swap alternative substitute can not bend lift restriction work around', icon: Activity, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
-    ],
-  },
-  {
-    title: 'TRACK',
-    icon: BookOpen,
-    accent: 'text-blue-400',
-    tools: [
-      { id: 'grappling', label: 'Grappling', desc: 'BJJ & wrestling tracking', longDesc: 'Session tracker with technique notes, sparring rounds, and mat time', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grapple training', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
-      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal tracking', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols', keywords: 'food eat diet meal calories macros protein carbs fat water hydration drink weight cut bulk lean gain lose breakfast lunch dinner snack track log fiber sugar sodium', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400' },
-      { id: 'competition', label: 'Fight Prep', desc: 'Peak & cut for comp', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling', keywords: 'meet competition event peak taper fight tournament game match powerlifting mma boxing weigh in weight cut rehydrate refeed combat sport muay thai ufc fighters mind mental confidence', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
-      { id: 'training_journal', label: 'Training Journal', desc: 'Session notes & reflections', longDesc: 'Log session notes, reflections, and personal insights after every workout — build a searchable training diary over time', keywords: 'journal notes reflect diary log write session recap thoughts training', icon: BookOpen, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
-    ],
-  },
-  {
-    title: 'ANALYZE',
-    icon: Eye,
-    accent: 'text-pink-400',
-    tools: [
-      { id: 'overload', label: 'Progression', desc: 'Track overload over time', longDesc: 'Track if you\'re adding weight, reps, or sets over time', keywords: 'progressive overload increase weight reps sets volume stronger gains', icon: TrendingUp, color: 'from-green-500/20 to-green-500/5 text-green-400' },
-      { id: 'strength', label: 'Strength Analysis', desc: 'Sticking points & PRs', longDesc: 'e1RM trends, PR tracking, and sticking-point detection with accessory recommendations', keywords: 'pr personal record max strength chart graph trend lift heavy strong e1rm estimated sticking point weak', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400', isPro: true },
-      { id: 'profiler', label: 'Exercise Profiler', desc: 'Per-exercise deep dive', longDesc: 'Volume, intensity, frequency, and performance over time per exercise', keywords: 'history stats analytics individual exercise detail performance data sets reps', icon: Target, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', isPro: true },
-      { id: 'volume_map', label: 'Volume & Balance', desc: 'Muscle volume & split', longDesc: 'Weekly sets per muscle group against science-based volume landmarks. Includes push/pull ratios and imbalance detection.', keywords: 'muscle group heatmap chest back legs arms shoulders volume sets weekly body part split balance ratio push pull upper lower neglected imbalance', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
-      { id: 'training_load', label: 'Training Load', desc: 'ACWR & load tracking', longDesc: 'Acute:Chronic Workload Ratio — weekly load trends, 28-day heatmap, and injury risk zones', keywords: 'acwr load training volume weekly chronic acute ratio overtraining injury risk workload heatmap', icon: Gauge, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', isPro: true },
-      { id: 'athletic_benchmarks', label: 'Athletic Benchmarks', desc: 'Vertical, sprint, shuttle, hang', longDesc: 'Six tested attributes — vertical jump, broad jump, 5-10-5 shuttle, 10m sprint, dead hang, push-ups in 60s. Tier classification, progression tracking, targeted program suggestions for your weakest area.', keywords: 'benchmark test athletic vertical jump broad sprint shuttle agility hang push up max combat fitness assessment combine score profile attributes weakest', icon: BarChart3, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', isPro: true },
+      { id: 'program_browser', label: 'Programs', desc: 'Browse, preview, queue', longDesc: 'Mesocycles, periodization view, AI block suggestions, queue your next block. Speed-Strength (plyometric) and Energy Systems blocks live here as program presets.', keywords: 'program browser mesocycle block plan periodization deload peak taper schedule plyometric speed strength', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'train' },
+      { id: 'builder', label: 'Builder', desc: 'Custom one-off session', longDesc: 'Design a one-off session from 300+ exercises with sets, reps, and RPE. Save as template inline.', keywords: 'create make design custom build workout session template save', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400', tab: 'train' },
+      { id: 'conditioning', label: 'Cardio', desc: 'Z2, threshold, RSA, intervals', longDesc: 'All cardio in one place: Zone 2 base, Norwegian 4×4, repeated sprint ability, EMOM, Tabata, AMRAP, shark tanks, custom circuits. HR zones calculated.', keywords: 'cardio conditioning zone 2 z2 threshold norwegian 4x4 vo2max rsa repeated sprint tempo aerobic anaerobic emom tabata amrap circuit shark tank intervals heart rate', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train', isPro: true },
+      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging.', keywords: 'stretch flexible rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', tab: 'train', isPro: true },
+      { id: 'grappling', label: 'Mat Sessions', desc: 'BJJ, wrestling, sparring', longDesc: 'Session tracker with technique notes, sparring rounds, and mat time.', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grappling sparring drilling', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', tab: 'train', isPro: true },
+      { id: 'technique_log', label: 'Technique Log', desc: 'Drilling reps tracker', longDesc: 'Log drilling reps by technique. Skill compounds with reps — track which moves you\'ve drilled 100, 500, 2000, 10000 times. Greg Jackson mastery rule, made trackable.', keywords: 'technique drilling reps skill mastery move single leg double pass guard sweep submission jab cross combo combat', icon: Target, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', tab: 'train', isPro: true },
+      { id: 'camp_timeline', label: 'Camp Timeline', desc: '10-week fight camp at a glance', longDesc: 'Visualize the full fight camp: off-season → base → intensification → peak → fight week. Current phase prescription, days to fight, deload alignment.', keywords: 'fight camp timeline phase week peak base intensification taper fight day weigh in countdown competition tournament', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train', isPro: true },
+      { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues movement muscles custom add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
+      { id: 'knowledge_hub', label: 'Knowledge', desc: 'Science-backed articles', longDesc: 'Curated library of science-backed articles on strength, nutrition, recovery, and combat sports training.', keywords: 'articles knowledge learn science research evidence based study insights', icon: BookMarked, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
+      { id: 'competition', label: 'Fight Prep', desc: 'Peak, cut, taper', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling.', keywords: 'meet competition event peak taper fight tournament weigh in weight cut rehydrate refeed combat sport mma boxing muay thai', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train', isPro: true },
     ],
   },
   {
@@ -105,11 +80,14 @@ const CATEGORIES: Category[] = [
     icon: Heart,
     accent: 'text-rose-400',
     tools: [
-      { id: 'recovery', label: 'Recovery Hub', desc: 'Readiness, fatigue & recovery', longDesc: 'Composite readiness score from sleep, stress, and soreness. Includes fatigue debt tracking, smart deload recommendations, and personalized recovery protocols.', keywords: 'rest day off readiness soreness sore tired recover how do i feel ready sleep stress nap meditation relax nervous cns overtraining burnout advice tips fatigue exhausted worn out energy low deload debt accumulated breathing breathe wellness habits', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
-      { id: 'wearable', label: 'Wearable', desc: 'Whoop, Fit & Health', longDesc: 'Sync Whoop data, connect Google Fit, or import Apple Health exports. View strain, HR trends, sleep, and recovery scores from any source.', keywords: 'whoop wearable heart rate sync strain recovery hrv connect watch garmin oura fitness tracker auto import combat session zone bpm pulse cardio aerobic anaerobic vo2 google fit apple health iphone android', icon: Watch, color: 'from-purple-500/20 to-purple-500/5 text-purple-400', isPro: true },
-      { id: 'injury', label: 'Injury Log', desc: 'Track & manage injuries', longDesc: 'Track injuries by body region. From here you can launch a phased Rehab Plan or generate an Injury-Aware Workout for today.', keywords: 'hurt pain injury rehab rehabilitation shoulder knee back elbow wrist hip joint muscle pull strain', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', isPro: true },
-      { id: 'illness', label: 'Illness Log', desc: 'Symptoms & return-to-train', longDesc: 'Log symptoms, get evidence-based training restrictions via the Neck Check protocol, track daily recovery check-ins, and follow graduated return-to-training phases. Automatically adjusts workout intensity, freezes streaks, and modifies your mesocycle.', keywords: 'sick illness cold flu fever cough sore throat headache nausea vomiting diarrhea fatigue tired unwell symptom recovery neck check return training', icon: Thermometer, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', isPro: true },
-      { id: 'cycle_tracking', label: 'Cycle Tracking', desc: 'Menstrual cycle phases', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', isPro: true },
+      { id: 'recovery', label: 'Recovery', desc: 'Readiness, fatigue, deload', longDesc: 'Composite readiness from sleep, stress, soreness, HRV. Fatigue debt, smart deload recommendations, recovery protocols. Wearable data flows here.', keywords: 'rest readiness soreness recover ready sleep stress fatigue deload hrv whoop wearable', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'body', isPro: true },
+      { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal tracking', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols.', keywords: 'food eat diet meal calories macros protein carbs fat water hydration weight cut bulk', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', tab: 'body' },
+      { id: 'strength', label: 'Strength', desc: 'PRs, progression, sticking points', longDesc: 'e1RM trends, PR tracking, sticking-point detection, progression over time, per-exercise deep-dive.', keywords: 'pr personal record max strength progression overload chart trend e1rm sticking point weak profiler', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'body', isPro: true },
+      { id: 'volume_map', label: 'Volume & Balance', desc: 'Muscle volume + ratios', longDesc: 'Weekly sets per muscle group against MEV/MAV/MRV landmarks. Push/pull ratios and imbalance detection.', keywords: 'muscle group heatmap volume sets weekly body part split balance ratio push pull imbalance mev mav mrv', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', isPro: true },
+      { id: 'athletic_benchmarks', label: 'Benchmarks', desc: 'Vertical, sprint, shuttle, hang', longDesc: 'Six tested attributes with tier classification and weakest-link auto-routing to the right training tool.', keywords: 'benchmark test athletic vertical jump broad sprint shuttle agility hang push up combat fitness assessment combine attributes weakest', icon: BarChart3, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body', isPro: true },
+      { id: 'injury', label: 'Setbacks', desc: 'Injury & illness', longDesc: 'Track injuries by body region. Launch phased Rehab Plan or generate an Injury-Aware Workout. Illness logging with Neck Check return-to-training is one tap away.', keywords: 'hurt pain injury rehab illness sick cold flu fever symptom shoulder knee back elbow wrist hip joint muscle strain return train neck check', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'body', isPro: true },
+      { id: 'cycle_tracking', label: 'Cycle', desc: 'Menstrual cycle phases', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations.', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', isPro: true, gendered: 'female' },
+      { id: 'coach_report', label: 'Coach Report', desc: 'Share status with your coach', longDesc: 'Read-only snapshot of your training, recovery, body weight, and active injuries — share via native share or copy as text. Keep your coach in the loop.', keywords: 'coach trainer share send report summary status update injury weight', icon: Users, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body' },
     ],
   },
 ];
@@ -262,9 +240,11 @@ function getRightNowSuggestions(ctx: RightNowContext, pinnedIds: Set<string>): R
 
 interface ExploreTabProps {
   onNavigate: (view: OverlayView) => void;
+  /** When set, only renders tools whose `tab` matches. Used by the Train and Body tabs to embed filtered tool sections. */
+  filterTab?: 'train' | 'body';
 }
 
-export default function ExploreTab({ onNavigate }: ExploreTabProps) {
+export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
   const [search, setSearch] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
@@ -272,6 +252,16 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
 
   const tier = useCurrentTier();
   const isFree = tier !== 'pro';
+
+  // Tab-scoped views — when embedded inside Train or Body tab, only show that subset.
+  const visibleCategories = useMemo(
+    () => filterTab ? CATEGORIES.filter(c => c.tools.some(t => t.tab === filterTab)).map(c => ({ ...c, tools: c.tools.filter(t => t.tab === filterTab) })) : CATEGORIES,
+    [filterTab]
+  );
+  const visibleTools = useMemo(
+    () => filterTab ? ALL_TOOLS.filter(t => t.tab === filterTab) : ALL_TOOLS,
+    [filterTab]
+  );
 
   // Pin edit mode
   const [pinMode, setPinMode] = useState(false);
@@ -438,7 +428,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
     const q = search.toLowerCase().trim();
     const words = q.split(/\s+/);
     const scored: { tool: Tool; score: number }[] = [];
-    for (const tool of ALL_TOOLS) {
+    for (const tool of visibleTools) {
       const haystack = `${tool.label} ${tool.desc} ${tool.longDesc} ${tool.keywords}`.toLowerCase();
       if (!words.every(w => haystack.includes(w))) continue;
       let score = 0;
@@ -452,7 +442,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       scored.push({ tool, score });
     }
     return scored.sort((a, b) => b.score - a.score).map(s => s.tool);
-  }, [search, pinnedIds]);
+  }, [search, pinnedIds, visibleTools]);
 
   const isSearching = search.trim().length > 0;
 
@@ -663,12 +653,12 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-grappler-400" />
               <span className="text-sm font-medium text-grappler-300">
-                All {ALL_TOOLS.length} tools
+                All {visibleTools.length} tools
               </span>
               <span className="text-xs text-grappler-500">
                 {tier === 'pro'
                   ? 'all unlocked'
-                  : `${ALL_TOOLS.filter(t => !t.isPro).length} free / ${ALL_TOOLS.filter(t => t.isPro).length} Pro`
+                  : `${visibleTools.filter(t => !t.isPro).length} free / ${visibleTools.filter(t => t.isPro).length} Pro`
                 }
               </span>
             </div>
@@ -690,7 +680,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
                 className="overflow-hidden"
               >
                 <div className="grid grid-cols-3 gap-2 pt-3">
-                  {ALL_TOOLS.map(tool => (
+                  {visibleTools.map(tool => (
                     <ToolCard
                       key={tool.id}
                       tool={tool}
@@ -708,7 +698,7 @@ export default function ExploreTab({ onNavigate }: ExploreTabProps) {
       )}
 
       {/* ─── PIN MODE: Show all tools in category grids for pinning ─── */}
-      {pinMode && CATEGORIES.map(category => (
+      {pinMode && visibleCategories.map(category => (
         <div key={category.title}>
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <category.icon className={cn('w-3.5 h-3.5', category.accent)} />

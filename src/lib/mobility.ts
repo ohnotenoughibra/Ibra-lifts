@@ -8,7 +8,7 @@ import {
   EquipmentType
 } from './types';
 
-// Mobility & Deload module for Roots Gains
+// Mobility & Deload module for Ibra Lifts
 // Provides structured mobility routines, deload session generation,
 // and active recovery sessions tailored for Rootslers who lift.
 

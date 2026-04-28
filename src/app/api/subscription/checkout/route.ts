@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         plan_id: planId,
         application_context: {
-          brand_name: 'Roots Gains',
+          brand_name: 'Ibra Lifts',
           locale: 'en-DE',
           shipping_preference: 'NO_SHIPPING',
           user_action: 'SUBSCRIBE_NOW',

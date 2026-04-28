@@ -76,7 +76,7 @@ export default function VersionUpgradePopup() {
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="bg-grappler-900 rounded-2xl w-full max-w-md border border-grappler-700 shadow-2xl overflow-hidden"
+            className="bg-grappler-900 rounded-lg w-full max-w-md border border-grappler-700 shadow-2xl overflow-hidden"
           >
             {/* Header */}
             <div className="bg-gradient-to-br from-primary-500/20 to-accent-500/10 p-6 border-b border-grappler-800">

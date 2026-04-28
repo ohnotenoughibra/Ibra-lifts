@@ -20,6 +20,7 @@ import {
   Settings,
   Play,
   Timer,
+  Sun,
 } from 'lucide-react';
 import { cn, formatNumber, formatTime } from '@/lib/utils';
 import SyncConflictResolver from './SyncConflictResolver';
@@ -209,7 +210,7 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
-          className="w-20 h-20 bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
+          className="w-20 h-20 bg-gradient-to-br from-sky-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
         >
           <Star className="w-10 h-10 text-white" />
         </motion.div>
@@ -236,7 +237,7 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
 }
 
 const TABS = [
-  { id: 'home',  icon: Dumbbell,  label: 'Today' },
+  { id: 'home',  icon: Sun,       label: 'Today' },
   { id: 'train', icon: Calendar,  label: 'Train' },
   { id: 'body',  icon: BarChart3, label: 'Body' },
 ] as const;
@@ -689,7 +690,7 @@ export default function Dashboard({
 
   // Sidebar nav items (matches TABS + profile)
   const sidebarNav = [
-    { id: 'home'  as TabType, icon: Dumbbell,  label: 'Today' },
+    { id: 'home'  as TabType, icon: Sun,       label: 'Today' },
     { id: 'train' as TabType, icon: Calendar,  label: 'Train' },
     { id: 'body'  as TabType, icon: BarChart3, label: 'Body' },
   ];
@@ -711,15 +712,12 @@ export default function Dashboard({
 
         {/* ── Desktop Sidebar (lg+) ── */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-[100dvh] lg:border-r lg:border-grappler-800 lg:bg-grappler-950/80 lg:backdrop-blur-xl lg:z-40">
-          {/* Logo / Brand */}
-          <div className="px-5 pt-6 pb-4 flex items-center gap-3">
-            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-              <Dumbbell className="w-5 h-5 text-white" />
+          {/* Editorial wordmark — no logo glyph, no glow shadow, no gradient */}
+          <div className="px-5 pt-6 pb-5">
+            <div className="font-display text-2xl font-black tracking-tight leading-none text-white">
+              IBRA<br />LIFTS<span className="text-primary-500">.</span>
             </div>
-            <div>
-              <h1 className="font-bold text-base text-grappler-50 leading-tight">Ibra Lifts</h1>
-              <p className="text-xs text-grappler-500">Performance System</p>
-            </div>
+            <div className="h-px bg-grappler-800 mt-4" />
           </div>
 
           {/* Navigation */}
@@ -837,16 +835,13 @@ export default function Dashboard({
           <div className="flex-1 min-w-0 lg:max-w-4xl">
             {/* Mobile Header (hidden on desktop — sidebar replaces it) */}
             <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top lg:hidden">
-              {/* Row 1: Identity + Key Actions */}
+              {/* Row 1: Editorial wordmark + key actions */}
               <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-                    <Dumbbell className="w-5 h-5 text-white" />
+                <div className="flex items-baseline gap-2">
+                  <div className="font-display font-black text-lg leading-none tracking-tight text-white">
+                    IBRA / LIFTS<span className="text-primary-500">.</span>
                   </div>
-                  <div>
-                    <h1 className="font-bold text-base text-grappler-50 leading-tight">Ibra Lifts</h1>
-                    <p className="text-xs text-grappler-400">{getLevelTitle(computed.level)}</p>
-                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-grappler-500">{getLevelTitle(computed.level)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Streak — the hero motivator */}
@@ -1090,7 +1085,7 @@ export default function Dashboard({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between bg-primary-500 hover:bg-primary-600 active:scale-[0.98] transition-all rounded-2xl px-4 py-3 shadow-lg shadow-primary-500/30"
+            className="flex items-center justify-between bg-primary-500 hover:bg-primary-600 active:scale-[0.98] transition-all rounded-lg px-4 py-3 shadow-lg shadow-primary-500/30"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
@@ -1256,7 +1251,7 @@ export default function Dashboard({
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           >
-            <div className="flex items-center gap-3 bg-grappler-800 border border-grappler-700/50 rounded-2xl px-4 py-2.5 shadow-2xl">
+            <div className="flex items-center gap-3 bg-grappler-800 border border-grappler-700/50 rounded-lg px-4 py-2.5 shadow-2xl">
               <span className="text-xs text-grappler-400 whitespace-nowrap">Worth it?</span>
               <button
                 onClick={() => {
@@ -1297,7 +1292,7 @@ export default function Dashboard({
           >
             <button
               className={cn(
-                'px-5 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 cursor-pointer text-left',
+                'px-5 py-3 rounded-lg shadow-2xl border flex items-center gap-3 cursor-pointer text-left',
                 loginBonusToast.isMysteryDay
                   ? 'bg-gradient-to-r from-sky-500/20 to-purple-500/20 border-sky-500/30'
                   : 'bg-grappler-800 border-grappler-700/50'
@@ -1330,7 +1325,7 @@ export default function Dashboard({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
-            <div className="bg-grappler-800 rounded-2xl p-4 border border-grappler-700/50 shadow-2xl">
+            <div className="bg-grappler-800 rounded-lg p-4 border border-grappler-700/50 shadow-2xl">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center shrink-0 mt-0.5">
                   <Zap className="w-5 h-5 text-primary-400" />

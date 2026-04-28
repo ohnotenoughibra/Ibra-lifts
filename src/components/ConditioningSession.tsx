@@ -1047,7 +1047,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
               <div className="text-4xl font-bold text-grappler-50 mb-4">{amrapRounds}</div>
               <button
                 onClick={() => setAmrapRounds((r) => r + 1)}
-                className="px-8 py-4 rounded-2xl bg-green-500 text-white font-bold text-lg hover:bg-green-600 active:scale-95 transition-all flex items-center gap-2"
+                className="px-8 py-4 rounded-lg bg-green-500 text-white font-bold text-lg hover:bg-green-600 active:scale-95 transition-all flex items-center gap-2"
               >
                 <Plus size={22} /> Round
               </button>
@@ -1100,7 +1100,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             {/* Play/Pause */}
             <button
               onClick={isRunning ? pauseTimer : resumeTimer}
-              className="w-16 h-16 rounded-2xl bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all"
+              className="w-16 h-16 rounded-lg bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all"
             >
               {isRunning ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
             </button>
@@ -1121,7 +1121,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
         {/* End workout confirmation dialog */}
         {showEndConfirm && (
           <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center px-6">
-            <div className="bg-grappler-900 rounded-2xl p-6 w-full max-w-sm border border-grappler-800">
+            <div className="bg-grappler-900 rounded-lg p-6 w-full max-w-sm border border-grappler-800">
               <div className="flex items-center gap-3 mb-4">
                 <AlertTriangle size={24} className="text-amber-400" />
                 <h3 className="text-lg font-bold text-grappler-50">End Workout?</h3>

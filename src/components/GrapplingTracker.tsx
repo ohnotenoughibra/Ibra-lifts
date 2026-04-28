@@ -1244,7 +1244,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
             </div>
 
             {/* Hero stat: Total Mat Time */}
-            <div className="bg-gradient-to-br from-emerald-500/10 via-grappler-800 to-grappler-800 rounded-2xl p-5 border border-emerald-500/20">
+            <div className="bg-gradient-to-br from-emerald-500/10 via-grappler-800 to-grappler-800 rounded-lg p-5 border border-emerald-500/20">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-semibold text-emerald-400/80 uppercase tracking-wider">Total Mat Time</span>
@@ -1462,7 +1462,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
             </div>
 
             {/* Hero stat: Total Gym Time */}
-            <div className="bg-gradient-to-br from-primary-500/10 via-grappler-800 to-grappler-800 rounded-2xl p-5 border border-primary-500/20">
+            <div className="bg-gradient-to-br from-primary-500/10 via-grappler-800 to-grappler-800 rounded-lg p-5 border border-primary-500/20">
               <div className="flex items-center gap-2 mb-1">
                 <Dumbbell className="w-4 h-4 text-primary-400" />
                 <span className="text-xs font-semibold text-primary-400/80 uppercase tracking-wider">Total Gym Time</span>

@@ -38,7 +38,7 @@ export default function OneThingBanner({ oneThing, onAction }: OneThingBannerPro
       transition={{ duration: 0.4, ease: 'easeOut' }}
       onClick={onAction}
       className={cn(
-        'w-full rounded-2xl bg-gradient-to-r border px-4 py-3.5',
+        'w-full rounded-lg bg-gradient-to-r border px-4 py-3.5',
         'flex items-center gap-3',
         bgClass,
         onAction && 'cursor-pointer active:scale-[0.98] transition-transform',

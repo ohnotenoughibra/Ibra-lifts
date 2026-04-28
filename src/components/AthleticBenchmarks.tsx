@@ -315,7 +315,7 @@ function LogModal({ spec, onClose, onLog }: {
       <motion.div
         initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-grappler-900 rounded-2xl border border-grappler-800 p-5"
+        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-5"
       >
         <div className="flex items-baseline justify-between mb-1">
           <h2 className="text-lg font-bold text-white">Log {spec.name}</h2>

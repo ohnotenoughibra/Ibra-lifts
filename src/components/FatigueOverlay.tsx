@@ -154,7 +154,7 @@ export default function FatigueOverlay({ onClose = () => {}, embedded }: Fatigue
         ) : (
           <>
             {/* ═══ HERO: Verdict + Gauge + CTA ═══ */}
-            <motion.div {...fadeUp} transition={{ delay: 0.05 }} className={`rounded-2xl p-5 border ${
+            <motion.div {...fadeUp} transition={{ delay: 0.05 }} className={`rounded-lg p-5 border ${
               debtColor === 'red' ? 'bg-red-500/10 border-red-500/30' :
               debtColor === 'orange' ? 'bg-blue-500/10 border-blue-500/30' :
               debtColor === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/30' :

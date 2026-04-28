@@ -19,7 +19,7 @@ export function HomeTabSkeleton() {
   return (
     <div className="space-y-4">
       {/* Readiness card */}
-      <div className="rounded-2xl bg-grappler-800/40 p-4 space-y-3">
+      <div className="rounded-lg bg-grappler-800/40 p-4 space-y-3">
         <div className="flex items-center gap-3">
           <Shimmer className="w-12 h-12 rounded-xl" />
           <div className="flex-1 space-y-2">
@@ -30,7 +30,7 @@ export function HomeTabSkeleton() {
         <Shimmer className="h-2 w-full rounded-full" />
       </div>
       {/* Today's session */}
-      <Shimmer className="h-28 rounded-2xl" />
+      <Shimmer className="h-28 rounded-lg" />
       {/* Quick stats row */}
       <div className="grid grid-cols-3 gap-2">
         <Shimmer className="h-20 rounded-xl" />
@@ -38,8 +38,8 @@ export function HomeTabSkeleton() {
         <Shimmer className="h-20 rounded-xl" />
       </div>
       {/* Cards */}
-      <Shimmer className="h-24 rounded-2xl" />
-      <Shimmer className="h-24 rounded-2xl" />
+      <Shimmer className="h-24 rounded-lg" />
+      <Shimmer className="h-24 rounded-lg" />
     </div>
   );
 }
@@ -60,7 +60,7 @@ export function ProgramTabSkeleton() {
       <Shimmer className="h-2 w-full rounded-full" />
       {/* Session cards */}
       {[1, 2, 3].map(i => (
-        <div key={i} className="rounded-2xl bg-grappler-800/40 p-4 space-y-3">
+        <div key={i} className="rounded-lg bg-grappler-800/40 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <Shimmer className="h-5 w-32" />
             <Shimmer className="h-8 w-16 rounded-lg" />
@@ -111,7 +111,7 @@ export function ProgressTabSkeleton() {
         <Shimmer className="h-8 w-20 rounded-full" />
       </div>
       {/* Chart area */}
-      <Shimmer className="h-48 rounded-2xl" />
+      <Shimmer className="h-48 rounded-lg" />
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2">
         <Shimmer className="h-20 rounded-xl" />

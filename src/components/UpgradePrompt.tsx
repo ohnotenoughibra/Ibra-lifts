@@ -104,7 +104,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           animate={{ opacity: 1 }}
         >
           <motion.div
-            className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl"
+            className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl"
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             onClick={(e) => e.stopPropagation()}
@@ -115,7 +115,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
       );
     }
     return (
-      <div className="rounded-2xl bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700/50 p-5">
+      <div className="rounded-lg bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700/50 p-5">
         {successContent}
       </div>
     );
@@ -221,8 +221,8 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   // ── Inline Card ──
   if (variant === 'inline') {
     return (
-      <div className="rounded-2xl bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700/50 p-5 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-sky-500/20 flex items-center justify-center mx-auto mb-3">
+      <div className="rounded-lg bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700/50 p-5 text-center">
+        <div className="w-12 h-12 rounded-lg bg-sky-500/20 flex items-center justify-center mx-auto mb-3">
           <Crown className="w-6 h-6 text-sky-400" />
         </div>
         <h3 className="text-lg font-bold text-grappler-50 mb-1">{featureName}</h3>
@@ -255,7 +255,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         aria-label={`Unlock ${featureName}`}
       >
         <motion.div
-          className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+          className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl relative max-h-[90vh] overflow-y-auto"
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
@@ -268,7 +268,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           )}
 
           <div className="text-center mb-5">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
+            <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
               <Crown className="w-8 h-8 text-sky-400" />
             </div>
             <h2 className="text-xl font-bold text-grappler-50">Unlock {featureName}</h2>

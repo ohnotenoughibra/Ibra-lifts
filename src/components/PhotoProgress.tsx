@@ -854,7 +854,7 @@ function AddPhotoModal({
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[90vh] bg-grappler-900 rounded-t-2xl sm:rounded-2xl overflow-y-auto"
+        className="w-full max-w-lg max-h-[90vh] bg-grappler-900 rounded-t-2xl sm:rounded-lg overflow-y-auto"
       >
         {/* Modal header */}
         <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 p-4 flex items-center justify-between">
@@ -1147,7 +1147,7 @@ function GalleryPickerModal({
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[80vh] bg-grappler-900 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col"
+        className="w-full max-w-lg max-h-[80vh] bg-grappler-900 rounded-t-2xl sm:rounded-lg overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="p-4 border-b border-grappler-800 flex items-center justify-between shrink-0">

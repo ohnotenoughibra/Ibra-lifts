@@ -184,7 +184,7 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="w-full max-w-lg bg-grappler-900 border border-grappler-700 rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
+          className="w-full max-w-lg bg-grappler-900 border border-grappler-700 rounded-lg overflow-hidden max-h-[85vh] flex flex-col"
         >
           {/* Header */}
           <div className="p-5 bg-gradient-to-b from-sky-500/10 to-transparent border-b border-grappler-800">

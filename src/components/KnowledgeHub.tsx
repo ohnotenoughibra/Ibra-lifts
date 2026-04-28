@@ -293,7 +293,7 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
             className="w-full text-left"
           >
             <div className={cn(
-              'rounded-2xl p-5 border border-primary-500/20 bg-gradient-to-br',
+              'rounded-lg p-5 border border-primary-500/20 bg-gradient-to-br',
               CAT_STYLE[featured.category]?.gradient || fallbackStyle.gradient,
             )}>
               <div className="flex items-center gap-2 mb-2">
@@ -340,7 +340,7 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
                     <button
                       key={path.id}
                       onClick={() => { hapticMedium(); setActivePathId(path.id); }}
-                      className="flex-shrink-0 w-56 rounded-2xl p-4 text-left border border-grappler-700/30 bg-grappler-800/40 active:scale-[0.98] transition-all"
+                      className="flex-shrink-0 w-56 rounded-lg p-4 text-left border border-grappler-700/30 bg-grappler-800/40 active:scale-[0.98] transition-all"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">{path.icon}</span>
@@ -453,7 +453,7 @@ function ArticleCard({
     <button
       onClick={() => onTap(article)}
       className={cn(
-        'w-full rounded-2xl text-left border transition-all active:scale-[0.98]',
+        'w-full rounded-lg text-left border transition-all active:scale-[0.98]',
         'bg-gradient-to-br border-grappler-700/30 hover:border-grappler-600/50',
         style.gradient,
         compact ? 'p-3' : 'p-4',
@@ -553,7 +553,7 @@ function LearningPathView({
       {nextUnread && progress < 1 && (
         <button
           onClick={() => onOpenArticle(nextUnread)}
-          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-primary-500/10 border border-primary-500/30 active:scale-[0.98] transition-all"
+          className="w-full flex items-center gap-3 p-4 rounded-lg bg-primary-500/10 border border-primary-500/30 active:scale-[0.98] transition-all"
         >
           <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center flex-shrink-0">
             <ArrowRight className="w-5 h-5 text-primary-400" />
@@ -721,7 +721,7 @@ function ArticleReader({
 
           {/* Key Takeaways */}
           {article.keyTakeaways && article.keyTakeaways.length > 0 && (
-            <div className="mt-10 rounded-2xl bg-gradient-to-br from-primary-500/10 to-accent-500/5 border border-primary-500/20 p-5">
+            <div className="mt-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-accent-500/5 border border-primary-500/20 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-4 h-4 text-primary-400" />
                 <h3 className="text-sm font-bold text-primary-300 uppercase tracking-wider">Key Takeaways</h3>
@@ -743,7 +743,7 @@ function ArticleReader({
           {article.applyCta && (
             <button
               onClick={() => { hapticMedium(); onNavigateOverlay(article.applyCta!.overlayId); }}
-              className="mt-6 w-full flex items-center justify-between p-4 rounded-2xl bg-primary-500/10 border border-primary-500/30 active:scale-[0.98] transition-all"
+              className="mt-6 w-full flex items-center justify-between p-4 rounded-lg bg-primary-500/10 border border-primary-500/30 active:scale-[0.98] transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">

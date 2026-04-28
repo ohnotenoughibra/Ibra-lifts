@@ -239,7 +239,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 60 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
-            className="fixed bottom-24 left-4 right-4 z-50 bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl p-4 shadow-xl"
+            className="fixed bottom-24 left-4 right-4 z-50 bg-gradient-to-r from-primary-500 to-accent-500 rounded-lg p-4 shadow-xl"
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -276,7 +276,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 60 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
-            className="fixed bottom-24 left-4 right-4 z-50 bg-grappler-800 border border-grappler-700 rounded-2xl p-4 shadow-xl"
+            className="fixed bottom-24 left-4 right-4 z-50 bg-grappler-800 border border-grappler-700 rounded-lg p-4 shadow-xl"
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">

@@ -162,7 +162,7 @@ export default function YouTubeEmbed({ exerciseName, videoUrl, onClose }: YouTub
 
         {/* Modal */}
         <motion.div
-          className="relative z-10 w-full max-w-3xl rounded-2xl overflow-hidden bg-grappler-900 border border-grappler-700/50 shadow-2xl"
+          className="relative z-10 w-full max-w-3xl rounded-lg overflow-hidden bg-grappler-900 border border-grappler-700/50 shadow-2xl"
           variants={modalVariants}
           initial="hidden"
           animate="visible"

@@ -225,7 +225,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
+        className="rounded-lg border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
       >
         <div className="flex items-center gap-2 mb-2">
           <div className="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center">
@@ -273,7 +273,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
+        className="rounded-lg border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
+        className="rounded-lg border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
       >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -419,7 +419,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 text-center"
+        className="rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 text-center"
       >
         <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
           <Check className="w-6 h-6 text-green-400" />
@@ -454,7 +454,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
+      className="rounded-lg border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-grappler-800 to-grappler-900 p-4"
     >
       {/* Session progress bar */}
       <div className="flex items-center gap-2 mb-3">

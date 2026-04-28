@@ -474,7 +474,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl bg-grappler-900 border border-grappler-700 overflow-hidden shadow-2xl"
+              className="w-full max-w-sm rounded-lg bg-grappler-900 border border-grappler-700 overflow-hidden shadow-2xl"
             >
               {/* Header */}
               <div className="bg-gradient-to-br from-primary-500/20 to-primary-500/5 p-5 text-center border-b border-grappler-800">
@@ -945,7 +945,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl max-h-[85vh] overflow-y-auto"
+                className="bg-grappler-900 rounded-lg p-5 max-w-sm w-full border border-grappler-700 shadow-xl max-h-[85vh] overflow-y-auto"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2.5 rounded-xl bg-primary-500/20">
@@ -1086,7 +1086,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
                   onClick={() => setShowDeleteBlockConfirm(false)}
                 >
-                  <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+                  <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
                     <h3 className="text-lg font-bold text-grappler-100">Delete Block?</h3>
                     <p className="text-sm text-grappler-400">
                       This will permanently delete <span className="text-grappler-200 font-medium">{viewingBlock.name}</span> and all workout logs associated with it. This cannot be undone.

@@ -405,7 +405,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
             Plates
           </h2>
 
-          <div className="rounded-2xl bg-grappler-900 border border-grappler-800 p-4 space-y-4">
+          <div className="rounded-lg bg-grappler-900 border border-grappler-800 p-4 space-y-4">
             {isBelowBar ? (
               <div className="flex items-center gap-2 text-yellow-400 py-4 justify-center">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0" />

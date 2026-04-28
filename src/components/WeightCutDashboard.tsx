@@ -127,7 +127,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 20, opacity: 0 }}
-        className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl"
+        className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">

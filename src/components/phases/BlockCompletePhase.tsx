@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Trophy, BarChart3, Zap, ChevronRight, Target } from 'lucide-react';
+import { BarChart3, Zap, ChevronRight, Target } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import type { OverlayView } from '../dashboard-types';
 
@@ -36,18 +36,22 @@ export default function BlockCompletePhase({
       key="zone2-block-complete"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden border border-primary-500/20 bg-gradient-to-br from-primary-500/10 via-grappler-800 to-accent-500/5"
+      className="rounded-lg border border-primary-500/30 bg-grappler-900/40 p-6"
     >
-      {/* Trophy header */}
-      <div className="pt-6 pb-3 text-center relative">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/20 flex items-center justify-center mx-auto mb-3">
-          <Trophy className="w-8 h-8 text-primary-400" />
+      {/* Editorial heading */}
+      <div className="mb-5">
+        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary-400 mb-2">
+          Block Complete
         </div>
-        <h3 className="text-lg font-black text-grappler-50">Block Complete</h3>
-        <p className="text-xs text-grappler-400 mt-1">
-          All {mesocycleProgress.total} sessions in <span className="text-grappler-200 font-medium">{currentMesocycle.name}</span> done
+        <h3 className="font-display text-3xl font-black tracking-tight leading-none text-white mb-2">
+          {currentMesocycle.name}.
+        </h3>
+        <p className="text-sm text-grappler-400">
+          All {mesocycleProgress.total} sessions done.
         </p>
       </div>
+
+      <div className="h-px bg-grappler-800 mb-5" />
 
       {/* Stats comparison grid */}
       {mesocycleComparison && (

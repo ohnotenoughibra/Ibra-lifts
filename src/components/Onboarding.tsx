@@ -631,11 +631,14 @@ function Step2_ScheduleAndGo({
 
   return (
     <div className="space-y-5">
-      <div className="text-center mb-2">
-        <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <CalendarDays className="w-7 h-7 text-white" />
+      <div className="mb-2">
+        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+          Ibra Lifts \u00b7 02
         </div>
-        <h2 className="text-xl font-bold text-grappler-50">When do you train?</h2>
+        <h2 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
+          When<br />you train.
+        </h2>
+        <div className="h-px bg-grappler-700 my-4" />
         <p className="text-grappler-400 text-sm">
           {isCombat
             ? 'Tap each day to cycle: Rest \u2192 Lift \u2192 Combat'

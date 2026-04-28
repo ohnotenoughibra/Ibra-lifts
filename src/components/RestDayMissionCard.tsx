@@ -114,7 +114,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
       className="space-y-2"
     >
       <div className={cn(
-        'rounded-2xl border bg-gradient-to-br from-grappler-800 to-grappler-900 overflow-hidden transition-colors',
+        'rounded-lg border bg-gradient-to-br from-grappler-800 to-grappler-900 overflow-hidden transition-colors',
         allComplete ? 'border-green-500/40' : 'border-grappler-700',
       )}>
         {/* Header + progress ring */}
@@ -267,7 +267,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
             <motion.div
               initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-md bg-grappler-900 rounded-2xl border border-grappler-800 p-2 space-y-1"
+              className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-2 space-y-1"
             >
               <button onClick={() => { setShowSessionSheet(false); props.onQuickWorkout(); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
                 <Zap className="w-4 h-4 text-grappler-400" />

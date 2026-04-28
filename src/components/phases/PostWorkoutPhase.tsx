@@ -91,7 +91,7 @@ export default function PostWorkoutPhase({
         initial={{ opacity: 0, scale: 0.94, y: 28 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="rounded-2xl border border-primary-500/30 bg-gradient-to-br from-primary-500/15 via-grappler-800 to-accent-500/10 p-5 overflow-hidden"
+        className="rounded-lg border border-primary-500/30 bg-gradient-to-br from-primary-500/15 via-grappler-800 to-accent-500/10 p-5 overflow-hidden"
       >
         {/* Header */}
         <motion.div
@@ -104,7 +104,7 @@ export default function PostWorkoutPhase({
             initial={{ scale: 0, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 15 }}
-            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/25 to-accent-500/25 border border-primary-500/20 flex items-center justify-center mx-auto mb-3"
+            className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/25 to-accent-500/25 border border-primary-500/20 flex items-center justify-center mx-auto mb-3"
           >
             <Trophy className="w-8 h-8 text-primary-400" />
           </motion.div>
@@ -307,7 +307,7 @@ export default function PostWorkoutPhase({
       initial={{ opacity: 0, scale: 0.96, y: 24 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
+      className="rounded-lg border border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900 p-5 overflow-hidden"
     >
       {/* Share button — top right (opens Fight Card) */}
       {lastCompletedWorkout && (

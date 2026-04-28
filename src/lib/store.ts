@@ -149,6 +149,9 @@ interface AppState {
   // Technique log (combat-athlete drilling)
   techniqueLog: import('./technique-log').TechniqueEntry[];
 
+  // Sparring rounds (CTE risk metric, separate from mat session time)
+  sparringRounds: import('./sparring-tracker').SparringRound[];
+
   // Illness tracking
   illnessLogs: IllnessLog[];
   // Local-only: IDs of illnesses the user has resolved. NEVER synced to server.
@@ -411,6 +414,10 @@ interface AppState {
   addTechniqueEntry: (entry: import('./technique-log').TechniqueEntry) => void;
   deleteTechniqueEntry: (id: string) => void;
 
+  // Sparring round actions
+  addSparringRound: (round: import('./sparring-tracker').SparringRound) => void;
+  deleteSparringRound: (id: string) => void;
+
   // Illness actions
   logIllness: (illness: Omit<IllnessLog, 'id' | 'dailyCheckins' | 'status'>) => void;
   updateIllnessCheckin: (illnessId: string, checkin: IllnessDailyCheckin) => void;
@@ -633,6 +640,7 @@ export const useAppStore = create<AppState>()(
       activePlyoBlock: null,
       rsiHistory: [],
       techniqueLog: [],
+      sparringRounds: [],
       illnessLogs: [],
       _resolvedIllnessIds: [],
       workoutSkips: [],
@@ -3612,6 +3620,17 @@ export const useAppStore = create<AppState>()(
         set({ techniqueLog: (techniqueLog ?? []).filter(e => e.id !== id), _syncUrgent: true });
       },
 
+      // Sparring round actions
+      addSparringRound: (round) => {
+        const { sparringRounds } = get();
+        set({ sparringRounds: [...(sparringRounds ?? []), round], _syncUrgent: true });
+      },
+
+      deleteSparringRound: (id) => {
+        const { sparringRounds } = get();
+        set({ sparringRounds: (sparringRounds ?? []).filter(r => r.id !== id), _syncUrgent: true });
+      },
+
       // Illness actions
       logIllness: (illness) => {
         const { illnessLogs } = get();
@@ -4124,7 +4143,7 @@ export const useAppStore = create<AppState>()(
         const SYNC_FIELDS = [
           'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
           'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
-          'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'customExercises', 'sessionTemplates',
+          'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
           'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
@@ -4315,6 +4334,7 @@ export const useAppStore = create<AppState>()(
           activePlyoBlock: null,
           rsiHistory: [],
           techniqueLog: [],
+          sparringRounds: [],
           illnessLogs: [],
           _resolvedIllnessIds: [],
           workoutSkips: [],
@@ -4564,6 +4584,7 @@ export const useAppStore = create<AppState>()(
           if (state.activePlyoBlock === undefined) state.activePlyoBlock = null;
           if (!state.rsiHistory) state.rsiHistory = [];
           if (!state.techniqueLog) state.techniqueLog = [];
+          if (!state.sparringRounds) state.sparringRounds = [];
           if (!state.hrSessions) state.hrSessions = [];
           if (!state.bodyComposition) state.bodyComposition = [];
           if (!state.competitions) state.competitions = [];
@@ -4740,6 +4761,7 @@ export const useAppStore = create<AppState>()(
         activePlyoBlock: state.activePlyoBlock ?? null,
         rsiHistory: state.rsiHistory ?? [],
         techniqueLog: state.techniqueLog ?? [],
+        sparringRounds: state.sparringRounds ?? [],
         illnessLogs: state.illnessLogs ?? [],
         _resolvedIllnessIds: state._resolvedIllnessIds ?? [],
         competitions: state.competitions ?? [],

@@ -47,7 +47,7 @@ function VerifyEmailContent() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm text-center"
       >
-        <div className="w-16 h-16 bg-primary-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 bg-primary-500/20 rounded-lg flex items-center justify-center mx-auto mb-6">
           <Dumbbell className="w-8 h-8 text-primary-400" />
         </div>
 

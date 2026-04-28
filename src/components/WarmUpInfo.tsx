@@ -53,7 +53,7 @@ export default function WarmUpInfo({ onClose }: { onClose: () => void }) {
 
       <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-5">
         {/* Hero */}
-        <div className="rounded-2xl p-5 bg-gradient-to-br from-orange-500/15 to-orange-500/5 border border-orange-500/20">
+        <div className="rounded-lg p-5 bg-gradient-to-br from-orange-500/15 to-orange-500/5 border border-orange-500/20">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center">
               <Sunrise className="w-6 h-6 text-orange-400" />

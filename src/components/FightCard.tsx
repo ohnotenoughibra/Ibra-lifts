@@ -104,7 +104,7 @@ export default function FightCardModal({ data, open, onClose }: FightCardModalPr
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 30 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-sm bg-grappler-900 border border-grappler-700/50 rounded-2xl overflow-hidden"
+            className="relative w-full max-w-sm bg-grappler-900 border border-grappler-700/50 rounded-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

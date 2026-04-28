@@ -18,11 +18,11 @@ export default function OnboardingPhase({
       key="zone2-onboard"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden border border-grappler-700/50 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/10"
+      className="rounded-lg overflow-hidden border border-grappler-700/50 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/10"
     >
       {/* Welcome hero */}
       <div className="pt-8 pb-5 px-5 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/15 flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/15 flex items-center justify-center mx-auto mb-4">
           <Dumbbell className="w-8 h-8 text-primary-400" />
         </div>
         <h2 className="text-lg font-black text-grappler-50">Ready to build your program?</h2>

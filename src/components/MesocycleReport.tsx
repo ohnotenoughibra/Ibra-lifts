@@ -110,7 +110,7 @@ export default function MesocycleReport({
           onClick={() => setShowDeleteConfirm(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setShowDeleteConfirm(false); }}
         >
-          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-grappler-100">Delete Mesocycle?</h3>
             <p className="text-sm text-grappler-400">
               This will permanently delete <span className="text-grappler-200 font-medium">{mesocycle.name}</span> and all {report.workoutsCompleted} workout logs associated with it. This cannot be undone.
@@ -161,7 +161,7 @@ export default function MesocycleReport({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            'rounded-2xl p-5 text-center',
+            'rounded-lg p-5 text-center',
             report.completionRate >= 90
               ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/20'
               : report.completionRate >= 70

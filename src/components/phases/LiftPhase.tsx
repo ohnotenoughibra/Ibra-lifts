@@ -149,7 +149,7 @@ export default function LiftPhase({
 
       {/* Main Mission Card */}
       <div className={cn(
-        "rounded-2xl overflow-hidden border",
+        "rounded-lg overflow-hidden border",
         directive.todayType === 'both'
           ? 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'
           : 'border-primary-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/20'
@@ -234,7 +234,7 @@ export default function LiftPhase({
           <button
             onClick={handleStartWorkout}
             className={cn(
-              "w-full py-4 rounded-2xl font-bold text-white text-lg flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg",
+              "w-full py-4 rounded-lg font-bold text-white text-lg flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg",
               directive.todayType === 'both'
                 ? 'bg-gradient-to-r from-primary-500 via-purple-500 to-indigo-500 shadow-purple-500/20'
                 : 'bg-gradient-to-r from-primary-500 to-accent-500 shadow-primary-500/20',
@@ -307,7 +307,7 @@ export default function LiftPhase({
             <motion.div
               initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-md bg-grappler-900 rounded-2xl border border-grappler-800 p-2 space-y-1"
+              className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-2 space-y-1"
             >
               <button onClick={() => { setShowSessionSheet(false); onQuickWorkout(); }} className="w-full px-4 py-3 rounded-xl hover:bg-grappler-800 text-left flex items-center gap-3 transition">
                 <Zap className="w-4 h-4 text-grappler-400" />
@@ -358,7 +358,7 @@ export default function LiftPhase({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+              className="bg-grappler-900 rounded-lg p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn('p-2.5 rounded-xl', directive.readinessLevel === 'critical' ? 'bg-red-500/20' : 'bg-amber-500/20')}>

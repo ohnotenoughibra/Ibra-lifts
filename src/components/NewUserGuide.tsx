@@ -193,7 +193,7 @@ export default function NewUserGuide({ onComplete }: NewUserGuideProps) {
             className="space-y-6"
           >
             {/* Icon */}
-            <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center', step.color)}>
+            <div className={cn('w-16 h-16 rounded-lg flex items-center justify-center', step.color)}>
               {step.icon}
             </div>
 

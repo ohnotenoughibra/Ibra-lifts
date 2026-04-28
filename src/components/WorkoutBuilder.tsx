@@ -1277,7 +1277,7 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
       {/* Template confirmation modal */}
       {pendingTemplate && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPendingTemplate(null)}>
-          <div className="bg-grappler-800 rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+          <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-white mb-2">Start New Program?</h3>
             <p className="text-sm text-grappler-400 mb-4">
               This will start a new <span className="text-white font-medium">{pendingTemplate.name}</span> program

@@ -1577,7 +1577,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className={cn('rounded-2xl p-5 border', readiness.bg)}
+              className={cn('rounded-lg p-5 border', readiness.bg)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">

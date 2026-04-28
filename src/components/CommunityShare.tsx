@@ -288,7 +288,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
             className="space-y-4"
           >
             {/* Progress Card Preview */}
-            <div className="bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700 rounded-2xl p-5 space-y-4">
+            <div className="bg-gradient-to-br from-grappler-800 to-grappler-850 border border-grappler-700 rounded-lg p-5 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center">
                   <Dumbbell className="w-6 h-6 text-white" />
@@ -417,7 +417,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
             className="space-y-4"
           >
             {/* Nutrition overview card */}
-            <div className="bg-gradient-to-br from-green-900/30 to-grappler-850 border border-green-500/20 rounded-2xl p-5 space-y-4">
+            <div className="bg-gradient-to-br from-green-900/30 to-grappler-850 border border-green-500/20 rounded-lg p-5 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
                   <Apple className="w-6 h-6 text-white" />

@@ -177,7 +177,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <div
             id="barcode-reader"
-            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            className="w-full max-w-sm rounded-lg overflow-hidden"
           />
           <p className="mt-4 text-sm text-grappler-500 text-center">
             Point camera at a barcode on food packaging
@@ -224,7 +224,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
             className="flex-1 flex flex-col px-4 pt-6 pb-8 overflow-y-auto"
           >
             {/* Product card */}
-            <div className="bg-grappler-800 rounded-2xl p-4 space-y-4">
+            <div className="bg-grappler-800 rounded-lg p-4 space-y-4">
               <div className="flex gap-3">
                 {state.product.imageUrl && (
                   <img
@@ -333,7 +333,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
             exit={{ y: 100, opacity: 0 }}
             className="flex-1 flex flex-col px-4 pt-6 pb-8 overflow-y-auto"
           >
-            <div className="bg-grappler-800 rounded-2xl p-4 space-y-4">
+            <div className="bg-grappler-800 rounded-lg p-4 space-y-4">
               <div className="flex items-center gap-2 text-amber-400">
                 <AlertCircle className="w-5 h-5" />
                 <p className="text-sm font-medium">Product not found</p>

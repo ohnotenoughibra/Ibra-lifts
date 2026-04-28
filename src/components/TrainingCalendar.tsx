@@ -323,7 +323,7 @@ export default function TrainingCalendar() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-grappler-800 rounded-2xl p-5 w-full max-w-sm shadow-xl max-h-[80vh] overflow-y-auto"
+              className="bg-grappler-800 rounded-lg p-5 w-full max-w-sm shadow-xl max-h-[80vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-white mb-1">
@@ -560,7 +560,7 @@ export default function TrainingCalendar() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-grappler-800 rounded-2xl p-5 w-full max-w-xs shadow-xl"
+              className="bg-grappler-800 rounded-lg p-5 w-full max-w-xs shadow-xl"
               onClick={e => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
@@ -610,7 +610,7 @@ export default function TrainingCalendar() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-grappler-800 rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+              className="bg-grappler-800 rounded-lg w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}

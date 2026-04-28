@@ -1298,7 +1298,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 {/* Badge icon + name */}
                 <div className="text-center mb-5">
                   <div className={cn(
-                    'w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-3 text-4xl',
+                    'w-20 h-20 rounded-lg flex items-center justify-center mx-auto mb-3 text-4xl',
                     selectedBadge.earned
                       ? 'bg-grappler-700/60 ring-2 ring-primary-500/40'
                       : 'bg-grappler-800/60 grayscale opacity-60'
@@ -1369,7 +1369,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
               exit={{ opacity: 0, y: 40, scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl bg-grappler-800 border border-grappler-700 shadow-2xl overflow-hidden"
+              className="w-full max-w-sm rounded-lg bg-grappler-800 border border-grappler-700 shadow-2xl overflow-hidden"
             >
               <div className="p-5">
                 <h3 className={cn('text-base font-bold mb-1.5', confirmDialog.danger ? 'text-red-400' : 'text-grappler-100')}>

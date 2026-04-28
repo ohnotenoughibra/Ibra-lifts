@@ -50,7 +50,7 @@ export default function CombatPhase({
   return (
     <motion.div key="zone2-combat" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
       <div className={cn(
-        'rounded-2xl overflow-hidden border',
+        'rounded-lg overflow-hidden border',
         allCombatLogged
           ? 'border-green-500/30 bg-gradient-to-br from-green-500/10 via-grappler-800 to-grappler-900'
           : 'border-purple-500/20 bg-gradient-to-br from-grappler-800 via-grappler-850 to-purple-950/30'

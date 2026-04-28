@@ -2320,7 +2320,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
       {/* ─── QUICK ACCESS ─── no glass, no overflow-hidden, no absolute layers */}
       <div className={cn(
-        'rounded-2xl p-4 max-w-md mx-auto w-full mb-8',
+        'rounded-lg p-4 max-w-md mx-auto w-full mb-8',
         'bg-grappler-850 border',
         dockEditMode ? 'border-primary-500/40' : 'border-grappler-700/40'
       )}>
@@ -2369,7 +2369,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   className="flex flex-col items-center gap-1.5 w-full active:scale-90 transition-transform"
                   style={{ touchAction: 'manipulation' }}
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-lg bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
                     <Icon className={cn('w-5 h-5', textColor)} />
                   </div>
                   <span className="text-xs text-grappler-400 font-medium truncate w-full text-center">{tool.label}</span>
@@ -2409,7 +2409,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     className="flex flex-col items-center gap-1.5 active:scale-90 transition-transform"
                     style={{ touchAction: 'manipulation' }}
                   >
-                    <div className="relative w-12 h-12 rounded-2xl border border-dashed border-grappler-700/40 bg-grappler-800/30 flex items-center justify-center">
+                    <div className="relative w-12 h-12 rounded-lg border border-dashed border-grappler-700/40 bg-grappler-800/30 flex items-center justify-center">
                       <SugIcon className={cn('w-5 h-5 opacity-30', textColor)} />
                       <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary-500/80 flex items-center justify-center">
                         <Plus className="w-2.5 h-2.5 text-white" />
@@ -2432,7 +2432,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                   style={{ touchAction: 'manipulation' }}
                 >
                   <div className={cn(
-                    'w-12 h-12 rounded-2xl border-2 border-dashed flex items-center justify-center',
+                    'w-12 h-12 rounded-lg border-2 border-dashed flex items-center justify-center',
                     dockEditMode ? 'border-primary-400/40 bg-primary-500/5' : 'border-grappler-700/30'
                   )}>
                     <Plus className={cn('w-5 h-5', dockEditMode ? 'text-primary-400' : 'text-grappler-600')} />
@@ -2498,7 +2498,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                         className="flex flex-col items-center gap-2 p-3 rounded-xl active:bg-grappler-800 active:scale-95 transition-all"
                         style={{ touchAction: 'manipulation' }}
                       >
-                        <div className="w-12 h-12 rounded-2xl bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-grappler-800 border border-grappler-700/50 flex items-center justify-center">
                           <Icon className={cn('w-5 h-5', textColor)} />
                         </div>
                         <span className="text-xs text-grappler-300 font-medium truncate w-full text-center">{tool.label}</span>
@@ -2530,7 +2530,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+              className="bg-grappler-900 rounded-lg p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2.5 rounded-xl bg-sky-500/20">
@@ -2625,7 +2625,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-2xl p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
+              className="bg-grappler-900 rounded-lg p-5 max-w-sm w-full border border-grappler-700 shadow-xl"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2.5 rounded-xl bg-primary-500/20">

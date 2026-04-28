@@ -352,7 +352,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
           {view === 'home' && (
             <motion.div key="home" {...pageVariants} className="space-y-5 pt-4">
               {/* Current State Card */}
-              <motion.div variants={itemVariants} className="bg-grappler-900/80 rounded-2xl border border-grappler-800/50 p-4">
+              <motion.div variants={itemVariants} className="bg-grappler-900/80 rounded-lg border border-grappler-800/50 p-4">
                 {lastCheckIn ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -679,7 +679,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
                 <>
                   {/* Radar */}
                   {radarData && (
-                    <div className="bg-grappler-900/80 rounded-2xl border border-grappler-800/50 p-4">
+                    <div className="bg-grappler-900/80 rounded-lg border border-grappler-800/50 p-4">
                       <h3 className="text-xs text-grappler-400 uppercase tracking-wider font-semibold mb-2">Mental Profile (Last 7)</h3>
                       <ResponsiveContainer width="100%" height={200}>
                         <RadarChart data={radarData}>
@@ -693,7 +693,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
 
                   {/* Trend Chart */}
                   {trendData.length >= 2 && (
-                    <div className="bg-grappler-900/80 rounded-2xl border border-grappler-800/50 p-4">
+                    <div className="bg-grappler-900/80 rounded-lg border border-grappler-800/50 p-4">
                       <h3 className="text-xs text-grappler-400 uppercase tracking-wider font-semibold mb-2">14-Day Trend</h3>
                       <ResponsiveContainer width="100%" height={160}>
                         <AreaChart data={trendData}>
@@ -737,7 +737,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
 
                   {/* Self-talk distribution */}
                   {sorted.length >= 5 && (
-                    <div className="bg-grappler-900/80 rounded-2xl border border-grappler-800/50 p-4 space-y-3">
+                    <div className="bg-grappler-900/80 rounded-lg border border-grappler-800/50 p-4 space-y-3">
                       <h3 className="text-xs text-grappler-400 uppercase tracking-wider font-semibold">Self-Talk Distribution</h3>
                       {(() => {
                         const talks = sorted.filter(c => c.selfTalk);
@@ -774,7 +774,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
           {view === 'ledger' && (
             <motion.div key="ledger" {...pageVariants} className="space-y-5 pt-4">
               {/* Auto-stats summary */}
-              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl border border-amber-500/20 p-4 space-y-3">
+              <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-lg border border-amber-500/20 p-4 space-y-3">
                 <h3 className="text-xs text-amber-400 uppercase tracking-wider font-semibold">Your Evidence (Auto-Tracked)</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {[

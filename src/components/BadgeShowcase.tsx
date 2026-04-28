@@ -160,7 +160,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
               className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8"
             >
               <div className={cn(
-                'rounded-2xl p-5 border shadow-2xl',
+                'rounded-lg p-5 border shadow-2xl',
                 badge.earned
                   ? 'bg-grappler-800 border-grappler-600'
                   : 'bg-grappler-900 border-grappler-700'

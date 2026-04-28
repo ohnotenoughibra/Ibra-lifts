@@ -1229,7 +1229,7 @@ export default function ActiveWorkout() {
             exit={{ scale: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           >
-            <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-2xl p-8 text-center">
+            <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-lg p-8 text-center">
               <Trophy className="w-16 h-16 text-white mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-white mb-2">NEW PR!</h2>
               <p className="text-white/80">You&apos;re getting stronger!</p>
@@ -1250,7 +1250,7 @@ export default function ActiveWorkout() {
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-grappler-800 border border-red-500/30 rounded-2xl p-6 max-w-sm w-full space-y-4"
+              className="bg-grappler-800 border border-red-500/30 rounded-lg p-6 max-w-sm w-full space-y-4"
             >
               <div className="text-center">
                 <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -3593,7 +3593,7 @@ export default function ActiveWorkout() {
           {!currentSet.completed && currentSet.weight > 0 && currentSet.reps > 0 && (
             <button
               onClick={completeSet}
-              className="w-full mb-4 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg flex items-center justify-center gap-3 active:scale-[0.97] transition-transform shadow-lg shadow-green-500/20"
+              className="w-full mb-4 py-4 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-lg flex items-center justify-center gap-3 active:scale-[0.97] transition-transform shadow-lg shadow-green-500/20"
             >
               <Check className="w-6 h-6" />
               <span>
@@ -3846,7 +3846,7 @@ export default function ActiveWorkout() {
                   className="overflow-hidden"
                 >
                   <div className={cn(
-                    'rounded-2xl border p-4 bg-gradient-to-br transition-all duration-300',
+                    'rounded-lg border p-4 bg-gradient-to-br transition-all duration-300',
                     PHASE_BG_COLORS[tempoState.phase],
                     tempoState.phase === 'eccentric' ? 'border-blue-500/30' :
                     tempoState.phase === 'pause' ? 'border-yellow-500/30' :

@@ -1303,7 +1303,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-grappler-900 border border-grappler-700 rounded-2xl p-6 w-full max-w-sm space-y-4"
+              className="bg-grappler-900 border border-grappler-700 rounded-lg p-6 w-full max-w-sm space-y-4"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">

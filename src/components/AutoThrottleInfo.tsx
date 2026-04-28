@@ -90,7 +90,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
 
       <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 bg-cyan-500/20 rounded-lg flex items-center justify-center mx-auto mb-3">
             <Battery className="w-7 h-7 text-cyan-400" />
           </div>
           <p className="text-sm text-grappler-400 max-w-xs mx-auto">

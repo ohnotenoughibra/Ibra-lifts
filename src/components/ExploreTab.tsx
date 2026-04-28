@@ -513,7 +513,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                     transition={{ delay: i * 0.06, duration: 0.25 }}
                     onClick={() => handleNavigate(tool.id)}
                     className={cn(
-                      'w-full flex items-center gap-3.5 p-4 rounded-2xl bg-gradient-to-r border',
+                      'w-full flex items-center gap-3.5 p-4 rounded-lg bg-gradient-to-r border',
                       'active:scale-[0.98] transition-transform select-none text-left',
                       suggestion.gradient,
                       isFree && tool.isPro && 'opacity-50'

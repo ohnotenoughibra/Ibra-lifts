@@ -36,11 +36,11 @@ export default function BlockCompletePhase({
       key="zone2-block-complete"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden border border-primary-500/20 bg-gradient-to-br from-primary-500/10 via-grappler-800 to-accent-500/5"
+      className="rounded-lg overflow-hidden border border-primary-500/20 bg-gradient-to-br from-primary-500/10 via-grappler-800 to-accent-500/5"
     >
       {/* Trophy header */}
       <div className="pt-6 pb-3 text-center relative">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/20 flex items-center justify-center mx-auto mb-3">
+        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/20 flex items-center justify-center mx-auto mb-3">
           <Trophy className="w-8 h-8 text-primary-400" />
         </div>
         <h3 className="text-lg font-black text-grappler-50">Block Complete</h3>

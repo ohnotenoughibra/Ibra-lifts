@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 // ---------------------------------------------------------------------------
 interface InjuryLoggerProps {
   onClose: () => void;
+  onNavigate?: (view: 'rehab' | 'injury_aware_workout', context?: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,7 +161,7 @@ function daysSince(date: Date): number {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
+export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps) {
   const { injuryLog: rawInjuryLog, addInjury, resolveInjury, deleteInjury, workoutLogs, trainingSessions, latestWhoopData, user } = useAppStore();
   const injuryLog = useMemo(() => rawInjuryLog.filter(i => !i._deleted), [rawInjuryLog]);
 
@@ -906,6 +907,15 @@ export default function InjuryLogger({ onClose }: InjuryLoggerProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {onNavigate && (
+                      <button
+                        onClick={() => onNavigate('rehab', injury.id)}
+                        className="px-2 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 text-xs font-semibold transition-colors mr-1"
+                        title="Open phased rehab plan"
+                      >
+                        Rehab
+                      </button>
+                    )}
                     <button
                       onClick={() => resolveInjury(injury.id)}
                       className="p-1.5 rounded-lg hover:bg-green-500/20 text-grappler-400 hover:text-green-400 transition-colors"

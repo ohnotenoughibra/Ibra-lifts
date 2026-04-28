@@ -54,6 +54,15 @@ export default function OnboardingPhase({
           <Zap className="w-3.5 h-3.5" />
           Or just do a quick 30-minute workout
         </button>
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <button onClick={() => onNavigate('builder')} className="py-1.5 text-xs text-grappler-400 hover:text-grappler-200 transition-colors">
+            Build your own
+          </button>
+          <span className="text-grappler-700">·</span>
+          <button onClick={() => onNavigate('injury_aware_workout')} className="py-1.5 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">
+            Injury-aware
+          </button>
+        </div>
       </div>
     </motion.div>
   );

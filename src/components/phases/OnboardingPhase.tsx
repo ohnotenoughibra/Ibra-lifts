@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Dumbbell, Brain, Zap } from 'lucide-react';
+import { Brain, Zap } from 'lucide-react';
 import type { OverlayView } from '../dashboard-types';
 
 interface OnboardingPhaseProps {
@@ -18,51 +18,45 @@ export default function OnboardingPhase({
       key="zone2-onboard"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg overflow-hidden border border-grappler-700/50 bg-gradient-to-br from-grappler-800 via-grappler-850 to-primary-950/10"
+      className="rounded-lg border border-grappler-800 bg-grappler-900/40 p-6"
     >
-      {/* Welcome hero */}
-      <div className="pt-8 pb-5 px-5 text-center">
-        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary-500/20 to-accent-500/20 border border-primary-500/15 flex items-center justify-center mx-auto mb-4">
-          <Dumbbell className="w-8 h-8 text-primary-400" />
+      {/* Editorial heading — no gradient, no glow */}
+      <div className="mb-5">
+        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-2">
+          No program yet
         </div>
-        <h2 className="text-lg font-black text-grappler-50">Ready to build your program?</h2>
-        <p className="text-xs text-grappler-400 mt-2 leading-relaxed max-w-[280px] mx-auto">
-          AI-generated periodized training built around your schedule, experience, and goals. Takes about 30 seconds.
+        <h2 className="font-display text-3xl font-black tracking-tight leading-none text-white mb-2">
+          Build your<br />program.
+        </h2>
+        <p className="text-sm text-grappler-400 leading-relaxed">
+          Periodized training around your schedule, experience, and goals. ~30 seconds.
         </p>
       </div>
 
-      {/* Feature preview pills */}
-      <div className="flex items-center justify-center gap-2 px-5 pb-4 flex-wrap">
-        <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Auto-periodization</span>
-        <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Progressive overload</span>
-        <span className="text-xs text-grappler-400 px-2.5 py-1 rounded-full bg-grappler-800/60 border border-grappler-700/50">Deload timing</span>
-      </div>
+      <div className="h-px bg-grappler-800 mb-5" />
 
-      {/* CTAs */}
-      <div className="px-5 pb-6 space-y-2">
-        <button
-          onClick={() => onNavigate('program_browser')}
-          className="w-full py-3.5 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-primary-500 to-accent-500 shadow-lg shadow-primary-500/20 active:scale-[0.98] transition-transform"
-        >
-          <Brain className="w-5 h-5" />
-          Create Program
+      {/* Primary CTA */}
+      <button
+        onClick={() => onNavigate('program_browser')}
+        className="w-full py-3.5 rounded-lg font-bold text-white text-sm flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-400 active:scale-[0.98] transition-all mb-3"
+      >
+        <Brain className="w-5 h-5" />
+        Create Program
+      </button>
+
+      {/* Secondary actions */}
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        <button onClick={onQuickWorkout} className="py-1.5 text-xs text-grappler-400 hover:text-grappler-200 transition-colors flex items-center gap-1.5">
+          <Zap className="w-3.5 h-3.5" /> Quick 30m
         </button>
-        <button
-          onClick={onQuickWorkout}
-          className="w-full py-2.5 rounded-xl text-xs font-medium text-grappler-400 hover:text-grappler-200 flex items-center justify-center gap-1.5 transition-colors"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          Or just do a quick 30-minute workout
+        <span className="text-grappler-700">·</span>
+        <button onClick={() => onNavigate('builder')} className="py-1.5 text-xs text-grappler-400 hover:text-grappler-200 transition-colors">
+          Custom
         </button>
-        <div className="flex items-center justify-center gap-3 pt-1">
-          <button onClick={() => onNavigate('builder')} className="py-1.5 text-xs text-grappler-400 hover:text-grappler-200 transition-colors">
-            Build your own
-          </button>
-          <span className="text-grappler-700">·</span>
-          <button onClick={() => onNavigate('injury_aware_workout')} className="py-1.5 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">
-            Injury-aware
-          </button>
-        </div>
+        <span className="text-grappler-700">·</span>
+        <button onClick={() => onNavigate('injury_aware_workout')} className="py-1.5 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">
+          Injury-aware
+        </button>
       </div>
     </motion.div>
   );

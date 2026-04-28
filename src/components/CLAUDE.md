@@ -75,8 +75,15 @@
 - `CycleTracking.tsx` (~350) — Menstrual cycle phases
 - `GripStrengthModule.tsx` (~910) — Grip strength metrics
 - `PhotoProgress.tsx` (~1,210) — Progress photos
-- `InjuryLogger.tsx` (~1,070) — Injury tracking
+- `InjuryLogger.tsx` (~1,200) — Injury tracking with Rehab CTA
 - `IllnessLogger.tsx` (~1,060) — Illness tracking
+- `RehabPlan.tsx` (~900) — 5-phase rehab program with daily exercises and pain-gated advancement
+- `InjuryAwareWorkout.tsx` (~360) — On-demand workout generator with movement constraints
+
+### Athletic Performance
+- `PlyometricsBlock.tsx` (~580) — 6-week speed-strength block with RSI testing
+- `AthleticBenchmarks.tsx` (~380) — 6-test athleticism battery with weakest-link routing
+- `EnergySystems.tsx` (~375) — Z2/threshold/RSA cardio protocols with HR zones
 
 ### Training Planning
 - `PeriodizationCalendar.tsx` (~500) — Calendar view

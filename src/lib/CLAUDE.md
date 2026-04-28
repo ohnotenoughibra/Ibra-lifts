@@ -106,6 +106,13 @@ Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` /
 - `injury-intelligence.ts` — Pain history, exercise risk assessment
 - `injury-patterns.ts` — Recurring trigger detection
 - `illness-engine.ts` — Symptom tracking, training modifications
+- `rehab-engine.ts` — 5-phase rehab program (acute → return-to-sport) with daily exercises, pain-gated advancement, RTS functional tests
+- `injury-aware-workout.ts` — On-demand workout generator with movement constraints (knee can't bend, no overhead, etc.)
+
+### Athletic Performance
+- `plyometric-engine.ts` — 6-week Verkhoshansky-periodized speed-strength block (extensive → intensive → reactive → contrast/PAP), RSI test protocol
+- `athletic-benchmarks.ts` — 6-test combat athletics battery (vertical, broad, 5-10-5, 10m sprint, dead hang, push-ups/60s) with tier classification, weakest-link logic
+- `energy-systems.ts` — 5 cardio protocols (Z2 base, tempo, long aerobic, Norwegian 4×4, RSA), Tanaka maxHR + Karvonen HR-zone math
 
 ### Gamification
 - `gamification.ts` — 52 badges, XP/levels, streaks, challenges

@@ -286,8 +286,12 @@ export default function LiftPhase({
       )}
 
       {/* Secondary actions — skip visible, quick workout accessible */}
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-3 flex-wrap">
         <button onClick={onQuickWorkout} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors"><Zap className="w-3.5 h-3.5" />Quick 30m</button>
+        <span className="text-grappler-700">·</span>
+        <button onClick={() => onNavigate('builder')} className="flex items-center gap-1.5 py-2 text-xs text-grappler-400 hover:text-grappler-300 transition-colors">Custom</button>
+        <span className="text-grappler-700">·</span>
+        <button onClick={() => onNavigate('injury_aware_workout')} className="flex items-center gap-1.5 py-2 text-xs text-amber-400/80 hover:text-amber-300 transition-colors">Injury-Aware</button>
         <span className="text-grappler-700">·</span>
         <button
           onClick={onShowSkipDialog}

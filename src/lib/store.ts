@@ -136,6 +136,16 @@ interface AppState {
   // Injury tracking
   injuryLog: InjuryEntry[];
 
+  // Rehab plans (keyed by injuryId)
+  rehabStates: Record<string, import('./rehab-engine').RehabState>;
+
+  // Athletic benchmark results
+  benchmarkResults: import('./athletic-benchmarks').BenchmarkResult[];
+
+  // Plyometric block + RSI history
+  activePlyoBlock: import('./plyometric-engine').PlyoBlock | null;
+  rsiHistory: import('./plyometric-engine').RSIEntry[];
+
   // Illness tracking
   illnessLogs: IllnessLog[];
   // Local-only: IDs of illnesses the user has resolved. NEVER synced to server.
@@ -380,6 +390,20 @@ interface AppState {
   resolveInjury: (id: string) => void;
   deleteInjury: (id: string) => void;
 
+  // Rehab actions
+  startRehab: (injuryId: string) => void;
+  addRehabCheckIn: (injuryId: string, checkIn: import('./rehab-engine').RehabCheckIn) => void;
+  advanceRehabPhase: (injuryId: string, phase: import('./rehab-engine').RehabPhaseNumber) => void;
+  endRehab: (injuryId: string) => void;
+
+  // Benchmark actions
+  addBenchmarkResult: (r: import('./athletic-benchmarks').BenchmarkResult) => void;
+  deleteBenchmarkResult: (id: string) => void;
+
+  // Plyometric block actions
+  setActivePlyoBlock: (block: import('./plyometric-engine').PlyoBlock | null) => void;
+  addRsiEntry: (entry: import('./plyometric-engine').RSIEntry) => void;
+
   // Illness actions
   logIllness: (illness: Omit<IllnessLog, 'id' | 'dailyCheckins' | 'status'>) => void;
   updateIllnessCheckin: (illnessId: string, checkin: IllnessDailyCheckin) => void;
@@ -597,6 +621,10 @@ export const useAppStore = create<AppState>()(
       gripTests: [],
       gripExerciseLogs: [],
       injuryLog: [],
+      rehabStates: {},
+      benchmarkResults: [],
+      activePlyoBlock: null,
+      rsiHistory: [],
       illnessLogs: [],
       _resolvedIllnessIds: [],
       workoutSkips: [],
@@ -3491,6 +3519,80 @@ export const useAppStore = create<AppState>()(
         set({ injuryLog: injuryLog.map(i => i.id === id ? { ...i, _deleted: true, _deletedAt: Date.now() } : i), _syncUrgent: true });
       },
 
+      // Rehab actions
+      startRehab: (injuryId) => {
+        const { rehabStates } = get();
+        if (rehabStates[injuryId]) return; // already started
+        set({
+          rehabStates: {
+            ...rehabStates,
+            [injuryId]: {
+              injuryId,
+              startedAt: new Date().toISOString(),
+              checkIns: [],
+            },
+          },
+          _syncUrgent: true,
+        });
+      },
+
+      addRehabCheckIn: (injuryId, checkIn) => {
+        const { rehabStates } = get();
+        const existing = rehabStates[injuryId] ?? {
+          injuryId,
+          startedAt: new Date().toISOString(),
+          checkIns: [],
+        };
+        set({
+          rehabStates: {
+            ...rehabStates,
+            [injuryId]: { ...existing, checkIns: [...existing.checkIns, checkIn] },
+          },
+          _syncUrgent: true,
+        });
+      },
+
+      advanceRehabPhase: (injuryId, phase) => {
+        const { rehabStates } = get();
+        const existing = rehabStates[injuryId];
+        if (!existing) return;
+        set({
+          rehabStates: {
+            ...rehabStates,
+            [injuryId]: { ...existing, phaseOverride: phase },
+          },
+          _syncUrgent: true,
+        });
+      },
+
+      endRehab: (injuryId) => {
+        const { rehabStates } = get();
+        const next = { ...rehabStates };
+        delete next[injuryId];
+        set({ rehabStates: next, _syncUrgent: true });
+      },
+
+      // Benchmark actions
+      addBenchmarkResult: (result) => {
+        const { benchmarkResults } = get();
+        set({ benchmarkResults: [...(benchmarkResults ?? []), result], _syncUrgent: true });
+      },
+
+      deleteBenchmarkResult: (id) => {
+        const { benchmarkResults } = get();
+        set({ benchmarkResults: (benchmarkResults ?? []).filter(r => r.id !== id), _syncUrgent: true });
+      },
+
+      // Plyometric block actions
+      setActivePlyoBlock: (block) => {
+        set({ activePlyoBlock: block, _syncUrgent: true });
+      },
+
+      addRsiEntry: (entry) => {
+        const { rsiHistory } = get();
+        set({ rsiHistory: [...(rsiHistory ?? []), entry], _syncUrgent: true });
+      },
+
       // Illness actions
       logIllness: (illness) => {
         const { illnessLogs } = get();
@@ -4003,7 +4105,7 @@ export const useAppStore = create<AppState>()(
         const SYNC_FIELDS = [
           'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
           'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
-          'bodyWeightLog', 'injuryLog', 'customExercises', 'sessionTemplates',
+          'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
           'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
@@ -4189,6 +4291,10 @@ export const useAppStore = create<AppState>()(
           gripTests: [],
           gripExerciseLogs: [],
           injuryLog: [],
+          rehabStates: {},
+          benchmarkResults: [],
+          activePlyoBlock: null,
+          rsiHistory: [],
           illnessLogs: [],
           _resolvedIllnessIds: [],
           workoutSkips: [],
@@ -4433,6 +4539,10 @@ export const useAppStore = create<AppState>()(
           if (!state.gripTests) state.gripTests = [];
           if (!state.gripExerciseLogs) state.gripExerciseLogs = [];
           if (!state.injuryLog) state.injuryLog = [];
+          if (!state.rehabStates) state.rehabStates = {};
+          if (!state.benchmarkResults) state.benchmarkResults = [];
+          if (state.activePlyoBlock === undefined) state.activePlyoBlock = null;
+          if (!state.rsiHistory) state.rsiHistory = [];
           if (!state.hrSessions) state.hrSessions = [];
           if (!state.bodyComposition) state.bodyComposition = [];
           if (!state.competitions) state.competitions = [];
@@ -4604,6 +4714,10 @@ export const useAppStore = create<AppState>()(
 
         // Small arrays — persist as-is
         injuryLog: state.injuryLog ?? [],
+        rehabStates: state.rehabStates ?? {},
+        benchmarkResults: state.benchmarkResults ?? [],
+        activePlyoBlock: state.activePlyoBlock ?? null,
+        rsiHistory: state.rsiHistory ?? [],
         illnessLogs: state.illnessLogs ?? [],
         _resolvedIllnessIds: state._resolvedIllnessIds ?? [],
         competitions: state.competitions ?? [],

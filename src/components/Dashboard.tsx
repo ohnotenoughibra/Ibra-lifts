@@ -80,6 +80,11 @@ const StrengthAnalysis = dynamic(() => import('./StrengthAnalysis'), { loading: 
 const PeriodizationCalendar = dynamic(() => import('./PeriodizationCalendar'), { loading: () => <OverlaySkeleton /> });
 const RecoveryDashboard = dynamic(() => import('./RecoveryDashboard'), { loading: () => <OverlaySkeleton /> });
 const InjuryLogger = dynamic(() => import('./InjuryLogger'), { loading: () => <OverlaySkeleton /> });
+const RehabPlan = dynamic(() => import('./RehabPlan'), { loading: () => <OverlaySkeleton /> });
+const InjuryAwareWorkout = dynamic(() => import('./InjuryAwareWorkout'), { loading: () => <OverlaySkeleton /> });
+const PlyometricsBlock = dynamic(() => import('./PlyometricsBlock'), { loading: () => <OverlaySkeleton /> });
+const AthleticBenchmarks = dynamic(() => import('./AthleticBenchmarks'), { loading: () => <OverlaySkeleton /> });
+const EnergySystems = dynamic(() => import('./EnergySystems'), { loading: () => <OverlaySkeleton /> });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
@@ -578,7 +583,12 @@ export default function Dashboard({
       strength: <StrengthAnalysis onClose={closeOverlay} />,
       periodization: <PeriodizationCalendar onClose={closeOverlay} />,
       recovery: <RecoveryHubView onClose={closeOverlay} initialTab="analytics" />,
-      injury: <InjuryLogger onClose={closeOverlay} />,
+      injury: <InjuryLogger onClose={closeOverlay} onNavigate={setOverlayView} />,
+      rehab: <RehabPlan onClose={closeOverlay} preselectedInjuryId={overlayContext} />,
+      injury_aware_workout: <InjuryAwareWorkout onClose={closeOverlay} />,
+      plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
+      athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
+      energy_systems: <EnergySystems onClose={closeOverlay} />,
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
       one_rm: <OneRepMaxCalc onClose={closeOverlay} />,
@@ -591,8 +601,8 @@ export default function Dashboard({
       grip_strength: <GripStrengthModule onClose={closeOverlay} />,
       recovery_coach: <RecoveryHubView onClose={closeOverlay} />,
       recovery_hub: <RecoveryHubView onClose={closeOverlay} />,
-      block_suggestion: <ProgramBrowserView onClose={closeOverlay} />,
-      program_browser: <ProgramBrowserView onClose={closeOverlay} />,
+      block_suggestion: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
+      program_browser: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
       user_guide: <NewUserGuide onComplete={closeOverlay} />,
       illness: <IllnessLogger onClose={closeOverlay} />,
       cycle_tracking: <CycleTracking onClose={closeOverlay} />,

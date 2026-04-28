@@ -132,9 +132,10 @@ const BLOCK_TYPES: BlockFocus[] = ['hypertrophy', 'strength', 'power', 'base_bui
 
 interface ProgramBrowserProps {
   onClose: () => void;
+  onNavigate?: (view: 'plyometrics' | 'energy_systems' | 'athletic_benchmarks') => void;
 }
 
-export default function ProgramBrowser({ onClose }: ProgramBrowserProps) {
+export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserProps) {
   const {
     user,
     currentMesocycle,
@@ -502,6 +503,60 @@ export default function ProgramBrowser({ onClose }: ProgramBrowserProps) {
             );
           })}
         </div>
+
+        {/* ── Specialty Blocks (standalone tools) ───────────────────── */}
+        {onNavigate && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-grappler-400">
+              Specialty Blocks
+            </h3>
+            <p className="text-[11px] text-grappler-500 -mt-1 mb-2">
+              Standalone training tracks. Run alongside or instead of a lifting mesocycle.
+            </p>
+
+            <button
+              onClick={() => onNavigate('plyometrics')}
+              className="w-full bg-grappler-800 rounded-xl border border-grappler-700 hover:border-amber-500/40 transition-colors px-4 py-3 flex items-center gap-3 text-left"
+            >
+              <span className="text-lg">⚡</span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-grappler-100">Speed-Strength Block</h4>
+                <p className="text-xs text-grappler-400 truncate">
+                  6 weeks · Plyometrics, RFD, contrast training
+                </p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-grappler-500 -rotate-90" />
+            </button>
+
+            <button
+              onClick={() => onNavigate('energy_systems')}
+              className="w-full bg-grappler-800 rounded-xl border border-grappler-700 hover:border-rose-500/40 transition-colors px-4 py-3 flex items-center gap-3 text-left"
+            >
+              <span className="text-lg">❤️</span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-grappler-100">Energy Systems</h4>
+                <p className="text-xs text-grappler-400 truncate">
+                  Z2 base · Norwegian 4×4 · RSA
+                </p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-grappler-500 -rotate-90" />
+            </button>
+
+            <button
+              onClick={() => onNavigate('athletic_benchmarks')}
+              className="w-full bg-grappler-800 rounded-xl border border-grappler-700 hover:border-emerald-500/40 transition-colors px-4 py-3 flex items-center gap-3 text-left"
+            >
+              <span className="text-lg">📊</span>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-grappler-100">Athletic Benchmarks</h4>
+                <p className="text-xs text-grappler-400 truncate">
+                  Test 6 attributes · Track progression · Find weakest link
+                </p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-grappler-500 -rotate-90" />
+            </button>
+          </div>
+        )}
 
         {/* ── Queued Mesocycles ──────────────────────────────────────── */}
         {mesocycleQueue.length > 0 && (

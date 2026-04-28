@@ -85,6 +85,9 @@ const InjuryAwareWorkout = dynamic(() => import('./InjuryAwareWorkout'), { loadi
 const PlyometricsBlock = dynamic(() => import('./PlyometricsBlock'), { loading: () => <OverlaySkeleton /> });
 const AthleticBenchmarks = dynamic(() => import('./AthleticBenchmarks'), { loading: () => <OverlaySkeleton /> });
 const EnergySystems = dynamic(() => import('./EnergySystems'), { loading: () => <OverlaySkeleton /> });
+const TechniqueLog = dynamic(() => import('./TechniqueLog'), { loading: () => <OverlaySkeleton /> });
+const CampTimeline = dynamic(() => import('./CampTimeline'), { loading: () => <OverlaySkeleton /> });
+const CoachReport = dynamic(() => import('./CoachReport'), { loading: () => <OverlaySkeleton /> });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
@@ -588,6 +591,9 @@ export default function Dashboard({
       plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
       athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
       energy_systems: <EnergySystems onClose={closeOverlay} />,
+      technique_log: <TechniqueLog onClose={closeOverlay} />,
+      camp_timeline: <CampTimeline onClose={closeOverlay} />,
+      coach_report: <CoachReport onClose={closeOverlay} />,
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
       one_rm: <OneRepMaxCalc onClose={closeOverlay} />,

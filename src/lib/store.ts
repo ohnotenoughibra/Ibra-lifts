@@ -146,6 +146,9 @@ interface AppState {
   activePlyoBlock: import('./plyometric-engine').PlyoBlock | null;
   rsiHistory: import('./plyometric-engine').RSIEntry[];
 
+  // Technique log (combat-athlete drilling)
+  techniqueLog: import('./technique-log').TechniqueEntry[];
+
   // Illness tracking
   illnessLogs: IllnessLog[];
   // Local-only: IDs of illnesses the user has resolved. NEVER synced to server.
@@ -404,6 +407,10 @@ interface AppState {
   setActivePlyoBlock: (block: import('./plyometric-engine').PlyoBlock | null) => void;
   addRsiEntry: (entry: import('./plyometric-engine').RSIEntry) => void;
 
+  // Technique log actions
+  addTechniqueEntry: (entry: import('./technique-log').TechniqueEntry) => void;
+  deleteTechniqueEntry: (id: string) => void;
+
   // Illness actions
   logIllness: (illness: Omit<IllnessLog, 'id' | 'dailyCheckins' | 'status'>) => void;
   updateIllnessCheckin: (illnessId: string, checkin: IllnessDailyCheckin) => void;
@@ -625,6 +632,7 @@ export const useAppStore = create<AppState>()(
       benchmarkResults: [],
       activePlyoBlock: null,
       rsiHistory: [],
+      techniqueLog: [],
       illnessLogs: [],
       _resolvedIllnessIds: [],
       workoutSkips: [],
@@ -3593,6 +3601,17 @@ export const useAppStore = create<AppState>()(
         set({ rsiHistory: [...(rsiHistory ?? []), entry], _syncUrgent: true });
       },
 
+      // Technique log actions
+      addTechniqueEntry: (entry) => {
+        const { techniqueLog } = get();
+        set({ techniqueLog: [...(techniqueLog ?? []), entry], _syncUrgent: true });
+      },
+
+      deleteTechniqueEntry: (id) => {
+        const { techniqueLog } = get();
+        set({ techniqueLog: (techniqueLog ?? []).filter(e => e.id !== id), _syncUrgent: true });
+      },
+
       // Illness actions
       logIllness: (illness) => {
         const { illnessLogs } = get();
@@ -4105,7 +4124,7 @@ export const useAppStore = create<AppState>()(
         const SYNC_FIELDS = [
           'user', 'isAuthenticated', 'onboardingData', 'baselineLifts',
           'currentMesocycle', 'mesocycleHistory', 'mesocycleQueue', 'workoutLogs', 'gamificationStats',
-          'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'customExercises', 'sessionTemplates',
+          'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
           'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
@@ -4295,6 +4314,7 @@ export const useAppStore = create<AppState>()(
           benchmarkResults: [],
           activePlyoBlock: null,
           rsiHistory: [],
+          techniqueLog: [],
           illnessLogs: [],
           _resolvedIllnessIds: [],
           workoutSkips: [],
@@ -4543,6 +4563,7 @@ export const useAppStore = create<AppState>()(
           if (!state.benchmarkResults) state.benchmarkResults = [];
           if (state.activePlyoBlock === undefined) state.activePlyoBlock = null;
           if (!state.rsiHistory) state.rsiHistory = [];
+          if (!state.techniqueLog) state.techniqueLog = [];
           if (!state.hrSessions) state.hrSessions = [];
           if (!state.bodyComposition) state.bodyComposition = [];
           if (!state.competitions) state.competitions = [];
@@ -4718,6 +4739,7 @@ export const useAppStore = create<AppState>()(
         benchmarkResults: state.benchmarkResults ?? [],
         activePlyoBlock: state.activePlyoBlock ?? null,
         rsiHistory: state.rsiHistory ?? [],
+        techniqueLog: state.techniqueLog ?? [],
         illnessLogs: state.illnessLogs ?? [],
         _resolvedIllnessIds: state._resolvedIllnessIds ?? [],
         competitions: state.competitions ?? [],

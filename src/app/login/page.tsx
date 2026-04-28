@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Dumbbell, Mail, Lock, Eye, EyeOff, Loader2, Wand2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, Wand2 } from 'lucide-react';
 
 export default function LoginPage() {
   return (
@@ -156,13 +156,16 @@ function LoginForm() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Dumbbell className="w-8 h-8 text-primary-400" />
+        {/* Editorial wordmark */}
+        <div className="mb-8">
+          <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+            Welcome back
           </div>
-          <h1 className="text-2xl font-black text-grappler-50">Ibra Lifts</h1>
-          <p className="text-sm text-grappler-400 mt-1">Sign in to your account</p>
+          <h1 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
+            IBRA<br />LIFTS<span className="text-primary-500">.</span>
+          </h1>
+          <div className="h-px bg-grappler-800 my-4" />
+          <p className="text-sm text-grappler-400">Sign in to restore your data.</p>
         </div>
 
         {error && (

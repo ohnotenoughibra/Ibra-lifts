@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
-import type { WorkoutLog, GamificationStats } from '@/lib/types';
+import type { WorkoutLog, GamificationStats, TrainingSession } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
 import { isCurrentWeek, computeChallengeProgress, badges as allBadges } from '@/lib/gamification';
 import { calculate1RM, VOLUME_LANDMARKS } from '@/lib/workout-generator';
@@ -69,6 +69,97 @@ const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), {
 });
 
 // ─── Widget Cards ───
+
+/**
+ * TodaySnapshot — top-of-Body-tab strip with 4 vitals.
+ * Per audit: "a fighter who taps Stats out of habit gets immediate signal,
+ * not a wall of charts."
+ */
+function TodaySnapshot({
+  workoutLogs,
+  trainingSessions,
+  gamificationStats,
+}: {
+  workoutLogs: WorkoutLog[];
+  trainingSessions: TrainingSession[];
+  gamificationStats: GamificationStats;
+}) {
+  const now = Date.now();
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+
+  const last7 = workoutLogs.filter(l => new Date(l.date).getTime() >= now - oneWeek);
+  const prev7 = workoutLogs.filter(l => {
+    const t = new Date(l.date).getTime();
+    return t >= now - twoWeeks && t < now - oneWeek;
+  });
+  const last7Sessions = trainingSessions.filter(s => new Date(s.date).getTime() >= now - oneWeek);
+
+  const last7Volume = last7.reduce((s, l) => s + (l.totalVolume ?? 0), 0);
+  const prev7Volume = prev7.reduce((s, l) => s + (l.totalVolume ?? 0), 0);
+  const volumeDelta = prev7Volume > 0 ? Math.round(((last7Volume - prev7Volume) / prev7Volume) * 100) : 0;
+  const volumeDirection = volumeDelta > 5 ? 'up' : volumeDelta < -5 ? 'down' : 'flat';
+
+  // Lifetime PR count comes from gamification; we approximate "this week" by
+  // summing personal-records delta if recorded recently. Simpler proxy:
+  // count weight-PRs by detecting any set heavier than any prior set for the same exercise.
+  const priorMaxByExercise = new Map<string, number>();
+  for (const log of workoutLogs) {
+    if (new Date(log.date).getTime() >= now - oneWeek) continue;
+    for (const ex of log.exercises ?? []) {
+      const max = Math.max(...(ex.sets ?? []).map(s => s.weight ?? 0), priorMaxByExercise.get(ex.exerciseId) ?? 0);
+      priorMaxByExercise.set(ex.exerciseId, max);
+    }
+  }
+  let prsLast7 = 0;
+  for (const log of last7) {
+    for (const ex of log.exercises ?? []) {
+      const prev = priorMaxByExercise.get(ex.exerciseId) ?? 0;
+      const week = Math.max(...(ex.sets ?? []).map(s => s.weight ?? 0), 0);
+      if (week > prev && prev > 0) prsLast7++;
+    }
+  }
+
+  // ACWR rough zone — uses last 7d total session count vs avg of prior 4 weeks
+  const fourWeekTotal = workoutLogs.filter(l => new Date(l.date).getTime() >= now - 4 * oneWeek).length;
+  const chronic = fourWeekTotal / 4 || 1;
+  const acwrRatio = (last7.length + last7Sessions.length) / chronic;
+  const acwrZone = acwrRatio < 0.8 ? 'Under' : acwrRatio > 1.5 ? 'Spike' : acwrRatio > 1.3 ? 'High' : 'Sweet';
+  const acwrColor =
+    acwrZone === 'Sweet' ? 'text-emerald-400' :
+    acwrZone === 'Under' ? 'text-grappler-400' :
+    acwrZone === 'High' ? 'text-amber-400' :
+    'text-rose-400';
+
+  return (
+    <div className="rounded-lg bg-grappler-900/40 border border-grappler-800 p-4">
+      <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+        This Week
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        <SnapshotCell label="PRs" value={String(prsLast7)} subtext={prsLast7 === 0 ? '0 logged' : 'this wk'} accent="text-emerald-400" />
+        <SnapshotCell
+          label="Volume"
+          value={volumeDirection === 'up' ? `+${volumeDelta}%` : volumeDirection === 'down' ? `${volumeDelta}%` : '—'}
+          subtext="vs last wk"
+          accent={volumeDirection === 'up' ? 'text-emerald-400' : volumeDirection === 'down' ? 'text-rose-400' : 'text-grappler-400'}
+        />
+        <SnapshotCell label="Streak" value={String(gamificationStats?.currentStreak ?? 0)} subtext="days" accent="text-amber-400" />
+        <SnapshotCell label="Load" value={acwrZone} subtext={`${acwrRatio.toFixed(2)}x`} accent={acwrColor} />
+      </div>
+    </div>
+  );
+}
+
+function SnapshotCell({ label, value, subtext, accent }: { label: string; value: string; subtext: string; accent: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-grappler-500">{label}</div>
+      <div className={cn('text-xl font-bold font-mono leading-tight', accent)}>{value}</div>
+      <div className="text-[10px] text-grappler-500">{subtext}</div>
+    </div>
+  );
+}
 
 function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
   const [editingGoal, setEditingGoal] = useState<string | null>(null);
@@ -1894,6 +1985,13 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
             </div>
           ) : (
             <>
+              {/* ── TODAY SNAPSHOT — quick at-a-glance vitals before the deep-dive ── */}
+              <TodaySnapshot
+                workoutLogs={workoutLogs}
+                trainingSessions={trainingSessions}
+                gamificationStats={gamificationStats}
+              />
+
               {/* ── SECTION 1: STRENGTH ── */}
               <h2 className="text-xl font-bold text-grappler-100">Strength</h2>
 

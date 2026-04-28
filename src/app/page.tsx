@@ -246,7 +246,7 @@ export default function Home() {
                 <Download className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-white text-sm">Install Roots Gains</h3>
+                <h3 className="font-bold text-white text-sm">Install Ibra Lifts</h3>
                 <p className="text-xs text-white/80 mt-0.5">Add to your home screen for offline access and a native app experience.</p>
               </div>
               <button onClick={handleDismissInstall} className="p-1 text-white/60 hover:text-white">
@@ -380,7 +380,7 @@ function scheduleStreakReminder() {
       );
       if (!hasTrainedToday) {
         const latestWhoop = store.latestWhoopData;
-        let body = 'Lifting day! Open Roots Gains to start your session.';
+        let body = 'Lifting day! Open Ibra Lifts to start your session.';
         if (latestWhoop?.recoveryScore != null && latestWhoop.recoveryScore < 50) {
           body = `Recovery is ${latestWhoop.recoveryScore}% — consider a lighter session today.`;
         }

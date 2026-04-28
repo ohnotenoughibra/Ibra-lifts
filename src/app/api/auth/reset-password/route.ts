@@ -65,9 +65,9 @@ export async function POST(request: Request) {
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'Roots Gains <onboarding@resend.dev>',
+        from: process.env.RESEND_FROM_EMAIL || 'Ibra Lifts <onboarding@resend.dev>',
         to: trimmedEmail,
-        subject: 'Reset your Roots Gains password',
+        subject: 'Reset your Ibra Lifts password',
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
             <h2 style="color: #0f172a; margin-bottom: 16px;">Reset your password</h2>
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
               This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
             </p>
             <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;" />
-            <p style="color: #cbd5e1; font-size: 12px;">Roots Gains</p>
+            <p style="color: #cbd5e1; font-size: 12px;">Ibra Lifts</p>
           </div>
         `,
       });

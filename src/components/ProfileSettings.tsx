@@ -1415,7 +1415,7 @@ function VersionFooter() {
         className="w-full flex items-center justify-center gap-2 py-3 text-grappler-600 hover:text-grappler-400 transition-colors"
       >
         <Info className="w-3.5 h-3.5" />
-        <span className="text-xs">Roots Gains v{APP_VERSION}</span>
+        <span className="text-xs">Ibra Lifts v{APP_VERSION}</span>
         {showChangelog ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
 

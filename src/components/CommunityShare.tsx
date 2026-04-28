@@ -147,7 +147,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       lines.push(`\nFight Camp: ${nutritionStats.phaseConfig.name.split('(')[0].trim()} — ${nutritionStats.daysOut}d out`);
       lines.push(`Focus: ${nutritionStats.phaseConfig.focus}`);
     }
-    lines.push(`\n-- Roots Gains`);
+    lines.push(`\n-- Ibra Lifts`);
     return lines.join('\n');
   };
 
@@ -183,7 +183,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
     if (currentMesocycle) {
       lines.push(`Current Block: ${currentMesocycle.name} (${currentMesocycle.goalFocus})`);
     }
-    lines.push(`\n-- Roots Gains`);
+    lines.push(`\n-- Ibra Lifts`);
     return lines.filter(Boolean).join('\n');
   };
 
@@ -193,7 +193,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       `${pr.exerciseName}: ${pr.weight} ${weightUnit} x ${pr.reps}`,
       `Estimated 1RM: ${pr.e1rm} ${weightUnit}`,
       ``,
-      `-- Roots Gains`,
+      `-- Ibra Lifts`,
     ].join('\n');
   };
 
@@ -204,7 +204,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       `"${badge.badge.description}"`,
       `+${badge.badge.points} XP`,
       ``,
-      `-- Roots Gains`,
+      `-- Ibra Lifts`,
     ].join('\n');
   };
 
@@ -230,7 +230,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
       `Level ${computed.level} ${getLevelTitle(computed.level)}`,
       `${formatNumber(computed.totalPoints)} XP earned`,
       ``,
-      `-- Roots Gains`,
+      `-- Ibra Lifts`,
     ].join('\n');
   };
 
@@ -335,7 +335,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   {formatNumber(computed.totalPoints)} XP
                   {currentMesocycle ? ` | ${currentMesocycle.name}` : ''}
                 </span>
-                <span className="text-xs text-grappler-600">Roots Gains</span>
+                <span className="text-xs text-grappler-600">Ibra Lifts</span>
               </div>
             </div>
 
@@ -360,7 +360,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                       ``,
                       ...log.exercises.map(ex => `  ${ex.exerciseName}${ex.personalRecord ? ' (PR!)' : ''}`),
                       ``,
-                      `-- Roots Gains`,
+                      `-- Ibra Lifts`,
                     ].join('\n');
 
                     return (
@@ -394,7 +394,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                   </h4>
                   <button
                     onClick={() => handleShare(
-                      `Training Consistency\n\n${stats.avgPerWeek} workouts/week (last 4 weeks)\n${computed.currentStreak} day streak\n${computed.totalWorkouts} total workouts\n\n-- Roots Gains`,
+                      `Training Consistency\n\n${stats.avgPerWeek} workouts/week (last 4 weeks)\n${computed.currentStreak} day streak\n${computed.totalWorkouts} total workouts\n\n-- Ibra Lifts`,
                       'consistency'
                     )}
                     className="p-1.5 rounded-lg bg-grappler-700 hover:bg-grappler-600 transition-colors"
@@ -469,7 +469,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
                 <span className="text-xs text-grappler-400">
                   {nutritionStats.avgCals > 0 ? `${nutritionStats.avgProtein}g protein · ${nutritionStats.trainingHrs}h training` : 'Start logging meals to share'}
                 </span>
-                <span className="text-xs text-grappler-600">Roots Gains</span>
+                <span className="text-xs text-grappler-600">Ibra Lifts</span>
               </div>
             </div>
 

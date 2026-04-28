@@ -186,7 +186,7 @@ export function importFullBackup(jsonString: string): { success: boolean; error?
 
     // Check if it's a roots-gains backup (also accept legacy grappler-gains backups)
     if (data._app !== 'roots-gains' && data._app !== 'grappler-gains' && !data.workoutLogs && !data.user) {
-      return { success: false, error: 'This file is not a Roots Gains backup' };
+      return { success: false, error: 'This file is not a Ibra Lifts backup' };
     }
 
     // Validate critical arrays

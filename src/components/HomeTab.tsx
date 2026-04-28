@@ -1140,7 +1140,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       exercises,
       lastCompletedWorkout.hadPR ? `\nNew Personal Record!` : '',
       `${lastCompletedWorkout.newStreak} day streak`,
-      `\n-- Roots Gains`
+      `\n-- Ibra Lifts`
     ].filter(Boolean).join('\n');
 
     if (navigator.share) {

@@ -1574,7 +1574,7 @@ function SessionRecapCard() {
       if (!blob) return;
       if (typeof navigator !== 'undefined' && 'share' in navigator) {
         const file = new File([blob], 'workout-recap.png', { type: 'image/png' });
-        await navigator.share({ files: [file], title: 'Workout Complete — Roots Gains' });
+        await navigator.share({ files: [file], title: 'Workout Complete — Ibra Lifts' });
       } else {
         // Fallback: download
         const url = URL.createObjectURL(blob);

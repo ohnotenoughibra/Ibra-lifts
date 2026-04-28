@@ -196,7 +196,7 @@ export default function VersionUpgradePopup() {
                 Got it, let&apos;s go
               </button>
               <p className="text-center text-xs text-grappler-600 mt-2">
-                Roots Gains v{APP_VERSION}
+                Ibra Lifts v{APP_VERSION}
               </p>
             </div>
           </motion.div>

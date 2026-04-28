@@ -143,7 +143,7 @@ export async function generateWorkoutShareCard(data: {
   ctx.fillStyle = '#475569';
   ctx.font = '600 24px system-ui, -apple-system, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Roots Gains', 540, 980);
+  ctx.fillText('Ibra Lifts', 540, 980);
 
   ctx.fillStyle = '#334155';
   ctx.font = '16px system-ui, -apple-system, sans-serif';

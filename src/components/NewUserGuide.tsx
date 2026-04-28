@@ -36,7 +36,7 @@ const GUIDE_STEPS: GuideStepDef[] = [
   {
     id: 'welcome',
     icon: <Dumbbell className="w-8 h-8" />,
-    title: 'Welcome to Roots Gains',
+    title: 'Welcome to Ibra Lifts',
     description: 'Your science-based strength training platform built for martial artists and combat athletes. Every decision is backed by peer-reviewed research.',
     features: [
       'Periodized programming (DUP, Block, Linear)',

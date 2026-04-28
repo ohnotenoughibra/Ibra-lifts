@@ -162,7 +162,7 @@ async function replaySyncQueue() {
 // Handles server-sent push events via Web Push API (VAPID)
 // Payload shape: { title, body, tag, url, category }
 self.addEventListener('push', (event) => {
-  let data = { title: 'Roots Gains', body: 'Time to train!', tag: 'default', url: '/', category: '' };
+  let data = { title: 'Ibra Lifts', body: 'Time to train!', tag: 'default', url: '/', category: '' };
 
   if (event.data) {
     try {

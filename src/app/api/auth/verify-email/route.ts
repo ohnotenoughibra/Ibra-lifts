@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     // Send verification email via Resend
     const resendKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Roots Gains <onboarding@resend.dev>';
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Ibra Lifts <onboarding@resend.dev>';
     const baseUrl = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     if (!resendKey) {
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         from: fromEmail,
         to: email.toLowerCase().trim(),
-        subject: 'Verify your Roots Gains email',
+        subject: 'Verify your Ibra Lifts email',
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#111;color:#eee;border-radius:12px;">
             <h2 style="margin:0 0 12px;color:#fff;">Verify your email</h2>

@@ -944,8 +944,8 @@ export default function Dashboard({
               </div>
             </header>
 
-            {/* Main Content */}
-            <main className="px-4 pt-4 pb-2 lg:px-6 lg:pt-6">
+            {/* Main Content — pb-32 clears the 67px fixed bottom nav + safe-area + breathing room. lg:pb-6 because desktop sidebar replaces the bottom nav. */}
+            <main className="px-4 pt-4 pb-32 lg:px-6 lg:pt-6 lg:pb-6">
               <AnimatePresence mode="wait">
                 {activeTab === 'home' && (
                   <motion.div
@@ -1113,9 +1113,9 @@ export default function Dashboard({
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}
       >
-        <div className="grid grid-cols-5 items-center py-1 px-2 sm:px-4">
-          {/* Left tabs: Home, Program */}
-          {TABS.slice(0, 2).map((tab) => (
+        <div className="grid grid-cols-4 items-center py-1 px-2 sm:px-4">
+          {/* All 3 tabs as equal flat slots */}
+          {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => switchTab(tab.id as TabType)}
@@ -1125,7 +1125,7 @@ export default function Dashboard({
               tabIndex={activeTab === tab.id ? 0 : -1}
               data-tab-id={tab.id}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-2.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
+                'relative flex flex-col items-center gap-0.5 py-2.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
                 activeTab === tab.id
                   ? 'text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300'
@@ -1142,73 +1142,43 @@ export default function Dashboard({
             </button>
           ))}
 
-          {/* Center: raised "+" button anchored in-flow, protruding above */}
-          <div className="flex justify-center">
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setOverlayView('quick_actions');
-                  // Dismiss tooltip permanently on first tap
-                  if (!fabTooltipDismissed) {
+          {/* 4th slot: Quick Log — equal-sized, flat, primary-tinted (no raised FAB) */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setOverlayView('quick_actions');
+                if (!fabTooltipDismissed) {
+                  setFabTooltipDismissed(true);
+                  localStorage.setItem('roots-fab-tooltip-shown', 'true');
+                }
+              }}
+              aria-label="Quick log"
+              className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-lg text-primary-400 hover:text-primary-300 active:scale-95 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-xs font-medium">Log</span>
+            </button>
+            {/* First-time tooltip */}
+            <AnimatePresence>
+              {showFabTooltip && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50"
+                  onClick={() => {
                     setFabTooltipDismissed(true);
                     localStorage.setItem('roots-fab-tooltip-shown', 'true');
-                  }
-                }}
-                aria-label="Quick log"
-                className="relative -top-4 w-12 h-12 rounded-full shadow-lg shadow-primary-500/30 flex items-center justify-center bg-gradient-to-br from-primary-500 to-accent-500 text-white active:scale-95 transition-transform ring-[3px] ring-grappler-900"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-              {/* First-time tooltip */}
-              <AnimatePresence>
-                {showFabTooltip && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50"
-                    onClick={() => {
-                      setFabTooltipDismissed(true);
-                      localStorage.setItem('roots-fab-tooltip-shown', 'true');
-                    }}
-                  >
-                    <div className="bg-grappler-50 text-grappler-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
-                      Start a workout
-                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-grappler-50 rotate-45" />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                  }}
+                >
+                  <div className="bg-grappler-50 text-grappler-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
+                    Start a workout
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-grappler-50 rotate-45" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-
-          {/* Right tabs: Explore, Progress */}
-          {TABS.slice(2).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => switchTab(tab.id as TabType)}
-              aria-label={tab.label}
-              aria-selected={activeTab === tab.id}
-              role="tab"
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              data-tab-id={tab.id}
-              className={cn(
-                'flex flex-col items-center gap-0.5 py-2.5 rounded-lg transition-all focus-visible:outline-2 focus-visible:outline-primary-500 focus-visible:outline-offset-2',
-                activeTab === tab.id
-                  ? 'text-primary-400'
-                  : 'text-grappler-500 hover:text-grappler-300'
-              )}
-            >
-              <tab.icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 w-10 h-0.5 bg-primary-500 rounded-full"
-                />
-              )}
-            </button>
-          ))}
         </div>
       </nav>
 

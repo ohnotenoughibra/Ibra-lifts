@@ -375,7 +375,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
     }
 
     const pinSet = new Set(pinnedIds);
-    return getRightNowSuggestions({
+    const all = getRightNowSuggestions({
       hasTrainedToday,
       hoursSinceLastWorkout,
       hasActiveInjury,
@@ -385,7 +385,13 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
       isRestDay,
       hasActiveProgram,
     }, pinSet);
-  }, [workoutLogs, trainingSessions, meals, injuryLog, competitions, weightCutPlans, currentMesocycle, pinnedIds]);
+    // Scope to the active tab when embedded inside Train or Body
+    if (!filterTab) return all;
+    return all.filter(s => {
+      const tool = TOOL_MAP.get(s.toolId);
+      return tool?.tab === filterTab;
+    });
+  }, [workoutLogs, trainingSessions, meals, injuryLog, competitions, weightCutPlans, currentMesocycle, pinnedIds, filterTab]);
 
   const handleNavigate = useCallback((id: NonNullable<OverlayView>) => {
     setUsageMap(prev => {
@@ -418,10 +424,10 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
     }
   }, [pinMode, togglePin, handleNavigate]);
 
-  const pinnedTools = useMemo(() =>
-    pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[],
-    [pinnedIds]
-  );
+  const pinnedTools = useMemo(() => {
+    const all = pinnedIds.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[];
+    return filterTab ? all.filter(t => t.tab === filterTab) : all;
+  }, [pinnedIds, filterTab]);
 
   // Search
   const searchResults = useMemo(() => {
@@ -544,8 +550,8 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
         </div>
       )}
 
-      {/* ─── ROLE-BASED RECOMMENDATIONS ─── */}
-      {!pinMode && !isSearching && isCombatAthlete && (
+      {/* ─── ROLE-BASED RECOMMENDATIONS — only on the Train tab (these are all train-affinity tools) ─── */}
+      {!pinMode && !isSearching && isCombatAthlete && filterTab !== 'body' && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-purple-400" />
@@ -555,8 +561,8 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
             {([
               { id: 'grappling' as NonNullable<OverlayView>, label: 'Mat Sessions', desc: 'Log rolls & sparring', icon: Shield, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
               { id: 'competition' as NonNullable<OverlayView>, label: 'Fight Prep', desc: 'Competition timeline', icon: Swords, color: 'text-red-400 bg-red-500/10 border-red-500/20' },
-              { id: 'conditioning' as NonNullable<OverlayView>, label: 'Conditioning', desc: 'Round-ready cardio', icon: Flame, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-              { id: 'fighters_mind' as NonNullable<OverlayView>, label: 'Fighter\'s Mind', desc: 'Mental game', icon: Target, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+              { id: 'conditioning' as NonNullable<OverlayView>, label: 'Cardio', desc: 'Round-ready intervals', icon: Flame, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+              { id: 'sparring_tracker' as NonNullable<OverlayView>, label: 'Sparring Load', desc: 'CTE risk tracker', icon: Target, color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
             ]).map(tool => (
               <button
                 key={tool.id}

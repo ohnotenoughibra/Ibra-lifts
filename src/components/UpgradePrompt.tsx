@@ -255,7 +255,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         aria-label={`Unlock ${featureName}`}
       >
         <motion.div
-          className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+          className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full border border-grappler-700/50 shadow-2xl relative max-h-[85vh] overflow-y-auto safe-area-bottom"
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}

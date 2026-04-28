@@ -226,7 +226,7 @@ function LogModal({ onClose, onLog }: {
       <motion.div
         initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-5 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-5 max-h-[85vh] overflow-y-auto safe-area-bottom"
       >
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-lg font-bold text-white">Log Technique</h2>

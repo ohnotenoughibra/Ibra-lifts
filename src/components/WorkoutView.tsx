@@ -466,7 +466,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60"
             onClick={() => setBlockFlash(null)}
           >
             <motion.div
@@ -923,7 +923,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
               role="dialog"
               aria-modal="true"
               aria-label="Import workout progress"
@@ -1083,7 +1083,7 @@ export default function WorkoutView({ onSwitchTab }: WorkoutViewProps) {
               {/* Delete confirmation overlay */}
               {showDeleteBlockConfirm && (
                 <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
                   onClick={() => setShowDeleteBlockConfirm(false)}
                 >
                   <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>

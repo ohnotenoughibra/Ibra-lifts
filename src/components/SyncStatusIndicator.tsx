@@ -93,7 +93,7 @@ export default function SyncStatusIndicator({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[55] bg-black/40 flex items-end sm:items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
             aria-label="Cloud sync status"

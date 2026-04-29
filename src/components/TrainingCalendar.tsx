@@ -680,21 +680,21 @@ export default function TrainingCalendar() {
                               )}
                             </div>
                             <input
-                              type="number"
+                              type="number" inputMode="decimal" enterKeyHint="done"
                               value={set.weight || ''}
                               placeholder="0"
                               onChange={e => updateSet(exIndex, setIndex, 'weight', Number(e.target.value) || 0)}
                               className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
                             />
                             <input
-                              type="number"
+                              type="number" inputMode="decimal" enterKeyHint="done"
                               value={set.reps || ''}
                               placeholder="0"
                               onChange={e => updateSet(exIndex, setIndex, 'reps', Number(e.target.value) || 0)}
                               className="w-full p-1.5 bg-grappler-600 border border-grappler-500 rounded text-white text-sm text-center"
                             />
                             <input
-                              type="number"
+                              type="number" inputMode="decimal" enterKeyHint="done"
                               value={set.rpe || ''}
                               placeholder="7"
                               min={1}

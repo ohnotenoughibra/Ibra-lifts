@@ -327,7 +327,7 @@ export default function FightersMind({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 bg-grappler-950 z-50 overflow-y-auto"
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/90 backdrop-blur-xl border-b border-grappler-800/50">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800/50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {view !== 'home' && (

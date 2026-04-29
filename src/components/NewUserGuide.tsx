@@ -157,7 +157,7 @@ export default function NewUserGuide({ onComplete }: NewUserGuideProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-grappler-900/95 backdrop-blur-xl flex flex-col safe-area-top"
+      className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
       {/* Top bar */}
       <div className="px-4 py-3 flex items-center justify-between">

@@ -272,7 +272,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
       className="min-h-screen bg-grappler-950 pb-24 safe-area-top"
     >
       {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             aria-label="Go back"

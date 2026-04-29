@@ -452,7 +452,7 @@ function RSIView({ onBack, onClose }: { onBack: () => void; onClose: () => void 
           <div>
             <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Jump height (m)</label>
             <input
-              type="number" step="0.01" min={0} max={1.5}
+              type="number" inputMode="decimal" enterKeyHint="done" step="0.01" min={0} max={1.5}
               value={height}
               onChange={e => setHeight(Number(e.target.value))}
               className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white font-mono tabular-nums"
@@ -461,7 +461,7 @@ function RSIView({ onBack, onClose }: { onBack: () => void; onClose: () => void 
           <div>
             <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Ground contact time (s)</label>
             <input
-              type="number" step="0.01" min={0.05} max={1}
+              type="number" inputMode="decimal" enterKeyHint="done" step="0.01" min={0.05} max={1}
               value={contactTime}
               onChange={e => setContactTime(Number(e.target.value))}
               className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white font-mono tabular-nums"

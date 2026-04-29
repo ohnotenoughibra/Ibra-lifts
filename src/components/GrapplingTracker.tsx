@@ -440,7 +440,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
       className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
     >
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+      <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
@@ -834,7 +834,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                     ))}
                   </div>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal" enterKeyHint="done"
                     value={formDuration}
                     onChange={(e) => setFormDuration(Number(e.target.value) || 0)}
                     className="input w-full mt-2 text-sm"
@@ -851,7 +851,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                       Rounds (optional)
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={formRounds ?? ''}
                       onChange={(e) => setFormRounds(e.target.value ? Number(e.target.value) : undefined)}
                       className="input w-full text-sm"
@@ -865,7 +865,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                       Round Length (min)
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={formRoundDuration ?? ''}
                       onChange={(e) => setFormRoundDuration(e.target.value ? Number(e.target.value) : undefined)}
                       className="input w-full text-sm"
@@ -904,7 +904,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                       Subs Landed
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={formSubmissions ?? ''}
                       onChange={(e) => setFormSubmissions(e.target.value ? Number(e.target.value) : undefined)}
                       className="input w-full text-sm"
@@ -917,7 +917,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                       Times Tapped
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={formTaps ?? ''}
                       onChange={(e) => setFormTaps(e.target.value ? Number(e.target.value) : undefined)}
                       className="input w-full text-sm"

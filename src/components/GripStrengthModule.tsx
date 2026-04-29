@@ -283,7 +283,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
   return (
     <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
           <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             <X className="w-5 h-5" />
@@ -458,7 +458,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                       <Minus className="w-5 h-5" />
                     </button>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={logTime}
                       onChange={(e) => setLogTime(parseInt(e.target.value) || 0)}
                       className="input input-bordered w-24 text-center text-xl font-bold"
@@ -484,7 +484,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                       <Minus className="w-5 h-5" />
                     </button>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={logReps}
                       onChange={(e) => setLogReps(parseInt(e.target.value) || 0)}
                       className="input input-bordered w-24 text-center text-xl font-bold"
@@ -511,7 +511,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         <Minus className="w-5 h-5" />
                       </button>
                       <input
-                        type="number"
+                        type="number" inputMode="decimal" enterKeyHint="done"
                         value={logWeight}
                         onChange={(e) => setLogWeight(parseInt(e.target.value) || 0)}
                         className="input input-bordered w-24 text-center text-xl font-bold"
@@ -536,7 +536,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           <Minus className="w-5 h-5" />
                         </button>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal" enterKeyHint="done"
                           value={logReps}
                           onChange={(e) => setLogReps(parseInt(e.target.value) || 0)}
                           className="input input-bordered w-20 text-center text-xl font-bold"
@@ -562,7 +562,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           <Minus className="w-5 h-5" />
                         </button>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal" enterKeyHint="done"
                           value={logDistance}
                           onChange={(e) => setLogDistance(parseInt(e.target.value) || 0)}
                           className="input input-bordered w-24 text-center text-xl font-bold"
@@ -707,7 +707,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         <Minus className="w-5 h-5" />
                       </button>
                       <input
-                        type="number"
+                        type="number" inputMode="decimal" enterKeyHint="done"
                         value={testValue}
                         onChange={(e) => setTestValue(parseInt(e.target.value) || 0)}
                         className="input input-bordered w-24 text-center text-xl font-bold"

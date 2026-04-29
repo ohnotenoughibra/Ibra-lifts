@@ -80,7 +80,7 @@ export default function AutoThrottleInfo({ onClose }: { onClose: () => void }) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
-      <header className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 p-4 flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4 flex items-center justify-between">
         <button onClick={onClose} className="btn btn-ghost btn-sm">
           <X className="w-5 h-5" />
         </button>

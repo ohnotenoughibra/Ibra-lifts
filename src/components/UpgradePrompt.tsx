@@ -99,7 +99,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
     if (variant === 'modal') {
       return (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -245,7 +245,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

@@ -301,7 +301,7 @@ export default function LiftPhase({
         {showSessionSheet && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4"
             onClick={() => setShowSessionSheet(false)}
           >
             <motion.div
@@ -350,7 +350,7 @@ export default function LiftPhase({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowReadinessGate(false)}
           >
             <motion.div

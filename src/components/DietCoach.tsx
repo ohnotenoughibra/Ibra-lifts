@@ -509,7 +509,7 @@ export default function DietCoach() {
                     <div className="flex items-center gap-2">
                       <Scale className="w-4 h-4 text-grappler-500" />
                       <input
-                        type="number"
+                        type="number" inputMode="decimal" enterKeyHint="done"
                         value={formWeight}
                         onChange={(e) => setFormWeight(e.target.value)}
                         className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
@@ -526,7 +526,7 @@ export default function DietCoach() {
                     <div className="flex items-center gap-2">
                       <Ruler className="w-4 h-4 text-grappler-500" />
                       <input
-                        type="number"
+                        type="number" inputMode="decimal" enterKeyHint="done"
                         value={formHeight}
                         onChange={(e) => setFormHeight(e.target.value)}
                         className="flex-1 bg-grappler-800/60 border border-grappler-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-grappler-600 focus-visible:outline-none focus-visible:border-violet-500/50"
@@ -1747,7 +1747,7 @@ function DietHistorySection({
                               <div className="flex items-center gap-2">
                                 <label className="text-xs text-grappler-400 w-16">End weight</label>
                                 <input
-                                  type="number"
+                                  type="number" inputMode="decimal" enterKeyHint="done"
                                   step="0.1"
                                   value={editForm.endWeightKg}
                                   onChange={e => setEditForm(f => ({ ...f, endWeightKg: e.target.value }))}
@@ -1758,7 +1758,7 @@ function DietHistorySection({
                               <div className="flex items-center gap-2">
                                 <label className="text-xs text-grappler-400 w-16">Calories</label>
                                 <input
-                                  type="number"
+                                  type="number" inputMode="decimal" enterKeyHint="done"
                                   value={editForm.calories}
                                   onChange={e => setEditForm(f => ({ ...f, calories: e.target.value }))}
                                   className="flex-1 bg-grappler-900/60 border border-grappler-700/40 rounded-md px-2 py-1 text-xs text-white focus-visible:outline-none focus-visible:border-violet-500/50"

@@ -103,7 +103,7 @@ export default function MesocycleReport({
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Delete mesocycle confirmation"
@@ -134,7 +134,7 @@ export default function MesocycleReport({
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 p-4">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center">
             <ChevronLeft className="w-5 h-5 text-grappler-300" />

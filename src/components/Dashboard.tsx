@@ -21,6 +21,7 @@ import {
   Play,
   Timer,
   Sun,
+  LayoutGrid,
 } from 'lucide-react';
 import { cn, formatNumber, formatTime } from '@/lib/utils';
 import { useScrollLock } from '@/lib/scroll-lock';
@@ -91,7 +92,7 @@ const TechniqueLog = dynamic(() => import('./TechniqueLog'), { loading: () => <O
 const CampTimeline = dynamic(() => import('./CampTimeline'), { loading: () => <OverlaySkeleton /> });
 const CoachReport = dynamic(() => import('./CoachReport'), { loading: () => <OverlaySkeleton /> });
 const SparringTracker = dynamic(() => import('./SparringTracker'), { loading: () => <OverlaySkeleton /> });
-const ToolLauncher = dynamic(() => import('./ToolLauncher'), { loading: () => null });
+const ToolsTab = dynamic(() => import('./ToolsTab'), { loading: () => null });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
@@ -240,9 +241,10 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
 }
 
 const TABS = [
-  { id: 'home',  icon: Sun,       label: 'Today' },
-  { id: 'train', icon: Calendar,  label: 'Train' },
-  { id: 'body',  icon: BarChart3, label: 'Body' },
+  { id: 'home',  icon: Sun,        label: 'Today' },
+  { id: 'train', icon: Calendar,   label: 'Train' },
+  { id: 'body',  icon: BarChart3,  label: 'Body' },
+  { id: 'tools', icon: LayoutGrid, label: 'Tools' },
 ] as const;
 
 interface DashboardProps {
@@ -269,7 +271,6 @@ export default function Dashboard({
   // Stack of previous overlays for back-navigation (e.g. InjuryLogger → Rehab → tap close → goes back to InjuryLogger)
   const [overlayHistory, setOverlayHistory] = useState<{ view: NonNullable<OverlayView>; context?: string }[]>([]);
   // Universal Tool Launcher (4th nav slot). Bottom sheet with recents + pinned + all tools + quick log.
-  const [showToolLauncher, setShowToolLauncher] = useState(false);
   const scrollPositionRef = useRef(0);
 
   // iOS-correct body scroll lock — reference-counted so nested overlays
@@ -462,29 +463,6 @@ export default function Dashboard({
       nextBtn?.focus();
     }
   }, [activeTab, switchTab]);
-
-  // FAB "+" tooltip — shown once for new users who haven't tapped it yet
-  const [fabTooltipDismissed, setFabTooltipDismissed] = useState(true); // default true to avoid flash
-  const [showFabTooltip, setShowFabTooltip] = useState(false);
-  useEffect(() => {
-    const alreadyShown = localStorage.getItem('roots-fab-tooltip-shown');
-    if (!alreadyShown && user) {
-      setFabTooltipDismissed(false);
-      // Slight delay so the nav renders first, then tooltip appears
-      const timer = setTimeout(() => setShowFabTooltip(true), 1200);
-      // Auto-dismiss after 6 seconds if user doesn't interact
-      const autoDismiss = setTimeout(() => {
-        setShowFabTooltip(false);
-        setFabTooltipDismissed(true);
-        localStorage.setItem('roots-fab-tooltip-shown', 'true');
-      }, 7200);
-      return () => { clearTimeout(timer); clearTimeout(autoDismiss); };
-    }
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
-  // When dismissed, hide the tooltip
-  useEffect(() => {
-    if (fabTooltipDismissed) setShowFabTooltip(false);
-  }, [fabTooltipDismissed]);
 
   // Show new user guide after first workout completion (not before)
   const [showNewUserGuide, setShowNewUserGuide] = useState(false);
@@ -1063,6 +1041,16 @@ export default function Dashboard({
                     </div>
                   </motion.div>
                 )}
+                {activeTab === 'tools' && (
+                  <motion.div
+                    key="tools"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <ToolsTab onNavigate={setOverlayView} />
+                  </motion.div>
+                )}
               </AnimatePresence>
             </main>
           </div>
@@ -1192,7 +1180,8 @@ export default function Dashboard({
         onKeyDown={handleTabKeyDown}
       >
         <div className="grid grid-cols-4 items-center py-1 px-2 sm:px-4">
-          {/* All 3 tabs as equal flat slots */}
+          {/* All 4 tabs as equal flat slots — Tools is now its own tab so
+              exit-from-overlay always returns the user here. */}
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -1219,56 +1208,8 @@ export default function Dashboard({
               )}
             </button>
           ))}
-
-          {/* 4th slot: Universal Tools launcher — opens a bottom-sheet with recents/pinned/all + quick log shortcuts */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowToolLauncher(true);
-                if (!fabTooltipDismissed) {
-                  setFabTooltipDismissed(true);
-                  localStorage.setItem('roots-fab-tooltip-shown', 'true');
-                }
-              }}
-              aria-label="Tools"
-              className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-lg text-primary-400 hover:text-primary-300 active:scale-95 transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs font-medium">Tools</span>
-            </button>
-            {/* First-time tooltip */}
-            <AnimatePresence>
-              {showFabTooltip && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50"
-                  onClick={() => {
-                    setFabTooltipDismissed(true);
-                    localStorage.setItem('roots-fab-tooltip-shown', 'true');
-                  }}
-                >
-                  <div className="bg-grappler-50 text-grappler-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
-                    All tools, one tap
-                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-grappler-50 rotate-45" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
       </nav>
-
-      {/* Universal Tool Launcher — bottom sheet from the 4th nav slot */}
-      <ToolLauncher
-        open={showToolLauncher}
-        onClose={() => setShowToolLauncher(false)}
-        onNavigate={(view, ctx) => {
-          setShowToolLauncher(false);
-          setOverlayView(view, ctx);
-        }}
-      />
 
       {/* Sync Conflict Resolver */}
       {syncConflict && (

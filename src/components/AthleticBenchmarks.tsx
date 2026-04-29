@@ -315,15 +315,20 @@ function LogModal({ spec, onClose, onLog }: {
       <motion.div
         initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-5"
+        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 max-h-[85vh] flex flex-col"
       >
-        <div className="flex items-baseline justify-between mb-1">
-          <h2 className="text-lg font-bold text-white">Log {spec.name}</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-grappler-400" /></button>
+        {/* Sticky header */}
+        <div className="px-5 pt-5 pb-3 border-b border-grappler-800">
+          <div className="flex items-baseline justify-between mb-1">
+            <h2 className="text-lg font-bold text-white">Log {spec.name}</h2>
+            <button onClick={onClose} aria-label="Close" className="p-2 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
+              <X className="w-5 h-5 text-grappler-400" />
+            </button>
+          </div>
+          <p className="text-xs text-grappler-300">{spec.description}</p>
         </div>
-        <p className="text-xs text-grappler-300 mb-4">{spec.description}</p>
 
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           <div>
             <label className="text-xs text-grappler-300 block mb-1">Result ({spec.unit})</label>
             <input
@@ -353,10 +358,13 @@ function LogModal({ spec, onClose, onLog }: {
               placeholder="Conditions, attempts, anything notable…"
             />
           </div>
+        </div>
 
+        {/* Sticky footer */}
+        <div className="px-5 pt-3 pb-5 border-t border-grappler-800 safe-area-bottom">
           <button
             onClick={submit}
-            className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold transition"
+            className="w-full py-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold transition active:scale-[0.98]"
           >
             Log Test
           </button>

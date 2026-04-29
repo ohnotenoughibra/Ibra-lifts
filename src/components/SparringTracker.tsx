@@ -216,14 +216,18 @@ function LogModal({ onClose, onLog }: {
       <motion.div
         initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 p-5 max-h-[85vh] overflow-y-auto safe-area-bottom"
+        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 max-h-[85vh] flex flex-col"
       >
-        <div className="flex items-baseline justify-between mb-3">
+        {/* Sticky header — title + close always reachable */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-grappler-800">
           <h2 className="text-lg font-bold text-white">Log Sparring</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-grappler-400" /></button>
+          <button onClick={onClose} aria-label="Close" className="p-2 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
+            <X className="w-5 h-5 text-grappler-400" />
+          </button>
         </div>
 
-        <div className="space-y-3">
+        {/* Scrollable form body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           <div>
             <label className="text-xs text-grappler-300 block mb-1">Discipline</label>
             <div className="grid grid-cols-3 gap-1.5">
@@ -325,10 +329,13 @@ function LogModal({ onClose, onLog }: {
               className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-sm text-white resize-none focus:border-rose-500 outline-none"
             />
           </div>
+        </div>
 
+        {/* Sticky footer — submit button always visible without scrolling */}
+        <div className="px-5 pt-3 pb-5 border-t border-grappler-800 safe-area-bottom">
           <button
             onClick={submit}
-            className="w-full py-3 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold transition"
+            className="w-full py-3 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold transition active:scale-[0.98]"
           >
             Log
           </button>

@@ -14,6 +14,14 @@
     touch-action: manipulation;
   }
 
+  /* Kill native pull-to-refresh + page bounce on iOS / Android.
+     User report: 'pull my phone down and everything disappears.'
+     Setting overscroll-behavior: none on html prevents the document-level
+     rubber-band that hides overlay content during overscroll gestures. */
+  html, body {
+    overscroll-behavior-y: none;
+  }
+
   /* Smooth iOS momentum scroll on overlays/scrollers + prevent rubber-band
      scroll-chaining (so scrolling inside a modal/overlay doesn't bounce the
      parent). */

@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 @layer base {
+  /* Mobile click stabilization — kills the iOS gray flash on tap and
+     disables double-tap-to-zoom on tappable elements. Applied globally
+     so every button/link feels stable. */
+  button,
+  a,
+  [role="button"],
+  [role="tab"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Smooth iOS momentum scroll on overlays/scrollers + prevent rubber-band
+     scroll-chaining (so scrolling inside a modal/overlay doesn't bounce the
+     parent). */
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
   /* ── Viewport Height Fix ──
      Mobile browsers change the visible viewport on orientation change and
      when the address bar shows/hides.  Tailwind's `min-h-screen` = 100vh

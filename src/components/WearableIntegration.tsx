@@ -1394,7 +1394,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
     >
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+      <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
@@ -2055,7 +2055,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       Recovery (0-100)
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       min={0}
                       max={100}
                       placeholder="76"
@@ -2067,7 +2067,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   <div>
                     <label className="text-xs text-grappler-400 mb-1 block">HRV (ms)</label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       min={0}
                       placeholder="58"
                       value={manualHRV}
@@ -2080,7 +2080,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       Resting HR (bpm)
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       min={0}
                       placeholder="54"
                       value={manualRHR}
@@ -2091,7 +2091,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                   <div>
                     <label className="text-xs text-grappler-400 mb-1 block">Sleep (hrs)</label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       min={0}
                       step={0.1}
                       placeholder="7.5"
@@ -2105,7 +2105,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                       Strain (0-21)
                     </label>
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       min={0}
                       max={21}
                       step={0.1}

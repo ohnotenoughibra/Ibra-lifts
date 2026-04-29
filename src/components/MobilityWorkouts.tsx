@@ -404,7 +404,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
+        <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4">
           <div className="flex items-center justify-between">
             <button onClick={handleCloseRoutine} className="btn btn-secondary btn-sm">
               <ChevronLeft className="w-4 h-4 mr-1" />
@@ -542,7 +542,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
+        <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4">
           <div className="flex items-center justify-between">
             <button onClick={() => setShowRecoverySession(false)} className="btn btn-secondary btn-sm">
               <ChevronLeft className="w-4 h-4 mr-1" />
@@ -622,7 +622,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
   return (
     <div className="min-h-screen bg-grappler-900 pb-24 safe-area-top">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 p-4">
+      <div className="sticky top-0 z-30 bg-grappler-900 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="btn btn-secondary btn-sm">
             <ChevronLeft className="w-4 h-4" />

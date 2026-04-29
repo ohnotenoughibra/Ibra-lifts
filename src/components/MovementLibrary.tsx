@@ -300,7 +300,7 @@ function ExerciseDetailPanel({
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
     >
       {/* Detail Header */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-grappler-950/95 backdrop-blur-md border-b border-grappler-700/40">
+      <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-grappler-950 border-b border-grappler-700/40">
         <button
           onClick={onBack}
           className="p-2 rounded-lg text-grappler-400 hover:text-grappler-100 hover:bg-grappler-800 transition-colors"
@@ -585,7 +585,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
       {/* Main View (List) */}
       <div className="relative flex flex-col h-full overflow-hidden">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-20 bg-grappler-950/95 backdrop-blur-md border-b border-grappler-700/40">
+        <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-700/40">
           {/* Top Row: Back + Title */}
           <div className="flex items-center gap-3 px-4 py-3">
             <button

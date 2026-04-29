@@ -539,7 +539,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
   return (
     <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={mode === 'active' ? stopSession : mode === 'detail' ? () => setMode('select') : onClose}

@@ -886,7 +886,7 @@ export default function SplitAnalyzer({ onClose }: SplitAnalyzerProps) {
       exit={{ opacity: 0, x: -20 }}
     >
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800">
+      <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-3">
           <div className="flex items-center gap-3">
             <button

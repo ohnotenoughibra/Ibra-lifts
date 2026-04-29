@@ -294,7 +294,7 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
       className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
     >
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+      <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">

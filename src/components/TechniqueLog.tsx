@@ -212,7 +212,7 @@ function LogView({ onBack, onLog }: {
 
       <Section title="Reps">
         <input
-          type="number"
+          type="number" inputMode="decimal" enterKeyHint="done"
           min={1} step={1}
           value={reps || ''}
           onChange={e => setReps(Number(e.target.value))}

@@ -364,7 +364,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
       className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
     >
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800">
+      <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
@@ -853,7 +853,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                         <div className="mt-2 flex items-center gap-2">
                           <Thermometer className="w-4 h-4 text-red-400" />
                           <input
-                            type="number"
+                            type="number" inputMode="decimal" enterKeyHint="done"
                             step="0.1"
                             value={newTemperature}
                             onChange={(e) => setNewTemperature(e.target.value)}
@@ -1021,7 +1021,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
                         <div className="mt-2 flex items-center gap-2">
                           <Thermometer className="w-4 h-4 text-red-400" />
                           <input
-                            type="number"
+                            type="number" inputMode="decimal" enterKeyHint="done"
                             step="0.1"
                             value={checkinTemperature}
                             onChange={(e) => setCheckinTemperature(e.target.value)}

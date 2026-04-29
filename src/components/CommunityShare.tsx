@@ -245,7 +245,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
   return (
     <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur-lg border-b border-grappler-800">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
           <button aria-label="Go back" onClick={onClose} className="p-2 -ml-2 rounded-xl hover:bg-grappler-800">
             <ArrowLeft className="w-5 h-5 text-grappler-300" />

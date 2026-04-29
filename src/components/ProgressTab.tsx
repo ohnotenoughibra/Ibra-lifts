@@ -283,7 +283,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
               {editingGoal === lift.exerciseId && (
                 <div className="mt-2 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal" enterKeyHint="done"
                     value={goalInput}
                     onChange={e => setGoalInput(e.target.value)}
                     className="w-20 bg-grappler-700 text-grappler-100 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"

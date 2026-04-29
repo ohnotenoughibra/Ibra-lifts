@@ -205,7 +205,7 @@ function LogView({ onBack, onLog }: {
           <div>
             <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Rounds</label>
             <input
-              type="number" min={1} step={1}
+              type="number" inputMode="decimal" enterKeyHint="done" min={1} step={1}
               value={rounds || ''}
               onChange={e => setRounds(Number(e.target.value))}
               className="w-full px-3 py-2.5 rounded-lg bg-grappler-950 border border-grappler-800 text-white text-xl font-mono tabular-nums focus:border-grappler-500 outline-none"
@@ -214,7 +214,7 @@ function LogView({ onBack, onLog }: {
           <div>
             <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Min / round</label>
             <input
-              type="number" min={1} step={1}
+              type="number" inputMode="decimal" enterKeyHint="done" min={1} step={1}
               value={minutesPerRound || ''}
               onChange={e => setMinutesPerRound(Number(e.target.value))}
               className="w-full px-3 py-2.5 rounded-lg bg-grappler-950 border border-grappler-800 text-white text-xl font-mono tabular-nums focus:border-grappler-500 outline-none"

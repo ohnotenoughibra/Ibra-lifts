@@ -41,7 +41,7 @@ interface ToolShellProps {
 
 export function ToolShell({ onClose, eyebrow, title, description, footer, children }: ToolShellProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col">
+    <div className="fixed inset-0 z-overlay bg-grappler-950 flex flex-col">
       {/* Top sticky chrome — close only. Title scrolls away with content. */}
       <div className="sticky top-0 z-10 bg-grappler-950 safe-area-top flex justify-start px-4 pt-3 pb-2">
         <button
@@ -77,10 +77,10 @@ export function ToolShell({ onClose, eyebrow, title, description, footer, childr
         </div>
       </div>
 
-      {/* Sticky bottom CTA — pinned, full-width, safe-area aware */}
+      {/* Sticky bottom CTA — pinned, full-width, safe-area + keyboard aware */}
       {footer && (
-        <div className="border-t border-grappler-800 bg-grappler-950 px-4 pt-3 pb-3 safe-area-bottom">
-          <div className="max-w-2xl mx-auto">{footer}</div>
+        <div className="border-t border-grappler-800 bg-grappler-950 px-4 pt-3 sticky-footer-kb">
+          <div className="max-w-2xl mx-auto pb-3">{footer}</div>
         </div>
       )}
     </div>

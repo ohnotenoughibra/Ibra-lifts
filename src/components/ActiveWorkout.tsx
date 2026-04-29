@@ -42,6 +42,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
+import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
 import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, getExerciseById, ExerciseRecommendation } from '@/lib/exercises';
@@ -168,6 +169,10 @@ export default function ActiveWorkout() {
   const hasActiveInjuries = injuryAdaptations.classifications.length > 0;
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
+  // Re-entry guard for completeSet — kills double-tap from skipping a set.
+  const completingSetRef = useRef(false);
+  // Ref to the active-set container so we can scrollIntoView on advance.
+  const activeSetRef = useRef<HTMLDivElement>(null);
 
   // Rest timer — extracted to hook for testability and reuse
   const {
@@ -362,13 +367,19 @@ export default function ActiveWorkout() {
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
   const [showMoreFeedback, setShowMoreFeedback] = useState(false);
 
-  // Workout timer — uses startTime timestamp so it survives app backgrounding
+  // Workout timer — uses startTime timestamp so it survives app backgrounding.
+  // visibilitychange forces an immediate tick on resume so the displayed
+  // elapsed value catches up after iOS throttled the interval.
   const [, forceUpdate] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => {
-      forceUpdate(n => n + 1);
-    }, 1000);
-    return () => clearInterval(timer);
+    const tick = () => forceUpdate(n => n + 1);
+    const timer = setInterval(tick, 1000);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Show swipe gesture hint on first active workout
@@ -531,7 +542,9 @@ export default function ActiveWorkout() {
     };
   }, [tempoState?.active, tempoPrescription]);
 
-  // Stop tempo when exercise changes or rest starts
+  // Stop tempo when exercise changes or rest starts.
+  // The exercise-change path was missing — swap exercise mid-tempo and the
+  // metronome would keep ticking against the new exercise's reps.
   useEffect(() => {
     if (isResting && tempoState) {
       stopTempoMetronome();
@@ -539,12 +552,34 @@ export default function ActiveWorkout() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResting]);
 
+  useEffect(() => {
+    return () => stopTempoMetronome();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentExerciseIndex]);
+
   // Reset zero-reps confirmation when set changes
   useEffect(() => {
     setConfirmZeroReps(false);
   }, [currentSetIndex, currentExerciseIndex]);
 
+  // Scroll the active set into view on advance — kills the "where did the next set go?" friction.
+  useEffect(() => {
+    const el = activeSetRef.current;
+    if (!el) return;
+    // Defer to next frame so layout is settled.
+    const id = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [currentSetIndex, currentExerciseIndex]);
+
   const completeSet = () => {
+    // Re-entry guard — rapid double-taps fire only once.
+    if (completingSetRef.current) return;
+    completingSetRef.current = true;
+    // Release on next macrotask after React commits the new set state.
+    setTimeout(() => { completingSetRef.current = false; }, 400);
+
     // Save undo info before modifying
     setUndoInfo({
       exerciseIndex: currentExerciseIndex,
@@ -2185,7 +2220,7 @@ export default function ActiveWorkout() {
             </div>
 
             {/* Bottom CTA — always submits check-in */}
-            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900 border-t border-grappler-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 onClick={() => {
                   submitPreCheckIn();
@@ -2740,7 +2775,7 @@ export default function ActiveWorkout() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-grappler-900/90 backdrop-blur-xl border-b border-grappler-800 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between mb-3">
           <button onClick={() => {
             if (completedSets > 0) {
@@ -2813,12 +2848,12 @@ export default function ActiveWorkout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-grappler-900/95 flex flex-col items-center justify-center"
+            className="fixed inset-0 z-overlay bg-grappler-950 flex flex-col items-center justify-center safe-area-top safe-area-bottom"
           >
             {/* Minimize button */}
             <button
               onClick={() => setRestMinimized(true)}
-              className="absolute top-4 right-4 safe-area-top flex items-center gap-1.5 px-3 py-2 rounded-xl bg-grappler-700/80 border border-grappler-600/50 text-grappler-200 hover:bg-grappler-600/80 active:scale-95 transition-all"
+              className="absolute top-4 right-4 mt-[env(safe-area-inset-top)] flex items-center gap-1.5 px-3 py-2 rounded-xl bg-grappler-700/80 border border-grappler-600/50 text-grappler-200 hover:bg-grappler-600/80 active:scale-95 transition-all"
             >
               <ChevronDown className="w-4 h-4" />
               <span className="text-sm font-medium">Minimize</span>
@@ -3622,7 +3657,7 @@ export default function ActiveWorkout() {
           })()}
 
           {/* Input Fields */}
-          <div className="space-y-4">
+          <div ref={activeSetRef} className="space-y-4">
             {/* Weight */}
             <div className={cn(
               'rounded-xl p-4 transition-all duration-300',
@@ -3651,13 +3686,12 @@ export default function ActiveWorkout() {
                 >
                   <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={currentSet.weight || ''}
+                <BufferedNumberInput
+                  value={currentSet.weight}
+                  onCommit={(v) => setExactValue('weight', v)}
+                  kind="float"
                   placeholder="0"
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => setExactValue('weight', parseFloat(e.target.value) || 0)}
+                  ariaLabel="Weight"
                   className={cn(
                     'w-28 text-center text-4xl font-black bg-transparent focus-visible:outline-none placeholder:text-grappler-600',
                     prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
@@ -3740,13 +3774,12 @@ export default function ActiveWorkout() {
                     >
                       <Minus className="w-6 h-6 text-grappler-300" />
                     </button>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={currentValue || ''}
+                    <BufferedNumberInput
+                      value={currentValue}
+                      onCommit={(v) => setExactValue(field, v)}
+                      kind="int"
                       placeholder={isTimeBased ? `${suggested}` : '0'}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => setExactValue(field, parseInt(e.target.value) || 0)}
+                      ariaLabel={isTimeBased ? 'Seconds' : 'Reps'}
                       className={cn(
                         'w-28 text-center text-4xl font-black bg-transparent focus-visible:outline-none placeholder:text-grappler-600',
                         prHighlight ? 'text-yellow-300' : 'text-grappler-50'
@@ -4034,7 +4067,7 @@ export default function ActiveWorkout() {
 
       {/* Fixed Complete Set Button */}
       {!showOverview && !isResting && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-grappler-900/95 backdrop-blur-sm border-t border-grappler-700/50 z-40">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-grappler-900 border-t border-grappler-700/50 z-40">
           {(() => {
             const isZeroForCurrent = isTimeBased
               ? (currentSet.duration || 0) <= 0
@@ -4516,7 +4549,7 @@ export default function ActiveWorkout() {
                       </p>
                       <div className="flex items-center gap-3">
                         <input
-                          type="number"
+                          type="number" inputMode="decimal" enterKeyHint="done"
                           min={5}
                           max={300}
                           value={currentVal}

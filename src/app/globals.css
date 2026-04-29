@@ -14,6 +14,14 @@
     touch-action: manipulation;
   }
 
+  /* HIG/Material 44px minimum touch target. Applies to every button by default
+     so we never ship sub-44 hit areas. Inline icon-only buttons that intentionally
+     want to be smaller (e.g. inside very tight lists) can opt out with
+     class="min-h-0" or by setting an explicit smaller size. */
+  button:not([data-tight]) {
+    min-height: 44px;
+  }
+
   /* Kill native pull-to-refresh + page bounce on iOS / Android.
      User report: 'pull my phone down and everything disappears.'
      Setting overscroll-behavior: none on html prevents the document-level
@@ -42,6 +50,25 @@
   :root {
     /* JS fallback (set by layout.tsx <script>) for browsers without dvh */
     --app-h: 100vh;
+
+    /* Bottom nav physical height (without safe-area) — single source of truth */
+    --nav-h: 67px;
+
+    /* Bottom nav effective offset including iOS home indicator */
+    --nav-h-safe: calc(67px + env(safe-area-inset-bottom));
+
+    /* Visual viewport keyboard offset (set by useVisualViewport hook on focus) */
+    --kb-offset: 0px;
+
+    /* Z-index tier system — single source of truth for layering.
+       Lower number = farther back. Use these instead of arbitrary z-50/z-[60]. */
+    --z-base: 0;
+    --z-nav: 20;
+    --z-sticky: 30;
+    --z-overlay: 50;
+    --z-modal: 60;
+    --z-launcher: 65;
+    --z-toast: 80;
   }
   @supports (min-height: 100dvh) {
     :root { --app-h: 100dvh; }
@@ -847,6 +874,36 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
+
+  /* Padding utilities that match the bottom nav. Use on scroll containers
+     so the last item never hides under the nav. Replaces ad-hoc pb-24/pb-32. */
+  .pb-nav {
+    padding-bottom: calc(var(--nav-h-safe) + 1rem);
+  }
+  .pb-nav-lg {
+    padding-bottom: calc(var(--nav-h-safe) + 2.5rem);
+  }
+
+  /* Bottom-positioned element offset for elements that float above the nav
+     (toasts, resume-workout banner). Stack 1rem above the nav area. */
+  .bottom-above-nav {
+    bottom: calc(var(--nav-h-safe) + 1rem);
+  }
+
+  /* Sticky-CTA footer that auto-rises when keyboard is present.
+     Combines safe-area-inset-bottom with the visualViewport keyboard offset
+     written by the useVisualViewport hook. */
+  .sticky-footer-kb {
+    padding-bottom: max(env(safe-area-inset-bottom), var(--kb-offset));
+  }
+
+  /* Z-index utilities — prefer these over raw z-50 / z-[60] */
+  .z-nav      { z-index: var(--z-nav); }
+  .z-sticky   { z-index: var(--z-sticky); }
+  .z-overlay  { z-index: var(--z-overlay); }
+  .z-modal    { z-index: var(--z-modal); }
+  .z-launcher { z-index: var(--z-launcher); }
+  .z-toast    { z-index: var(--z-toast); }
 
   /* Overlay safe area — pushes content below status bar and adjusts sticky headers */
   .overlay-safe {

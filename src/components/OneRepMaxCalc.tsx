@@ -277,7 +277,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   -
                 </button>
                 <input
-                  type="number"
+                  type="number" inputMode="decimal" enterKeyHint="done"
                   value={weight}
                   onChange={(e) => setWeight(Math.max(0, parseInt(e.target.value) || 0))}
                   className="flex-1 min-w-0 bg-grappler-800 border border-grappler-700 rounded-lg p-3 text-center text-2xl font-bold text-grappler-50 focus-visible:outline-none focus-visible:border-primary-500 transition-colors"
@@ -304,7 +304,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   -
                 </button>
                 <input
-                  type="number"
+                  type="number" inputMode="decimal" enterKeyHint="done"
                   value={reps}
                   onChange={(e) =>
                     setReps(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))
@@ -552,7 +552,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                     -
                   </button>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal" enterKeyHint="done"
                     value={protocolEstimate || ''}
                     onChange={(e) =>
                       setProtocolEstimate(Math.max(0, parseInt(e.target.value) || 0))
@@ -697,7 +697,7 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
                   </p>
                   <div className="flex items-center gap-3">
                     <input
-                      type="number"
+                      type="number" inputMode="decimal" enterKeyHint="done"
                       value={actual1RM}
                       onChange={(e) => setActual1RM(e.target.value)}
                       placeholder="Enter weight"

@@ -23,6 +23,7 @@ import {
   Sun,
 } from 'lucide-react';
 import { cn, formatNumber, formatTime } from '@/lib/utils';
+import { useScrollLock } from '@/lib/scroll-lock';
 import SyncConflictResolver from './SyncConflictResolver';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import VersionUpgradePopup from './VersionUpgradePopup';
@@ -169,7 +170,7 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-6"
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-6"
       onClick={onDismiss}
       onKeyDown={(e) => { if (e.key === 'Escape') onDismiss(); }}
       role="dialog"
@@ -271,28 +272,46 @@ export default function Dashboard({
   const [showToolLauncher, setShowToolLauncher] = useState(false);
   const scrollPositionRef = useRef(0);
 
-  // iOS-correct body scroll lock. Plain `overflow:hidden` resets scroll on iOS
-  // Safari (the visible page jumps to top when you close the overlay).
-  // Canonical pattern: snapshot scrollY, fix the body at top:-scrollY, restore on close.
+  // iOS-correct body scroll lock — reference-counted so nested overlays
+  // don't race. See src/lib/scroll-lock.ts for the canonical pattern.
+  useScrollLock(!!overlayView);
+
+  // ── Browser back-button / iOS edge-swipe / Android back integration ──
+  // When an overlay opens we push a history entry. popstate (back) closes
+  // one level. Pressing the system back button now closes the overlay
+  // instead of exiting the app. Pairs with X-button close via history.back().
+  const popstateHandlerRef = useRef<(() => void) | null>(null);
+  popstateHandlerRef.current = () => {
+    // Pop topmost overlay first, then close root if no stack.
+    if (overlayHistory.length > 0) {
+      const previous = overlayHistory[overlayHistory.length - 1];
+      setOverlayHistory(prev => prev.slice(0, -1));
+      setOverlayContext(previous.context);
+      setOverlayViewRaw(previous.view);
+    } else if (overlayView) {
+      setOverlayViewRaw(null);
+      setOverlayContext(undefined);
+    }
+  };
+
   useEffect(() => {
-    if (!overlayView) return;
-    const savedY = window.scrollY;
-    const body = document.body;
-    body.style.position = 'fixed';
-    body.style.top = `-${savedY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.width = '100%';
-    return () => {
-      body.style.position = '';
-      body.style.top = '';
-      body.style.left = '';
-      body.style.right = '';
-      body.style.width = '';
-      // Defer to next frame so layout settles before scroll restoration
-      requestAnimationFrame(() => window.scrollTo(0, savedY));
-    };
-  }, [overlayView]);
+    const onPop = () => popstateHandlerRef.current?.();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Push a history entry when overlay opens or stack deepens.
+  // We track depth to know when to push vs. when popstate fired.
+  const overlayDepthRef = useRef(0);
+  const skipHistoryPushRef = useRef(false);
+  useEffect(() => {
+    const newDepth = overlayView ? overlayHistory.length + 1 : 0;
+    if (newDepth > overlayDepthRef.current && !skipHistoryPushRef.current) {
+      window.history.pushState({ overlayDepth: newDepth }, '');
+    }
+    overlayDepthRef.current = newDepth;
+    skipHistoryPushRef.current = false;
+  }, [overlayView, overlayHistory.length]);
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
@@ -337,7 +356,13 @@ export default function Dashboard({
 
   const handleOverlayTouchEnd = useCallback(() => {
     if (overlayDragY > 150) {
-      setOverlayView(null);
+      // Route through history.back() so swipe-down-to-dismiss respects the back stack
+      // (a swipe with a parent overlay underneath returns to the parent, not the home tab).
+      if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
+        window.history.back();
+      } else {
+        setOverlayView(null);
+      }
     }
     setOverlayDragY(0);
     overlayDragging.current = false;
@@ -545,7 +570,11 @@ export default function Dashboard({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (overlayView) {
-          setOverlayView(null);
+          if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
+            window.history.back();
+          } else {
+            setOverlayView(null);
+          }
         } else if (upgradeFeature) {
           setUpgradeFeature(null);
         } else if (levelUpDisplay) {
@@ -608,7 +637,14 @@ export default function Dashboard({
   // Full-screen overlay views — wrapped in overlay-safe for status bar clearance
   {
     const closeOverlay = () => {
-      // If there's a back-stack entry, pop to it (Injury → Rehab → close goes back to Injury)
+      // Delegate to browser history so the popstate handler does the actual pop.
+      // This keeps overlay state and browser history in sync — Android back button
+      // and iOS edge-swipe behave identically to the X button.
+      if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
+        window.history.back();
+        return;
+      }
+      // Fallback if no history entry (shouldn't happen in normal flow)
       if (overlayHistory.length > 0) {
         const previous = overlayHistory[overlayHistory.length - 1];
         setOverlayHistory(prev => prev.slice(0, -1));
@@ -755,7 +791,7 @@ export default function Dashboard({
       <div className="max-w-screen-2xl mx-auto lg:flex lg:min-h-[100dvh]">
 
         {/* ── Desktop Sidebar (lg+) ── */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-[100dvh] lg:border-r lg:border-grappler-800 lg:bg-grappler-950/80 lg:backdrop-blur-xl lg:z-40">
+        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-[100dvh] lg:border-r lg:border-grappler-800 lg:bg-grappler-950 lg:lg:z-40">
           {/* Editorial wordmark — no logo glyph, no glow shadow, no gradient */}
           <div className="px-5 pt-6 pb-5">
             <div className="font-display text-2xl font-black tracking-tight leading-none text-white">

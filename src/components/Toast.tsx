@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {/* Toast rendering */}
       <div
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-2 items-center pointer-events-none"
+        className="fixed bottom-above-nav left-1/2 -translate-x-1/2 z-toast flex flex-col gap-2 items-center pointer-events-none"
         aria-live="polite"
         aria-atomic="true"
         role="status"
@@ -122,6 +122,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                           timersRef.current.delete(toast.id);
                         }
                       }}
+                      data-tight
                       className="ml-1 px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-xs font-bold uppercase tracking-wide transition-colors"
                     >
                       {toast.action.label}

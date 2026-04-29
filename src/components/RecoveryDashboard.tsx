@@ -840,7 +840,7 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
     >
-      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 px-4 py-3">
+      <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
           <button aria-label="Go back" onClick={onClose} className="p-2 -ml-2 rounded-lg hover:bg-grappler-800 transition-colors">
             <ChevronLeft className="w-5 h-5 text-grappler-200" />

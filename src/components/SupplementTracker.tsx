@@ -492,7 +492,7 @@ function CustomizePanel({
         <div className="flex items-center gap-2">
           <label className="text-xs text-grappler-400 w-16">Servings</label>
           <input
-            type="number"
+            type="number" inputMode="decimal" enterKeyHint="done"
             value={servings}
             onChange={(e) => setServings(e.target.value)}
             min="0.5"
@@ -505,7 +505,7 @@ function CustomizePanel({
         <div className="flex items-center gap-2">
           <label className="text-xs text-grappler-400 w-16">Protein/srv</label>
           <input
-            type="number"
+            type="number" inputMode="decimal" enterKeyHint="done"
             value={protein}
             onChange={(e) => setProtein(e.target.value)}
             placeholder="g"
@@ -515,7 +515,7 @@ function CustomizePanel({
         <div className="flex items-center gap-2">
           <label className="text-xs text-grappler-400 w-16">Cal/srv</label>
           <input
-            type="number"
+            type="number" inputMode="decimal" enterKeyHint="done"
             value={calories}
             onChange={(e) => setCals(e.target.value)}
             placeholder="kcal"

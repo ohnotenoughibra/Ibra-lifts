@@ -30,15 +30,16 @@ export function useRestTimer(onComplete?: () => void) {
     setRestEndTime(null);
   }, []);
 
-  // Countdown effect with haptic + notification
+  // Countdown effect with haptic + notification.
+  // Timestamp-derived; on iOS PWA backgrounding the interval throttles or pauses,
+  // so we also reconcile via a visibilitychange listener that fires an immediate tick.
   useEffect(() => {
     if (!isResting || !restEndTime) return;
     warned10sRef.current = false;
 
-    const interval = setInterval(() => {
+    const tick = () => {
       const remaining = Math.ceil((restEndTime - Date.now()) / 1000);
 
-      // 10-second warning
       if (remaining <= 10 && remaining > 0 && !warned10sRef.current) {
         warned10sRef.current = true;
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -53,7 +54,6 @@ export function useRestTimer(onComplete?: () => void) {
         }
       }
 
-      // Rest complete
       if (remaining <= 0) {
         setIsResting(false);
         setRestEndTime(null);
@@ -69,9 +69,16 @@ export function useRestTimer(onComplete?: () => void) {
         }
         onComplete?.();
       }
-    }, 500);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(tick, 500);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isResting, restEndTime, onComplete]);
 
   return {

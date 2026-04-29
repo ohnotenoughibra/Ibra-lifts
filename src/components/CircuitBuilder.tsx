@@ -543,7 +543,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
       </AnimatePresence>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-50 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
+      <div className="sticky top-0 z-50 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={mode === 'run' && phase !== 'complete' ? () => setShowStopConfirm(true) : onClose}
@@ -870,7 +870,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
                             </button>
                           </div>
                           <input
-                            type="number"
+                            type="number" inputMode="decimal" enterKeyHint="done"
                             min={1}
                             value={exInputMode === 'reps' ? exReps : exDuration}
                             onChange={(e) => {

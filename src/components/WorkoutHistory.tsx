@@ -853,7 +853,7 @@ export default function WorkoutHistory() {
                         <Clock className="w-4 h-4 text-grappler-400 flex-shrink-0" />
                         <span className="text-xs text-grappler-400">Duration</span>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal" enterKeyHint="done"
                           min={1}
                           max={300}
                           value={editDuration ?? log.duration}

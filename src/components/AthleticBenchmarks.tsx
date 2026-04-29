@@ -299,7 +299,7 @@ function LogView({ spec, onBack, onLog }: {
     >
       <Section title="Result" hint={spec.unit}>
         <input
-          type="number"
+          type="number" inputMode="decimal" enterKeyHint="done"
           step={spec.unit === 's' ? 0.01 : spec.unit === 'm' ? 0.01 : 1}
           value={value || ''}
           onChange={e => setValue(Number(e.target.value))}

@@ -661,7 +661,7 @@ function ArticleReader({
   return (
     <div className="min-h-screen bg-grappler-900">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 bg-grappler-900">
         <div className="h-0.5 bg-grappler-800">
           <motion.div
             className="h-full bg-primary-500"

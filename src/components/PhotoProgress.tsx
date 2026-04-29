@@ -249,7 +249,7 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
       {/* ----------------------------------------------------------------- */}
       {/* Sticky Header                                                      */}
       {/* ----------------------------------------------------------------- */}
-      <div className="sticky top-0 z-20 bg-grappler-950/95 backdrop-blur-sm border-b border-grappler-800">
+      <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={onClose}
@@ -857,7 +857,7 @@ function AddPhotoModal({
         className="w-full max-w-lg max-h-[90vh] bg-grappler-900 rounded-t-2xl sm:rounded-lg overflow-y-auto"
       >
         {/* Modal header */}
-        <div className="sticky top-0 z-10 bg-grappler-900/95 backdrop-blur-sm border-b border-grappler-800 p-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4 flex items-center justify-between">
           <h2 className="text-base font-bold text-grappler-100">Add Progress Photo</h2>
           <button
             onClick={onClose}

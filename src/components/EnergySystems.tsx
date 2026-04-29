@@ -1,18 +1,15 @@
 'use client';
 
 /**
- * EnergySystems — structured cardio for combat athletes
+ * EnergySystems — structured cardio for combat athletes.
  *
- * Three distinct protocols (Zone 2 base, Norwegian 4×4, RSA) plus tempo and
- * long aerobic intervals. Pick one, pick a modality, run it.
+ * Editorial brutalist refactor: uses _ToolShell primitives, kills the
+ * 5-color zone rainbow, removes the 3-view internal nav (protocol detail
+ * is now its own full ToolShell with sticky Start CTA).
  */
 
-import { useMemo, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Heart, Activity, Timer, Flame, ArrowRight,
-  PlayCircle, Info, Sparkles, ChevronDown, ChevronUp, Zap,
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
   ENERGY_SYSTEM_PROTOCOLS,
@@ -22,21 +19,20 @@ import {
   prettyModality,
   type EnergySystemProtocol,
   type CardioModality,
-  type EnergySystemId,
 } from '@/lib/energy-systems';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import { ToolShell, Section, HeroMetric, PrimaryCTA, Stat } from './_ToolShell';
 
 interface Props { onClose: () => void }
 
 const MODALITIES: CardioModality[] = ['bike', 'run', 'row', 'jump_rope', 'shadow', 'swim'];
 
-const ENERGY_COLOR: Record<EnergySystemId, { bg: string; text: string; border: string }> = {
-  zone2_base:        { bg: 'bg-emerald-500/15', text: 'text-emerald-300', border: 'border-emerald-500/30' },
-  tempo:             { bg: 'bg-sky-500/15',     text: 'text-sky-300',     border: 'border-sky-500/30' },
-  aerobic_intervals: { bg: 'bg-amber-500/15',   text: 'text-amber-300',   border: 'border-amber-500/30' },
-  threshold_4x4:     { bg: 'bg-rose-500/15',    text: 'text-rose-300',    border: 'border-rose-500/30' },
-  rsa:               { bg: 'bg-violet-500/15',  text: 'text-violet-300',  border: 'border-violet-500/30' },
+const SYSTEM_LABEL: Record<EnergySystemProtocol['energySystem'], string> = {
+  aerobic: 'Aerobic',
+  aerobic_anaerobic: 'Mixed',
+  anaerobic_alactic: 'Alactic',
+  anaerobic_lactic: 'Lactic',
 };
 
 export default function EnergySystems({ onClose }: Props) {
@@ -44,10 +40,8 @@ export default function EnergySystems({ onClose }: Props) {
   const startWorkout = useAppStore(s => s.startWorkout);
   const user = useAppStore(s => s.user);
 
-  const [view, setView] = useState<'overview' | 'zones' | 'protocol'>('overview');
   const [selectedProtocol, setSelectedProtocol] = useState<EnergySystemProtocol | null>(null);
 
-  // HR zone calculation
   const userAge = user?.age ?? 30;
   const userMaxHR = estimateMaxHR(userAge);
   const userRestingHR = (user as { restingHR?: number })?.restingHR ?? 60;
@@ -64,238 +58,124 @@ export default function EnergySystems({ onClose }: Props) {
     onClose();
   };
 
+  if (selectedProtocol) {
+    return (
+      <ProtocolDetail
+        protocol={selectedProtocol}
+        zones={zones}
+        onBack={() => setSelectedProtocol(null)}
+        onClose={onClose}
+        onStart={(modality) => startProtocol(selectedProtocol, modality)}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-rose-400" />
-          <div>
-            <h1 className="text-lg font-bold text-white">Energy Systems</h1>
-            <p className="text-[11px] text-grappler-400">Structured cardio that actually transfers</p>
-          </div>
-        </div>
-        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
-          <X className="w-5 h-5 text-grappler-300" />
-        </button>
-      </div>
-
-      <div className="px-4 py-4 max-w-2xl mx-auto pb-24">
-        <AnimatePresence mode="wait">
-          {view === 'overview' && (
-            <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Overview
-                protocols={ENERGY_SYSTEM_PROTOCOLS}
-                onProtocol={(p) => { setSelectedProtocol(p); setView('protocol'); }}
-                onShowZones={() => setView('zones')}
-              />
-            </motion.div>
-          )}
-          {view === 'zones' && (
-            <motion.div key="zones" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ZonesView zones={zones} userAge={userAge} onBack={() => setView('overview')} />
-            </motion.div>
-          )}
-          {view === 'protocol' && selectedProtocol && (
-            <motion.div key="protocol" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ProtocolView
-                protocol={selectedProtocol}
-                zones={zones}
-                onStart={(modality) => startProtocol(selectedProtocol, modality)}
-                onBack={() => setView('overview')}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Overview
-// ─────────────────────────────────────────────────────────────────────────
-
-function Overview({ protocols, onProtocol, onShowZones }: {
-  protocols: EnergySystemProtocol[];
-  onProtocol: (p: EnergySystemProtocol) => void;
-  onShowZones: () => void;
-}) {
-  return (
-    <div className="space-y-4 mt-2">
-      <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Heart className="w-5 h-5 text-rose-400" />
-          <h2 className="font-bold text-white">The cardio most fighters skip</h2>
-        </div>
-        <p className="text-xs text-grappler-200 leading-relaxed">
-          Conditioning circuits build "feels-hard" cardio. Energy systems work builds <strong>actual</strong> aerobic engine,
-          VO2max, and lactate clearance. Five protocols, periodized: base → threshold → peak.
-        </p>
-        <button
-          onClick={onShowZones}
-          className="mt-3 text-xs text-rose-300 hover:text-rose-200 flex items-center gap-1"
-        >
-          View your HR zones
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        {protocols.map(p => {
-          const colors = ENERGY_COLOR[p.id];
-          return (
+    <ToolShell
+      onClose={onClose}
+      eyebrow="IBRA / 03 · ENERGY SYSTEMS"
+      title={<>Cardio that<br/>transfers.</>}
+      description="Five protocols, periodized: aerobic base → threshold → peak. Pick a system, pick a modality, run it."
+    >
+      <Section title="Protocols">
+        <div className="space-y-2">
+          {ENERGY_SYSTEM_PROTOCOLS.map(p => (
             <button
               key={p.id}
-              onClick={() => onProtocol(p)}
-              className={cn(
-                'w-full p-4 rounded-xl border text-left transition hover:bg-grappler-800/40',
-                'bg-grappler-900/60 border-grappler-800'
-              )}
+              onClick={() => setSelectedProtocol(p)}
+              className="w-full flex items-center justify-between gap-3 p-3 -mx-1 rounded-lg hover:bg-grappler-800/40 active:scale-[0.99] transition text-left"
             >
-              <div className="flex items-start gap-3">
-                <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 border', colors.bg, colors.border)}>
-                  <SystemIcon id={p.id} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <h3 className="text-sm font-bold text-white truncate">{p.name}</h3>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 whitespace-nowrap">
+                    {SYSTEM_LABEL[p.energySystem]}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                    <h3 className="text-sm font-bold text-white">{p.name}</h3>
-                    <span className={cn('text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border whitespace-nowrap', colors.bg, colors.text, colors.border)}>
-                      {p.energySystem === 'aerobic' ? 'Aerobic' : p.energySystem === 'aerobic_anaerobic' ? 'Mixed' : 'Anaerobic'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-grappler-300 mb-1">{p.combatRelevance}</p>
-                  <div className="flex items-center gap-3 text-[11px] text-grappler-500">
-                    <span><Timer className="inline w-3 h-3 mr-0.5" /> {p.durationMinutes}m</span>
-                    <span>·</span>
-                    <span>{p.modalityRecommendations.length} modalities</span>
-                  </div>
+                <p className="text-xs text-grappler-400 line-clamp-2">{p.combatRelevance}</p>
+                <div className="text-[11px] text-grappler-500 mt-1 font-mono tabular-nums">
+                  {p.durationMinutes}m · {p.intervals[0].rounds} rd · {p.modalityRecommendations.length} modalities
                 </div>
               </div>
+              <ChevronRight className="w-4 h-4 text-grappler-500 flex-shrink-0" />
             </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+          ))}
+        </div>
+      </Section>
 
-function SystemIcon({ id }: { id: EnergySystemId }) {
-  if (id === 'zone2_base') return <Heart className="w-5 h-5 text-emerald-400" />;
-  if (id === 'tempo') return <Activity className="w-5 h-5 text-sky-400" />;
-  if (id === 'aerobic_intervals') return <Flame className="w-5 h-5 text-amber-400" />;
-  if (id === 'threshold_4x4') return <Zap className="w-5 h-5 text-rose-400" />;
-  return <Sparkles className="w-5 h-5 text-violet-400" />;
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// HR Zones View
-// ─────────────────────────────────────────────────────────────────────────
-
-function ZonesView({ zones, userAge, onBack }: { zones: ReturnType<typeof calculateHRZones>; userAge: number; onBack: () => void }) {
-  const zoneMeta: { key: keyof typeof zones.zones; tag: string }[] = [
-    { key: 'zone1', tag: 'Recovery' },
-    { key: 'zone2', tag: 'Base' },
-    { key: 'zone3', tag: 'Tempo' },
-    { key: 'zone4', tag: 'Threshold' },
-    { key: 'zone5', tag: 'VO2max' },
-  ];
-  return (
-    <div className="space-y-3 mt-2">
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-grappler-300 hover:text-white">
-        <ChevronDown className="w-4 h-4 rotate-90" /> Back
-      </button>
-
-      <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-        <h2 className="text-base font-bold text-white mb-2">Your HR Zones</h2>
-        <p className="text-xs text-grappler-300">
-          Tanaka formula: max HR ≈ <strong className="text-white">{zones.maxHR} bpm</strong> for age {userAge}.
-          Resting HR <strong className="text-white">{zones.restingHR} bpm</strong>. Zones use Karvonen heart-rate reserve.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        {zoneMeta.map(({ key, tag }) => {
-          const z = zones.zones[key];
-          // Static class strings — Tailwind JIT cannot see template-literal interpolation
-          const ZONE_CLASSES: Record<typeof key, { bg: string; text: string }> = {
-            zone1: { bg: 'rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4', text: 'text-[10px] uppercase font-bold tracking-wider text-emerald-400' },
-            zone2: { bg: 'rounded-xl bg-sky-500/10 border border-sky-500/30 p-4',         text: 'text-[10px] uppercase font-bold tracking-wider text-sky-400' },
-            zone3: { bg: 'rounded-xl bg-amber-500/10 border border-amber-500/30 p-4',     text: 'text-[10px] uppercase font-bold tracking-wider text-amber-400' },
-            zone4: { bg: 'rounded-xl bg-orange-500/10 border border-orange-500/30 p-4',   text: 'text-[10px] uppercase font-bold tracking-wider text-orange-400' },
-            zone5: { bg: 'rounded-xl bg-rose-500/10 border border-rose-500/30 p-4',       text: 'text-[10px] uppercase font-bold tracking-wider text-rose-400' },
-          };
-          const cls = ZONE_CLASSES[key];
-          return (
-            <div key={key} className={cls.bg}>
-              <div className="flex items-baseline justify-between gap-2">
-                <div>
-                  <div className={cls.text}>
-                    {key.toUpperCase()} · {tag}
-                  </div>
-                  <div className="text-xl font-bold text-white font-mono">
-                    {z.min}–{z.max} <span className="text-xs text-grappler-400">bpm</span>
-                  </div>
+      <Section title="Your HR Zones" hint={`Max ${zones.maxHR} bpm`}>
+        <div className="space-y-2">
+          {(['zone1', 'zone2', 'zone3', 'zone4', 'zone5'] as const).map((key, idx) => {
+            const tags = ['Recovery', 'Base', 'Tempo', 'Threshold', 'VO2max'];
+            const z = zones.zones[key];
+            return (
+              <div key={key} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-grappler-800 last:border-0">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 font-bold w-12">
+                    Z{idx + 1}
+                  </span>
+                  <span className="text-xs text-grappler-300">{tags[idx]}</span>
                 </div>
-                <div className="text-xs text-grappler-300 max-w-[60%] text-right">
-                  {key === 'zone1' && 'Active recovery, walking pace'}
-                  {key === 'zone2' && 'Conversational, fat-burning, aerobic base'}
-                  {key === 'zone3' && 'Comfortably hard, can speak phrases'}
-                  {key === 'zone4' && 'Race pace, lactate threshold'}
-                  {key === 'zone5' && 'All-out, can\'t sustain >3 min'}
-                </div>
+                <span className="font-mono text-sm tabular-nums text-white">
+                  {z.min}<span className="text-grappler-500">–</span>{z.max}
+                  <span className="text-[10px] text-grappler-500 ml-1">bpm</span>
+                </span>
               </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-grappler-500 mt-3 leading-relaxed">
+          Tanaka max HR for age {userAge}, Karvonen reserve from resting HR {userRestingHR}.
+        </p>
+      </Section>
+    </ToolShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Protocol View
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Protocol detail ─────────────────────────────────────────────────────
 
-function ProtocolView({ protocol, zones, onStart, onBack }: {
+function ProtocolDetail({ protocol, zones, onBack, onClose, onStart }: {
   protocol: EnergySystemProtocol;
   zones: ReturnType<typeof calculateHRZones>;
-  onStart: (m: CardioModality) => void;
   onBack: () => void;
+  onClose: () => void;
+  onStart: (m: CardioModality) => void;
 }) {
   const [modality, setModality] = useState<CardioModality>(protocol.modalityRecommendations[0]);
-  const colors = ENERGY_COLOR[protocol.id];
-
   const totalWork = protocol.intervals.reduce((s, i) => s + i.workSeconds * i.rounds, 0);
 
   return (
-    <div className="space-y-3 mt-2">
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-grappler-300 hover:text-white">
-        <ChevronDown className="w-4 h-4 rotate-90" /> Back
-      </button>
-
-      <div className={cn('rounded-xl border p-5', colors.bg, colors.border)}>
-        <h2 className="text-2xl font-bold text-white mb-1">{protocol.name}</h2>
-        <p className="text-xs text-grappler-300 mb-3">{protocol.combatRelevance}</p>
-        <div className="flex flex-wrap gap-3 text-xs text-grappler-200">
-          <span><Timer className="inline w-3.5 h-3.5 mr-0.5" /> {protocol.durationMinutes}m total</span>
-          <span>· {Math.round(totalWork / 60)}m work</span>
-          <span>· {protocol.intervals[0].rounds} rounds</span>
-        </div>
+    <ToolShell
+      onClose={onBack}
+      eyebrow={`IBRA / 03 · ${protocol.shortName.toUpperCase()}`}
+      title={protocol.name}
+      description={protocol.combatRelevance}
+      footer={
+        <PrimaryCTA onClick={() => onStart(modality)}>
+          Start with {prettyModality(modality)}
+        </PrimaryCTA>
+      }
+    >
+      <div className="grid grid-cols-3 gap-2">
+        <Stat value={protocol.durationMinutes} label="Total min" />
+        <Stat value={Math.round(totalWork / 60)} label="Work min" />
+        <Stat value={protocol.intervals[0].rounds} label="Rounds" />
       </div>
 
-      {/* Intervals */}
       <Section title="Workout">
         <div className="space-y-2">
           {protocol.intervals.map((i, idx) => {
             const zoneRange = zones.zones[`zone${i.targetHRZone}` as keyof typeof zones.zones];
+            const work = i.workSeconds < 60 ? `${i.workSeconds}s` : `${Math.round(i.workSeconds / 60)}m`;
+            const rest = i.restSeconds < 60 ? `${i.restSeconds}s` : `${Math.round(i.restSeconds / 60)}m`;
             return (
-              <div key={idx} className="rounded-lg bg-grappler-950/60 border border-grappler-800 p-3">
-                <p className="text-sm font-semibold text-white mb-1">{i.description}</p>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-grappler-300">
-                  <span>Work: <strong className="text-white">{i.workSeconds < 60 ? `${i.workSeconds}s` : `${Math.round(i.workSeconds/60)}m`}</strong></span>
-                  <span>Rest: <strong className="text-white">{i.restSeconds < 60 ? `${i.restSeconds}s` : `${Math.round(i.restSeconds/60)}m`}</strong></span>
-                  <span>Rounds: <strong className="text-white">{i.rounds}</strong></span>
-                  <span>Target HR: <strong className="text-white">{zoneRange.min}–{zoneRange.max}</strong></span>
+              <div key={idx} className="border-t border-grappler-800 first:border-0 pt-3 first:pt-0">
+                <p className="text-sm text-white mb-1">{i.description}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] font-mono tabular-nums text-grappler-300">
+                  <span>WORK <span className="text-white">{work}</span></span>
+                  <span>REST <span className="text-white">{rest}</span></span>
+                  <span>RDS <span className="text-white">{i.rounds}</span></span>
+                  <span>HR <span className="text-white">{zoneRange.min}–{zoneRange.max}</span></span>
                 </div>
               </div>
             );
@@ -303,81 +183,65 @@ function ProtocolView({ protocol, zones, onStart, onBack }: {
         </div>
       </Section>
 
-      {/* Warm-up + cool-down */}
+      <Section title="Modality">
+        <div className="flex flex-wrap gap-2">
+          {MODALITIES.map(m => {
+            const recommended = protocol.modalityRecommendations.includes(m);
+            const primary = protocol.modalityRecommendations[0] === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setModality(m)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition active:scale-[0.97]',
+                  modality === m
+                    ? 'bg-white border-white text-grappler-950'
+                    : recommended
+                      ? 'bg-grappler-800/50 border-grappler-700 text-grappler-100'
+                      : 'bg-transparent border-grappler-800 text-grappler-500'
+                )}
+              >
+                {prettyModality(m)}
+                {primary && <span className="ml-1 text-[9px] text-amber-400">★</span>}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-grappler-500 mt-2">
+          Recommended: {protocol.modalityRecommendations.map(prettyModality).join(', ')}
+        </p>
+      </Section>
+
       <Section title="Warm-Up">
         <ul className="space-y-1 text-sm text-grappler-200">
-          {protocol.warmUp.map((w, i) => <li key={i}>• {w}</li>)}
+          {protocol.warmUp.map((w, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{w}</li>)}
         </ul>
       </Section>
 
       <Section title="Cool-Down">
         <ul className="space-y-1 text-sm text-grappler-200">
-          {protocol.coolDown.map((c, i) => <li key={i}>• {c}</li>)}
+          {protocol.coolDown.map((c, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{c}</li>)}
         </ul>
       </Section>
 
-      {/* Modality picker */}
-      <Section title="Modality">
-        <div className="flex flex-wrap gap-2">
-          {MODALITIES.map(m => (
-            <button
-              key={m}
-              onClick={() => setModality(m)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium border transition',
-                modality === m
-                  ? 'bg-grappler-100 border-grappler-100 text-grappler-950'
-                  : protocol.modalityRecommendations.includes(m)
-                    ? 'bg-grappler-800/40 border-grappler-700 text-grappler-200'
-                    : 'bg-grappler-800/20 border-grappler-800 text-grappler-500'
-              )}
-            >
-              {prettyModality(m)}
-              {protocol.modalityRecommendations[0] === m && (
-                <span className="ml-1 text-[9px] text-amber-400">★</span>
-              )}
-            </button>
-          ))}
-        </div>
-        <p className="text-[11px] text-grappler-500 mt-2">
-          Recommended: {protocol.modalityRecommendations.map(prettyModality).join(', ')}
-        </p>
-      </Section>
-
-      {/* When to use */}
       <Section title="When to Use">
         <p className="text-sm text-grappler-200">{protocol.whenToUse}</p>
       </Section>
 
-      {/* Cautions */}
       {protocol.cautions.length > 0 && (
-        <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white">Watch For</h3>
-          </div>
+        <Section title="Watch For" hint="caution">
           <ul className="space-y-1 text-xs text-grappler-300">
-            {protocol.cautions.map((c, i) => <li key={i}>• {c}</li>)}
+            {protocol.cautions.map((c, i) => <li key={i} className="flex gap-2"><span className="text-amber-400">·</span>{c}</li>)}
           </ul>
-        </div>
+        </Section>
       )}
 
       <button
-        onClick={() => onStart(modality)}
-        className="w-full px-5 py-3.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold transition flex items-center justify-center gap-2"
+        onClick={onClose}
+        className="block mx-auto text-[11px] uppercase tracking-[0.2em] text-grappler-500 hover:text-grappler-300 mt-2"
       >
-        <PlayCircle className="w-5 h-5" />
-        Start {protocol.shortName}
+        Close tool
       </button>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-      <h3 className="text-xs font-semibold text-grappler-300 uppercase tracking-wider mb-2">{title}</h3>
-      {children}
-    </div>
+    </ToolShell>
   );
 }

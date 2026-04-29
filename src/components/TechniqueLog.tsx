@@ -1,19 +1,15 @@
 'use client';
 
 /**
- * TechniqueLog — combat-athlete drilling tracker
+ * TechniqueLog — combat-athlete drilling tracker. Greg Jackson 10000-rep
+ * mastery tiers, made trackable.
  *
- * The missing companion to lift logging: log technique reps to track
- * where skill is compounding. Greg Jackson's "10,000 reps for mastery"
- * rule, made trackable.
+ * Editorial brutalist refactor: kills the 5-tier rainbow, log modal becomes
+ * its own ToolShell with sticky CTA.
  */
 
 import { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Plus, Trash2, ChevronDown, ChevronUp, Activity,
-  Flame, TrendingUp, Calendar, Target,
-} from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
   TECHNIQUE_CATEGORIES,
@@ -27,16 +23,9 @@ import {
 } from '@/lib/technique-log';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import { ToolShell, Section, PrimaryCTA, Stat } from './_ToolShell';
 
 interface Props { onClose: () => void }
-
-const TIER_COLOR: Record<ReturnType<typeof getMasteryTier>, { bg: string; text: string; border: string }> = {
-  new:         { bg: 'bg-grappler-800/40',    text: 'text-grappler-400',  border: 'border-grappler-700/50' },
-  familiar:    { bg: 'bg-sky-500/15',         text: 'text-sky-300',       border: 'border-sky-500/30' },
-  working:     { bg: 'bg-amber-500/15',       text: 'text-amber-300',     border: 'border-amber-500/30' },
-  competition: { bg: 'bg-emerald-500/15',     text: 'text-emerald-300',   border: 'border-emerald-500/30' },
-  mastery:     { bg: 'bg-violet-500/15',      text: 'text-violet-300',    border: 'border-violet-500/30' },
-};
 
 export default function TechniqueLog({ onClose }: Props) {
   const { showToast } = useToast();
@@ -50,143 +39,108 @@ export default function TechniqueLog({ onClose }: Props) {
   const repsLast7 = useMemo(() => getRepsInWindow(techniqueLog, 7), [techniqueLog]);
   const repsLast30 = useMemo(() => getRepsInWindow(techniqueLog, 30), [techniqueLog]);
   const neglected = useMemo(() => getNeglectedCategories(techniqueLog, 14), [techniqueLog]);
+  const totalReps = techniqueLog.reduce((s, e) => s + e.reps, 0);
+
+  if (showLog) {
+    return (
+      <LogView
+        onBack={() => setShowLog(false)}
+        onLog={(entry) => {
+          addTechniqueEntry(buildTechniqueEntry(entry));
+          showToast('Technique logged', 'success');
+          setShowLog(false);
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-amber-400" />
-          <div>
-            <h1 className="text-lg font-bold text-white">Technique Log</h1>
-            <p className="text-[11px] text-grappler-400">Reps compound into skill</p>
-          </div>
-        </div>
-        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
-          <X className="w-5 h-5 text-grappler-300" />
-        </button>
+    <ToolShell
+      onClose={onClose}
+      eyebrow="IBRA / 04 · TECHNIQUE LOG"
+      title={<>Reps compound<br/>into skill.</>}
+      description="Log drilling reps. Greg Jackson&apos;s 10000-rep rule, made visible."
+      footer={<PrimaryCTA onClick={() => setShowLog(true)}>Log Technique</PrimaryCTA>}
+    >
+      <div className="grid grid-cols-3 gap-2">
+        <Stat value={repsLast7} label="Last 7d" />
+        <Stat value={repsLast30} label="Last 30d" />
+        <Stat value={totalReps} label="All-time" />
       </div>
 
-      <div className="px-4 py-4 max-w-2xl mx-auto pb-24 space-y-4">
-        {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-2">
-          <Stat label="Last 7d" value={repsLast7} suffix="reps" />
-          <Stat label="Last 30d" value={repsLast30} suffix="reps" />
-          <Stat label="Total reps" value={techniqueLog.reduce((s, e) => s + e.reps, 0)} suffix="" />
-        </div>
+      {neglected.length > 0 && (
+        <Section title="Cold Zones" hint="14+ days">
+          <p className="text-sm text-grappler-200 leading-relaxed">
+            <strong className="text-amber-400">{neglected.map(c => TECHNIQUE_CATEGORIES.find(t => t.id === c)?.label).join(', ')}</strong>
+          </p>
+          <p className="text-[11px] text-grappler-500 mt-1">Skill rusts faster than strength.</p>
+        </Section>
+      )}
 
-        {/* Neglected callout */}
-        {neglected.length > 0 && (
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Flame className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-bold text-white">Cold zones (14+ days)</h3>
-            </div>
-            <p className="text-xs text-amber-200">
-              You haven&apos;t drilled: <strong>{neglected.map(c => TECHNIQUE_CATEGORIES.find(t => t.id === c)?.label).join(', ')}</strong>. Skill rusts faster than strength.
-            </p>
-          </div>
-        )}
-
-        {/* Log button */}
-        <button
-          onClick={() => setShowLog(true)}
-          className="w-full px-5 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-grappler-950 font-bold transition flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Log Technique
-        </button>
-
-        {/* Progress list */}
-        {progress.length === 0 ? (
-          <div className="rounded-xl bg-grappler-900/40 border border-grappler-800 p-6 text-center">
-            <Target className="w-8 h-8 text-grappler-600 mx-auto mb-2" />
-            <p className="text-sm text-grappler-300 font-semibold mb-1">Nothing logged yet.</p>
-            <p className="text-xs text-grappler-400">Log your first drilling session to start tracking the rep count behind your skill.</p>
-          </div>
-        ) : (
+      {progress.length === 0 ? (
+        <Section title="By Technique">
+          <p className="text-sm text-grappler-400 text-center py-4">Nothing logged yet. Log a session to start tracking.</p>
+        </Section>
+      ) : (
+        <Section title="By Technique" hint={`${progress.length}`}>
           <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-grappler-400 px-1">By Technique</h3>
             {progress.map(p => {
               const tier = getMasteryTier(p.totalReps);
-              const colors = TIER_COLOR[tier];
+              const cat = TECHNIQUE_CATEGORIES.find(c => c.id === p.category);
               return (
-                <div key={`${p.category}-${p.technique}`} className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-3">
+                <div key={`${p.category}-${p.technique}`} className="border-t border-grappler-800 first:border-0 pt-2.5 first:pt-0">
                   <div className="flex items-baseline justify-between gap-2 mb-1">
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-white truncate">{p.technique}</div>
-                      <div className="text-[11px] text-grappler-400 capitalize">
-                        {TECHNIQUE_CATEGORIES.find(c => c.id === p.category)?.label}
-                      </div>
+                      <div className="text-[11px] text-grappler-500">{cat?.label}</div>
                     </div>
-                    <span className={cn('text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border whitespace-nowrap', colors.bg, colors.text, colors.border)}>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-400 whitespace-nowrap">
                       {tierLabel(tier)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-[11px] text-grappler-400">
-                    <span><strong className="text-white">{p.totalReps}</strong> reps</span>
-                    <span><strong className="text-white">{p.sessionsCount}</strong> sessions</span>
-                    <span><strong className="text-white">{p.averageRepsPerSession}</strong>/avg</span>
+                  <div className="flex items-baseline gap-3 text-[11px] font-mono tabular-nums text-grappler-400">
+                    <span><span className="text-white">{p.totalReps}</span> reps</span>
+                    <span><span className="text-white">{p.sessionsCount}</span> sessions</span>
+                    <span><span className="text-white">{p.averageRepsPerSession}</span>/avg</span>
                   </div>
                 </div>
               );
             })}
           </div>
-        )}
+        </Section>
+      )}
 
-        {/* Recent entries */}
-        {techniqueLog.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-grappler-400 px-1 flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5" /> Recent ({techniqueLog.length})
-            </h3>
-            <div className="rounded-xl bg-grappler-900/40 border border-grappler-800 p-3 max-h-80 overflow-y-auto">
-              {[...techniqueLog].reverse().slice(0, 30).map(e => (
-                <div key={e.id} className="flex items-center justify-between py-1.5 text-xs border-b border-grappler-800 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-white truncate">{e.technique}</div>
-                    <div className="text-grappler-500 text-[10px]">
-                      {new Date(e.date).toLocaleDateString()} · {e.reps} reps {e.withResistance ? '· w/ resistance' : ''}
-                    </div>
+      {techniqueLog.length > 0 && (
+        <Section title="Recent" hint={`${techniqueLog.length}`}>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {[...techniqueLog].reverse().slice(0, 30).map(e => (
+              <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-grappler-800 last:border-0 text-xs">
+                <div className="min-w-0 flex-1">
+                  <div className="text-white truncate">{e.technique}</div>
+                  <div className="text-grappler-500 text-[10px] font-mono tabular-nums">
+                    {new Date(e.date).toLocaleDateString()} · {e.reps} reps {e.withResistance ? '· w/ resistance' : ''}
                   </div>
-                  <button onClick={() => deleteTechniqueEntry(e.id)} className="text-grappler-500 hover:text-rose-400 transition p-1 ml-2">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
-              ))}
-            </div>
+                <button
+                  onClick={() => deleteTechniqueEntry(e.id)}
+                  className="text-grappler-600 hover:text-rose-400 transition p-1 ml-2"
+                  aria-label="Delete entry"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {showLog && (
-          <LogModal
-            onClose={() => setShowLog(false)}
-            onLog={(entry) => {
-              addTechniqueEntry(buildTechniqueEntry(entry));
-              showToast('Technique logged', 'success');
-              setShowLog(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+        </Section>
+      )}
+    </ToolShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Log View ────────────────────────────────────────────────────────────
 
-function Stat({ label, value, suffix }: { label: string; value: number; suffix: string }) {
-  return (
-    <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-3 text-center">
-      <div className="text-xl font-bold font-mono text-white">{value}</div>
-      <div className="text-[10px] uppercase text-grappler-400">{label} {suffix}</div>
-    </div>
-  );
-}
-
-function LogModal({ onClose, onLog }: {
-  onClose: () => void;
+function LogView({ onBack, onLog }: {
+  onBack: () => void;
   onLog: (entry: Omit<import('@/lib/technique-log').TechniqueEntry, 'id'>) => void;
 }) {
   const [technique, setTechnique] = useState('');
@@ -218,112 +172,85 @@ function LogModal({ onClose, onLog }: {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
-      onClick={onClose}
+    <ToolShell
+      onClose={onBack}
+      eyebrow="IBRA / 04 · LOG TECHNIQUE"
+      title="Log a session"
+      description="Drilling reps compound. Be honest about what you actually did."
+      footer={<PrimaryCTA onClick={submit}>Log</PrimaryCTA>}
     >
-      <motion.div
-        initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
-        onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-grappler-900 rounded-lg border border-grappler-800 max-h-[85vh] flex flex-col"
-      >
-        {/* Sticky header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-grappler-800">
-          <h2 className="text-lg font-bold text-white">Log Technique</h2>
-          <button onClick={onClose} aria-label="Close" className="p-2 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
-            <X className="w-5 h-5 text-grappler-400" />
-          </button>
+      <Section title="Technique">
+        <input
+          type="text"
+          value={technique}
+          onChange={e => setTechnique(e.target.value)}
+          placeholder="e.g. Single-leg takedown"
+          className="w-full px-3 py-3 rounded-lg bg-grappler-950 border border-grappler-800 text-white focus:border-grappler-500 outline-none"
+          autoFocus
+        />
+      </Section>
+
+      <Section title="Category">
+        <div className="grid grid-cols-3 gap-1.5">
+          {TECHNIQUE_CATEGORIES.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCategory(c.id)}
+              className={cn(
+                'px-2 py-1.5 rounded-lg text-xs font-medium border transition active:scale-[0.97]',
+                category === c.id
+                  ? 'bg-white border-white text-grappler-950'
+                  : 'bg-transparent border-grappler-800 text-grappler-300'
+              )}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
+        <p className="text-[10px] text-grappler-500 mt-2">{TECHNIQUE_CATEGORIES.find(c => c.id === category)?.example}</p>
+      </Section>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          <div>
-            <label className="text-xs text-grappler-300 block mb-1">Technique name</label>
-            <input
-              type="text"
-              value={technique}
-              onChange={e => setTechnique(e.target.value)}
-              placeholder="e.g. Single-leg takedown"
-              className="w-full px-3 py-2.5 rounded-lg bg-grappler-950 border border-grappler-800 text-white focus:border-amber-500 outline-none"
-              autoFocus
-            />
-          </div>
+      <Section title="Reps">
+        <input
+          type="number"
+          min={1} step={1}
+          value={reps || ''}
+          onChange={e => setReps(Number(e.target.value))}
+          className="w-full px-3 py-3 rounded-lg bg-grappler-950 border border-grappler-800 text-white text-2xl font-mono tabular-nums focus:border-grappler-500 outline-none"
+        />
+      </Section>
 
-          <div>
-            <label className="text-xs text-grappler-300 block mb-1">Category</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {TECHNIQUE_CATEGORIES.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCategory(c.id)}
-                  className={cn(
-                    'px-2 py-1.5 rounded-lg text-xs font-medium border transition',
-                    category === c.id
-                      ? 'bg-amber-500 border-amber-500 text-grappler-950'
-                      : 'bg-grappler-800/40 border-grappler-800 text-grappler-300 hover:border-grappler-700'
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-grappler-500 mt-1">{TECHNIQUE_CATEGORIES.find(c => c.id === category)?.example}</p>
-          </div>
+      <Section title="Resistance">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={withResistance}
+            onChange={e => setWithResistance(e.target.checked)}
+            className="w-4 h-4 accent-white"
+          />
+          <span className="text-sm text-grappler-200">Partial-resisting partner</span>
+        </label>
+      </Section>
 
-          <div>
-            <label className="text-xs text-grappler-300 block mb-1">Reps</label>
-            <input
-              type="number"
-              min={1} step={1}
-              value={reps || ''}
-              onChange={e => setReps(Number(e.target.value))}
-              className="w-full px-3 py-2.5 rounded-lg bg-grappler-950 border border-grappler-800 text-white text-lg font-mono focus:border-amber-500 outline-none"
-            />
-          </div>
+      <Section title="Partner" hint="optional">
+        <input
+          type="text"
+          value={partner}
+          onChange={e => setPartner(e.target.value)}
+          placeholder="Name or initials"
+          className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-sm text-white focus:border-grappler-500 outline-none"
+        />
+      </Section>
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={withResistance}
-              onChange={e => setWithResistance(e.target.checked)}
-              className="w-4 h-4 accent-amber-500"
-            />
-            <span className="text-sm text-grappler-200">With resistance (partial-resisting partner)</span>
-          </label>
-
-          <div>
-            <label className="text-xs text-grappler-300 block mb-1">Partner (optional)</label>
-            <input
-              type="text"
-              value={partner}
-              onChange={e => setPartner(e.target.value)}
-              placeholder="Name or initials"
-              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-sm text-white placeholder-grappler-500 focus:border-amber-500 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-grappler-300 block mb-1">Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              placeholder="What clicked, what didn't, setups…"
-              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-sm text-white placeholder-grappler-500 resize-none focus:border-amber-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Sticky footer */}
-        <div className="px-5 pt-3 pb-5 border-t border-grappler-800 safe-area-bottom">
-          <button
-            onClick={submit}
-            className="w-full py-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-grappler-950 font-bold transition active:scale-[0.98]"
-          >
-            Log
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
+      <Section title="Notes" hint="optional">
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={2}
+          placeholder="What clicked, what didn't, setups…"
+          className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-sm text-white resize-none focus:border-grappler-500 outline-none"
+        />
+      </Section>
+    </ToolShell>
   );
 }

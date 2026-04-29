@@ -1,19 +1,15 @@
 'use client';
 
 /**
- * CampTimeline — top-level fight camp visualization
- *
- * The fight-camp-engine triggers at 70 days out and cascades through
- * training/nutrition/supplements/deload, but the user had no surface to
- * see the camp at a glance. "Fight Prep" is for the cut. This is for
- * the whole 10-week run-up.
+ * CampTimeline — top-level fight camp visualization. The 10-week run-up,
+ * matched phase by phase to the engine's prescriptions.
  */
 
 import { useMemo } from 'react';
-import { X, Swords, Calendar, Target, Flame, Heart, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { detectFightCampPhase, getPhaseConfig } from '@/lib/fight-camp-engine';
 import { cn } from '@/lib/utils';
+import { ToolShell, Section, HeroMetric, Stat } from './_ToolShell';
 
 interface Props { onClose: () => void }
 
@@ -29,15 +25,16 @@ const PHASE_LABEL: Record<string, string> = {
   post_competition: 'Recovery',
 };
 
-const PHASE_COLOR: Record<string, { bg: string; text: string; border: string }> = {
-  off_season:        { bg: 'bg-grappler-800/40', text: 'text-grappler-300', border: 'border-grappler-700/50' },
-  base_camp:         { bg: 'bg-emerald-500/15',  text: 'text-emerald-300',  border: 'border-emerald-500/30' },
-  intensification:   { bg: 'bg-sky-500/15',      text: 'text-sky-300',      border: 'border-sky-500/30' },
-  fight_camp_peak:   { bg: 'bg-amber-500/15',    text: 'text-amber-300',    border: 'border-amber-500/30' },
-  fight_week:        { bg: 'bg-orange-500/15',   text: 'text-orange-300',   border: 'border-orange-500/30' },
-  weigh_in_day:      { bg: 'bg-rose-500/15',     text: 'text-rose-300',     border: 'border-rose-500/30' },
-  fight_day:         { bg: 'bg-rose-500/25',     text: 'text-rose-200',     border: 'border-rose-500/50' },
-  post_competition:  { bg: 'bg-violet-500/15',   text: 'text-violet-300',   border: 'border-violet-500/30' },
+const PHASE_ACCENT: Record<string, 'go' | 'info' | 'caution' | 'danger'> = {
+  off_season:       'info',
+  base_camp:        'go',
+  intensification:  'info',
+  fight_camp_peak:  'caution',
+  fight_week:       'caution',
+  weigh_in_day:     'danger',
+  fight_day:        'danger',
+  tournament_day:   'danger',
+  post_competition: 'go',
 };
 
 const TIMELINE: { phase: string; daysFrom: number; daysTo: number; label: string; description: string }[] = [
@@ -53,7 +50,6 @@ const TIMELINE: { phase: string; daysFrom: number; daysTo: number; label: string
 
 export default function CampTimeline({ onClose }: Props) {
   const competitions = useAppStore(s => s.competitions ?? []);
-  const user = useAppStore(s => s.user);
 
   const upcoming = useMemo(() => {
     const now = Date.now();
@@ -69,131 +65,113 @@ export default function CampTimeline({ onClose }: Props) {
     return Math.ceil(ms / (1000 * 60 * 60 * 24));
   }, [upcoming]);
 
-  const currentPhase = useMemo(() => detectFightCampPhase(daysToFight, daysToFight !== null && daysToFight < 0), [daysToFight]);
+  const currentPhase = useMemo(
+    () => detectFightCampPhase(daysToFight, daysToFight !== null && daysToFight < 0),
+    [daysToFight]
+  );
   const phaseConfig = useMemo(() => getPhaseConfig(currentPhase), [currentPhase]);
 
+  if (!upcoming) {
+    return (
+      <ToolShell
+        onClose={onClose}
+        eyebrow="IBRA / 06 · CAMP TIMELINE"
+        title="No camp."
+        description="Add a competition in Fight Prep. The 10-week camp triggers automatically at 70 days out."
+      >
+        <Section title="Status">
+          <p className="text-sm text-grappler-300 py-2">
+            No upcoming competition logged. Camp phases will activate when one is added.
+          </p>
+        </Section>
+      </ToolShell>
+    );
+  }
+
+  const accent = PHASE_ACCENT[currentPhase] ?? 'info';
+
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Swords className="w-5 h-5 text-rose-400" />
-          <div>
-            <h1 className="text-lg font-bold text-white">Camp Timeline</h1>
-            <p className="text-[11px] text-grappler-400">10-week camp at a glance</p>
-          </div>
+    <ToolShell
+      onClose={onClose}
+      eyebrow={`IBRA / 06 · ${upcoming.type.toUpperCase()} · ${new Date(upcoming.date).toLocaleDateString()}`}
+      title={PHASE_LABEL[currentPhase]}
+      description={TIMELINE.find(t => t.phase === currentPhase)?.description ?? ''}
+    >
+      {daysToFight !== null && daysToFight >= 0 && (
+        <Section title="Countdown">
+          <HeroMetric
+            value={daysToFight}
+            label="Days to fight"
+            state={PHASE_LABEL[currentPhase]}
+            accent={accent}
+          />
+        </Section>
+      )}
+
+      <Section title="Phase Prescription">
+        <div className="space-y-2 text-sm">
+          {phaseConfig.calorieStrategy && (
+            <Row label="Calories" value={phaseConfig.calorieStrategy} />
+          )}
+          <Row label="Protein" value={`${phaseConfig.proteinGKg.min}-${phaseConfig.proteinGKg.max} g/kg`} />
+          <Row label="Training focus" value={(phaseConfig as { trainingFocus?: string }).trainingFocus ?? '—'} />
         </div>
-        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
-          <X className="w-5 h-5 text-grappler-300" />
-        </button>
-      </div>
+      </Section>
 
-      <div className="px-4 py-4 max-w-2xl mx-auto pb-24 space-y-4">
-        {!upcoming ? (
-          <NoCampState />
-        ) : (
-          <>
-            {/* Hero status */}
-            <div className={cn('rounded-xl border p-5', PHASE_COLOR[currentPhase].bg, PHASE_COLOR[currentPhase].border)}>
-              <div className="flex items-baseline justify-between mb-1">
-                <span className={cn('text-[10px] uppercase font-bold tracking-wider', PHASE_COLOR[currentPhase].text)}>
-                  Current Phase
-                </span>
-                <span className="text-xs text-grappler-400">{upcoming.type} · {new Date(upcoming.date).toLocaleDateString()}</span>
-              </div>
-              <h2 className="text-3xl font-display font-black text-white tracking-tight">{PHASE_LABEL[currentPhase]}</h2>
-              <p className="text-sm text-grappler-300 mt-2">{TIMELINE.find(t => t.phase === currentPhase)?.description}</p>
-              {daysToFight !== null && daysToFight >= 0 && (
-                <div className="mt-4 pt-4 border-t border-grappler-800/40">
-                  <div className="text-5xl font-mono font-bold text-white">{daysToFight}</div>
-                  <div className="text-xs text-grappler-400 uppercase tracking-wider">days to fight</div>
-                </div>
-              )}
-            </div>
+      {phaseConfig.warnings && phaseConfig.warnings.length > 0 && (
+        <Section title="Watch For">
+          <ul className="space-y-1 text-xs text-grappler-300">
+            {phaseConfig.warnings.map((a: string, i: number) => (
+              <li key={i} className="flex gap-2"><span className="text-amber-400">·</span>{a}</li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
-            {/* Phase prescription */}
-            <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4 space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-grappler-300">Phase Prescription</h3>
-              {phaseConfig.calorieStrategy && (
-                <Row icon={Flame} label="Calories" value={phaseConfig.calorieStrategy} />
-              )}
-              <Row icon={Target} label="Protein" value={`${phaseConfig.proteinGKg.min}-${phaseConfig.proteinGKg.max} g/kg`} />
-              <Row icon={Heart} label="Training focus" value={(phaseConfig as { trainingFocus?: string }).trainingFocus ?? '—'} />
-              {phaseConfig.warnings && phaseConfig.warnings.length > 0 && (
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-[10px] uppercase font-bold text-amber-300">Watch For</span>
+      <Section title="All Phases">
+        <div className="space-y-1">
+          {TIMELINE.map(t => {
+            const isCurrent = t.phase === currentPhase;
+            const isPassed = daysToFight !== null && daysToFight < t.daysFrom && daysToFight >= 0;
+            return (
+              <div
+                key={t.phase}
+                className={cn(
+                  'flex items-start gap-3 py-2 border-b border-grappler-800 last:border-0',
+                  isCurrent && 'border-l-2 border-l-white pl-3 -ml-1',
+                  isPassed && !isCurrent && 'opacity-50'
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                    <span className={cn('text-sm', isCurrent ? 'text-white font-bold' : 'text-grappler-300')}>
+                      {t.label}
+                    </span>
+                    <span className="text-[10px] font-mono tabular-nums text-grappler-500">
+                      {t.daysFrom > 0 ? `D-${t.daysFrom} → D-${t.daysTo}` : t.phase === 'fight_day' ? 'D-0' : 'post'}
+                    </span>
                   </div>
-                  {phaseConfig.warnings.map((a: string, i: number) => (
-                    <p key={i} className="text-xs text-amber-100">• {a}</p>
-                  ))}
+                  <p className="text-[11px] text-grappler-500 leading-snug">{t.description}</p>
                 </div>
-              )}
-            </div>
-
-            {/* Full timeline */}
-            <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-grappler-300 mb-3">All Phases</h3>
-              <div className="space-y-2">
-                {TIMELINE.map(t => {
-                  const isCurrent = t.phase === currentPhase;
-                  const isPassed = daysToFight !== null && daysToFight < t.daysFrom && daysToFight >= 0;
-                  const colors = PHASE_COLOR[t.phase];
-                  return (
-                    <div
-                      key={t.phase}
-                      className={cn(
-                        'flex items-start gap-3 px-3 py-2 rounded-lg border',
-                        isCurrent ? cn('ring-1', colors.bg, colors.border) : 'border-grappler-800',
-                        isPassed && !isCurrent && 'opacity-50'
-                      )}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                          <span className={cn('text-sm font-bold', isCurrent ? colors.text : 'text-grappler-200')}>
-                            {t.label}
-                          </span>
-                          <span className="text-[10px] text-grappler-500">
-                            {t.daysFrom > 0 ? `D-${t.daysFrom} → D-${t.daysTo}` : t.phase === 'fight_day' ? 'D-0' : 'post'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-grappler-400 leading-snug">{t.description}</p>
-                      </div>
-                      {isCurrent && <span className="text-[9px] uppercase font-bold text-amber-400 mt-1">Now</span>}
-                    </div>
-                  );
-                })}
+                {isCurrent && <span className="text-[10px] uppercase tracking-[0.18em] text-white mt-1">Now</span>}
               </div>
-            </div>
+            );
+          })}
+        </div>
+      </Section>
 
-            <p className="text-[11px] text-grappler-500 text-center px-4">
-              Camp phases drive training volume, nutrition macros, supplements, and deload alignment automatically across the app.
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function NoCampState() {
-  return (
-    <div className="rounded-xl bg-grappler-900/40 border border-grappler-800 p-8 text-center mt-6">
-      <Calendar className="w-10 h-10 text-grappler-600 mx-auto mb-3" />
-      <h2 className="text-base font-bold text-white mb-1">No upcoming competition.</h2>
-      <p className="text-sm text-grappler-400 max-w-sm mx-auto">
-        Add a competition in <strong className="text-grappler-200">Fight Prep</strong>. The 10-week camp will trigger automatically at 70 days out.
+      <p className="text-[10px] text-grappler-500 text-center px-4 leading-relaxed">
+        Camp phases drive training volume, nutrition macros, supplements, and deload alignment automatically across the app.
       </p>
-    </div>
+    </ToolShell>
   );
 }
 
-function Row({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-3 text-sm">
-      <Icon className="w-3.5 h-3.5 text-grappler-400 flex-shrink-0 mt-1" />
-      <span className="text-grappler-400 w-24 flex-shrink-0">{label}</span>
-      <span className="text-white flex-1">{value}</span>
+    <div className="flex items-baseline justify-between gap-3 py-1 border-b border-grappler-800 last:border-0">
+      <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-500">{label}</span>
+      <span className="text-sm text-white text-right">{value}</span>
     </div>
   );
 }

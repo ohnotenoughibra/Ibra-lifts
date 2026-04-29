@@ -1,18 +1,16 @@
 'use client';
 
 /**
- * PlyometricsBlock — speed-strength block UI
+ * PlyometricsBlock — speed-strength block UI.
  *
- * Plyo block setup, session viewer, and RSI test protocol. Sessions can be
- * pushed into the normal workout execution flow via plyoSessionToWorkoutSession.
+ * Editorial brutalist refactor: kills the tab strip, the 4-color phase
+ * rainbow, the accordion-in-accordion. Three top-level destinations
+ * (Setup, Sessions, RSI) each get their own ToolShell with a sticky CTA.
+ * Phase identity is a tracked uppercase label, not a colored pill.
  */
 
 import { useMemo, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Zap, ArrowRight, Check, Info, Youtube, AlertTriangle, Activity,
-  PlayCircle, BarChart3, ChevronDown, ChevronUp, Target, Calendar, Sparkles,
-} from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Youtube } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
   generatePlyoBlock,
@@ -26,12 +24,14 @@ import {
 } from '@/lib/plyometric-engine';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import { ToolShell, Section, HeroMetric, PrimaryCTA, Stat } from './_ToolShell';
 
 interface Props { onClose: () => void }
 
-// Legacy localStorage keys — only used during one-time migration from pre-store version
 const LEGACY_BLOCK_KEY = 'roots-plyo-block';
 const LEGACY_RSI_KEY = 'roots-plyo-rsi-history';
+
+type View = 'overview' | 'sessions' | 'rsi' | 'session-detail';
 
 export default function PlyometricsBlock({ onClose }: Props) {
   const { showToast } = useToast();
@@ -40,15 +40,13 @@ export default function PlyometricsBlock({ onClose }: Props) {
   const setActivePlyoBlock = useAppStore(s => s.setActivePlyoBlock);
   const addRsiEntry = useAppStore(s => s.addRsiEntry);
 
-  const [view, setView] = useState<'overview' | 'setup' | 'sessions' | 'rsi'>('overview');
+  const [view, setView] = useState<View>('overview');
+  const [activeSession, setActiveSession] = useState<PlyoSession | null>(null);
 
-  // One-time migration from legacy localStorage keys (pre-store version)
   useEffect(() => {
     try {
       const legacyBlock = localStorage.getItem(LEGACY_BLOCK_KEY);
-      if (legacyBlock && !block) {
-        setActivePlyoBlock(JSON.parse(legacyBlock) as PlyoBlock);
-      }
+      if (legacyBlock && !block) setActivePlyoBlock(JSON.parse(legacyBlock) as PlyoBlock);
       if (legacyBlock) localStorage.removeItem(LEGACY_BLOCK_KEY);
 
       const legacyRsi = localStorage.getItem(LEGACY_RSI_KEY);
@@ -57,16 +55,9 @@ export default function PlyometricsBlock({ onClose }: Props) {
         for (const entry of entries) addRsiEntry(entry);
         localStorage.removeItem(LEGACY_RSI_KEY);
       }
-    } catch {
-      // ignore corrupt legacy data
-    }
-    // intentionally only runs once on mount
+    } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const saveBlock = (b: PlyoBlock | null) => {
-    setActivePlyoBlock(b);
-  };
 
   const startSession = (session: PlyoSession) => {
     const workoutSession = plyoSessionToWorkoutSession(session);
@@ -79,75 +70,59 @@ export default function PlyometricsBlock({ onClose }: Props) {
     onClose();
   };
 
+  if (view === 'session-detail' && activeSession) {
+    return (
+      <SessionDetail
+        session={activeSession}
+        onBack={() => { setActiveSession(null); setView('sessions'); }}
+        onStart={() => startSession(activeSession)}
+      />
+    );
+  }
+
+  if (view === 'sessions' && block) {
+    return (
+      <SessionsView
+        block={block}
+        onBack={() => setView('overview')}
+        onClose={onClose}
+        onPickSession={(s) => { setActiveSession(s); setView('session-detail'); }}
+      />
+    );
+  }
+
+  if (view === 'rsi') {
+    return <RSIView onBack={() => setView('overview')} onClose={onClose} />;
+  }
+
+  if (block) {
+    return (
+      <ActiveBlockOverview
+        block={block}
+        onClose={onClose}
+        onShowSessions={() => setView('sessions')}
+        onShowRSI={() => setView('rsi')}
+        onReset={() => setActivePlyoBlock(null)}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Zap className="w-5 h-5 text-amber-400" />
-          <div>
-            <h1 className="text-lg font-bold text-white">Speed-Strength Block</h1>
-            <p className="text-[11px] text-grappler-400">Plyometrics for combat athletes</p>
-          </div>
-        </div>
-        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
-          <X className="w-5 h-5 text-grappler-300" />
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="px-4 pt-3 flex gap-1.5 overflow-x-auto">
-        {([
-          { id: 'overview', label: 'Overview' },
-          { id: 'sessions', label: 'Sessions' },
-          { id: 'rsi',      label: 'RSI Test' },
-        ] as const).map(t => (
-          <button
-            key={t.id}
-            onClick={() => setView(t.id)}
-            disabled={!block && t.id === 'sessions'}
-            className={cn(
-              'flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wide transition',
-              view === t.id
-                ? 'bg-grappler-100 text-grappler-950'
-                : 'bg-grappler-800/50 text-grappler-300 hover:bg-grappler-800',
-              !block && t.id === 'sessions' && 'opacity-40 cursor-not-allowed'
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="px-4 py-4 pb-24 max-w-xl mx-auto">
-        <AnimatePresence mode="wait">
-          {view === 'overview' && (
-            <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {block
-                ? <ActiveBlockOverview block={block} onShowSessions={() => setView('sessions')} onReset={() => saveBlock(null)} />
-                : <Setup onCreate={(b) => { saveBlock(b); setView('sessions'); }} />}
-            </motion.div>
-          )}
-          {view === 'sessions' && block && (
-            <motion.div key="sessions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <SessionList block={block} onStart={startSession} />
-            </motion.div>
-          )}
-          {view === 'rsi' && (
-            <motion.div key="rsi" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <RSIView />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+    <SetupView
+      onClose={onClose}
+      onCreate={(b) => { setActivePlyoBlock(b); setView('sessions'); }}
+      onShowRSI={() => setView('rsi')}
+    />
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Setup
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Setup ───────────────────────────────────────────────────────────────
 
-function Setup({ onCreate }: { onCreate: (b: PlyoBlock) => void }) {
+function SetupView({ onClose, onCreate, onShowRSI }: {
+  onClose: () => void;
+  onCreate: (b: PlyoBlock) => void;
+  onShowRSI: () => void;
+}) {
   const [bodyFocus, setBodyFocus] = useState<PlyoBodyFocus>('full');
   const [experience, setExperience] = useState<PlyoExperience>('intermediate');
   const [weeks, setWeeks] = useState(6);
@@ -159,181 +134,136 @@ function Setup({ onCreate }: { onCreate: (b: PlyoBlock) => void }) {
   };
 
   return (
-    <div className="space-y-4 mt-2">
-      <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="w-5 h-5 text-amber-400" />
-          <h2 className="font-bold text-white">What you're getting</h2>
-        </div>
-        <p className="text-xs text-grappler-200 leading-relaxed">
-          A periodized plyometric program — <strong>extensive → intensive → reactive → contrast</strong> — to build the
-          rate of force development (RFD) and reactive strength that translate to striking power, takedown speed, and shot reaction.
-        </p>
-      </div>
-
-      <Section title="Body Focus" icon={Target}>
-        <div className="grid grid-cols-3 gap-2">
-          {(['lower', 'upper', 'full'] as PlyoBodyFocus[]).map(b => (
-            <button
-              key={b}
-              onClick={() => setBodyFocus(b)}
-              className={cn(
-                'p-2.5 rounded-lg border text-sm font-medium capitalize transition',
-                bodyFocus === b ? 'bg-grappler-100 border-grappler-100 text-grappler-950' : 'bg-grappler-800/40 border-grappler-800 text-grappler-200'
-              )}
-            >{b}</button>
-          ))}
-        </div>
+    <ToolShell
+      onClose={onClose}
+      eyebrow="IBRA / 02 · SPEED-STRENGTH"
+      title={<>Build your<br/>plyo block.</>}
+      description="Periodized speed-strength: extensive → intensive → reactive → contrast. Built for combat power transfer."
+      footer={<PrimaryCTA onClick={create} variant="go">Generate Block</PrimaryCTA>}
+    >
+      <Section title="Body Focus">
+        <ChoiceGrid
+          options={(['lower', 'upper', 'full'] as PlyoBodyFocus[]).map(b => ({ id: b, label: b }))}
+          selected={bodyFocus}
+          onSelect={(v) => setBodyFocus(v as PlyoBodyFocus)}
+        />
       </Section>
 
-      <Section title="Experience" icon={Activity}>
-        <div className="grid grid-cols-3 gap-2">
-          {(['beginner', 'intermediate', 'advanced'] as PlyoExperience[]).map(e => (
-            <button
-              key={e}
-              onClick={() => setExperience(e)}
-              className={cn(
-                'p-2.5 rounded-lg border text-sm font-medium capitalize transition',
-                experience === e ? 'bg-grappler-100 border-grappler-100 text-grappler-950' : 'bg-grappler-800/40 border-grappler-800 text-grappler-200'
-              )}
-            >{e}</button>
-          ))}
-        </div>
+      <Section title="Experience">
+        <ChoiceGrid
+          options={(['beginner', 'intermediate', 'advanced'] as PlyoExperience[]).map(e => ({ id: e, label: e }))}
+          selected={experience}
+          onSelect={(v) => setExperience(v as PlyoExperience)}
+        />
         {experience === 'beginner' && (
-          <p className="text-[11px] text-amber-400 mt-2">
-            Beginners cap at 4 weeks. Extensive base for the first run.
-          </p>
+          <p className="text-[11px] text-amber-400 mt-2">Beginners cap at 4 weeks. Extensive base for the first run.</p>
         )}
       </Section>
 
-      <Section title="Block Length" icon={Calendar}>
-        <div className="grid grid-cols-3 gap-2">
-          {[4, 6, 8].map(w => (
-            <button
-              key={w}
-              onClick={() => setWeeks(w)}
-              disabled={experience === 'beginner' && w > 4}
-              className={cn(
-                'p-2.5 rounded-lg border text-sm font-bold transition',
-                weeks === w ? 'bg-amber-500 border-amber-500 text-grappler-950' : 'bg-grappler-800/40 border-grappler-800 text-grappler-200',
-                experience === 'beginner' && w > 4 && 'opacity-30 cursor-not-allowed'
-              )}
-            >{w} weeks</button>
-          ))}
-        </div>
+      <Section title="Block Length">
+        <ChoiceGrid
+          options={[4, 6, 8].map(w => ({ id: String(w), label: `${w} wk`, disabled: experience === 'beginner' && w > 4 }))}
+          selected={String(weeks)}
+          onSelect={(v) => setWeeks(Number(v))}
+        />
       </Section>
 
-      <Section title="Sessions/Week" icon={BarChart3}>
-        <div className="grid grid-cols-3 gap-2">
-          {[2, 3].map(s => (
-            <button
-              key={s}
-              onClick={() => setSessionsPerWeek(s)}
-              className={cn(
-                'p-2.5 rounded-lg border text-sm font-bold transition',
-                sessionsPerWeek === s ? 'bg-amber-500 border-amber-500 text-grappler-950' : 'bg-grappler-800/40 border-grappler-800 text-grappler-200'
-              )}
-            >{s}/wk</button>
-          ))}
-          <button
-            disabled
-            className="p-2.5 rounded-lg border border-grappler-800 text-grappler-500 opacity-30 cursor-not-allowed text-xs"
-          >
-            More = overtraining
-          </button>
-        </div>
-        <p className="text-[11px] text-grappler-500 mt-2">
-          Combat athletes can\'t recover from 4+ plyo sessions/week alongside sport practice.
+      <Section title="Sessions per Week" hint="≥4 = overtraining">
+        <ChoiceGrid
+          options={[2, 3].map(s => ({ id: String(s), label: `${s}/wk` }))}
+          selected={String(sessionsPerWeek)}
+          onSelect={(v) => setSessionsPerWeek(Number(v))}
+        />
+        <p className="text-[10px] text-grappler-500 mt-2 leading-relaxed">
+          Combat athletes can&apos;t recover from 4+ plyo sessions/week alongside sport practice.
         </p>
       </Section>
 
       <button
-        onClick={create}
-        className="w-full px-5 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-grappler-950 font-bold transition flex items-center justify-center gap-2"
+        onClick={onShowRSI}
+        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg bg-grappler-900/60 border border-grappler-800 hover:bg-grappler-800/60 transition active:scale-[0.99]"
       >
-        Generate Block
-        <Sparkles className="w-5 h-5" />
+        <div className="text-left">
+          <div className="text-sm font-bold text-white">Test your RSI first</div>
+          <div className="text-[11px] text-grappler-500">Reactive Strength Index baseline</div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-grappler-500" />
       </button>
-    </div>
+    </ToolShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Active Block Overview
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Active Block Overview ──────────────────────────────────────────────
 
-function ActiveBlockOverview({ block, onShowSessions, onReset }: {
+function ActiveBlockOverview({ block, onClose, onShowSessions, onShowRSI, onReset }: {
   block: PlyoBlock;
+  onClose: () => void;
   onShowSessions: () => void;
+  onShowRSI: () => void;
   onReset: () => void;
 }) {
   const totalContacts = block.sessions.reduce((s, x) => s + x.totalContacts, 0);
   const startedDays = Math.floor((Date.now() - new Date(block.startedAt).getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <div className="space-y-4 mt-2">
-      <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-5">
-        <h2 className="text-xl font-bold text-white mb-1">{block.name}</h2>
-        <p className="text-xs text-grappler-300">
-          {block.weeks} weeks · {block.sessionsPerWeek} sessions/week · {block.bodyFocus} focus
-        </p>
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-lg bg-grappler-950/40 p-2">
-            <div className="text-lg font-bold text-amber-300">{block.sessions.length}</div>
-            <div className="text-[10px] text-grappler-400 uppercase">Sessions</div>
-          </div>
-          <div className="rounded-lg bg-grappler-950/40 p-2">
-            <div className="text-lg font-bold text-amber-300">{totalContacts}</div>
-            <div className="text-[10px] text-grappler-400 uppercase">Contacts</div>
-          </div>
-          <div className="rounded-lg bg-grappler-950/40 p-2">
-            <div className="text-lg font-bold text-amber-300">D{startedDays}</div>
-            <div className="text-[10px] text-grappler-400 uppercase">Day</div>
-          </div>
-        </div>
+    <ToolShell
+      onClose={onClose}
+      eyebrow="IBRA / 02 · SPEED-STRENGTH"
+      title={block.name}
+      description={`${block.weeks} weeks · ${block.sessionsPerWeek}/wk · ${block.bodyFocus} focus`}
+      footer={<PrimaryCTA onClick={onShowSessions} variant="go">View Sessions</PrimaryCTA>}
+    >
+      <div className="grid grid-cols-3 gap-2">
+        <Stat value={block.sessions.length} label="Sessions" />
+        <Stat value={totalContacts} label="Contacts" />
+        <Stat value={`D${startedDays}`} label="Day" />
       </div>
 
-      <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-        <h3 className="text-sm font-semibold text-grappler-100 uppercase tracking-wider mb-2">Prerequisites</h3>
+      <Section title="Prerequisites">
         <ul className="space-y-1.5 text-sm text-grappler-200">
           {block.prerequisites.map((p, i) => (
-            <li key={i} className="flex gap-2"><Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" /> {p}</li>
+            <li key={i} className="flex gap-2"><span className="text-emerald-400">·</span>{p}</li>
           ))}
         </ul>
-      </div>
+      </Section>
 
-      <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-        <h3 className="text-sm font-semibold text-grappler-100 uppercase tracking-wider mb-2">Expected Adaptations</h3>
+      <Section title="Expected Adaptations">
         <ul className="space-y-1.5 text-sm text-grappler-200">
           {block.expectedAdaptations.map((a, i) => (
-            <li key={i} className="flex gap-2"><Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" /> {a}</li>
+            <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{a}</li>
           ))}
         </ul>
-      </div>
+      </Section>
 
       <button
-        onClick={onShowSessions}
-        className="w-full px-5 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-grappler-950 font-bold transition flex items-center justify-center gap-2"
+        onClick={onShowRSI}
+        className="w-full flex items-center justify-between gap-3 p-3 rounded-lg bg-grappler-900/60 border border-grappler-800 hover:bg-grappler-800/60 transition active:scale-[0.99]"
       >
-        View Sessions
-        <ArrowRight className="w-5 h-5" />
+        <div className="text-left">
+          <div className="text-sm font-bold text-white">Log RSI test</div>
+          <div className="text-[11px] text-grappler-500">Reactive Strength Index check-in</div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-grappler-500" />
       </button>
 
       <button
         onClick={onReset}
-        className="w-full px-4 py-2 rounded-xl bg-grappler-800/60 hover:bg-grappler-800 text-grappler-300 text-xs transition"
+        className="block mx-auto text-[11px] uppercase tracking-[0.2em] text-grappler-500 hover:text-rose-400 mt-4"
       >
-        Reset & Start Over
+        Reset block
       </button>
-    </div>
+    </ToolShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Session List
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Sessions View ──────────────────────────────────────────────────────
 
-function SessionList({ block, onStart }: { block: PlyoBlock; onStart: (s: PlyoSession) => void }) {
+function SessionsView({ block, onBack, onClose, onPickSession }: {
+  block: PlyoBlock;
+  onBack: () => void;
+  onClose: () => void;
+  onPickSession: (s: PlyoSession) => void;
+}) {
   const [openWeek, setOpenWeek] = useState<number | null>(1);
 
   const byWeek = useMemo(() => {
@@ -346,136 +276,127 @@ function SessionList({ block, onStart }: { block: PlyoBlock; onStart: (s: PlyoSe
   }, [block.sessions]);
 
   return (
-    <div className="space-y-2 mt-2">
+    <ToolShell
+      onClose={onBack}
+      eyebrow="IBRA / 02 · PLYO SESSIONS"
+      title={block.name}
+      description={`${block.sessions.length} sessions across ${block.weeks} weeks. Tap a week, pick a session.`}
+    >
       {Object.entries(byWeek).map(([w, sessions]) => {
         const week = Number(w);
         const isOpen = openWeek === week;
-        const phase = sessions[0].phase;
         return (
-          <div key={week} className="rounded-xl bg-grappler-900/60 border border-grappler-800 overflow-hidden">
+          <Section key={week} title={`Week ${week}`} hint={sessions[0].phaseLabel}>
             <button
               onClick={() => setOpenWeek(isOpen ? null : week)}
-              className="w-full flex items-center justify-between gap-3 p-4 hover:bg-grappler-800/40 transition"
+              className="w-full flex items-center justify-between gap-3 -my-1 py-1 hover:opacity-80 transition"
             >
-              <div className="text-left">
-                <div className="text-sm font-bold text-white">Week {week}</div>
-                <div className="text-[11px] text-amber-400">{sessions[0].phaseLabel}</div>
-              </div>
-              <div className="flex items-center gap-3">
-                <PhasePill phase={phase} />
-                {isOpen ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
-              </div>
+              <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-500">
+                {sessions.length} sessions · {sessions[0].phase}
+              </span>
+              {isOpen
+                ? <ChevronUp className="w-4 h-4 text-grappler-500" />
+                : <ChevronDown className="w-4 h-4 text-grappler-500" />}
             </button>
             {isOpen && (
-              <div className="border-t border-grappler-800 p-2 space-y-2">
+              <div className="mt-3 space-y-2 border-t border-grappler-800 pt-3">
                 {sessions.map(s => (
-                  <SessionCard key={s.id} session={s} onStart={() => onStart(s)} />
+                  <button
+                    key={s.id}
+                    onClick={() => onPickSession(s)}
+                    className="w-full flex items-center justify-between gap-3 p-2 -mx-1 rounded-lg hover:bg-grappler-800/40 transition active:scale-[0.99] text-left"
+                  >
+                    <div>
+                      <div className="text-sm font-bold text-white">Session {s.sessionNumber}</div>
+                      <div className="text-[11px] text-grappler-500 font-mono tabular-nums">
+                        {s.totalContacts} contacts · ~{s.estimatedMinutes}m
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-grappler-500" />
+                  </button>
                 ))}
               </div>
             )}
-          </div>
+          </Section>
         );
       })}
-    </div>
-  );
-}
 
-function PhasePill({ phase }: { phase: PlyoSession['phase'] }) {
-  const colors = {
-    extensive: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-    intensive: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-    reactive: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-    contrast: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
-  };
-  return (
-    <span className={cn('text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border', colors[phase])}>
-      {phase}
-    </span>
-  );
-}
-
-function SessionCard({ session, onStart }: { session: PlyoSession; onStart: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="rounded-lg bg-grappler-950/40 border border-grappler-800">
       <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-3 flex items-center justify-between gap-3 hover:bg-grappler-900/60 transition"
+        onClick={onClose}
+        className="block mx-auto text-[11px] uppercase tracking-[0.2em] text-grappler-500 hover:text-grappler-300 mt-2"
       >
-        <div className="text-left">
-          <div className="text-sm font-semibold text-white">Session {session.sessionNumber}</div>
-          <div className="text-[11px] text-grappler-400">
-            {session.totalContacts} contacts · ~{session.estimatedMinutes} min
-          </div>
-        </div>
-        {expanded ? <ChevronUp className="w-4 h-4 text-grappler-400" /> : <ChevronDown className="w-4 h-4 text-grappler-400" />}
+        Close tool
       </button>
-      {expanded && (
-        <div className="px-3 pb-3 space-y-3 border-t border-grappler-800 pt-3">
-          <div>
-            <div className="text-[10px] uppercase text-grappler-500 font-bold mb-1">Warm-Up</div>
-            <ul className="text-xs text-grappler-300 space-y-0.5">
-              {session.warmUp.map((w, i) => <li key={i}>• {w}</li>)}
-            </ul>
-          </div>
-
-          <div>
-            <div className="text-[10px] uppercase text-grappler-500 font-bold mb-1">Main Work</div>
-            <div className="space-y-2">
-              {session.exercises.map(ex => (
-                <div key={ex.id} className="rounded-md bg-grappler-900/40 p-2 border border-grappler-800">
-                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-white">{ex.name}</span>
-                    <span className="text-xs font-mono text-amber-300">{ex.sets} × {ex.reps}</span>
-                  </div>
-                  <p className="text-[11px] text-grappler-400">{ex.loadGuidance} · rest {ex.restSeconds}s</p>
-                  {ex.cues.length > 0 && (
-                    <p className="text-[11px] text-grappler-500 mt-1 italic">{ex.cues.slice(0, 2).join(' · ')}</p>
-                  )}
-                  {ex.videoSearch && (
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.videoSearch)}`}
-                      target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:text-rose-300 mt-1"
-                    >
-                      <Youtube className="w-3 h-3" /> demo
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {session.notes.length > 0 && (
-            <div className="rounded-md bg-grappler-900/40 border border-grappler-800 p-2">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Info className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] uppercase text-grappler-300 font-bold">Coaching Notes</span>
-              </div>
-              {session.notes.map((n, i) => (
-                <p key={i} className="text-[11px] text-grappler-300">• {n}</p>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={onStart}
-            className="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm flex items-center justify-center gap-2 transition"
-          >
-            <PlayCircle className="w-4 h-4" />
-            Start Session
-          </button>
-        </div>
-      )}
-    </div>
+    </ToolShell>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// RSI Test View
-// ─────────────────────────────────────────────────────────────────────────
+// ─── Single Session Detail ──────────────────────────────────────────────
 
-function RSIView() {
+function SessionDetail({ session, onBack, onStart }: {
+  session: PlyoSession;
+  onBack: () => void;
+  onStart: () => void;
+}) {
+  return (
+    <ToolShell
+      onClose={onBack}
+      eyebrow={`IBRA / 02 · WK ${session.weekNumber} · ${session.phase.toUpperCase()}`}
+      title={`Session ${session.sessionNumber}`}
+      description={session.phaseLabel}
+      footer={<PrimaryCTA onClick={onStart} variant="go">Start Session</PrimaryCTA>}
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <Stat value={session.totalContacts} label="Contacts" />
+        <Stat value={session.estimatedMinutes} label="Minutes" />
+      </div>
+
+      <Section title="Warm-Up">
+        <ul className="space-y-1 text-sm text-grappler-200">
+          {session.warmUp.map((w, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{w}</li>)}
+        </ul>
+      </Section>
+
+      <Section title="Main Work">
+        <div className="space-y-3">
+          {session.exercises.map(ex => (
+            <div key={ex.id} className="border-t border-grappler-800 first:border-0 pt-3 first:pt-0">
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <span className="text-sm font-bold text-white">{ex.name}</span>
+                <span className="text-xs font-mono tabular-nums text-white">{ex.sets} × {ex.reps}</span>
+              </div>
+              <p className="text-[11px] text-grappler-400">{ex.loadGuidance} · rest {ex.restSeconds}s</p>
+              {ex.cues.length > 0 && (
+                <p className="text-[11px] text-grappler-500 mt-1 italic">{ex.cues.slice(0, 2).join(' · ')}</p>
+              )}
+              {ex.videoSearch && (
+                <a
+                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.videoSearch)}`}
+                  target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-grappler-400 hover:text-white mt-1"
+                >
+                  <Youtube className="w-3 h-3" /> demo
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {session.notes.length > 0 && (
+        <Section title="Coaching Notes">
+          <ul className="space-y-1 text-xs text-grappler-300">
+            {session.notes.map((n, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{n}</li>)}
+          </ul>
+        </Section>
+      )}
+    </ToolShell>
+  );
+}
+
+// ─── RSI View ───────────────────────────────────────────────────────────
+
+function RSIView({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const protocol = getRSIProtocol();
   const history = useAppStore(s => s.rsiHistory ?? []);
   const addRsiEntry = useAppStore(s => s.addRsiEntry);
@@ -494,86 +415,109 @@ function RSIView() {
     addRsiEntry(entry);
   };
 
-  const tier = rsi >= protocol.goodScoreRange.excellent ? 'Excellent (elite)' :
-              rsi >= protocol.goodScoreRange.good ? 'Good (well-trained)' :
-              rsi >= protocol.goodScoreRange.fair ? 'Fair (recreational)' : 'Building';
+  const tier = rsi >= protocol.goodScoreRange.excellent ? 'Excellent · elite' :
+              rsi >= protocol.goodScoreRange.good ? 'Good · well-trained' :
+              rsi >= protocol.goodScoreRange.fair ? 'Fair · recreational' : 'Building';
+
+  const accent: 'go' | 'caution' | 'danger' | 'info' =
+    rsi >= protocol.goodScoreRange.good ? 'go' :
+    rsi >= protocol.goodScoreRange.fair ? 'caution' : 'info';
 
   return (
-    <div className="space-y-4 mt-2">
-      <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4">
-        <h2 className="font-bold text-white mb-1">Reactive Strength Index</h2>
-        <p className="text-xs text-rose-200 leading-relaxed">{protocol.formula}</p>
-      </div>
+    <ToolShell
+      onClose={onBack}
+      eyebrow="IBRA / 02 · RSI TEST"
+      title="Reactive Strength Index"
+      description={protocol.formula}
+      footer={<PrimaryCTA onClick={log}>Log Test</PrimaryCTA>}
+    >
+      <Section title="Current">
+        <HeroMetric value={rsi.toFixed(2)} label="RSI" state={tier} accent={accent} />
+      </Section>
 
-      <Section title="Setup" icon={Info}>
+      <Section title="Setup">
         <ul className="space-y-1 text-sm text-grappler-200">
-          {protocol.setupCues.map((c, i) => <li key={i}>• {c}</li>)}
+          {protocol.setupCues.map((c, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{c}</li>)}
         </ul>
       </Section>
 
-      <Section title="Performance" icon={Activity}>
+      <Section title="Performance">
         <ul className="space-y-1 text-sm text-grappler-200">
-          {protocol.performance.map((c, i) => <li key={i}>• {c}</li>)}
+          {protocol.performance.map((c, i) => <li key={i} className="flex gap-2"><span className="text-grappler-600">·</span>{c}</li>)}
         </ul>
       </Section>
 
-      <Section title="Log Your RSI" icon={BarChart3}>
+      <Section title="Inputs">
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-grappler-300 block mb-1">Jump height (m)</label>
+            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Jump height (m)</label>
             <input
               type="number" step="0.01" min={0} max={1.5}
               value={height}
               onChange={e => setHeight(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white"
+              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white font-mono tabular-nums"
             />
           </div>
           <div>
-            <label className="text-xs text-grappler-300 block mb-1">Ground contact time (s)</label>
+            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Ground contact time (s)</label>
             <input
               type="number" step="0.01" min={0.05} max={1}
               value={contactTime}
               onChange={e => setContactTime(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white"
+              className="w-full px-3 py-2 rounded-lg bg-grappler-950 border border-grappler-800 text-white font-mono tabular-nums"
             />
           </div>
-          <div className="rounded-lg bg-grappler-950/60 border border-amber-500/20 p-3 text-center">
-            <div className="text-3xl font-bold text-amber-300 font-mono">{rsi.toFixed(2)}</div>
-            <div className="text-[11px] text-grappler-300 mt-1">RSI · {tier}</div>
-          </div>
-          <button
-            onClick={log}
-            className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-grappler-950 font-bold text-sm transition"
-          >
-            Log Test
-          </button>
         </div>
       </Section>
 
       {history.length > 0 && (
-        <Section title={`History (${history.length})`} icon={Calendar}>
-          <div className="space-y-1.5 text-xs">
+        <Section title="History" hint={`${history.length} tests`}>
+          <div className="space-y-1 text-xs">
             {history.slice(-10).reverse().map((e, i) => (
-              <div key={i} className="flex justify-between p-2 rounded bg-grappler-950/40">
-                <span className="text-grappler-300">{e.date}</span>
-                <span className="font-mono text-amber-300">RSI {e.rsi.toFixed(2)}</span>
+              <div key={i} className="flex justify-between py-1.5 border-b border-grappler-800 last:border-0">
+                <span className="text-grappler-300 font-mono tabular-nums">{e.date}</span>
+                <span className="font-mono tabular-nums text-white">RSI {e.rsi.toFixed(2)}</span>
               </div>
             ))}
           </div>
         </Section>
       )}
-    </div>
+
+      <button
+        onClick={onClose}
+        className="block mx-auto text-[11px] uppercase tracking-[0.2em] text-grappler-500 hover:text-grappler-300 mt-2"
+      >
+        Close tool
+      </button>
+    </ToolShell>
   );
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+// ─── Shared ChoiceGrid ──────────────────────────────────────────────────
+
+function ChoiceGrid({ options, selected, onSelect }: {
+  options: { id: string; label: string; disabled?: boolean }[];
+  selected: string;
+  onSelect: (v: string) => void;
+}) {
   return (
-    <div className="rounded-xl bg-grappler-900/60 border border-grappler-800 p-4">
-      <h3 className="text-sm font-semibold text-grappler-100 uppercase tracking-wider mb-3 flex items-center gap-2">
-        <Icon className="w-4 h-4 text-amber-400" />
-        {title}
-      </h3>
-      {children}
+    <div className="grid grid-cols-3 gap-2">
+      {options.map(opt => (
+        <button
+          key={opt.id}
+          onClick={() => !opt.disabled && onSelect(opt.id)}
+          disabled={opt.disabled}
+          className={cn(
+            'py-2.5 rounded-lg border text-sm font-medium capitalize transition active:scale-[0.97]',
+            selected === opt.id
+              ? 'bg-white border-white text-grappler-950'
+              : 'bg-transparent border-grappler-800 text-grappler-200 hover:bg-grappler-800/40',
+            opt.disabled && 'opacity-30 cursor-not-allowed'
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

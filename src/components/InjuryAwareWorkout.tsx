@@ -154,7 +154,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <Activity className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <div>

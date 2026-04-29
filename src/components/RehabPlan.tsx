@@ -259,7 +259,7 @@ function Header({ onClose, injury, state }: { onClose: () => void; injury: Injur
   const derivedPhase = state?.phaseOverride ?? mapPhase(classification, timeline.daysSinceInjury);
 
   return (
-    <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
+    <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
       <div className="flex items-center gap-2 min-w-0">
         <Shield className="w-5 h-5 text-sky-400 flex-shrink-0" />
         <div className="min-w-0">

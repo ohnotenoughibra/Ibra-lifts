@@ -878,7 +878,7 @@ export default function Dashboard({
         <div className="flex-1 min-w-0 lg:flex">
           <div className="flex-1 min-w-0 lg:max-w-4xl">
             {/* Mobile Header (hidden on desktop — sidebar replaces it) */}
-            <header className="sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 safe-area-top lg:hidden">
+            <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 safe-area-top lg:hidden">
               {/* Row 1: Editorial wordmark + key actions */}
               <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
@@ -951,7 +951,7 @@ export default function Dashboard({
             </header>
 
             {/* Desktop: minimal top bar with sync + streak (no full header) */}
-            <header className="hidden lg:flex sticky top-0 z-40 bg-grappler-900/80 backdrop-blur-xl border-b border-grappler-800 px-6 py-3 items-center justify-between">
+            <header className="hidden lg:flex sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 px-6 py-3 items-center justify-between">
               <h2 className="text-lg font-bold text-grappler-100">
                 {TABS.find(t => t.id === activeTab)?.label ?? 'Home'}
               </h2>
@@ -1150,7 +1150,7 @@ export default function Dashboard({
 
       {/* Bottom Navigation — Mobile only (hidden on lg+) */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900/95 backdrop-blur-xl border-t border-grappler-800 safe-area-bottom will-change-transform lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-20 bg-grappler-900 border-t border-grappler-800 safe-area-bottom will-change-transform lg:hidden"
         role="tablist"
         aria-label="Main navigation"
         onKeyDown={handleTabKeyDown}

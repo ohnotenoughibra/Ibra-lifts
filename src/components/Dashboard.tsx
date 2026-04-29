@@ -90,6 +90,7 @@ const TechniqueLog = dynamic(() => import('./TechniqueLog'), { loading: () => <O
 const CampTimeline = dynamic(() => import('./CampTimeline'), { loading: () => <OverlaySkeleton /> });
 const CoachReport = dynamic(() => import('./CoachReport'), { loading: () => <OverlaySkeleton /> });
 const SparringTracker = dynamic(() => import('./SparringTracker'), { loading: () => <OverlaySkeleton /> });
+const ToolLauncher = dynamic(() => import('./ToolLauncher'), { loading: () => null });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
 const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
@@ -266,16 +267,31 @@ export default function Dashboard({
   const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
   // Stack of previous overlays for back-navigation (e.g. InjuryLogger → Rehab → tap close → goes back to InjuryLogger)
   const [overlayHistory, setOverlayHistory] = useState<{ view: NonNullable<OverlayView>; context?: string }[]>([]);
+  // Universal Tool Launcher (4th nav slot). Bottom sheet with recents + pinned + all tools + quick log.
+  const [showToolLauncher, setShowToolLauncher] = useState(false);
   const scrollPositionRef = useRef(0);
 
-  // Body scroll-lock when an overlay is open. Prevents iOS Safari from scrolling
-  // the page behind the overlay (a common source of "scrolling friction" reports).
+  // iOS-correct body scroll lock. Plain `overflow:hidden` resets scroll on iOS
+  // Safari (the visible page jumps to top when you close the overlay).
+  // Canonical pattern: snapshot scrollY, fix the body at top:-scrollY, restore on close.
   useEffect(() => {
-    if (overlayView) {
-      const original = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = original; };
-    }
+    if (!overlayView) return;
+    const savedY = window.scrollY;
+    const body = document.body;
+    body.style.position = 'fixed';
+    body.style.top = `-${savedY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    return () => {
+      body.style.position = '';
+      body.style.top = '';
+      body.style.left = '';
+      body.style.right = '';
+      body.style.width = '';
+      // Defer to next frame so layout settles before scroll restoration
+      requestAnimationFrame(() => window.scrollTo(0, savedY));
+    };
   }, [overlayView]);
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
@@ -370,12 +386,8 @@ export default function Dashboard({
     }
     setOverlayViewRaw(view);
     setOverlayContext(view !== null ? context : undefined);
-    if (view === null) {
-      // Restore scroll position after closing overlay
-      requestAnimationFrame(() => {
-        window.scrollTo(0, scrollPositionRef.current);
-      });
-    }
+    // Scroll restoration is handled by the body-scroll-lock useEffect cleanup,
+    // which uses the canonical iOS position:fixed pattern (more reliable than scrollTo).
   };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const {
@@ -1172,21 +1184,21 @@ export default function Dashboard({
             </button>
           ))}
 
-          {/* 4th slot: Quick Log — equal-sized, flat, primary-tinted (no raised FAB) */}
+          {/* 4th slot: Universal Tools launcher — opens a bottom-sheet with recents/pinned/all + quick log shortcuts */}
           <div className="relative">
             <button
               onClick={() => {
-                setOverlayView('quick_actions');
+                setShowToolLauncher(true);
                 if (!fabTooltipDismissed) {
                   setFabTooltipDismissed(true);
                   localStorage.setItem('roots-fab-tooltip-shown', 'true');
                 }
               }}
-              aria-label="Quick log"
+              aria-label="Tools"
               className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-lg text-primary-400 hover:text-primary-300 active:scale-95 transition-all"
             >
               <Plus className="w-5 h-5" />
-              <span className="text-xs font-medium">Log</span>
+              <span className="text-xs font-medium">Tools</span>
             </button>
             {/* First-time tooltip */}
             <AnimatePresence>
@@ -1202,7 +1214,7 @@ export default function Dashboard({
                   }}
                 >
                   <div className="bg-grappler-50 text-grappler-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg">
-                    Start a workout
+                    All tools, one tap
                     <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-grappler-50 rotate-45" />
                   </div>
                 </motion.div>
@@ -1211,6 +1223,16 @@ export default function Dashboard({
           </div>
         </div>
       </nav>
+
+      {/* Universal Tool Launcher — bottom sheet from the 4th nav slot */}
+      <ToolLauncher
+        open={showToolLauncher}
+        onClose={() => setShowToolLauncher(false)}
+        onNavigate={(view, ctx) => {
+          setShowToolLauncher(false);
+          setOverlayView(view, ctx);
+        }}
+      />
 
       {/* Sync Conflict Resolver */}
       {syncConflict && (

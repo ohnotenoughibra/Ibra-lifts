@@ -54,7 +54,7 @@ export default function SparringTracker({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-rose-400" />
           <div>
@@ -62,7 +62,7 @@ export default function SparringTracker({ onClose }: Props) {
             <p className="text-[11px] text-grappler-400">Round count, separate from mat time</p>
           </div>
         </div>
-        <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-grappler-800 rounded-lg">
+        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
           <X className="w-5 h-5 text-grappler-300" />
         </button>
       </div>

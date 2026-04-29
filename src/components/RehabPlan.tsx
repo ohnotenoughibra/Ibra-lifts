@@ -115,7 +115,7 @@ export default function RehabPlan({ onClose, preselectedInjuryId }: RehabPlanPro
             <Shield className="w-5 h-5 text-sky-400" />
             <h1 className="text-lg font-bold text-white">Rehab Plan</h1>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-grappler-800 rounded-lg">
+          <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition">
             <X className="w-5 h-5 text-grappler-300" />
           </button>
         </div>
@@ -259,7 +259,7 @@ function Header({ onClose, injury, state }: { onClose: () => void; injury: Injur
   const derivedPhase = state?.phaseOverride ?? mapPhase(classification, timeline.daysSinceInjury);
 
   return (
-    <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 flex items-center justify-between">
+    <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
       <div className="flex items-center gap-2 min-w-0">
         <Shield className="w-5 h-5 text-sky-400 flex-shrink-0" />
         <div className="min-w-0">
@@ -267,7 +267,7 @@ function Header({ onClose, injury, state }: { onClose: () => void; injury: Injur
           <p className="text-xs text-grappler-400">{timeline.tissueLabel} · day {timeline.daysSinceInjury}</p>
         </div>
       </div>
-      <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-grappler-800 rounded-lg flex-shrink-0">
+      <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition flex-shrink-0">
         <X className="w-5 h-5 text-grappler-300" />
       </button>
     </div>

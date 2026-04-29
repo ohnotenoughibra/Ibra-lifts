@@ -264,7 +264,19 @@ export default function Dashboard({
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
   const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
+  // Stack of previous overlays for back-navigation (e.g. InjuryLogger → Rehab → tap close → goes back to InjuryLogger)
+  const [overlayHistory, setOverlayHistory] = useState<{ view: NonNullable<OverlayView>; context?: string }[]>([]);
   const scrollPositionRef = useRef(0);
+
+  // Body scroll-lock when an overlay is open. Prevents iOS Safari from scrolling
+  // the page behind the overlay (a common source of "scrolling friction" reports).
+  useEffect(() => {
+    if (overlayView) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = original; };
+    }
+  }, [overlayView]);
   const subscription = useAppStore(s => s.subscription);
   const { data: session } = useSession();
   const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
@@ -332,8 +344,16 @@ export default function Dashboard({
           return;
         }
       }
+      // If there's already an overlay open, push it onto the back stack
+      // so that closing the new one returns to the previous (e.g. Injury → Rehab → back).
+      if (overlayView && overlayView !== view) {
+        setOverlayHistory(prev => [...prev, { view: overlayView, context: overlayContext }]);
+      }
       // Save scroll position before opening overlay
       scrollPositionRef.current = window.scrollY;
+    } else {
+      // Closing — clear the back stack since user explicitly chose to exit
+      setOverlayHistory([]);
     }
     // Smart feedback — only ask when it's actually useful
     if (view === null && overlayView && !ROUTINE_OVERLAYS.has(overlayView) && !feedbackShownThisSession.current) {
@@ -575,7 +595,17 @@ export default function Dashboard({
 
   // Full-screen overlay views — wrapped in overlay-safe for status bar clearance
   {
-    const closeOverlay = () => setOverlayView(null);
+    const closeOverlay = () => {
+      // If there's a back-stack entry, pop to it (Injury → Rehab → close goes back to Injury)
+      if (overlayHistory.length > 0) {
+        const previous = overlayHistory[overlayHistory.length - 1];
+        setOverlayHistory(prev => prev.slice(0, -1));
+        setOverlayContext(previous.context);
+        setOverlayViewRaw(previous.view);
+        return;
+      }
+      setOverlayView(null);
+    };
     const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
       builder: <WorkoutBuilder onClose={closeOverlay} />,
       nutrition: <NutritionTracker onClose={closeOverlay} />,

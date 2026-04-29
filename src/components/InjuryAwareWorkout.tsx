@@ -154,7 +154,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-grappler-950/95 backdrop-blur border-b border-grappler-800 px-4 py-3 safe-area-top flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <Activity className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <div>
@@ -162,7 +162,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
             <p className="text-xs text-grappler-400">Train around your limitation</p>
           </div>
         </div>
-        <button onClick={onClose} aria-label="Close" className="p-2 hover:bg-grappler-800 rounded-lg flex-shrink-0">
+        <button onClick={onClose} aria-label="Close" className="p-3 -mr-1 hover:bg-grappler-800 rounded-lg active:scale-95 transition flex-shrink-0">
           <X className="w-5 h-5 text-grappler-300" />
         </button>
       </div>

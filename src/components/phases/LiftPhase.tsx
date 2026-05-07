@@ -82,12 +82,27 @@ export default function LiftPhase({
   const [showReadinessGate, setShowReadinessGate] = useState(false);
   const [showSessionSheet, setShowSessionSheet] = useState(false);
 
-  // Pre-workout readiness gate: if readiness is low/critical, confirm before starting
+  // Pre-workout readiness gate: if readiness is low/critical, confirm before starting.
+  // Wraps the store call so silent failures (stale activeWorkout returning false,
+  // or a thrown error inside autoregulate/injury/prefill) surface as a toast
+  // instead of leaving the user staring at an unchanged screen.
+  const startWithFeedback = (session: typeof nextWorkout) => {
+    try {
+      const result = onStartWorkout(session) as unknown;
+      if (result === false) {
+        showToast('Finish your current workout first', 'warning');
+      }
+    } catch (err) {
+      console.error('[LiftPhase] startWorkout threw:', err);
+      showToast('Could not start workout. Try again or restart the app.', 'error');
+    }
+  };
+
   const handleStartWorkout = () => {
     if (directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') {
       setShowReadinessGate(true);
     } else {
-      onStartWorkout(nextWorkout);
+      startWithFeedback(nextWorkout);
     }
   };
 
@@ -382,7 +397,7 @@ export default function LiftPhase({
 
               <div className="space-y-2">
                 <button
-                  onClick={() => { setShowReadinessGate(false); onStartWorkout(nextWorkout); }}
+                  onClick={() => { setShowReadinessGate(false); startWithFeedback(nextWorkout); }}
                   className="w-full py-3 rounded-xl text-sm font-bold bg-grappler-700 text-grappler-200 hover:bg-grappler-600 transition-colors"
                 >
                   {directive.readinessLevel === 'critical' ? 'Train anyway' : 'Start at full intensity'}

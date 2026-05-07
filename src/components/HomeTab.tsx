@@ -1875,9 +1875,36 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       </section>
 
       {/* ─── THE ONE THING — single time-aware directive ─── */}
+      {/* `actionRoute: 'workout'` is a pseudo-route — there is no 'workout'
+          OverlayView. Routing it through onNavigate sets overlayView to a
+          string the OVERLAY_COMPONENTS map doesn't know, which engages
+          useScrollLock and history.pushState but renders no overlay
+          component, leaving the user on a scroll-locked frozen screen with
+          no X to close. Special-case it: actually start the workout. */}
       <OneThingBanner
         oneThing={oneThing}
-        onAction={oneThing.actionRoute ? () => onNavigate(oneThing.actionRoute as OverlayView) : undefined}
+        onAction={
+          !oneThing.actionRoute
+            ? undefined
+            : oneThing.actionRoute === 'workout'
+              ? () => {
+                  if (!nextWorkout) {
+                    showToast('No lift workout scheduled. Open Programs to set one up.', 'info');
+                    onNavigate('program_browser');
+                    return;
+                  }
+                  try {
+                    const result = startWorkout(nextWorkout);
+                    if (result === false) {
+                      showToast('Finish your current workout first', 'warning');
+                    }
+                  } catch (err) {
+                    console.error('[HomeTab] OneThing startWorkout threw:', err);
+                    showToast('Could not start workout. Try again or restart the app.', 'error');
+                  }
+                }
+              : () => onNavigate(oneThing.actionRoute as OverlayView)
+        }
       />
 
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}

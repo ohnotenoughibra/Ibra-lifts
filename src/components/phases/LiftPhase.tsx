@@ -47,7 +47,12 @@ interface LiftPhaseProps {
   weightUnit: string;
   workoutLogsLength: number;
   currentStreak: number;
-  onStartWorkout: (session: any) => void;
+  /**
+   * Opens the WorkoutStartChooser sheet (My plan / Smart pick / Custom).
+   * The parent (HomeTab) renders the actual chooser so it's shared with
+   * the OneThingBanner — single source of truth for "how do I start."
+   */
+  onOpenStartChooser: () => void;
   onQuickWorkout: () => void;
   onSkipWorkout: (skip: { date: string; scheduledSessionId: string; reason: SkipReason; rescheduled: boolean }) => void;
   onNavigate: (view: OverlayView) => void;
@@ -69,7 +74,7 @@ export default function LiftPhase({
   recoveryScore,
   weightUnit,
   workoutLogsLength,
-  onStartWorkout,
+  onOpenStartChooser,
   onQuickWorkout,
   onSkipWorkout,
   onNavigate,
@@ -82,27 +87,15 @@ export default function LiftPhase({
   const [showReadinessGate, setShowReadinessGate] = useState(false);
   const [showSessionSheet, setShowSessionSheet] = useState(false);
 
-  // Pre-workout readiness gate: if readiness is low/critical, confirm before starting.
-  // Wraps the store call so silent failures (stale activeWorkout returning false,
-  // or a thrown error inside autoregulate/injury/prefill) surface as a toast
-  // instead of leaving the user staring at an unchanged screen.
-  const startWithFeedback = (session: typeof nextWorkout) => {
-    try {
-      const result = onStartWorkout(session) as unknown;
-      if (result === false) {
-        showToast('Finish your current workout first', 'warning');
-      }
-    } catch (err) {
-      console.error('[LiftPhase] startWorkout threw:', err);
-      showToast('Could not start workout. Try again or restart the app.', 'error');
-    }
-  };
-
+  // The chooser handles My plan / Smart pick / Custom + their own toasts.
+  // We still gate on readiness here because for low/critical scores the
+  // safety pause matters more than the picking step — Smart pick will scale
+  // volume but won't make the user *think* before tapping like the gate does.
   const handleStartWorkout = () => {
     if (directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') {
       setShowReadinessGate(true);
     } else {
-      startWithFeedback(nextWorkout);
+      onOpenStartChooser();
     }
   };
 
@@ -397,7 +390,7 @@ export default function LiftPhase({
 
               <div className="space-y-2">
                 <button
-                  onClick={() => { setShowReadinessGate(false); startWithFeedback(nextWorkout); }}
+                  onClick={() => { setShowReadinessGate(false); onOpenStartChooser(); }}
                   className="w-full py-3 rounded-xl text-sm font-bold bg-grappler-700 text-grappler-200 hover:bg-grappler-600 transition-colors"
                 >
                   {directive.readinessLevel === 'critical' ? 'Train anyway' : 'Start at full intensity'}

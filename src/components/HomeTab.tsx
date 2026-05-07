@@ -57,6 +57,7 @@ import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
+import WorkoutStartChooser from './WorkoutStartChooser';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
@@ -489,6 +490,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     [rawIllnessLogs, resolvedIllnessIds],
   );
   const [shareCopied, setShareCopied] = useState(false);
+  const [showStartChooser, setShowStartChooser] = useState(false);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [skipFrictionShown, setSkipFrictionShown] = useState(false);
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
@@ -1876,35 +1878,29 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
       {/* ─── THE ONE THING — single time-aware directive ─── */}
       {/* `actionRoute: 'workout'` is a pseudo-route — there is no 'workout'
-          OverlayView. Routing it through onNavigate sets overlayView to a
-          string the OVERLAY_COMPONENTS map doesn't know, which engages
-          useScrollLock and history.pushState but renders no overlay
-          component, leaving the user on a scroll-locked frozen screen with
-          no X to close. Special-case it: actually start the workout. */}
+          OverlayView. We special-case it to open the WorkoutStartChooser
+          (My plan / Smart pick / Custom). The chooser handles the actual
+          start, including the silent-failure toast and the "no scheduled
+          workout" path. Other routes (nutrition, etc) are real overlays. */}
       <OneThingBanner
         oneThing={oneThing}
         onAction={
           !oneThing.actionRoute
             ? undefined
             : oneThing.actionRoute === 'workout'
-              ? () => {
-                  if (!nextWorkout) {
-                    showToast('No lift workout scheduled. Open Programs to set one up.', 'info');
-                    onNavigate('program_browser');
-                    return;
-                  }
-                  try {
-                    const result = startWorkout(nextWorkout);
-                    if (result === false) {
-                      showToast('Finish your current workout first', 'warning');
-                    }
-                  } catch (err) {
-                    console.error('[HomeTab] OneThing startWorkout threw:', err);
-                    showToast('Could not start workout. Try again or restart the app.', 'error');
-                  }
-                }
+              ? () => setShowStartChooser(true)
               : () => onNavigate(oneThing.actionRoute as OverlayView)
         }
+      />
+
+      {/* Start-workout chooser — shared between OneThingBanner and LiftPhase
+          so the Home tab and Today card behave identically. */}
+      <WorkoutStartChooser
+        open={showStartChooser}
+        onClose={() => setShowStartChooser(false)}
+        scheduledSession={nextWorkout}
+        onNavigate={onNavigate}
+        showToast={(msg, type) => showToast(msg, type as 'success' | 'error' | 'warning' | 'info')}
       />
 
       {/* ─── CRITICAL ALERTS — non-dismissible, safety first ─── */}
@@ -2052,7 +2048,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           recoveryScore={recoveryScore ?? null}
           weightUnit={weightUnit}
           workoutLogsLength={workoutLogs.length}
-          onStartWorkout={startWorkout}
+          onOpenStartChooser={() => setShowStartChooser(true)}
           onQuickWorkout={handleQuickWorkout}
           onSkipWorkout={skipWorkout}
           onNavigate={onNavigate}

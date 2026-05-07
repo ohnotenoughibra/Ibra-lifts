@@ -288,10 +288,14 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
+      // Opacity-only entrance: an `x` transform on this wrapper would make it
+      // the containing block for the sticky header below, breaking sticky pin.
+      // safe-area-top dropped because overlay-safe (the parent wrapper in
+      // Dashboard) already applies safe-area-inset-top padding.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-grappler-900 bg-mesh pb-24"
     >
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">

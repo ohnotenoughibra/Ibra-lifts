@@ -238,10 +238,18 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top"
+      // No x-axis animation: a `transform` set on this wrapper (even
+      // translateX(0)) makes it the containing block for sticky descendants.
+      // The sticky <header> inside would then pin within this div instead of
+      // overlay-safe, so it never actually pinned and foundation cards
+      // appeared above the header on scroll. Opacity-only avoids transform.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      // safe-area-top removed: overlay-safe (the wrapper in Dashboard) already
+      // pads padding-top: env(safe-area-inset-top). Stacking it twice was
+      // pushing the header past the visible viewport on iOS PWA.
+      className="min-h-screen bg-grappler-900 bg-mesh pb-24"
     >
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">

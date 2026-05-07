@@ -266,10 +266,14 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="min-h-screen bg-grappler-950 pb-24 safe-area-top"
+      // Opacity-only entrance: a `y` transform on this wrapper would make it
+      // the containing block for the sticky header below, breaking sticky pin.
+      // safe-area-top dropped because overlay-safe (the parent wrapper in
+      // Dashboard) already applies safe-area-inset-top padding.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-grappler-950 pb-24"
     >
       {/* ── Header ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">

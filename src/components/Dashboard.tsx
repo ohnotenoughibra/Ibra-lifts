@@ -417,14 +417,14 @@ export default function Dashboard({
   };
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const {
-    user, gamificationStats, currentMesocycle, activeWorkout, workoutMinimized, resumeWorkout,
+    user, gamificationStats, currentMesocycle, activeWorkout, workoutMinimized, resumeWorkout, cancelWorkout,
     workoutLogs, mesocycleHistory, deleteMesocycle,
     syncConflict, resolveSyncConflict, dismissSyncConflict,
     ensureWeeklyChallenge, lastCompletedWorkout,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, currentMesocycle: s.currentMesocycle, activeWorkout: s.activeWorkout,
-      workoutMinimized: s.workoutMinimized, resumeWorkout: s.resumeWorkout,
+      workoutMinimized: s.workoutMinimized, resumeWorkout: s.resumeWorkout, cancelWorkout: s.cancelWorkout,
       workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), deleteMesocycle: s.deleteMesocycle,
       syncConflict: s.syncConflict, resolveSyncConflict: s.resolveSyncConflict, dismissSyncConflict: s.dismissSyncConflict,
       ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
@@ -600,16 +600,36 @@ export default function Dashboard({
   }
 
   if (activeWorkout && !workoutMinimized) {
+    // Both interstitials below are lazy-loaded (dynamic import) and do heavy
+    // work on mount (readiness summary, store derivations, autoregulation).
+    // A throw or chunk-load failure used to leave the user on a frozen black
+    // screen with no escape — the error boundary surfaces the actual error
+    // and a "Cancel workout" escape so they can get back to the app.
+    const cancelEscape = {
+      label: 'Cancel workout',
+      onClick: () => {
+        cancelWorkout();
+        setShowReadyScreen(false);
+        readyScreenSkipped.current = false;
+      },
+    };
+
     // Show "Ready for This" interstitial on workout start (unless skipped)
     if (showReadyScreen && !readyScreenSkipped.current && !activeWorkout.preCheckIn) {
       return (
-        <ReadyForThis
-          onProceed={() => setShowReadyScreen(false)}
-          onSkip={() => { readyScreenSkipped.current = true; setShowReadyScreen(false); }}
-        />
+        <CardErrorBoundary fallbackLabel="Workout intro" fullScreen secondaryAction={cancelEscape}>
+          <ReadyForThis
+            onProceed={() => setShowReadyScreen(false)}
+            onSkip={() => { readyScreenSkipped.current = true; setShowReadyScreen(false); }}
+          />
+        </CardErrorBoundary>
       );
     }
-    return <ActiveWorkout />;
+    return (
+      <CardErrorBoundary fallbackLabel="Active workout" fullScreen secondaryAction={cancelEscape}>
+        <ActiveWorkout />
+      </CardErrorBoundary>
+    );
   }
 
   // Full-screen overlay views — wrapped in overlay-safe for status bar clearance

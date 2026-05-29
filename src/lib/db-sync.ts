@@ -154,9 +154,14 @@ export function resolveConflicts(
             map.set(key, tombstone);
           } else {
             // Status finality rule: "resolved" beats "active"/"recovering"
-            // (same principle as tombstones — once resolved, never un-resolve)
-            const itemResolved = (item as Record<string, unknown>).status === 'resolved';
-            const existingResolved = (existing as Record<string, unknown>).status === 'resolved';
+            // (same principle as tombstones — once resolved, never un-resolve).
+            // Injuries use a boolean `resolved` field; illness/plan entries use
+            // a string `status: 'resolved'`. Recognize BOTH, otherwise a healed
+            // injury gets resurrected by the newer-timestamp fallback on refresh.
+            const isResolved = (e: Record<string, unknown>) =>
+              e.resolved === true || e.status === 'resolved';
+            const itemResolved = isResolved(item as Record<string, unknown>);
+            const existingResolved = isResolved(existing as Record<string, unknown>);
             if (itemResolved && !existingResolved) {
               map.set(key, item);
             } else if (!itemResolved && existingResolved) {

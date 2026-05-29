@@ -171,6 +171,21 @@ const EXERCISE_RATIOS: Record<string, ExerciseRatio> = {
   'farmers-carry':      { reference: 'deadlift', ratio: 0.35 },
 };
 
+// ── Bodyweight-loaded exercises ─────────────────────────────────────────────
+// Rep-based strength movements whose working load IS the athlete's bodyweight.
+// For these the logged weight should DEFAULT to the user's bodyweight (so volume
+// and estimated 1RM actually count), with any belt/vest load entered on top.
+// Curated to strength moves only — isometrics (plank) and pure-core reps
+// (ab-rollout, hanging-leg-raise) are intentionally excluded.
+export const BODYWEIGHT_LOADED_EXERCISE_IDS = new Set<string>([
+  'pull-up', 'chin-up', 'dip', 'chest-dip', 'push-up', 'nordic-curl',
+]);
+
+/** True if the exercise's primary load is bodyweight (see set above). */
+export function isBodyweightLoadedExercise(exerciseId: string): boolean {
+  return BODYWEIGHT_LOADED_EXERCISE_IDS.has(exerciseId);
+}
+
 // ── Main Estimation Function ────────────────────────────────────────────────
 
 export interface WeightEstimate {

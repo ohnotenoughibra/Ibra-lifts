@@ -453,17 +453,28 @@ export default function BodyWeightTracker() {
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
+  // Entries can be stored in mixed units (e.g. a kg manual log next to an
+  // lbs Whoop-sync entry). Normalize every entry to the user's CURRENT
+  // display unit before charting / averaging / trending — otherwise the raw
+  // numbers (197.3 lbs vs 90 kg) get plotted on the same axis and look like a
+  // huge weight drop that never happened.
+  const toDisplayWeight = (entry: { weight: number; unit: 'kg' | 'lbs' }): number => {
+    const kg = entry.unit === 'lbs' ? entry.weight * 0.453592 : entry.weight;
+    const converted = weightUnit === 'lbs' ? kg / 0.453592 : kg;
+    return Math.round(converted * 10) / 10;
+  };
+
   const chartData = sortedLog.map(entry => ({
     date: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    weight: entry.weight,
+    weight: toDisplayWeight(entry),
     fullDate: new Date(entry.date).toLocaleDateString()
   }));
 
-  const latestWeight = sortedLog.length > 0 ? sortedLog[sortedLog.length - 1].weight : null;
-  const previousWeight = sortedLog.length > 1 ? sortedLog[sortedLog.length - 2].weight : null;
+  const latestWeight = sortedLog.length > 0 ? toDisplayWeight(sortedLog[sortedLog.length - 1]) : null;
+  const previousWeight = sortedLog.length > 1 ? toDisplayWeight(sortedLog[sortedLog.length - 2]) : null;
   const weightChange = latestWeight && previousWeight ? latestWeight - previousWeight : null;
   const avgWeight = sortedLog.length > 0
-    ? Math.round(sortedLog.reduce((sum, e) => sum + e.weight, 0) / sortedLog.length * 10) / 10
+    ? Math.round(sortedLog.reduce((sum, e) => sum + toDisplayWeight(e), 0) / sortedLog.length * 10) / 10
     : null;
 
   // BMI from latest weight
@@ -488,10 +499,10 @@ export default function BodyWeightTracker() {
       // Only one entry this week; compare to entry before it
       const idx = sortedLog.indexOf(oldest);
       if (idx <= 0) return null;
-      return newest.weight - sortedLog[idx - 1].weight;
+      return toDisplayWeight(newest) - toDisplayWeight(sortedLog[idx - 1]);
     }
-    return newest.weight - oldest.weight;
-  }, [sortedLog]);
+    return toDisplayWeight(newest) - toDisplayWeight(oldest);
+  }, [sortedLog, weightUnit]);
 
   // Diet coach data for suggestions
   const adherencePercent = useMemo(() => calculateAdherence(meals), [meals]);
@@ -1248,7 +1259,7 @@ export default function BodyWeightTracker() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-grappler-200 font-medium">
-                      {entry.weight} {entry.unit}
+                      {toDisplayWeight(entry)} {weightUnit}
                     </p>
                     {comp?.bmi && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/60 text-grappler-300">

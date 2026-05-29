@@ -189,7 +189,7 @@ export default function DietCoach() {
     if (!competitions?.length) return null;
     const now = Date.now();
     return competitions
-      .filter(c => new Date(c.date).getTime() > now)
+      .filter(c => !c._deleted && new Date(c.date).getTime() > now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
   }, [competitions]);
 

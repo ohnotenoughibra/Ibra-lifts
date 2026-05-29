@@ -169,6 +169,24 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
     }
   }, [onNavigate, onClose]);
 
+  // ─── ARTICLE READER VIEW ────────────────────────────────────────────
+  // Must take precedence over the learning-path view: when an article is
+  // opened from inside a path, both `selectedArticle` and `activePathId` are
+  // set. Checking the reader first lets the article open; its Back button
+  // clears `selectedArticle` and returns the user to the still-active path.
+  if (selectedArticle) {
+    return (
+      <ArticleReader
+        article={selectedArticle}
+        isBookmarked={bookmarkSet.has(selectedArticle.id)}
+        onToggleBookmark={() => toggleBookmarkArticle(selectedArticle.id)}
+        onBack={() => setSelectedArticle(null)}
+        onOpenRelated={handleOpenArticle}
+        onNavigateOverlay={handleNavigateOverlay}
+      />
+    );
+  }
+
   // ─── LEARNING PATH VIEW ──────────────────────────────────────────────
   if (activePathId) {
     const path = (learningPaths ?? []).find(p => p.id === activePathId);
@@ -182,20 +200,6 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
         />
       );
     }
-  }
-
-  // ─── ARTICLE READER VIEW ────────────────────────────────────────────
-  if (selectedArticle) {
-    return (
-      <ArticleReader
-        article={selectedArticle}
-        isBookmarked={bookmarkSet.has(selectedArticle.id)}
-        onToggleBookmark={() => toggleBookmarkArticle(selectedArticle.id)}
-        onBack={() => setSelectedArticle(null)}
-        onOpenRelated={handleOpenArticle}
-        onNavigateOverlay={handleNavigateOverlay}
-      />
-    );
   }
 
   // ─── LIBRARY VIEW ────────────────────────────────────────────────────

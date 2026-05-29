@@ -1282,7 +1282,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const nextCompetition = useMemo(() => {
     const now = Date.now();
     const active = competitions
-      .filter(c => c.isActive && new Date(c.date).getTime() > now)
+      .filter(c => c.isActive && !c._deleted && new Date(c.date).getTime() > now)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     if (active.length === 0) return null;
     const event = active[0];

@@ -176,7 +176,7 @@ export function generateNutritionPlan(input: PlannerInput): NutritionPeriodPlan 
 
   // Sort active competitions by date
   const activeComps = competitions
-    .filter(c => c.isActive && toDate(c.date) > today)
+    .filter(c => c.isActive && !c._deleted && toDate(c.date) > today)
     .sort((a, b) => toDate(a.date).getTime() - toDate(b.date).getTime());
 
   // Build competition-anchored segments first
@@ -516,7 +516,7 @@ export function getActivePhaseContext(
   // Build look-ahead (next competition or next phase transition)
   let lookAhead: string | null = null;
   const nextComp = competitions
-    .filter(c => c.isActive && toDate(c.date) > today)
+    .filter(c => c.isActive && !c._deleted && toDate(c.date) > today)
     .sort((a, b) => toDate(a.date).getTime() - toDate(b.date).getTime())[0];
   if (nextComp) {
     const daysToComp = daysBetween(today, toDate(nextComp.date));

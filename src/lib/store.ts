@@ -79,6 +79,28 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
+import { isBodyweightLoadedExercise } from './weight-estimator';
+
+/**
+ * Resolve the initial logged weight for a set. Prefers a real suggested/history
+ * weight; otherwise, for bodyweight-loaded strength moves (pull-up, dip, …),
+ * defaults to the athlete's bodyweight (in their display unit) so volume and 1RM
+ * actually count. Everything else falls back to the suggested value or 0.
+ */
+function resolveInitialSetWeight(
+  exerciseId: string,
+  suggested: number | null | undefined,
+  user: UserProfile | null,
+): number {
+  if (suggested && suggested > 0) return suggested;
+  if (isBodyweightLoadedExercise(exerciseId) && user?.bodyWeightKg && user.bodyWeightKg > 0) {
+    const display = (user.weightUnit || 'lbs') === 'lbs'
+      ? user.bodyWeightKg * 2.20462
+      : user.bodyWeightKg;
+    return Math.round(display * 10) / 10;
+  }
+  return suggested ?? 0;
+}
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
 import { getActiveInjuryAdaptations } from './injury-science';
 import { getCompletedSessionIds } from './session-matching';
@@ -919,8 +941,22 @@ export const useAppStore = create<AppState>()(
       },
 
       deleteCompetition: (id) => {
-        const { competitions } = get();
-        set({ competitions: competitions.map(c => c.id === id ? { ...c, _deleted: true, _deletedAt: Date.now() } : c), _syncUrgent: true });
+        const { competitions, fightCampPlans, nutritionPeriodPlan } = get();
+        // Soft-delete AND deactivate so the event stops anchoring nutrition
+        // periodization / training-goal look-ahead everywhere it's consumed.
+        const updated = competitions.map(c =>
+          c.id === id ? { ...c, _deleted: true, _deletedAt: Date.now(), isActive: false } : c
+        );
+        const anyActiveLeft = updated.some(c => !c._deleted && c.isActive);
+        set({
+          competitions: updated,
+          // Drop the fight-camp nutrition plan tied to this competition.
+          fightCampPlans: fightCampPlans.filter(p => p.competitionId !== id),
+          // Clear the competition-anchored periodization plan when no active
+          // event remains, so "exit prep" actually resets the nutrition plan.
+          nutritionPeriodPlan: anyActiveLeft ? nutritionPeriodPlan : null,
+          _syncUrgent: true,
+        });
       },
 
       // ── Weight Cut Plan actions ───────────────────────────────────────
@@ -1821,7 +1857,7 @@ export const useAppStore = create<AppState>()(
             exerciseName: ex.exercise.name,
             sets: Array.from({ length: ex.sets }, (_, i) => ({
               setNumber: i + 1,
-              weight: previousSets?.[i]?.weight ?? suggestedWeight ?? 0,
+              weight: previousSets?.[i]?.weight ?? resolveInitialSetWeight(ex.exerciseId, suggestedWeight, user),
               reps: previousSets?.[i]?.reps ?? ex.prescription.targetReps,
               rpe: ex.prescription.rpe,
               completed: false,
@@ -1936,7 +1972,7 @@ export const useAppStore = create<AppState>()(
         const updatedLogs = [...activeWorkout.exerciseLogs];
         const oldLog = updatedLogs[exerciseIndex];
         const { workoutLogs } = get();
-        const swapSuggestedWeight = getSuggestedWeight(newExerciseId, workoutLogs) ?? 0;
+        const swapSuggestedWeight = resolveInitialSetWeight(newExerciseId, getSuggestedWeight(newExerciseId, workoutLogs), get().user);
         const oldPrescriptionForSwap = activeWorkout.session.exercises[exerciseIndex];
         const targetReps = oldPrescriptionForSwap?.prescription?.targetReps ?? 0;
         updatedLogs[exerciseIndex] = {
@@ -1991,7 +2027,7 @@ export const useAppStore = create<AppState>()(
           },
         };
 
-        const bonusSuggestedWeight = getSuggestedWeight(exercise.id, get().workoutLogs) ?? 0;
+        const bonusSuggestedWeight = resolveInitialSetWeight(exercise.id, getSuggestedWeight(exercise.id, get().workoutLogs), get().user);
         const newLog: ExerciseLog = {
           exerciseId: exercise.id,
           exerciseName: exercise.name,
@@ -2299,7 +2335,7 @@ export const useAppStore = create<AppState>()(
               ? existingLog.sets.map(s => ({ ...s }))
               : Array.from({ length: ex.sets }, (_, si) => ({
                   setNumber: si + 1,
-                  weight: getSuggestedWeight(ex.exerciseId, workoutLogs) || 0,
+                  weight: resolveInitialSetWeight(ex.exerciseId, getSuggestedWeight(ex.exerciseId, workoutLogs), get().user),
                   reps: ex.prescription.targetReps,
                   rpe: ex.prescription.rpe,
                   completed: false,
@@ -2343,7 +2379,7 @@ export const useAppStore = create<AppState>()(
               exerciseId: compatibleAlt.id,
               exercise: compatibleAlt,
             };
-            const suggestedWeight = getSuggestedWeight(compatibleAlt.id, workoutLogs);
+            const suggestedWeight = resolveInitialSetWeight(compatibleAlt.id, getSuggestedWeight(compatibleAlt.id, workoutLogs), get().user);
             updatedLogs[i] = {
               exerciseId: compatibleAlt.id,
               exerciseName: compatibleAlt.name,

@@ -88,6 +88,18 @@ export default function Home() {
     }
   }, [hasHydrated, sessionStatus, isInitialLoadComplete]);
 
+  // One-time backfill: give past bodyweight-exercise sets (pull-ups, dips, …)
+  // that were logged at weight 0 the user's bodyweight, so historical volume
+  // and 1RM count. Runs AFTER the initial server load so it operates on full
+  // history (not just the ~30 logs persisted locally). Idempotent + self-
+  // healing: re-running only touches still-zero sets, and stamps updatedAt so
+  // corrected logs win the cloud merge and propagate across devices.
+  useEffect(() => {
+    if (hasHydrated && isInitialLoadComplete) {
+      useAppStore.getState().backfillBodyweightSets();
+    }
+  }, [hasHydrated, isInitialLoadComplete]);
+
   // Offline / online detection
   useEffect(() => {
     const handleOnline = () => {

@@ -14,7 +14,7 @@
  * A 5–15% safety margin is applied based on experience level.
  */
 
-import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts } from './types';
+import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts, WorkoutLog, WeightUnit } from './types';
 
 // ── 1RM ↔ Working Weight Conversion ─────────────────────────────────────────
 // Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
@@ -184,6 +184,52 @@ export const BODYWEIGHT_LOADED_EXERCISE_IDS = new Set<string>([
 /** True if the exercise's primary load is bodyweight (see set above). */
 export function isBodyweightLoadedExercise(exerciseId: string): boolean {
   return BODYWEIGHT_LOADED_EXERCISE_IDS.has(exerciseId);
+}
+
+/**
+ * Pure transform behind the bodyweight backfill migration: for past
+ * bodyweight-loaded sets (pull-up/dip/etc.) logged at weight 0, set the weight
+ * to the athlete's bodyweight (converted to their unit) so historical volume +
+ * 1RM count. Weighted sets (weight > 0) and timed holds are left untouched.
+ * Idempotent. Changed logs get `updatedAt` stamped so the cloud union-merge
+ * keeps the corrected copy. Returns the logs and whether anything changed.
+ */
+export function backfillBodyweightInLogs(
+  logs: WorkoutLog[],
+  bodyWeightKg: number | undefined,
+  weightUnit: WeightUnit,
+  nowIso: string,
+): { logs: WorkoutLog[]; changed: boolean } {
+  if (!bodyWeightKg || bodyWeightKg <= 0 || !Array.isArray(logs) || logs.length === 0) {
+    return { logs, changed: false };
+  }
+  const bw = Math.round((weightUnit === 'lbs' ? bodyWeightKg * 2.20462 : bodyWeightKg) * 10) / 10;
+  let anyChanged = false;
+  const out = logs.map((log) => {
+    if (log._deleted || !Array.isArray(log.exercises)) return log;
+    let logChanged = false;
+    const exercises = log.exercises.map((ex) => {
+      if (!isBodyweightLoadedExercise(ex.exerciseId) || !Array.isArray(ex.sets)) return ex;
+      let exChanged = false;
+      const sets = ex.sets.map((s) => {
+        // Only bodyweight-only sets: no added load, not a timed hold.
+        if (s.duration == null && (s.weight == null || s.weight === 0)) {
+          exChanged = true;
+          return { ...s, weight: bw };
+        }
+        return s;
+      });
+      if (!exChanged) return ex;
+      logChanged = true;
+      return { ...ex, sets };
+    });
+    if (!logChanged) return log;
+    anyChanged = true;
+    const totalVolume = exercises.reduce((t, ex) =>
+      t + (ex.sets || []).reduce((st, s) => st + (s.completed ? (s.weight || 0) * (s.reps || 0) : 0), 0), 0);
+    return { ...log, exercises, totalVolume, updatedAt: nowIso };
+  });
+  return { logs: out, changed: anyChanged };
 }
 
 // ── Main Estimation Function ────────────────────────────────────────────────

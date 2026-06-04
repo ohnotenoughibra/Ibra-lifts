@@ -79,7 +79,7 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
-import { isBodyweightLoadedExercise } from './weight-estimator';
+import { isBodyweightLoadedExercise, backfillBodyweightInLogs } from './weight-estimator';
 
 /**
  * Resolve the initial logged weight for a set. Prefers a real suggested/history
@@ -388,6 +388,10 @@ interface AppState {
   // Workout log editing
   updateWorkoutLog: (logId: string, updates: Partial<WorkoutLog>) => void;
   deleteWorkoutLog: (logId: string) => void;
+  /** One-time, idempotent backfill: set bodyweight on past bodyweight-loaded
+   *  sets (pull-up/dip/etc.) that were logged at weight 0, so historical
+   *  volume + 1RM count. Safe to call repeatedly. */
+  backfillBodyweightSets: () => void;
   addPastWorkout: (workout: {
     date: Date;
     exercises: ExerciseLog[];
@@ -3394,6 +3398,21 @@ export const useAppStore = create<AppState>()(
       deleteWorkoutLog: (logId) => {
         const { workoutLogs } = get();
         set({ workoutLogs: workoutLogs.map(log => log.id === logId ? { ...log, _deleted: true, _deletedAt: Date.now() } : log), _syncUrgent: true });
+      },
+
+      backfillBodyweightSets: () => {
+        const { workoutLogs, user } = get();
+        // Needs a known bodyweight; without it we can't backfill (re-runs later
+        // once the user has set their weight, since this is idempotent).
+        const { logs, changed } = backfillBodyweightInLogs(
+          workoutLogs,
+          user?.bodyWeightKg,
+          user?.weightUnit || 'lbs',
+          new Date().toISOString(),
+        );
+        if (changed) {
+          set({ workoutLogs: logs, _syncUrgent: true });
+        }
       },
 
       addPastWorkout: (workout) => {

@@ -284,6 +284,9 @@ export interface WorkoutLog {
     calories: number;
     zones?: { zone: number; minutes: number }[];
   };
+  /** Set when a log is mutated post-hoc (e.g. data migrations) so the cloud
+   *  union-merge prefers this version over an older server copy. */
+  updatedAt?: string;
   _deleted?: boolean;
   _deletedAt?: number;
 }

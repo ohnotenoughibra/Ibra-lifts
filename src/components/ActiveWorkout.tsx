@@ -73,15 +73,19 @@ const PLATE_COLORS: Record<number, string> = {
   15: 'bg-yellow-500', 10: 'bg-green-500', 5: 'bg-white', 2.5: 'bg-gray-400', 1.25: 'bg-gray-400',
 };
 
-function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
+function MiniPlateCalc({ weight, unit, singleSided = false }: { weight: number; unit: WeightUnit; singleSided?: boolean }) {
   const barWeight = unit === 'kg' ? 20 : 45;
   const plates = unit === 'kg' ? PLATES_KG : PLATES_LBS;
 
   if (weight <= barWeight) return null;
 
-  const perSide = (weight - barWeight) / 2;
+  // Landmine / single-end exercises load all plates onto ONE sleeve, so the
+  // working end carries the full plate weight (not half). Standard barbells
+  // split it across two sides.
+  const sides = singleSided ? 1 : 2;
+  const sideLoad = (weight - barWeight) / sides;
   const loaded: number[] = [];
-  let remaining = perSide;
+  let remaining = sideLoad;
   for (const plate of plates) {
     while (remaining >= plate - 0.001) {
       loaded.push(plate);
@@ -96,17 +100,22 @@ function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
     <div className="mt-3">
       {/* Visual barbell with plates */}
       <div className="flex items-center justify-center gap-0.5 mb-1.5">
-        <div className="flex items-center gap-0.5">
-          {[...loaded].reverse().map((p, i) => (
-            <div
-              key={i}
-              className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
-              style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
-              title={`${p} ${unit}`}
-            />
-          ))}
-        </div>
-        <div className="w-14 h-2.5 bg-grappler-500 rounded-full" />
+        {singleSided ? (
+          // Anchored pivot on the left, all plates on the working (right) end
+          <span className="w-3 h-3 rounded-full bg-grappler-600 mr-0.5" title="Floor anchor / pivot" />
+        ) : (
+          <div className="flex items-center gap-0.5">
+            {[...loaded].reverse().map((p, i) => (
+              <div
+                key={i}
+                className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
+                style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
+                title={`${p} ${unit}`}
+              />
+            ))}
+          </div>
+        )}
+        <div className={cn('h-2.5 bg-grappler-500 rounded-full', singleSided ? 'w-10' : 'w-14')} />
         <div className="flex items-center gap-0.5">
           {loaded.map((p, i) => (
             <div
@@ -121,11 +130,16 @@ function MiniPlateCalc({ weight, unit }: { weight: number; unit: WeightUnit }) {
       {/* Text breakdown */}
       <p className="text-center text-xs text-grappler-300 font-medium">
         <Dumbbell className="w-3 h-3 inline mr-1 text-grappler-400" />
-        {loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} {unit} each side
+        {loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} {unit} {singleSided ? 'on working end' : 'each side'}
       </p>
+      {singleSided && (
+        <p className="text-center text-[10px] text-grappler-500 mt-0.5">
+          Landmine — load one end only
+        </p>
+      )}
       {achievable && (
         <p className="text-center text-[10px] text-yellow-400 mt-0.5">
-          ~{(remaining * 2).toFixed(1)} {unit} off with standard plates
+          ~{(remaining * sides).toFixed(1)} {unit} off with standard plates
         </p>
       )}
     </div>
@@ -3719,9 +3733,14 @@ export default function ActiveWorkout() {
                   </button>
                 ))}
               </div>
-              {/* Plate breakdown — only shown for barbell exercises */}
+              {/* Plate breakdown — only shown for barbell exercises.
+                  Landmine variations load one end only (single-sided). */}
               {currentSet.weight > 0 && !isTimeBased && currentExercise.exercise.equipmentTypes?.includes('barbell') && (
-                <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
+                <MiniPlateCalc
+                  weight={currentSet.weight}
+                  unit={weightUnit}
+                  singleSided={currentExercise.exercise.equipmentTypes?.includes('landmine')}
+                />
               )}
             </div>
 

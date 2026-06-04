@@ -978,7 +978,13 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 if (user?.wearableUsage === 'whoop') {
                   updateUser({ wearableUsage: 'no_wearable', wearableProvider: undefined });
                 } else {
+                  // Launch the real Whoop OAuth flow — flipping the flag alone
+                  // never connected anything or pulled data.
                   updateUser({ wearableUsage: 'whoop', wearableProvider: 'whoop' });
+                  const isStandalone = typeof window !== 'undefined' &&
+                    (window.matchMedia?.('(display-mode: standalone)')?.matches ||
+                      (window.navigator as Navigator & { standalone?: boolean }).standalone === true);
+                  window.location.href = `/api/whoop/auth${isStandalone ? '?from=pwa' : ''}`;
                 }
               }}
               className={cn(

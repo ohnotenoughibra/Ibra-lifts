@@ -71,6 +71,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
   const [showRecoverySession, setShowRecoverySession] = useState(false);
   const [showSorenessFlow, setShowSorenessFlow] = useState(false);
   const addQuickLog = useAppStore(s => s.addQuickLog);
+  const addTrainingSession = useAppStore(s => s.addTrainingSession);
   const user = useAppStore(s => s.user);
 
   const handleSorenessLog = useCallback((areas: { area: SorenessArea; severity: SorenessSeverity }[]) => {
@@ -186,9 +187,20 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
           timestamp: new Date(),
           notes: selectedRoutine.name,
         });
+        // Also record as a recovery activity so it appears on the dashboard /
+        // training calendar (not just the wellness quick-log tile).
+        addTrainingSession({
+          date: new Date(),
+          category: 'recovery',
+          type: 'mobility',
+          plannedIntensity: 'light_flow',
+          duration: totalMin,
+          perceivedExertion: 2,
+          notes: selectedRoutine.name,
+        });
       }
     }
-  }, [selectedRoutine, currentExerciseIndex, currentSet, addQuickLog]);
+  }, [selectedRoutine, currentExerciseIndex, currentSet, addQuickLog, addTrainingSession]);
 
   // Skip to next exercise
   const skipExercise = useCallback(() => {
@@ -219,8 +231,18 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         timestamp: new Date(),
         notes: selectedRoutine.name,
       });
+      // Also record as a recovery activity (see note above).
+      addTrainingSession({
+        date: new Date(),
+        category: 'recovery',
+        type: 'mobility',
+        plannedIntensity: 'light_flow',
+        duration: totalMin,
+        perceivedExertion: 2,
+        notes: selectedRoutine.name,
+      });
     }
-  }, [selectedRoutine, currentExerciseIndex, addQuickLog]);
+  }, [selectedRoutine, currentExerciseIndex, addQuickLog, addTrainingSession]);
 
   // Timer countdown effect
   useEffect(() => {

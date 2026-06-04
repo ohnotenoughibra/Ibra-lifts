@@ -89,13 +89,17 @@ function computePlateBreakdown(
   targetWeight: number,
   barWeight: number,
   plates: number[],
+  singleSided = false,
 ): PlateBreakdown {
   const weightToLoad = targetWeight - barWeight;
   if (weightToLoad <= 0) {
     return { perSide: [], achievedWeight: barWeight, remainder: 0 };
   }
 
-  let perSideWeight = weightToLoad / 2;
+  // Single-sided (landmine, T-bar): all plates go on ONE sleeve, so the working
+  // end carries the full load. Standard bars split it across two sides.
+  const sides = singleSided ? 1 : 2;
+  let perSideWeight = weightToLoad / sides;
   const perSide: PlateCount[] = [];
 
   for (const plate of plates) {
@@ -109,15 +113,15 @@ function computePlateBreakdown(
   // Round remainder to avoid floating point issues
   const remainder = Math.round(perSideWeight * 100) / 100;
   const loadedPerSide = perSide.reduce((s, p) => s + p.plate * p.count, 0);
-  const achievedWeight = barWeight + loadedPerSide * 2;
+  const achievedWeight = barWeight + loadedPerSide * sides;
 
   return { perSide, achievedWeight, remainder };
 }
 
-/** Round a weight to the nearest achievable increment (smallest plate × 2). */
-function roundToPlateIncrement(weight: number, barWeight: number, unit: WeightUnit): number {
+/** Round a weight to the nearest achievable increment (smallest plate × sides). */
+function roundToPlateIncrement(weight: number, barWeight: number, unit: WeightUnit, singleSided = false): number {
   const smallest = unit === 'lbs' ? 2.5 : 1.25;
-  const increment = smallest * 2;
+  const increment = smallest * (singleSided ? 1 : 2);
   const aboveBar = weight - barWeight;
   if (aboveBar <= 0) return barWeight;
   return barWeight + Math.round(aboveBar / increment) * increment;
@@ -154,9 +158,11 @@ function PlateRect({ weight, unit }: { weight: number; unit: WeightUnit }) {
 function BarbellDiagram({
   breakdown,
   unit,
+  singleSided = false,
 }: {
   breakdown: PlateBreakdown;
   unit: WeightUnit;
+  singleSided?: boolean;
 }) {
   // Flatten plates for visual rendering (largest inside, smallest outside)
   const flatPlates: number[] = [];
@@ -170,6 +176,24 @@ function BarbellDiagram({
     return (
       <div className="flex items-center justify-center py-6">
         <div className="h-3 w-48 rounded-full bg-grappler-600" />
+      </div>
+    );
+  }
+
+  // Single-sided: anchored pivot on the left, all plates on the working end.
+  if (singleSided) {
+    return (
+      <div className="flex items-center justify-center gap-0 py-4 overflow-x-auto">
+        {/* Floor anchor / pivot */}
+        <div className="w-4 h-4 rounded-full bg-grappler-600 flex-shrink-0" title="Floor anchor / pivot" />
+        {/* Bar */}
+        <div className="h-3 w-16 sm:w-24 bg-grappler-500 rounded-full mx-1 flex-shrink-0" />
+        {/* Working-end plates */}
+        <div className="flex items-center gap-0.5">
+          {flatPlates.map((p, i) => (
+            <PlateRect key={`w-${i}`} weight={p} unit={unit} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -210,6 +234,8 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
   const [targetWeight, setTargetWeight] = useState<number>(barWeight);
   const [inputValue, setInputValue] = useState<string>(String(barWeight));
   const [showWarmup, setShowWarmup] = useState(false);
+  // Single-sided = landmine / T-bar setups where all plates load onto one end.
+  const [singleSided, setSingleSided] = useState(false);
 
   const plates = useMemo(() => getAvailablePlates(unit), [unit]);
   const quickAdds = unit === 'lbs' ? QUICK_ADD_LBS : QUICK_ADD_KG;
@@ -242,8 +268,8 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
 
   // Core calculation
   const breakdown = useMemo(
-    () => computePlateBreakdown(targetWeight, barWeight, plates),
-    [targetWeight, barWeight, plates],
+    () => computePlateBreakdown(targetWeight, barWeight, plates, singleSided),
+    [targetWeight, barWeight, plates, singleSided],
   );
 
   const isBelowBar = targetWeight < barWeight;
@@ -254,15 +280,15 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
     if (!showWarmup || isBelowBar) return [];
     return WARMUP_RAMP.map((step) => {
       const rawWeight = step.pct === 0 ? barWeight : targetWeight * step.pct;
-      const rounded = roundToPlateIncrement(rawWeight, barWeight, unit);
-      const stepBreakdown = computePlateBreakdown(rounded, barWeight, plates);
+      const rounded = roundToPlateIncrement(rawWeight, barWeight, unit, singleSided);
+      const stepBreakdown = computePlateBreakdown(rounded, barWeight, plates, singleSided);
       return {
         ...step,
         weight: stepBreakdown.achievedWeight,
         breakdown: stepBreakdown,
       };
     });
-  }, [showWarmup, targetWeight, barWeight, plates, unit, isBelowBar]);
+  }, [showWarmup, targetWeight, barWeight, plates, unit, isBelowBar, singleSided]);
 
   return (
     <motion.div
@@ -320,6 +346,21 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
               );
             })}
           </div>
+
+          {/* Single-sided (landmine / T-bar) toggle */}
+          <button
+            onClick={() => setSingleSided((v) => !v)}
+            aria-pressed={singleSided}
+            className={cn(
+              'w-full mt-1 rounded-xl py-2.5 px-3 text-sm font-medium transition-all border flex items-center justify-center gap-2',
+              singleSided
+                ? 'bg-orange-500/20 border-orange-500/60 text-orange-300'
+                : 'bg-grappler-900 border-grappler-800 text-grappler-300 hover:bg-grappler-800',
+            )}
+          >
+            <Dumbbell className="w-4 h-4" />
+            {singleSided ? 'Single-Sided: Landmine / T-Bar (load one end)' : 'Standard Bar (load both sides)'}
+          </button>
         </section>
 
         {/* ── Target Weight Input ─────────────────────────────────── */}
@@ -420,7 +461,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
             ) : (
               <>
                 {/* Barbell diagram */}
-                <BarbellDiagram breakdown={breakdown} unit={unit} />
+                <BarbellDiagram breakdown={breakdown} unit={unit} singleSided={singleSided} />
 
                 {/* Achieved weight notice */}
                 {hasRemainder && (
@@ -429,7 +470,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
                     <span>
                       Can&apos;t hit {targetWeight} {unit} exactly. Closest:{' '}
                       <span className="font-bold">{breakdown.achievedWeight} {unit}</span>{' '}
-                      (off by {Math.round(breakdown.remainder * 2 * 100) / 100} {unit})
+                      (off by {Math.round(breakdown.remainder * (singleSided ? 1 : 2) * 100) / 100} {unit})
                     </span>
                   </div>
                 )}
@@ -438,7 +479,7 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
                 {breakdown.perSide.length > 0 ? (
                   <div>
                     <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-2">
-                      Per Side
+                      {singleSided ? 'Working End (one side only)' : 'Per Side'}
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {breakdown.perSide.map(({ plate, count }) => {

@@ -126,6 +126,9 @@ function exerciseDisplay(ex: ConditioningExercise): string {
 
 export default function ConditioningSession({ onClose }: ConditioningSessionProps) {
   const user = useAppStore((s) => s.user);
+  const addTrainingSession = useAppStore((s) => s.addTrainingSession);
+  // Guards against double-saving the same completed session on re-render.
+  const savedRef = useRef(false);
   const bodyweightKg = user?.bodyWeightKg ?? 80;
 
   // ---- Mode & selection state ----
@@ -468,9 +471,31 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     };
   }, [clearTimerInterval, clearElapsedInterval]);
 
+  // Persist a completed conditioning session as a logged activity so it shows up
+  // on the dashboard / training calendar (conditioning was previously never saved).
+  useEffect(() => {
+    if (phase !== 'complete' || savedRef.current) return;
+    const tmpl = activeTemplate;
+    if (!tmpl) return;
+    savedRef.current = true;
+    const minutes = Math.max(1, Math.round(totalElapsed / 60));
+    const isAmrapType = tmpl.type === 'amrap';
+    addTrainingSession({
+      date: new Date(),
+      category: 'cardio',
+      type: 'other',
+      plannedIntensity: 'moderate',
+      duration: minutes,
+      rounds: isAmrapType ? amrapRounds : getTotalRounds(),
+      perceivedExertion: 7,
+      notes: `Conditioning · ${tmpl.name}`,
+    });
+  }, [phase, activeTemplate, totalElapsed, amrapRounds, getTotalRounds, addTrainingSession]);
+
   // ---- Start session ----
   const startSession = useCallback(() => {
     if (!activeTemplate) return;
+    savedRef.current = false;
     setMode('active');
     setPhase('warmup');
     setCurrentRound(1);

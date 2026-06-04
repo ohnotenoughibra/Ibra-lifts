@@ -20,6 +20,7 @@ import type {
   MealEntry,
   DietPhase,
 } from './types';
+import { safeDayKey } from './utils';
 
 // --- Types ---
 
@@ -76,7 +77,8 @@ function computeNutritionAdherence(
   // Group by date
   const byDate = new Map<string, { calories: number; protein: number }>();
   for (const meal of recentMeals) {
-    const dateKey = new Date(meal.date).toISOString().slice(0, 10);
+    const dateKey = safeDayKey(meal.date);
+    if (!dateKey) continue; // skip corrupt-date meals
     const existing = byDate.get(dateKey) ?? { calories: 0, protein: 0 };
     existing.calories += meal.calories;
     existing.protein += meal.protein;

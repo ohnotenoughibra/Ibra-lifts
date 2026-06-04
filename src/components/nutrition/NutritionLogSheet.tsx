@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { MealType } from '@/lib/types';
 import { PRESET_FOODS } from '@/lib/food-database';
-import { cn } from '@/lib/utils';
+import { cn, isValidDate } from '@/lib/utils';
 import type { useNutrition, AutocompleteItem } from '@/hooks/useNutrition';
 
 const BarcodeScanner = dynamic(() => import('@/components/BarcodeScanner'), { ssr: false });
@@ -97,8 +97,10 @@ export default function NutritionLogSheet({ nutrition, selectedDate }: Nutrition
 
   // Log a food item
   const logFood = useCallback((item: { name: string; calories: number; protein: number; carbs: number; fat: number; portion?: string }, mealType?: MealType) => {
+    const logDate = new Date(selectedDate + 'T12:00:00');
     addMeal({
-      date: new Date(selectedDate + 'T12:00:00'),
+      // Never write an Invalid Date if selectedDate is somehow malformed.
+      date: isValidDate(logDate) ? logDate : new Date(),
       mealType: mealType || autoMealType(),
       name: item.name,
       calories: item.calories,

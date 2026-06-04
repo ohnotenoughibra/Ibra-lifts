@@ -80,6 +80,7 @@ import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs } from './weight-estimator';
+import { safeDayKey, isValidDate } from './utils';
 
 /**
  * Resolve the initial logged weight for a set. Prefers a real suggested/history
@@ -1077,9 +1078,11 @@ export const useAppStore = create<AppState>()(
           const macros = intake.macrosPerServing;
           const servings = intake.servings;
           mealEntryId = uuidv4();
+          const intakeDate = new Date(`${intake.date}T${intake.time}`);
           const mealEntry = {
             id: mealEntryId,
-            date: new Date(`${intake.date}T${intake.time}`),
+            // Guard against malformed intake date/time — never store an Invalid Date.
+            date: isValidDate(intakeDate) ? intakeDate : new Date(),
             mealType: 'snack' as const,
             name: `${intake.name} (supplement)`,
             calories: Math.round(macros.calories * servings),
@@ -3938,10 +3941,7 @@ export const useAppStore = create<AppState>()(
 
         // Award wellness XP for nutrition logging
         const today = new Date().toISOString().split('T')[0];
-        const todayMeals = newMeals.filter(m => {
-          const mealDate = new Date(m.date).toISOString().split('T')[0];
-          return mealDate === today;
-        });
+        const todayMeals = newMeals.filter(m => safeDayKey(m.date) === today);
         const todayTotals = todayMeals.reduce((acc, m) => ({
           calories: acc.calories + (m.calories || 0),
           protein: acc.protein + (m.protein || 0),
@@ -4150,7 +4150,7 @@ export const useAppStore = create<AppState>()(
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
         const yesterdayMeals = meals.filter(
-          m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr
+          m => safeDayKey(m.date) === yesterdayStr
         );
         if (yesterdayMeals.length === 0) return;
         const newMeals = yesterdayMeals.map(m => ({

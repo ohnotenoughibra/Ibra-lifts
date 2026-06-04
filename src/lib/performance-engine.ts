@@ -32,6 +32,7 @@ import type {
   QuickLog,
 } from './types';
 import { getIllnessTrainingRecommendation } from './illness-engine';
+import { safeDayKey } from './utils';
 
 /** Filter out soft-deleted items from arrays before processing */
 function active<T>(arr: T[]): T[] {
@@ -263,10 +264,7 @@ function assessNutrition(
   yesterday.setDate(yesterday.getDate() - 1);
   const dateStr = yesterday.toISOString().split('T')[0];
 
-  const dayMeals = meals.filter(m => {
-    const mDate = new Date(m.date).toISOString().split('T')[0];
-    return mDate === dateStr;
-  });
+  const dayMeals = meals.filter(m => safeDayKey(m.date) === dateStr);
 
   if (dayMeals.length === 0 && targets.calories === 0) return base;
   if (dayMeals.length === 0) return base;

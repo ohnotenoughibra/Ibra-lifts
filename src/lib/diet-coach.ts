@@ -27,6 +27,7 @@ import {
   TrainingSession, WorkoutLog, OccupationType,
   EnergyAvailabilityResult, EnergyAvailabilityStatus,
 } from './types';
+import { safeDayKey } from './utils';
 
 // ── MET values for session calorie estimation ────────────────────────────────
 
@@ -642,9 +643,10 @@ export function analyzeWeightTrend(
   }
 
   const sorted = [...entries]
+    .filter(e => safeDayKey(e.date) !== null) // drop corrupt-date entries (don't crash)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map(e => ({
-      date: new Date(e.date).toISOString().split('T')[0],
+      date: safeDayKey(e.date) as string,
       weight: e.unit === 'lbs' ? e.weight * 0.453592 : e.weight,
     }));
 
@@ -810,10 +812,7 @@ export function calculateAdherence(
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
 
-    const mealsOnDay = meals.filter(m => {
-      const mDate = new Date(m.date).toISOString().split('T')[0];
-      return mDate === dateStr;
-    });
+    const mealsOnDay = meals.filter(m => safeDayKey(m.date) === dateStr);
 
     if (mealsOnDay.length >= 2) {
       daysLogged++;

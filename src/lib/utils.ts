@@ -6,6 +6,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// True if a date-ish value parses to a real date.
+export function isValidDate(d: Date | string | number | null | undefined): boolean {
+  if (d === null || d === undefined) return false;
+  const t = new Date(d as string | number | Date).getTime();
+  return !Number.isNaN(t);
+}
+
+// Safe YYYY-MM-DD key for a date-ish value. Returns null for invalid/missing
+// dates so callers can SKIP the record instead of throwing on .toISOString()
+// (a single corrupt date must never crash the whole app — local-first data).
+export function safeDayKey(d: Date | string | number | null | undefined): string | null {
+  if (d === null || d === undefined) return null;
+  const date = new Date(d as string | number | Date);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().split('T')[0];
+}
+
 // Format date for display
 export function formatDate(date: Date | string): string {
   const d = new Date(date);

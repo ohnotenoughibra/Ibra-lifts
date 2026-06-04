@@ -10,7 +10,7 @@ import {
   TrendingUp, Calendar, ChevronDown, ChevronUp,
   Flame, Beef, Wheat, Droplet,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, safeDayKey } from '@/lib/utils';
 import type { MealEntry, MacroTargets } from '@/lib/types';
 
 type TimeRange = '7d' | '14d' | '30d';
@@ -42,7 +42,7 @@ function aggregateDays(meals: MealEntry[], days: number): DailyTotals[] {
     const shortLabel = i === 0 ? 'Today' : i === 1 ? 'Yday' : d.toLocaleDateString('en-US', { weekday: 'short' });
 
     const dayMeals = meals.filter(
-      m => new Date(m.date).toISOString().split('T')[0] === key
+      m => safeDayKey(m.date) === key
     );
 
     result.push({
@@ -73,13 +73,13 @@ function aggregateWeeks(meals: MealEntry[], weeks: number): DailyTotals[] {
     const endKey = weekEnd.toISOString().split('T')[0];
 
     const weekMeals = meals.filter(m => {
-      const mKey = new Date(m.date).toISOString().split('T')[0];
-      return mKey >= startKey && mKey <= endKey;
+      const mKey = safeDayKey(m.date);
+      return mKey !== null && mKey >= startKey && mKey <= endKey;
     });
 
     // Count days with meals logged for accurate averaging
     const daysLogged = new Set(
-      weekMeals.map(m => new Date(m.date).toISOString().split('T')[0])
+      weekMeals.map(m => safeDayKey(m.date)).filter(Boolean)
     ).size;
     const divisor = Math.max(daysLogged, 1);
 

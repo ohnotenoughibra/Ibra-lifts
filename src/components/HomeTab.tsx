@@ -881,6 +881,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
   }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
 
+  // Reconcile contradictory coaching: when a deload is recommended, a
+  // "ride this wave / peak phase" PR message tells the user to keep pushing,
+  // which contradicts the deload card. PRs after weeks of overload are exactly
+  // when to consolidate — reframe the win so both cards point the same way.
+  const reconciledInsights = useMemo(() => {
+    if (!deloadRec.needed) return weeklyInsights;
+    return weeklyInsights.map(i =>
+      i.type === 'win' && /ride this wave|peak phase/i.test(i.text)
+        ? { ...i, text: `${synthesis.stats.prs} PR${synthesis.stats.prs !== 1 ? 's' : ''} this week — peak hit. Bank the gains with a deload this week.` }
+        : i
+    );
+  }, [weeklyInsights, deloadRec.needed, synthesis.stats.prs]);
+
   // ─── Female Athlete Intelligence ───
   const showCycle = shouldShowCycleFeatures(user);
   // cycleLogs now comes from store (added above)
@@ -2171,9 +2184,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
         const inlineCards: React.ReactNode[] = [];
 
-        // Weekly coaching insights — top 2
-        if (weeklyInsights.length > 0) {
-          weeklyInsights.slice(0, 2).forEach((insight, i) => {
+        // Weekly coaching insights — top 2 (deload-reconciled)
+        if (reconciledInsights.length > 0) {
+          reconciledInsights.slice(0, 2).forEach((insight, i) => {
             inlineCards.push(
               <div key={`inline-insight-${i}`} className={cn('rounded-xl px-3 py-2.5 border', INSIGHT_BG_INLINE[insight.color] || INSIGHT_BG_INLINE.primary)}>
                 <div className="flex items-start gap-2.5">

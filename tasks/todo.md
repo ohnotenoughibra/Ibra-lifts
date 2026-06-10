@@ -1,3 +1,40 @@
+# ACTIVE: Train Tab Rework — Today-First (2026-06-09)
+
+Goal: open Train → know what to do today in <1s → start in one tap. Mesocycle lifecycle
+(switch / continue / stop / queue / history) lives in ONE place. Ruthless de-cluttering.
+
+Foundation (done in prior session, keep as-is):
+- [x] types.ts: 'stopped' status
+- [x] store.ts: blockUndoStack + withBlockUndo wrappers + stopMesocycle/undoBlockAction
+- [x] BlockComposer.tsx: focus/weeks/days/wave composer with live preview
+
+Rework:
+- [x] ProgramExerciseCard.tsx (new): extract ExerciseCard from WorkoutView (swap/edit/remove)
+- [x] ScheduleSheet.tsx (new): bottom sheet with full block schedule — VolumeWave header,
+      weeks accordion (current week auto-open), session rows w/ start + done states,
+      exercise editing via ProgramExerciseCard, add/remove week controls
+- [x] BlockManagerSheet.tsx (new): single home for block lifecycle — current block
+      (Complete / Stop early, direct + undo toast, no confirm modals), queue (start now /
+      switch / remove), past blocks list w/ status badges → block report + delete confirm
+- [x] store.ts: switchToQueuedBlock() — stop current ('stopped', truthful) + advance
+      queue as ONE undo entry via depth guard
+- [x] WorkoutView.tsx rewrite (2,022 → 1,236 lines): Today hero (resume | done-today |
+      start | block-complete) → block strip (segmented week progress, tap = schedule) →
+      up-next queue row → one-line coach suggestion (≥60%, no queue) → Blocks/New Block.
+      DELETED: progress ring header, BlockTimeline, inline VolumeWave, week pills,
+      inline AICoachInsight, End Block modal, Explore Programs button.
+      KEPT: composer, emphasis picker (now overlay), migration dialog, blockFlash, undo toasts.
+- [x] Verify: build ✓, tsc (src clean) ✓, tests 545 pass (5 pre-existing fails in
+      subscription/gamification/injury — unrelated), browse walkthrough ✓
+      (onboard → hero → schedule sheet → manager → stop → undo → queue → switch)
+- [x] Update docs/map.md + src/components/CLAUDE.md
+
+Notes: "trained today" = workoutLog for current meso dated today. Resume card uses
+resumeWorkout() (Dashboard banner already exists; hero card is the in-tab affordance).
+Overlay entrances: opacity-only (no x/y transforms — sticky header containing-block bug).
+
+---
+
 # Roots Gains — First-Principles Audit & Vision
 
 ## Current App Scorecard

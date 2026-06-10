@@ -1041,7 +1041,7 @@ export default function Dashboard({
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <CardErrorBoundary fallbackLabel="Train tab">
-                      <WorkoutView onSwitchTab={setActiveTab} />
+                      <WorkoutView />
                     </CardErrorBoundary>
                     <div className="mt-6">
                       <ExploreTab onNavigate={setOverlayView} filterTab="train" />

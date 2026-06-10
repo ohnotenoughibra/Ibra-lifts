@@ -79,7 +79,7 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                `${Math.ceil(daysToCompetition / 7)}w to fight`}
             </span>
           )}
-          <span className="text-xs text-grappler-500">{history.length} block{history.length !== 1 ? 's' : ''} completed</span>
+          <span className="text-xs text-grappler-500">{history.length} past block{history.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
@@ -103,7 +103,9 @@ export function BlockTimeline({ history, current, suggestion, currentProgress, d
                 <div className={cn('w-5 h-5 rounded-md flex items-center justify-center', config.bg)}>
                   <Icon className={cn('w-3 h-3', config.color)} />
                 </div>
-                <Check className="w-3 h-3 text-green-400" />
+                {block.status === 'stopped'
+                  ? <span className="text-[9px] font-bold uppercase text-amber-400/80">Stopped</span>
+                  : <Check className="w-3 h-3 text-green-400" />}
               </div>
               <p className={cn('text-xs font-semibold truncate', config.color)}>{config.label}</p>
               <p className="text-xs text-grappler-500">{block.weeks.length}w · {totalSessions}s</p>

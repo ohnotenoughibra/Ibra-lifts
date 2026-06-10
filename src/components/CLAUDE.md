@@ -30,7 +30,11 @@
 - `ActiveWorkout.tsx` (~4,100) — Live workout execution (the big one)
 - `WorkoutBuilder.tsx` (~1,070) — Custom workout creation
 - `WorkoutHistory.tsx` (~1,060) — Past workout browser
-- `WorkoutView.tsx` (~1,280) — Workout detail view
+- `WorkoutView.tsx` (~1,240) — Train tab, today-first: Today hero (start/resume/done-today/block-complete), block strip, queue row, coach one-liner, composer + migration dialog
+- `ScheduleSheet.tsx` (~250) — Bottom sheet: full block schedule, volume wave, weeks accordion, session start, exercise editing, add/remove week
+- `BlockManagerSheet.tsx` (~560) — Bottom sheet: block lifecycle hub — complete/stop current (undoable), queue start/switch/remove, past-block reports + delete
+- `ProgramExerciseCard.tsx` (~290) — Program exercise row: swap with alternatives, inline prescription editor, form video, remove
+- `BlockComposer.tsx` (~280) — Block creation: focus/length/days/wave segmented controls, live volume-wave preview, Start/Queue CTAs
 - `SessionTemplates.tsx` (~1,540) — Save/load templates
 - `CircuitBuilder.tsx` (~1,340) — Circuit/EMOM builder
 - `ConditioningSession.tsx` (~1,160) — Conditioning workout logging

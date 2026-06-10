@@ -169,7 +169,7 @@ export interface Mesocycle {
   weeks: MesocycleWeek[];
   goalFocus: GoalFocus;
   splitType: SplitType;
-  status: 'active' | 'completed' | 'upcoming';
+  status: 'active' | 'completed' | 'upcoming' | 'stopped';
   volumeWarnings?: string[];
   createdAt: Date;
   updatedAt?: string; // ISO string — used by sync merge to prefer newer side

@@ -110,6 +110,18 @@ import { calculateCompositeWellnessScore } from './wellness-score';
 import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
 
+// Block-level undo: snapshot of everything a block action can touch.
+// Object references only (store state is immutable) — cheap to hold, never persisted.
+export interface BlockUndoEntry {
+  label: string;
+  at: number;
+  currentMesocycle: Mesocycle | null;
+  mesocycleHistory: Mesocycle[];
+  mesocycleQueue: PlannedMesocycle[];
+  workoutLogs: WorkoutLog[];
+  totalPoints: number;
+}
+
 interface AppState {
   // User state
   user: UserProfile | null;
@@ -126,6 +138,8 @@ interface AppState {
   currentMesocycle: Mesocycle | null;
   mesocycleHistory: Mesocycle[];
   mesocycleQueue: PlannedMesocycle[];
+  // Block undo stack — in-memory only (intentionally excluded from persist partialize)
+  blockUndoStack: BlockUndoEntry[];
 
   // Workout state
   activeWorkout: {
@@ -325,6 +339,8 @@ interface AppState {
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => void;
   completeMesocycle: () => void;
+  stopMesocycle: () => void;
+  undoBlockAction: () => string | null;
   undoValidateBlock: (mesocycleId: string) => boolean;
   deleteMesocycle: (mesocycleId: string) => void;
   addToMesocycleQueue: (block: Omit<PlannedMesocycle, 'id' | 'createdAt'>) => void;
@@ -332,6 +348,7 @@ interface AppState {
   removeFromMesocycleQueue: (id: string) => void;
   reorderMesocycleQueue: (fromIndex: number, toIndex: number) => void;
   advanceMesocycleQueue: () => void;
+  switchToQueuedBlock: () => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
   getCurrentMesocycleLogCount: () => number;
   getImportableWorkoutLogs: () => {
@@ -641,6 +658,36 @@ const initialGamificationStats: GamificationStats = {
   wellnessStats: defaultWellnessStats,
 };
 
+// Depth guard: completeMesocycle() calls advanceMesocycleQueue()/generateNewMesocycle()
+// internally — only the outermost block action snapshots, so one undo reverts the whole thing.
+let blockUndoDepth = 0;
+function withBlockUndo<T>(
+  label: string,
+  get: () => AppState,
+  set: (partial: Partial<AppState>) => void,
+  fn: () => T,
+): T {
+  if (blockUndoDepth === 0) {
+    const s = get();
+    const entry: BlockUndoEntry = {
+      label,
+      at: Date.now(),
+      currentMesocycle: s.currentMesocycle,
+      mesocycleHistory: s.mesocycleHistory,
+      mesocycleQueue: s.mesocycleQueue,
+      workoutLogs: s.workoutLogs,
+      totalPoints: s.gamificationStats.totalPoints,
+    };
+    set({ blockUndoStack: [...s.blockUndoStack.slice(-9), entry] });
+  }
+  blockUndoDepth++;
+  try {
+    return fn();
+  } finally {
+    blockUndoDepth--;
+  }
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -653,6 +700,7 @@ export const useAppStore = create<AppState>()(
       currentMesocycle: null,
       mesocycleHistory: [],
       mesocycleQueue: [],
+      blockUndoStack: [],
       activeWorkout: null,
       workoutMinimized: false,
       workoutLogs: [],
@@ -1244,7 +1292,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => withBlockUndo('New block created', get, set, () => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
         // Fall back to user's stored preference if no explicit duration passed
@@ -1325,9 +1373,9 @@ export const useAppStore = create<AppState>()(
         // Migration was the source of orphaned sessionId bugs: it moved logs to the new block
         // but couldn't reliably remap UUIDs, leaving ghost progress (header showed 2/12 but
         // week pills showed 0/2). Clean slate is correct: new block = fresh start.
-      },
+      }),
 
-      completeMesocycle: () => {
+      completeMesocycle: () => withBlockUndo('Block completed', get, set, () => {
         const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue } = get();
         if (!currentMesocycle) return;
 
@@ -1378,6 +1426,45 @@ export const useAppStore = create<AppState>()(
           }
         }
         get().checkAndAwardBadges();
+      }),
+
+      stopMesocycle: () => withBlockUndo('Block stopped', get, set, () => {
+        const { currentMesocycle, mesocycleHistory } = get();
+        if (!currentMesocycle) return;
+        // Unlike completeMesocycle: no XP bonus, no auto-generated successor.
+        // The user chose to stop — land them on the composer to decide what's next.
+        set({
+          mesocycleHistory: [
+            ...mesocycleHistory,
+            {
+              ...currentMesocycle,
+              status: 'stopped' as const,
+              endDate: new Date(),
+              updatedAt: new Date().toISOString(),
+            },
+          ],
+          currentMesocycle: null,
+          _syncUrgent: true,
+        });
+      }),
+
+      undoBlockAction: () => {
+        const { blockUndoStack, gamificationStats } = get();
+        const entry = blockUndoStack[blockUndoStack.length - 1];
+        if (!entry) return null;
+        set({
+          // Re-stamp updatedAt so sync merge prefers the restored state over the cloud copy
+          currentMesocycle: entry.currentMesocycle
+            ? { ...entry.currentMesocycle, updatedAt: new Date().toISOString() }
+            : null,
+          mesocycleHistory: entry.mesocycleHistory,
+          mesocycleQueue: entry.mesocycleQueue,
+          workoutLogs: entry.workoutLogs,
+          gamificationStats: { ...gamificationStats, totalPoints: entry.totalPoints },
+          blockUndoStack: blockUndoStack.slice(0, -1),
+          _syncUrgent: true,
+        });
+        return entry.label;
       },
 
       undoValidateBlock: (mesocycleId) => {
@@ -1401,7 +1488,7 @@ export const useAppStore = create<AppState>()(
         return true;
       },
 
-      deleteMesocycle: (mesocycleId) => {
+      deleteMesocycle: (mesocycleId) => withBlockUndo('Block deleted', get, set, () => {
         const { mesocycleHistory, workoutLogs, currentMesocycle } = get();
         const updates: Record<string, unknown> = {
           // Tombstone pattern — sync union merge honors _deleted flag
@@ -1417,7 +1504,7 @@ export const useAppStore = create<AppState>()(
           updates.currentMesocycle = null;
         }
         set(updates);
-      },
+      }),
 
       addToMesocycleQueue: (block) => {
         const { mesocycleQueue } = get();
@@ -1442,7 +1529,7 @@ export const useAppStore = create<AppState>()(
         set({ mesocycleQueue: updated });
       },
 
-      advanceMesocycleQueue: () => {
+      advanceMesocycleQueue: () => withBlockUndo('Queue advanced', get, set, () => {
         const { mesocycleQueue, user } = get();
         if (mesocycleQueue.length === 0 || !user) return;
         const next = mesocycleQueue[0];
@@ -1466,7 +1553,18 @@ export const useAppStore = create<AppState>()(
         } else {
           set({ mesocycleQueue: freshQueue.slice(1) });
         }
-      },
+      }),
+
+      switchToQueuedBlock: () => withBlockUndo('Switched block', get, set, () => {
+        // Stop (not complete) the current block, then start the next queued one.
+        // The depth guard collapses the nested actions into this single undo entry,
+        // and stopMesocycle archives with the truthful 'stopped' status — letting
+        // generateNewMesocycle archive it would mislabel an abandoned block 'completed'.
+        const { currentMesocycle, mesocycleQueue } = get();
+        if (mesocycleQueue.length === 0) return;
+        if (currentMesocycle) get().stopMesocycle();
+        get().advanceMesocycleQueue();
+      }),
 
       migrateWorkoutLogsToMesocycle: (fromMesocycleId, toMesocycleId) => {
         const { workoutLogs, currentMesocycle, mesocycleHistory } = get();
@@ -2152,7 +2250,7 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      addWeekToMesocycle: () => {
+      addWeekToMesocycle: () => withBlockUndo('Week added', get, set, () => {
         const { currentMesocycle, user } = get();
         if (!currentMesocycle || !user) return;
         if (currentMesocycle.weeks.length >= 12) return; // Hard cap
@@ -2225,9 +2323,9 @@ export const useAppStore = create<AppState>()(
             updatedAt: new Date().toISOString(),
           },
         });
-      },
+      }),
 
-      removeWeekFromMesocycle: (weekIndex) => {
+      removeWeekFromMesocycle: (weekIndex) => withBlockUndo('Week removed', get, set, () => {
         const { currentMesocycle } = get();
         if (!currentMesocycle) return;
         if (currentMesocycle.weeks.length <= 2) return; // Keep at least 2 weeks
@@ -2296,7 +2394,7 @@ export const useAppStore = create<AppState>()(
             updatedAt: new Date().toISOString(),
           },
         });
-      },
+      }),
 
       adaptWorkoutToProfile: (profile) => {
         const { activeWorkout, workoutLogs, homeGymEquipment } = get();

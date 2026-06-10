@@ -59,6 +59,8 @@ describe('FEATURE_GATES', () => {
   const FREE_FEATURES = [
     'workout-execution', 'single-mesocycle', 'basic-progress',
     'streaks-xp', '1rm-calculator', 'training-log', 'quick-log', 'basic-gamification',
+    // Basic meal logging and the Program Browser are free — diet coaching stays pro
+    'nutrition-tracking', 'block-suggestions',
   ];
   it.each(FREE_FEATURES)('%s is free', (feature) => {
     expect(FEATURE_GATES[feature]).toBe('free');
@@ -66,10 +68,10 @@ describe('FEATURE_GATES', () => {
 
   const PRO_FEATURES = [
     'full-history', 'multiple-mesocycles', 'advanced-analytics', 'ai-coach',
-    'wearable-integration', 'nutrition-tracking', 'diet-coaching', 'body-composition',
+    'wearable-integration', 'diet-coaching', 'body-composition',
     'competition-prep', 'injury-illness', 'cloud-sync', 'export-pdf',
     'custom-exercises', 'session-templates', 'grip-tracking', 'mobility-routines',
-    'strength-analysis', 'block-suggestions',
+    'strength-analysis',
   ];
   it.each(PRO_FEATURES)('%s is pro', (feature) => {
     expect(FEATURE_GATES[feature]).toBe('pro');
@@ -167,7 +169,7 @@ describe('hasFeatureAccess', () => {
   it('free tier cannot access pro features', () => {
     expect(hasFeatureAccess('ai-coach', 'free')).toBe(false);
     expect(hasFeatureAccess('cloud-sync', 'free')).toBe(false);
-    expect(hasFeatureAccess('nutrition-tracking', 'free')).toBe(false);
+    expect(hasFeatureAccess('diet-coaching', 'free')).toBe(false);
   });
 
   it('pro tier can access all features', () => {
@@ -176,9 +178,9 @@ describe('hasFeatureAccess', () => {
     expect(hasFeatureAccess('cloud-sync', 'pro')).toBe(true);
   });
 
-  it('unknown features default to allowed', () => {
-    expect(hasFeatureAccess('some-unknown-feature', 'free')).toBe(true);
-    expect(hasFeatureAccess('another-unknown', 'pro')).toBe(true);
+  it('unknown features default to denied', () => {
+    expect(hasFeatureAccess('some-unknown-feature', 'free')).toBe(false);
+    expect(hasFeatureAccess('another-unknown', 'pro')).toBe(false);
   });
 });
 

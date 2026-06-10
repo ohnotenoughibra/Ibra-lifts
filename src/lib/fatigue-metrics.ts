@@ -231,6 +231,18 @@ export function calculateEnhancedACWR(
 }
 
 /**
+ * Local-calendar date key (YYYY-MM-DD). A "training day" is the user's local
+ * day — keying by toISOString() (UTC) shifts every bucket for west-of-UTC
+ * users, so today's workout only appeared on the heatmap after ~8pm local.
+ */
+function localDateKey(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
  * 28-day rolling intensity heatmap.
  * Each day gets an intensity score (0-100) from combined volume × RPE.
  */
@@ -246,7 +258,7 @@ export function calculateIntensityHeatmap(
   // Pre-index logs by date string
   const logsByDate = new Map<string, WorkoutLog[]>();
   workoutLogs.forEach(log => {
-    const key = new Date(log.date).toISOString().split('T')[0];
+    const key = localDateKey(new Date(log.date));
     if (!logsByDate.has(key)) logsByDate.set(key, []);
     logsByDate.get(key)!.push(log);
   });
@@ -254,7 +266,7 @@ export function calculateIntensityHeatmap(
   const sessionsByDate = new Map<string, TrainingSession[]>();
   if (trainingSessions) {
     trainingSessions.forEach(s => {
-      const key = new Date(s.date).toISOString().split('T')[0];
+      const key = localDateKey(new Date(s.date));
       if (!sessionsByDate.has(key)) sessionsByDate.set(key, []);
       sessionsByDate.get(key)!.push(s);
     });
@@ -265,8 +277,11 @@ export function calculateIntensityHeatmap(
   const dayLoads: { date: string; load: number; sessions: number }[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * DAY_MS);
-    const key = d.toISOString().split('T')[0];
+    // Step by calendar day, not fixed 24h — a 24h stride duplicates or skips a
+    // local date across DST transitions
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = localDateKey(d);
     const dayLogs = logsByDate.get(key) || [];
     const daySessions = sessionsByDate.get(key) || [];
 

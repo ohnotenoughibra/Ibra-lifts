@@ -38,7 +38,7 @@ If offline: writes queue in localStorage + Background Sync API. Flushed on recon
 
 ### 2. State (`src/lib/store.ts`)
 
-Zustand store (~3700 lines) with localStorage persistence. See `src/lib/store.context.md` for structural map.
+Zustand store (~5,000 lines) with localStorage persistence. See `src/lib/store.context.md` for structural map.
 
 Key characteristics:
 - **Immediate persistence**: Every state change writes to localStorage

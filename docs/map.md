@@ -10,6 +10,11 @@ Living map of how the pieces connect. When you need to change something, look he
 |-------|------|---------|
 | Generator | `src/lib/workout-generator.ts` | Creates mesocycles (4-12 week periodized blocks) from user profile |
 | Auto-adjust | `src/lib/auto-adjust.ts` | Modifies next session's sets/reps/weight based on RPE feedback + wearable data |
+| Train tab | `src/components/WorkoutView.tsx` | Today-first: Today hero → block strip → queue row → coach line. Sheets one tap away |
+| Schedule | `src/components/ScheduleSheet.tsx` | Full block schedule sheet: weeks accordion, session start, exercise editing |
+| Block manager | `src/components/BlockManagerSheet.tsx` | Block lifecycle hub: complete/stop (undoable), queue switch/start, history reports |
+| Composer | `src/components/BlockComposer.tsx` | New block creation: focus/length/days/wave, live preview, Start/Queue |
+| Block undo | `src/lib/store.ts` `blockUndoStack` | In-memory snapshots; block actions (create/complete/stop/switch/delete/±week) are one-tap undoable |
 | Active session | `src/components/ActiveWorkout.tsx` | The workout execution UI (timer, set logging, swaps, supersets) |
 | Builder | `src/components/WorkoutBuilder.tsx` | Custom workout creation |
 | History | `src/components/WorkoutHistory.tsx` | Past workout browser |

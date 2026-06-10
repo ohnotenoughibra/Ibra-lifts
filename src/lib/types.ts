@@ -160,6 +160,12 @@ export interface MesocycleWeek {
   sessions: WorkoutSession[];
 }
 
+// Week bounds enforced by the store's addWeekToMesocycle/removeWeekFromMesocycle
+// guards AND the ScheduleSheet button visibility — single source so UI and store
+// can never disagree about when ±week is possible.
+export const MAX_BLOCK_WEEKS = 12;
+export const MIN_BLOCK_WEEKS = 2;
+
 export interface Mesocycle {
   id: string;
   userId: string;
@@ -169,7 +175,7 @@ export interface Mesocycle {
   weeks: MesocycleWeek[];
   goalFocus: GoalFocus;
   splitType: SplitType;
-  status: 'active' | 'completed' | 'upcoming';
+  status: 'active' | 'completed' | 'upcoming' | 'stopped';
   volumeWarnings?: string[];
   createdAt: Date;
   updatedAt?: string; // ISO string — used by sync merge to prefer newer side

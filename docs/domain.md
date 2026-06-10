@@ -7,11 +7,12 @@ The business rules and domain knowledge that power this app. When modifying trai
 ## Training Periodization
 
 ### Mesocycle
-A **mesocycle** is a 4-6 week training block with a specific focus (strength, hypertrophy, or power). The app generates mesocycles based on user profile:
+A **mesocycle** is a training block (typically 4-6 weeks; 2-12 supported via `MIN_BLOCK_WEEKS`/`MAX_BLOCK_WEEKS` in `types.ts`) with a specific focus (strength, hypertrophy, or power). The app generates mesocycles based on user profile:
 
 - **Goal focus**: Strength (3-5 reps, RPE 8-9.5), Hypertrophy (6-12 reps, RPE 7-9), Power (2-5 reps, RPE 6-8)
 - **Undulating periodization**: Within a week, sessions alternate types (e.g., 3 days/week = strength → hypertrophy → power)
 - **Progressive overload**: Volume increases week-over-week within the block, then deloads
+- **Lifecycle**: a block ends as `completed` (requires at least one logged workout — earns the +200 XP bonus and counts toward completion badges) or `stopped` (abandoned early, switched away from, or replaced — no XP, no badge credit). Honest status matters: only genuinely trained-and-finished blocks count as completions
 
 ### Volume Landmarks (per muscle group, weekly sets)
 Based on Renaissance Periodization / scientific literature:

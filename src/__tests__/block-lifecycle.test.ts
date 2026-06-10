@@ -29,7 +29,7 @@ function resetStore() {
     mesocycleQueue: [],
     workoutLogs: [],
     blockUndoStack: [],
-    gamificationStats: { ...s.gamificationStats, totalPoints: 0, badges: [] },
+    gamificationStats: { ...s.gamificationStats, totalPoints: 0, badges: [], level: 1 },
   });
 }
 
@@ -48,9 +48,10 @@ describe('stopMesocycle', () => {
   beforeEach(resetStore);
 
   it('archives the current block as stopped with no XP bonus (no-op without a block)', () => {
-    // Guard: no current block → state untouched
+    // Guard: no current block → state untouched AND no phantom undo entry
     useAppStore.getState().stopMesocycle();
     expect(useAppStore.getState().mesocycleHistory).toHaveLength(0);
+    expect(useAppStore.getState().blockUndoStack).toHaveLength(0);
 
     const meso = seedActiveBlock();
     useAppStore.getState().stopMesocycle();
@@ -88,12 +89,56 @@ describe('undoBlockAction', () => {
     expect(s.blockUndoStack).toHaveLength(0);
   });
 
-  it('caps the undo stack at 10 entries', () => {
-    seedActiveBlock();
-    for (let i = 0; i < 13; i++) {
+  it('caps the undo stack at exactly 10, evicting oldest first', () => {
+    const meso = seedActiveBlock();
+    // 4-week block: 8 real adds reach the 12-week cap; alternate remove/add to
+    // generate >10 real entries
+    for (let i = 0; i < 7; i++) {
       useAppStore.getState().addWeekToMesocycle();
+      useAppStore.getState().removeWeekFromMesocycle(meso.weeks.length - 1);
     }
-    expect(useAppStore.getState().blockUndoStack.length).toBeLessThanOrEqual(10);
+    const stack = useAppStore.getState().blockUndoStack;
+    expect(stack.length).toBe(10);
+    // Newest entry survives; eviction is oldest-first (timestamps ascend)
+    expect(stack[stack.length - 1].label).toBe('Week removed');
+    for (let i = 1; i < stack.length; i++) {
+      expect(stack[i].at).toBeGreaterThanOrEqual(stack[i - 1].at);
+    }
+  });
+
+  it('sequential undos pop in LIFO order and restore each intermediate state', () => {
+    seedActiveBlock(4);
+    const weeks0 = useAppStore.getState().currentMesocycle!.weeks.length;
+    useAppStore.getState().addWeekToMesocycle();
+    useAppStore.getState().addWeekToMesocycle();
+    expect(useAppStore.getState().currentMesocycle!.weeks.length).toBe(weeks0 + 2);
+
+    expect(useAppStore.getState().undoBlockAction()).toBe('Week added');
+    expect(useAppStore.getState().currentMesocycle!.weeks.length).toBe(weeks0 + 1);
+    expect(useAppStore.getState().undoBlockAction()).toBe('Week added');
+    expect(useAppStore.getState().currentMesocycle!.weeks.length).toBe(weeks0);
+    expect(useAppStore.getState().blockUndoStack).toHaveLength(0);
+  });
+
+  it('a stale entryId never pops a newer entry', () => {
+    seedActiveBlock(4);
+    useAppStore.getState().addWeekToMesocycle();
+    const firstId = useAppStore.getState().blockUndoStack.at(-1)!.id;
+    useAppStore.getState().addWeekToMesocycle();
+
+    // Undo bound to the OLDER entry must no-op — the top is a newer action
+    expect(useAppStore.getState().undoBlockAction(firstId)).toBeNull();
+    expect(useAppStore.getState().blockUndoStack).toHaveLength(2);
+  });
+
+  it('undoing the first-ever block creation restores currentMesocycle to null', () => {
+    expect(useAppStore.getState().currentMesocycle).toBeNull();
+    useAppStore.getState().generateNewMesocycle(4);
+    expect(useAppStore.getState().currentMesocycle).not.toBeNull();
+
+    const label = useAppStore.getState().undoBlockAction();
+    expect(label).toBe('New block created');
+    expect(useAppStore.getState().currentMesocycle).toBeNull();
   });
 });
 
@@ -124,18 +169,23 @@ describe('completeMesocycle (single undo entry via depth guard)', () => {
     const s = useAppStore.getState();
     expect(s.currentMesocycle?.id).toBe(meso.id);
     expect(s.mesocycleHistory).toHaveLength(0);
+    // Full gamification restore — badges awarded by the completion and the
+    // level bump must not survive as ghost state
     expect(s.gamificationStats.totalPoints).toBe(0);
+    expect(s.gamificationStats.badges).toHaveLength(0);
+    expect(s.gamificationStats.level).toBe(1);
   });
 });
 
 describe('switchToQueuedBlock', () => {
   beforeEach(resetStore);
 
-  it('is a no-op when the queue is empty', () => {
+  it('is a no-op when the queue is empty — and pushes no phantom undo entry', () => {
     const meso = seedActiveBlock();
     useAppStore.getState().switchToQueuedBlock();
     expect(useAppStore.getState().currentMesocycle?.id).toBe(meso.id);
     expect(useAppStore.getState().mesocycleHistory).toHaveLength(0);
+    expect(useAppStore.getState().blockUndoStack).toHaveLength(0);
   });
 
   it('stops the current block (status stopped, not completed) and starts the queued one as ONE undo entry', () => {
@@ -174,14 +224,77 @@ describe('deleteMesocycle undo', () => {
     useAppStore.getState().stopMesocycle();
     useAppStore.setState({ blockUndoStack: [] });
 
+    // Seed a log attributed to this block — delete must tombstone it too
+    useAppStore.setState({
+      workoutLogs: [{
+        id: 'log-1', userId: 'test-user', mesocycleId: meso.id, sessionId: 'session-x',
+        date: new Date().toISOString(), exercises: [], totalVolume: 0, duration: 30,
+        overallRPE: 7, energy: 3, soreness: 2, completed: true,
+      } as unknown as import('@/lib/types').WorkoutLog],
+    });
+
     useAppStore.getState().deleteMesocycle(meso.id);
     let s = useAppStore.getState();
     expect(s.mesocycleHistory.find(m => m.id === meso.id)?._deleted).toBe(true);
+    expect(s.workoutLogs[0]._deleted).toBe(true);
 
     const label = useAppStore.getState().undoBlockAction();
     expect(label).toBe('Block deleted');
     s = useAppStore.getState();
     expect(s.mesocycleHistory.find(m => m.id === meso.id)?._deleted).toBeFalsy();
+    expect(s.workoutLogs[0]._deleted).toBeFalsy();
+  });
+});
+
+describe('switchToQueuedBlock without a current block', () => {
+  beforeEach(resetStore);
+
+  it('starts the queued block without touching history', () => {
+    useAppStore.getState().addToMesocycleQueue({
+      name: 'Solo Queue Block', focus: 'strength', weeks: 4, sessionsPerWeek: 3,
+    });
+
+    useAppStore.getState().switchToQueuedBlock();
+
+    const s = useAppStore.getState();
+    expect(s.currentMesocycle).not.toBeNull();
+    expect(s.mesocycleQueue).toHaveLength(0);
+    expect(s.mesocycleHistory).toHaveLength(0);
+  });
+});
+
+describe('generateNewMesocycle over a live block', () => {
+  beforeEach(resetStore);
+
+  it("archives the replaced block as 'stopped', never 'completed'", () => {
+    const meso = seedActiveBlock();
+    useAppStore.getState().generateNewMesocycle(5);
+
+    const archived = useAppStore.getState().mesocycleHistory.find(m => m.id === meso.id);
+    expect(archived?.status).toBe('stopped');
+    expect(archived?.endDate).toBeInstanceOf(Date);
+  });
+});
+
+describe('insertExerciseIntoSession', () => {
+  beforeEach(resetStore);
+
+  it('re-inserts a removed exercise at its original index (remove → undo round-trip)', () => {
+    const meso = seedActiveBlock();
+    const session = meso.weeks[0].sessions[0];
+    if (session.exercises.length < 2) return; // generator should give multiple, guard anyway
+
+    const removed = session.exercises[1];
+    useAppStore.getState().removeExerciseFromSession(0, session.id, 1);
+    let exercises = useAppStore.getState().currentMesocycle!.weeks[0].sessions
+      .find(sn => sn.id === session.id)!.exercises;
+    expect(exercises.length).toBe(session.exercises.length - 1);
+
+    useAppStore.getState().insertExerciseIntoSession(0, session.id, 1, removed);
+    exercises = useAppStore.getState().currentMesocycle!.weeks[0].sessions
+      .find(sn => sn.id === session.id)!.exercises;
+    expect(exercises.length).toBe(session.exercises.length);
+    expect(exercises[1].exerciseId).toBe(removed.exerciseId);
   });
 });
 

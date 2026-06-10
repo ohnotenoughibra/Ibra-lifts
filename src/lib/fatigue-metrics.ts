@@ -277,7 +277,10 @@ export function calculateIntensityHeatmap(
   const dayLoads: { date: string; load: number; sessions: number }[] = [];
 
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * DAY_MS);
+    // Step by calendar day, not fixed 24h — a 24h stride duplicates or skips a
+    // local date across DST transitions
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
     const key = localDateKey(d);
     const dayLogs = logsByDate.get(key) || [];
     const daySessions = sessionsByDate.get(key) || [];

@@ -128,6 +128,9 @@ export interface BlockUndoEntry {
   // Full stats reference, not just totalPoints — completeMesocycle also awards
   // badges and bumps level via checkAndAwardBadges; undo must revert those too.
   gamificationStats: GamificationStats;
+  // Block actions also write goalFocus/sessionsPerWeek onto the profile; undo
+  // must revert them or the next auto-generated block uses the abandoned config.
+  user: UserProfile | null;
 }
 
 interface AppState {
@@ -690,6 +693,7 @@ function withBlockUndo<T>(
       mesocycleQueue: s.mesocycleQueue,
       workoutLogs: s.workoutLogs,
       gamificationStats: s.gamificationStats,
+      user: s.user,
     };
     set({ blockUndoStack: [...s.blockUndoStack.slice(-9), entry] });
   }
@@ -708,7 +712,8 @@ function withBlockUndo<T>(
         s.mesocycleHistory === entry.mesocycleHistory &&
         s.mesocycleQueue === entry.mesocycleQueue &&
         s.workoutLogs === entry.workoutLogs &&
-        s.gamificationStats === entry.gamificationStats;
+        s.gamificationStats === entry.gamificationStats &&
+        s.user === entry.user;
       if (unchanged) {
         set({ blockUndoStack: s.blockUndoStack.filter(e => e !== entry) });
       }
@@ -1415,13 +1420,19 @@ export const useAppStore = create<AppState>()(
       }),
 
       completeMesocycle: () => withBlockUndo('Block completed', get, set, () => {
-        const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue } = get();
+        const { currentMesocycle, mesocycleHistory, gamificationStats, mesocycleQueue, workoutLogs } = get();
         if (!currentMesocycle) return;
+
+        // Completing a block you never trained in is abandonment, not completion.
+        // Without this, Complete → auto-successor → Complete is a two-tap infinite
+        // +200 XP / completion-badge farm. Requiring one real logged workout ties
+        // the bonus to actual training.
+        const hasLoggedWork = workoutLogs.some(l => !l._deleted && l.mesocycleId === currentMesocycle.id);
 
         // Stamp actual completion date to prevent date-range overlap with next block
         const completedBlock = {
           ...currentMesocycle,
-          status: 'completed' as const,
+          status: hasLoggedWork ? ('completed' as const) : ('stopped' as const),
           endDate: new Date(),
         };
 
@@ -1438,7 +1449,8 @@ export const useAppStore = create<AppState>()(
           currentMesocycle: null,
           gamificationStats: {
             ...gamificationStats,
-            totalPoints: gamificationStats.totalPoints + 200 // Mesocycle completion bonus
+            // Mesocycle completion bonus — only for blocks with real logged work
+            totalPoints: gamificationStats.totalPoints + (hasLoggedWork ? 200 : 0)
           }
         });
 
@@ -1503,6 +1515,7 @@ export const useAppStore = create<AppState>()(
           mesocycleQueue: entry.mesocycleQueue,
           workoutLogs: entry.workoutLogs,
           gamificationStats: entry.gamificationStats,
+          user: entry.user,
           blockUndoStack: blockUndoStack.slice(0, -1),
           _syncUrgent: true,
         });
@@ -1532,6 +1545,12 @@ export const useAppStore = create<AppState>()(
 
       deleteMesocycle: (mesocycleId) => withBlockUndo('Block deleted', get, set, () => {
         const { mesocycleHistory, workoutLogs, currentMesocycle } = get();
+        // Unknown id → true no-op. Without this, .map() returns fresh arrays and
+        // the phantom-entry filter sees "changed" state, recording a bogus
+        // 'Block deleted' undo entry.
+        const knownBlock = currentMesocycle?.id === mesocycleId
+          || mesocycleHistory.some(m => m.id === mesocycleId);
+        if (!knownBlock) return;
         const updates: Record<string, unknown> = {
           // Tombstone pattern — sync union merge honors _deleted flag
           mesocycleHistory: mesocycleHistory.map(m =>
@@ -4540,6 +4559,10 @@ export const useAppStore = create<AppState>()(
           currentMesocycle: null,
           mesocycleHistory: [],
           mesocycleQueue: [],
+          // In-memory undo snapshots hold the previous account's mesocycle, logs
+          // and XP — surviving logout would let an undo restore (and _syncUrgent-
+          // push) user A's data into user B's account
+          blockUndoStack: [],
           activeWorkout: null,
           workoutMinimized: false,
           workoutLogs: [],

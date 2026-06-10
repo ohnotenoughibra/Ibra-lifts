@@ -29,7 +29,7 @@ Tier 3 (Hooks — import all previous)
 
 | File | Lines | Strategy |
 |------|-------|----------|
-| `store.ts` | ~3,700 | See `store.context.md` for structural map |
+| `store.ts` | ~5,000 | See `store.context.md` for structural map |
 | `exercises.ts` | ~4,600 | Static data. Access via exported filter functions |
 | `knowledge.ts` | ~5,500 | Static articles. Use `knowledge-engine.ts` to query |
 | `types.ts` | ~1,500 | Type definitions. Grep for specific interfaces |
@@ -56,8 +56,10 @@ Engines handle missing data by redistributing weights rather than failing:
 ### Fight Camp Detection
 `fight-camp-engine.ts` triggers when competition is within 70 days. This cascades to nutrition, training volume, supplement timing, and deload scheduling. When working on any feature that affects athletes near competition, check fight camp integration.
 
-### State Machine in Store
-Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` / `resumeWorkout()` → `completeWorkout()` → `null`. See `store.context.md` for details.
+### State Machines in Store
+Workout lifecycle: `null` → `startWorkout()` → active → `pauseWorkout()` / `resumeWorkout()` → `completeWorkout()` → `null`.
+
+Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥1 logged workout) or `stopped` (via `stopMesocycle`, `switchToQueuedBlock`, or replacing a live block). Every block action is wrapped in `withBlockUndo` and reversible via `undoBlockAction()`. See `store.context.md` for both.
 
 ## File Inventory by Category
 

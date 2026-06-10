@@ -71,8 +71,8 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 ## Architecture (Quick Reference)
 
 - **Framework**: Next.js 14 (App Router) at `src/app/`
-- **State**: Zustand store at `src/lib/store.ts` (~3700 lines — see `store.context.md`)
-- **Components**: `src/components/` — 89 files, ~63k lines total. Many > 1000 lines
+- **State**: Zustand store at `src/lib/store.ts` (~5,000 lines — see `store.context.md`)
+- **Components**: `src/components/` — ~110 files, ~70k lines total. Many > 1000 lines
 - **API Routes**: `src/app/api/` — auth, sync, subscriptions, whoop, workout, progress, ai-coach, push, google-fit
 - **Libraries**: `src/lib/` — ~70 pure-function engines. See `src/lib/CLAUDE.md`
 - **Database**: Vercel Postgres via `@vercel/postgres` — monolithic JSONB sync
@@ -87,7 +87,7 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 | File | Lines | Context file |
 |------|-------|-------------|
 | `src/lib/exercises.ts` | ~4,600 | None (static data — use filter functions) |
-| `src/lib/store.ts` | ~3,700 | `src/lib/store.context.md` |
+| `src/lib/store.ts` | ~5,000 | `src/lib/store.context.md` |
 | `src/lib/knowledge.ts` | ~5,500 | None (static articles — use knowledge-engine) |
 | `src/components/ActiveWorkout.tsx` | ~4,100 | `src/components/ActiveWorkout.context.md` |
 | `src/components/NutritionTracker.tsx` | ~2,500 | None |
@@ -100,7 +100,7 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 npm run dev          # Start dev server
 npm run build        # Production build
 npm run lint         # ESLint
-npm test             # Vitest tests (484 tests)
+npm test             # Vitest tests (572 tests)
 ```
 
 ## Key Dependencies (New)

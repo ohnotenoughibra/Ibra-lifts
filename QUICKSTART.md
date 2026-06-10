@@ -167,7 +167,7 @@ All app state lives in a single Zustand store (`src/lib/store.ts`). Key slices:
 
 **Core tabs** (always loaded):
 - `Dashboard.tsx` — Main shell, tab navigation, floating action button
-- `WorkoutView.tsx` — Program overview, session selection, mesocycle management
+- `WorkoutView.tsx` — Train tab: today's session hero, block progress strip, queued blocks. Opens `ScheduleSheet.tsx` (full schedule + exercise editing), `BlockManagerSheet.tsx` (complete/stop/switch blocks, history), and `BlockComposer.tsx` (new block creation)
 - `ProgressCharts.tsx` — Analytics, 1RM trends, volume analysis
 - `WorkoutHistory.tsx` — Past workout log list
 - `TrainingCalendar.tsx` — Calendar view with inline workout editing

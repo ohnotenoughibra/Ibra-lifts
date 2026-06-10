@@ -69,7 +69,7 @@ src/
   components/         # 38 React components
     Dashboard.tsx     # Main shell, tab routing, FAB
     ActiveWorkout.tsx # Live workout tracker
-    WorkoutView.tsx   # Program overview + session picker
+    WorkoutView.tsx   # Train tab: today's session + block management
     TrainingCalendar.tsx  # Calendar with inline editing
     Onboarding.tsx    # First-run setup flow
     ...               # See QUICKSTART.md for full list

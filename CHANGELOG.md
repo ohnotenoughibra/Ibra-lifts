@@ -25,6 +25,7 @@ The old Train tab stacked eight widgets above today's workout. The rework puts t
 - **The intensity heatmap put workouts on the wrong day** for anyone west of UTC (today's session only appeared after ~8pm). Days are now keyed to your local calendar, including across DST changes.
 - **The Train tab re-rendered on every store update** (any meal log, any sync) due to a selector bug — now it only re-renders when its own data changes. Block reports and exercise alternatives are also no longer recomputed on every render.
 - **"Last performance" hints no longer show weights from sets you skipped.**
+- **Injury-aware workouts could occasionally include lunges for a knee injury** — the avoid-list matcher missed singular/variant exercise names. All lunge variants are now excluded for knee regions.
 - Deleted workouts no longer count toward session completion or "done for today".
 - Weekly challenge and subscription test expectations aligned with current product behavior (meal logging and the program browser are free).
 

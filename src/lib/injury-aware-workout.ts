@@ -154,8 +154,11 @@ const REGION_AVOID_SETS: Record<BodyRegion, Set<string>> = (() => {
 function regionAvoidNamePattern(region: BodyRegion): RegExp {
   const ids = REGION_AVOID_EXERCISES[region] ?? [];
   if (ids.length === 0) return /(?!.*)/; // matches nothing
-  // Convert exercise-id-style 'leg-extension' → 'leg[-_ ]?extension' for fuzzy name matching
-  const patterns = ids.map(id => id.replace(/-/g, '[-_ ]?'));
+  // Convert exercise-id-style 'leg-extension' → 'leg[-_ ]?extension' for fuzzy
+  // matching. Strip a trailing plural so 'lunges' also catches 'reverse-lunge'
+  // and 'Bodyweight Lunge' — the DB mixes singular and plural forms, and a miss
+  // here means programming knee work for a knee-injured athlete.
+  const patterns = ids.map(id => id.replace(/s$/, '').replace(/-/g, '[-_ ]?'));
   return new RegExp(patterns.join('|'), 'i');
 }
 
@@ -196,7 +199,11 @@ function buildSafePool(opts: InjuryAwareWorkoutOptions): { safe: Exercise[]; exc
 
   const inAvoidedRegion = (ex: Exercise) =>
     opts.bodyRegions.some(r =>
-      REGION_AVOID_SETS[r].has(ex.id) || REGION_AVOID_NAME_PATTERN[r].test(ex.name)
+      REGION_AVOID_SETS[r].has(ex.id)
+        // Pattern-match ids too — 'reverse-lunge' must be caught even when the
+        // avoid list only carries the generic 'lunges' entry
+        || REGION_AVOID_NAME_PATTERN[r].test(ex.name)
+        || REGION_AVOID_NAME_PATTERN[r].test(ex.id)
     );
 
   const safe = allAvailable.filter((ex: Exercise) => !violatesConstraint(ex) && !inAvoidedRegion(ex));

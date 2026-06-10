@@ -570,7 +570,10 @@ describe('generateWeeklyChallenge', () => {
 
   it('has a valid weekStart (Monday)', () => {
     const challenge = generateWeeklyChallenge('combat', emptyStats);
-    const date = new Date(challenge.weekStart);
+    // weekStart is a LOCAL date string (YYYY-MM-DD). Bare new Date('YYYY-MM-DD')
+    // parses as UTC midnight, which lands on Sunday in timezones behind UTC —
+    // append T00:00:00 to force local-time parsing before checking the weekday.
+    const date = new Date(`${challenge.weekStart}T00:00:00`);
     // getDay(): 0=Sun, 1=Mon
     expect(date.getDay()).toBe(1);
   });

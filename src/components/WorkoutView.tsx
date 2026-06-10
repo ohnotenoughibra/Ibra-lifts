@@ -27,7 +27,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WorkoutType, MuscleGroupConfig, MuscleEmphasis, SessionsPerWeek } from '@/lib/types';
+import { MuscleGroupConfig, MuscleEmphasis, SessionsPerWeek, GoalFocus } from '@/lib/types';
 import { fireConfetti } from '@/lib/confetti';
 import { suggestNextBlock, getBlockSuggestionSummary } from '@/lib/block-suggestion';
 import BlockComposer, { BlockConfig, FOCUS_QUEUE_LABELS } from './BlockComposer';
@@ -159,14 +159,13 @@ export default function WorkoutView() {
   // a newer, unrelated action off the stack
   const [blockToast, setBlockToast] = useState<{ label: string; entryId?: number } | null>(null);
 
-  // Confetti on block completion — once per block, re-armed when a new block starts
-  const confettiFiredRef = useRef(false);
+  // Confetti only on the TRANSITION to 100% — not on remounting the tab while a
+  // finished block sits at 100% (Dashboard remounts this view on every tab switch)
+  const prevPercentRef = useRef<number | null>(null);
   useEffect(() => {
-    confettiFiredRef.current = false;
-  }, [currentMesocycle?.id]);
-  useEffect(() => {
-    if (progressStats.percentage >= 100 && !confettiFiredRef.current) {
-      confettiFiredRef.current = true;
+    const prev = prevPercentRef.current;
+    prevPercentRef.current = progressStats.percentage;
+    if (prev !== null && prev < 100 && progressStats.percentage >= 100) {
       setTimeout(() => fireConfetti(), 300);
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate([100, 50, 100, 50, 200]);
@@ -187,13 +186,19 @@ export default function WorkoutView() {
     return () => clearTimeout(timer);
   }, [blockToast]);
 
-  // Show the undo toast bound to the entry the action just pushed
+  // Show the undo toast bound to the entry the action just pushed. If the action
+  // was a guarded no-op the phantom entry was discarded — the top of the stack is
+  // an OLDER action whose label won't match, and we must not offer an undo for it.
   const showBlockActionToast = (label: string) => {
     const top = useAppStore.getState().blockUndoStack.at(-1);
-    setBlockToast({ label, entryId: top?.id });
+    if (top && top.label === label && Date.now() - top.at < 5000) {
+      setBlockToast({ label, entryId: top.id });
+    }
   };
 
   const handleUndoBlockAction = (entryId?: number) => {
+    // Never pop blind — an unbound undo could revert an unrelated action
+    if (entryId === undefined) { setBlockToast(null); return; }
     const label = undoBlockAction(entryId);
     setBlockToast(null);
     if (label) showToast(`Undone: ${label}`, 'success');
@@ -201,7 +206,7 @@ export default function WorkoutView() {
 
   // --- Migration dialog state (kept verbatim — protects workout logs on regeneration) ---
   const [showMigrateDialog, setShowMigrateDialog] = useState(false);
-  const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek; periodization?: 'linear' | 'undulating' | 'block' | 'conjugate' } | null>(null);
+  const [pendingGeneration, setPendingGeneration] = useState<{ weeks: number; sessionMinutes?: number; sessionsPerWeek?: SessionsPerWeek; periodization?: 'linear' | 'undulating' | 'block' | 'conjugate'; focus?: GoalFocus } | null>(null);
   const [previousMesocycleId, setPreviousMesocycleId] = useState<string | null>(null);
 
   // New block created modal — shows overview after generation
@@ -211,6 +216,24 @@ export default function WorkoutView() {
     firstSessionName: string | null; deloadSkipped: boolean;
     entryId?: number; // pins the modal's Undo to the generation's own undo entry
   } | null>(null);
+
+  // Escape closes WorkoutView-owned modals. The backdrops' onKeyDown only fires
+  // when focus is inside the dialog; a document listener works regardless.
+  useEffect(() => {
+    if (!blockFlash && !showMigrateDialog) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showMigrateDialog) {
+        setShowMigrateDialog(false);
+        setPendingGeneration(null);
+        setPreviousMesocycleId(null);
+      } else {
+        setBlockFlash(null);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [blockFlash, showMigrateDialog]);
 
   // Counts feed the migrate dialog's type tiles (strength/hypertrophy/power) + total
   const getWorkoutBreakdown = () => {
@@ -240,7 +263,10 @@ export default function WorkoutView() {
     setTimeout(() => {
       const state = useAppStore.getState();
       const meso = state.currentMesocycle;
-      const entryId = state.blockUndoStack.at(-1)?.id;
+      // Bind the modal's Undo only to a freshly pushed entry (the generation
+      // that opened this flash) — never to stale stack history
+      const top = state.blockUndoStack.at(-1);
+      const entryId = top && Date.now() - top.at < 5000 ? top.id : undefined;
       if (meso) {
         const totalSessions = meso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
         const deloadWeek = meso.weeks.find(w => w.isDeload);
@@ -262,7 +288,7 @@ export default function WorkoutView() {
     }, 100);
   };
 
-  const handleGenerateWithMigrationCheck = (weeks: number, mins?: number, sessionsPerWeek?: SessionsPerWeek, periodization?: 'linear' | 'undulating' | 'block' | 'conjugate') => {
+  const handleGenerateWithMigrationCheck = (weeks: number, mins?: number, sessionsPerWeek?: SessionsPerWeek, periodization?: 'linear' | 'undulating' | 'block' | 'conjugate', focus?: GoalFocus) => {
     const state = useAppStore.getState();
     const currentLogCount = state.getCurrentMesocycleLogCount();
     const importable = state.getImportableWorkoutLogs();
@@ -272,11 +298,16 @@ export default function WorkoutView() {
 
     if (hasWorkoutsToMigrate) {
       setPreviousMesocycleId(activeMesocycle?.id || null);
-      setPendingGeneration({ weeks, sessionMinutes: mins, sessionsPerWeek, periodization });
+      setPendingGeneration({ weeks, sessionMinutes: mins, sessionsPerWeek, periodization, focus });
       setShowMigrateDialog(true);
     } else {
-      if (sessionsPerWeek && user) {
-        useAppStore.getState().updateUserFields({ sessionsPerWeek });
+      // Profile writes happen HERE, with the generation — never before the
+      // migration dialog, so cancelling it leaves the profile untouched
+      if ((sessionsPerWeek || focus) && user) {
+        useAppStore.getState().updateUserFields({
+          ...(sessionsPerWeek ? { sessionsPerWeek } : {}),
+          ...(focus ? { goalFocus: focus } : {}),
+        });
       }
       generateNewMesocycle(weeks, mins, periodization);
       showBlockCreatedFlash();
@@ -286,15 +317,18 @@ export default function WorkoutView() {
   const handleMigrateResponse = (shouldMigrate: boolean, importFromHistory: boolean = false) => {
     if (!pendingGeneration) return;
 
-    const { weeks, sessionMinutes: mins, sessionsPerWeek, periodization } = pendingGeneration;
+    const { weeks, sessionMinutes: mins, sessionsPerWeek, periodization, focus } = pendingGeneration;
     const oldMesocycleId = previousMesocycleId;
 
     const importableLogs = importFromHistory
       ? useAppStore.getState().getImportableWorkoutLogs().importable
       : [];
 
-    if (sessionsPerWeek && user) {
-      useAppStore.getState().updateUserFields({ sessionsPerWeek });
+    if ((sessionsPerWeek || focus) && user) {
+      useAppStore.getState().updateUserFields({
+        ...(sessionsPerWeek ? { sessionsPerWeek } : {}),
+        ...(focus ? { goalFocus: focus } : {}),
+      });
     }
 
     generateNewMesocycle(weeks, mins, periodization);
@@ -358,13 +392,10 @@ export default function WorkoutView() {
 
   // Block Composer handlers — shared by the empty state and the in-block sheet
   const handleComposerStart = (cfg: BlockConfig) => {
-    const state = useAppStore.getState();
-    if (state.user) {
-      // goalFocus only — sessionsPerWeek is written by the generation path itself
-      state.updateUserFields({ goalFocus: cfg.focus });
-    }
     setShowComposer(false);
-    handleGenerateWithMigrationCheck(cfg.weeks, cfg.sessionMinutes || undefined, cfg.days, cfg.periodization);
+    // goalFocus/sessionsPerWeek are written by the generation path itself, so a
+    // cancelled migration dialog never leaves a half-applied profile
+    handleGenerateWithMigrationCheck(cfg.weeks, cfg.sessionMinutes || undefined, cfg.days, cfg.periodization, cfg.focus);
   };
 
   const handleComposerQueue = (cfg: BlockConfig) => {
@@ -846,18 +877,20 @@ export default function WorkoutView() {
                 >
                   {blockFlash!.firstSessionName ? `Start with ${blockFlash!.firstSessionName}` : 'View Program'}
                 </button>
-                <button
-                  onClick={() => {
-                    const entryId = blockFlash?.entryId;
-                    setBlockFlash(null);
-                    handleUndoBlockAction(entryId);
-                  }}
-                  className="w-full py-2 rounded-xl text-grappler-400 hover:text-grappler-200 text-xs font-medium flex items-center justify-center gap-1.5"
-                  data-tight
-                >
-                  <Undo2 className="w-3.5 h-3.5" />
-                  Undo — bring my old block back
-                </button>
+                {blockFlash!.entryId !== undefined && (
+                  <button
+                    onClick={() => {
+                      const entryId = blockFlash?.entryId;
+                      setBlockFlash(null);
+                      handleUndoBlockAction(entryId);
+                    }}
+                    className="w-full py-2 rounded-xl text-grappler-400 hover:text-grappler-200 text-xs font-medium flex items-center justify-center gap-1.5"
+                    data-tight
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    Undo — bring my old block back
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -1088,6 +1121,14 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
   const [localConfig, setLocalConfig] = useState<MuscleGroupConfig>(
     config || { ...DEFAULT_MUSCLE_CONFIG }
   );
+
+  // Escape closes the picker — document-level because the backdrop's onKeyDown
+  // only fires when focus already sits inside the dialog
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const cycleEmphasis = (muscle: keyof MuscleGroupConfig) => {
     const current = localConfig[muscle];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -59,6 +59,22 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
 
   const [viewingBlock, setViewingBlock] = useState<Mesocycle | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Backdrop onKeyDown only fires when focus is inside the sheet — a document
+  // listener makes Escape work no matter where focus sits
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (viewingBlock) {
+        setViewingBlock(null);
+        setConfirmDelete(false);
+      } else {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [viewingBlock, onClose]);
 
   // Newest first — the block you just finished is the one you want to see
   const sortedHistory = useMemo(
@@ -173,7 +189,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                     </button>
                   </div>
                   <p className="text-[11px] text-grappler-500 text-center">
-                    Complete counts as finished (+200 XP). Both are undoable — your logs always stay.
+                    Complete counts as finished (+200 XP once a workout is logged). Both are undoable — your logs always stay.
                   </p>
                 </div>
               ) : (

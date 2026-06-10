@@ -43,10 +43,10 @@ export const WORKOUT_TYPE_UI: Record<WorkoutType, WorkoutTypeUI> = {
   strength_endurance: {
     icon: Target,
     color: 'text-amber-400 bg-amber-500/10',
-    heroBg: 'from-purple-500/20 to-purple-900/10 border-purple-500/30',
-    intensity: 'Moderate',
-    intensityColor: 'text-purple-400',
-    intensityBg: 'bg-purple-500/15',
+    heroBg: 'from-amber-500/20 to-amber-900/10 border-amber-500/30',
+    intensity: 'Endurance',
+    intensityColor: 'text-amber-400',
+    intensityBg: 'bg-amber-500/15',
   },
 };
 

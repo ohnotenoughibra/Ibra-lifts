@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Heart, Flame, Target, Play, ListPlus, SlidersHorizontal, X, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -107,6 +107,15 @@ export default function BlockComposer({
     () => ({ focus, weeks, days, periodization, sessionMinutes }),
     [focus, weeks, days, periodization, sessionMinutes]
   );
+
+  // Escape closes the sheet — document-level because the backdrop's onKeyDown
+  // only fires when focus already sits inside the dialog
+  useEffect(() => {
+    if (mode !== 'sheet' || !onClose) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mode, onClose]);
   const totalSessions = weeks * days;
   const waveDesc = WAVE_OPTIONS.find(w => w.value === periodization)?.desc;
 

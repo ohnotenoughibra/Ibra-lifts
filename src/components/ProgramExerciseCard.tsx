@@ -43,11 +43,14 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
     const map = new Map<string, { weight: number; reps: number; rpe: number; date: Date }>();
     for (let i = workoutLogs.length - 1; i >= 0; i--) {
       const log = workoutLogs[i];
+      if (log._deleted) continue;
       for (const found of log.exercises) {
-        if (map.has(found.exerciseId) || found.sets.length === 0) continue;
-        const bestSet = found.sets
-          .filter(s => s.completed)
-          .reduce((best, s) => (s.weight > best.weight ? s : best), found.sets[0]);
+        if (map.has(found.exerciseId)) continue;
+        // Only COMPLETED sets count as performance — an all-skipped exercise must
+        // neither show as "Last: X" nor shadow an older log with real work
+        const completedSets = found.sets.filter(s => s.completed);
+        if (completedSets.length === 0) continue;
+        const bestSet = completedSets.reduce((best, s) => (s.weight > best.weight ? s : best), completedSets[0]);
         map.set(found.exerciseId, { weight: bestSet.weight, reps: bestSet.reps, rpe: bestSet.rpe || 0, date: new Date(log.date) });
       }
     }

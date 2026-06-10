@@ -46,6 +46,14 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
     return () => clearTimeout(timer);
   }, [removedExercise]);
 
+  // Backdrop onKeyDown only fires when focus is inside the sheet — a document
+  // listener makes Escape work no matter where focus sits
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const handleRemoveExercise = (weekIndex: number, sessionId: string, index: number, exercise: ExercisePrescription) => {
     removeExerciseFromSession(weekIndex, sessionId, index);
     setRemovedExercise({ weekIndex, sessionId, index, exercise });
@@ -125,9 +133,12 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
             />
           )}
 
-          {/* Weeks accordion */}
+          {/* Weeks accordion — display order is sorted, but store mutations and the
+              currentWeekIndex comparison key off the RAW array index. If a sync
+              merge ever de-sorts the weeks array, edits still land in the right week. */}
           <div className="space-y-2">
-            {sortedWeeks.map((week, weekIndex) => {
+            {sortedWeeks.map((week) => {
+              const weekIndex = mesocycle.weeks.indexOf(week);
               const completedCount = week.sessions.filter(s => completedSessionIds.has(s.id)).length;
               const allDone = completedCount === week.sessions.length && week.sessions.length > 0;
               const isOpen = openWeek === weekIndex;

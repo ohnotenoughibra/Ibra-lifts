@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Mesocycle } from '@/lib/types';
 import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mesocycle-report';
+import { useToast } from './Toast';
 
 interface BlockManagerSheetProps {
   progress: { total: number; completed: number; percentage: number };
@@ -28,16 +29,19 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 
 export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlockAction }: BlockManagerSheetProps) {
   const {
-    currentMesocycle, mesocycleHistory, mesocycleQueue, workoutLogs, user,
+    currentMesocycle, rawMesocycleHistory, mesocycleQueue, rawWorkoutLogs, user, activeWorkout,
     completeMesocycle, stopMesocycle, advanceMesocycleQueue, switchToQueuedBlock,
     removeFromMesocycleQueue, deleteMesocycle,
   } = useAppStore(
+    // Stable references only — a .filter() inside the selector defeats useShallow
+    // and re-renders the open sheet on every store update
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle,
-      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted),
+      rawMesocycleHistory: s.mesocycleHistory,
       mesocycleQueue: s.mesocycleQueue,
-      workoutLogs: s.workoutLogs,
+      rawWorkoutLogs: s.workoutLogs,
       user: s.user,
+      activeWorkout: s.activeWorkout,
       completeMesocycle: s.completeMesocycle,
       stopMesocycle: s.stopMesocycle,
       advanceMesocycleQueue: s.advanceMesocycleQueue,
@@ -46,15 +50,33 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
       deleteMesocycle: s.deleteMesocycle,
     }))
   );
+  const { showToast } = useToast();
+
+  const workoutLogs = useMemo(
+    () => rawWorkoutLogs.filter(l => !l._deleted),
+    [rawWorkoutLogs]
+  );
 
   const [viewingBlock, setViewingBlock] = useState<Mesocycle | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Newest first — the block you just finished is the one you want to see
   const sortedHistory = useMemo(
-    () => [...mesocycleHistory].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    [mesocycleHistory]
+    () => rawMesocycleHistory.filter(m => !m._deleted)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [rawMesocycleHistory]
   );
+
+  // Archiving the block out from under a live workout skews its report
+  // (the eventual log lands on an already-archived block) — same guard
+  // pattern startWorkout uses for double-starting
+  const guardActiveWorkout = () => {
+    if (activeWorkout) {
+      showToast('Finish your current workout first', 'warning');
+      return true;
+    }
+    return false;
+  };
 
   return (
     <motion.div
@@ -136,14 +158,14 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { completeMesocycle(); onBlockAction('Block completed'); }}
+                      onClick={() => { if (guardActiveWorkout()) return; completeMesocycle(); onBlockAction('Block completed'); }}
                       className="btn btn-primary btn-sm flex-1 gap-1.5 font-semibold"
                     >
                       <Check className="w-3.5 h-3.5" />
                       Complete
                     </button>
                     <button
-                      onClick={() => { stopMesocycle(); onBlockAction('Block stopped'); }}
+                      onClick={() => { if (guardActiveWorkout()) return; stopMesocycle(); onBlockAction('Block stopped'); }}
                       className="btn btn-sm flex-1 gap-1.5 font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/25"
                     >
                       <Square className="w-3.5 h-3.5" />
@@ -193,6 +215,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                       {i === 0 && (
                         <button
                           onClick={() => {
+                            if (guardActiveWorkout()) return;
                             if (currentMesocycle) {
                               switchToQueuedBlock();
                               onBlockAction('Switched block');
@@ -211,8 +234,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                       <button
                         onClick={() => removeFromMesocycleQueue(planned.id)}
                         aria-label={`Remove ${planned.name} from queue`}
-                        className="p-1.5 rounded-lg text-grappler-500 hover:text-red-400 hover:bg-red-500/10 flex-shrink-0"
-                        data-tight
+                        className="w-10 h-10 rounded-lg text-grappler-500 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center flex-shrink-0"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -275,14 +297,20 @@ interface BlockReportProps {
 }
 
 function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, onRequestDelete, onCancelDelete, onConfirmDelete }: BlockReportProps) {
-  const blockLogs = workoutLogs
-    .filter(l => l.mesocycleId === block.id)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // history is newest-first; "previous" block = the next-older one
-  const historyIndex = history.findIndex(m => m.id === block.id);
-  const prevMeso = historyIndex >= 0 && historyIndex < history.length - 1 ? history[historyIndex + 1] : null;
-  const report = generateMesocycleReport(block, workoutLogs, prevMeso, prevMeso ? workoutLogs : undefined);
+  // The report makes a full pass over every workout log — compute once per
+  // (block, logs) pair, not on every render of the open sheet
+  const { blockLogs, report } = useMemo(() => {
+    const logs = workoutLogs
+      .filter(l => l.mesocycleId === block.id)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // history is newest-first; "previous" block = the next-older one
+    const historyIndex = history.findIndex(m => m.id === block.id);
+    const prevMeso = historyIndex >= 0 && historyIndex < history.length - 1 ? history[historyIndex + 1] : null;
+    return {
+      blockLogs: logs,
+      report: generateMesocycleReport(block, workoutLogs, prevMeso, prevMeso ? workoutLogs : undefined),
+    };
+  }, [block, history, workoutLogs]);
   const badge = STATUS_BADGE[block.status] || STATUS_BADGE.completed;
 
   return (

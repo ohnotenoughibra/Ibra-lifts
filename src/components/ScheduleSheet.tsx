@@ -1,17 +1,18 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import {
   X, Play, Check, ChevronDown, ChevronUp, Clock, Dumbbell,
-  Zap, Heart, Flame, Target, Minus, Plus,
+  Minus, Plus, Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Mesocycle, WorkoutSession, WorkoutType } from '@/lib/types';
+import { Mesocycle, WorkoutSession, ExercisePrescription, MAX_BLOCK_WEEKS, MIN_BLOCK_WEEKS } from '@/lib/types';
 import { VolumeWave } from './MesocycleTimeline';
 import ProgramExerciseCard from './ProgramExerciseCard';
+import { getWorkoutTypeUI } from './workout-type-ui';
 import { useToast } from './Toast';
 
 interface ScheduleSheetProps {
@@ -23,27 +24,38 @@ interface ScheduleSheetProps {
   onBlockAction: (label: string) => void; // surfaces the parent's undo toast
 }
 
-const TYPE_ICON: Record<string, typeof Zap> = {
-  strength: Zap, hypertrophy: Heart, power: Flame, strength_endurance: Target,
-};
-const TYPE_COLOR: Record<string, string> = {
-  strength: 'text-red-400 bg-red-500/10',
-  hypertrophy: 'text-purple-400 bg-purple-500/10',
-  power: 'text-blue-400 bg-blue-500/10',
-  strength_endurance: 'text-amber-400 bg-amber-500/10',
-};
-
 export default function ScheduleSheet({ mesocycle, completedSessionIds, currentWeekIndex, onClose, onSwap, onBlockAction }: ScheduleSheetProps) {
-  const { startWorkout, user, addWeekToMesocycle, removeWeekFromMesocycle } = useAppStore(
+  const { startWorkout, user, addWeekToMesocycle, removeWeekFromMesocycle, removeExerciseFromSession, insertExerciseIntoSession } = useAppStore(
     useShallow(s => ({
       startWorkout: s.startWorkout, user: s.user,
       addWeekToMesocycle: s.addWeekToMesocycle, removeWeekFromMesocycle: s.removeWeekFromMesocycle,
+      removeExerciseFromSession: s.removeExerciseFromSession,
+      insertExerciseIntoSession: s.insertExerciseIntoSession,
     }))
   );
   const { showToast } = useToast();
 
   const [openWeek, setOpenWeek] = useState<number>(currentWeekIndex >= 0 ? currentWeekIndex : 0);
   const [openSession, setOpenSession] = useState<string | null>(null);
+  // Removing an exercise is destructive — keep it undoable like every other edit
+  const [removedExercise, setRemovedExercise] = useState<{ weekIndex: number; sessionId: string; index: number; exercise: ExercisePrescription } | null>(null);
+
+  useEffect(() => {
+    if (!removedExercise) return;
+    const timer = setTimeout(() => setRemovedExercise(null), 5000);
+    return () => clearTimeout(timer);
+  }, [removedExercise]);
+
+  const handleRemoveExercise = (weekIndex: number, sessionId: string, index: number, exercise: ExercisePrescription) => {
+    removeExerciseFromSession(weekIndex, sessionId, index);
+    setRemovedExercise({ weekIndex, sessionId, index, exercise });
+  };
+
+  const handleUndoRemove = () => {
+    if (!removedExercise) return;
+    insertExerciseIntoSession(removedExercise.weekIndex, removedExercise.sessionId, removedExercise.index, removedExercise.exercise);
+    setRemovedExercise(null);
+  };
 
   const sortedWeeks = useMemo(
     () => [...mesocycle.weeks].sort((a, b) => a.weekNumber - b.weekNumber),
@@ -152,8 +164,8 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                   {isOpen && (
                     <div className="border-t border-grappler-800 p-3 space-y-2">
                       {week.sessions.map(session => {
-                        const Icon = TYPE_ICON[session.type as WorkoutType] || Zap;
-                        const colorClass = TYPE_COLOR[session.type as WorkoutType] || TYPE_COLOR.strength;
+                        const typeUI = getWorkoutTypeUI(session.type);
+                        const Icon = typeUI.icon;
                         const isCompleted = completedSessionIds.has(session.id);
                         const isExpanded = openSession === session.id;
                         return (
@@ -164,8 +176,9 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                 className="flex items-center gap-3 flex-1 min-w-0 text-left"
                                 aria-expanded={isExpanded}
                               >
-                                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 relative', colorClass)}>
-                                  <Icon className="w-4.5 h-4.5" />
+                                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 relative', typeUI.color)}>
+                                  {/* w-4.5 is not on Tailwind's scale — arbitrary value for a real 18px icon */}
+                                  <Icon className="w-[18px] h-[18px]" />
                                   {isCompleted && (
                                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                                       <Check className="w-2.5 h-2.5 text-white" />
@@ -200,6 +213,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                     weekIndex={weekIndex}
                                     sessionId={session.id}
                                     onSwap={onSwap}
+                                    onRemove={handleRemoveExercise}
                                     userEquipment={user?.equipment || 'full_gym'}
                                     totalExercises={session.exercises.length}
                                   />
@@ -216,9 +230,9 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
             })}
           </div>
 
-          {/* Week add/remove */}
+          {/* Week add/remove — bounds mirror the store guards via shared constants */}
           <div className="flex items-center justify-center gap-3 pt-1">
-            {mesocycle.weeks.length > 2 && (
+            {mesocycle.weeks.length > MIN_BLOCK_WEEKS && (
               <button
                 onClick={handleRemoveWeek}
                 className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-red-400"
@@ -228,7 +242,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                 Remove week
               </button>
             )}
-            {mesocycle.weeks.length < 12 && (
+            {mesocycle.weeks.length < MAX_BLOCK_WEEKS && (
               <button
                 onClick={() => { addWeekToMesocycle(); onBlockAction('Week added'); }}
                 className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-primary-300"
@@ -241,6 +255,25 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
           </div>
         </div>
       </div>
+
+      {/* Exercise removed — undo toast (sheet-scoped) */}
+      {removedExercise && (
+        <div
+          className="fixed bottom-24 left-4 right-4 z-[60] mx-auto max-w-sm flex items-center justify-between gap-3 rounded-xl bg-grappler-800 border border-grappler-600 px-4 py-2 shadow-2xl"
+          role="status"
+        >
+          <span className="text-sm text-grappler-200 flex-1 min-w-0 truncate">
+            Removed <span className="font-semibold text-grappler-100">{removedExercise.exercise.exercise?.name || 'exercise'}</span>
+          </span>
+          <button
+            onClick={handleUndoRemove}
+            className="btn btn-ghost btn-sm gap-1 text-primary-400 hover:text-primary-300 flex-shrink-0"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            Undo
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

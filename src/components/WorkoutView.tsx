@@ -30,9 +30,10 @@ import { cn } from '@/lib/utils';
 import { WorkoutType, MuscleGroupConfig, MuscleEmphasis, SessionsPerWeek } from '@/lib/types';
 import { fireConfetti } from '@/lib/confetti';
 import { suggestNextBlock, getBlockSuggestionSummary } from '@/lib/block-suggestion';
-import BlockComposer, { BlockConfig } from './BlockComposer';
+import BlockComposer, { BlockConfig, FOCUS_QUEUE_LABELS } from './BlockComposer';
 import ScheduleSheet from './ScheduleSheet';
 import BlockManagerSheet from './BlockManagerSheet';
+import { getWorkoutTypeUI } from './workout-type-ui';
 import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
 import { useToast } from './Toast';
 
@@ -48,16 +49,19 @@ import { useToast } from './Toast';
 export default function WorkoutView() {
   const {
     currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis,
-    workoutLogs, swapProgramExercise, user, mesocycleHistory, trainingSessions, injuryLog,
+    rawWorkoutLogs, swapProgramExercise, user, rawMesocycleHistory, trainingSessions, injuryLog,
     wearableHistory, competitions, mesocycleQueue, undoBlockAction, addToMesocycleQueue,
     advanceMesocycleQueue, activeWorkout, workoutMinimized, resumeWorkout,
   } = useAppStore(
+    // Only stable references in the selector — a .filter() here would return a
+    // fresh array every evaluation, defeat useShallow, and re-render the whole
+    // Train tab on every store update. Derive filtered views below with useMemo.
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle, startWorkout: s.startWorkout,
       generateNewMesocycle: s.generateNewMesocycle,
       muscleEmphasis: s.muscleEmphasis, setMuscleEmphasis: s.setMuscleEmphasis,
-      workoutLogs: s.workoutLogs, swapProgramExercise: s.swapProgramExercise, user: s.user,
-      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted),
+      rawWorkoutLogs: s.workoutLogs, swapProgramExercise: s.swapProgramExercise, user: s.user,
+      rawMesocycleHistory: s.mesocycleHistory,
       trainingSessions: s.trainingSessions, injuryLog: s.injuryLog,
       wearableHistory: s.wearableHistory, competitions: s.competitions,
       mesocycleQueue: s.mesocycleQueue, undoBlockAction: s.undoBlockAction,
@@ -65,6 +69,16 @@ export default function WorkoutView() {
       activeWorkout: s.activeWorkout, workoutMinimized: s.workoutMinimized,
       resumeWorkout: s.resumeWorkout,
     }))
+  );
+
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
+  );
+  // Tombstoned workouts must not mark sessions complete or claim "done for today"
+  const workoutLogs = useMemo(
+    () => rawWorkoutLogs.filter(l => !l._deleted),
+    [rawWorkoutLogs]
   );
 
   const { showToast } = useToast();
@@ -94,6 +108,12 @@ export default function WorkoutView() {
   }, [currentMesocycle, workoutLogs]);
 
   const currentWeekIndex = nextUpSession?.weekIndex ?? -1;
+
+  // Sorted once for the block strip — not inline in JSX on every render
+  const sortedWeeks = useMemo(
+    () => (currentMesocycle ? [...currentMesocycle.weeks].sort((a, b) => a.weekNumber - b.weekNumber) : []),
+    [currentMesocycle]
+  );
 
   // Already trained today? Then today's job is done — rest is part of the program.
   const trainedToday = useMemo(() => {
@@ -135,10 +155,15 @@ export default function WorkoutView() {
   const [blockWeeks, setBlockWeeks] = useState(4);
   const [sessionMinutes, setSessionMinutes] = useState(0); // 0 = no limit
   const [undoToast, setUndoToast] = useState<{ oldExerciseId: string; oldExerciseName: string; newExerciseName: string; weekIndex: number; sessionId: string; exerciseIndex: number } | null>(null);
-  const [blockToast, setBlockToast] = useState<{ label: string } | null>(null);
+  // entryId pins the toast to ONE undo entry — a lingering toast can never pop
+  // a newer, unrelated action off the stack
+  const [blockToast, setBlockToast] = useState<{ label: string; entryId?: number } | null>(null);
 
-  // Confetti on block completion
+  // Confetti on block completion — once per block, re-armed when a new block starts
   const confettiFiredRef = useRef(false);
+  useEffect(() => {
+    confettiFiredRef.current = false;
+  }, [currentMesocycle?.id]);
   useEffect(() => {
     if (progressStats.percentage >= 100 && !confettiFiredRef.current) {
       confettiFiredRef.current = true;
@@ -162,8 +187,14 @@ export default function WorkoutView() {
     return () => clearTimeout(timer);
   }, [blockToast]);
 
-  const handleUndoBlockAction = () => {
-    const label = undoBlockAction();
+  // Show the undo toast bound to the entry the action just pushed
+  const showBlockActionToast = (label: string) => {
+    const top = useAppStore.getState().blockUndoStack.at(-1);
+    setBlockToast({ label, entryId: top?.id });
+  };
+
+  const handleUndoBlockAction = (entryId?: number) => {
+    const label = undoBlockAction(entryId);
     setBlockToast(null);
     if (label) showToast(`Undone: ${label}`, 'success');
   };
@@ -178,15 +209,17 @@ export default function WorkoutView() {
     name: string; weeks: number; sessions: number; focus: string;
     split: string; deloadWeek: number | null; sessionsPerWeek: number;
     firstSessionName: string | null; deloadSkipped: boolean;
+    entryId?: number; // pins the modal's Undo to the generation's own undo entry
   } | null>(null);
 
+  // Counts feed the migrate dialog's type tiles (strength/hypertrophy/power) + total
   const getWorkoutBreakdown = () => {
     const state = useAppStore.getState();
     const { currentMesocycle: meso, workoutLogs: logs } = state;
-    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0, strength_endurance: 0, workouts: [] };
+    if (!meso) return { total: 0, strength: 0, hypertrophy: 0, power: 0 };
 
-    const mesoLogs = logs.filter(log => log.mesocycleId === meso.id);
-    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0, strength_endurance: 0, workouts: mesoLogs };
+    const mesoLogs = logs.filter(log => !log._deleted && log.mesocycleId === meso.id);
+    const breakdown = { total: mesoLogs.length, strength: 0, hypertrophy: 0, power: 0 };
 
     mesoLogs.forEach(log => {
       for (const week of meso.weeks) {
@@ -195,7 +228,6 @@ export default function WorkoutView() {
           if (session.type === 'strength') breakdown.strength++;
           else if (session.type === 'hypertrophy') breakdown.hypertrophy++;
           else if (session.type === 'power') breakdown.power++;
-          else if (session.type === 'strength_endurance') breakdown.strength_endurance++;
           break;
         }
       }
@@ -206,7 +238,9 @@ export default function WorkoutView() {
 
   const showBlockCreatedFlash = () => {
     setTimeout(() => {
-      const meso = useAppStore.getState().currentMesocycle;
+      const state = useAppStore.getState();
+      const meso = state.currentMesocycle;
+      const entryId = state.blockUndoStack.at(-1)?.id;
       if (meso) {
         const totalSessions = meso.weeks.reduce((sum, w) => sum + w.sessions.length, 0);
         const deloadWeek = meso.weeks.find(w => w.isDeload);
@@ -222,6 +256,7 @@ export default function WorkoutView() {
           sessionsPerWeek,
           firstSessionName: firstSession?.name || null,
           deloadSkipped: !deloadWeek,
+          entryId,
         });
       }
     }, 100);
@@ -284,9 +319,20 @@ export default function WorkoutView() {
     showBlockCreatedFlash();
   };
 
+  // When the picker was opened from the composer, generate with the composer's
+  // full config (focus/days/wave/weeks) — not the picker-local defaults. Without
+  // this, "Muscles" silently discarded everything the user just chose.
+  const composerCfgRef = useRef<BlockConfig | null>(null);
+
   const handleGenerateWithEmphasis = () => {
     setShowEmphasisPicker(false);
-    handleGenerateWithMigrationCheck(blockWeeks, sessionMinutes || undefined);
+    const cfg = composerCfgRef.current;
+    composerCfgRef.current = null;
+    if (cfg) {
+      handleComposerStart(cfg);
+    } else {
+      handleGenerateWithMigrationCheck(blockWeeks, sessionMinutes || undefined);
+    }
   };
 
   // Exercise swap with undo (passed down to ScheduleSheet)
@@ -314,19 +360,16 @@ export default function WorkoutView() {
   const handleComposerStart = (cfg: BlockConfig) => {
     const state = useAppStore.getState();
     if (state.user) {
-      state.updateUserFields({ sessionsPerWeek: cfg.days, goalFocus: cfg.focus });
+      // goalFocus only — sessionsPerWeek is written by the generation path itself
+      state.updateUserFields({ goalFocus: cfg.focus });
     }
     setShowComposer(false);
     handleGenerateWithMigrationCheck(cfg.weeks, cfg.sessionMinutes || undefined, cfg.days, cfg.periodization);
   };
 
   const handleComposerQueue = (cfg: BlockConfig) => {
-    const focusLabels: Record<string, string> = {
-      strength: 'Strength', hypertrophy: 'Hypertrophy', balanced: 'Balanced',
-      power: 'Power', strength_endurance: 'Endurance',
-    };
     addToMesocycleQueue({
-      name: `${focusLabels[cfg.focus] || 'Training'} Block`,
+      name: `${FOCUS_QUEUE_LABELS[cfg.focus] || 'Training'} Block`,
       focus: cfg.focus,
       weeks: cfg.weeks,
       periodization: cfg.periodization,
@@ -356,9 +399,8 @@ export default function WorkoutView() {
         >
           <span className="text-sm font-medium text-grappler-100">{blockToast.label}</span>
           <button
-            onClick={handleUndoBlockAction}
-            className="flex items-center gap-1.5 text-sm font-bold text-amber-400 hover:text-amber-300"
-            data-tight
+            onClick={() => handleUndoBlockAction(blockToast.entryId)}
+            className="btn btn-ghost btn-sm gap-1.5 font-bold text-amber-400 hover:text-amber-300 flex-shrink-0"
           >
             <Undo2 className="w-4 h-4" />
             Undo
@@ -377,7 +419,7 @@ export default function WorkoutView() {
             progress={progressStats}
             onClose={() => setShowManager(false)}
             onNewBlock={() => { setShowManager(false); setShowComposer(true); }}
-            onBlockAction={(label) => setBlockToast({ label })}
+            onBlockAction={showBlockActionToast}
           />
         )}
       </AnimatePresence>
@@ -389,7 +431,7 @@ export default function WorkoutView() {
             onClose={() => setShowComposer(false)}
             onStart={handleComposerStart}
             onQueue={handleComposerQueue}
-            onCustomizeMuscles={() => { setShowComposer(false); setShowEmphasisPicker(true); }}
+            onCustomizeMuscles={(cfg) => { composerCfgRef.current = cfg; setShowComposer(false); setShowEmphasisPicker(true); }}
             defaultFocus={user?.goalFocus}
             defaultDays={user?.sessionsPerWeek}
           />
@@ -437,7 +479,7 @@ export default function WorkoutView() {
               <button
                 onClick={() => {
                   advanceMesocycleQueue();
-                  setBlockToast({ label: 'Queued block started' });
+                  showBlockActionToast('Queued block started');
                   showBlockCreatedFlash();
                 }}
                 className="btn btn-primary btn-sm gap-1.5 flex-shrink-0"
@@ -453,7 +495,7 @@ export default function WorkoutView() {
           mode="empty"
           onStart={handleComposerStart}
           onQueue={handleComposerQueue}
-          onCustomizeMuscles={() => setShowEmphasisPicker(true)}
+          onCustomizeMuscles={(cfg) => { composerCfgRef.current = cfg; setShowEmphasisPicker(true); }}
           defaultFocus={user?.goalFocus}
           defaultDays={user?.sessionsPerWeek}
         />
@@ -553,25 +595,20 @@ export default function WorkoutView() {
         // The main event: today's session, one big button
         (() => {
           const { session, weekNumber } = nextUpSession;
-          const TypeIcon = getWorkoutTypeIcon(session.type);
-          const typeColor = getWorkoutTypeColor(session.type);
-          const typeBg = session.type === 'strength' ? 'from-red-500/20 to-red-900/10 border-red-500/30'
-            : session.type === 'hypertrophy' ? 'from-purple-500/20 to-purple-900/10 border-purple-500/30'
-            : 'from-blue-500/20 to-blue-900/10 border-blue-500/30';
-          const heroIntensity = session.type === 'strength' ? 'Heavy' : session.type === 'power' ? 'Explosive' : 'Moderate';
-          const heroIntensityColor = session.type === 'strength' ? 'text-red-400' : session.type === 'power' ? 'text-blue-400' : 'text-purple-400';
+          const typeUI = getWorkoutTypeUI(session.type);
+          const TypeIcon = typeUI.icon;
           const exerciseNames = session.exercises.slice(0, 3).map(ex => ex.exercise?.name).filter(Boolean);
           return (
-            <div className={cn('card p-5 bg-gradient-to-br border', typeBg)}>
+            <div className={cn('card p-5 bg-gradient-to-br border', typeUI.heroBg)}>
               <p className="text-[11px] font-bold uppercase tracking-wider text-grappler-400 mb-2">Today</p>
               <div className="flex items-center gap-3 mb-3">
-                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', typeColor)}>
+                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', typeUI.color)}>
                   <TypeIcon className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="font-bold text-grappler-50 text-lg truncate">{session.name}</h3>
-                    <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', heroIntensityColor, `${session.type === 'strength' ? 'bg-red-500/15' : session.type === 'power' ? 'bg-blue-500/15' : 'bg-purple-500/15'}`)}>{heroIntensity}</span>
+                    <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0', typeUI.intensityColor, typeUI.intensityBg)}>{typeUI.intensity}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-grappler-400">
                     <span>Week {weekNumber}</span>
@@ -618,7 +655,7 @@ export default function WorkoutView() {
         </div>
         {/* Segmented per-week progress bar */}
         <div className="flex gap-1">
-          {[...currentMesocycle.weeks].sort((a, b) => a.weekNumber - b.weekNumber).map((week, i) => {
+          {sortedWeeks.map((week, i) => {
             const done = week.sessions.filter(s => completedSessionIds.has(s.id)).length;
             const frac = week.sessions.length > 0 ? done / week.sessions.length : 0;
             return (
@@ -691,7 +728,7 @@ export default function WorkoutView() {
             currentWeekIndex={currentWeekIndex}
             onClose={() => setShowSchedule(false)}
             onSwap={handleSwapExercise}
-            onBlockAction={(label) => setBlockToast({ label })}
+            onBlockAction={showBlockActionToast}
           />
         )}
       </AnimatePresence>
@@ -737,6 +774,10 @@ export default function WorkoutView() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60"
             onClick={() => setBlockFlash(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="New block created"
+            onKeyDown={e => { if (e.key === 'Escape') setBlockFlash(null); }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -807,9 +848,9 @@ export default function WorkoutView() {
                 </button>
                 <button
                   onClick={() => {
+                    const entryId = blockFlash?.entryId;
                     setBlockFlash(null);
-                    const label = undoBlockAction();
-                    if (label) showToast(`Undone: ${label}`, 'success');
+                    handleUndoBlockAction(entryId);
                   }}
                   className="w-full py-2 rounded-xl text-grappler-400 hover:text-grappler-200 text-xs font-medium flex items-center justify-center gap-1.5"
                   data-tight
@@ -981,26 +1022,6 @@ export default function WorkoutView() {
   }
 }
 
-function getWorkoutTypeIcon(type: WorkoutType) {
-  switch (type) {
-    case 'strength': return Zap;
-    case 'hypertrophy': return Heart;
-    case 'power': return Flame;
-    case 'strength_endurance': return Target;
-    default: return Zap;
-  }
-}
-
-function getWorkoutTypeColor(type: WorkoutType) {
-  switch (type) {
-    case 'strength': return 'text-red-400 bg-red-500/10';
-    case 'hypertrophy': return 'text-purple-400 bg-purple-500/10';
-    case 'power': return 'text-blue-400 bg-blue-500/10';
-    case 'strength_endurance': return 'text-amber-400 bg-amber-500/10';
-    default: return 'text-red-400 bg-red-500/10';
-  }
-}
-
 // --- Muscle emphasis picker (block generation with per-muscle focus) ---
 
 const DEFAULT_MUSCLE_CONFIG: MuscleGroupConfig = {
@@ -1133,6 +1154,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
                 <button
                   key={w}
                   onClick={() => onWeeksChange(w)}
+                  aria-pressed={weeks === w}
                   className={cn(
                     'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
                     weeks === w
@@ -1156,6 +1178,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
                 <button
                   key={opt.value}
                   onClick={() => onSessionMinutesChange(opt.value)}
+                  aria-pressed={sessionMinutes === opt.value}
                   className={cn(
                     'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
                     sessionMinutes === opt.value

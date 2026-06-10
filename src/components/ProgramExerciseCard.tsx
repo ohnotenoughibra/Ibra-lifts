@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { Video, Shuffle, Trash2, Minus, Plus, Pencil, TrendingUp } from 'lucide-react';
@@ -15,11 +15,13 @@ interface ProgramExerciseCardProps {
   weekIndex: number;
   sessionId: string;
   onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  // When provided, removal goes through the parent (which owns the undo toast)
+  onRemove?: (weekIndex: number, sessionId: string, exerciseIndex: number, exercise: ExercisePrescription) => void;
   userEquipment: Equipment;
   totalExercises: number;
 }
 
-export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, userEquipment, totalExercises }: ProgramExerciseCardProps) {
+export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, sessionId, onSwap, onRemove, userEquipment, totalExercises }: ProgramExerciseCardProps) {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showFormVideo, setShowFormVideo] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -28,24 +30,31 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
 
-  const alternatives: ExerciseRecommendation[] = showAlternatives && ex.exerciseId
-    ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8)
-    : [];
+  // Scoring the ~250-exercise database is too heavy to redo on every render
+  const alternatives: ExerciseRecommendation[] = useMemo(
+    () => (showAlternatives && ex.exerciseId ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8) : []),
+    [showAlternatives, ex.exerciseId, userEquipment]
+  );
 
-  // Get previous performance for an alternative exercise (same as ActiveWorkout)
-  const getAltHistory = (exerciseId: string) => {
-    const sorted = [...workoutLogs].reverse();
-    for (const log of sorted) {
-      const found = log.exercises.find(e => e.exerciseId === exerciseId);
-      if (found && found.sets.length > 0) {
+  // Last performance per exercise from ONE reverse pass over the logs — the old
+  // per-call [...workoutLogs].reverse() clone ran once per card plus once per
+  // alternative row on every render
+  const lastPerfByExercise = useMemo(() => {
+    const map = new Map<string, { weight: number; reps: number; rpe: number; date: Date }>();
+    for (let i = workoutLogs.length - 1; i >= 0; i--) {
+      const log = workoutLogs[i];
+      for (const found of log.exercises) {
+        if (map.has(found.exerciseId) || found.sets.length === 0) continue;
         const bestSet = found.sets
           .filter(s => s.completed)
           .reduce((best, s) => (s.weight > best.weight ? s : best), found.sets[0]);
-        return { weight: bestSet.weight, reps: bestSet.reps, rpe: bestSet.rpe || 0, date: new Date(log.date) };
+        map.set(found.exerciseId, { weight: bestSet.weight, reps: bestSet.reps, rpe: bestSet.rpe || 0, date: new Date(log.date) });
       }
     }
-    return null;
-  };
+    return map;
+  }, [workoutLogs]);
+
+  const getAltHistory = (exerciseId: string) => lastPerfByExercise.get(exerciseId) || null;
 
   const lastPerf = ex.exerciseId ? getAltHistory(ex.exerciseId) : null;
 
@@ -92,40 +101,44 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             </div>
             <button
               onClick={() => setShowFormVideo(true)}
-              className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
+              className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
               title="Check form"
+              aria-label="Check form video"
             >
               <Video className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); }}
               className={cn(
-                'p-1.5 rounded-lg transition-colors',
+                'p-2 rounded-lg transition-colors',
                 showEditor
                   ? 'bg-primary-500/20 text-primary-400'
                   : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
               )}
               title="Edit prescription"
+              aria-label="Edit prescription"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); }}
               className={cn(
-                'p-1.5 rounded-lg transition-colors',
+                'p-2 rounded-lg transition-colors',
                 showAlternatives
                   ? 'bg-accent-500/20 text-accent-400'
                   : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50'
               )}
               title="Swap exercise"
+              aria-label="Swap exercise"
             >
               <Shuffle className="w-3.5 h-3.5" />
             </button>
             {totalExercises > 1 && (
               <button
-                onClick={() => removeExercise(weekIndex, sessionId, index)}
-                className="p-1.5 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
+                onClick={() => onRemove ? onRemove(weekIndex, sessionId, index, ex) : removeExercise(weekIndex, sessionId, index)}
+                className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
                 title="Remove exercise"
+                aria-label="Remove exercise"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

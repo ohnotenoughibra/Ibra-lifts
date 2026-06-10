@@ -21,7 +21,9 @@ interface BlockComposerProps {
   onStart: (cfg: BlockConfig) => void;
   onQueue?: (cfg: BlockConfig) => void;
   onClose?: () => void;
-  onCustomizeMuscles?: () => void;
+  // Receives the composer's current config so the muscle picker can generate
+  // with the user's focus/weeks/days/wave choices instead of defaults
+  onCustomizeMuscles?: (cfg: BlockConfig) => void;
   defaultFocus?: GoalFocus;
   defaultDays?: SessionsPerWeek;
 }
@@ -32,6 +34,13 @@ const FOCUS_OPTIONS: { value: GoalFocus; label: string; desc: string; icon: type
   { value: 'balanced', label: 'Both', desc: 'Best of both', icon: Flame },
   { value: 'strength_endurance', label: 'Endurance', desc: 'High reps, short rest', icon: Target },
 ];
+
+// Names for queued blocks — single source next to FOCUS_OPTIONS so the queue
+// never invents labels the composer UI doesn't use
+export const FOCUS_QUEUE_LABELS: Record<string, string> = {
+  strength: 'Strength', hypertrophy: 'Hypertrophy', balanced: 'Balanced',
+  power: 'Power', strength_endurance: 'Endurance',
+};
 
 const WEEK_OPTIONS = [4, 5, 6, 8];
 const DAY_OPTIONS: SessionsPerWeek[] = [2, 3, 4, 5, 6];
@@ -47,15 +56,15 @@ const WAVE_OPTIONS: { value: PeriodizationStyle; label: string; desc: string }[]
   { value: 'conjugate', label: 'Conjugate', desc: 'Strength, size and speed trained concurrently' },
 ];
 
-/** Mirrors the generator's week math (volume 1.0→1.15 ramp, deload 0.55) so the
- *  preview shows what will actually be generated, not an artist's impression. */
+/** Approximates the generator's week math: a 3%/week volume ramp capped at 1.15
+ *  (workout-generator.ts) and a deload around 0.6-0.7 of base volume (the exact
+ *  deload multiplier is sex-dependent). Close enough for a shape preview — the
+ *  generated block is the source of truth. */
 function previewWeeks(weeks: number) {
-  const trainingWeeks = weeks - 1; // last week is deload (auto-skipped when fresh)
   return Array.from({ length: weeks }, (_, i) => {
-    const isDeload = i === weeks - 1;
-    if (isDeload) return { volume: 0.55, isDeload };
-    const progress = trainingWeeks > 1 ? i / (trainingWeeks - 1) : 0;
-    return { volume: 1.0 + progress * 0.15, isDeload };
+    const isDeload = i === weeks - 1; // last week is deload (auto-skipped when fresh)
+    if (isDeload) return { volume: 0.65, isDeload };
+    return { volume: Math.min(1.15, 1 + i * 0.03), isDeload };
   });
 }
 
@@ -75,8 +84,8 @@ function WavePreview({ weeks }: { weeks: number }) {
       <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-primary-400" />
       {pts.map((p, i) => (
         <g key={i}>
-          <circle cx={p.x} cy={p.y} r="3" className={p.isDeload ? 'fill-green-400' : 'fill-primary-400'} />
-          <text x={p.x} y={H + 10} textAnchor="middle" className={cn('text-[8px]', p.isDeload ? 'fill-green-400' : 'fill-grappler-400')}>
+          <circle cx={p.x} cy={p.y} r="3" className={p.isDeload ? 'fill-teal-400' : 'fill-primary-400'} />
+          <text x={p.x} y={H + 10} textAnchor="middle" className={cn('text-[8px]', p.isDeload ? 'fill-teal-400' : 'fill-grappler-400')}>
             {p.isDeload ? 'DL' : `W${i + 1}`}
           </text>
         </g>
@@ -189,7 +198,7 @@ export default function BlockComposer({
       <div className="card p-3 bg-grappler-800/40">
         <WavePreview weeks={weeks} />
         <p className="text-xs text-grappler-400 text-center mt-1">
-          {weeks} weeks · {days}× / week · {totalSessions} sessions · <span className="text-green-400">deload last week</span>
+          {weeks} weeks · {days}× / week · {totalSessions} sessions · <span className="text-teal-400">deload last week</span>
           <span className="text-grappler-500"> (skipped if you&apos;re fresh)</span> · <span className="text-grappler-300">{DAY_SPLITS[days]}</span>
         </p>
       </div>
@@ -213,7 +222,7 @@ export default function BlockComposer({
           ))}
         </div>
         {onCustomizeMuscles && (
-          <button onClick={onCustomizeMuscles} className="btn btn-ghost btn-sm gap-1.5 text-grappler-400" data-tight>
+          <button onClick={() => onCustomizeMuscles(cfg)} className="btn btn-ghost btn-sm gap-1.5 text-grappler-400" data-tight>
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Muscles
           </button>

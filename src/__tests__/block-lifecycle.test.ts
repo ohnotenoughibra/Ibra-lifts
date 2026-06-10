@@ -33,6 +33,23 @@ function resetStore() {
   });
 }
 
+/** Attribute a minimal workout log to the current block — completion bonuses
+ *  require real logged work (anti-farm guard). */
+function logWorkoutForCurrentBlock() {
+  const meso = useAppStore.getState().currentMesocycle!;
+  useAppStore.setState({
+    workoutLogs: [
+      ...useAppStore.getState().workoutLogs,
+      {
+        id: `log-${Date.now()}-${Math.random()}`, userId: 'test-user', mesocycleId: meso.id,
+        sessionId: meso.weeks[0].sessions[0]?.id || 'session-x', date: new Date().toISOString(),
+        exercises: [], totalVolume: 1000, duration: 45, overallRPE: 7, energy: 3, soreness: 2,
+        completed: true,
+      } as unknown as import('@/lib/types').WorkoutLog,
+    ],
+  });
+}
+
 /** Generate a real block through the real generator — no brittle fixtures. */
 function seedActiveBlock(weeks = 4) {
   useAppStore.getState().generateNewMesocycle(weeks);
@@ -147,6 +164,7 @@ describe('completeMesocycle (single undo entry via depth guard)', () => {
 
   it('awards +200 XP, archives as completed, auto-generates a successor', () => {
     const meso = seedActiveBlock();
+    logWorkoutForCurrentBlock();
     useAppStore.getState().completeMesocycle();
 
     const s = useAppStore.getState();
@@ -157,8 +175,20 @@ describe('completeMesocycle (single undo entry via depth guard)', () => {
     expect(s.currentMesocycle!.id).not.toBe(meso.id);
   });
 
+  it('completing a block with ZERO logged workouts is abandonment — stopped, no XP', () => {
+    const meso = seedActiveBlock();
+    useAppStore.getState().completeMesocycle();
+
+    const s = useAppStore.getState();
+    // No farmable +200 from two-tap Complete loops
+    expect(s.gamificationStats.totalPoints).toBe(0);
+    expect(s.mesocycleHistory.some(m => m.id === meso.id && m.status === 'stopped')).toBe(true);
+    expect(s.mesocycleHistory.some(m => m.id === meso.id && m.status === 'completed')).toBe(false);
+  });
+
   it('one undo reverts the archive, the XP, and the generated successor', () => {
     const meso = seedActiveBlock();
+    logWorkoutForCurrentBlock();
     useAppStore.getState().completeMesocycle();
     // Nested generateNewMesocycle must NOT have pushed its own entry
     expect(useAppStore.getState().blockUndoStack).toHaveLength(1);
@@ -276,6 +306,37 @@ describe('generateNewMesocycle over a live block', () => {
   });
 });
 
+describe('logout safety', () => {
+  beforeEach(resetStore);
+
+  it('resetStore clears the undo stack — no cross-account restore after logout', () => {
+    seedActiveBlock();
+    useAppStore.getState().stopMesocycle();
+    expect(useAppStore.getState().blockUndoStack.length).toBeGreaterThan(0);
+
+    useAppStore.getState().resetStore();
+    expect(useAppStore.getState().blockUndoStack).toHaveLength(0);
+    expect(useAppStore.getState().undoBlockAction()).toBeNull();
+  });
+});
+
+describe('undo restores profile fields', () => {
+  beforeEach(resetStore);
+
+  it("undoing a block action reverts the user's goalFocus", () => {
+    seedActiveBlock();
+    // Simulate the composer flow: profile mutated alongside the generation
+    useAppStore.setState({ user: { ...useAppStore.getState().user!, goalFocus: 'strength' } });
+    useAppStore.setState({ blockUndoStack: [] });
+
+    useAppStore.getState().generateNewMesocycle(4);
+    useAppStore.setState({ user: { ...useAppStore.getState().user!, goalFocus: 'hypertrophy' } });
+
+    useAppStore.getState().undoBlockAction();
+    expect(useAppStore.getState().user?.goalFocus).toBe('strength');
+  });
+});
+
 describe('insertExerciseIntoSession', () => {
   beforeEach(resetStore);
 
@@ -329,6 +390,7 @@ describe('completeMesocycle with a queued block', () => {
 
   it('starts the queued block instead of generating a fresh one', () => {
     const meso = seedActiveBlock();
+    logWorkoutForCurrentBlock();
     useAppStore.getState().addToMesocycleQueue({
       name: 'Queued Hypertrophy',
       focus: 'hypertrophy',

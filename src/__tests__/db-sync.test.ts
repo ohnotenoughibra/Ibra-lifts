@@ -503,9 +503,11 @@ describe('resolveConflicts — block lifecycle reconciliation', () => {
     expect(result.currentMesocycle).toBeNull();
   });
 
-  it('undo of a stop wins: a strictly newer active copy drops the stale archive', () => {
+  it('undo of a stop wins: a strictly newer REVIVED copy drops the stale archive', () => {
     const local = makeData({
-      currentMesocycle: activeBlock(T2), // undo re-stamped it
+      // undoBlockAction re-stamps updatedAt AND sets _revivedAt — the marker
+      // that distinguishes an undo from a routine offline edit
+      currentMesocycle: { ...activeBlock(T2), _revivedAt: Date.now() },
       mesocycleHistory: [],
     });
     const remote = makeData({
@@ -649,5 +651,138 @@ describe('resolveConflicts — mesocycleQueue tombstones', () => {
     const queue = result.mesocycleQueue as Array<Record<string, unknown>>;
     const live = queue.filter(q => !q._deleted).map(q => q.id).sort();
     expect(live).toEqual(['q2', 'q3']);
+  });
+});
+
+// ─── Revival semantics + review-hardened cases ──────────────────────────────
+
+describe('resolveConflicts — tombstone revival (undo survives sync)', () => {
+  it('a live copy stamped AFTER the deletion (undo) beats the tombstone', () => {
+    const deletedAt = Date.now() - 60_000;
+    const local = makeData({
+      // undo restored the log and revive-stamped it after the tombstone
+      workoutLogs: [{ id: 'w1', date: '2026-06-01', exercises: [], updatedAt: new Date(deletedAt + 5_000).toISOString() }],
+    });
+    const remote = makeData({
+      workoutLogs: [{ id: 'w1', date: '2026-06-01', exercises: [], _deleted: true, _deletedAt: deletedAt }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const log = (result.workoutLogs as Array<Record<string, unknown>>).find(l => l.id === 'w1');
+    expect(log?._deleted).toBeFalsy();
+  });
+
+  it('an ordinary pre-deletion copy still loses to the tombstone', () => {
+    const deletedAt = Date.now();
+    const local = makeData({
+      workoutLogs: [{ id: 'w1', date: '2026-06-01', exercises: [], updatedAt: new Date(deletedAt - 60_000).toISOString() }],
+    });
+    const remote = makeData({
+      workoutLogs: [{ id: 'w1', date: '2026-06-01', exercises: [], _deleted: true, _deletedAt: deletedAt }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const log = (result.workoutLogs as Array<Record<string, unknown>>).find(l => l.id === 'w1');
+    expect(log?._deleted).toBe(true);
+  });
+
+  it('a revived queue entry survives the cloud tombstone', () => {
+    const deletedAt = Date.now() - 10_000;
+    const local = makeData({
+      mesocycleQueue: [{ id: 'q1', name: 'Block', updatedAt: new Date(deletedAt + 1_000).toISOString() }],
+    });
+    const remote = makeData({
+      mesocycleQueue: [{ id: 'q1', name: 'Block', _deleted: true, _deletedAt: deletedAt }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const q = (result.mesocycleQueue as Array<Record<string, unknown>>).find(e => e.id === 'q1');
+    expect(q?._deleted).toBeFalsy();
+  });
+});
+
+describe('resolveConflicts — XP one-sided stamp (mixed-version fleet)', () => {
+  it('a legacy device with HIGHER XP is not robbed by a one-sided stamp', () => {
+    const local = makeData({
+      gamificationStats: { totalPoints: 5000, badges: [] }, // legacy, no stamp
+    });
+    const remote = makeData({
+      gamificationStats: { totalPoints: 4800, pointsAsOf: Date.now(), badges: [] },
+    });
+
+    const result = resolveConflicts(local, remote);
+    const gs = result.gamificationStats as Record<string, unknown>;
+    expect(gs.totalPoints).toBe(5000);
+    // The stamp did not win, so it must not be carried onto the legacy value
+    expect(gs.pointsAsOf).toBeUndefined();
+  });
+
+  it('a stamped side that also has the max keeps its stamp', () => {
+    const asOf = Date.now();
+    const local = makeData({ gamificationStats: { totalPoints: 4800, badges: [] } });
+    const remote = makeData({ gamificationStats: { totalPoints: 5000, pointsAsOf: asOf, badges: [] } });
+
+    const result = resolveConflicts(local, remote);
+    const gs = result.gamificationStats as Record<string, unknown>;
+    expect(gs.totalPoints).toBe(5000);
+    expect(gs.pointsAsOf).toBe(asOf);
+  });
+});
+
+describe('resolveConflicts — routine edits never erase completed records', () => {
+  it('an offline edit re-stamping the block does NOT drop its completed archive (no _revivedAt)', () => {
+    const T2 = '2026-06-10T12:00:00.000Z'; // completion
+    const T3 = '2026-06-10T13:00:00.000Z'; // offline exercise swap on stale device
+    const local = makeData({
+      currentMesocycle: { id: 'meso-1', status: 'active', weeks: [], updatedAt: T3 }, // edited, NOT revived
+      mesocycleHistory: [],
+    });
+    const remote = makeData({
+      currentMesocycle: { id: 'meso-1', status: 'active', weeks: [], updatedAt: '2026-06-10T10:00:00.000Z' },
+      mesocycleHistory: [{ id: 'meso-1', status: 'completed', weeks: [], updatedAt: T2 }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    // The completed record survives — only an explicit undo may remove it
+    const hist = result.mesocycleHistory as Array<Record<string, unknown>>;
+    expect(hist.find(h => h.id === 'meso-1' && h.status === 'completed')).toBeTruthy();
+  });
+
+  it('a genuine undo (_revivedAt set) still drops the stale archive', () => {
+    const T1 = '2026-06-10T11:00:00.000Z';
+    const T2 = '2026-06-10T12:00:00.000Z';
+    const local = makeData({
+      currentMesocycle: { id: 'meso-1', status: 'active', weeks: [], updatedAt: T2, _revivedAt: Date.now() },
+      mesocycleHistory: [],
+    });
+    const remote = makeData({
+      currentMesocycle: { id: 'meso-1', status: 'active', weeks: [], updatedAt: '2026-06-10T10:00:00.000Z' },
+      mesocycleHistory: [{ id: 'meso-1', status: 'stopped', weeks: [], updatedAt: T1 }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const hist = result.mesocycleHistory as Array<Record<string, unknown>>;
+    expect(hist.find(h => h.id === 'meso-1')).toBeUndefined();
+    expect((result.currentMesocycle as Record<string, unknown>)?.id).toBe('meso-1');
+  });
+
+  it('double merge is stable (idempotency)', () => {
+    const T1 = '2026-06-10T11:00:00.000Z';
+    const local = makeData({
+      currentMesocycle: null,
+      mesocycleHistory: [{ id: 'meso-1', status: 'stopped', weeks: [], updatedAt: T1 }],
+      gamificationStats: { totalPoints: 100, pointsAsOf: 2000, badges: [] },
+    });
+    const remote = makeData({
+      currentMesocycle: { id: 'meso-1', status: 'active', weeks: [], updatedAt: '2026-06-10T10:00:00.000Z' },
+      mesocycleHistory: [],
+      gamificationStats: { totalPoints: 300, pointsAsOf: 1000, badges: [] },
+    });
+
+    const once = resolveConflicts(local, remote);
+    const twice = resolveConflicts(once, remote);
+    expect(twice.currentMesocycle).toBeNull();
+    expect((twice.gamificationStats as Record<string, unknown>).totalPoints).toBe(100);
+    expect((twice.mesocycleHistory as Array<Record<string, unknown>>).find(h => h.id === 'meso-1')?.status).toBe('stopped');
   });
 });

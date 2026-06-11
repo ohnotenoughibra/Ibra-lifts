@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.1.0-096307c-1781099703';
+const CACHE_NAME = 'roots-gains-v2.1.0-9cccb8b-1781150951';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -142,14 +142,19 @@ async function replaySyncQueue() {
 
       const body = await response.json();
       try {
-        await fetch('/api/sync', {
+        const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        await cache.delete(request);
+        // fetch resolves on HTTP errors — a 401 (expired session), 429 or 500
+        // must NOT delete the queued entry, or the offline workout is gone.
+        // Only a confirmed 2xx clears it; anything else retries next sync.
+        if (res.ok) {
+          await cache.delete(request);
+        }
       } catch {
-        // Still offline or server error — leave in queue, try remaining entries
+        // Still offline — leave in queue, try remaining entries
         continue;
       }
     }

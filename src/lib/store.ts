@@ -307,6 +307,8 @@ interface AppState {
 
   // Write-through: when true, next sync fires immediately (no debounce)
   _syncUrgent: boolean;
+  // Set when localStorage persistence is degraded (quota trimmed / write failing)
+  _storageWarning?: string;
 
   // Subscription
   subscription: Subscription | null;
@@ -1608,7 +1610,10 @@ export const useAppStore = create<AppState>()(
 
       addToMesocycleQueue: (block) => {
         const { mesocycleQueue } = get();
-        set({ mesocycleQueue: [...mesocycleQueue, { ...block, id: uuidv4(), createdAt: new Date() }] });
+        // position = one past the current max so a new block lands last and the
+        // explicit order survives the sync union merge
+        const maxPos = mesocycleQueue.reduce((m, b) => Math.max(m, b.position ?? 0), 0);
+        set({ mesocycleQueue: [...mesocycleQueue, { ...block, id: uuidv4(), createdAt: new Date(), position: maxPos + 1 }] });
       },
 
       updateMesocycleInQueue: (id, updates) => {
@@ -1637,7 +1642,11 @@ export const useAppStore = create<AppState>()(
         const updated = [...live];
         const [moved] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, moved);
-        set({ mesocycleQueue: [...updated, ...dead] });
+        // Re-stamp position (= new index) + updatedAt so the merge prefers this
+        // ordering over the cloud's stale copy and consumers can sort by it
+        const now = new Date().toISOString();
+        const reordered = updated.map((b, i) => ({ ...b, position: i, updatedAt: now }));
+        set({ mesocycleQueue: [...reordered, ...dead] });
       },
 
       advanceMesocycleQueue: () => withBlockUndo('Queue advanced', get, set, () => {
@@ -4869,6 +4878,18 @@ export const useAppStore = create<AppState>()(
                   console.error('[storage] Cannot write to localStorage at all. Data preserved in IndexedDB + server.');
                 }
               }
+            } else {
+              // Non-quota failure (Safari private-mode SecurityError, a
+              // stringify throw, etc.) — previously swallowed silently, so the
+              // persist write was dropped with no signal. Surface it and flag
+              // the store so the UI can warn that this device isn't persisting.
+              console.error('[storage] persist write failed (non-quota):', e);
+              try {
+                const s = useAppStore.getState();
+                if (!s._storageWarning) {
+                  useAppStore.setState({ _storageWarning: 'This device can\'t save data locally (private browsing?). Your data syncs to the cloud while signed in.' });
+                }
+              } catch { /* store not ready */ }
             }
           }
         },

@@ -232,7 +232,7 @@ export function suggestNextBlock(opts: {
 
   // ── Queue-first: if user has queued blocks, that IS the plan ──────────
   // Consumed/removed entries persist as sync tombstones — only live ones count
-  const liveQueue = (opts.mesocycleQueue || []).filter(b => !b._deleted);
+  const liveQueue = [...(opts.mesocycleQueue || []).filter(b => !b._deleted)].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   if (liveQueue.length > 0) {
     const next = liveQueue[0];
     const goalToFocus: Record<GoalFocus, BlockFocus> = {

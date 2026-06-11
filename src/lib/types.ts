@@ -198,8 +198,12 @@ export interface PlannedMesocycle {
   sessionDurationMinutes?: number;
   notes?: string;
   createdAt: Date;
+  // Explicit order so a cross-device reorder survives the sync union merge
+  // (which otherwise keeps remote insertion order). Lower = earlier.
+  position?: number;
   // Stamped by undo when reviving a consumed entry — a live copy stamped
-  // after the tombstone's _deletedAt wins the merge (explicit revival)
+  // after the tombstone's _deletedAt wins the merge (explicit revival).
+  // Also re-stamped on reorder so the newer ordering wins.
   updatedAt?: string;
   // Tombstone pattern — consumed/removed queue entries must survive the sync
   // union merge as deletions, or the cloud copy resurrects them on next pull.

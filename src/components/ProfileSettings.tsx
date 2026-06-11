@@ -1284,8 +1284,12 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             </div>
           )}
 
-          {/* Danger Zone */}
-          <div className="pt-3 border-t border-red-500/10 mt-3">
+          {/* Danger Zone — visually separated, loud, most-destructive action solid red */}
+          <div className="mt-6 pt-4 border-t-2 border-red-500/30">
+            <p className="text-xs font-bold uppercase tracking-wide text-red-400 mb-1 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" /> Danger Zone
+            </p>
+            <p className="text-xs text-grappler-500 mb-3">These actions are permanent and cannot be undone.</p>
             <div className="space-y-2">
               <button
                 onClick={() => {
@@ -1297,13 +1301,13 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
                     onConfirm: () => { setConfirmDialog(null); resetStore(); },
                   });
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-400/70 text-xs font-medium ring-1 ring-red-500/15 hover:bg-red-500/10 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-300 text-xs font-semibold ring-1 ring-red-500/50 hover:bg-red-500/15 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Reset All Data
               </button>
               {isSignedIn && (
                 <button onClick={handleDeleteAccount} disabled={deleteLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-red-400/70 text-xs font-medium ring-1 ring-red-500/15 hover:bg-red-500/10 transition-colors">
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600/90 text-white text-xs font-bold hover:bg-red-600 transition-colors disabled:opacity-60">
                   {deleteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                   {deleteLoading ? 'Deleting...' : 'Delete Account'}
                 </button>

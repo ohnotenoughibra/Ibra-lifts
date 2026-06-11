@@ -3,6 +3,20 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.3.0] - 2026-06-11
+
+**Cardio is now a first-class part of your week: schedule it, see it on your plan, and log it.**
+
+You can plan recurring cardio sessions that show up on your training week right next to lifting and combat days, and log a cardio session in a few taps.
+
+### Added
+- **Schedule cardio on your plan.** Open the Train tab and you'll see a "This week" strip showing your lifting, combat, and now cardio days at a glance. Tap any day (or the "Cardio" link) to plan a session: pick the type (running, cycling, swimming, rowing, jump rope, elliptical), intensity, duration, and an optional label like "Zone 2 base" or "Intervals." Cardio days appear in sky blue.
+- **Log a cardio session.** A quick form for type, duration, distance, and intensity drops the session straight into your training history and streak.
+- **Your plan accounts for it.** A hard cardio session the day before a lift now nudges that lift's suggested intensity down, the same way hard sparring does — so the week stays recoverable.
+
+### For contributors
+- New `ScheduledCardioDay` type + `user.scheduledCardio`. `buildWeekPlan` takes an optional `scheduledCardio` arg (cardio bucket + `CARDIO_COST` freshness) — backward compatible. `WeeklyCalendar` revived from orphan onto the Train tab with a cardio tile + tappable days. New `CardioPlanner` overlay (schedule editor + log form). +5 scheduling tests.
+
 ## [2.2.4] - 2026-06-11
 
 **A first-principles cleanup of Today, Progress (formerly "Body"), and Settings: less clutter, no footguns, start your workout in one tap.**

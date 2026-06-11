@@ -194,6 +194,11 @@ export interface PlannedMesocycle {
   sessionDurationMinutes?: number;
   notes?: string;
   createdAt: Date;
+  // Tombstone pattern — consumed/removed queue entries must survive the sync
+  // union merge as deletions, or the cloud copy resurrects them on next pull.
+  // Consumers filter !_deleted; merge GCs tombstones after 30 days.
+  _deleted?: boolean;
+  _deletedAt?: number;
 }
 
 // Workout Logging Types
@@ -354,6 +359,10 @@ export interface GamificationStats {
   id: string;
   userId: string;
   totalPoints: number;
+  // Epoch ms of the last totalPoints write. The sync merge prefers the side
+  // with the newer stamp — without it, max() merging makes XP reductions
+  // (undo of a block-completion bonus) impossible to propagate across devices.
+  pointsAsOf?: number;
   level: number;
   currentStreak: number;
   longestStreak: number;

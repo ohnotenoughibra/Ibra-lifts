@@ -116,6 +116,7 @@ export default function InsightCard({
           </div>
           <button
             onClick={handleDismiss}
+            aria-label="Dismiss"
             className="p-1 -m-1 text-grappler-600 hover:text-grappler-400 transition-colors flex-shrink-0"
           >
             <X className="w-3.5 h-3.5" />

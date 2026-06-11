@@ -3,6 +3,23 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.2.1] - 2026-06-11
+
+**Hardening pass: closes the security and reliability gaps the audit found across notifications, sync, and offline storage.**
+
+Backend and PWA fixes from the audit. No new features — these make the existing ones safer and more reliable.
+
+### Fixed
+- **Push notifications** can now only be sent to a device registered to your own account (previously the endpoint wasn't ownership-checked), and account deletion now removes your notification and Whoop tokens too.
+- **Subscription tier** is server-authoritative — a client can no longer self-grant Pro on first sync.
+- **Offline sync is sturdier**: queued workouts no longer pile up toward the storage limit, and a stale queued copy can't overwrite a newer save.
+- **Shared-device privacy**: signing out now clears cached API responses, and the app never caches auth/session responses to disk.
+- **Flaky-connection UX**: page and data fetches time out and fall back to cache instead of hanging on a blank screen.
+- **Accessibility**: 33 icon-only buttons (close, back, skip, share, ...) now announce their action to screen readers.
+
+### For contributors
+- AI-coach rate limit is now Postgres-backed (global across serverless instances). Third-party tokens fail closed in production without an encryption key. Sentry strips identifiers from trace URLs. Queue reorder carries an explicit position that survives sync. WorkoutHistory defaults to 90 days. +4 tests.
+
 ## [2.2.0] - 2026-06-11
 
 **The whole app now agrees on what day it is — and your lifts stop reporting fake PRs.**

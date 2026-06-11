@@ -56,6 +56,50 @@ export function rateLimit(
 }
 
 /**
+ * Postgres-backed daily rate limit — GLOBAL across serverless instances.
+ *
+ * The in-memory limiter above lives in one Lambda's heap, so a request landing
+ * on a fresh instance gets a fresh counter. Tolerable for cheap routes (auth,
+ * sync) but not for ones that cost money per call (the Claude AI coach), where
+ * fanning across instances defeats the 3/day cap entirely.
+ *
+ * Counts by (key, UTC day). Fails OPEN on DB error — a metering outage must not
+ * take down the feature. sql imported lazily so this module stays usable in the
+ * edge/test contexts that never call it.
+ */
+export async function rateLimitDaily(
+  key: string,
+  limit: number,
+): Promise<{ limited: boolean; remaining: number }> {
+  try {
+    const { sql } = await import('@vercel/postgres');
+    await sql`
+      CREATE TABLE IF NOT EXISTS rate_limit_daily (
+        bucket_key TEXT NOT NULL,
+        day DATE NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (bucket_key, day)
+      )
+    `;
+    // Atomic increment-and-read: the post-increment count is authoritative even
+    // under concurrent requests (no check-then-set race).
+    const { rows } = await sql`
+      INSERT INTO rate_limit_daily (bucket_key, day, count)
+      VALUES (${key}, CURRENT_DATE, 1)
+      ON CONFLICT (bucket_key, day) DO UPDATE
+        SET count = rate_limit_daily.count + 1
+      RETURNING count
+    `;
+    const count = Number(rows[0]?.count ?? 1);
+    return { limited: count > limit, remaining: Math.max(0, limit - count) };
+  } catch (err) {
+    // Fail open — never let a metering failure block the user
+    console.error('[rate-limit] daily limiter unavailable, allowing request:', err);
+    return { limited: false, remaining: limit };
+  }
+}
+
+/**
  * Extract a rate-limit key from a request.
  * Uses X-Forwarded-For (Vercel/proxied) or falls back to a generic key.
  */

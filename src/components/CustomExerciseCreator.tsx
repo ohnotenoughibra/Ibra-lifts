@@ -478,6 +478,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
                     <button
                       onClick={handleAddCue}
                       disabled={!newCue.trim()}
+                      aria-label="Add cue"
                       className="p-3 rounded-lg bg-primary-500/20 text-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
                     >
                       <Plus className="w-4 h-4" />

@@ -1706,6 +1706,7 @@ function SessionRecapCard() {
             <button
               onClick={handleShareImage}
               disabled={sharing}
+              aria-label="Share as image"
               className="text-green-400 hover:text-green-300 p-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 transition-colors disabled:opacity-50"
               title="Share as image"
             >

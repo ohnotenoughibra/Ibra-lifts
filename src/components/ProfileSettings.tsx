@@ -417,6 +417,15 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
     } catch { setRecoverStatus('error'); showToast('Restore failed. Try again.', 'error'); }
   }, [showToast, session]);
 
+  // Purge the SW's cached API responses before signing out so the next user on
+  // a shared device can't read this account's data from disk, then sign out.
+  const purgeAndSignOut = useCallback(() => {
+    try {
+      navigator.serviceWorker?.controller?.postMessage({ type: 'PURGE_API_CACHE' });
+    } catch { /* SW not controlling this page — nothing to purge */ }
+    signOut({ callbackUrl: '/' });
+  }, []);
+
   // ── Account deletion ───────────────────────────────────────────────────────
   const executeDeleteAccount = useCallback(async () => {
     setDeleteLoading(true);
@@ -425,14 +434,14 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
       if (res.ok) {
         // Only clear local data AFTER server confirms deletion succeeded
         resetStore();
-        signOut({ callbackUrl: '/' });
+        purgeAndSignOut();
       } else {
         const body = await res.json().catch(() => ({}));
         showToast(body.error || 'Failed to delete account. Please try again.', 'error');
       }
     } catch { showToast('Something went wrong. Please try again.', 'error'); }
     finally { setDeleteLoading(false); }
-  }, [resetStore, showToast]);
+  }, [resetStore, showToast, purgeAndSignOut]);
 
   const handleDeleteAccount = useCallback(() => {
     hapticHeavy();
@@ -1104,7 +1113,7 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                   title: 'Sign Out',
                   message: 'Local data stays, cloud sync stops until you sign back in.',
                   confirmLabel: 'Sign Out',
-                  onConfirm: () => { setConfirmDialog(null); signOut({ callbackUrl: '/' }); },
+                  onConfirm: () => { setConfirmDialog(null); purgeAndSignOut(); },
                 });
               }}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-grappler-700/50 text-grappler-300 text-sm font-medium hover:bg-grappler-700 transition-colors active:scale-95"

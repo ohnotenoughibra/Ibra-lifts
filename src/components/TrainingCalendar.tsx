@@ -249,11 +249,11 @@ export default function TrainingCalendar() {
     <div className="space-y-4">
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="btn btn-ghost btn-sm">
+        <button onClick={prevMonth} aria-label="Previous month" className="btn btn-ghost btn-sm">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h3 className="text-lg font-bold text-grappler-50">{monthName}</h3>
-        <button onClick={nextMonth} className="btn btn-ghost btn-sm">
+        <button onClick={nextMonth} aria-label="Next month" className="btn btn-ghost btn-sm">
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>

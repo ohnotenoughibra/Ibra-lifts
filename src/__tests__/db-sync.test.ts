@@ -786,3 +786,30 @@ describe('resolveConflicts — routine edits never erase completed records', () 
     expect((twice.mesocycleHistory as Array<Record<string, unknown>>).find(h => h.id === 'meso-1')?.status).toBe('stopped');
   });
 });
+
+// ─── Sync queue position ordering ───────────────────────────────────────────
+
+describe('resolveConflicts — mesocycleQueue position survives reorder', () => {
+  it('a reordered entry (newer updatedAt) wins, and consumers can sort by position', () => {
+    // Local reordered: B before A (positions swapped, fresh stamp)
+    const local = makeData({
+      mesocycleQueue: [
+        { id: 'qB', name: 'B', position: 0, updatedAt: '2026-06-11T12:00:00.000Z' },
+        { id: 'qA', name: 'A', position: 1, updatedAt: '2026-06-11T12:00:00.000Z' },
+      ],
+    });
+    // Cloud still has the original order (older stamp)
+    const remote = makeData({
+      mesocycleQueue: [
+        { id: 'qA', name: 'A', position: 0, updatedAt: '2026-06-11T10:00:00.000Z' },
+        { id: 'qB', name: 'B', position: 1, updatedAt: '2026-06-11T10:00:00.000Z' },
+      ],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const q = result.mesocycleQueue as Array<Record<string, unknown>>;
+    const byPos = [...q].sort((a, b) => (a.position as number) - (b.position as number));
+    // Newer stamps won, so B (position 0) sorts first
+    expect(byPos.map(e => e.id)).toEqual(['qB', 'qA']);
+  });
+});

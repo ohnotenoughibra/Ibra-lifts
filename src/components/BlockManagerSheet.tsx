@@ -58,7 +58,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
   );
   // Consumed/removed queue entries persist as sync tombstones — hide them
   const mesocycleQueue = useMemo(
-    () => rawMesocycleQueue.filter(b => !b._deleted),
+    () => [...rawMesocycleQueue.filter(b => !b._deleted)].sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
     [rawMesocycleQueue]
   );
 

@@ -1160,6 +1160,7 @@ export default function CircuitBuilder({ onClose }: CircuitBuilderProps) {
               <button
                 onClick={handleSkip}
                 disabled={phase === 'countdown'}
+                aria-label="Skip"
                 className="w-12 h-12 rounded-full bg-grappler-800 border border-grappler-700 flex items-center justify-center text-grappler-400 hover:text-primary-400 hover:border-primary-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <SkipForward className="w-5 h-5" />

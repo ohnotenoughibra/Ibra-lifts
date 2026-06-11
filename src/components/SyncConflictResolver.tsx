@@ -198,7 +198,7 @@ export default function SyncConflictResolver({ conflict, onResolve, onDismiss }:
                   Your data on this device differs from the cloud. Choose how to resolve it.
                 </p>
               </div>
-              <button onClick={onDismiss} className="p-1 text-grappler-500 hover:text-grappler-300">
+              <button onClick={onDismiss} aria-label="Dismiss" className="p-1 text-grappler-500 hover:text-grappler-300">
                 <X className="w-5 h-5" />
               </button>
             </div>

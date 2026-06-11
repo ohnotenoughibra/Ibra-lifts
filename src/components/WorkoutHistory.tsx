@@ -67,7 +67,10 @@ export default function WorkoutHistory() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'strength' | 'hypertrophy' | 'power'>('all');
-  const [dateFilter, setDateFilter] = useState<'7d' | '30d' | '90d' | 'all'>('all');
+  // Default to 90d, not 'all' — the list renders every workout ever as an
+  // expandable card, so an unbounded default janks for long-time users.
+  // 'all' stays available as an explicit choice.
+  const [dateFilter, setDateFilter] = useState<'7d' | '30d' | '90d' | 'all'>('90d');
   const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | 'all'>('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'volume' | 'rpe'>('date');

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimitDaily } from '@/lib/rate-limit';
 
 // --- Types ---
 
@@ -130,12 +130,10 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // 2. Rate limit: 3 per user per day (24h window)
-    const { limited, remaining } = rateLimit(
-      `ai-coach:${userId}`,
-      3,
-      24 * 60 * 60 * 1000
-    );
+    // 2. Rate limit: 3 per user per day — GLOBAL (Postgres-backed) because this
+    // route costs a paid Claude API call, so per-Lambda counting would let a
+    // user fan requests across instances past the cap.
+    const { limited, remaining } = await rateLimitDaily(`ai-coach:${userId}`, 3);
 
     if (limited) {
       return NextResponse.json(

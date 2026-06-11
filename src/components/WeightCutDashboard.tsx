@@ -135,7 +135,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
             <h2 className="text-lg font-bold text-white">Weight Cut Dashboard</h2>
             <p className="text-sm text-zinc-400">{competition.name}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400">
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400">
             <X className="w-5 h-5" />
           </button>
         </div>

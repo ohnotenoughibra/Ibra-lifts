@@ -153,9 +153,11 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
     muscleEmphasis,
   } = useAppStore();
 
-  // Consumed/removed queue entries persist as sync tombstones — hide them
+  // Consumed/removed queue entries persist as sync tombstones — hide them,
+  // and order by explicit position so a cross-device reorder is reflected
   const mesocycleQueue = useMemo(
-    () => rawMesocycleQueue.filter((b: { _deleted?: boolean }) => !b._deleted),
+    () => [...rawMesocycleQueue.filter((b: { _deleted?: boolean }) => !b._deleted)]
+      .sort((a: { position?: number }, b: { position?: number }) => (a.position ?? 0) - (b.position ?? 0)),
     [rawMesocycleQueue]
   );
 

@@ -589,7 +589,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
           <h1 className="text-lg font-bold text-grappler-50">Conditioning</h1>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-grappler-800 text-grappler-400">
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-grappler-800 text-grappler-400">
             <X size={20} />
           </button>
         </div>
@@ -723,7 +723,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             <ChevronLeft size={20} />
             <span className="text-sm">Back</span>
           </button>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-grappler-800 text-grappler-400">
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-grappler-800 text-grappler-400">
             <X size={20} />
           </button>
         </div>
@@ -1125,6 +1125,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             {/* Play/Pause */}
             <button
               onClick={isRunning ? pauseTimer : resumeTimer}
+              aria-label={isRunning ? 'Pause' : 'Resume'}
               className="w-16 h-16 rounded-lg bg-blue-500 text-white flex items-center justify-center hover:bg-blue-600 active:scale-95 transition-all"
             >
               {isRunning ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
@@ -1134,6 +1135,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             {!isAmrap && (
               <button
                 onClick={skipInterval}
+                aria-label="Skip interval"
                 className="p-3 rounded-xl bg-grappler-900 border border-grappler-800 text-grappler-400 hover:text-grappler-200 transition-colors"
                 title="Skip interval"
               >

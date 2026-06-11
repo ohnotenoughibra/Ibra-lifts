@@ -119,7 +119,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 px-3 py-2 flex items-center justify-between">
-        <button onClick={onClose} className="p-1.5 -ml-1 text-grappler-400 hover:text-grappler-200">
+        <button onClick={onClose} aria-label="Close" className="p-1.5 -ml-1 text-grappler-400 hover:text-grappler-200">
           <X className="w-5 h-5" />
         </button>
         <h1 className="text-sm font-bold text-grappler-50">Training Load</h1>

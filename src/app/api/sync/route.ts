@@ -124,6 +124,14 @@ export async function POST(request: Request) {
 
     let mergedData = data;
 
+    // ── Never trust a client-supplied subscription tier ──
+    // The authoritative tier lives in the `subscriptions` table (set by the
+    // PayPal webhook). Stripping it ONLY in the merge branch left a hole: a
+    // brand-new user's first sync (no server row yet) could persist a
+    // self-granted {tier:'pro'} into user_store. Strip unconditionally; the
+    // server's copy is restored below when one exists.
+    delete data.subscription;
+
     if (existingRows.length > 0 && existingRows[0].data) {
       const serverData = existingRows[0].data as Record<string, unknown>;
 

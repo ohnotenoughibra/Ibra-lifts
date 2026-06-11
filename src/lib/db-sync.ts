@@ -14,7 +14,7 @@ let pendingPayload: { userId: string; data: Record<string, unknown> } | null = n
 
 // ── localStorage-backed sync queue ──────────────────────────────────────────
 
-function loadQueueFromStorage(): Array<{ qid?: string; userId: string; data: Record<string, unknown> }> {
+function loadQueueFromStorage(): Array<{ qid?: string; userId: string; data: Record<string, unknown>; lastSyncAt?: number }> {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(SYNC_QUEUE_KEY);
@@ -24,7 +24,7 @@ function loadQueueFromStorage(): Array<{ qid?: string; userId: string; data: Rec
   }
 }
 
-function saveQueueToStorage(queue: Array<{ qid?: string; userId: string; data: Record<string, unknown> }>): void {
+function saveQueueToStorage(queue: Array<{ qid?: string; userId: string; data: Record<string, unknown>; lastSyncAt?: number }>): void {
   if (typeof window === 'undefined') return;
   try {
     if (queue.length === 0) {
@@ -456,9 +456,15 @@ async function queueForBackgroundSync(userId: string, data: Record<string, unkno
     }
   }
 
-  // Fallback: localStorage-persisted queue (survives page refresh)
-  const queue = loadQueueFromStorage();
-  queue.push({ qid, userId, data });
+  // Fallback: localStorage-persisted queue (survives page refresh).
+  // Each payload is a FULL state snapshot, so keeping N of them per user just
+  // multiplies a ~500KB blob toward the 5MB quota for no benefit — the server
+  // merge is idempotent and per-user, so the newest snapshot subsumes older
+  // ones. Coalesce: replace any existing entry for this user with the latest.
+  // Stamp lastSyncAt at queue time (not flush) so a snapshot's scalars can't
+  // later beat a fresher save that happened while this sat in the queue.
+  const queue = loadQueueFromStorage().filter(e => e.userId !== userId);
+  queue.push({ qid, userId, data, lastSyncAt: Date.now() });
   saveQueueToStorage(queue);
   if (process.env.NODE_ENV === 'development') {
     console.log('[db-sync] Offline — queued in localStorage for later sync');
@@ -538,31 +544,39 @@ export async function flushSyncQueue(): Promise<void> {
 
   // Merge all queued entries per userId instead of keeping only the last one.
   // This prevents data loss when multiple changes are queued while offline.
+  // Carry each entry's ORIGINAL lastSyncAt (stamped at queue time) — using a
+  // flush-time Date.now() would let a stale queued snapshot's scalars beat a
+  // fresher save that landed while it sat in the queue.
   const mergedByUser = new Map<string, Record<string, unknown>>();
+  const stampByUser = new Map<string, number>();
   for (const item of queue) {
     const existing = mergedByUser.get(item.userId);
+    const stamp = item.lastSyncAt ?? Date.now();
     if (!existing) {
       mergedByUser.set(item.userId, item.data);
+      stampByUser.set(item.userId, stamp);
     } else {
-      // Merge: union arrays, prefer newer scalars
+      // Merge: union arrays, prefer newer scalars; keep the newest stamp
       mergedByUser.set(item.userId, resolveConflicts(existing, item.data));
+      stampByUser.set(item.userId, Math.max(stampByUser.get(item.userId) ?? 0, stamp));
     }
   }
 
-  const failedQueue: Array<{ userId: string; data: Record<string, unknown> }> = [];
+  const failedQueue: Array<{ userId: string; data: Record<string, unknown>; lastSyncAt: number }> = [];
 
   for (const [userId, data] of Array.from(mergedByUser.entries())) {
+    const lastSyncAt = stampByUser.get(userId) ?? Date.now();
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
+        body: JSON.stringify({ userId, data, lastSyncAt }),
       });
       // fetch resolves on 4xx/5xx — a 401 (expired session), 429 (rate
       // limit) or 500 must NOT count as delivered, or the queued offline
       // workout is silently discarded. Re-queue and retry next visit.
       if (!res.ok) {
-        failedQueue.push({ userId, data });
+        failedQueue.push({ userId, data, lastSyncAt });
         recordSyncFailure();
         continue;
       }
@@ -571,7 +585,7 @@ export async function flushSyncQueue(): Promise<void> {
         console.log(`[db-sync] Flushed queued sync for ${userId}`);
       }
     } catch {
-      failedQueue.push({ userId, data });
+      failedQueue.push({ userId, data, lastSyncAt });
     }
   }
 

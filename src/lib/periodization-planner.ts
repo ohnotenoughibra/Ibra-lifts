@@ -37,6 +37,7 @@ import type {
   WeeklyCheckIn,
   BodyWeightEntry,
 } from './types';
+import { localDayKey, parseLocalDate } from './utils';
 
 // ── Constants (evidence-based) ──────────────────────────────────────────────
 
@@ -884,7 +885,8 @@ function createPhase(
 }
 
 function toISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  // Local calendar day — toISOString() shifted phase boundaries west of UTC
+  return localDayKey(date);
 }
 
 function addWeeks(date: Date, weeks: number): Date {
@@ -905,14 +907,15 @@ function getWeightKg(entry: BodyWeightEntry): number {
   return entry.unit === 'lbs' ? entry.weight * 0.453592 : entry.weight;
 }
 
-/** Safely convert a Date | string to Date (handles localStorage serialization). */
+/** Safely convert a Date | string to Date (handles localStorage serialization).
+ *  Date-only strings are parsed as LOCAL midnight, matching toISODate above. */
 function toDate(d: Date | string): Date {
-  return typeof d === 'string' ? new Date(d) : new Date(d.getTime());
+  return typeof d === 'string' ? parseLocalDate(d) : new Date(d.getTime());
 }
 
-/** Parse an ISO date string to Date. */
+/** Parse an ISO date string to Date (date-only strings → local midnight). */
 function parseDate(s: string): Date {
-  return new Date(s);
+  return parseLocalDate(s);
 }
 
 function generateId(): string {

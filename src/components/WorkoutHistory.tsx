@@ -35,14 +35,24 @@ import { useShallow } from 'zustand/react/shallow';
 import { Layers } from 'lucide-react';
 
 export default function WorkoutHistory() {
-  const { workoutLogs, user, updateWorkoutLog, deleteWorkoutLog, mesocycleHistory } = useAppStore(
+  const { rawWorkoutLogs, user, updateWorkoutLog, deleteWorkoutLog, rawMesocycleHistory } = useAppStore(
     useShallow(s => ({
-      workoutLogs: s.workoutLogs.filter(l => !l._deleted),
+      rawWorkoutLogs: s.workoutLogs,
       user: s.user,
       updateWorkoutLog: s.updateWorkoutLog,
       deleteWorkoutLog: s.deleteWorkoutLog,
-      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted),
+      rawMesocycleHistory: s.mesocycleHistory,
     }))
+  );
+  // Raw stable refs in the selector; derive filtered views here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const workoutLogs = useMemo(
+    () => rawWorkoutLogs.filter(l => !l._deleted),
+    [rawWorkoutLogs]
+  );
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
   );
   const [historyView, setHistoryView] = useState<'list' | 'calendar' | 'blocks'>('list');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);

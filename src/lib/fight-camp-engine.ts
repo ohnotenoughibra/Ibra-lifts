@@ -28,6 +28,7 @@ import type {
   FightCampPhase, FightCampPhaseConfig, MacroTargets, BiologicalSex,
   CompetitionEvent,
 } from './types';
+import { asLocalDate, localDayKey } from './utils';
 
 // ── Phase Detection ──────────────────────────────────────────────────────────
 
@@ -348,7 +349,9 @@ export function generateFightCampTimeline(
   bodyWeightKg: number,
   sex: BiologicalSex = 'male',
 ): FightCampPhaseConfig[] {
-  const eventDate = new Date(competition.date);
+  // asLocalDate: competition dates are often date-only strings — new Date()
+  // would parse them as UTC midnight and shift phase boundaries west of UTC
+  const eventDate = asLocalDate(competition.date);
   const now = new Date();
   const totalDays = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   const needsWeightCut = competition.weightClass != null && bodyWeightKg > competition.weightClass;
@@ -381,8 +384,8 @@ export function generateFightCampTimeline(
 
     phases.push({
       phase: current.phase,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate: localDayKey(startDate),
+      endDate: localDayKey(endDate),
       calorieStrategy: config.calorieStrategy,
       proteinGKg: config.proteinGKg,
       carbsGKg: config.carbsGKg,

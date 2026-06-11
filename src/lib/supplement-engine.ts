@@ -28,6 +28,7 @@ import type {
   SupplementIntake,
   UserSupplement,
 } from './types';
+import { localDaysAgoKey } from './utils';
 
 // ── Supplement Macro Database ───────────────────────────────────────────────
 // Per-serving macro data for supplements that contribute meaningful nutrition.
@@ -568,13 +569,10 @@ export function getSupplementAdherence(
   const enabled = stack.filter(s => s.enabled);
   if (enabled.length === 0) return { overall: 0, perSupplement: [], streak: 0 };
 
-  const today = new Date();
   const perSupplement = enabled.map(s => {
     let taken = 0;
     for (let d = 0; d < days; d++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - d);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = localDaysAgoKey(d);
       const wasTaken = intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr);
       if (wasTaken) taken++;
     }
@@ -594,9 +592,7 @@ export function getSupplementAdherence(
   // Calculate streak
   let streak = 0;
   for (let d = 0; d < 365; d++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - d);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = localDaysAgoKey(d);
     const allTaken = enabled.every(s =>
       intakes.some(i => i.supplementId === s.supplementId && i.date === dateStr)
     );

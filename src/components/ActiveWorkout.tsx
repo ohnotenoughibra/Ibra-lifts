@@ -66,6 +66,12 @@ import { getSessionAdjustments } from '@/lib/concurrent-training';
 // ---------------------------------------------------------------------------
 // Mini Plate Calculator — shown during rest overlay
 // ---------------------------------------------------------------------------
+// Stable fallbacks for store selectors — an inline `?? []` / `?? {}` returns a
+// fresh reference every evaluation and forces a re-render on every store update.
+const EMPTY_ARR: never[] = [];
+const EMPTY_WATER_LOG: Record<string, number> = {};
+const DEFAULT_MACRO_TARGETS = { calories: 2500, protein: 180, carbs: 300, fat: 80 };
+
 const PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
 const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 const PLATE_COLORS: Record<number, string> = {
@@ -171,11 +177,12 @@ export default function ActiveWorkout() {
   );
   // Store selectors for full readiness (used by throttle engine)
   const storeWorkoutLogs = useAppStore(s => s.workoutLogs);
-  const trainingSessions = useAppStore(s => s.trainingSessions ?? []);
-  const meals = useAppStore(s => (s.meals ?? []).filter(m => !m._deleted));
-  const macroTargets = useAppStore(s => s.macroTargets ?? { calories: 2500, protein: 180, carbs: 300, fat: 80 });
-  const waterLog = useAppStore(s => s.waterLog ?? {});
-  const quickLogs = useAppStore(s => s.quickLogs ?? []);
+  const trainingSessions = useAppStore(s => s.trainingSessions ?? EMPTY_ARR);
+  const rawMeals = useAppStore(s => s.meals ?? EMPTY_ARR);
+  const meals = useMemo(() => rawMeals.filter(m => !m._deleted), [rawMeals]);
+  const macroTargets = useAppStore(s => s.macroTargets ?? DEFAULT_MACRO_TARGETS);
+  const waterLog = useAppStore(s => s.waterLog ?? EMPTY_WATER_LOG);
+  const quickLogs = useAppStore(s => s.quickLogs ?? EMPTY_ARR);
 
   // Active injury adaptations — for per-exercise warnings
   const injuryLog = useAppStore(s => s.injuryLog);

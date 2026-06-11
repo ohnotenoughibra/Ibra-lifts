@@ -39,7 +39,7 @@ export default function RecoveryCoach({ onClose, embedded }: RecoveryCoachProps)
     trainingSessions,
     injuryLog,
     user,
-    meals,
+    rawMeals,
     macroTargets,
     waterLog,
     quickLogs,
@@ -50,11 +50,14 @@ export default function RecoveryCoach({ onClose, embedded }: RecoveryCoachProps)
     trainingSessions: s.trainingSessions,
     injuryLog: s.injuryLog,
     user: s.user,
-    meals: s.meals.filter(m => !m._deleted),
+    rawMeals: s.meals,
     macroTargets: s.macroTargets,
     waterLog: s.waterLog,
     quickLogs: s.quickLogs,
   })));
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const meals = useMemo(() => rawMeals.filter(m => !m._deleted), [rawMeals]);
 
   // Create a simple history from latest whoop data for now
   const whoopHistory = latestWhoopData ? [latestWhoopData] : [];

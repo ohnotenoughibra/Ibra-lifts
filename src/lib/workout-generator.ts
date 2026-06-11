@@ -23,6 +23,7 @@ import {
 } from './types';
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
+import { estimate1RM } from './weight-estimator';
 
 // Volume landmarks per muscle group (weekly direct sets)
 // Updated to Israetel / RP 2023 values ("Scientific Principles of Hypertrophy Training")
@@ -1313,11 +1314,9 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
 }
 
 // Calculate estimated 1RM from weight and reps
-// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+// Brzycki via the shared, rep-capped helper (see weight-estimator.ts)
 export function calculate1RM(weight: number, reps: number): number {
-  if (weight <= 0 || reps <= 0) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight / (1.0278 - 0.0278 * reps));
+  return Math.round(estimate1RM(weight, reps));
 }
 
 // Calculate working weight from 1RM and target percentage

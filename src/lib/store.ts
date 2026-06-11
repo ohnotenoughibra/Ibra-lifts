@@ -82,8 +82,8 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
-import { isBodyweightLoadedExercise, backfillBodyweightInLogs } from './weight-estimator';
-import { safeDayKey, isValidDate } from './utils';
+import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM } from './weight-estimator';
+import { safeDayKey, isValidDate, localDayKey, localMondayKey, parseLocalDate } from './utils';
 
 /**
  * Resolve the initial logged weight for a set. Prefers a real suggested/history
@@ -643,7 +643,7 @@ const initialOnboardingData: OnboardingData = {
 
 const initialStreakShield: StreakShield = {
   available: 1,
-  lastRefillDate: new Date().toISOString().split('T')[0],
+  lastRefillDate: localDayKey(),
   usedDates: [],
 };
 
@@ -1218,10 +1218,10 @@ export const useAppStore = create<AppState>()(
 
         // Auto-sync wearable sleep → QuickLog (once per day)
         if (data?.sleepHours && data.sleepHours > 0) {
-          const today = new Date().toISOString().split('T')[0];
+          const today = localDayKey();
           const { quickLogs } = get();
           const alreadyLogged = quickLogs.some(
-            l => l.type === 'sleep' && new Date(l.timestamp).toISOString().split('T')[0] === today
+            l => l.type === 'sleep' && localDayKey(new Date(l.timestamp)) === today
           );
           if (!alreadyLogged) {
             const quality = data.sleepScore ? Math.round(data.sleepScore / 20) : undefined; // 0-100 → 1-5
@@ -2658,17 +2658,26 @@ export const useAppStore = create<AppState>()(
         if (!activeWorkout || !user) return;
         // Mesocycle can be null for template/quick workouts — still log the workout
 
-        // Calculate total volume
+        // Calculate total volume — guard against NaN/negative inputs so one
+        // corrupt set can't poison totalVolume (and totalVolume stats) forever
         const totalVolume = activeWorkout.exerciseLogs.reduce((total, ex) => {
           return total + ex.sets.reduce((setTotal, set) => {
-            return setTotal + (set.completed ? set.weight * set.reps : 0);
+            const valid = Number.isFinite(set.weight) && Number.isFinite(set.reps)
+              && set.weight > 0 && set.reps > 0;
+            return setTotal + (set.completed && valid ? set.weight * set.reps : 0);
           }, 0);
         }, 0);
 
         // Calculate duration — subtract paused time, use override if provided
         // Wrap startTime in new Date() because localStorage deserializes it as a string
-        const elapsedMs = new Date().getTime() - new Date(activeWorkout.startTime).getTime();
-        const pausedMs = activeWorkout.totalPausedMs || 0;
+        const now = new Date();
+        const elapsedMs = now.getTime() - new Date(activeWorkout.startTime).getTime();
+        // If completing while paused, close the open pause segment too —
+        // otherwise the time since pauseWorkout() counts as workout duration
+        const openPauseMs = activeWorkout.pausedAt
+          ? Math.max(0, now.getTime() - new Date(activeWorkout.pausedAt).getTime())
+          : 0;
+        const pausedMs = (activeWorkout.totalPausedMs || 0) + openPauseMs;
         const duration = feedback.durationOverride ?? Math.max(1, Math.round((elapsedMs - pausedMs) / 1000 / 60));
 
         // Check for PRs
@@ -2705,8 +2714,8 @@ export const useAppStore = create<AppState>()(
         const { quickLogs } = get();
         const allLogs = [...workoutLogs, workoutLog]; // include the workout we just completed
         let newStreak = calculateStreak(allLogs, trainingSessions, quickLogs);
-        const todayStr = new Date().toISOString().split('T')[0];
-        const fmtDate = (d: Date) => new Date(d).toISOString().split('T')[0];
+        const todayStr = localDayKey();
+        const fmtDate = (d: Date) => localDayKey(new Date(d));
 
         // Detect comeback (7+ days since last activity)
         const isComeback = detectComeback(gamificationStats.lastActiveDate || null);
@@ -2725,7 +2734,7 @@ export const useAppStore = create<AppState>()(
         // Refill streak shield weekly
         let updatedShield = gamificationStats.streakShield || initialStreakShield;
         if (shouldRefillShield(updatedShield.lastRefillDate)) {
-          updatedShield = { ...updatedShield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] };
+          updatedShield = { ...updatedShield, available: 1, lastRefillDate: localDayKey() };
         }
         if (shieldUsed) {
           updatedShield = {
@@ -2949,6 +2958,9 @@ export const useAppStore = create<AppState>()(
       pauseWorkout: () => {
         const { activeWorkout } = get();
         if (!activeWorkout) return;
+        // No-op if already paused — overwriting pausedAt would silently
+        // discard the elapsed pause time when resumeWorkout() runs
+        if (activeWorkout.pausedAt) return;
         set({
           activeWorkout: {
             ...activeWorkout,
@@ -3175,12 +3187,8 @@ export const useAppStore = create<AppState>()(
         const bestE1RMs: Record<string, number> = {};
         const bestDurations: Record<string, number> = {};
 
-        // Calculate estimated 1RM using Brzycki formula
-        const calcE1RM = (weight: number, reps: number) => {
-          if (reps === 0 || weight === 0) return 0;
-          if (reps === 1) return weight;
-          return Math.round(weight / (1.0278 - 0.0278 * reps));
-        };
+        // Estimated 1RM via the shared, rep-capped Brzycki helper
+        const calcE1RM = (weight: number, reps: number) => Math.round(estimate1RM(weight, reps));
 
         // Time-based exercises: PR is the longest hold. Detect via duration field
         // (preferred) or by the exercise library's measurementType. Since this
@@ -3281,7 +3289,7 @@ export const useAppStore = create<AppState>()(
 
       awardSmartRest: () => {
         const { gamificationStats } = get();
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = localDayKey();
 
         // Already awarded today
         if (gamificationStats.lastSmartRestDate === todayStr) {
@@ -3315,11 +3323,8 @@ export const useAppStore = create<AppState>()(
         const planned = user?.sessionsPerWeek || 3;
         const weekMap = new Map<string, number>();
         for (const log of workoutLogs) {
-          const d = new Date(log.date);
-          const day = d.getDay();
-          const monday = new Date(d);
-          monday.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-          const key = monday.toISOString().split('T')[0];
+          // Bucket by the user's LOCAL Monday (toISOString drifted a day west of UTC)
+          const key = localMondayKey(new Date(log.date));
           weekMap.set(key, (weekMap.get(key) || 0) + 1);
         }
         const weeklyCompletions = Array.from(weekMap.values()).filter(count => count >= planned).length;
@@ -3438,7 +3443,7 @@ export const useAppStore = create<AppState>()(
           // Combine challenge + shield refill in a single set() to avoid stale reads
           const shield = gamificationStats.streakShield || initialStreakShield;
           const shieldUpdate = shouldRefillShield(shield.lastRefillDate)
-            ? { streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] } }
+            ? { streakShield: { ...shield, available: 1, lastRefillDate: localDayKey() } }
             : {};
           set({
             gamificationStats: {
@@ -3454,7 +3459,7 @@ export const useAppStore = create<AppState>()(
             set({
               gamificationStats: {
                 ...gamificationStats,
-                streakShield: { ...shield, available: 1, lastRefillDate: new Date().toISOString().split('T')[0] },
+                streakShield: { ...shield, available: 1, lastRefillDate: localDayKey() },
               }
             });
           }
@@ -3465,7 +3470,7 @@ export const useAppStore = create<AppState>()(
 
       awardWellnessXP: (domain, details) => {
         const { gamificationStats } = get();
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
         const ws = gamificationStats.wellnessStats || defaultWellnessStats;
         const todayCompleted = { ...ws.todayCompleted };
         const existingDomains = todayCompleted[today] || [];
@@ -3586,7 +3591,7 @@ export const useAppStore = create<AppState>()(
       getWellnessMultiplier: () => {
         const { gamificationStats } = get();
         const ws = gamificationStats.wellnessStats || defaultWellnessStats;
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
         const todayDomains = ws.todayCompleted[today] || [];
         return calculateWellnessMultiplier(todayDomains);
       },
@@ -3594,14 +3599,14 @@ export const useAppStore = create<AppState>()(
       getTodayWellnessDomains: () => {
         const { gamificationStats } = get();
         const ws = gamificationStats.wellnessStats || defaultWellnessStats;
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
         return ws.todayCompleted[today] || [];
       },
 
       getCompositeWellnessScore: () => {
         const { gamificationStats, wearableHistory } = get();
         const ws = gamificationStats.wellnessStats || defaultWellnessStats;
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
         const todayDomains = ws.todayCompleted[today] || [];
         const recentDays = (ws.wellnessDays || []).slice(-14);
 
@@ -3731,7 +3736,7 @@ export const useAppStore = create<AppState>()(
         // Sync water quick logs → waterLog Record for nutrition/readiness engines
         // waterLog stores glasses (1 glass = 250ml), QuickActions logs in ml
         if (log.type === 'water' && typeof log.value === 'number') {
-          const dateStr = new Date(log.timestamp).toISOString().split('T')[0];
+          const dateStr = localDayKey(new Date(log.timestamp));
           const { waterLog } = get();
           const existing = waterLog[dateStr] || 0;
           const glassesAdded = log.value / 250; // convert ml → glasses
@@ -3747,7 +3752,7 @@ export const useAppStore = create<AppState>()(
                 ...gamificationStats,
                 currentStreak: newStreak,
                 longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
-                lastActiveDate: new Date().toISOString().split('T')[0],
+                lastActiveDate: localDayKey(),
               },
             });
           }
@@ -3756,9 +3761,9 @@ export const useAppStore = create<AppState>()(
         // Award wellness XP based on quick log type
         if (log.type === 'water') {
           // Check if water target hit (8 glasses = 2000ml)
-          const dateStr = new Date(log.timestamp).toISOString().split('T')[0];
+          const dateStr = localDayKey(new Date(log.timestamp));
           const totalWater = updatedQuickLogs
-            .filter(l => l.type === 'water' && new Date(l.timestamp).toISOString().split('T')[0] === dateStr)
+            .filter(l => l.type === 'water' && localDayKey(new Date(l.timestamp)) === dateStr)
             .reduce((sum, l) => sum + (typeof l.value === 'number' ? l.value : 0), 0);
           if (totalWater >= 2000) { // 2000ml = ~8 glasses
             get().awardWellnessXP('water');
@@ -3993,7 +3998,7 @@ export const useAppStore = create<AppState>()(
         set({
           illnessLogs: illnessLogs.map(il =>
             il.id === illnessId
-              ? { ...il, status: 'resolved' as const, endDate: new Date().toISOString().split('T')[0], updatedAt: new Date().toISOString() }
+              ? { ...il, status: 'resolved' as const, endDate: localDayKey(), updatedAt: new Date().toISOString() }
               : il
           ),
           // Write to the local-only resolved set — sync can never undo this
@@ -4112,7 +4117,8 @@ export const useAppStore = create<AppState>()(
           const newStreak = calculateStreak(workoutLogs, allSessions, quickLogs);
 
           // Check if this is also a lifting day (dual training)
-          const fmtDate = (d: Date) => new Date(d).toDateString();
+          // Local calendar day — must match completeWorkout's dual-day keying
+          const fmtDate = (d: Date) => localDayKey(new Date(d));
           const sessionDay = fmtDate(new Date(session.date));
           const hasLiftingToday = workoutLogs.some(log => fmtDate(new Date(log.date)) === sessionDay);
           const newDualDays = hasLiftingToday
@@ -4125,7 +4131,7 @@ export const useAppStore = create<AppState>()(
             longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
             totalTrainingSessions: (gamificationStats.totalTrainingSessions || 0) + 1,
             dualTrainingDays: newDualDays,
-            lastActiveDate: new Date().toISOString().split('T')[0],
+            lastActiveDate: localDayKey(),
           };
 
           // Update weekly challenge progress for sessions/dual_days
@@ -4186,7 +4192,7 @@ export const useAppStore = create<AppState>()(
         set({ meals: newMeals });
 
         // Award wellness XP for nutrition logging
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
         const todayMeals = newMeals.filter(m => safeDayKey(m.date) === today);
         const todayTotals = todayMeals.reduce((acc, m) => ({
           calories: acc.calories + (m.calories || 0),
@@ -4270,7 +4276,7 @@ export const useAppStore = create<AppState>()(
             id: activeDietPhase.id,
             goal: activeDietPhase.goal,
             startDate: activeDietPhase.startDate,
-            endDate: new Date().toISOString().split('T')[0],
+            endDate: localDayKey(),
             startWeightKg: activeDietPhase.startWeightKg,
             endWeightKg: Math.round(endWeightKg * 10) / 10,
             weeksCompleted: activeDietPhase.weeksCompleted,
@@ -4337,7 +4343,7 @@ export const useAppStore = create<AppState>()(
             nutritionPeriodPlan: {
               ...nutritionPeriodPlan,
               status: 'needs_review',
-              updatedAt: new Date().toISOString().split('T')[0],
+              updatedAt: localDayKey(),
             },
           });
         } else {
@@ -4346,7 +4352,7 @@ export const useAppStore = create<AppState>()(
               ...nutritionPeriodPlan,
               activePhaseIndex: nextIndex,
               weeksIntoActivePhase: 0,
-              updatedAt: new Date().toISOString().split('T')[0],
+              updatedAt: localDayKey(),
             },
           });
         }
@@ -4394,7 +4400,7 @@ export const useAppStore = create<AppState>()(
         const { meals } = get();
         const yesterday = new Date(targetDate + 'T12:00:00');
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const yesterdayStr = localDayKey(yesterday);
         const yesterdayMeals = meals.filter(
           m => safeDayKey(m.date) === yesterdayStr
         );
@@ -4513,7 +4519,7 @@ export const useAppStore = create<AppState>()(
       // Daily login bonus actions
       claimDailyLoginBonus: () => {
         const { dailyLoginBonus, gamificationStats } = get();
-        const today = new Date().toISOString().split('T')[0];
+        const today = localDayKey();
 
         // Already claimed today
         if (dailyLoginBonus.lastClaimedDate === today) return null;
@@ -4523,10 +4529,11 @@ export const useAppStore = create<AppState>()(
         if (!dailyLoginBonus.lastClaimedDate) {
           newConsecutive = 1;
         } else {
-          const lastDate = new Date(dailyLoginBonus.lastClaimedDate);
-          const todayDate = new Date(today);
+          const lastDate = parseLocalDate(dailyLoginBonus.lastClaimedDate);
+          const todayDate = parseLocalDate(today);
           const diffMs = todayDate.getTime() - lastDate.getTime();
-          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          // Round, don't floor: a DST transition makes the gap 23h or 25h
+          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
           if (diffDays === 1) {
             newConsecutive = dailyLoginBonus.consecutiveDays >= 7 ? 1 : dailyLoginBonus.consecutiveDays + 1;
           } else {

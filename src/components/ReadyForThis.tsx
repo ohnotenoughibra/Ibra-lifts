@@ -38,7 +38,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
 }) {
   const {
     user, workoutLogs, trainingSessions, latestWhoopData, wearableHistory,
-    meals, macroTargets, waterLog, injuryLog, quickLogs, mentalCheckIns,
+    rawMeals, macroTargets, waterLog, injuryLog, quickLogs, mentalCheckIns,
     activeWorkout,
   } = useAppStore(useShallow(s => ({
     user: s.user,
@@ -46,7 +46,7 @@ export default function ReadyForThis({ onProceed, onSkip }: {
     trainingSessions: s.trainingSessions,
     latestWhoopData: s.latestWhoopData,
     wearableHistory: s.wearableHistory,
-    meals: s.meals.filter(m => !m._deleted),
+    rawMeals: s.meals,
     macroTargets: s.macroTargets,
     waterLog: s.waterLog,
     injuryLog: s.injuryLog,
@@ -54,6 +54,9 @@ export default function ReadyForThis({ onProceed, onSkip }: {
     mentalCheckIns: s.mentalCheckIns,
     activeWorkout: s.activeWorkout,
   })));
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const meals = useMemo(() => rawMeals.filter(m => !m._deleted), [rawMeals]);
 
   const [dismissed, setDismissed] = useState(false);
 

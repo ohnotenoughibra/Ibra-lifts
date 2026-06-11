@@ -48,7 +48,8 @@ import {
   Plus,
   Battery,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, localDayKey } from '@/lib/utils';
+import { estimate1RM } from '@/lib/weight-estimator';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
@@ -445,26 +446,38 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const {
     user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
-    mesocycleHistory, competitions,
-    trainingSessions, latestWhoopData, meals, subscription,
+    rawMesocycleHistory, competitions,
+    trainingSessions, latestWhoopData, rawMeals, subscription,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, repairMesocycleProgress,
-    skipWorkout, gamificationStats, mesocycleQueue, completeMesocycle,
+    skipWorkout, gamificationStats, rawMesocycleQueue, completeMesocycle,
     deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips, addTrainingSession,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
-      mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), competitions: s.competitions,
-      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, meals: s.meals.filter(m => !m._deleted), subscription: s.subscription,
+      rawMesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
+      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, rawMeals: s.meals, subscription: s.subscription,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
-      // Live queue only — consumed/removed entries persist as sync tombstones.
-      // (Selector .filter returns a fresh ref; acceptable here ONLY because the
-      // adjacent history/meals filters already break shallow-compare — the
-      // whole-selector cleanup is tracked as audit finding UI-1.)
-      skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, mesocycleQueue: s.mesocycleQueue.filter(b => !b._deleted), completeMesocycle: s.completeMesocycle,
+      skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, rawMesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,
       workoutSkips: s.workoutSkips, addTrainingSession: s.addTrainingSession,
     }))
+  );
+  // Only stable references in the selector — a .filter() there returns a fresh
+  // array every evaluation, defeats useShallow, and re-renders this component
+  // on every store update. Derive filtered views here with useMemo instead.
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
+  );
+  const meals = useMemo(
+    () => rawMeals.filter(m => !m._deleted),
+    [rawMeals]
+  );
+  // Live queue only — consumed/removed entries persist as sync tombstones.
+  const mesocycleQueue = useMemo(
+    () => rawMesocycleQueue.filter(b => !b._deleted),
+    [rawMesocycleQueue]
   );
   const computed = useComputedGamification();
   const { showToast } = useToast();
@@ -473,7 +486,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   // Profile completeness gate — prevents NaN values from engines that need weight/height/age/sex
   const profileComplete = !!(user?.bodyWeightKg && user.bodyWeightKg > 0 && user?.heightCm && user.heightCm > 0 && user?.age && user.age > 0 && user?.sex);
 
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
+  const rawBodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useMemo(
+    () => rawBodyWeightLog.filter(e => !e._deleted),
+    [rawBodyWeightLog]
+  );
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
   const waterLog = useAppStore(s => s.waterLog);
@@ -614,10 +631,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }, [lastCompletedWorkout, workoutLogs, latestWhoopData]);
 
   // ─── Soreness Check — show daily on all day types ───
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = localDayKey();
   const alreadyLoggedSorenessToday = useMemo(() => {
     return quickLogs.some(
-      l => l.type === 'soreness' && new Date(l.timestamp).toISOString().split('T')[0] === todayIso
+      l => l.type === 'soreness' && localDayKey(new Date(l.timestamp)) === todayIso
     );
   }, [quickLogs, todayIso]);
 
@@ -670,7 +687,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     const completionRate = totalPlanned > 0 ? Math.round((sessionsCompleted / totalPlanned) * 100) : 100;
 
     // Strength gains: compute best e1RM per exercise in this block vs previous block
-    const calc1RM = (w: number, r: number) => r <= 0 || w <= 0 ? 0 : r === 1 ? w : Math.round(w / (1.0278 - 0.0278 * r));
+    const calc1RM = (w: number, r: number) => estimate1RM(w, r);
     const best1RMMap = new Map<string, { name: string; best1RM: number }>();
     blockLogs.forEach(l => l.exercises.forEach(ex => {
       ex.sets.forEach(set => {
@@ -915,16 +932,19 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const today = new Date();
   const todayStr = today.toDateString();
 
-  const todayTraining = trainingSessions.filter(s =>
-    new Date(s.date).toDateString() === todayStr
+  const todayTraining = useMemo(
+    () => trainingSessions.filter(s => new Date(s.date).toDateString() === todayStr),
+    [trainingSessions, todayStr]
   );
 
-  const todayWorkouts = workoutLogs.filter(log =>
-    new Date(log.date).toDateString() === todayStr
+  const todayWorkouts = useMemo(
+    () => workoutLogs.filter(log => new Date(log.date).toDateString() === todayStr),
+    [workoutLogs, todayStr]
   );
 
-  const todayMeals = meals.filter(m =>
-    new Date(m.date).toDateString() === todayStr
+  const todayMeals = useMemo(
+    () => meals.filter(m => new Date(m.date).toDateString() === todayStr),
+    [meals, todayStr]
   );
   const todayProtein = +todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0).toFixed(1);
 
@@ -932,13 +952,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toDateString();
-  const yesterdayWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === yesterdayStr);
+  const yesterdayWorkouts = useMemo(
+    () => workoutLogs.filter(log => new Date(log.date).toDateString() === yesterdayStr),
+    [workoutLogs, yesterdayStr]
+  );
   const yesterdayVolume = yesterdayWorkouts.reduce((s, l) => s + l.totalVolume, 0);
-  const yesterdayProtein = meals.filter(m => new Date(m.date).toDateString() === yesterdayStr).reduce((sum, m) => sum + (m.protein || 0), 0);
+  const yesterdayProtein = useMemo(
+    () => meals.filter(m => new Date(m.date).toDateString() === yesterdayStr).reduce((sum, m) => sum + (m.protein || 0), 0),
+    [meals, yesterdayStr]
+  );
 
   const twoDaysAgo = new Date(today);
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDaysAgoWorkouts = workoutLogs.filter(log => new Date(log.date).toDateString() === twoDaysAgo.toDateString());
+  const twoDaysAgoStr = twoDaysAgo.toDateString();
+  const twoDaysAgoWorkouts = useMemo(
+    () => workoutLogs.filter(log => new Date(log.date).toDateString() === twoDaysAgoStr),
+    [workoutLogs, twoDaysAgoStr]
+  );
 
   const recoveryScore = latestWhoopData?.recoveryScore;
   const strain = latestWhoopData?.strain;
@@ -1173,7 +1203,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
   };
 
-  const deloadCheck = workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null;
+  const deloadCheck = useMemo(
+    () => workoutLogs.length >= 3 ? shouldDeload(workoutLogs.slice(-5)) : null,
+    [workoutLogs]
+  );
 
   // Position-based next workout — survives UUID changes from regeneration/sync/migration
   const nextWorkoutInfo = useMemo(() => {
@@ -1271,7 +1304,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return null;
   }, [user?.trainingIdentity, user?.sessionsPerWeek, workoutLogs]);
 
-  const isRestDay = !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo;
+  const isRestDay = useMemo(
+    () => !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo,
+    [workoutLogs, todayStr, nextWorkoutInfo]
+  );
   const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
 
   const mesocycleComparison = useMemo(() => {
@@ -2605,7 +2641,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
                     key={reason}
                     onClick={() => {
                       const skipId = skipWorkout({
-                        date: new Date().toISOString().split('T')[0],
+                        date: localDayKey(),
                         scheduledSessionId: nextWorkout.id,
                         reason,
                         rescheduled: false,

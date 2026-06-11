@@ -20,6 +20,7 @@ import type {
   WhoopWorkout,
   ActivityCategory,
 } from './types';
+import { localDayKey } from './utils';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -234,13 +235,9 @@ export function calculateEnhancedACWR(
  * Local-calendar date key (YYYY-MM-DD). A "training day" is the user's local
  * day — keying by toISOString() (UTC) shifts every bucket for west-of-UTC
  * users, so today's workout only appeared on the heatmap after ~8pm local.
+ * Delegates to the shared helper in utils.ts.
  */
-function localDateKey(d: Date): string {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+const localDateKey = localDayKey;
 
 /**
  * 28-day rolling intensity heatmap.

@@ -13,6 +13,7 @@ import type {
   GamificationStats,
   UserProfile,
 } from './types';
+import { localMondayKey } from './utils';
 
 /** Filter out soft-deleted items from arrays before processing */
 function active<T>(arr: T[]): T[] {
@@ -101,10 +102,11 @@ function sortLogsDesc(logs: WorkoutLog[]): WorkoutLog[] {
   );
 }
 
-/** Days between two dates (absolute). */
+/** Days between two dates (absolute).
+ *  Round, don't floor: local-midnight gaps are 23h/25h across DST transitions. */
 function daysBetween(a: Date | string, b: Date | string): number {
   return Math.abs(
-    Math.floor((toDateOnly(a).getTime() - toDateOnly(b).getTime()) / MS_PER_DAY)
+    Math.round((toDateOnly(a).getTime() - toDateOnly(b).getTime()) / MS_PER_DAY)
   );
 }
 
@@ -420,9 +422,10 @@ export function analyzeStreak(
       streak = 1;
     }
 
-    // Walk back through prior weeks
+    // Walk back through prior weeks (setDate, not ms math — DST-safe)
     for (let w = 1; w <= 12; w++) {
-      const weekStart = new Date(now.getTime() - (w * 7 + (dayOfWeek - 1)) * MS_PER_DAY);
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - (w * 7 + (dayOfWeek - 1)));
       const key = getMonday(weekStart);
       const count = weekBuckets[key] || 0;
       // A week is "hit" if the user did at least 70% of planned sessions
@@ -519,14 +522,9 @@ export function analyzeStreak(
   };
 }
 
-function getMonday(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  return d.toISOString().split('T')[0];
-}
+// Local-Monday week key — delegates to the shared helper in utils.ts
+// (toISOString() drifted the bucket a day for west-of-UTC users).
+const getMonday = localMondayKey;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 3. Re-engagement Detection

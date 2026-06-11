@@ -32,7 +32,7 @@ import type {
   QuickLog,
 } from './types';
 import { getIllnessTrainingRecommendation } from './illness-engine';
-import { safeDayKey } from './utils';
+import { safeDayKey, localDayKey, localDaysAgoKey } from './utils';
 
 /** Filter out soft-deleted items from arrays before processing */
 function active<T>(arr: T[]): T[] {
@@ -260,9 +260,7 @@ function assessNutrition(
   };
 
   // Check yesterday's nutrition (today might not be complete)
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const dateStr = yesterday.toISOString().split('T')[0];
+  const dateStr = localDaysAgoKey(1);
 
   const dayMeals = meals.filter(m => safeDayKey(m.date) === dateStr);
 
@@ -417,18 +415,15 @@ function assessTrainingLoad(logs: WorkoutLog[], sessions: TrainingSession[]): Re
     base.detail = `${totalSessions} sessions — very high load`;
   }
 
-  // Check consecutive days (residual fatigue accumulation)
+  // Check consecutive days (residual fatigue accumulation) — local calendar days
   const allDates = [
-    ...weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]),
-    ...weekSessions.map(s => new Date(s.date).toISOString().split('T')[0]),
+    ...weekLogs.map(l => localDayKey(new Date(l.date))),
+    ...weekSessions.map(s => localDayKey(new Date(s.date))),
   ];
   const uniqueDates = Array.from(new Set(allDates)).sort().reverse();
   let consecutive = 0;
-  const today = new Date().toISOString().split('T')[0];
   for (let i = 0; i < uniqueDates.length; i++) {
-    const expected = new Date();
-    expected.setDate(expected.getDate() - i);
-    if (uniqueDates[i] === expected.toISOString().split('T')[0]) {
+    if (uniqueDates[i] === localDaysAgoKey(i)) {
       consecutive++;
     } else break;
   }
@@ -449,9 +444,7 @@ function assessHydration(waterLog: Record<string, number>): ReadinessFactor {
     available: false,
   };
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const dateStr = yesterday.toISOString().split('T')[0];
+  const dateStr = localDaysAgoKey(1);
   const glasses = waterLog[dateStr];
 
   if (glasses == null) return base;

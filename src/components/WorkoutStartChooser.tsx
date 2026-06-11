@@ -38,7 +38,7 @@ interface Props {
 export default function WorkoutStartChooser({ open, onClose, scheduledSession, onNavigate, showToast }: Props) {
   const {
     user, injuryLog, workoutLogs, latestWhoopData, wearableHistory,
-    meals, macroTargets, waterLog, quickLogs, trainingSessions,
+    rawMeals, macroTargets, waterLog, quickLogs, trainingSessions,
     startWorkout,
   } = useAppStore(useShallow(s => ({
     user: s.user,
@@ -46,13 +46,16 @@ export default function WorkoutStartChooser({ open, onClose, scheduledSession, o
     workoutLogs: s.workoutLogs,
     latestWhoopData: s.latestWhoopData,
     wearableHistory: s.wearableHistory,
-    meals: s.meals.filter(m => !m._deleted),
+    rawMeals: s.meals,
     macroTargets: s.macroTargets,
     waterLog: s.waterLog,
     quickLogs: s.quickLogs,
     trainingSessions: s.trainingSessions,
     startWorkout: s.startWorkout,
   })));
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const meals = useMemo(() => rawMeals.filter(m => !m._deleted), [rawMeals]);
 
   // Lazy-compute the smart pick only when user reveals it (heavy in worst case
   // due to injury-aware generation). Cached after first compute.

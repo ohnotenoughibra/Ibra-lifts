@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useAppStore } from '@/lib/store';
 import { useDbSync } from '@/lib/useDbSync';
@@ -38,6 +38,8 @@ export default function Home() {
   // SW update available
   const [swUpdateAvailable, setSwUpdateAvailable] = useState(false);
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
+  // True only after the user clicks "Update" — gates the controllerchange reload
+  const userTriggeredSwUpdateRef = useRef(false);
 
   // Sync Zustand store with Vercel Postgres — keyed to authenticated user
   const { isInitialLoadComplete, syncStatus, lastSyncedAt, deviceType, forceSync, isAuthenticated, syncFailureCount } = useDbSync(authUserId, sessionStatus);
@@ -133,10 +135,13 @@ export default function Home() {
         // SW registration failed — app still works, just no offline cache
       });
 
-      // Listen for controller change (new SW took over)
+      // Reload ONLY when the user opted into the update (clicked the banner,
+      // which posts SKIP_WAITING). Guarding on a ref prevents an unsolicited
+      // controllerchange from reloading the page mid-workout.
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // New SW is active — reload to use latest assets
-        window.location.reload();
+        if (userTriggeredSwUpdateRef.current) {
+          window.location.reload();
+        }
       });
     }
 
@@ -219,6 +224,7 @@ export default function Home() {
 
   const handleSWUpdate = useCallback(() => {
     if (waitingSW) {
+      userTriggeredSwUpdateRef.current = true;
       waitingSW.postMessage({ type: 'SKIP_WAITING' });
     }
     setSwUpdateAvailable(false);

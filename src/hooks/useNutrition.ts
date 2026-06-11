@@ -7,6 +7,7 @@ import { MealEntry, MealType } from '@/lib/types';
 import { getContextualNutrition, getSupplementRecommendations, type ContextualMacros } from '@/lib/contextual-nutrition';
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, assessHydrationStatus } from '@/lib/electrolyte-engine';
 import { PRESET_FOODS, FOOD_DB, estimateLocally } from '@/lib/food-database';
+import { localDayKey, asLocalDate } from '@/lib/utils';
 
 export type HistoryFood = {
   name: string;
@@ -76,7 +77,7 @@ export function useNutrition(selectedDate: string) {
   );
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDayKey();
   const isToday = selectedDate === todayStr;
 
   // Water
@@ -120,12 +121,14 @@ export function useNutrition(selectedDate: string) {
   // Competition context
   const nearestComp = useMemo(() => {
     const now = Date.now();
+    // asLocalDate: competition dates are often date-only strings — new Date()
+    // would parse them as UTC midnight and shift the countdown west of UTC
     return (competitions || [])
-      .filter(c => new Date(c.date).getTime() > now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+      .filter(c => asLocalDate(c.date).getTime() > now)
+      .sort((a, b) => asLocalDate(a.date).getTime() - asLocalDate(b.date).getTime())[0] || null;
   }, [competitions]);
   const daysToComp = nearestComp
-    ? Math.ceil((new Date(nearestComp.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((asLocalDate(nearestComp.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : undefined;
 
   // Contextual nutrition
@@ -185,7 +188,8 @@ export function useNutrition(selectedDate: string) {
 
   // Today's meals + totals
   const todayMeals = useMemo(
-    () => meals.filter(m => new Date(m.date).toISOString().split('T')[0] === selectedDate),
+    // Local calendar day — selectedDate is a local day key
+    () => meals.filter(m => localDayKey(new Date(m.date)) === selectedDate),
     [meals, selectedDate]
   );
 
@@ -361,11 +365,11 @@ export function useNutrition(selectedDate: string) {
   const yesterdayStr = useMemo(() => {
     const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    return localDayKey(d);
   }, [selectedDate]);
 
   const yesterdayMeals = useMemo(
-    () => meals.filter(m => new Date(m.date).toISOString().split('T')[0] === yesterdayStr),
+    () => meals.filter(m => localDayKey(new Date(m.date)) === yesterdayStr),
     [meals, yesterdayStr]
   );
 

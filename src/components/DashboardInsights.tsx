@@ -15,6 +15,10 @@ import { calculateHardMetrics, detectPlateaus, calculateMuscleVolumeGauges, extr
 import { generateDashboardInsights, type DashboardInsight } from '@/lib/dashboard-insights';
 import type { OverlayView } from './dashboard-types';
 
+// Stable fallback for store selectors — an inline `?? []` returns a fresh
+// reference every evaluation and defeats useShallow equality.
+const EMPTY_ARR: never[] = [];
+
 // ─── Icon Map ─────────────────────────────────────────────────────────────────
 
 const ICON_MAP = {
@@ -62,8 +66,8 @@ export default function DashboardInsights({ onNavigate }: DashboardInsightsProps
   } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
-      trainingSessions: s.trainingSessions ?? [],
-      wearableHistory: s.wearableHistory ?? [],
+      trainingSessions: s.trainingSessions ?? EMPTY_ARR,
+      wearableHistory: s.wearableHistory ?? EMPTY_ARR,
       latestWhoopData: s.latestWhoopData,
       currentMesocycle: s.currentMesocycle,
     }))

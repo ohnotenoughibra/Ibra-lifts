@@ -27,7 +27,7 @@ import {
   Brain,
   Snowflake,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
 import { useToast } from './Toast';
 import {
   ACTIVITY_CATEGORY_MAP,
@@ -128,7 +128,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
 
   // ── Today's data ────────────────────────────────────────────────────────
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = localDayKey(today);
   today.setHours(0, 0, 0, 0);
 
   const todayLogs = useMemo(() =>
@@ -176,7 +176,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   // ── Supplement data ─────────────────────────────────────────────────────
   const isTrainingDay = useMemo(() => {
     const todayWorkout = workoutLogs.some(l =>
-      new Date(l.date).toISOString().split('T')[0] === todayStr
+      localDayKey(new Date(l.date)) === todayStr
     );
     return !!activeWorkout || todayWorkout;
   }, [activeWorkout, workoutLogs, todayStr]);
@@ -344,7 +344,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       }
       case 'mental': {
         addMentalCheckIn({
-          date: new Date().toISOString().split('T')[0],
+          date: localDayKey(),
           timestamp: new Date().toISOString(),
           context: 'standalone',
           energy: mentalRating,

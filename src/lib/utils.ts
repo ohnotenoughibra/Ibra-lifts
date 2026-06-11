@@ -6,6 +6,57 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// ── Local-calendar date helpers ─────────────────────────────────────────────
+// A "day" in this app is the USER'S local calendar day. Keying by
+// toISOString() (UTC) shifts every bucket for west-of-UTC users (e.g. a 9pm
+// workout in Denver lands on "tomorrow"), and `new Date('YYYY-MM-DD')` parses
+// UTC midnight (i.e. "yesterday evening" locally). Always use these helpers
+// for day-scoped keys; reserve toISOString() for genuine sync timestamps.
+
+// YYYY-MM-DD key from LOCAL date components (defaults to now).
+export function localDayKey(d: Date = new Date()): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// YYYY-MM-DD key for the local calendar day n days ago (n=0 → today).
+// Uses setDate() so DST transitions can't shift the day.
+export function localDaysAgoKey(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return localDayKey(d);
+}
+
+// YYYY-MM-DD key of the LOCAL Monday of the week containing `date`.
+// Weekly buckets keyed by `monday.toISOString()` drift for west-of-UTC users
+// (local Monday 00:00 is still Sunday in UTC) — always bucket via this.
+export function localMondayKey(date: Date): string {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  d.setDate(diff);
+  return localDayKey(d);
+}
+
+// Parse a date string as LOCAL time. Date-only strings ('YYYY-MM-DD') get
+// 'T00:00:00' appended so they parse as local midnight instead of UTC
+// midnight; anything else passes through to the normal Date parser.
+export function parseLocalDate(dateStr: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}T00:00:00`);
+  }
+  return new Date(dateStr);
+}
+
+// Like parseLocalDate, but for fields typed `Date` that may deserialize from
+// localStorage/forms as strings (incl. date-only 'YYYY-MM-DD').
+export function asLocalDate(d: Date | string): Date {
+  return typeof d === 'string' ? parseLocalDate(d) : d;
+}
+
 // True if a date-ish value parses to a real date.
 export function isValidDate(d: Date | string | number | null | undefined): boolean {
   if (d === null || d === undefined) return false;
@@ -14,13 +65,20 @@ export function isValidDate(d: Date | string | number | null | undefined): boole
 }
 
 // Safe YYYY-MM-DD key for a date-ish value. Returns null for invalid/missing
-// dates so callers can SKIP the record instead of throwing on .toISOString()
+// dates so callers can SKIP the record instead of throwing
 // (a single corrupt date must never crash the whole app — local-first data).
+// Keys by the user's LOCAL calendar day (see localDayKey above); date-only
+// strings are treated as local dates, not UTC midnight.
 export function safeDayKey(d: Date | string | number | null | undefined): string | null {
   if (d === null || d === undefined) return null;
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    // Already a day key — validate and pass through (new Date('YYYY-MM-DD')
+    // would parse UTC midnight and shift a day for west-of-UTC users).
+    return Number.isNaN(parseLocalDate(d).getTime()) ? null : d;
+  }
   const date = new Date(d as string | number | Date);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString().split('T')[0];
+  return localDayKey(date);
 }
 
 // Format date for display

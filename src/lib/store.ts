@@ -1429,11 +1429,14 @@ export const useAppStore = create<AppState>()(
         // the bonus to actual training.
         const hasLoggedWork = workoutLogs.some(l => !l._deleted && l.mesocycleId === currentMesocycle.id);
 
-        // Stamp actual completion date to prevent date-range overlap with next block
+        // Stamp actual completion date to prevent date-range overlap with next block.
+        // updatedAt stamp: the sync merge's lifecycle reconciliation orders the
+        // archive against the cloud's still-active copy by this timestamp.
         const completedBlock = {
           ...currentMesocycle,
           status: hasLoggedWork ? ('completed' as const) : ('stopped' as const),
           endDate: new Date(),
+          updatedAt: new Date().toISOString(),
         };
 
         // Preserve week count from the completed block; duration/periodization
@@ -1450,7 +1453,8 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             // Mesocycle completion bonus — only for blocks with real logged work
-            totalPoints: gamificationStats.totalPoints + (hasLoggedWork ? 200 : 0)
+            totalPoints: gamificationStats.totalPoints + (hasLoggedWork ? 200 : 0),
+            pointsAsOf: Date.now()
           }
         });
 
@@ -1458,7 +1462,7 @@ export const useAppStore = create<AppState>()(
         // Otherwise, auto-generate a new block using the completed block's settings
         // so the user isn't stranded with currentMesocycle=null (breaks "next block" UX,
         // breaks post-migration currentMesocycle reads, forces re-onboarding via ProgramBrowser).
-        if (mesocycleQueue.length > 0) {
+        if (mesocycleQueue.some(b => !b._deleted)) {
           try {
             get().advanceMesocycleQueue();
           } catch (e) {
@@ -1500,21 +1504,45 @@ export const useAppStore = create<AppState>()(
       }),
 
       undoBlockAction: (expectedId?: number) => {
-        const { blockUndoStack } = get();
+        const { blockUndoStack, mesocycleHistory, mesocycleQueue, workoutLogs } = get();
         const entry = blockUndoStack[blockUndoStack.length - 1];
         if (!entry) return null;
         // A stale undo affordance (lingering toast, open modal) bound to an older
         // entry must not pop a newer, unrelated action.
         if (expectedId !== undefined && entry.id !== expectedId) return null;
+
+        // Revive-stamp: any entry the undone action TOMBSTONED (live in the
+        // snapshot, _deleted in current state) gets a fresh updatedAt so the
+        // merge's revival rule lets it beat the tombstone already pushed to
+        // the cloud. Without this, "tombstone wins" silently re-deletes the
+        // restored copies on the next sync (workout logs unrecoverably, after
+        // the 30-day GC).
+        const reviveStamp = <T extends { id?: unknown; _deleted?: boolean; updatedAt?: string }>(
+          restored: T[], current: T[],
+        ): T[] => {
+          const tombstoned = new Set(current.filter(c => c._deleted).map(c => String(c.id)));
+          if (tombstoned.size === 0) return restored;
+          return restored.map(item =>
+            !item._deleted && tombstoned.has(String(item.id))
+              ? { ...item, updatedAt: new Date().toISOString() }
+              : item
+          );
+        };
+
         set({
-          // Re-stamp updatedAt so sync merge prefers the restored state over the cloud copy
+          // Re-stamp updatedAt + _revivedAt: the merge prefers the restored
+          // state over the cloud copy, and _revivedAt is the explicit marker
+          // that lets it drop a stale terminal archive (routine edits don't
+          // carry it, so they can never erase a completed record).
           currentMesocycle: entry.currentMesocycle
-            ? { ...entry.currentMesocycle, updatedAt: new Date().toISOString() }
+            ? { ...entry.currentMesocycle, updatedAt: new Date().toISOString(), _revivedAt: Date.now() }
             : null,
-          mesocycleHistory: entry.mesocycleHistory,
-          mesocycleQueue: entry.mesocycleQueue,
-          workoutLogs: entry.workoutLogs,
-          gamificationStats: entry.gamificationStats,
+          mesocycleHistory: reviveStamp(entry.mesocycleHistory, mesocycleHistory),
+          mesocycleQueue: reviveStamp(entry.mesocycleQueue, mesocycleQueue),
+          workoutLogs: reviveStamp(entry.workoutLogs, workoutLogs),
+          // Fresh pointsAsOf: the restored (usually LOWER) XP must beat the
+          // cloud's stale higher value in the timestamp-aware merge
+          gamificationStats: { ...entry.gamificationStats, pointsAsOf: Date.now() },
           user: entry.user,
           blockUndoStack: blockUndoStack.slice(0, -1),
           _syncUrgent: true,
@@ -1538,6 +1566,7 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             totalPoints: Math.max(0, gamificationStats.totalPoints - 200),
+            pointsAsOf: Date.now(),
           },
         });
         return true;
@@ -1551,11 +1580,10 @@ export const useAppStore = create<AppState>()(
         const knownBlock = currentMesocycle?.id === mesocycleId
           || mesocycleHistory.some(m => m.id === mesocycleId);
         if (!knownBlock) return;
+        let updatedHistory = mesocycleHistory.map(m =>
+          m.id === mesocycleId ? { ...m, _deleted: true, _deletedAt: Date.now() } : m
+        );
         const updates: Record<string, unknown> = {
-          // Tombstone pattern — sync union merge honors _deleted flag
-          mesocycleHistory: mesocycleHistory.map(m =>
-            m.id === mesocycleId ? { ...m, _deleted: true, _deletedAt: Date.now() } : m
-          ),
           workoutLogs: workoutLogs.map(l =>
             l.mesocycleId === mesocycleId ? { ...l, _deleted: true, _deletedAt: Date.now() } : l
           ),
@@ -1563,7 +1591,18 @@ export const useAppStore = create<AppState>()(
         };
         if (currentMesocycle?.id === mesocycleId) {
           updates.currentMesocycle = null;
+          // Archive a tombstone of the deleted CURRENT block — nulling alone
+          // leaves no sync evidence, so the cloud's active copy would resurrect
+          // it on the next merge (the lifecycle reconciliation needs a stamped
+          // terminal entry to prefer null).
+          if (!updatedHistory.some(m => m.id === mesocycleId)) {
+            updatedHistory = [
+              ...updatedHistory,
+              { ...currentMesocycle, _deleted: true, _deletedAt: Date.now(), updatedAt: new Date().toISOString() },
+            ];
+          }
         }
+        updates.mesocycleHistory = updatedHistory;
         set(updates);
       }),
 
@@ -1579,21 +1618,33 @@ export const useAppStore = create<AppState>()(
 
       removeFromMesocycleQueue: (id) => {
         const { mesocycleQueue } = get();
-        set({ mesocycleQueue: mesocycleQueue.filter(b => b.id !== id) });
+        // Tombstone, don't filter — a hard-removed entry resurrects from the
+        // cloud copy on the next sync union merge
+        set({
+          mesocycleQueue: mesocycleQueue.map(b =>
+            b.id === id ? { ...b, _deleted: true, _deletedAt: Date.now() } : b
+          ),
+        });
       },
 
       reorderMesocycleQueue: (fromIndex, toIndex) => {
         const { mesocycleQueue } = get();
-        const updated = [...mesocycleQueue];
+        // UI indices refer to the LIVE (non-tombstoned) list — reorder live
+        // entries only, keep tombstones appended for sync
+        const live = mesocycleQueue.filter(b => !b._deleted);
+        const dead = mesocycleQueue.filter(b => b._deleted);
+        if (fromIndex < 0 || fromIndex >= live.length || toIndex < 0 || toIndex >= live.length) return;
+        const updated = [...live];
         const [moved] = updated.splice(fromIndex, 1);
         updated.splice(toIndex, 0, moved);
-        set({ mesocycleQueue: updated });
+        set({ mesocycleQueue: [...updated, ...dead] });
       },
 
       advanceMesocycleQueue: () => withBlockUndo('Queue advanced', get, set, () => {
         const { mesocycleQueue, user } = get();
-        if (mesocycleQueue.length === 0 || !user) return;
-        const next = mesocycleQueue[0];
+        // First LIVE entry — tombstoned entries are sync ghosts awaiting GC
+        const next = mesocycleQueue.find(b => !b._deleted);
+        if (!next || !user) return;
         // Temporarily set user's goalFocus and sessionsPerWeek to the queued mesocycle's values
         const prevGoal = user.goalFocus;
         const prevSessions = user.sessionsPerWeek;
@@ -1601,18 +1652,22 @@ export const useAppStore = create<AppState>()(
         if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
         set({ user: { ...user, ...overrides } });
         get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
-        // Restore original user settings and remove from queue in a single set()
+        // Restore original user settings and consume the queue entry in a single set().
+        // Tombstone the consumed entry (not slice) — a hard-removed entry would
+        // resurrect from the cloud copy on the next sync union merge.
         // Use get() for fresh state since generateNewMesocycle may have mutated it
         const freshState = get();
         const freshUser = freshState.user;
-        const freshQueue = freshState.mesocycleQueue;
+        const consumedQueue = freshState.mesocycleQueue.map(b =>
+          b.id === next.id ? { ...b, _deleted: true, _deletedAt: Date.now() } : b
+        );
         if (freshUser) {
           set({
             user: { ...freshUser, goalFocus: prevGoal, sessionsPerWeek: prevSessions },
-            mesocycleQueue: freshQueue.slice(1),
+            mesocycleQueue: consumedQueue,
           });
         } else {
-          set({ mesocycleQueue: freshQueue.slice(1) });
+          set({ mesocycleQueue: consumedQueue });
         }
       }),
 
@@ -1622,7 +1677,7 @@ export const useAppStore = create<AppState>()(
         // and stopMesocycle archives with the truthful 'stopped' status — letting
         // generateNewMesocycle archive it would mislabel an abandoned block 'completed'.
         const { currentMesocycle, mesocycleQueue } = get();
-        if (mesocycleQueue.length === 0) return;
+        if (!mesocycleQueue.some(b => !b._deleted)) return;
         if (currentMesocycle) get().stopMesocycle();
         get().advanceMesocycleQueue();
       }),
@@ -2866,6 +2921,7 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             totalPoints: finalTotalPoints,
+            pointsAsOf: Date.now(),
             level: calculateLevel(finalTotalPoints),
             currentStreak: newStreak,
             longestStreak: Math.max(gamificationStats.longestStreak, newStreak),
@@ -3097,6 +3153,7 @@ export const useAppStore = create<AppState>()(
             totalTrainingSessions,
             dualTrainingDays,
             totalPoints: finalPoints,
+            pointsAsOf: Date.now(),
             level: calculateLevel(finalPoints),
           }
         });
@@ -3216,6 +3273,7 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             totalPoints: newTotal,
+            pointsAsOf: Date.now(),
             level: calculateLevel(newTotal)
           }
         });
@@ -3237,6 +3295,7 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             totalPoints: newTotal,
+            pointsAsOf: Date.now(),
             level: calculateLevel(newTotal),
             smartRestDays: (gamificationStats.smartRestDays || 0) + 1,
             lastSmartRestDate: todayStr,
@@ -3327,6 +3386,7 @@ export const useAppStore = create<AppState>()(
               ...gamificationStats,
               badges: [...gamificationStats.badges, ...newUserBadges],
               totalPoints: gamificationStats.totalPoints + additionalPoints,
+              pointsAsOf: Date.now(),
               level: calculateLevel(gamificationStats.totalPoints + additionalPoints)
             }
           };
@@ -3474,6 +3534,7 @@ export const useAppStore = create<AppState>()(
         const updatedGamStats = {
           ...gamificationStats,
           totalPoints: newTotalPoints,
+          pointsAsOf: Date.now(),
           level: calculateLevel(newTotalPoints),
           wellnessStats: newWellnessStats,
         };
@@ -3511,6 +3572,7 @@ export const useAppStore = create<AppState>()(
               ...updatedGamStats,
               badges: [...updatedGamStats.badges, ...newUserBadges],
               totalPoints: updatedGamStats.totalPoints + badgePoints,
+              pointsAsOf: Date.now(),
               level: calculateLevel(updatedGamStats.totalPoints + badgePoints),
             },
           });
@@ -4491,6 +4553,7 @@ export const useAppStore = create<AppState>()(
           gamificationStats: {
             ...gamificationStats,
             totalPoints: gamificationStats.totalPoints + points,
+            pointsAsOf: Date.now(),
             level: calculateLevel(gamificationStats.totalPoints + points),
           },
         });

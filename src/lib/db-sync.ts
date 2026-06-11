@@ -14,7 +14,7 @@ let pendingPayload: { userId: string; data: Record<string, unknown> } | null = n
 
 // ── localStorage-backed sync queue ──────────────────────────────────────────
 
-function loadQueueFromStorage(): Array<{ userId: string; data: Record<string, unknown> }> {
+function loadQueueFromStorage(): Array<{ qid?: string; userId: string; data: Record<string, unknown> }> {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(SYNC_QUEUE_KEY);
@@ -24,7 +24,7 @@ function loadQueueFromStorage(): Array<{ userId: string; data: Record<string, un
   }
 }
 
-function saveQueueToStorage(queue: Array<{ userId: string; data: Record<string, unknown> }>): void {
+function saveQueueToStorage(queue: Array<{ qid?: string; userId: string; data: Record<string, unknown> }>): void {
   if (typeof window === 'undefined') return;
   try {
     if (queue.length === 0) {
@@ -144,14 +144,25 @@ export function resolveConflicts(
         if (!existing) {
           map.set(key, item);
         } else {
-          // Tombstone always wins — once deleted, stays deleted.
-          // If EITHER side has _deleted: true, the merged result is deleted.
-          // This prevents resurrection when a non-deleted version has a newer timestamp.
+          // Tombstone rule: deletion beats any STALE copy — but an explicit
+          // revival (a live copy stamped AFTER the deletion, i.e. an undo)
+          // wins. Without the revival branch, undoing "Block deleted" or a
+          // consumed queue entry restored live snapshots that every later
+          // merge silently re-deleted (and the GC then made permanent).
           const eitherDeleted = item._deleted || existing._deleted;
           if (eitherDeleted) {
-            // Pick whichever version is the tombstone; if both, prefer newer
-            const tombstone = item._deleted ? item : existing;
-            map.set(key, tombstone);
+            if (item._deleted && existing._deleted) {
+              // Both tombstoned — keep the newer tombstone
+              map.set(key, ((item._deletedAt as number) || 0) >= ((existing._deletedAt as number) || 0) ? item : existing);
+            } else {
+              const tombstone = (item._deleted ? item : existing) as Record<string, unknown>;
+              const live = (item._deleted ? existing : item) as Record<string, unknown>;
+              const liveTs = new Date((live.updatedAt || 0) as string).getTime();
+              const tombTs = (tombstone._deletedAt as number) || 0;
+              // Revival requires a stamp strictly after the deletion — ordinary
+              // pre-deletion copies still lose to the tombstone
+              map.set(key, liveTs > tombTs ? live : tombstone);
+            }
           } else {
             // Status finality rule: "resolved" beats "active"/"recovering"
             // (same principle as tombstones — once resolved, never un-resolve).
@@ -264,9 +275,32 @@ export function resolveConflicts(
   if (localGS && remoteGS) {
     const localPts = (localGS.totalPoints as number) || 0;
     const remotePts = (remoteGS.totalPoints as number) || 0;
-    // Base: pick the side with more XP as the "winner" for non-computed fields
-    const winner = localPts >= remotePts ? localGS : remoteGS;
-    const loser  = localPts >= remotePts ? remoteGS : localGS;
+    const localAsOf = (localGS.pointsAsOf as number) || 0;
+    const remoteAsOf = (remoteGS.pointsAsOf as number) || 0;
+
+    // Timestamp-aware XP: the side that WROTE totalPoints most recently is
+    // authoritative. Plain max() made XP reductions impossible to propagate —
+    // undoing a block-completion bonus on one device snapped back to the
+    // cloud's stale higher value on the next pull.
+    // LWW applies only when BOTH sides are stamped. A mixed fleet (stale PWA
+    // client without pointsAsOf vs updated one) falls back to max() — a
+    // one-sided stamp must never discard XP a legacy device legitimately
+    // earned. The stamp survives only when the stamped side's value won.
+    let mergedPts: number;
+    let mergedAsOf: number;
+    if (localAsOf > 0 && remoteAsOf > 0) {
+      mergedPts = localAsOf >= remoteAsOf ? localPts : remotePts;
+      mergedAsOf = Math.max(localAsOf, remoteAsOf);
+    } else {
+      mergedPts = Math.max(localPts, remotePts);
+      const stampedSideWon = (localAsOf > 0 && localPts >= remotePts) || (remoteAsOf > 0 && remotePts >= localPts);
+      mergedAsOf = stampedSideWon ? Math.max(localAsOf, remoteAsOf) : 0;
+    }
+
+    // Base: the XP-authoritative side wins non-computed fields too
+    const localWins = (localAsOf > 0 && remoteAsOf > 0) ? localAsOf >= remoteAsOf : localPts >= remotePts;
+    const winner = localWins ? localGS : remoteGS;
+    const loser  = localWins ? remoteGS : localGS;
 
     // Union-merge badges by badgeId so no badge is ever lost
     const winnerBadges = Array.isArray(winner.badges) ? winner.badges as Array<Record<string, unknown>> : [];
@@ -277,9 +311,9 @@ export function resolveConflicts(
 
     merged.gamificationStats = {
       ...winner,
-      // Keep stored totalPoints as max (computed hook takes Math.max anyway)
-      totalPoints: Math.max(localPts, remotePts),
-      level: calculateLevel(Math.max(localPts, remotePts)),
+      totalPoints: mergedPts,
+      ...(mergedAsOf > 0 ? { pointsAsOf: mergedAsOf } : {}),
+      level: calculateLevel(mergedPts),
       badges: Array.from(badgeMap.values()),
       // Event counters: take max from both sides
       comebackCount: Math.max((localGS.comebackCount as number) || 0, (remoteGS.comebackCount as number) || 0),
@@ -331,6 +365,53 @@ export function resolveConflicts(
     }
   }
 
+  // ── Block lifecycle reconciliation ──
+  // The updatedAtFields rule above can only pick a non-null currentMesocycle
+  // (merged starts as {...remote}, and null local values never overwrite it).
+  // Every way of clearing the current block (stop, complete, switch, delete)
+  // ARCHIVES it into mesocycleHistory with a fresh updatedAt — so the merged
+  // history is the source of truth for "this block ended":
+  //
+  // (a) Terminal finality: if the merged current block also exists in history
+  //     with a terminal state (stopped/completed/_deleted) stamped at-or-after
+  //     the current copy, the archive is the newer truth → current goes null.
+  //     Without this, "Stop early" never survived a sync round-trip.
+  // (b) Resurrection dedup: if the current copy is strictly NEWER than the
+  //     archived one, an undo restored the block to active — drop the stale
+  //     archive so the block doesn't exist as both active and completed.
+  //
+  // Legacy entries without timestamps are left alone (can't order them safely).
+  {
+    const cur = merged.currentMesocycle as Record<string, unknown> | null | undefined;
+    const hist = merged.mesocycleHistory as Array<Record<string, unknown>> | undefined;
+    if (cur && Array.isArray(hist)) {
+      const isTerminal = (e: Record<string, unknown>) =>
+        e._deleted === true || e.status === 'stopped' || e.status === 'completed';
+      // If duplicates with the same id exist (one-sided legacy arrays), order
+      // by the NEWEST terminal stamp so a stale early archive can't win
+      const archives = hist
+        .filter(e => e.id === cur.id && isTerminal(e))
+        .sort((a, b) => new Date((b.updatedAt || 0) as string).getTime() - new Date((a.updatedAt || 0) as string).getTime());
+      const archived = archives[0];
+      if (archived) {
+        const curTs = new Date((cur.updatedAt || 0) as string).getTime();
+        const histTs = new Date((archived.updatedAt || 0) as string).getTime();
+        if (histTs > 0 && histTs >= curTs) {
+          merged.currentMesocycle = null;            // (a) the block was ended
+        } else if (cur._revivedAt && curTs > 0 && curTs > histTs) {
+          // (b) an explicit undo restored this block to active — drop the stale
+          // archive. Gated on _revivedAt (set ONLY by undoBlockAction): a
+          // routine offline edit also re-stamps updatedAt, and without the gate
+          // it would permanently erase a 'completed' record (and the +200 XP
+          // context) just for swapping an exercise after the block ended.
+          merged.mesocycleHistory = hist.filter(e => e.id !== cur.id || !isTerminal(e));
+        }
+        // No marker / both unstamped → keep both copies; rule (a) re-evaluates
+        // on every merge once the archive side carries the newer stamp.
+      }
+    }
+  }
+
   // ── Scalar fields: prefer whichever side synced last ──
   const specialFields = new Set([
     ...arrayFields, ...objectFields, ...updatedAtFields,
@@ -351,7 +432,7 @@ export function resolveConflicts(
  * Queue a sync request using Background Sync API if available,
  * otherwise fall back to a localStorage-persisted queue.
  */
-async function queueForBackgroundSync(userId: string, data: Record<string, unknown>): Promise<void> {
+async function queueForBackgroundSync(userId: string, data: Record<string, unknown>, qid?: string): Promise<void> {
   // Try Background Sync API (caches the request for the SW to replay)
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
     try {
@@ -377,7 +458,7 @@ async function queueForBackgroundSync(userId: string, data: Record<string, unkno
 
   // Fallback: localStorage-persisted queue (survives page refresh)
   const queue = loadQueueFromStorage();
-  queue.push({ userId, data });
+  queue.push({ qid, userId, data });
   saveQueueToStorage(queue);
   if (process.env.NODE_ENV === 'development') {
     console.log('[db-sync] Offline — queued in localStorage for later sync');
@@ -472,11 +553,20 @@ export async function flushSyncQueue(): Promise<void> {
 
   for (const [userId, data] of Array.from(mergedByUser.entries())) {
     try {
-      await fetch('/api/sync', {
+      const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, data, lastSyncAt: Date.now() }),
       });
+      // fetch resolves on 4xx/5xx — a 401 (expired session), 429 (rate
+      // limit) or 500 must NOT count as delivered, or the queued offline
+      // workout is silently discarded. Re-queue and retry next visit.
+      if (!res.ok) {
+        failedQueue.push({ userId, data });
+        recordSyncFailure();
+        continue;
+      }
+      recordSyncSuccess();
       if (process.env.NODE_ENV === 'development') {
         console.log(`[db-sync] Flushed queued sync for ${userId}`);
       }
@@ -507,10 +597,14 @@ export function flushPendingSync(): void {
   if (syncTimeout) { clearTimeout(syncTimeout); syncTimeout = null; }
   if (maxWaitTimeout) { clearTimeout(maxWaitTimeout); maxWaitTimeout = null; }
 
-  // ALWAYS queue to localStorage first — this is the safety net.
-  // Even if sendBeacon/fetch succeeds, flushSyncQueue on next visit
-  // will harmlessly merge (server-side merge is idempotent).
-  queueForBackgroundSync(userId, data);
+  // ALWAYS queue first — this is the safety net. Even if the keepalive
+  // fetch succeeds, flushSyncQueue on next visit harmlessly merges
+  // (server-side merge is idempotent). The qid lets the success handler
+  // remove exactly THIS entry — queue.pop() removed whichever entry was
+  // last, deleting an unrelated unsent payload when the Background Sync
+  // API path was taken (this entry never enters localStorage there).
+  const flushQid = `flush-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  queueForBackgroundSync(userId, data, flushQid);
 
   // Best-effort network delivery (may not complete before page kill)
   const payload = JSON.stringify({ userId, data, lastSyncAt: Date.now() });
@@ -526,12 +620,13 @@ export function flushPendingSync(): void {
         keepalive: true,
       }).then(async (res) => {
         if (res.ok) {
-          // Success — clear the queue entry we just added
+          // Success — remove exactly the entry this flush queued (by qid).
+          // If it went to the Background Sync cache instead, this is a no-op
+          // and the SW replay's idempotent merge absorbs the duplicate.
           const queue = loadQueueFromStorage();
-          if (queue.length > 0) {
-            // Remove the entry we just queued (last one)
-            queue.pop();
-            saveQueueToStorage(queue);
+          const remaining = queue.filter(item => item.qid !== flushQid);
+          if (remaining.length !== queue.length) {
+            saveQueueToStorage(remaining);
           }
           recordSyncSuccess();
         }

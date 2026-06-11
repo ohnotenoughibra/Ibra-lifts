@@ -148,10 +148,16 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
     addToMesocycleQueue,
     updateMesocycleInQueue,
     removeFromMesocycleQueue,
-    mesocycleQueue,
+    mesocycleQueue: rawMesocycleQueue,
     baselineLifts,
     muscleEmphasis,
   } = useAppStore();
+
+  // Consumed/removed queue entries persist as sync tombstones — hide them
+  const mesocycleQueue = useMemo(
+    () => rawMesocycleQueue.filter((b: { _deleted?: boolean }) => !b._deleted),
+    [rawMesocycleQueue]
+  );
 
   const [expandedCard, setExpandedCard] = useState<BlockFocus | null>(null);
   const [previewingBlock, setPreviewingBlock] = useState<BlockFocus | null>(null);

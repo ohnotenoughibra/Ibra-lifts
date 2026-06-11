@@ -231,7 +231,8 @@ describe('switchToQueuedBlock', () => {
     expect(s.mesocycleHistory.some(m => m.id === meso.id && m.status === 'stopped')).toBe(true);
     expect(s.currentMesocycle).not.toBeNull();
     expect(s.currentMesocycle!.goalFocus).toBe('hypertrophy');
-    expect(s.mesocycleQueue).toHaveLength(0);
+    // Consumed entry is tombstoned (sync-safe), no longer live
+    expect(s.mesocycleQueue.filter(b => !b._deleted)).toHaveLength(0);
     // User's own goal focus is restored after the queued generation
     expect(s.user?.goalFocus).toBe('strength');
     // Depth guard: nested stop + advance collapse into a single entry
@@ -242,7 +243,7 @@ describe('switchToQueuedBlock', () => {
     const after = useAppStore.getState();
     expect(after.currentMesocycle?.id).toBe(meso.id);
     expect(after.mesocycleHistory).toHaveLength(0);
-    expect(after.mesocycleQueue).toHaveLength(1);
+    expect(after.mesocycleQueue.filter(b => !b._deleted)).toHaveLength(1);
   });
 });
 
@@ -288,8 +289,55 @@ describe('switchToQueuedBlock without a current block', () => {
 
     const s = useAppStore.getState();
     expect(s.currentMesocycle).not.toBeNull();
-    expect(s.mesocycleQueue).toHaveLength(0);
+    expect(s.mesocycleQueue.filter(b => !b._deleted)).toHaveLength(0);
     expect(s.mesocycleHistory).toHaveLength(0);
+  });
+
+  it('skips tombstoned entries and consumes the first LIVE one', () => {
+    useAppStore.setState({
+      mesocycleQueue: [
+        { id: 'dead', name: 'Ghost', focus: 'strength', weeks: 4, createdAt: new Date(), _deleted: true, _deletedAt: Date.now() },
+        { id: 'live', name: 'Real Block', focus: 'hypertrophy', weeks: 4, createdAt: new Date() },
+      ] as unknown as import('@/lib/types').PlannedMesocycle[],
+    });
+
+    useAppStore.getState().switchToQueuedBlock();
+
+    const s = useAppStore.getState();
+    expect(s.currentMesocycle?.goalFocus).toBe('hypertrophy');
+    expect(s.mesocycleQueue.find(b => b.id === 'live')?._deleted).toBe(true);
+  });
+
+  it('no-ops when the queue contains only tombstones', () => {
+    const meso = seedActiveBlock();
+    useAppStore.setState({
+      mesocycleQueue: [
+        { id: 'dead', name: 'Ghost', focus: 'strength', weeks: 4, createdAt: new Date(), _deleted: true, _deletedAt: Date.now() },
+      ] as unknown as import('@/lib/types').PlannedMesocycle[],
+    });
+
+    useAppStore.getState().switchToQueuedBlock();
+
+    const s = useAppStore.getState();
+    expect(s.currentMesocycle?.id).toBe(meso.id);
+    expect(s.mesocycleHistory).toHaveLength(0);
+    expect(s.blockUndoStack).toHaveLength(0); // phantom-entry guard holds
+  });
+});
+
+describe('removeFromMesocycleQueue tombstones', () => {
+  beforeEach(resetStore);
+
+  it('marks the entry deleted instead of removing it', () => {
+    useAppStore.getState().addToMesocycleQueue({ name: 'X', focus: 'strength', weeks: 4 });
+    const id = useAppStore.getState().mesocycleQueue[0].id;
+
+    useAppStore.getState().removeFromMesocycleQueue(id);
+
+    const q = useAppStore.getState().mesocycleQueue;
+    expect(q).toHaveLength(1);
+    expect(q[0]._deleted).toBe(true);
+    expect(q[0]._deletedAt).toBeGreaterThan(0);
   });
 });
 
@@ -402,8 +450,9 @@ describe('completeMesocycle with a queued block', () => {
 
     const s = useAppStore.getState();
     expect(s.mesocycleHistory.some(m => m.id === meso.id && m.status === 'completed')).toBe(true);
-    // Queue was consumed and drove the successor's focus
-    expect(s.mesocycleQueue).toHaveLength(0);
+    // Queue entry was consumed — tombstoned for sync, not hard-removed
+    expect(s.mesocycleQueue.filter(b => !b._deleted)).toHaveLength(0);
+    expect(s.mesocycleQueue.find(b => b._deleted)).toBeTruthy();
     expect(s.currentMesocycle).not.toBeNull();
     expect(s.currentMesocycle!.goalFocus).toBe('hypertrophy');
     // User's own preference survives the queued generation

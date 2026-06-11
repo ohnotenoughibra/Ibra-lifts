@@ -1,36 +1,67 @@
 # TODOS
 
-## Sync / Data Layer
-
-### Sync merge cannot represent "block stopped" or honor undo (P0)
-**Priority:** P0
-**Deferred from:** redesign/train-tab-block-console ship review (2026-06-10), user-approved deferral
-**Where:** `src/lib/db-sync.ts` (`resolveConflicts`), `src/lib/store.ts` (`stopMesocycle`, `undoBlockAction`)
-
-Red-team verified, three holes — all bite only across sync round-trips (multi-device / server merge):
-1. **Stop never survives sync:** `stopMesocycle` sets `currentMesocycle: null`, but `resolveConflicts` only overwrites when the local value is truthy (`merged = {...remote}` baseline) — the cloud's still-active copy resurrects, duplicated alongside the `stopped` history entry. Fix sketch: persist a `currentMesocycleClearedAt` stamp, or a finality rule (history entry with same id and stopped/completed/deleted status forces `currentMesocycle: null`).
-2. **Undo of an archive resurrects from cloud:** `undoBlockAction` restores the pre-action history array without tombstoning the archived copy already pushed via `_syncUrgent` — union merge re-adds it, leaving block X both active AND archived (double-counted stats). Fix sketch: tombstone the removed entry on undo, or dedupe in merge (drop history entries whose id equals `currentMesocycle.id`).
-3. **XP undo loses to max-merge:** gamification merge takes `Math.max(localPts, remotePts)` — a reverted +200 snaps back on next pull. Fix sketch: timestamp-aware XP field or an XP event ledger with compensating entries.
-Related: queue entries removed/consumed locally resurrect from cloud (no tombstones on `removeFromMesocycleQueue` / `advanceMesocycleQueue`); whole-slice undo restore can clobber a sync merge landing within the undo window.
-
-**Needs:** dedicated branch, merge-layer tests (mergeStates round-trip fixtures), review before touching the highest-blast-radius file in the app.
-
-## Train Tab
-
-### Remove-week can shift workout-log attribution (P1)
-**Priority:** P1
-**Deferred from:** redesign/train-tab-block-console ship review (2026-06-10), user-approved deferral
-**Where:** `src/components/ScheduleSheet.tsx` (`handleRemoveWeek`), `src/lib/session-matching.ts`
-
-Removing the last training week renumbers remaining weeks; logs from the removed week keep their old `weekNumber`/`dayNumber` and position-match different weeks, potentially marking untrained sessions complete. Pre-existing logic, rare trigger (only when the removed week has logs), recoverable via the undo toast. Fix sketch: prefer removing the last log-free week; confirm when all removable weeks have logs; or null orphaned logs' `weekNumber`.
-
-## Testing
-
-### Bootstrap a browser E2E framework for Train flows (P1)
-**Priority:** P1
-**Deferred from:** ship coverage gate (2026-06-10), user accepted 45% headline coverage
-**Where:** new — no component/browser test framework exists
-
-21 of 38 changed codepaths on the Train rework are UI flows (taps, sheets, toasts) untestable without a browser harness; 7 were manually verified via the browse walkthrough. Playwright is the natural fit. Until then, UI regressions rely on manual QA.
-
 ## Completed
+
+### Sync merge cannot represent "block stopped" or honor undo (was P0)
+**Completed:** v2.1.1 (2026-06-10) — branch fix/sync-merge-block-lifecycle
+All three holes closed in `resolveConflicts` (terminal-finality + resurrection-dedup
+rules keyed on archive `updatedAt` stamps; timestamp-aware XP via `pointsAsOf`)
+plus queue tombstones end-to-end. 12 merge round-trip tests + 3 store tests.
+
+### Remove-week can shift workout-log attribution (was P1)
+**Completed:** v2.1.1 (2026-06-10)
+`ScheduleSheet` prefers the last UNTRAINED week; explicit confirm when every
+removable week has logged sessions.
+
+### Bootstrap a browser E2E framework for Train flows (was P1)
+**Completed:** v2.1.1 (2026-06-10)
+Playwright (`npm run test:e2e`, Pixel 5 / Chromium, auto-boots dev server).
+6 tests cover hero, schedule sheet, stop→undo, queue→switch, exercise-remove
+undo, and the zero-work completion guard.
+
+## UI Performance
+
+### Selector storms — `.filter()` in selectors + whole-store subscriptions (P1)
+**Priority:** P1
+**From:** general audit 2026-06-11 (see tasks/audit-2026-06-11.md)
+HomeTab (default tab), Dashboard (app root), ActiveWorkout (in-workout UI) re-render
+on every store write via fresh-ref selectors; ProgressTab ×3; 31 components use
+whole-store `useAppStore()`. Fix pattern established in WorkoutView/BlockManagerSheet.
+
+## Data Correctness
+
+### UTC date-keying family — 9 remaining instances (P1)
+**Priority:** P1
+**From:** general audit 2026-06-11
+Wellness XP/streaks, competition dates (fight-day directives!), workout skips,
+weekly badge buckets, streak shield, dual-day detection, nutrition day keys,
+water/supplements/login rollover, DST streak math. One `localDayKey()` helper +
+sweep; fix `utils.ts safeDayKey` (itself UTC) first.
+
+### Brzycki e1RM uncapped — negative/absurd 1RMs and false PRs (P1)
+**Priority:** P1
+**From:** general audit 2026-06-11
+9 call sites; bodyweight backfill amplifies (30-rep push-ups → 430kg e1RM).
+Shared calc1RM with rep cap 12 or Epley >10.
+
+## Infra
+
+### Dependency vulnerabilities — 20 (1 critical) (P1)
+**Priority:** P1
+**From:** general audit 2026-06-11
+`npm audit fix` now (jspdf critical, non-breaking); schedule @vercel/postgres 0.10
++ Next 15/16 migration.
+
+### skipWaiting force-reloads mid-workout on deploys (P1)
+**Priority:** P1
+**From:** general audit 2026-06-11
+sw.js:21 + controllerchange reload; update banner is dead code; ChunkLoadErrors
+masked in Sentry. Banner-driven activation.
+
+### P2 batch (see tasks/audit-2026-06-11.md for full list)
+**Priority:** P2
+Push send ownership, first-sync pro self-grant, per-instance rate limiter, Whoop
+token crypto fail-closed + deletion cascade, SW API-cache logout purge, sync-queue
+quota/full-snapshot/stamp-at-queue-time, Sentry userId scrubbing, NaN volume guard,
+pause-duration edge, localStorage silent failures, 37 aria-labels, unbounded
+WorkoutHistory list, manifest id/scope, SW fetch timeouts, queue order sync.

@@ -78,15 +78,37 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
     onClose();
   };
 
+  // Removing a TRAINED week renumbers the rest, and orphaned logs then
+  // position-match different weeks (can falsely flip sessions to complete).
+  // Prefer the last UNTRAINED training week; if every removable week has
+  // logged sessions, require an explicit confirm.
+  const [confirmRemoveWeek, setConfirmRemoveWeek] = useState<number | null>(null);
+
   const handleRemoveWeek = () => {
     const trainingWeeks = mesocycle.weeks
-      .map((w, i) => ({ ...w, idx: i }))
-      .filter(w => !w.isDeload);
-    if (trainingWeeks.length > 1) {
-      const lastTraining = trainingWeeks[trainingWeeks.length - 1];
-      removeWeekFromMesocycle(lastTraining.idx);
+      .map((w, i) => ({ week: w, idx: i }))
+      .filter(({ week }) => !week.isDeload);
+    if (trainingWeeks.length <= 1) return;
+
+    const isUntrained = ({ week }: typeof trainingWeeks[number]) =>
+      !week.sessions.some(s => completedSessionIds.has(s.id));
+    const lastUntrained = [...trainingWeeks].reverse().find(isUntrained);
+
+    if (lastUntrained) {
+      removeWeekFromMesocycle(lastUntrained.idx);
       onBlockAction('Week removed');
+      setConfirmRemoveWeek(null);
+    } else {
+      // All removable weeks have logged work — make the user say yes
+      setConfirmRemoveWeek(trainingWeeks[trainingWeeks.length - 1].idx);
     }
+  };
+
+  const handleConfirmRemoveTrainedWeek = () => {
+    if (confirmRemoveWeek === null) return;
+    removeWeekFromMesocycle(confirmRemoveWeek);
+    onBlockAction('Week removed');
+    setConfirmRemoveWeek(null);
   };
 
   return (
@@ -242,6 +264,19 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
           </div>
 
           {/* Week add/remove — bounds mirror the store guards via shared constants */}
+          {confirmRemoveWeek !== null && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <p className="text-xs text-grappler-300">
+                Every removable week has logged workouts. Removing one renumbers the
+                remaining weeks, so past sessions may show under a different week.
+                Your logs themselves are never deleted.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmRemoveWeek(null)} className="btn btn-secondary btn-sm flex-1">Keep week</button>
+                <button onClick={handleConfirmRemoveTrainedWeek} className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500">Remove anyway</button>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-center gap-3 pt-1">
             {mesocycle.weeks.length > MIN_BLOCK_WEEKS && (
               <button

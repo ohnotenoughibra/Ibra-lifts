@@ -29,7 +29,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 
 export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlockAction }: BlockManagerSheetProps) {
   const {
-    currentMesocycle, rawMesocycleHistory, mesocycleQueue, rawWorkoutLogs, user, activeWorkout,
+    currentMesocycle, rawMesocycleHistory, rawMesocycleQueue, rawWorkoutLogs, user, activeWorkout,
     completeMesocycle, stopMesocycle, advanceMesocycleQueue, switchToQueuedBlock,
     removeFromMesocycleQueue, deleteMesocycle,
   } = useAppStore(
@@ -38,7 +38,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
     useShallow(s => ({
       currentMesocycle: s.currentMesocycle,
       rawMesocycleHistory: s.mesocycleHistory,
-      mesocycleQueue: s.mesocycleQueue,
+      rawMesocycleQueue: s.mesocycleQueue,
       rawWorkoutLogs: s.workoutLogs,
       user: s.user,
       activeWorkout: s.activeWorkout,
@@ -55,6 +55,11 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
   const workoutLogs = useMemo(
     () => rawWorkoutLogs.filter(l => !l._deleted),
     [rawWorkoutLogs]
+  );
+  // Consumed/removed queue entries persist as sync tombstones — hide them
+  const mesocycleQueue = useMemo(
+    () => rawMesocycleQueue.filter(b => !b._deleted),
+    [rawMesocycleQueue]
   );
 
   const [viewingBlock, setViewingBlock] = useState<Mesocycle | null>(null);

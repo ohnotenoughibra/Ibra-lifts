@@ -53,3 +53,5 @@ supabase/.temp
 workbox-*.js
 .env*.local
 .gstack/
+test-results
+playwright-report

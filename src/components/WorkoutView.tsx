@@ -50,7 +50,7 @@ export default function WorkoutView() {
   const {
     currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis,
     rawWorkoutLogs, swapProgramExercise, user, rawMesocycleHistory, trainingSessions, injuryLog,
-    wearableHistory, competitions, mesocycleQueue, undoBlockAction, addToMesocycleQueue,
+    wearableHistory, competitions, rawMesocycleQueue, undoBlockAction, addToMesocycleQueue,
     advanceMesocycleQueue, activeWorkout, workoutMinimized, resumeWorkout,
   } = useAppStore(
     // Only stable references in the selector — a .filter() here would return a
@@ -64,7 +64,7 @@ export default function WorkoutView() {
       rawMesocycleHistory: s.mesocycleHistory,
       trainingSessions: s.trainingSessions, injuryLog: s.injuryLog,
       wearableHistory: s.wearableHistory, competitions: s.competitions,
-      mesocycleQueue: s.mesocycleQueue, undoBlockAction: s.undoBlockAction,
+      rawMesocycleQueue: s.mesocycleQueue, undoBlockAction: s.undoBlockAction,
       addToMesocycleQueue: s.addToMesocycleQueue, advanceMesocycleQueue: s.advanceMesocycleQueue,
       activeWorkout: s.activeWorkout, workoutMinimized: s.workoutMinimized,
       resumeWorkout: s.resumeWorkout,
@@ -79,6 +79,11 @@ export default function WorkoutView() {
   const workoutLogs = useMemo(
     () => rawWorkoutLogs.filter(l => !l._deleted),
     [rawWorkoutLogs]
+  );
+  // Consumed/removed queue entries persist as sync tombstones — hide them
+  const mesocycleQueue = useMemo(
+    () => rawMesocycleQueue.filter(b => !b._deleted),
+    [rawMesocycleQueue]
   );
 
   const { showToast } = useToast();

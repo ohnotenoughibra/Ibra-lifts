@@ -78,7 +78,14 @@ export async function POST(request: Request) {
     }
 
     if (!resendKey) {
-      return NextResponse.json({ success: true, token: mlToken });
+      // Dev convenience ONLY. In production a missing RESEND_API_KEY must
+      // never hand the sign-in token to the (unauthenticated) caller — that
+      // would be account takeover for any email address. Mirrors reset-password.
+      if (process.env.NODE_ENV === 'development') {
+        return NextResponse.json({ success: true, token: mlToken });
+      }
+      console.error('[magic-link] RESEND_API_KEY not configured — magic link not delivered');
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: true, emailSent: true });

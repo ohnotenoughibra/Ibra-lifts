@@ -61,6 +61,7 @@ export interface UserProfile {
   combatSports?: CombatSport[]; // Multiple sports (e.g., BJJ + Muay Thai)
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
+  scheduledCardio?: ScheduledCardioDay[]; // Recurring weekly cardio sessions on the plan
   // Wearable preferences
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
@@ -1030,6 +1031,18 @@ export interface CombatTrainingDay {
   timeOfDay?: CombatTimeOfDay; // For multiple sessions per day
 }
 
+// Cardio training schedule — a recurring weekly cardio slot that shows up on
+// the training plan alongside lifting and combat days. Mirrors CombatTrainingDay.
+export type CardioIntensity = 'easy' | 'moderate' | 'hard';
+
+export interface ScheduledCardioDay {
+  day: number;            // 0=Sun, 1=Mon, ... 6=Sat
+  modality: ActivityType; // cardio-category: running | cycling | swimming | rowing | jump_rope | elliptical
+  intensity: CardioIntensity;
+  durationMin?: number;   // target duration in minutes
+  label?: string;         // e.g., "Zone 2 base", "Intervals", "Long ride"
+}
+
 // ── Combat Athlete Nutrition Profile ────────────────────────────────────────
 // Extended profile for nutrition engine — combat-specific fields are optional
 // and only used when trainingIdentity === 'combat'.
@@ -1409,6 +1422,7 @@ export interface OnboardingData {
   mesoCycleWeeks?: number; // 4-12 weeks, defaults to 5
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
+  scheduledCardio?: ScheduledCardioDay[]; // Recurring weekly cardio sessions on the plan
   // Wearable preferences
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;

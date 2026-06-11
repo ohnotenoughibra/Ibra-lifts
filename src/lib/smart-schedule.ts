@@ -1,4 +1,4 @@
-import { CombatTrainingDay, CombatIntensity, WorkoutSession, WorkoutType, ReadinessScore } from './types';
+import { CombatTrainingDay, CombatIntensity, WorkoutSession, WorkoutType, ReadinessScore, ScheduledCardioDay, CardioIntensity } from './types';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -11,6 +11,16 @@ const COMBAT_COST: Record<CombatIntensity, number> = {
   light: 2,
   moderate: 5,
   hard: 8,
+};
+
+/**
+ * Recovery cost of scheduled cardio. Lower CNS load than combat, but Zone-2+
+ * still adds systemic/aerobic fatigue that the freshness model should see.
+ */
+const CARDIO_COST: Record<CardioIntensity, number> = {
+  easy: 2,
+  moderate: 4,
+  hard: 6,
 };
 
 /**
@@ -30,6 +40,7 @@ interface DayPlan {
   isLiftDay: boolean;
   isRestDay: boolean;
   combatTraining?: CombatTrainingDay;
+  cardio?: ScheduledCardioDay;
   suggestedWorkoutType?: WorkoutType;
   intensityModifier: number; // 0.5-1.0 — multiply RPE/volume by this
   reason?: string;          // Why we chose this intensity
@@ -49,6 +60,7 @@ export function buildWeekPlan(
   trainingDays: number[],
   combatTrainingDays: CombatTrainingDay[],
   sessions: WorkoutSession[],
+  scheduledCardio: ScheduledCardioDay[] = [],
 ): WeekPlan {
   // Group combat sessions by day (supports multiple sessions per day)
   const combatMap = new Map<number, CombatTrainingDay[]>();
@@ -56,6 +68,12 @@ export function buildWeekPlan(
     const existing = combatMap.get(cd.day) || [];
     existing.push(cd);
     combatMap.set(cd.day, existing);
+  }
+
+  // One scheduled cardio slot per day (last one wins if duplicated)
+  const cardioMap = new Map<number, ScheduledCardioDay>();
+  for (const cd of scheduledCardio) {
+    cardioMap.set(cd.day, cd);
   }
 
   const warnings: string[] = [];
@@ -106,6 +124,13 @@ export function buildWeekPlan(
       freshness -= getDayCombatCost(sameDayCombat) * 0.4; // Lifting first, then sport
     }
 
+    // Scheduled cardio adds aerobic fatigue — prior-day (with overnight recovery)
+    // and same-day (lifting takes priority, cardio after).
+    const prevCardio = cardioMap.get(prevDay);
+    if (prevCardio) freshness -= CARDIO_COST[prevCardio.intensity] * 0.7;
+    const sameDayCardio = cardioMap.get(day);
+    if (sameDayCardio) freshness -= CARDIO_COST[sameDayCardio.intensity] * 0.4;
+
     return { day, freshness: Math.max(1, freshness) };
   });
 
@@ -131,8 +156,9 @@ export function buildWeekPlan(
           COMBAT_COST[s.intensity] > COMBAT_COST[hardest.intensity] ? s : hardest,
           combatSessions[0])
       : undefined;
+    const cardio = cardioMap.get(i);
     const assignment = dayAssignments.get(i);
-    const isRestDay = !isLiftDay && !combatTraining;
+    const isRestDay = !isLiftDay && !combatTraining && !cardio;
 
     let intensityModifier = 1.0;
     let reason: string | undefined;
@@ -163,6 +189,7 @@ export function buildWeekPlan(
       isLiftDay,
       isRestDay,
       combatTraining,
+      cardio,
       suggestedWorkoutType: assignment?.session.type,
       intensityModifier,
       reason,
@@ -171,7 +198,7 @@ export function buildWeekPlan(
 
   // Generate tips
   const restDays = days.filter(d => d.isRestDay);
-  const totalTrainingDays = days.filter(d => d.isLiftDay || d.combatTraining);
+  const totalTrainingDays = days.filter(d => d.isLiftDay || d.combatTraining || d.cardio);
   if (restDays.length === 0) {
     warnings.push('No rest days this week — recovery will be challenging');
   }

@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
+import WeeklyCalendar from './WeeklyCalendar';
+import type { OverlayView } from './dashboard-types';
+
+const EMPTY_ARR: never[] = [];
 import {
   Dumbbell,
   Clock,
@@ -46,7 +50,7 @@ import { useToast } from './Toast';
  *  - Blocks button / queue row → BlockManagerSheet (complete/stop/switch/queue/history)
  *  - New Block → BlockComposer
  */
-export default function WorkoutView() {
+export default function WorkoutView({ onNavigate }: { onNavigate?: (view: OverlayView) => void }) {
   const {
     currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis,
     rawWorkoutLogs, swapProgramExercise, user, rawMesocycleHistory, trainingSessions, injuryLog,
@@ -753,6 +757,27 @@ export default function WorkoutView() {
           <Plus className="w-4 h-4" />
           New Block
         </button>
+      </div>
+
+      {/* ── 6. THIS WEEK — lifting + combat + cardio at a glance; tap to plan cardio ── */}
+      <div className="card p-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-grappler-300">This week</p>
+          <button
+            onClick={() => onNavigate?.('cardio_planner')}
+            className="text-[11px] font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1"
+          >
+            <Heart className="w-3 h-3" /> Cardio
+          </button>
+        </div>
+        <WeeklyCalendar
+          trainingDays={user?.trainingDays ?? EMPTY_ARR}
+          combatTrainingDays={user?.combatTrainingDays ?? EMPTY_ARR}
+          currentMesocycle={currentMesocycle}
+          workoutLogs={rawWorkoutLogs}
+          scheduledCardio={user?.scheduledCardio ?? EMPTY_ARR}
+          onDayTap={() => onNavigate?.('cardio_planner')}
+        />
       </div>
 
       {/* ── Sheets & modals ── */}

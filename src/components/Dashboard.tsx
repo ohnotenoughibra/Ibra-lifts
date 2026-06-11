@@ -88,6 +88,7 @@ const InjuryAwareWorkout = dynamic(() => import('./InjuryAwareWorkout'), { loadi
 const PlyometricsBlock = dynamic(() => import('./PlyometricsBlock'), { loading: () => <OverlaySkeleton /> });
 const AthleticBenchmarks = dynamic(() => import('./AthleticBenchmarks'), { loading: () => <OverlaySkeleton /> });
 const EnergySystems = dynamic(() => import('./EnergySystems'), { loading: () => <OverlaySkeleton /> });
+const CardioPlanner = dynamic(() => import('./CardioPlanner'), { loading: () => <OverlaySkeleton /> });
 const TechniqueLog = dynamic(() => import('./TechniqueLog'), { loading: () => <OverlaySkeleton /> });
 const CampTimeline = dynamic(() => import('./CampTimeline'), { loading: () => <OverlaySkeleton /> });
 const CoachReport = dynamic(() => import('./CoachReport'), { loading: () => <OverlaySkeleton /> });
@@ -675,6 +676,7 @@ export default function Dashboard({
       plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
       athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
       energy_systems: <EnergySystems onClose={closeOverlay} />,
+      cardio_planner: <CardioPlanner onClose={closeOverlay} />,
       technique_log: <TechniqueLog onClose={closeOverlay} />,
       camp_timeline: <CampTimeline onClose={closeOverlay} />,
       coach_report: <CoachReport onClose={closeOverlay} />,
@@ -1047,7 +1049,7 @@ export default function Dashboard({
                     exit={{ opacity: 0, y: -10 }}
                   >
                     <CardErrorBoundary fallbackLabel="Train tab">
-                      <WorkoutView />
+                      <WorkoutView onNavigate={setOverlayView} />
                     </CardErrorBoundary>
                     <div className="mt-6">
                       <ExploreTab onNavigate={setOverlayView} filterTab="train" />

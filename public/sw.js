@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.1.1-f0d487c-1781185959';
+const CACHE_NAME = 'roots-gains-v2.2.0-c4e08ac-1781189773';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -57,14 +57,22 @@ self.addEventListener('fetch', (event) => {
 
   // API routes: network-first, queue POST/PUT for offline replay
   if (url.pathname.startsWith('/api/')) {
-    // NEVER cache /api/sync — must always return fresh data from Postgres
-    if (url.pathname.startsWith('/api/sync')) {
-      return; // Let it pass through to network without SW interception
+    // NEVER cache /api/sync (fresh from Postgres), nor auth/debug responses —
+    // a cached /api/auth/session or /api/debug/* would persist user data on
+    // disk past logout on a shared device.
+    if (
+      url.pathname.startsWith('/api/sync') ||
+      url.pathname.startsWith('/api/auth') ||
+      url.pathname.startsWith('/api/debug')
+    ) {
+      return; // pass straight through to network, never cached
     }
     if (request.method === 'GET') {
-      // Cache other GET API responses for offline reads
+      // Cache other GET API responses for offline reads, with a network timeout
+      // so a stalled request (gym dead zone) falls back to cache instead of
+      // hanging on a white screen.
       event.respondWith(
-        fetch(request)
+        fetchWithTimeout(request, 6000)
           .then((response) => {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
@@ -81,10 +89,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests (HTML pages): network-first with cache fallback
+  // For navigation requests (HTML pages): network-first with cache fallback,
+  // timed out so a hung connection serves cache instead of a white screen.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetchWithTimeout(request, 6000)
         .then((response) => {
           // Cache the latest version
           const clone = response.clone();
@@ -92,7 +101,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Offline — serve from cache
+          // Offline or timed out — serve from cache
           return caches.match(request).then((cached) => {
             return cached || caches.match('/');
           });
@@ -269,4 +278,32 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_NAME });
   }
+  // On logout, purge cached API responses so the next user on a shared device
+  // can't read the previous user's data from the app-shell cache. The sync
+  // queue and static assets are kept (no PII; queue is needed for delivery).
+  if (event.data && event.data.type === 'PURGE_API_CACHE') {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.keys().then((reqs) =>
+          Promise.all(
+            reqs
+              .filter((req) => new URL(req.url).pathname.startsWith('/api/'))
+              .map((req) => cache.delete(req))
+          )
+        )
+      )
+    );
+  }
 });
+
+// Network fetch with a hard timeout — a hung request (flaky gym wifi) should
+// fall back to cache, not leave the user staring at a white screen.
+function fetchWithTimeout(request, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+    fetch(request).then(
+      (res) => { clearTimeout(timer); resolve(res); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}

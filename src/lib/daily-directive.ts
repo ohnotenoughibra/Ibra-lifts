@@ -33,6 +33,7 @@ import { getNextSession as getNextSessionFromMatching } from './session-matching
 import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
+import { localDayKey, asLocalDate } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -173,11 +174,13 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   // ─── Fight camp context ───
   let fightCampTag: string | null = null;
   const now = Date.now();
+  // asLocalDate: competition dates are often date-only strings — new Date()
+  // would parse them as UTC midnight and shift the countdown for west-of-UTC users
   const nextComp = competitions
-    .filter(c => c.isActive && new Date(c.date).getTime() > now)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+    .filter(c => c.isActive && asLocalDate(c.date).getTime() > now)
+    .sort((a, b) => asLocalDate(a.date).getTime() - asLocalDate(b.date).getTime())[0] || null;
   const daysToComp = nextComp
-    ? Math.ceil((new Date(nextComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
+    ? Math.ceil((asLocalDate(nextComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
     : null;
   const isCombat = user?.trainingIdentity === 'combat';
   const campPhase = isCombat && daysToComp != null
@@ -247,7 +250,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   }
 
   // Filter out skipped combat sessions — match by scheduledSessionId pattern "combat-{index}"
-  const todaySkips = (workoutSkips || []).filter(s => s.date === new Date().toISOString().split('T')[0]);
+  // Skips are written with a local day key (see HomeTab) — compare local-to-local
+  const todaySkips = (workoutSkips || []).filter(s => s.date === localDayKey());
   const skippedCombatIds = new Set(
     todaySkips.filter(s => s.scheduledSessionId?.startsWith('combat-')).map(s => s.scheduledSessionId)
   );

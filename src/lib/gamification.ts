@@ -1,5 +1,6 @@
 import { Badge, BadgeCategory, GamificationStats, WeeklyChallenge, WeeklyChallengeGoal, WorkoutLog, TrainingIdentity, TrainingSession, QuickLog, WellnessDomain, WellnessStats, WellnessStreaks } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { localDayKey, localDaysAgoKey, localMondayKey, parseLocalDate } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -1072,14 +1073,15 @@ export function calculateStreak(
   const todayMs = today.getTime();
   const DAY_MS = 86400000;
 
-  // If the most recent activity is more than 2 days ago, streak is 0
-  if ((todayMs - sortedDates[0]) > 2 * DAY_MS) return 0;
+  // If the most recent activity is more than 2 days ago, streak is 0.
+  // Round day gaps: local-midnight diffs are 23h/25h across DST transitions.
+  if (Math.round((todayMs - sortedDates[0]) / DAY_MS) > 2) return 0;
 
   let streak = 1;
   let cursor = sortedDates[0];
 
   for (let i = 1; i < sortedDates.length; i++) {
-    const gap = (cursor - sortedDates[i]) / DAY_MS;
+    const gap = Math.round((cursor - sortedDates[i]) / DAY_MS);
     if (gap <= 2) {
       streak++;
       cursor = sortedDates[i];
@@ -1095,17 +1097,8 @@ export function calculateStreak(
 // WEEKLY CHALLENGE SYSTEM
 // ═══════════════════════════════════════════
 
-function getMonday(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-  d.setDate(diff);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+// Local-Monday week key — delegates to the shared helper in utils.ts.
+const getMonday = localMondayKey;
 
 export function generateWeeklyChallenge(
   trainingIdentity: TrainingIdentity | undefined,
@@ -1247,9 +1240,9 @@ export function computeChallengeProgress(
     sum + (l.exercises || []).filter(e => e.personalRecord).length, 0);
   const sessionCount = weekAllSessions.length;
 
-  // Dual days: dates that have both a lift and a combat session
-  const liftDates = new Set(weekLogs.map(l => new Date(l.date).toISOString().split('T')[0]));
-  const combatDates = new Set(weekCombatSessions.map(s => new Date(s.date).toISOString().split('T')[0]));
+  // Dual days: local calendar dates that have both a lift and a combat session
+  const liftDates = new Set(weekLogs.map(l => localDayKey(new Date(l.date))));
+  const combatDates = new Set(weekCombatSessions.map(s => localDayKey(new Date(s.date))));
   let dualDayCount = 0;
   liftDates.forEach(d => { if (combatDates.has(d)) dualDayCount++; });
 
@@ -1275,7 +1268,8 @@ export function computeChallengeProgress(
 
 export function detectComeback(lastActiveDate: string | null): boolean {
   if (!lastActiveDate) return false;
-  const last = new Date(lastActiveDate);
+  // lastActiveDate is a local day key — parse as local midnight, not UTC
+  const last = parseLocalDate(lastActiveDate);
   const now = new Date();
   const daysSince = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
   return daysSince >= 7;
@@ -1444,8 +1438,8 @@ export function updateWellnessStreaks(
   todayDomains: WellnessDomain[],
   lastWellnessDate: string | null,
 ): WellnessStreaks {
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = localDayKey();
+  const yesterday = localDaysAgoKey(1);
   const isConsecutive = lastWellnessDate === today || lastWellnessDate === yesterday;
 
   const domainSet = new Set(todayDomains);

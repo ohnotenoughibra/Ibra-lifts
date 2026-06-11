@@ -14,6 +14,8 @@ import type {
   MovementPattern,
 } from './types';
 import { getExerciseById } from './exercises';
+import { estimate1RM } from './weight-estimator';
+import { localDayKey } from './utils';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -89,12 +91,7 @@ interface ExerciseDataPoint {
  * Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020).
  * Consistent with calc1RM in progress-analytics.ts and weight-estimator.ts.
  */
-function epley1RM(weight: number, reps: number): number {
-  if (weight <= 0) return 0;
-  if (reps <= 0) return 0;
-  if (reps === 1) return weight;
-  return weight / (1.0278 - 0.0278 * reps);
-}
+const epley1RM = estimate1RM;
 
 /**
  * Extract or compute the estimated 1RM from an ExerciseLog.
@@ -232,7 +229,7 @@ function collectDataPoints(exerciseId: string, workoutLogs: WorkoutLog[]): Exerc
 
       const dateObj = new Date(log.date);
       points.push({
-        date: dateObj.toISOString().split('T')[0],
+        date: localDayKey(dateObj),
         dateMs: dateObj.getTime(),
         e1rm,
         bestWeight,
@@ -514,7 +511,7 @@ export function buildPerformanceProfiles(
 
       const dateObj = new Date(log.date);
       const dp: ExerciseDataPoint = {
-        date: dateObj.toISOString().split('T')[0],
+        date: localDayKey(dateObj),
         dateMs: dateObj.getTime(),
         e1rm,
         bestWeight,
@@ -684,8 +681,10 @@ export function predictNextPerformance(
   const modifier = readinessLevel ? (readinessModifiers[readinessLevel] ?? 1.0) : 1.0;
   projectedE1rm *= modifier;
 
-  // Convert back to weight/reps at the user's typical rep range
-  const typicalReps = last.bestReps > 0 ? last.bestReps : 8;
+  // Convert back to weight/reps at the user's typical rep range.
+  // Cap at 12 like estimate1RM — the Brzycki line goes negative past ~37 reps,
+  // so a high-rep burnout set would otherwise predict a negative weight.
+  const typicalReps = Math.min(last.bestReps > 0 ? last.bestReps : 8, 12);
   // Inverse Brzycki: weight = e1rm * (1.0278 - 0.0278 * reps)
   const predictedWeight = projectedE1rm * (1.0278 - 0.0278 * typicalReps);
 

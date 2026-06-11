@@ -31,13 +31,15 @@ function computeStreak(activeDates: Set<number>): { current: number; longest: nu
   today.setHours(0, 0, 0, 0);
   const todayMs = today.getTime();
 
-  // Current streak: must have activity within last 2 days
+  // Current streak: must have activity within last 2 days.
+  // Gaps between LOCAL midnights are not exact multiples of 24h across DST
+  // transitions (23h/25h) — round so a 2-day gap doesn't read as 2.04.
   let current = 0;
-  if ((todayMs - sorted[0]) <= 2 * DAY_MS) {
+  if (Math.round((todayMs - sorted[0]) / DAY_MS) <= 2) {
     current = 1;
     let cursor = sorted[0];
     for (let i = 1; i < sorted.length; i++) {
-      const gap = (cursor - sorted[i]) / DAY_MS;
+      const gap = Math.round((cursor - sorted[i]) / DAY_MS);
       if (gap <= 2) {
         current++;
         cursor = sorted[i];
@@ -52,7 +54,8 @@ function computeStreak(activeDates: Set<number>): { current: number; longest: nu
   let longest = 1;
   let run = 1;
   for (let i = 1; i < chronological.length; i++) {
-    const gap = (chronological[i] - chronological[i - 1]) / DAY_MS;
+    // Round: local-midnight gaps are 23h/25h across DST transitions
+    const gap = Math.round((chronological[i] - chronological[i - 1]) / DAY_MS);
     if (gap <= 2) {
       run++;
     } else {

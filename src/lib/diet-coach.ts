@@ -27,7 +27,7 @@ import {
   TrainingSession, WorkoutLog, OccupationType,
   EnergyAvailabilityResult, EnergyAvailabilityStatus,
 } from './types';
-import { safeDayKey } from './utils';
+import { safeDayKey, localDaysAgoKey } from './utils';
 
 // ── MET values for session calorie estimation ────────────────────────────────
 
@@ -804,13 +804,10 @@ export function calculateAdherence(
   meals: { date: Date | string }[],
   daysBack: number = 7
 ): number {
-  const now = new Date();
   let daysLogged = 0;
 
   for (let i = 0; i < daysBack; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = localDaysAgoKey(i);
 
     const mealsOnDay = meals.filter(m => safeDayKey(m.date) === dateStr);
 

@@ -1,6 +1,8 @@
 // ── Push Notification Utilities ────────────────────────────────────────────
 // Client-side notification management: permission, scheduling, local alerts
 
+import { localDayKey, parseLocalDate } from './utils';
+
 /**
  * Request notification permission from the user.
  * Returns the resulting permission state.
@@ -107,7 +109,7 @@ export function checkDailyLoginBonus(
   lastClaimedDate: string | null,
   consecutiveDays: number
 ): { points: number; day: number; isMysteryDay: boolean } | null {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDayKey();
 
   // Already claimed today
   if (lastClaimedDate === today) return null;
@@ -117,10 +119,11 @@ export function checkDailyLoginBonus(
   if (!lastClaimedDate) {
     newConsecutive = 1;
   } else {
-    const lastDate = new Date(lastClaimedDate);
-    const todayDate = new Date(today);
+    const lastDate = parseLocalDate(lastClaimedDate);
+    const todayDate = parseLocalDate(today);
     const diffMs = todayDate.getTime() - lastDate.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    // Round, don't floor: a DST transition makes the gap 23h or 25h
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       // Consecutive day

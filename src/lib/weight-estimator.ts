@@ -25,12 +25,28 @@ export function workingWeightFrom1RM(oneRM: number, targetReps: number): number 
   return oneRM * (1.0278 - 0.0278 * targetReps);
 }
 
-export function estimate1RMFromReps(weight: number, reps: number): number {
+/**
+ * Shared Brzycki estimated-1RM. Single source of truth for every e1RM in the
+ * app — do NOT inline `weight / (1.0278 - 0.0278 * reps)` elsewhere.
+ *
+ * Guards:
+ *   - reps <= 0 or weight <= 0 → 0 (incomplete/corrupt sets)
+ *   - reps === 1 → weight (true single)
+ *   - effective reps capped at 12: Brzycki's denominator approaches 0 at
+ *     ~37 reps (and goes NEGATIVE beyond), so a 40-rep burnout set would
+ *     otherwise produce an absurd or negative "1RM". Past ~12 reps the
+ *     formula is no longer predictive (Reynolds et al. 2006), so we clamp.
+ */
+export function estimate1RM(weight: number, reps: number): number {
+  if (!Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
   if (weight <= 0 || reps <= 0) return 0;
-  if (reps <= 1) return weight;
+  if (reps === 1) return weight;
   // Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
-  return weight / (1.0278 - 0.0278 * reps);
+  return weight / (1.0278 - 0.0278 * Math.min(reps, 12));
 }
+
+// Back-compat alias (older call sites import this name).
+export const estimate1RMFromReps = estimate1RM;
 
 // ── BW-based 1RM Multipliers by Sex + Experience ────────────────────────────
 // Sources: Strength Level, ExRx, PubMed 39060209

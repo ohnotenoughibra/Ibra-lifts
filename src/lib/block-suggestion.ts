@@ -28,6 +28,8 @@ import type {
 } from './types';
 import { getExerciseById } from './exercises';
 import { getRecommendedTrainingFocus, getActivePhaseContext } from './periodization-planner';
+import { estimate1RM } from './weight-estimator';
+import { asLocalDate, localDayKey } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -53,19 +55,15 @@ interface MuscleGroupAnalysis {
   status: 'undertrained' | 'optimal' | 'high_volume';
 }
 
-// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
-function calculateE1RM(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0;
-  if (reps === 1) return weight;
-  return weight / (1.0278 - 0.0278 * reps);
-}
+// Brzycki via the shared, rep-capped helper (see weight-estimator.ts)
+const calculateE1RM = estimate1RM;
 
 function analyzeStrengthTrends(logs: WorkoutLog[]): PerformanceTrend[] {
   // Group best e1RM per exercise per session
   const exerciseData = new Map<string, { date: string; e1rm: number; name: string }[]>();
 
   for (const log of logs) {
-    const dateStr = new Date(log.date).toISOString().split('T')[0];
+    const dateStr = localDayKey(new Date(log.date));
     for (const ex of log.exercises) {
       let bestE1RM = 0;
       for (const set of ex.sets) {
@@ -309,12 +307,14 @@ export function suggestNextBlock(opts: {
 
   // 6. Check competition proximity
   const now = new Date();
+  // asLocalDate: competition dates are often date-only strings — new Date()
+  // would parse them as UTC midnight and shift the countdown west of UTC
   const upcomingComp = opts.competitions
-    .filter(c => new Date(c.date) > now)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+    .filter(c => asLocalDate(c.date) > now)
+    .sort((a, b) => asLocalDate(a.date).getTime() - asLocalDate(b.date).getTime())[0];
 
   const weeksToComp = upcomingComp
-    ? Math.floor((new Date(upcomingComp.date).getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000))
+    ? Math.floor((asLocalDate(upcomingComp.date).getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000))
     : null;
 
   if (weeksToComp != null) {

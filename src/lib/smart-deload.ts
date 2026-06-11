@@ -24,6 +24,7 @@ import type {
 } from './types';
 import type { ExercisePerformanceProfile } from './performance-model';
 import { getCompletedSessionIds, flattenSessions } from './session-matching';
+import { localMondayKey } from './utils';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -337,12 +338,8 @@ function avgSleepInRange(
 function countTrainingWeeks(logs: WorkoutLog[]): number {
   const weeks = new Set<string>();
   logs.forEach(log => {
-    const date = new Date(log.date);
-    const day = date.getDay();
-    const mondayOffset = day === 0 ? 6 : day - 1;
-    const monday = new Date(date);
-    monday.setDate(date.getDate() - mondayOffset);
-    weeks.add(monday.toISOString().split('T')[0]);
+    // Bucket by the user's LOCAL Monday (toISOString drifted a day west of UTC)
+    weeks.add(localMondayKey(new Date(log.date)));
   });
   return weeks.size;
 }

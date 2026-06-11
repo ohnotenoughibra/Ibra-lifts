@@ -9,6 +9,8 @@
 import type { WorkoutLog, MuscleGroup } from './types';
 import { getExerciseById } from './exercises';
 import { VOLUME_LANDMARKS } from './workout-generator';
+import { estimate1RM } from './weight-estimator';
+import { localMondayKey } from './utils';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -81,19 +83,14 @@ function active<T>(arr: T[]): T[] {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+// Brzycki via the shared, rep-capped helper (see weight-estimator.ts)
 function calc1RM(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight / (1.0278 - 0.0278 * reps));
+  return Math.round(estimate1RM(weight, reps));
 }
 
+// Weekly buckets use the user's LOCAL Monday (toISOString drifted a day west of UTC)
 function getWeekKey(date: Date | string): string {
-  const d = new Date(date);
-  const day = d.getDay();
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - ((day + 6) % 7));
-  return monday.toISOString().split('T')[0];
+  return localMondayKey(new Date(date));
 }
 
 function clamp(val: number, min: number, max: number): number {

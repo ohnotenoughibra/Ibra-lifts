@@ -19,6 +19,7 @@
 
 import type { WorkoutLog, ExerciseLog } from './types';
 import { VOLUME_LANDMARKS } from './workout-generator';
+import { localMondayKey } from './utils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -194,11 +195,8 @@ interface WeekGroup {
 function groupByWeek(logs: WorkoutLog[]): WeekGroup[] {
   const map = new Map<string, WorkoutLog[]>();
   for (const log of logs) {
-    const d = new Date(log.date);
-    const day = d.getDay();
-    const monday = new Date(d);
-    monday.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
-    const key = monday.toISOString().split('T')[0];
+    // Bucket by the user's LOCAL Monday (toISOString drifted a day west of UTC)
+    const key = localMondayKey(new Date(log.date));
     const arr = map.get(key) || [];
     arr.push(log);
     map.set(key, arr);

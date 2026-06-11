@@ -3,8 +3,8 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { buildWeekPlan } from '@/lib/smart-schedule';
-import type { CombatTrainingDay, WorkoutSession, Mesocycle, WorkoutLog } from '@/lib/types';
-import { Dumbbell, Shield, Zap, Flame, Battery } from 'lucide-react';
+import type { CombatTrainingDay, ScheduledCardioDay, WorkoutSession, Mesocycle, WorkoutLog } from '@/lib/types';
+import { Dumbbell, Shield, Zap, Flame, Battery, HeartPulse } from 'lucide-react';
 
 // ─── Types ───
 
@@ -13,6 +13,9 @@ interface WeeklyCalendarProps {
   combatTrainingDays: CombatTrainingDay[];
   currentMesocycle: Mesocycle | null;
   workoutLogs: WorkoutLog[];
+  scheduledCardio?: ScheduledCardioDay[];
+  /** Tap a day to edit its cardio slot. Enables the inline schedule editor. */
+  onDayTap?: (day: number) => void;
 }
 
 // Short day labels starting Monday (most training calendars are Mon-based)
@@ -32,6 +35,7 @@ const TYPE_META: Record<string, { icon: typeof Dumbbell; color: string; bg: stri
   hypertrophy:        { icon: Flame,    color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30', label: 'HYP' },
   strength_endurance: { icon: Shield,   color: 'text-teal-400',   bg: 'bg-teal-500/15 border-teal-500/30',  label: 'END' },
   combat:             { icon: Shield,   color: 'text-purple-400', bg: 'bg-purple-500/15 border-purple-500/30', label: 'MAT' },
+  cardio:             { icon: HeartPulse, color: 'text-sky-400',   bg: 'bg-sky-500/15 border-sky-500/30',    label: 'CRD' },
   rest:               { icon: Battery,  color: 'text-grappler-600', bg: 'bg-grappler-800/40 border-grappler-700/30', label: 'REST' },
 };
 
@@ -42,6 +46,8 @@ export default function WeeklyCalendar({
   combatTrainingDays,
   currentMesocycle,
   workoutLogs,
+  scheduledCardio = [],
+  onDayTap,
 }: WeeklyCalendarProps) {
   const today = new Date().getDay(); // 0=Sun
 
@@ -59,8 +65,8 @@ export default function WeeklyCalendar({
   }, [currentMesocycle]);
 
   const weekPlan = useMemo(
-    () => buildWeekPlan(trainingDays, combatTrainingDays, sessions),
-    [trainingDays, combatTrainingDays, sessions]
+    () => buildWeekPlan(trainingDays, combatTrainingDays, sessions, scheduledCardio),
+    [trainingDays, combatTrainingDays, sessions, scheduledCardio]
   );
 
   // Which days this week already have a completed workout?
@@ -101,6 +107,8 @@ export default function WeeklyCalendar({
             typeKey = dayPlan.suggestedWorkoutType;
           } else if (dayPlan.combatTraining) {
             typeKey = 'combat';
+          } else if (dayPlan.cardio) {
+            typeKey = 'cardio';
           } else {
             typeKey = 'rest';
           }
@@ -114,13 +122,17 @@ export default function WeeklyCalendar({
           const Icon = meta.icon;
 
           return (
-            <div
+            <button
+              type="button"
               key={idx}
+              onClick={() => onDayTap?.(idx)}
+              disabled={!onDayTap}
               className={cn(
                 'flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-lg border transition-all',
                 meta.bg,
                 isToday && 'ring-1 ring-primary-400/60 shadow-[0_0_8px_rgba(var(--color-primary-400),0.15)]',
                 isDone && typeKey !== 'rest' && 'opacity-60',
+                onDayTap && 'active:scale-95 cursor-pointer',
               )}
             >
               {/* Day label */}
@@ -146,7 +158,7 @@ export default function WeeklyCalendar({
               {isDone && typeKey !== 'rest' && (
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
               )}
-            </div>
+            </button>
           );
         })}
       </div>

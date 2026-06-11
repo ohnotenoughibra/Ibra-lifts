@@ -3,6 +3,13 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.2.3] - 2026-06-11
+
+**The "new version available" banner stops hiding behind your phone's notch.**
+
+### Fixed
+- **Update banner placement**: the "A new version is available" bar was pinned to the very top of the screen, so on phones with a notch or status bar its Update button tucked up underneath and was hard to tap. The bar's content now sits below the safe area; the colored bar still reaches the top edge. No change on screens without a notch.
+
 ## [2.2.2] - 2026-06-11
 
 **The barcode scanner stops crying "not found" when the food database just hiccupped.**

@@ -264,9 +264,28 @@ export function resolveConflicts(
   if (localGS && remoteGS) {
     const localPts = (localGS.totalPoints as number) || 0;
     const remotePts = (remoteGS.totalPoints as number) || 0;
-    // Base: pick the side with more XP as the "winner" for non-computed fields
-    const winner = localPts >= remotePts ? localGS : remoteGS;
-    const loser  = localPts >= remotePts ? remoteGS : localGS;
+    const localAsOf = (localGS.pointsAsOf as number) || 0;
+    const remoteAsOf = (remoteGS.pointsAsOf as number) || 0;
+
+    // Timestamp-aware XP: the side that WROTE totalPoints most recently is
+    // authoritative. Plain max() made XP reductions impossible to propagate —
+    // undoing a block-completion bonus on one device snapped back to the
+    // cloud's stale higher value on the next pull. Legacy data without
+    // pointsAsOf falls back to the old max() behavior.
+    let mergedPts: number;
+    let mergedAsOf: number;
+    if (localAsOf > 0 || remoteAsOf > 0) {
+      mergedPts = localAsOf >= remoteAsOf ? localPts : remotePts;
+      mergedAsOf = Math.max(localAsOf, remoteAsOf);
+    } else {
+      mergedPts = Math.max(localPts, remotePts);
+      mergedAsOf = 0;
+    }
+
+    // Base: the XP-authoritative side wins non-computed fields too
+    const localWins = (localAsOf > 0 || remoteAsOf > 0) ? localAsOf >= remoteAsOf : localPts >= remotePts;
+    const winner = localWins ? localGS : remoteGS;
+    const loser  = localWins ? remoteGS : localGS;
 
     // Union-merge badges by badgeId so no badge is ever lost
     const winnerBadges = Array.isArray(winner.badges) ? winner.badges as Array<Record<string, unknown>> : [];
@@ -277,9 +296,9 @@ export function resolveConflicts(
 
     merged.gamificationStats = {
       ...winner,
-      // Keep stored totalPoints as max (computed hook takes Math.max anyway)
-      totalPoints: Math.max(localPts, remotePts),
-      level: calculateLevel(Math.max(localPts, remotePts)),
+      totalPoints: mergedPts,
+      ...(mergedAsOf > 0 ? { pointsAsOf: mergedAsOf } : {}),
+      level: calculateLevel(mergedPts),
       badges: Array.from(badgeMap.values()),
       // Event counters: take max from both sides
       comebackCount: Math.max((localGS.comebackCount as number) || 0, (remoteGS.comebackCount as number) || 0),
@@ -328,6 +347,42 @@ export function resolveConflicts(
       }
     } else if (localVal) {
       merged[field] = localVal;
+    }
+  }
+
+  // ── Block lifecycle reconciliation ──
+  // The updatedAtFields rule above can only pick a non-null currentMesocycle
+  // (merged starts as {...remote}, and null local values never overwrite it).
+  // Every way of clearing the current block (stop, complete, switch, delete)
+  // ARCHIVES it into mesocycleHistory with a fresh updatedAt — so the merged
+  // history is the source of truth for "this block ended":
+  //
+  // (a) Terminal finality: if the merged current block also exists in history
+  //     with a terminal state (stopped/completed/_deleted) stamped at-or-after
+  //     the current copy, the archive is the newer truth → current goes null.
+  //     Without this, "Stop early" never survived a sync round-trip.
+  // (b) Resurrection dedup: if the current copy is strictly NEWER than the
+  //     archived one, an undo restored the block to active — drop the stale
+  //     archive so the block doesn't exist as both active and completed.
+  //
+  // Legacy entries without timestamps are left alone (can't order them safely).
+  {
+    const cur = merged.currentMesocycle as Record<string, unknown> | null | undefined;
+    const hist = merged.mesocycleHistory as Array<Record<string, unknown>> | undefined;
+    if (cur && Array.isArray(hist)) {
+      const isTerminal = (e: Record<string, unknown>) =>
+        e._deleted === true || e.status === 'stopped' || e.status === 'completed';
+      const archived = hist.find(e => e.id === cur.id && isTerminal(e));
+      if (archived) {
+        const curTs = new Date((cur.updatedAt || 0) as string).getTime();
+        const histTs = new Date((archived.updatedAt || 0) as string).getTime();
+        if (histTs > 0 && histTs >= curTs) {
+          merged.currentMesocycle = null;            // (a) the block was ended
+        } else if (curTs > 0 && curTs > histTs) {
+          merged.mesocycleHistory = hist.filter(e => e !== archived); // (b) undo won
+        }
+        // both unstamped → leave as-is (pre-timestamp legacy data)
+      }
     }
   }
 

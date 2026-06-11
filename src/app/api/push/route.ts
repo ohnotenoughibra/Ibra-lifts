@@ -68,6 +68,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid push subscription' }, { status: 400 });
       }
 
+      // Rate limit the test-send too — subscribe also calls sendNotification on
+      // caller-supplied data, so it can't be a free push vector either.
+      const { limited } = rateLimit(`push-subscribe:${session.user.id}`, 10, 60 * 60 * 1000);
+      if (limited) {
+        return NextResponse.json({ error: 'Too many subscription attempts. Try again later.' }, { status: 429 });
+      }
+
       // Send a test notification to verify the subscription works
       try {
         await webpush.sendNotification(

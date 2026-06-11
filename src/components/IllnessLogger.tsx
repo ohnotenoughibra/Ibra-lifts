@@ -367,7 +367,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="btn btn-ghost btn-sm p-1">
+            <button onClick={onClose} aria-label="Close" className="btn btn-ghost btn-sm p-1">
               <X className="w-5 h-5 text-grappler-200" />
             </button>
             <div className="flex items-center gap-2">

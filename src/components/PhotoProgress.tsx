@@ -253,6 +253,7 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={onClose}
+            aria-label="Go back"
             className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-grappler-300" />
@@ -861,6 +862,7 @@ function AddPhotoModal({
           <h2 className="text-base font-bold text-grappler-100">Add Progress Photo</h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 hover:bg-grappler-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-grappler-400" />
@@ -1047,6 +1049,7 @@ function ViewPhotoModal({
       <div className="flex items-center justify-between p-4 shrink-0" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
+          aria-label="Close"
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
         >
           <X className="w-5 h-5 text-white" />
@@ -1154,6 +1157,7 @@ function GalleryPickerModal({
           <h3 className="text-base font-bold text-grappler-100">Select a Photo</h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 hover:bg-grappler-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-grappler-400" />

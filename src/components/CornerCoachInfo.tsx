@@ -94,7 +94,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4 flex items-center justify-between">
-        <button onClick={onClose} className="btn btn-ghost btn-sm">
+        <button onClick={onClose} aria-label="Close" className="btn btn-ghost btn-sm">
           <X className="w-5 h-5" />
         </button>
         <h1 className="font-bold text-grappler-50">AI Corner Coach</h1>

@@ -475,7 +475,7 @@ function CustomizePanel({
       <div className="mt-1 bg-grappler-800/60 rounded-lg p-3 space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-xs font-medium text-grappler-200">{supp.name}</p>
-          <button onClick={onClose} className="text-grappler-500 hover:text-grappler-300">
+          <button onClick={onClose} aria-label="Close" className="text-grappler-500 hover:text-grappler-300">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

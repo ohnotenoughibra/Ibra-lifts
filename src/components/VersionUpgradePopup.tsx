@@ -94,6 +94,7 @@ export default function VersionUpgradePopup() {
                 </div>
                 <button
                   onClick={handleDismiss}
+                  aria-label="Dismiss"
                   className="p-1.5 rounded-lg text-grappler-500 hover:text-grappler-300 hover:bg-grappler-800 transition-colors"
                 >
                   <X className="w-5 h-5" />

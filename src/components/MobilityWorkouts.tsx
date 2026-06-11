@@ -394,6 +394,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
             </button>
             <button
               onClick={skipExercise}
+              aria-label="Skip exercise"
               className="w-12 h-12 rounded-full bg-grappler-700 flex items-center justify-center text-grappler-300"
             >
               <SkipForward className="w-5 h-5" />
@@ -646,7 +647,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-grappler-900 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} className="btn btn-secondary btn-sm">
+          <button onClick={onClose} aria-label="Go back" className="btn btn-secondary btn-sm">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div>

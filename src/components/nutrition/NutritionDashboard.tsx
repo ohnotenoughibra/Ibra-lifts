@@ -308,7 +308,7 @@ function EditMealModal({ meal, onSave, onClose }: {
       >
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-grappler-200">Edit Meal</h3>
-          <button onClick={onClose} className="text-grappler-500 hover:text-grappler-200"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-grappler-500 hover:text-grappler-200"><X className="w-5 h-5" /></button>
         </div>
 
         <input

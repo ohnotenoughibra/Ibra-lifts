@@ -112,6 +112,7 @@ export default function FightCardModal({ data, open, onClose }: FightCardModalPr
               <h3 className="text-sm font-bold text-grappler-200 uppercase tracking-wider">Fight Card</h3>
               <button
                 onClick={onClose}
+                aria-label="Close"
                 className="p-1.5 rounded-lg text-grappler-500 hover:text-grappler-300 hover:bg-grappler-800 transition-colors"
               >
                 <X className="w-4 h-4" />

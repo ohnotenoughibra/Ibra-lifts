@@ -280,7 +280,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
             <Sparkles className="w-4 h-4 text-violet-400" />
             <p className="text-sm font-bold text-grappler-100">Tap what&apos;s sore</p>
           </div>
-          <button onClick={onDismiss} className="p-1 text-grappler-500 hover:text-grappler-300">
+          <button onClick={onDismiss} aria-label="Dismiss" className="p-1 text-grappler-500 hover:text-grappler-300">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -382,7 +382,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
             <Clock className="w-4 h-4 text-violet-400" />
             <p className="text-sm font-bold text-grappler-100">How much time do you have?</p>
           </div>
-          <button onClick={onDismiss} className="p-1 text-grappler-500 hover:text-grappler-300">
+          <button onClick={onDismiss} aria-label="Dismiss" className="p-1 text-grappler-500 hover:text-grappler-300">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -513,6 +513,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
       <div className="flex items-center justify-center gap-4 mb-3">
         <button
           onClick={skipDrill}
+          aria-label="Skip drill"
           className="w-10 h-10 rounded-full bg-grappler-800 border border-grappler-700 flex items-center justify-center text-grappler-400 hover:text-grappler-200 active:scale-[0.93] transition-all"
           title="Skip drill"
         >

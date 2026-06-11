@@ -224,7 +224,7 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
             <Search className="w-5 h-5" />
           </button>
           {onClose && (
-            <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200">
+            <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200">
               <X className="w-5 h-5" />
             </button>
           )}
@@ -519,7 +519,7 @@ function LearningPathView({
     <div className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 text-grappler-400 hover:text-grappler-200">
+        <button onClick={onBack} aria-label="Go back" className="p-2 -ml-2 text-grappler-400 hover:text-grappler-200">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">

@@ -1420,6 +1420,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
               <button
                 onClick={handleSync}
                 disabled={isSyncing}
+                aria-label="Sync"
                 className="btn btn-ghost btn-sm p-1.5"
               >
                 <RefreshCw

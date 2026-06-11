@@ -842,6 +842,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={togglePause}
+                aria-label={isPaused ? 'Resume' : 'Pause'}
                 className="w-14 h-14 rounded-full bg-grappler-800 hover:bg-grappler-700 flex items-center justify-center transition-colors"
               >
                 {isPaused ? (
@@ -852,6 +853,7 @@ export default function BreathingProtocols({ onClose }: { onClose: () => void })
               </button>
               <button
                 onClick={stopSession}
+                aria-label="Stop session"
                 className="w-14 h-14 rounded-full bg-grappler-800 hover:bg-grappler-700 flex items-center justify-center transition-colors"
               >
                 <Square className="w-5 h-5 text-grappler-50" />

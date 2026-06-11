@@ -44,7 +44,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button onClick={onClose} className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors">
+          <button onClick={onClose} aria-label="Go back" className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors">
             <ArrowLeft className="w-5 h-5 text-grappler-300" />
           </button>
           <div className="flex-1">

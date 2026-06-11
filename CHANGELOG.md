@@ -3,6 +3,20 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.2.2] - 2026-06-11
+
+**The barcode scanner stops crying "not found" when the food database just hiccupped.**
+
+Christoph reported scans that found the product but threw an error, plus the camera occasionally getting stuck. Both fixed, with a guard so bad data from the food database can't corrupt your macros.
+
+### Fixed
+- **Barcode scan reliability**: a slow or rate-limited OpenFoodFacts response no longer shows up as "product not found" (and no longer gets cached as missing for a week). The scanner retries once, distinguishes a network hiccup from a genuinely-unknown barcode, and gives you a Retry button instead of a dead end.
+- **Camera no longer gets stuck**: the camera is released cleanly between scans, so "Scan again" and "Retry" can't leave it locked ("camera already in use") on mobile.
+- **Bad food data can't poison your log**: non-numeric macro values from the food database are now read as zero instead of NaN, which previously could corrupt your daily totals.
+
+### For contributors
+- `lookupBarcode` returns a `BarcodeLookupResult` discriminated union (found | not_found | error); transient failures are never cached, so a flaky network can't poison a real product as not-found for 7 days. Timeouts fail fast (no ~16s double-wait). Camera lifecycle now stores a promise-returning `stop()` and releases the prior instance on scanner re-entry. +14 barcode-lookup tests.
+
 ## [2.2.1] - 2026-06-11
 
 **Hardening pass: closes the security and reliability gaps the audit found across notifications, sync, and offline storage.**

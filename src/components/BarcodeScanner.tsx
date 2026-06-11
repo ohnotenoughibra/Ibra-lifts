@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, Loader2, AlertCircle, Plus, ScanBarcode } from 'lucide-react';
+import { X, Camera, Loader2, AlertCircle, Plus, ScanBarcode, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { lookupBarcode, type BarcodeProduct } from '@/lib/barcode-lookup';
 import type { MealType } from '@/lib/types';
@@ -14,6 +14,9 @@ type ScannerState =
   | { phase: 'loading'; barcode: string }
   | { phase: 'found'; product: BarcodeProduct }
   | { phase: 'not_found'; barcode: string }
+  // Transient food-database failure (network/timeout/rate-limit) — distinct
+  // from 'error' (camera). Retry re-runs the LOOKUP, not the camera.
+  | { phase: 'lookup_error'; barcode: string; message: string }
   | { phase: 'error'; message: string };
 
 interface BarcodeScannerProps {
@@ -55,19 +58,50 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
   const [manualFat, setManualFat] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const scannerRef = useRef<{ stop: () => void } | null>(null);
+  // stop() returns the underlying promise so callers (unmount cleanup, scanner
+  // re-entry) can AWAIT the camera release instead of fire-and-forgetting it.
+  const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const hasProcessedRef = useRef(false);
+  // Guards against a double-tapped "Retry lookup" firing two concurrent
+  // lookups whose out-of-order resolutions would clobber each other's state.
+  const lookupInFlightRef = useRef(false);
+
+  // ── Lookup (shared by scan + retry) ──────────────────────────────────────
+  // Declared before startScanner because the scan success callback calls it.
+  const runLookup = useCallback(async (barcode: string) => {
+    if (lookupInFlightRef.current) return;
+    lookupInFlightRef.current = true;
+    setState({ phase: 'loading', barcode });
+    try {
+      const result = await lookupBarcode(barcode);
+      if (result.status === 'found') {
+        setState({ phase: 'found', product: result.product });
+      } else if (result.status === 'not_found') {
+        setState({ phase: 'not_found', barcode });
+      } else {
+        // Transient DB failure — let the user retry the lookup or enter manually,
+        // instead of the old behaviour where a real product showed as "not found"
+        setState({ phase: 'lookup_error', barcode, message: result.message });
+      }
+    } finally {
+      lookupInFlightRef.current = false;
+    }
+  }, []);
 
   // ── Start camera + scanner ───────────────────────────────────────────────
 
   const startScanner = useCallback(async () => {
     hasProcessedRef.current = false;
+    // Release any prior camera instance before opening a new one. Without this,
+    // a re-entry (Scan again / Try again) orphans the previous MediaStream track
+    // and mobile browsers then throw "camera already in use" on the next start.
+    try { await scannerRef.current?.stop(); } catch { /* nothing live to stop */ }
     setState({ phase: 'scanning' });
 
     try {
       const { Html5Qrcode } = await import('html5-qrcode');
       const scanner = new Html5Qrcode('barcode-reader');
-      scannerRef.current = { stop: () => scanner.stop().catch(() => {}) };
+      scannerRef.current = { stop: () => scanner.stop() };
 
       await scanner.start(
         { facingMode: 'environment' },
@@ -83,15 +117,14 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
           // Haptic feedback
           if (navigator.vibrate) navigator.vibrate(50);
 
-          scanner.stop().catch(() => {});
-          setState({ phase: 'loading', barcode: decodedText });
+          // Await the stop BEFORE looking up — calling stop() un-awaited from
+          // inside the success callback is a documented html5-qrcode race that
+          // can leave the camera held, so a later re-scan throws. Await + guard
+          // releases it cleanly every time.
+          try { await scanner.stop(); } catch { /* already stopping/stopped */ }
 
-          const product = await lookupBarcode(decodedText);
-          if (product) {
-            setState({ phase: 'found', product });
-          } else {
-            setState({ phase: 'not_found', barcode: decodedText });
-          }
+          setState({ phase: 'loading', barcode: decodedText });
+          await runLookup(decodedText);
         },
         () => {
           // Scan failure (no barcode detected in frame) — ignore
@@ -101,12 +134,15 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
       const msg = err instanceof Error ? err.message : 'Camera access denied';
       setState({ phase: 'error', message: msg });
     }
-  }, []);
+  }, [runLookup]);
 
   useEffect(() => {
     startScanner();
     return () => {
-      scannerRef.current?.stop();
+      // Fire-and-forget on unmount, but swallow the rejection if the camera
+      // was already stopped (e.g. a scan completed) so it doesn't surface as
+      // an unhandled promise rejection.
+      scannerRef.current?.stop().catch(() => {});
     };
   }, [startScanner]);
 
@@ -410,6 +446,57 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
                 <Plus className="w-4 h-4" />
                 Add manually
               </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lookup error — the barcode WAS read, but the food database was
+          unreachable (timeout/rate-limit/5xx). Distinct from 'not_found':
+          the product may well exist, so lead with Retry, not manual entry.
+          This is the fix for "sometimes it gets the food but you get error". */}
+      <AnimatePresence>
+        {state.phase === 'lookup_error' && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="flex-1 flex flex-col px-4 pt-6 pb-8 overflow-y-auto"
+          >
+            <div className="bg-grappler-800 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 text-amber-400">
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm font-medium">Couldn&apos;t reach the food database</p>
+              </div>
+              <p className="text-xs text-grappler-500">
+                {state.message}. The barcode{' '}
+                <span className="font-mono">{state.barcode}</span> scanned fine — this is a
+                network hiccup, not a missing product. Try again, or enter it manually.
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <button
+                onClick={() => runLookup(state.barcode)}
+                className="w-full py-3 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCw className="w-4 h-4" />
+                Retry lookup
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={startScanner}
+                  className="flex-1 py-3 bg-grappler-800 text-grappler-300 text-sm rounded-xl hover:bg-grappler-700 transition-colors"
+                >
+                  Scan again
+                </button>
+                <button
+                  onClick={() => setState({ phase: 'not_found', barcode: state.barcode })}
+                  className="flex-1 py-3 bg-grappler-800 text-grappler-300 text-sm rounded-xl hover:bg-grappler-700 transition-colors"
+                >
+                  Enter manually
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

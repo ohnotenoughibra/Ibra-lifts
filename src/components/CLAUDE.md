@@ -41,7 +41,7 @@
 
 ### Nutrition
 - `NutritionTracker.tsx` (~2,500) — Meal logging, macro dashboard, water
-- `BarcodeScanner.tsx` (~310) — Camera barcode scanner, OpenFoodFacts lookup, lazy-loaded
+- `BarcodeScanner.tsx` (~510) — Camera barcode scanner, OpenFoodFacts lookup, lazy-loaded. Distinguishes a transient lookup failure (Retry) from a genuine not-found (manual entry); releases the camera between scans
 - `DietCoach.tsx` (~1,550) — Diet phase management, weekly check-ins
 - `NutritionTrends.tsx` (~435) — Nutrition analytics
 - `FightCampNutrition.tsx` (~490) — Competition nutrition

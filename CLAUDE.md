@@ -100,7 +100,7 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 npm run dev          # Start dev server
 npm run build        # Production build
 npm run lint         # ESLint
-npm test             # Vitest tests (572 tests)
+npm test             # Vitest tests (586 tests)
 ```
 
 ## Key Dependencies (New)

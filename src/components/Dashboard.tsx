@@ -714,7 +714,7 @@ export default function Dashboard({
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
-      profile_settings: <ProfileSettings onClose={closeOverlay} />,
+      profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
     if (overlayContent) return (

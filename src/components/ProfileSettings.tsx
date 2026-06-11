@@ -53,6 +53,8 @@ import { getLevelTitle, levelProgress, pointsToNextLevel, badges } from '@/lib/g
 import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, WearableUsage, WearableProvider, DEFAULT_EQUIPMENT_PROFILES, EquipmentType, Badge, UserBadge, SessionsPerWeek, CombatSport } from '@/lib/types';
 import type { ColorTheme } from '@/lib/types';
 import { useToast } from './Toast';
+import NotificationSettings from './NotificationSettings';
+import type { OverlayView } from './dashboard-types';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 
 // ─── SVG Circular Progress Ring (redesigned — bold level number) ─────────────
@@ -225,7 +227,7 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
 // MAIN COMPONENT
 // ═════════════════════════════════════════════════════════════════════════════
 
-export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
+export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () => void; onNavigate?: (view: OverlayView) => void }) {
   const { user, gamificationStats, baselineLifts, setBaselineLifts, resetStore, setUser, updateUserFields, restartOnboarding, generateNewMesocycle, colorTheme, setColorTheme, homeGymEquipment, setHomeGymEquipment, recalculateGamificationStats, workoutLogCount, currentMesocycle, workoutLogs } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, baselineLifts: s.baselineLifts, setBaselineLifts: s.setBaselineLifts,
@@ -819,10 +821,25 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             <div className="flex gap-1.5">
               {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map(n => (
                 <button key={n} onClick={() => {
-                  updateUser({ sessionsPerWeek: n });
-                  const weeks = currentMesocycle?.weeks?.length || 5;
-                  generateNewMesocycle(weeks, user?.sessionDurationMinutes || 60);
                   hapticLight();
+                  if (user?.sessionsPerWeek === n) return;
+                  const apply = () => {
+                    updateUser({ sessionsPerWeek: n });
+                    const weeks = currentMesocycle?.weeks?.length || 5;
+                    generateNewMesocycle(weeks, user?.sessionDurationMinutes || 60);
+                  };
+                  // Changing days/week rebuilds the current block — gate it so a
+                  // tap doesn't silently wipe a programmed mesocycle.
+                  if (currentMesocycle) {
+                    setConfirmDialog({
+                      title: 'Change training days?',
+                      message: `Switching to ${n} day${n > 1 ? 's' : ''}/week rebuilds your current training block. Your logged workouts and history are kept.`,
+                      confirmLabel: 'Rebuild block',
+                      onConfirm: () => { setConfirmDialog(null); apply(); },
+                    });
+                  } else {
+                    apply();
+                  }
                 }}
                   className={cn(
                     'flex-1 py-2 rounded-xl text-xs font-bold tabular-nums transition-all active:scale-95',
@@ -918,10 +935,6 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             </AnimatePresence>
           </div>
 
-          {/* Weight Unit */}
-          <InlineField label="Weight Unit" value={user?.weightUnit || 'kg'}
-            options={[{ value: 'kg', label: 'KG' }, { value: 'lbs', label: 'LBS' }]}
-            onSave={v => updateUser({ weightUnit: v as WeightUnit })} />
 
           {/* Combat Sport Type */}
           {(user?.combatSport || user?.combatSports?.length) && (
@@ -1026,7 +1039,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 if (user?.wearableProvider === 'google_fit') {
                   updateUser({ wearableUsage: 'no_wearable', wearableProvider: undefined });
                 } else {
-                  updateUser({ wearableUsage: 'other_wearable', wearableProvider: 'google_fit' as WearableProvider });
+                  // Open the real device-setup screen (OAuth / import) instead of
+                  // faking a "Connected" state that never actually connected.
+                  onNavigate?.('wearable');
                 }
               }}
               className={cn(
@@ -1059,7 +1074,9 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
                 if (user?.wearableProvider === 'apple_health') {
                   updateUser({ wearableUsage: 'no_wearable', wearableProvider: undefined });
                 } else {
-                  updateUser({ wearableUsage: 'other_wearable', wearableProvider: 'apple_health' });
+                  // Apple Health is a file import (handled in the device-setup
+                  // screen) — route there instead of faking "Connected".
+                  onNavigate?.('wearable');
                 }
               }}
               className={cn(
@@ -1089,6 +1106,16 @@ export default function ProfileSettings({ onClose }: { onClose?: () => void }) {
             {isSignedIn && <Check className="w-4 h-4 text-green-400" />}
           </div>
         </motion.div>
+      </section>
+
+      <div className="h-px bg-grappler-700/40 my-6" />
+
+      {/* ════════════════════════════════════════════════════════════════ */}
+      {/* SECTION 4b: NOTIFICATIONS                                       */}
+      {/* ════════════════════════════════════════════════════════════════ */}
+      <section>
+        <h2 className="text-lg font-bold text-grappler-100 uppercase tracking-wide mb-4">Notifications</h2>
+        <NotificationSettings />
       </section>
 
       <div className="h-px bg-grappler-700/40 my-6" />

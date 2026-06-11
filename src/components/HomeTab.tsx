@@ -76,17 +76,12 @@ import type { CycleLog } from '@/lib/female-athlete';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
-import WeeklyMomentum from './WeeklyMomentum';
 import ReadinessRing from './ReadinessRing';
-import StatusBar from './StatusBar';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { getOneThing } from '@/lib/one-thing';
 import OneThingBanner from './OneThingBanner';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
 import { getContextualNutrition, type TrainingDayType } from '@/lib/contextual-nutrition';
-import InsightCard from './InsightCard';
-import WeeklyCalendar from './WeeklyCalendar';
-import DashboardInsights from './DashboardInsights';
 import { PostWorkoutPhase, CombatPhase, LiftPhase, BlockCompletePhase, OnboardingPhase } from './phases';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { getDockSuggestions } from '@/lib/tool-affinity';
@@ -379,69 +374,6 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
 }
 
 // ─── Adaptive Recovery Status Card ─────────────────────────────────────────
-function AdaptiveRecoveryCard() {
-  const { workoutLogs, trainingSessions } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, trainingSessions: s.trainingSessions }))
-  );
-
-  const recoveryData = useMemo(() => {
-    if (!workoutLogs || workoutLogs.length < 2) return null;
-
-    const profile = buildRecoveryProfile(workoutLogs, trainingSessions || []);
-
-    // Find the most recent workout
-    const sorted = [...workoutLogs].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    const lastWorkout = sorted[0];
-    if (!lastWorkout) return null;
-
-    const rw = findOptimalTrainingWindow(
-      {
-        lastWorkoutDate: lastWorkout.date instanceof Date ? lastWorkout.date.toISOString() : String(lastWorkout.date),
-        lastWorkoutRPE: lastWorkout.overallRPE ?? 6,
-        soreness: lastWorkout.soreness ?? undefined,
-      },
-      profile,
-    );
-
-    return { window: rw, confidence: profile.confidence };
-  }, [workoutLogs, trainingSessions]);
-
-  if (!recoveryData) return null;
-
-  const { window: rw, confidence } = recoveryData;
-  const readiness = isNaN(rw.currentReadiness) ? 50 : Math.round(rw.currentReadiness);
-  const hoursLeft = isNaN(rw.estimatedRecoveryTime) ? 0 : rw.estimatedRecoveryTime;
-  const isReady = readiness >= 70;
-  const isOptimalSoon = rw.optimalTrainingWindow.start <= 2;
-
-  const gaugeColor = readiness >= 80
-    ? 'text-green-400'
-    : readiness >= 60
-    ? 'text-yellow-400'
-    : readiness >= 40
-    ? 'text-amber-400'
-    : 'text-red-400';
-
-  // Don't show if readiness is already high — the ring says it all
-  if (isReady && isOptimalSoon) return null;
-
-  // Single-line training window insight — no competing percentage
-  return (
-    <div className="flex items-center gap-2 px-1 py-1">
-      <Battery className={cn('w-3.5 h-3.5 flex-shrink-0', gaugeColor)} />
-      <p className="text-xs text-grappler-400">
-        {isReady
-          ? `Training window: next ${Math.round(rw.optimalTrainingWindow.end)}h`
-          : `Recovery: ~${Math.ceil(hoursLeft)}h until ready`
-        }
-        {confidence === 'low' && ' · learning your patterns'}
-      </p>
-    </div>
-  );
-}
-
 export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onNavigate: (view: OverlayView, context?: string) => void; onViewReport: (mesoId: string) => void; onSwitchTab?: (tab: TabType) => void }) {
   const {
     user, currentMesocycle, workoutLogs, startWorkout,
@@ -520,8 +452,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [readinessExpanded, setReadinessExpanded] = useState(false);
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
-  const [showMore, setShowMore] = useState(false);
   const [profileHintDismissed, setProfileHintDismissed] = useState(() => typeof window !== 'undefined' && localStorage.getItem('profile-hint-dismissed') === '1');
   const weightUnit = user?.weightUnit || 'lbs';
   const hour = new Date().getHours();
@@ -1279,7 +1209,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   })();
 
   // Position-based matching eliminates orphaned progress — no repair needed
-  const needsProgressRepair = false;
 
   const trainingLoadWarning = useMemo(() => {
     if (user?.trainingIdentity !== 'combat') return null;
@@ -1963,33 +1892,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         </div>
       )}
 
-      {/* Progress repair banner — shown when mesocycle has 0 logs but orphaned logs exist */}
-      {needsProgressRepair && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 mb-2"
-        >
-          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-amber-300">Program progress lost</p>
-            <p className="text-xs text-amber-400/70 mt-0.5">Your workout history got disconnected from your current program. Tap to fix.</p>
-          </div>
-          <button
-            onClick={() => {
-              const result = repairMesocycleProgress();
-              if (result.fixed > 0) {
-                showToast(`Restored ${result.fixed} workouts to your program`, 'success');
-              } else {
-                showToast('No workouts found to restore', 'error');
-              }
-            }}
-            className="px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-medium whitespace-nowrap active:scale-95 transition-transform"
-          >
-            Repair
-          </button>
-        </motion.div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           ZONE 2: THE DIRECTIVE — single adaptive card (with Start Workout)

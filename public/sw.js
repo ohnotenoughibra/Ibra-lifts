@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.1.1-bc513a3-1781185422';
+const CACHE_NAME = 'roots-gains-v2.1.1-f0d487c-1781185959';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -22,10 +22,11 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean up caches. Keep the IMMEDIATELY-previous app-shell cache so
-// pages still controlled by the old SW can fetch their hashed chunks (deleting
-// it eagerly caused ChunkLoadErrors after a deploy). The sync-queue cache is
-// never touched. Old roots-gains-* shells beyond the current one are pruned.
+// Activate: prune old app-shell caches. Only fires after the user opts into
+// the update (skipWaiting is no longer called at install), so the old SW has
+// already handed off — there's no live page still serving from a prior shell,
+// so deleting them here is safe. The sync-queue cache ('roots-gains-sync-
+// queue', no 'v' after the prefix) is intentionally NOT matched and survives.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {

@@ -10,7 +10,7 @@ import {
   TrendingUp, Calendar, ChevronDown, ChevronUp,
   Flame, Beef, Wheat, Droplet,
 } from 'lucide-react';
-import { cn, safeDayKey } from '@/lib/utils';
+import { cn, safeDayKey, localDayKey } from '@/lib/utils';
 import type { MealEntry, MacroTargets } from '@/lib/types';
 
 type TimeRange = '7d' | '14d' | '30d';
@@ -37,7 +37,7 @@ function aggregateDays(meals: MealEntry[], days: number): DailyTotals[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
+    const key = localDayKey(d);
     const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const shortLabel = i === 0 ? 'Today' : i === 1 ? 'Yday' : d.toLocaleDateString('en-US', { weekday: 'short' });
 
@@ -69,8 +69,8 @@ function aggregateWeeks(meals: MealEntry[], weeks: number): DailyTotals[] {
     const weekStart = new Date(weekEnd);
     weekStart.setDate(weekStart.getDate() - 6);
 
-    const startKey = weekStart.toISOString().split('T')[0];
-    const endKey = weekEnd.toISOString().split('T')[0];
+    const startKey = localDayKey(weekStart);
+    const endKey = localDayKey(weekEnd);
 
     const weekMeals = meals.filter(m => {
       const mKey = safeDayKey(m.date);

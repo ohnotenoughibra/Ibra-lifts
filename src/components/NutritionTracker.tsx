@@ -11,7 +11,7 @@ import {
   GraduationCap,
   Zap,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { useNutrition } from '@/hooks/useNutrition';
 import NutritionDashboard from './nutrition/NutritionDashboard';
@@ -29,14 +29,16 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   // Date navigation
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Local calendar day — useNutrition keys meals by local day, so the picker
+  // must agree or an evening-logged meal vanishes from the day it was entered
+  const [selectedDate, setSelectedDate] = useState(() => localDayKey());
+  const todayStr = localDayKey();
   const isToday = selectedDate === todayStr;
 
   const navigateDate = (direction: -1 | 1) => {
     const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + direction);
-    const newStr = d.toISOString().split('T')[0];
+    const newStr = localDayKey(d);
     if (newStr <= todayStr) setSelectedDate(newStr);
   };
 

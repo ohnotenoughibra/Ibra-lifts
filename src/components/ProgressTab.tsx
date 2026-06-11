@@ -1065,6 +1065,11 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
   const [showExport, setShowExport] = useState(false);
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
+  // Heavy standalone modules (full weight tracker, full history) are collapsed
+  // by default so they stop turning Progress into a three-page vertical scroll.
+  // Lazy-mount on expand.
+  const [weightOpen, setWeightOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const weightUnit = user?.weightUnit || 'lbs';
 
   const narrative = useMemo(() => generatePerformanceNarrative({
@@ -1244,8 +1249,17 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
               {/* ── SECTION 2: BODY ── */}
               <h2 className="text-xl font-bold text-grappler-100">Body</h2>
 
-              <BodyWeightTracker />
+              {/* Compact body summary is always visible; the full weight tracker
+                  is one tap away so it doesn't dominate the scroll. */}
               <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+              <button
+                onClick={() => setWeightOpen(o => !o)}
+                className="w-full flex items-center justify-between p-3 bg-grappler-800/60 border border-grappler-700/50 rounded-xl hover:bg-grappler-700/60 transition-colors"
+              >
+                <span className="text-sm font-semibold text-grappler-200">Weight tracker</span>
+                <span className="text-xs text-grappler-500">{weightOpen ? 'Hide ▲' : 'Open ▼'}</span>
+              </button>
+              {weightOpen && <BodyWeightTracker />}
 
               {/* ── Section divider ── */}
               <div className="h-px bg-grappler-700/40 my-6" />
@@ -1253,7 +1267,14 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
               {/* ── SECTION 3: HISTORY ── */}
               <h2 className="text-xl font-bold text-grappler-100">History</h2>
 
-              <WorkoutHistory />
+              <button
+                onClick={() => setHistoryOpen(o => !o)}
+                className="w-full flex items-center justify-between p-3 bg-grappler-800/60 border border-grappler-700/50 rounded-xl hover:bg-grappler-700/60 transition-colors"
+              >
+                <span className="text-sm font-semibold text-grappler-200">Workout history</span>
+                <span className="text-xs text-grappler-500">{historyOpen ? 'Hide ▲' : 'View ▼'}</span>
+              </button>
+              {historyOpen && <WorkoutHistory />}
             </>
           )}
         </>

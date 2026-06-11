@@ -1504,20 +1504,42 @@ export const useAppStore = create<AppState>()(
       }),
 
       undoBlockAction: (expectedId?: number) => {
-        const { blockUndoStack } = get();
+        const { blockUndoStack, mesocycleHistory, mesocycleQueue, workoutLogs } = get();
         const entry = blockUndoStack[blockUndoStack.length - 1];
         if (!entry) return null;
         // A stale undo affordance (lingering toast, open modal) bound to an older
         // entry must not pop a newer, unrelated action.
         if (expectedId !== undefined && entry.id !== expectedId) return null;
+
+        // Revive-stamp: any entry the undone action TOMBSTONED (live in the
+        // snapshot, _deleted in current state) gets a fresh updatedAt so the
+        // merge's revival rule lets it beat the tombstone already pushed to
+        // the cloud. Without this, "tombstone wins" silently re-deletes the
+        // restored copies on the next sync (workout logs unrecoverably, after
+        // the 30-day GC).
+        const reviveStamp = <T extends { id?: unknown; _deleted?: boolean; updatedAt?: string }>(
+          restored: T[], current: T[],
+        ): T[] => {
+          const tombstoned = new Set(current.filter(c => c._deleted).map(c => String(c.id)));
+          if (tombstoned.size === 0) return restored;
+          return restored.map(item =>
+            !item._deleted && tombstoned.has(String(item.id))
+              ? { ...item, updatedAt: new Date().toISOString() }
+              : item
+          );
+        };
+
         set({
-          // Re-stamp updatedAt so sync merge prefers the restored state over the cloud copy
+          // Re-stamp updatedAt + _revivedAt: the merge prefers the restored
+          // state over the cloud copy, and _revivedAt is the explicit marker
+          // that lets it drop a stale terminal archive (routine edits don't
+          // carry it, so they can never erase a completed record).
           currentMesocycle: entry.currentMesocycle
-            ? { ...entry.currentMesocycle, updatedAt: new Date().toISOString() }
+            ? { ...entry.currentMesocycle, updatedAt: new Date().toISOString(), _revivedAt: Date.now() }
             : null,
-          mesocycleHistory: entry.mesocycleHistory,
-          mesocycleQueue: entry.mesocycleQueue,
-          workoutLogs: entry.workoutLogs,
+          mesocycleHistory: reviveStamp(entry.mesocycleHistory, mesocycleHistory),
+          mesocycleQueue: reviveStamp(entry.mesocycleQueue, mesocycleQueue),
+          workoutLogs: reviveStamp(entry.workoutLogs, workoutLogs),
           // Fresh pointsAsOf: the restored (usually LOWER) XP must beat the
           // cloud's stale higher value in the timestamp-aware merge
           gamificationStats: { ...entry.gamificationStats, pointsAsOf: Date.now() },

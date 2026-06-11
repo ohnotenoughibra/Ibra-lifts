@@ -122,6 +122,9 @@ export async function POST(request: Request) {
     const repairedGam = {
       ...(currentGam || {}),
       totalPoints: maxPoints,
+      // Fresh stamp — the timestamp-aware XP merge must treat the repair as
+      // the newest write, or any device with a newer pointsAsOf overwrites it
+      pointsAsOf: Date.now(),
       level: correctLevel,
       currentStreak: maxStreak,
       longestStreak: maxLongestStreak,

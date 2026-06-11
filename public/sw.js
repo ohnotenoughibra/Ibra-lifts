@@ -1,4 +1,4 @@
-const CACHE_NAME = 'roots-gains-v2.1.1-4f01d71-1781151204';
+const CACHE_NAME = 'roots-gains-v2.1.1-bc513a3-1781185422';
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -10,29 +10,36 @@ const APP_SHELL = [
   '/apple-touch-icon.png',
 ];
 
-// Install: cache the app shell
+// Install: cache the app shell. Do NOT skipWaiting() here — the new SW must
+// stay in "waiting" so the in-app update banner can let the user choose when
+// to activate. Unconditional skipWaiting made the banner dead code and
+// force-reloaded users mid-workout on every deploy (via controllerchange).
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(APP_SHELL);
     })
   );
-  // Activate immediately
-  self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: clean up caches. Keep the IMMEDIATELY-previous app-shell cache so
+// pages still controlled by the old SW can fetch their hashed chunks (deleting
+// it eagerly caused ChunkLoadErrors after a deploy). The sync-queue cache is
+// never touched. Old roots-gains-* shells beyond the current one are pruned.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) =>
+            key !== CACHE_NAME &&
+            key.startsWith('roots-gains-v') // only app-shell caches, not the sync queue
+          )
           .map((key) => caches.delete(key))
       );
     })
   );
-  // Take control of all pages immediately
+  // Take control of all pages now that the user opted into the update
   self.clients.claim();
 });
 

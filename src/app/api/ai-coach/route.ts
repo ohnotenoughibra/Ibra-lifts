@@ -173,7 +173,10 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      // Sonnet 4.5's real snapshot is 20250929 — the previous id mixed the
+      // 4.5 name with Sonnet 4's date stamp and did not exist, so every
+      // coaching request errored and users only ever saw the offline fallback
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],

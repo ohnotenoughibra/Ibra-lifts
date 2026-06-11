@@ -28,18 +28,12 @@ undo, and the zero-work completion guard.
 
 ## Infra
 
-
-
-### P2 batch (see tasks/audit-2026-06-11.md for full list)
-**Priority:** P2
-Push send ownership, first-sync pro self-grant, per-instance rate limiter, Whoop
-token crypto fail-closed + deletion cascade, SW API-cache logout purge, sync-queue
-quota/full-snapshot/stamp-at-queue-time, Sentry userId scrubbing, NaN volume guard,
-pause-duration edge, localStorage silent failures, 37 aria-labels, unbounded
-WorkoutHistory list, manifest id/scope, SW fetch timeouts, queue order sync.
-
-### Audit P1s completed in v2.2.0 (2026-06-11)
-Selector re-render storms (14 components), UTC date-keying family (one
-localDayKey helper + sweep), uncapped Brzycki e1RM, dependency vulns
-(20→4; rest need Next major), skipWaiting mid-workout reload. See
-tasks/audit-2026-06-11.md for the P2 batch still outstanding.
+### Audit P2 batch completed in v2.2.1 (2026-06-11)
+Push send/subscribe ownership + rate limit, first-sync pro-grant strip,
+global (Postgres) AI-coach limit, Whoop token crypto fail-closed + deletion
+cascade, SW logout cache purge + no-auth-caching + fetch timeouts, sync-queue
+coalescing + stamp-at-queue, localStorage non-quota surfacing, Sentry PII
+scrubbing, manifest id/scope, queue-reorder-survives-sync, WorkoutHistory 90d,
+33 aria-labels. Remaining from audit: Next.js 15/16 major upgrade (the last
+dependency advisories); 30-day tombstone-GC vs >30d-offline resurrection
+(documented tradeoff). See tasks/audit-2026-06-11.md.

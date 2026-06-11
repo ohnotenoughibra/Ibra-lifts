@@ -43,12 +43,20 @@ Footguns + ~25% dead code.
 - [ ] Today P0: collapse readiness to one place; START above the fold
 
 ### Wave 2 — P1 (re-hierarchy)
-- [ ] Today: feed pile → one ranked context line; one advice engine; dock up + nutrition merged; coaching drawer
-- [ ] Body: rename → Progress; History + BodyWeightTracker tap-to-open; merge vitals rows; tiles grid visible
-- [ ] Settings: loud type-to-confirm Danger Zone; subscription block; gamification → profile header
+- [x] Today: START moved above the fold (phase card under the hero); OneThingBanner demoted + gated on actionRoute!=='workout'; duplicate readiness badge removed from LiftPhase
+- [x] Body: renamed → Progress; History + BodyWeightTracker collapsed (lazy-mount toggles) — kills the 3-page scroll
+- [x] Settings: Danger Zone loud + separated (Delete = solid red)
+- [ ] Today: feed pile → one ranked context line; merge the 3 advice engines into one voice; dock up + nutrition merged; coaching drawer  (DEFERRED — biggest/riskiest, wants live eyes)
+- [ ] Progress: merge HardMetricsCard into TodaySnapshot (one vitals row); surface Explore tiles as a visible grid
+- [ ] Settings: subscription/billing block; gamification → profile header
 
-### Wave 3 — P2 (consolidate)
-- [ ] Body: consolidate 4 overlapping recharts modules → 1-2
-- [ ] Reconcile to one canonical readiness across Today/Body
+### Wave 3 — P2 (consolidate) — DEFERRED
+- [ ] Progress: consolidate 4 overlapping recharts modules → 1-2
+- [ ] Reconcile to one canonical readiness across Today/Progress
 - [ ] Shared `<ProfileFields/>` for Onboarding + Settings; wire-or-delete theme
 - [ ] Trim orphaned useMemos on hot paths
+
+## Shipped in v2.2.4
+Dead code −950 lines; 3 Settings footguns; Body→Progress; Today START-first;
+Progress scroll collapse. Core re-hierarchy of all 3 tabs. Remaining items above
+are second-order refinements (and one new feature: billing UI).

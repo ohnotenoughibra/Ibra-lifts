@@ -3,6 +3,26 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.2.4] - 2026-06-11
+
+**A first-principles cleanup of Today, Progress (formerly "Body"), and Settings: less clutter, no footguns, start your workout in one tap.**
+
+A bold audit of the three core screens. The theme is subtraction: ~950 lines of code that shipped to your phone but never showed anything are gone, the most-used screens lead with what matters, and three Settings traps are closed.
+
+### Changed
+- **Today leads with your workout.** The Start button now sits right under your readiness ring instead of eight cards down. Your readiness score is shown once (it used to appear up to four times on one screen), and the "one thing" nudge is hidden when it would just repeat "start your workout."
+- **"Body" tab is now "Progress."** It was a mix of strength analytics, body tracking, and history — "Progress" describes that honestly.
+- **Progress stops being an endless scroll.** The full weight tracker and full workout history are now one tap to open instead of stacked inline, so you reach everything faster.
+
+### Fixed
+- **Changing your training days no longer wipes your block by surprise.** Tapping a new days/week count used to silently rebuild your current training block. It now asks first.
+- **Google Fit / Apple Health stop pretending.** Those buttons used to say "Connected" without ever connecting. They now open the real device-setup screen.
+- **Notification settings are finally reachable** — there's now a Notifications section in Settings.
+- **The Danger Zone looks dangerous.** Reset and Delete Account were styled as quietly as the harmless buttons; Delete is now solid red and clearly separated.
+
+### For contributors
+- Removed ~950 lines of never-rendered code: 8 dead cards + dead imports/state in ProgressTab, dead imports + an unreachable repair banner + dead state in HomeTab. Settings: duplicate weight-unit field removed; ProfileSettings gained an onNavigate prop. Audit + remaining waves in tasks/audit-today-body-settings.md.
+
 ## [2.2.3] - 2026-06-11
 
 **The "new version available" banner stops hiding behind your phone's notch.**

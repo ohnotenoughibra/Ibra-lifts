@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { estimate1RM } from '@/lib/weight-estimator';
 import {
   ArrowLeft,
   Share2,
@@ -62,18 +63,14 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
         if (ex.personalRecord) {
           const bestSet = ex.sets
             .filter(s => s.completed)
-            .sort((a, b) => {
-              const a1rm = a.weight / (1.0278 - 0.0278 * a.reps);
-              const b1rm = b.weight / (1.0278 - 0.0278 * b.reps);
-              return b1rm - a1rm;
-            })[0];
+            .sort((a, b) => estimate1RM(b.weight, b.reps) - estimate1RM(a.weight, a.reps))[0];
           if (bestSet && bestSet.weight > 0) {
             prLogs.push({
               exerciseName: ex.exerciseName,
               weight: bestSet.weight,
               reps: bestSet.reps,
               date: new Date(log.date),
-              e1rm: bestSet.reps === 1 ? bestSet.weight : Math.round(bestSet.weight / (1.0278 - 0.0278 * bestSet.reps)),
+              e1rm: Math.round(estimate1RM(bestSet.weight, bestSet.reps)),
             });
           }
         }

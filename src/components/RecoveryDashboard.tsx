@@ -77,7 +77,7 @@ function metricColor(good: boolean, mid: boolean): string {
 }
 
 export default function RecoveryDashboard({ onClose = () => {}, embedded }: RecoveryDashboardProps) {
-  const { workoutLogs, bodyWeightLog, trainingSessions, user, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
+  const { workoutLogs, bodyWeightLog, trainingSessions, user, latestWhoopData, wearableHistory, rawMeals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
       bodyWeightLog: s.bodyWeightLog,
@@ -85,13 +85,16 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
       user: s.user,
       latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory,
-      meals: s.meals.filter(m => !m._deleted),
+      rawMeals: s.meals,
       macroTargets: s.macroTargets,
       waterLog: s.waterLog,
       injuryLog: s.injuryLog,
       quickLogs: s.quickLogs,
     }))
   );
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const meals = useMemo(() => rawMeals.filter(m => !m._deleted), [rawMeals]);
   const [showDetails, setShowDetails] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'trends'>('overview');
 

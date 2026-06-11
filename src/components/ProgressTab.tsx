@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { estimate1RM } from '@/lib/weight-estimator';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Flame,
@@ -56,6 +57,9 @@ import EmptyState from './EmptyState';
 import ProgressCharts from './ProgressCharts';
 import WorkoutHistory from './WorkoutHistory';
 
+// Stable fallback for store selectors — an inline `?? []` returns a fresh
+// reference every evaluation and defeats useShallow equality.
+const EMPTY_ARR: never[] = [];
 
 const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), {
   loading: () => (
@@ -201,13 +205,11 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
         const getE1rm = (log: WorkoutLog) => {
           const ex = log.exercises.find(e => e.exerciseId === liftId);
           if (!ex) return 0;
-          const bestSet = ex.sets.filter(s => s.completed).sort((a, b) => {
-            const a1rm = a.weight / (1.0278 - 0.0278 * a.reps);
-            const b1rm = b.weight / (1.0278 - 0.0278 * b.reps);
-            return b1rm - a1rm;
-          })[0];
+          const bestSet = ex.sets.filter(s => s.completed).sort((a, b) =>
+            estimate1RM(b.weight, b.reps) - estimate1RM(a.weight, a.reps)
+          )[0];
           if (!bestSet || bestSet.weight === 0) return 0;
-          return bestSet.reps === 1 ? bestSet.weight : Math.round(bestSet.weight / (1.0278 - 0.0278 * bestSet.reps));
+          return Math.round(estimate1RM(bestSet.weight, bestSet.reps));
         };
         const current = getE1rm(logsWithLift[0]);
         const previous = logsWithLift.length >= 2 ? getE1rm(logsWithLift[1]) : current;
@@ -1501,8 +1503,14 @@ function CombatBenchmarksCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 // ─── Training Timeline ───
 
 function TrainingTimeline({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]; weightUnit: string }) {
-  const { mesocycleHistory, currentMesocycle } = useAppStore(
-    useShallow(s => ({ mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), currentMesocycle: s.currentMesocycle }))
+  const { rawMesocycleHistory, currentMesocycle } = useAppStore(
+    useShallow(s => ({ rawMesocycleHistory: s.mesocycleHistory, currentMesocycle: s.currentMesocycle }))
+  );
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
   );
 
   const blocks = useMemo(() => {
@@ -1758,40 +1766,54 @@ function SessionRecapCard() {
 // ─── Block Performance Card ───
 
 function BlockPerformanceCard() {
-  const { currentMesocycle, workoutLogs, mesocycleHistory } = useAppStore(
-    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted) }))
+  const { currentMesocycle, workoutLogs, rawMesocycleHistory } = useAppStore(
+    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, rawMesocycleHistory: s.mesocycleHistory }))
   );
   const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
+  );
 
-  if (!currentMesocycle) return null;
+  // All block stats in one memo — these make ~8 passes over workoutLogs.
+  const stats = useMemo(() => {
+    if (!currentMesocycle) return null;
 
-  const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
-  const totalSessions = currentMesocycle.weeks.reduce((s, w) => s + w.sessions.length, 0);
-  const completed = currentLogs.length;
-  const percentage = totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0;
+    const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
+    const totalSessions = currentMesocycle.weeks.reduce((s, w) => s + w.sessions.length, 0);
+    const completed = currentLogs.length;
+    const percentage = totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0;
 
-  const totalVolume = currentLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
-  const avgRPE = currentLogs.length > 0
-    ? Math.round((currentLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / currentLogs.length) * 10) / 10
-    : 0;
-  const prs = currentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+    const totalVolume = currentLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+    const avgRPE = currentLogs.length > 0
+      ? Math.round((currentLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / currentLogs.length) * 10) / 10
+      : 0;
+    const prs = currentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
 
-  // Compare vs previous block
-  const prevMeso = mesocycleHistory.length > 0 ? mesocycleHistory[mesocycleHistory.length - 1] : null;
-  const prevLogs = prevMeso ? workoutLogs.filter(l => l.mesocycleId === prevMeso.id) : [];
-  const prevVolume = prevLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
-  const volumeDelta = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : null;
+    // Compare vs previous block
+    const prevMeso = mesocycleHistory.length > 0 ? mesocycleHistory[mesocycleHistory.length - 1] : null;
+    const prevLogs = prevMeso ? workoutLogs.filter(l => l.mesocycleId === prevMeso.id) : [];
+    const prevVolume = prevLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+    const volumeDelta = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : null;
 
-  // Pace calculation
-  const startDate = currentLogs.length > 0
-    ? new Date(Math.min(...currentLogs.map(l => new Date(l.date).getTime())))
-    : null;
-  const weeksElapsed = startDate
-    ? Math.max(1, Math.round((Date.now() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
-    : 1;
-  const totalWeeks = currentMesocycle.weeks.length;
-  const expectedCompletion = Math.round((weeksElapsed / totalWeeks) * totalSessions);
-  const paceStatus = completed >= expectedCompletion ? (completed > expectedCompletion + 1 ? 'ahead' : 'on_track') : 'behind';
+    // Pace calculation
+    const startDate = currentLogs.length > 0
+      ? new Date(Math.min(...currentLogs.map(l => new Date(l.date).getTime())))
+      : null;
+    const weeksElapsed = startDate
+      ? Math.max(1, Math.round((Date.now() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+      : 1;
+    const totalWeeks = currentMesocycle.weeks.length;
+    const expectedCompletion = Math.round((weeksElapsed / totalWeeks) * totalSessions);
+    const paceStatus = completed >= expectedCompletion ? (completed > expectedCompletion + 1 ? 'ahead' : 'on_track') : 'behind';
+
+    return { totalSessions, completed, percentage, totalVolume, avgRPE, prs, volumeDelta, paceStatus };
+  }, [currentMesocycle, workoutLogs, mesocycleHistory]);
+
+  if (!stats) return null;
+  const { totalSessions, completed, percentage, totalVolume, avgRPE, prs, volumeDelta, paceStatus } = stats;
 
   return (
     <div className="card p-4">
@@ -1881,8 +1903,14 @@ function OverviewSkeleton() {
 
 export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { onViewReport: (mesoId: string) => void; onNavigate?: (view: OverlayView, context?: string) => void }) {
   const [view, setView] = useState<'dashboard' | 'progress' | 'log' | 'weight'>('dashboard');
-  const { workoutLogs, user, bodyWeightLog, gamificationStats, trainingSessions } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, bodyWeightLog: s.bodyWeightLog.filter(e => !e._deleted), gamificationStats: s.gamificationStats, trainingSessions: s.trainingSessions ?? [] }))
+  const { workoutLogs, user, rawBodyWeightLog, gamificationStats, trainingSessions } = useAppStore(
+    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, rawBodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats, trainingSessions: s.trainingSessions ?? EMPTY_ARR }))
+  );
+  // Raw stable ref in the selector; derive the filtered view here (a .filter()
+  // in the selector returns a fresh array and defeats useShallow).
+  const bodyWeightLog = useMemo(
+    () => rawBodyWeightLog.filter(e => !e._deleted),
+    [rawBodyWeightLog]
   );
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);

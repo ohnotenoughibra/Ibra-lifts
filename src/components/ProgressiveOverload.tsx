@@ -22,6 +22,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { useAppStore } from '@/lib/store';
+import { estimate1RM } from '@/lib/weight-estimator';
 
 interface ProgressiveOverloadProps {
   onClose: () => void;
@@ -48,11 +49,9 @@ interface ExerciseSummary {
   weeklyRate: number;
 }
 
-// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+// Shared estimator: Brzycki capped at 12 reps (uncapped goes negative past ~37)
 function brzycki1RM(weight: number, reps: number): number {
-  if (reps <= 0 || weight <= 0) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight / (1.0278 - 0.0278 * reps));
+  return Math.round(estimate1RM(weight, reps));
 }
 
 function formatShortDate(dateStr: string | Date): string {

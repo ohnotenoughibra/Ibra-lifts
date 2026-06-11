@@ -8,6 +8,10 @@ import { calculateReadiness } from '@/lib/performance-engine';
 import ReadinessRing from './ReadinessRing';
 import { hapticHeavy } from '@/lib/haptics';
 
+// Stable fallback for store selectors — an inline `?? []` returns a fresh
+// reference every evaluation and defeats useShallow equality.
+const EMPTY_ARR: never[] = [];
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface MorningRitualProps {
@@ -74,7 +78,7 @@ export default function MorningRitual({ onComplete }: MorningRitualProps) {
       trainingSessions: s.trainingSessions,
       latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory,
-      meals: s.meals ?? [],
+      meals: s.meals ?? EMPTY_ARR,
       macroTargets: s.macroTargets,
       waterLog: s.waterLog,
       injuryLog: s.injuryLog,

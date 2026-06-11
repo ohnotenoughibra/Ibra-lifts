@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -418,17 +418,23 @@ export default function Dashboard({
   const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const {
     user, gamificationStats, currentMesocycle, activeWorkout, workoutMinimized, resumeWorkout, cancelWorkout,
-    workoutLogs, mesocycleHistory, deleteMesocycle,
+    workoutLogs, rawMesocycleHistory, deleteMesocycle,
     syncConflict, resolveSyncConflict, dismissSyncConflict,
     ensureWeeklyChallenge, lastCompletedWorkout,
   } = useAppStore(
     useShallow(s => ({
       user: s.user, gamificationStats: s.gamificationStats, currentMesocycle: s.currentMesocycle, activeWorkout: s.activeWorkout,
       workoutMinimized: s.workoutMinimized, resumeWorkout: s.resumeWorkout, cancelWorkout: s.cancelWorkout,
-      workoutLogs: s.workoutLogs, mesocycleHistory: s.mesocycleHistory.filter(m => !m._deleted), deleteMesocycle: s.deleteMesocycle,
+      workoutLogs: s.workoutLogs, rawMesocycleHistory: s.mesocycleHistory, deleteMesocycle: s.deleteMesocycle,
       syncConflict: s.syncConflict, resolveSyncConflict: s.resolveSyncConflict, dismissSyncConflict: s.dismissSyncConflict,
       ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
     }))
+  );
+  // Selector keeps the raw stable reference — filtering there would return a
+  // fresh array every evaluation and defeat useShallow. Derive with useMemo.
+  const mesocycleHistory = useMemo(
+    () => rawMesocycleHistory.filter(m => !m._deleted),
+    [rawMesocycleHistory]
   );
 
   // Tab switch with haptic feedback

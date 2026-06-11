@@ -118,13 +118,9 @@ export default function LiftPhase({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-2"
     >
-      {/* Readiness + Intel Strip */}
+      {/* Intel Strip — readiness lives in the hero ring above; this strip is
+          for the at-a-glance signals the hero doesn't carry (sleep, protein). */}
       <div className="flex items-center gap-1.5 px-1 flex-wrap">
-        {/* Readiness badge — always visible */}
-        <div className={cn('flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border text-xs font-bold', readinessColor)}>
-          <HeartPulse className="w-3 h-3" />
-          <span className="tabular-nums">{directive.readinessScore}%</span>
-        </div>
         {/* Streak badge */}
         {currentStreak >= 2 && (
           <div className="flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1.5">

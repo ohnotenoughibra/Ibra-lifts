@@ -243,7 +243,7 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
 const TABS = [
   { id: 'home',  icon: Sun,        label: 'Today' },
   { id: 'train', icon: Calendar,   label: 'Train' },
-  { id: 'body',  icon: BarChart3,  label: 'Body' },
+  { id: 'body',  icon: BarChart3,  label: 'Progress' },
   { id: 'tools', icon: LayoutGrid, label: 'Tools' },
 ] as const;
 
@@ -714,7 +714,7 @@ export default function Dashboard({
       fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
-      profile_settings: <ProfileSettings onClose={closeOverlay} />,
+      profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,
     };
     const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
     if (overlayContent) return (
@@ -776,7 +776,7 @@ export default function Dashboard({
   const sidebarNav = [
     { id: 'home'  as TabType, icon: Sun,       label: 'Today' },
     { id: 'train' as TabType, icon: Calendar,  label: 'Train' },
-    { id: 'body'  as TabType, icon: BarChart3, label: 'Body' },
+    { id: 'body'  as TabType, icon: BarChart3, label: 'Progress' },
   ];
 
   return (

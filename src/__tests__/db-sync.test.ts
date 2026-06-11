@@ -457,3 +457,197 @@ describe('normalizeWorkoutLogs', () => {
     expect(sets[0].completed).toBe(true);
   });
 });
+
+// ─── Block lifecycle reconciliation ─────────────────────────────────────────
+// "Stop block" and undo must survive a sync round-trip. The merge baseline is
+// {...remote}, so a null local currentMesocycle can never win on its own —
+// the archived history entry (always stamped by stop/complete/delete) is the
+// evidence the reconciliation rules act on.
+
+describe('resolveConflicts — block lifecycle reconciliation', () => {
+  const T0 = '2026-06-10T10:00:00.000Z'; // block created / last active
+  const T1 = '2026-06-10T11:00:00.000Z'; // stop happened
+  const T2 = '2026-06-10T12:00:00.000Z'; // undo happened
+
+  const activeBlock = (updatedAt: string) => ({
+    id: 'meso-1', name: 'Block', status: 'active', weeks: [], updatedAt,
+  });
+
+  it('a stopped block stays stopped: local archive beats the cloud active copy', () => {
+    const local = makeData({
+      currentMesocycle: null,
+      mesocycleHistory: [{ ...activeBlock(T1), status: 'stopped' }],
+    });
+    const remote = makeData({
+      currentMesocycle: activeBlock(T0),
+      mesocycleHistory: [],
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect(result.currentMesocycle).toBeNull();
+    const hist = result.mesocycleHistory as Array<Record<string, unknown>>;
+    expect(hist.find(h => h.id === 'meso-1')?.status).toBe('stopped');
+  });
+
+  it('works in the other direction too (remote stopped, local stale active)', () => {
+    const local = makeData({
+      currentMesocycle: activeBlock(T0),
+      mesocycleHistory: [],
+    });
+    const remote = makeData({
+      currentMesocycle: activeBlock(T0),
+      mesocycleHistory: [{ ...activeBlock(T1), status: 'stopped' }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect(result.currentMesocycle).toBeNull();
+  });
+
+  it('undo of a stop wins: a strictly newer active copy drops the stale archive', () => {
+    const local = makeData({
+      currentMesocycle: activeBlock(T2), // undo re-stamped it
+      mesocycleHistory: [],
+    });
+    const remote = makeData({
+      currentMesocycle: activeBlock(T0),
+      mesocycleHistory: [{ ...activeBlock(T1), status: 'stopped' }], // cloud still has the archive
+    });
+
+    const result = resolveConflicts(local, remote);
+    const cur = result.currentMesocycle as Record<string, unknown>;
+    expect(cur?.id).toBe('meso-1');
+    expect(cur?.status).toBe('active');
+    // The stale archived copy must NOT survive as a duplicate
+    const hist = result.mesocycleHistory as Array<Record<string, unknown>>;
+    expect(hist.find(h => h.id === 'meso-1')).toBeUndefined();
+  });
+
+  it('deleted current block stays deleted (tombstoned archive beats cloud active)', () => {
+    const local = makeData({
+      currentMesocycle: null,
+      mesocycleHistory: [{ ...activeBlock(T1), _deleted: true, _deletedAt: Date.now() }],
+    });
+    const remote = makeData({
+      currentMesocycle: activeBlock(T0),
+      mesocycleHistory: [],
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect(result.currentMesocycle).toBeNull();
+  });
+
+  it('legacy unstamped duplicate is left alone (no unsafe ordering)', () => {
+    const local = makeData({
+      currentMesocycle: { id: 'meso-1', name: 'Block', status: 'active', weeks: [] },
+      mesocycleHistory: [{ id: 'meso-1', name: 'Block', status: 'completed', weeks: [] }],
+    });
+    const remote = makeData({
+      currentMesocycle: { id: 'meso-1', name: 'Block', status: 'active', weeks: [] },
+      mesocycleHistory: [],
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect(result.currentMesocycle).not.toBeNull();
+    expect((result.mesocycleHistory as unknown[]).length).toBe(1);
+  });
+
+  it('a different active block is untouched by an archived predecessor', () => {
+    const local = makeData({
+      currentMesocycle: { id: 'meso-2', status: 'active', weeks: [], updatedAt: T2 },
+      mesocycleHistory: [{ ...activeBlock(T1), status: 'completed' }],
+    });
+    const remote = makeData({
+      currentMesocycle: { id: 'meso-2', status: 'active', weeks: [], updatedAt: T2 },
+      mesocycleHistory: [],
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect((result.currentMesocycle as Record<string, unknown>)?.id).toBe('meso-2');
+    expect((result.mesocycleHistory as Array<Record<string, unknown>>).find(h => h.id === 'meso-1')?.status).toBe('completed');
+  });
+});
+
+// ─── Timestamp-aware XP merge ───────────────────────────────────────────────
+
+describe('resolveConflicts — timestamp-aware XP', () => {
+  it('an XP reduction with a newer pointsAsOf beats the stale higher cloud value', () => {
+    const local = makeData({
+      gamificationStats: { totalPoints: 100, pointsAsOf: 2000, badges: [] }, // after undo of +200
+    });
+    const remote = makeData({
+      gamificationStats: { totalPoints: 300, pointsAsOf: 1000, badges: [] }, // pre-undo cloud copy
+    });
+
+    const result = resolveConflicts(local, remote);
+    const gs = result.gamificationStats as Record<string, unknown>;
+    expect(gs.totalPoints).toBe(100);
+    expect(gs.pointsAsOf).toBe(2000);
+  });
+
+  it('newer remote write wins over older local', () => {
+    const local = makeData({
+      gamificationStats: { totalPoints: 250, pointsAsOf: 1000, badges: [] },
+    });
+    const remote = makeData({
+      gamificationStats: { totalPoints: 400, pointsAsOf: 3000, badges: [] },
+    });
+
+    const result = resolveConflicts(local, remote);
+    expect((result.gamificationStats as Record<string, unknown>).totalPoints).toBe(400);
+  });
+
+  it('legacy data without pointsAsOf falls back to max()', () => {
+    const local = makeData({ gamificationStats: { totalPoints: 150, badges: [] } });
+    const remote = makeData({ gamificationStats: { totalPoints: 300, badges: [] } });
+
+    const result = resolveConflicts(local, remote);
+    expect((result.gamificationStats as Record<string, unknown>).totalPoints).toBe(300);
+  });
+
+  it('badges still union-merge regardless of which side wins XP', () => {
+    const local = makeData({
+      gamificationStats: { totalPoints: 100, pointsAsOf: 2000, badges: [{ badgeId: 'b1' }] },
+    });
+    const remote = makeData({
+      gamificationStats: { totalPoints: 300, pointsAsOf: 1000, badges: [{ badgeId: 'b2' }] },
+    });
+
+    const result = resolveConflicts(local, remote);
+    const badges = (result.gamificationStats as Record<string, unknown>).badges as Array<Record<string, unknown>>;
+    expect(badges.map(b => b.badgeId).sort()).toEqual(['b1', 'b2']);
+  });
+});
+
+// ─── Queue tombstones ───────────────────────────────────────────────────────
+
+describe('resolveConflicts — mesocycleQueue tombstones', () => {
+  it('a consumed (tombstoned) queue entry does not resurrect from the cloud copy', () => {
+    const local = makeData({
+      mesocycleQueue: [{ id: 'q1', name: 'Hypertrophy Block', _deleted: true, _deletedAt: Date.now() }],
+    });
+    const remote = makeData({
+      mesocycleQueue: [{ id: 'q1', name: 'Hypertrophy Block' }], // cloud still has it live
+    });
+
+    const result = resolveConflicts(local, remote);
+    const queue = result.mesocycleQueue as Array<Record<string, unknown>>;
+    expect(queue.find(q => q.id === 'q1')?._deleted).toBe(true);
+  });
+
+  it('live entries from both sides are kept alongside tombstones', () => {
+    const local = makeData({
+      mesocycleQueue: [
+        { id: 'q1', name: 'A', _deleted: true, _deletedAt: Date.now() },
+        { id: 'q2', name: 'B' },
+      ],
+    });
+    const remote = makeData({
+      mesocycleQueue: [{ id: 'q1', name: 'A' }, { id: 'q3', name: 'C' }],
+    });
+
+    const result = resolveConflicts(local, remote);
+    const queue = result.mesocycleQueue as Array<Record<string, unknown>>;
+    const live = queue.filter(q => !q._deleted).map(q => q.id).sort();
+    expect(live).toEqual(['q2', 'q3']);
+  });
+});

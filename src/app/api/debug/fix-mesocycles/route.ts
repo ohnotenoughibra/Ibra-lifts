@@ -1,12 +1,14 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/debug/fix-mesocycles?email=...&fix=true
+ * GET /api/debug/fix-mesocycles?fix=true
  *
- * Diagnoses and optionally repairs mesocycle ordering issues in user_store.
+ * Diagnoses and optionally repairs mesocycle ordering issues in the
+ * AUTHENTICATED user's own user_store. Dev-only: returns 404 in production.
  *
  * Without fix=true: read-only diagnosis
  * With fix=true: applies repairs and saves back to DB
@@ -18,23 +20,24 @@ export const dynamic = 'force-dynamic';
  * 4. Mesocycle weeks with incorrect weekNumber ordering
  */
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const email = searchParams.get('email');
-  const applyFix = searchParams.get('fix') === 'true';
-
-  if (!email) {
-    return NextResponse.json({ error: 'email query param required' }, { status: 400 });
+  // Debug tooling stays out of production entirely
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  // Session-scoped. This route previously took an ?email= param with NO auth
+  // check — anyone on the internet could read and rewrite any account's
+  // training data by email. The target is now always the session user.
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const applyFix = searchParams.get('fix') === 'true';
+
   try {
-    // Look up user by email
-    const { rows: userRows } = await sql`
-      SELECT id, email, name FROM auth_users WHERE email = ${email}
-    `;
-    if (userRows.length === 0) {
-      return NextResponse.json({ error: `No user found with email: ${email}` }, { status: 404 });
-    }
-    const userId = userRows[0].id;
+    const userId = session.user.id;
 
     // Get user_store
     const { rows: storeRows } = await sql`
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
     const mesocycleHistory = (data.mesocycleHistory || []) as { id: string; name: string; status: string }[];
 
     const diagnosis: Record<string, unknown> = {
-      user: { id: userId, email, name: userRows[0].name },
+      user: { id: userId, email: session.user.email },
       storeUpdatedAt: storeRows[0].updated_at,
       currentMesocycle: currentMesocycle ? {
         id: currentMesocycle.id,
@@ -294,6 +297,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Fix mesocycles error:', error);
-    return NextResponse.json({ error: 'Failed', details: String(error) }, { status: 500 });
+    // No error internals in the response body
+    return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

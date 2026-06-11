@@ -3,6 +3,24 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.2.0] - 2026-06-11
+
+**The whole app now agrees on what day it is — and your lifts stop reporting fake PRs.**
+**The biggest screens got noticeably snappier, and security/data-loss holes from the audit are closed.**
+
+A full audit of everything outside the Train tab turned up a cluster of issues that affect daily use. This release fixes the ones that touch correctness and speed.
+
+### Fixed
+- **"Today" is now your local day everywhere.** Wellness XP, streaks, nutrition, water, supplements, daily login, and weekly progress all rolled over at UTC midnight — so for anyone in the Americas, an evening workout or meal often counted toward the wrong day, silently denying XP or breaking streaks. Now every "day" is your local calendar day. Competition countdowns and fight-camp phases are fixed too, so weigh-in and fight-day guidance shows on the right day.
+- **No more impossible PRs.** High-rep sets (especially bodyweight moves like push-ups) could compute absurd estimated 1-rep-maxes and plant permanent fake personal records. The estimate is now capped to a sane range.
+- **Faster Home, Dashboard, and live workout.** These re-rendered on every single background update; they now update only when their own data changes.
+- **Security**: closed an unauthenticated endpoint that exposed account data, and a path that could leak a sign-in token.
+- **Offline workouts no longer lost** to a server hiccup during sync; and deploys no longer force-reload you mid-set (an update banner now lets you choose when to refresh).
+- **AI Coach restored** (was silently falling back to canned advice).
+
+### For contributors
+- Shared local-day helpers (`localDayKey`/`localMondayKey`/`parseLocalDate`) and a single `estimate1RM`; 48 new tests. Dependency vulnerabilities patched 20 → 4 (remaining require the Next.js major upgrade, tracked in TODOS).
+
 ## [2.1.1] - 2026-06-11
 
 **"Stop block" and undo now survive cloud sync — and two security holes are closed.**

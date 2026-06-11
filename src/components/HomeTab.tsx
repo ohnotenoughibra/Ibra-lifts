@@ -1858,23 +1858,6 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         {/* AdaptiveRecoveryCard removed — duplicated the readiness verdict already shown in the hero ring. */}
       </section>
 
-      {/* ─── THE ONE THING — single time-aware directive ─── */}
-      {/* `actionRoute: 'workout'` is a pseudo-route — there is no 'workout'
-          OverlayView. We special-case it to open the WorkoutStartChooser
-          (My plan / Smart pick / Custom). The chooser handles the actual
-          start, including the silent-failure toast and the "no scheduled
-          workout" path. Other routes (nutrition, etc) are real overlays. */}
-      <OneThingBanner
-        oneThing={oneThing}
-        onAction={
-          !oneThing.actionRoute
-            ? undefined
-            : oneThing.actionRoute === 'workout'
-              ? () => setShowStartChooser(true)
-              : () => onNavigate(oneThing.actionRoute as OverlayView)
-        }
-      />
-
       {/* Start-workout chooser — shared between OneThingBanner and LiftPhase
           so the Home tab and Today card behave identically. */}
       <WorkoutStartChooser
@@ -2027,6 +2010,23 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         <OnboardingPhase
           onNavigate={onNavigate}
           onQuickWorkout={handleQuickWorkout}
+        />
+      )}
+
+      {/* ─── THE ONE THING — time-aware directive, BELOW the action card.
+          Gated on actionRoute !== 'workout': when the one-thing is just "start
+          your workout", the phase card above already owns that, so we hide the
+          redundant banner. For non-workout directives (hydrate, log a meal,
+          recover) it still shows. `actionRoute: 'workout'` is a pseudo-route
+          handled by the WorkoutStartChooser. */}
+      {oneThing.actionRoute !== 'workout' && (
+        <OneThingBanner
+          oneThing={oneThing}
+          onAction={
+            !oneThing.actionRoute
+              ? undefined
+              : () => onNavigate(oneThing.actionRoute as OverlayView)
+          }
         />
       )}
 

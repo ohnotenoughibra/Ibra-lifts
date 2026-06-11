@@ -331,7 +331,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -40 }}
-            className="fixed top-0 left-0 right-0 z-[60] bg-primary-600 px-4 py-3 shadow-lg"
+            className="fixed top-0 left-0 right-0 z-[60] bg-primary-600 px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] shadow-lg"
           >
             <div className="flex items-center gap-3">
               <RefreshCw className="w-4 h-4 text-white flex-shrink-0" />

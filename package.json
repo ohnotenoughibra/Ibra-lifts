@@ -16,12 +16,12 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.104.1",
     "@neondatabase/serverless": "^1.0.2",
     "@paypal/react-paypal-js": "^8.9.2",
     "@sentry/nextjs": "^10.38.0",
     "@vercel/analytics": "^1.6.1",
-    "@vercel/postgres": "^0.8.0",
+    "@vercel/postgres": "^0.10.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -38,7 +38,7 @@
     "resend": "^6.9.1",
     "sharp": "^0.34.5",
     "tailwind-merge": "^2.3.0",
-    "uuid": "^9.0.1",
+    "uuid": "^14.0.0",
     "web-push": "^3.6.7",
     "zod": "^3.23.8",
     "zustand": "^4.5.2"

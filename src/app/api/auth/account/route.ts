@@ -23,6 +23,10 @@ export async function DELETE() {
     await sql`DELETE FROM user_store WHERE user_id = ${userId}`;
     await sql`DELETE FROM gamification_stats WHERE user_id = ${userId}`;
     await sql`DELETE FROM subscriptions WHERE user_id = ${userId}`;
+    // Third-party + device tokens — were leaking past a GDPR delete. Wrapped so
+    // a table never provisioned on this env doesn't abort the cascade.
+    await sql`DELETE FROM whoop_tokens WHERE user_id = ${userId}`.catch(() => {});
+    await sql`DELETE FROM push_subscriptions WHERE user_id = ${userId}`.catch(() => {});
 
     // Delete the user account last
     const { rowCount } = await sql`DELETE FROM auth_users WHERE id = ${userId}`;

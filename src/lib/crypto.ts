@@ -5,7 +5,12 @@ const ALGORITHM = 'aes-256-gcm';
 function getEncryptionKey(): Buffer {
   const key = process.env.TOKEN_ENCRYPTION_KEY;
   if (!key) {
-    console.warn('[crypto] TOKEN_ENCRYPTION_KEY not set — tokens stored unencrypted');
+    // Fail closed in production — silently persisting OAuth tokens in plaintext
+    // is worse than failing. Dev keeps passthrough for local testing.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('TOKEN_ENCRYPTION_KEY is required in production to store third-party tokens');
+    }
+    console.warn('[crypto] TOKEN_ENCRYPTION_KEY not set — tokens stored unencrypted (dev only)');
     return Buffer.alloc(0);
   }
   return Buffer.from(key, 'hex');

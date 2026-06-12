@@ -13,7 +13,7 @@ import {
   BookOpen, Timer, Thermometer,
   BookMarked, MessageCircle,
   ChevronDown, ChevronRight,
-  Users,
+  Users, Trophy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
@@ -90,6 +90,7 @@ const CATEGORIES: Category[] = [
       { id: 'injury', label: 'Setbacks', desc: 'Injury & illness', longDesc: 'Track injuries by body region. Launch phased Rehab Plan or generate an Injury-Aware Workout. Illness logging with Neck Check return-to-training is one tap away.', keywords: 'hurt pain injury rehab illness sick cold flu fever symptom shoulder knee back elbow wrist hip joint muscle strain return train neck check', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'body', isPro: true },
       { id: 'cycle_tracking', label: 'Cycle', desc: 'Menstrual cycle phases', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations.', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', isPro: true, gendered: 'female' },
       { id: 'coach_report', label: 'Coach Report', desc: 'Share status with your coach', longDesc: 'Read-only snapshot of your training, recovery, body weight, and active injuries — share via native share or copy as text. Keep your coach in the loop.', keywords: 'coach trainer share send report summary status update injury weight', icon: Users, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body' },
+      { id: 'crews', label: 'Crews', desc: 'Weekly leaderboard with your gym', longDesc: 'Train with your gym or partners. Join a crew with a 6-character code and see who shows up the most each week. Ranked by sessions completed, resets every Monday. Opt-in — only your name and weekly consistency are shared, with that crew only.', keywords: 'crew crews leaderboard social friends gym team rank ranking compete competition consistency weekly group partners challenge accountability whop', icon: Trophy, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400', tab: 'body' },
     ],
   },
 ];

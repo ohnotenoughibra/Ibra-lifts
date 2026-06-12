@@ -3,6 +3,19 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.4.0] - 2026-06-11
+
+**Crews: train with your gym and see who shows up the most each week.**
+
+Your first social feature. Start a crew with your training partners, join with a 6-character code, and compete on a weekly leaderboard — ranked by sessions completed, reset every Monday.
+
+### Added
+- **Crews + weekly leaderboard.** Find "Crews" in the Progress tab. Create a crew or join one with a code, then see your group ranked by how many sessions (lifting + combat + cardio) everyone completed this week. #1 gets the crown; the board resets Monday so everyone gets a fresh shot. It ranks consistency, not who lifts most — so it's fair whatever your size.
+- **Private by design.** Joining is the opt-in. Only your name and your weekly consistency numbers are shared, and only with that crew — nothing else (body weight, lifts, injuries) ever leaves your device's data. Leave anytime; the owner can delete the crew; deleting your account removes you from every crew.
+
+### For contributors
+- Server-authoritative `crews` / `crew_members` tables (lazy `CREATE TABLE IF NOT EXISTS`, FK cascade) — crews are not in the per-user sync blob. Routes: create/join/leave/delete + a metrics push that piggybacks on the leaderboard open. Auth-gated, rate-limited, server-side clamps as light anti-cheat; account-delete cascade extended. Spec + roadmap in tasks/spec-social-leaderboards.md. +6 tests.
+
 ## [2.3.1] - 2026-06-11
 
 **A removed injury stops flagging your exercises, and the Assault Bike joins the cardio list.**

@@ -410,7 +410,11 @@ export function getActiveInjuryAdaptations(injuries: InjuryEntry[]): {
   overallVolumeLimit: number;
   overallIntensityLimit: number;
 } {
-  const active = injuries.filter(i => !i.resolved);
+  // Canonical "active injury" = not resolved AND not soft-deleted. This function
+  // is fed the RAW injuryLog (ActiveWorkout, startWorkout, smart-pick all pass
+  // store.injuryLog directly), so it must honor _deleted itself — otherwise a
+  // deleted injury keeps flagging exercises ("healed but still 6 flagged").
+  const active = injuries.filter(i => !i.resolved && !i._deleted);
   const classifications = active.map(i => ({
     ...i,
     classification: classifyInjury(i),

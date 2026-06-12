@@ -301,8 +301,8 @@ export function suggestNextBlock(opts: {
     trend: fatigue > 60 ? 'up' : fatigue > 30 ? 'stable' : 'down',
   });
 
-  // 5. Check injury status
-  const activeInjuries = opts.injuryLog.filter(i => !i.resolved);
+  // 5. Check injury status — active = not resolved AND not soft-deleted
+  const activeInjuries = opts.injuryLog.filter(i => !i.resolved && !i._deleted);
   const severeInjuries = activeInjuries.filter(i => i.severity >= 4);
 
   // 6. Check competition proximity

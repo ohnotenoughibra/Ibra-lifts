@@ -175,6 +175,30 @@ describe('getActiveInjuryAdaptations', () => {
     expect(result.classifications).toHaveLength(1);
   });
 
+  it('should filter out soft-deleted injuries (so a removed injury stops flagging exercises)', () => {
+    // Regression: a deleted injury (resolved still false) was leaking into the
+    // flag engine because the active filter only checked !resolved, producing
+    // "healed but still N exercises flagged".
+    const injuries = [
+      makeInjury({ id: 'i1', resolved: false, _deleted: true }),
+      makeInjury({ id: 'i2', resolved: false, _deleted: true }),
+    ];
+    const result = getActiveInjuryAdaptations(injuries);
+    expect(result.classifications).toHaveLength(0);
+    expect(result.allAvoidExercises).toHaveLength(0);
+  });
+
+  it('treats only not-resolved AND not-deleted injuries as active', () => {
+    const injuries = [
+      makeInjury({ id: 'i1', resolved: true }),               // healed
+      makeInjury({ id: 'i2', resolved: false, _deleted: true }), // deleted
+      makeInjury({ id: 'i3', resolved: false }),              // genuinely active
+    ];
+    const result = getActiveInjuryAdaptations(injuries);
+    expect(result.classifications).toHaveLength(1);
+    expect(result.classifications[0].id).toBe('i3');
+  });
+
   it('should combine avoidance lists from multiple injuries', () => {
     const injuries = [
       makeInjury({ id: 'i1', bodyRegion: 'left_knee', resolved: false }),

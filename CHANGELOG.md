@@ -3,6 +3,13 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.4.1] - 2026-06-11
+
+**Crew standings now stay live without anyone opening the leaderboard.**
+
+### Changed
+- **Crews update in the background.** Your weekly numbers now push to your crews shortly after you train (debounced), so your crewmates see your real standing without you having to open the Crews screen. Only happens if you're in a crew, and only your name + weekly consistency are ever shared.
+
 ## [2.4.0] - 2026-06-11
 
 **Crews: train with your gym and see who shows up the most each week.**

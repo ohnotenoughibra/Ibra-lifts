@@ -826,7 +826,7 @@ export type ActivityType =
   // MMA
   | 'mma'
   // Cardio
-  | 'running' | 'cycling' | 'swimming' | 'rowing' | 'jump_rope' | 'elliptical'
+  | 'running' | 'cycling' | 'swimming' | 'rowing' | 'jump_rope' | 'elliptical' | 'assault_bike'
   // Outdoor
   | 'hiking' | 'skiing' | 'snowboarding' | 'rock_climbing' | 'surfing'
   // Recovery
@@ -863,6 +863,7 @@ export const ACTIVITY_CATEGORY_MAP: Record<ActivityType, ActivityCategory> = {
   rowing: 'cardio',
   jump_rope: 'cardio',
   elliptical: 'cardio',
+  assault_bike: 'cardio',
   // Outdoor
   hiking: 'outdoor',
   skiing: 'outdoor',
@@ -898,6 +899,7 @@ export const ACTIVITY_LABELS: Record<ActivityType, string> = {
   rowing: 'Rowing',
   jump_rope: 'Jump Rope',
   elliptical: 'Elliptical',
+  assault_bike: 'Assault Bike',
   hiking: 'Hiking',
   skiing: 'Skiing',
   snowboarding: 'Snowboarding',

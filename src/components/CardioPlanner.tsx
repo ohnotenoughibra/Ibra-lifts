@@ -11,7 +11,7 @@ import type { ActivityType, CardioIntensity, ScheduledCardioDay } from '@/lib/ty
 import WeeklyCalendar from './WeeklyCalendar';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
 
-const CARDIO_MODALITIES: ActivityType[] = ['running', 'cycling', 'swimming', 'rowing', 'jump_rope', 'elliptical'];
+const CARDIO_MODALITIES: ActivityType[] = ['running', 'cycling', 'swimming', 'rowing', 'jump_rope', 'elliptical', 'assault_bike'];
 const INTENSITIES: { value: CardioIntensity; label: string }[] = [
   { value: 'easy', label: 'Easy (Z2)' },
   { value: 'moderate', label: 'Moderate' },

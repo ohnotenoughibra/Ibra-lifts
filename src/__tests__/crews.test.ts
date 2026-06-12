@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clampInt, normalizeJoinCode, generateJoinCode } from '@/lib/crews-db';
+import { clampInt, normalizeJoinCode, generateJoinCode, prevWeekKey } from '@/lib/crews-db';
 import { computeCrewMetrics } from '@/lib/crews-client';
 import type { WorkoutLog, TrainingSession, GamificationStats, UserProfile } from '@/lib/types';
 
@@ -24,6 +24,13 @@ describe('crews-db helpers', () => {
       expect(c).toHaveLength(6);
       expect(c).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
     }
+  });
+
+  it('prevWeekKey returns the Monday 7 days earlier, handling month/year boundaries', () => {
+    expect(prevWeekKey('2026-06-08')).toBe('2026-06-01');
+    expect(prevWeekKey('2026-06-01')).toBe('2026-05-25'); // crosses month
+    expect(prevWeekKey('2026-01-05')).toBe('2025-12-29'); // crosses year
+    expect(prevWeekKey('not-a-date')).toBe('');
   });
 });
 

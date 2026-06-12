@@ -3,6 +3,17 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.4.2] - 2026-06-12
+
+**Your crew standing now greets you on the home screen, and last week's winner gets their due.**
+
+### Added
+- **Crew standing on Today.** If you're in a crew, the home screen shows where you rank this week ("you're #2 of 6 this week", or 👑 when you're leading) — one tap to the full board.
+- **Last week's winner.** Each crew now shows who topped the board last week. It's finalized automatically the first time anyone in the crew trains in the new week.
+
+### For contributors
+- `crew_week_winners` snapshot table (FK cascade), lazily finalized in the metrics route the first sync of a new week (idempotent via PK + ON CONFLICT DO NOTHING). GET returns each crew's most recent winner. New `CrewNudge` home component. +1 test (prevWeekKey). Deferred items noted in tasks/spec-social-leaderboards.md.
+
 ## [2.4.1] - 2026-06-11
 
 **Crew standings now stay live without anyone opening the leaderboard.**

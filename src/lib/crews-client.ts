@@ -11,6 +11,7 @@ export interface CrewMember {
   stale: boolean;
   rank: number;
 }
+export interface CrewWinner { weekKey: string; name: string; sessions: number; }
 export interface Crew {
   id: string;
   name: string;
@@ -18,6 +19,7 @@ export interface Crew {
   isOwner: boolean;
   memberCount: number;
   members: CrewMember[];
+  lastWinner: CrewWinner | null;
 }
 
 export interface CrewMetrics {

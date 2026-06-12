@@ -105,8 +105,9 @@ All verify `userId === session.user.id`. All wrapped in the existing rate-limit 
 ## 8. Phasing
 
 - **P0 (MVP, this spec):** crews + join codes + weekly sessions leaderboard + opt-in + metrics-on-sync + one overlay + one entry tile. Owner delete, member leave, account-delete cascade. Server clamps.
-- **P1:** "you're #2 this week" Home nudge; weekly winner badge (reuse gamification badges); push notification "the crew is pulling ahead." 
-- **P2:** `% planned sessions hit` metric; per-week history; weight-class strength board (relative strength) as a *separate, opt-in* board; harder anti-cheat if cheating is observed.
+- **P1 (shipped v2.4.1):** background metrics push on training-data change (live standings without opening the board).
+- **P2 (shipped v2.4.2):** "you're #N this week" Home nudge (CrewNudge); last-week-winner recognition on the board (crew_week_winners snapshot, lazy-finalized on first sync of the new week).
+- **Deferred (not built):** weekly-winner *gamification badge* (needs a client award path on top of the snapshot — the board recognition covers the social win for now); `% planned sessions hit` (would dilute the deliberately-simple sessions board); weight-class strength board; harder server-recompute anti-cheat (only if cheating is actually observed); a "crew is pulling ahead" push notification.
 
 ## 9. Effort
 

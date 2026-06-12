@@ -27,6 +27,10 @@ export async function DELETE() {
     // a table never provisioned on this env doesn't abort the cascade.
     await sql`DELETE FROM whoop_tokens WHERE user_id = ${userId}`.catch(() => {});
     await sql`DELETE FROM push_subscriptions WHERE user_id = ${userId}`.catch(() => {});
+    // Social: remove from all crews, and delete crews they own (cascade clears
+    // those crews' members). The user's social footprint leaves with them.
+    await sql`DELETE FROM crew_members WHERE user_id = ${userId}`.catch(() => {});
+    await sql`DELETE FROM crews WHERE owner_id = ${userId}`.catch(() => {});
 
     // Delete the user account last
     const { rowCount } = await sql`DELETE FROM auth_users WHERE id = ${userId}`;

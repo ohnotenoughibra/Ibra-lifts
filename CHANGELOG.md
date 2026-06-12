@@ -3,6 +3,16 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.3.1] - 2026-06-11
+
+**A removed injury stops flagging your exercises, and the Assault Bike joins the cardio list.**
+
+### Fixed
+- **Healed/removed injury no longer flags exercises.** If you marked an injury done and still saw "active injury — N exercises flagged" during a workout, that's fixed. A removed injury was still being treated as active everywhere flags are computed (the workout warnings, the auto volume/intensity adjustment, the smart session pick). Now only injuries that are neither resolved nor deleted count.
+
+### Added
+- **Assault Bike** is now a cardio type you can schedule and log, alongside running, cycling, rowing, and the rest.
+
 ## [2.3.0] - 2026-06-11
 
 **Cardio is now a first-class part of your week: schedule it, see it on your plan, and log it.**

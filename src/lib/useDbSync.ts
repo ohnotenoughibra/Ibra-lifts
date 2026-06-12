@@ -5,6 +5,7 @@ import { useAppStore } from './store';
 import { loadFromDatabase, saveToDatabase, resolveConflicts, normalizeWorkoutLogs, initDatabase, flushPendingSync, forcePushToCloud, flushImmediateSync, flushSyncQueue } from './db-sync';
 import { SyncConflict, buildConflictFields } from '@/components/SyncConflictResolver';
 import { saveLatestSnapshot, onSyncFailure } from './data-safety';
+import { getCrewsActive, pushCrewMetrics, computeCrewMetrics } from './crews-client';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error' | 'offline';
 
@@ -337,6 +338,38 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       setIsInitialLoadComplete(true);
     }
   }, [effectiveUserId, sessionStatus]);
+
+  // ── Crew leaderboard freshness ──────────────────────────────────────────
+  // Push the user's weekly consistency to their crews whenever the rankable
+  // training data changes (debounced), so crewmates see live standings without
+  // the user opening the board. Gated on the crews_active flag → users in no
+  // crew never make the call; the server also rate-limits + clamps.
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedulePush = () => {
+      if (!getCrewsActive()) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const s = useAppStore.getState();
+        pushCrewMetrics(computeCrewMetrics({
+          user: s.user,
+          workoutLogs: s.workoutLogs,
+          trainingSessions: s.trainingSessions,
+          gamificationStats: s.gamificationStats,
+        }));
+      }, 5000);
+    };
+    schedulePush(); // once on mount — covers "trained, then reopened the app"
+    const unsub = useAppStore.subscribe((state, prev) => {
+      if (
+        state.workoutLogs !== prev.workoutLogs ||
+        state.trainingSessions !== prev.trainingSessions ||
+        state.gamificationStats !== prev.gamificationStats
+      ) schedulePush();
+    });
+    return () => { if (timer) clearTimeout(timer); unsub(); };
+  }, [effectiveUserId]);
 
   // ── Retry pull when auth resolves if initial pull failed ──────────────
   // Handles the race where localStorage has user.id → pull fires before

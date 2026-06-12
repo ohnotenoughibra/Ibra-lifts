@@ -52,6 +52,18 @@ export async function GET(request: Request) {
     );
     const members = rows as unknown as MemberRow[];
 
+    // Most recent finalized winner per crew.
+    const { rows: winnerRows } = await sql.query(
+      `SELECT DISTINCT ON (crew_id) crew_id, week_key, winner_name, sessions
+       FROM crew_week_winners WHERE crew_id = ANY($1::text[])
+       ORDER BY crew_id, week_key DESC`,
+      [crewIds]
+    );
+    const winnerByCrew = new Map<string, { weekKey: string; name: string; sessions: number }>();
+    for (const w of winnerRows) {
+      winnerByCrew.set(w.crew_id as string, { weekKey: w.week_key as string, name: w.winner_name as string, sessions: w.sessions as number });
+    }
+
     const now = Date.now();
     const crews = myCrews.map(c => {
       const roster = members
@@ -82,6 +94,7 @@ export async function GET(request: Request) {
         isOwner: c.owner_id === userId,
         memberCount: roster.length,
         members: roster.map((r, i) => ({ ...r, rank: i + 1 })),
+        lastWinner: winnerByCrew.get(c.id as string) ?? null,
       };
     });
 

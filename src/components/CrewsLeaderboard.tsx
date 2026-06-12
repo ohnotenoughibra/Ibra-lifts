@@ -166,7 +166,18 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
                   <h2 className="text-lg font-bold text-grappler-100">{activeCrew.name}</h2>
                   <span className="text-xs text-grappler-500">{activeCrew.memberCount} member{activeCrew.memberCount === 1 ? '' : 's'}</span>
                 </div>
-                <p className="text-xs text-grappler-500 mb-4">Sessions completed this week · resets Monday</p>
+                <p className="text-xs text-grappler-500 mb-3">Sessions completed this week · resets Monday</p>
+
+                {/* Last week's winner */}
+                {activeCrew.lastWinner && (
+                  <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-yellow-500/10 border border-yellow-500/25">
+                    <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                    <p className="text-xs text-grappler-200">
+                      <span className="font-bold text-yellow-300">{activeCrew.lastWinner.name}</span> won last week
+                      <span className="text-grappler-500"> · {activeCrew.lastWinner.sessions} sessions</span>
+                    </p>
+                  </div>
+                )}
 
                 {/* Standings */}
                 <div className="space-y-1.5">

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { auth } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
-import { ensureCrewTables, sanitizeName, clampInt, MAX_SESSIONS_WEEK, MAX_STREAK } from '@/lib/crews-db';
+import { ensureCrewTables, sanitizeName, clampInt, prevWeekKey, MAX_SESSIONS_WEEK, MAX_STREAK } from '@/lib/crews-db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +42,30 @@ export async function POST(request: Request) {
           metrics_updated_at = NOW()
       WHERE user_id = ${userId}
     `;
+
+    // Lazily finalize last week's winner for each of the caller's crews the
+    // first time anyone syncs in the new week. Idempotent (PK + DO NOTHING);
+    // best-effort — never block the metrics push on it.
+    try {
+      const prev = prevWeekKey(weekKey);
+      if (prev) {
+        const { rows: myCrews } = await sql`SELECT crew_id FROM crew_members WHERE user_id = ${userId}`;
+        for (const c of myCrews) {
+          const { rows: top } = await sql`
+            SELECT display_name, sessions_this_week FROM crew_members
+            WHERE crew_id = ${c.crew_id} AND week_key = ${prev}
+            ORDER BY sessions_this_week DESC, current_streak DESC LIMIT 1
+          `;
+          if (top.length > 0 && top[0].sessions_this_week > 0) {
+            await sql`
+              INSERT INTO crew_week_winners (crew_id, week_key, winner_name, sessions)
+              VALUES (${c.crew_id}, ${prev}, ${top[0].display_name}, ${top[0].sessions_this_week})
+              ON CONFLICT (crew_id, week_key) DO NOTHING
+            `;
+          }
+        }
+      }
+    } catch (e) { console.error('[crews finalize]', e); }
 
     return NextResponse.json({ success: true, data: { crewsUpdated: rowCount ?? 0 } });
   } catch (err) {

@@ -77,6 +77,7 @@ import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
 import ReadinessRing from './ReadinessRing';
+import CrewNudge from './CrewNudge';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { getOneThing } from '@/lib/one-thing';
 import OneThingBanner from './OneThingBanner';
@@ -2039,6 +2040,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         if (combined.length === 0) return null;
         return <div className="space-y-2">{combined.map(card => card)}</div>;
       })()}
+
+      {/* ─── Crew standing — only renders if you're in a crew ─── */}
+      <CrewNudge onNavigate={onNavigate} />
 
       {/* ─── Training Restrictions — merged illness + injury risk alert ─── */}
       {(injuryRiskAlert || hasActiveIllness) && (

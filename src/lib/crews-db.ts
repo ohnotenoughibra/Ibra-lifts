@@ -32,7 +32,30 @@ export async function ensureCrewTables(): Promise<void> {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_crew_members_user ON crew_members(user_id)`;
+  // Finalized weekly winners — one row per crew per completed week. Lazily filled
+  // when a member first syncs in the following week. PK makes finalize idempotent.
+  await sql`
+    CREATE TABLE IF NOT EXISTS crew_week_winners (
+      crew_id      TEXT NOT NULL REFERENCES crews(id) ON DELETE CASCADE,
+      week_key     TEXT NOT NULL,
+      winner_name  TEXT NOT NULL,
+      sessions     INT NOT NULL,
+      finalized_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (crew_id, week_key)
+    )
+  `;
   ready = true;
+}
+
+// The Monday-key of the week before the given week-key (both YYYY-MM-DD Mondays).
+export function prevWeekKey(weekKey: string): string {
+  const d = new Date(weekKey + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() - 7);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // Join codes: 6 chars from an alphabet with visually-ambiguous glyphs removed

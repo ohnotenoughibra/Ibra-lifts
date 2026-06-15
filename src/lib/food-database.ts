@@ -186,7 +186,7 @@ export const FOOD_DB: FoodEntry[] = [
   { keywords: ['vegetable', 'vegetables', 'mixed vegetables', 'gemüse', 'mixed veg'], name: 'Mixed Vegetables (200g)', calories: 65, protein: 3, carbs: 13, fat: 0 },
   // Fats
   { keywords: ['peanut butter', 'pb'], name: 'Peanut Butter (30g)', calories: 190, protein: 7, carbs: 7, fat: 16 },
-  { keywords: ['avocado', 'avo'], name: 'Avocado (half)', calories: 160, protein: 2, carbs: 9, fat: 15 },
+  // (avocado lives in the Vegetables block above — no duplicate here)
   { keywords: ['almonds', 'nuts'], name: 'Almonds/Nuts (30g)', calories: 175, protein: 6, carbs: 6, fat: 15 },
   { keywords: ['olive oil', 'oil'], name: 'Olive Oil (1 tbsp)', calories: 120, protein: 0, carbs: 0, fat: 14 },
   { keywords: ['butter'], name: 'Butter (1 tbsp)', calories: 102, protein: 0, carbs: 0, fat: 12 },
@@ -276,7 +276,7 @@ export const FOOD_DB: FoodEntry[] = [
   { keywords: ['teriyaki chicken', 'teriyaki'], name: 'Teriyaki Chicken Bowl', calories: 520, protein: 38, carbs: 55, fat: 14 },
   { keywords: ['tofu', 'tofu stir fry'], name: 'Tofu Stir Fry', calories: 280, protein: 18, carbs: 20, fat: 16 },
   { keywords: ['miso soup'], name: 'Miso Soup', calories: 60, protein: 4, carbs: 6, fat: 2 },
-  { keywords: ['edamame'], name: 'Edamame (150g)', calories: 170, protein: 17, carbs: 8, fat: 8 },
+  // (edamame lives in the high-protein snacks block above — no duplicate here)
   { keywords: ['thai curry', 'green curry', 'red curry'], name: 'Thai Curry with Rice', calories: 550, protein: 25, carbs: 50, fat: 28 },
   { keywords: ['naan', 'naan bread'], name: 'Naan Bread (1 piece)', calories: 260, protein: 8, carbs: 42, fat: 6 },
   { keywords: ['tikka masala', 'chicken tikka'], name: 'Chicken Tikka Masala', calories: 480, protein: 32, carbs: 30, fat: 26 },

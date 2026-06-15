@@ -381,13 +381,21 @@ export function getContextualNutrition(
 
   // Derive fat target to balance remaining calories after protein + carbs
   // This ensures macros sum to the calorie target instead of fatMultiplier always being 1.0
+  const bodyWeightKg = bodyWeightLbs / 2.2046226218;
   const adjustedCalories = Math.round((baseMacros.calories * calorieMultiplier) + recoveryBonus);
-  const adjustedProtein = Math.round(baseMacros.protein * proteinMultiplier);
+  // Clamp protein to the evidence ceiling (~3.1 g/kg total BW; Helms 2014, Longland
+  // 2016) so stacked day-type multipliers can't push a fighter to a nonsensical 4 g/kg.
+  const adjustedProtein = Math.min(
+    Math.round(baseMacros.protein * proteinMultiplier),
+    Math.round(bodyWeightKg * 3.1),
+  );
   const adjustedCarbs = Math.round(baseMacros.carbs * carbMultiplier);
   // Fat fills the remaining calories: (total - protein*4 - carbs*4) / 9
   const remainingCalsForFat = adjustedCalories - (adjustedProtein * 4) - (adjustedCarbs * 4);
-  // Floor at 20% of base fat to prevent unreasonably low fat (hormonal health)
-  const minFat = Math.round(baseMacros.fat * 0.5);
+  // Hormonal-health fat floor in g/kg (NOT a fraction of base): >= 0.7 g/kg
+  // bodyweight so a high-carb day can't drive fat below the testosterone-protective
+  // threshold (Volek 2001: T declines below ~0.6 g/kg).
+  const minFat = Math.round(bodyWeightKg * 0.7);
   const derivedFat = Math.max(minFat, Math.round(remainingCalsForFat / 9));
 
   const adjustedTargets: MacroTargets = {
@@ -399,8 +407,7 @@ export function getContextualNutrition(
 
   // Hydration goal based on body weight and training (in ml)
   // ~35ml per kg is a good baseline (equivalent to 0.5oz per lb)
-  const bodyWeightKg = bodyWeightLbs / 2.20462;
-  let hydrationGoal = Math.round(bodyWeightKg * 35); // 35ml per kg baseline
+  let hydrationGoal = Math.round(bodyWeightKg * 35); // 35ml per kg baseline (bodyWeightKg from above)
   if (illnessActive) {
     // Illness increases fluid needs — fever, sweating, GI losses
     hydrationGoal += 1000;
@@ -482,7 +489,7 @@ export function getSupplementRecommendations(dayType: TrainingDayType): string[]
   ];
 
   const daySpecific: Record<TrainingDayType, string[]> = {
-    strength: ['Caffeine pre-workout for performance', 'Beta-alanine for endurance sets'],
+    strength: ['Caffeine pre-workout for performance', 'Creatine 3-5g daily for strength & power'],
     hypertrophy: ['Citrulline for pump', 'EAAs during workout if fasted'],
     power: ['Caffeine if needed', 'Light on stimulants to maintain feel'],
     strength_endurance: ['Beta-alanine for sustained output', 'Electrolytes during session', 'Caffeine pre-workout'],

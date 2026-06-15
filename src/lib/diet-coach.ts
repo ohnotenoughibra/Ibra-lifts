@@ -214,6 +214,12 @@ interface MacroInput {
   deficitSeverity?: 'mild' | 'moderate' | 'aggressive'; // scales protein for fight camp
   isCombatAthlete?: boolean;         // enables combat-specific adjustments
   occupation?: OccupationType;
+  // Periodization overrides — when a phase plan supplies these, they are
+  // AUTHORITATIVE (this is the single source of truth for a periodized phase).
+  // calorieFactor multiplies TDEE directly (e.g. 0.78 = 22% deficit);
+  // proteinGKg sets protein in g per kg total bodyweight directly.
+  calorieFactor?: number;
+  proteinGKg?: number;
   // Dynamic TDEE inputs (optional — overrides activityMultiplier when present)
   weeklyTrainingSessions?: TrainingSession[];
   weeklyLiftingSessions?: WorkoutLog[];
@@ -248,6 +254,8 @@ export function calculateMacros({
   deficitSeverity,
   isCombatAthlete = false,
   occupation,
+  calorieFactor,
+  proteinGKg,
   weeklyTrainingSessions,
   weeklyLiftingSessions,
 }: MacroInput): (MacroTargets & { bmr: number; tdee: number; leanMassKg?: number }) | null {
@@ -290,84 +298,98 @@ export function calculateMacros({
     tdee = Math.round(bmr * activityMultiplier);
   }
 
-  // Step 3: Apply caloric target based on goal + sex
-  let calories: number;
+  // Step 3: Caloric target + macro rates per goal.
+  // Each goal sets a DEFAULT calorie factor (× TDEE) and protein/fat g/kg. A
+  // periodization phase can override the calorie factor and protein directly —
+  // those overrides are authoritative so the plan you designed is the plan you get.
+  let defaultCalorieFactor: number;
   let proteinPerKg: number;
   let fatPerKg: number;
 
   switch (goal) {
     case 'cut': {
-      calories = Math.round(tdee * 0.8); // ~20% deficit
-
-      // Protein scaling based on deficit severity (combat athletes)
-      // Helms et al. 2014: Protein recommendations are driven by deficit severity,
-      // not biological sex. 2.3-3.1 g/kg for lean athletes in deficit.
-      // Hector & Phillips 2018: No significant sex-based protein differences found.
-      // Longland et al. 2016: 2.4 g/kg preserves LBM in aggressive deficit.
-      if (isCombatAthlete && deficitSeverity === 'aggressive') {
+      defaultCalorieFactor = 0.8; // ~20% deficit
+      // Protein in deficit — driven by deficit severity, not sex (Helms 2014,
+      // Hector & Phillips 2018). 2.3-3.1 g/kg for LEAN athletes (Longland 2016).
+      if (bodyFatPercent != null && bodyFatPercent > 25 && leanMassKg) {
+        // Higher BF% → anchor to lean mass so we don't prescribe absurd protein
+        // off total bodyweight. Checked BEFORE severity so it isn't shadowed.
+        // Target ~2.6 g/kg LBM, expressed back as g/kg total BW.
+        proteinPerKg = 2.6 * (leanMassKg / bw);
+      } else if (isCombatAthlete && deficitSeverity === 'aggressive') {
         proteinPerKg = 3.1;
       } else if (isCombatAthlete && deficitSeverity === 'moderate') {
         proteinPerKg = 2.7;
-      } else if (bodyFatPercent && bodyFatPercent > 25) {
-        // Higher BF% users: scale protein to lean mass instead of total BW
-        // Morton et al. 2018: diminishing returns above 1.62 g/kg total BW for non-lean
-        // But we want to hit ~2.5 g/kg LBM — so scale down per-total-BW accordingly
-        const leanMassFraction = 1 - (bodyFatPercent / 100);
-        proteinPerKg = Math.max(1.8, 2.5 * leanMassFraction);
       } else {
         proteinPerKg = 2.4;
       }
-
-      // Fat floor: 0.8 g/kg female, 0.7 g/kg male minimum
-      // Volek et al. 2001: testosterone declines below 0.6 g/kg
+      // Fat floor: 0.8 g/kg male, 1.0 female. Volek 2001: T declines below 0.6 g/kg.
       fatPerKg = isFemale ? 1.0 : 0.8;
       break;
     }
     case 'bulk':
-      calories = Math.round(tdee * (isFemale ? 1.10 : 1.12));
-      // Maintenance/surplus: 1.6-2.2 g/kg for both sexes (Schoenfeld & Aragon 2018)
-      proteinPerKg = 2.0;
-      fatPerKg = isFemale ? 1.0 : 1.0;
+      defaultCalorieFactor = isFemale ? 1.10 : 1.12;
+      proteinPerKg = 2.0; // surplus: 1.6-2.2 g/kg (Schoenfeld & Aragon 2018)
+      fatPerKg = 1.0;
       break;
     case 'maintain':
     default:
-      calories = tdee;
-      // Maintenance: 1.6-2.2 g/kg for both sexes (Schoenfeld & Aragon 2018)
+      defaultCalorieFactor = 1.0;
       proteinPerKg = 2.0;
       fatPerKg = isFemale ? 1.0 : 0.9;
       break;
   }
 
-  // Step 4: Energy Availability safety floor (RED-S prevention)
-  // If we have lean mass data, ensure EA >= 25 kcal/kg FFM (critical threshold)
-  if (leanMassKg && hasTrainingData && goal === 'cut') {
-    let dailyExerciseCost = 0;
-    for (const s of weeklyTrainingSessions ?? []) {
-      dailyExerciseCost += estimateSessionCalories(s.type, s.duration, bw, s.actualIntensity || s.plannedIntensity);
-    }
-    for (const w of weeklyLiftingSessions ?? []) {
-      dailyExerciseCost += estimateLiftingCalories('hypertrophy', w.duration, bw);
-    }
-    dailyExerciseCost = dailyExerciseCost / 7;
+  // Periodization overrides (authoritative).
+  if (proteinGKg != null && proteinGKg > 0) proteinPerKg = proteinGKg;
+  let calories = Math.round(tdee * (calorieFactor != null && calorieFactor > 0 ? calorieFactor : defaultCalorieFactor));
 
-    // EA = (Intake - Exercise Cost) / Lean Mass
+  // Cap protein at a hard physiological ceiling when lean mass is known
+  // (3.5 g/kg LBM) so no input can produce a nonsensical target.
+  let proteinGrams = Math.round(bw * proteinPerKg);
+  if (leanMassKg) proteinGrams = Math.min(proteinGrams, Math.round(leanMassKg * 3.5));
+
+  // Step 4: Energy Availability safety floor (RED-S prevention). The corrective
+  // floor uses the SAME 30 kcal/kg FFM threshold the analyzer warns at (Loucks &
+  // Thuma 2003; Mountjoy 2018) — so the generator never hands back a plan its own
+  // EA widget would flag as risky.
+  if (leanMassKg && hasTrainingData && goal === 'cut') {
+    const dailyExerciseCost = weeklyExerciseCostPerDay(weeklyTrainingSessions, weeklyLiftingSessions, bw);
     const ea = (calories - dailyExerciseCost) / leanMassKg;
-    const EA_CRITICAL = 25; // kcal/kg FFM — below this triggers RED-S
-    if (ea < EA_CRITICAL) {
-      // Bump calories to ensure EA >= critical threshold
-      calories = Math.round(EA_CRITICAL * leanMassKg + dailyExerciseCost);
+    const EA_FLOOR = 30; // kcal/kg FFM
+    if (ea < EA_FLOOR) {
+      calories = Math.round(EA_FLOOR * leanMassKg + dailyExerciseCost);
     }
   }
 
-  // Step 5: Set protein and fat, fill rest with carbs
-  const protein = Math.round(bw * proteinPerKg);
+  // Step 5: protein + fat fixed, carbs fill the remainder, then reconcile the
+  // returned calories to the rounded macros so the ring ALWAYS equals
+  // protein×4 + carbs×4 + fat×9 (no "1500 kcal but macros sum to 1100").
   const fat = Math.round(bw * fatPerKg);
-  const proteinCal = protein * 4;
-  const fatCal = fat * 9;
-  const carbCal = Math.max(0, calories - proteinCal - fatCal);
-  const carbs = Math.round(carbCal / 4);
+  const carbs = Math.max(0, Math.round((calories - proteinGrams * 4 - fat * 9) / 4));
+  const reconciledCalories = proteinGrams * 4 + carbs * 4 + fat * 9;
 
-  return { calories, protein, carbs, fat, bmr: Math.round(bmr), tdee, leanMassKg };
+  return { calories: reconciledCalories, protein: proteinGrams, carbs, fat, bmr: Math.round(bmr), tdee, leanMassKg };
+}
+
+/**
+ * Average daily kcal cost of the week's training. Single source of truth used by
+ * both the EA floor and calculateDynamicTDEE so they can't disagree. Returns an
+ * UNROUNDED float — round only at the display boundary.
+ */
+export function weeklyExerciseCostPerDay(
+  weeklyTrainingSessions: TrainingSession[] | undefined,
+  weeklyLiftingSessions: WorkoutLog[] | undefined,
+  bodyWeightKg: number,
+): number {
+  let total = 0;
+  for (const s of weeklyTrainingSessions ?? []) {
+    total += estimateSessionCalories(s.type, s.duration, bodyWeightKg, s.actualIntensity || s.plannedIntensity);
+  }
+  for (const w of weeklyLiftingSessions ?? []) {
+    total += estimateLiftingCalories('hypertrophy', w.duration, bodyWeightKg);
+  }
+  return total / 7;
 }
 
 // ── Energy Availability ──────────────────────────────────────────────────────
@@ -647,7 +669,7 @@ export function analyzeWeightTrend(
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map(e => ({
       date: safeDayKey(e.date) as string,
-      weight: e.unit === 'lbs' ? e.weight * 0.453592 : e.weight,
+      weight: e.unit === 'lbs' ? e.weight * 0.45359237 : e.weight,
     }));
 
   const alpha = 0.2;
@@ -693,13 +715,13 @@ export function analyzeWeightTrend(
 
   if (unitPreference === 'lbs') {
     return {
-      current: Math.round(current * 2.205 * 10) / 10,
-      weeklyChange: Math.round(weeklyChange * 2.205 * 10) / 10,
+      current: Math.round(current * 2.2046226218 * 10) / 10,
+      weeklyChange: Math.round(weeklyChange * 2.2046226218 * 10) / 10,
       weeksAtPlateau,
       trendData: trendData.map(d => ({
         ...d,
-        weight: Math.round(d.weight * 2.205 * 10) / 10,
-        trend: Math.round(d.trend * 2.205 * 10) / 10,
+        weight: Math.round(d.weight * 2.2046226218 * 10) / 10,
+        trend: Math.round(d.trend * 2.2046226218 * 10) / 10,
       })),
     };
   }

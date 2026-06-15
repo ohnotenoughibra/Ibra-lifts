@@ -244,6 +244,11 @@ export default function DietCoach() {
         age,
         sex: formSex,
         goal: params.goal,
+        // Phase plan is authoritative — pass its calorie factor, protein target,
+        // and deficit severity so the periodized plan is what actually gets built.
+        calorieFactor: params.calorieFactor,
+        proteinGKg: params.proteinGKg,
+        deficitSeverity: params.deficitSeverity,
         activityMultiplier,
         bodyFatPercent: latestBodyFat,
         isCombatAthlete,

@@ -187,9 +187,11 @@ export function generateCoachingTips(ctx: SportCoachingContext): CoachingTip[] {
           icon: 'utensils-crossed', color: 'text-orange-400', priority: 2,
         });
       }
-      // Lower caffeine dose for combat — jitters affect technique
+      // Lower caffeine dose for combat — jitters affect technique. 3 mg/kg is the
+      // bottom of the proven ergogenic range (Grgic 2020; ISSN Guest 2021); below
+      // that risks jitters without the performance benefit.
       if (ctx.hour >= 6 && ctx.hour <= 14) {
-        const caffDose = Math.round(bw * 2.5);
+        const caffDose = Math.round(bw * 3);
         tips.push({
           text: `${caffDose}mg caffeine 30-60min before. Lower dose for combat — jitters hurt technique.`,
           icon: 'zap', color: 'text-yellow-400', priority: 6,
@@ -239,11 +241,14 @@ export function generateCoachingTips(ctx: SportCoachingContext): CoachingTip[] {
           icon: 'trending-up', color: 'text-purple-400', priority: 4,
         });
       }
-      // Burke et al. 2004: carb replenishment 1-1.2g/kg/hr first 4hrs
+      // Burke et al. 2004: 1-1.2 g/kg/hr is the MAX glycogen-storage RATE, worth
+      // chasing only in the first 1-2h when the next session is soon — not a
+      // sustained 4-hour intake. Front-load a bolus, then normal carb meals.
       if (ctx.todayType === 'both') {
-        const carbReload = Math.round(bw * 1);
+        const bolus = Math.round(bw * 1);
+        const followUp = Math.round(bw * 0.8);
         tips.push({
-          text: `Double session day: ${carbReload}g carbs/hr for the first 4hrs to replenish glycogen between sessions.`,
+          text: `Double session day: ${bolus}g carbs in the first hour after session 1, then ${followUp}g/hr only if the next session is <4h away. Otherwise resume normal high-carb meals.`,
           icon: 'flame', color: 'text-orange-400', priority: 2,
         });
       }

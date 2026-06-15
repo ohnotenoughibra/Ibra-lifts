@@ -821,7 +821,10 @@ export default function NutritionInsights({
           transition={{ delay: 0.2 }}
           className="card p-4"
         >
-          <ReportCard allMeals={allMeals} macroTargets={macroTargets} />
+          {/* Score adherence against the EFFECTIVE (training-day-adjusted) target the
+              user was actually told to hit — not the base target. Scoring vs base
+              marked a perfectly-eaten training day as "over". */}
+          <ReportCard allMeals={allMeals} macroTargets={targets} />
         </motion.div>
       )}
 

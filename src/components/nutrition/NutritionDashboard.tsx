@@ -477,9 +477,16 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
 
       {/* Calorie ring + macro bars */}
       <div className="card p-5">
-        <div className="flex items-center justify-center mb-5">
+        <div className="flex items-center justify-center mb-2">
           <CalorieRing current={totals.calories} target={targets.calories} />
         </div>
+
+        {/* Protein left — the athlete's real KPI, as a headline, not buried in a bar */}
+        <p className="text-center text-sm font-bold mb-4">
+          {remaining.protein > 0
+            ? <><span className="text-red-400 tabular-nums">{Math.round(remaining.protein)}g</span> <span className="text-grappler-400">protein to go</span></>
+            : <span className="text-green-400">Protein hit ✓</span>}
+        </p>
 
         <div className="space-y-2.5">
           <MacroBar label="P" current={totals.protein} target={targets.protein} color="#ef4444" />
@@ -492,6 +499,18 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
           <WaterRow glasses={waterGlasses} target={waterTarget} onChange={setWaterGlasses} />
         </div>
       </div>
+
+      {/* Persistent log FAB — logging is the highest-frequency action; put it
+          one tap from the screen the user actually lands on. */}
+      {onOpenLog && (
+        <button
+          onClick={onOpenLog}
+          aria-label="Log food"
+          className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-primary-500 text-white shadow-xl shadow-primary-500/30 flex items-center justify-center hover:bg-primary-600 active:scale-95 transition-all"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Today's meals */}
       <div className="card p-4">

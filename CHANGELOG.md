@@ -3,6 +3,26 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.5.0] - 2026-06-15
+
+**Nutrition math, audited and made honest: your calorie number now always matches your macros, and the app stops giving you two different targets.**
+
+A science + math audit of the whole nutrition engine. The headline: the app used to show different calorie targets in different places and could mark a perfectly-eaten training day as "over." Fixed.
+
+### Fixed
+- **Your calories now match your macros, exactly.** The calorie ring used to drift from protein + carbs + fat (you could see "1,500 kcal" while the macros added up to 1,100). They're now reconciled to always agree.
+- **One target, everywhere.** Your periodized plan (mini-cut, fat-loss, massing) now actually drives your numbers instead of silently collapsing to a generic cut/bulk. And your adherence report is now scored against the *training-day-adjusted* target you were told to hit — no more getting dinged "over" for eating exactly right on a hard day.
+- **Saner numbers at the edges.** Lighter or higher-body-fat athletes on an aggressive cut no longer get absurd protein targets with near-zero carbs (protein is now anchored to lean mass, with a hard ceiling).
+- **Safer cuts.** The calorie generator now respects the same RED-S energy-availability floor its own warning uses (30 kcal/kg), so it won't hand you a plan it then flags as risky.
+- **Science corrections:** two-a-day carb refeed was ~10× too high (now a sensible front-loaded amount); combat caffeine dose raised to the actually-effective 3 mg/kg; fat floor is now a true hormonal-health minimum; protein is capped at the evidence ceiling on hard days; a few supplement/timing fixes.
+
+### Changed
+- **Protein-left headline** under the calorie ring — your real number, not buried in a bar.
+- **A log button right on the nutrition dashboard** — add a meal without hunting for the Log tab.
+
+### For contributors
+- `calculateMacros` gained authoritative `calorieFactor`/`proteinGKg` overrides + calorie↔macro reconciliation + LBM-anchored protein; shared `weeklyExerciseCostPerDay`. Fixes across periodization-planner, sport-nutrition-engine, contextual-nutrition. Adherence reads effective targets. +6 precision tests (658 total). Full audit + the deferred nutrition UI/IA rebuild in tasks/audit-nutrition.md.
+
 ## [2.4.2] - 2026-06-12
 
 **Your crew standing now greets you on the home screen, and last week's winner gets their due.**

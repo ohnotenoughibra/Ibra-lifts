@@ -87,8 +87,8 @@ const PHASE_PARAMS: Record<NutritionPhaseType, {
 }> = {
   massing: {
     calorieFactor: 1.10,              // +10% surplus (conservative, for trained athletes)
-    targetRateKgPerWeek: 0.25,        // ~0.5% BW/month for intermediate+ lifters
-    proteinGKg: 1.8,                  // Lower end sufficient in surplus (Helms 2014)
+    targetRateKgPerWeek: 0.25,        // ~0.25-0.35% BW/week for intermediate+ lifters (lean bulk)
+    proteinGKg: 2.0,                  // Mid-range hypertrophy target (Schoenfeld & Aragon 2018); matches diet-coach bulk
     pairedTrainingFocus: 'hypertrophy',
   },
   maintenance: {
@@ -388,7 +388,7 @@ function buildOffSeasonCycle(
 
     // Maintenance transition
     if (remaining >= MIN_MAINTENANCE_WEEKS) {
-      const maintWeeks = Math.min(MIN_MAINTENANCE_WEEKS, remaining);
+      const maintWeeks = Math.min(MAX_MAINTENANCE_WEEKS, remaining);
       phases.push(createPhase('maintenance', cursor, maintWeeks,
         'Mandatory maintenance — let hormones recalibrate'));
       cursor = addWeeks(cursor, maintWeeks);

@@ -18,6 +18,7 @@ import {
   pointRewards,
 } from '@/lib/gamification';
 import type { GamificationStats, WorkoutLog, TrainingSession, QuickLog } from '@/lib/types';
+import { localMondayKey } from '@/lib/utils';
 
 // ── calculateLevel ──────────────────────────────────────────────────────────
 
@@ -630,12 +631,11 @@ describe('shouldRefillShield', () => {
   });
 
   it('returns false when refilled this week', () => {
-    // Get current Monday
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
-    const monday = d.toISOString().split('T')[0];
+    // Must use the SAME local-day Monday the implementation uses
+    // (shouldRefillShield → getMonday → localMondayKey). The old hand-rolled
+    // version computed Monday from local getDay()/getDate() but formatted with
+    // UTC toISOString(), so it flaked across the midnight/timezone boundary.
+    const monday = localMondayKey(new Date());
     expect(shouldRefillShield(monday)).toBe(false);
   });
 });

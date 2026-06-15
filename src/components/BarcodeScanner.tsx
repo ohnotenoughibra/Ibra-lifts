@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, Loader2, AlertCircle, Plus, ScanBarcode, RotateCw } from 'lucide-react';
+import { X, Camera, Loader2, AlertCircle, Plus, ScanBarcode, RotateCw, Pencil, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { lookupBarcode, type BarcodeProduct } from '@/lib/barcode-lookup';
+import { lookupBarcode, setBarcodeOverride, type BarcodeProduct } from '@/lib/barcode-lookup';
 import type { MealType } from '@/lib/types';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +50,37 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
   const [mealType, setMealType] = useState<MealType>(defaultMealType ?? 'snack');
   const [servings, setServings] = useState(1);
 
+  // Inline correction of a scanned product's per-serving macros. OpenFoodFacts
+  // is often wrong; the user fixes it here once and the override sticks for
+  // every future scan of this barcode (persisted in barcode-lookup.ts).
+  const [editing, setEditing] = useState(false);
+  const [editMacros, setEditMacros] = useState({ calories: '', protein: '', carbs: '', fat: '' });
+
+  const beginEdit = useCallback(() => {
+    if (state.phase !== 'found') return;
+    const m = state.product.macros;
+    setEditMacros({
+      calories: String(m.calories),
+      protein: String(m.protein),
+      carbs: String(m.carbs),
+      fat: String(m.fat),
+    });
+    setEditing(true);
+  }, [state]);
+
+  const saveEdit = useCallback(() => {
+    if (state.phase !== 'found') return;
+    const macros = {
+      calories: parseFloat(editMacros.calories.replace(',', '.')) || 0,
+      protein: parseFloat(editMacros.protein.replace(',', '.')) || 0,
+      carbs: parseFloat(editMacros.carbs.replace(',', '.')) || 0,
+      fat: parseFloat(editMacros.fat.replace(',', '.')) || 0,
+    };
+    setBarcodeOverride(state.product.barcode, macros);
+    setState({ phase: 'found', product: { ...state.product, macros, corrected: true } });
+    setEditing(false);
+  }, [state, editMacros]);
+
   // Manual fallback form
   const [manualName, setManualName] = useState('');
   const [manualCal, setManualCal] = useState('');
@@ -71,6 +102,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
   const runLookup = useCallback(async (barcode: string) => {
     if (lookupInFlightRef.current) return;
     lookupInFlightRef.current = true;
+    setEditing(false); // a fresh product shouldn't inherit a stale edit form
     setState({ phase: 'loading', barcode });
     try {
       const result = await lookupBarcode(barcode);
@@ -150,7 +182,20 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
 
   const handleAddProduct = () => {
     if (state.phase !== 'found') return;
-    const { macros, name, brand, servingSize } = state.product;
+    // Flush a pending edit so "Add to log" while mid-correction still logs the
+    // typed numbers (and persists the override) rather than the stale values.
+    let macros = state.product.macros;
+    if (editing) {
+      macros = {
+        calories: parseFloat(editMacros.calories.replace(',', '.')) || 0,
+        protein: parseFloat(editMacros.protein.replace(',', '.')) || 0,
+        carbs: parseFloat(editMacros.carbs.replace(',', '.')) || 0,
+        fat: parseFloat(editMacros.fat.replace(',', '.')) || 0,
+      };
+      setBarcodeOverride(state.product.barcode, macros);
+      setEditing(false);
+    }
+    const { name, brand, servingSize } = state.product;
     const s = servings;
     onAdd(
       {
@@ -284,22 +329,72 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
                 </div>
               </div>
 
-              {/* Macros grid */}
-              <div className="grid grid-cols-4 gap-2">
-                {([
-                  { label: 'Calories', value: state.product.macros.calories * servings, unit: '' },
-                  { label: 'Protein', value: state.product.macros.protein * servings, unit: 'g' },
-                  { label: 'Carbs', value: state.product.macros.carbs * servings, unit: 'g' },
-                  { label: 'Fat', value: state.product.macros.fat * servings, unit: 'g' },
-                ] as const).map(({ label, value, unit }) => (
-                  <div key={label} className="bg-grappler-900/50 rounded-xl p-2 text-center">
-                    <p className="text-xs text-grappler-500">{label}</p>
-                    <p className="text-sm font-semibold text-grappler-200">
-                      {Math.round(value * 10) / 10}{unit}
-                    </p>
-                  </div>
-                ))}
+              {/* Macros header: per-serving vs scaled, "corrected" badge, edit toggle */}
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-grappler-500">
+                  {editing ? 'Per serving — fix the numbers' : `Macros${servings !== 1 ? ` × ${servings}` : ''}`}
+                  {state.product.corrected && !editing && (
+                    <span className="ml-2 text-emerald-400">· your numbers</span>
+                  )}
+                </p>
+                {!editing ? (
+                  <button
+                    onClick={beginEdit}
+                    className="flex items-center gap-1 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    {state.product.corrected ? 'Edit' : 'Wrong? Fix it'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={saveEdit}
+                    className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    <Check className="w-3 h-3" />
+                    Save
+                  </button>
+                )}
               </div>
+
+              {/* Macros grid — static, or editable inputs in edit mode */}
+              {!editing ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { label: 'Calories', value: state.product.macros.calories * servings, unit: '' },
+                    { label: 'Protein', value: state.product.macros.protein * servings, unit: 'g' },
+                    { label: 'Carbs', value: state.product.macros.carbs * servings, unit: 'g' },
+                    { label: 'Fat', value: state.product.macros.fat * servings, unit: 'g' },
+                  ] as const).map(({ label, value, unit }) => (
+                    <div key={label} className="bg-grappler-900/50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-grappler-500">{label}</p>
+                      <p className="text-sm font-semibold text-grappler-200">
+                        {Math.round(value * 10) / 10}{unit}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { key: 'calories', label: 'Calories' },
+                    { key: 'protein', label: 'Protein' },
+                    { key: 'carbs', label: 'Carbs' },
+                    { key: 'fat', label: 'Fat' },
+                  ] as const).map(({ key, label }) => (
+                    <div key={key} className="bg-grappler-900/50 rounded-xl p-2 text-center">
+                      <p className="text-xs text-grappler-500">{label}</p>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={editMacros[key]}
+                        onChange={e => setEditMacros(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full bg-transparent text-center text-sm font-semibold text-grappler-100 outline-none border-b border-grappler-700 focus:border-primary-500"
+                        aria-label={`${label} per serving`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Servings */}
               <div className="flex items-center gap-3">
@@ -342,6 +437,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
               <button
                 onClick={() => {
                   setServings(1);
+                  setEditing(false);
                   startScanner();
                 }}
                 className="flex-1 py-3 bg-grappler-800 text-grappler-300 text-sm rounded-xl hover:bg-grappler-700 transition-colors"

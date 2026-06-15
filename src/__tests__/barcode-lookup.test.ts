@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { lookupBarcode } from '@/lib/barcode-lookup';
+import {
+  lookupBarcode,
+  setBarcodeOverride,
+  getBarcodeOverride,
+  clearBarcodeOverride,
+} from '@/lib/barcode-lookup';
 
 // A minimal OpenFoodFacts-shaped product payload.
 const OFF_PRODUCT = {
@@ -235,6 +240,56 @@ describe('lookupBarcode', () => {
     if (result.status === 'found') {
       expect(result.product.macros.calories).toBe(400);
       expect(result.product.servingSize).toBe('100 g');
+    }
+  });
+});
+
+describe('barcode macro overrides', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('stores and reads a per-barcode override (coercing junk to 0)', () => {
+    setBarcodeOverride('111', { calories: 90, protein: 2, carbs: 17, fat: 0 });
+    expect(getBarcodeOverride('111')).toEqual({ calories: 90, protein: 2, carbs: 17, fat: 0 });
+    // NaN/garbage is neutralised, never persisted as NaN (would poison totals)
+    setBarcodeOverride('222', { calories: NaN as unknown as number, protein: -5, carbs: 3, fat: 1 });
+    expect(getBarcodeOverride('222')).toEqual({ calories: 0, protein: 0, carbs: 3, fat: 1 });
+    expect(getBarcodeOverride('does-not-exist')).toBeNull();
+  });
+
+  it('re-applies a saved override on a fresh lookup and flags it corrected', async () => {
+    setBarcodeOverride('off1', { calories: 64, protein: 0, carbs: 17, fat: 0 });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(OFF_PRODUCT)); // raw: 180/20/12/6
+    const result = await lookupBarcode('off1');
+    expect(result.status).toBe('found');
+    if (result.status === 'found') {
+      expect(result.product.macros).toEqual({ calories: 64, protein: 0, carbs: 17, fat: 0 });
+      expect(result.product.corrected).toBe(true);
+    }
+  });
+
+  it('applies the override on a cache hit too', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(OFF_PRODUCT));
+    await lookupBarcode('off2'); // caches the raw product
+    setBarcodeOverride('off2', { calories: 100, protein: 1, carbs: 2, fat: 3 });
+    const result = await lookupBarcode('off2'); // served from cache + override
+    if (result.status === 'found') {
+      expect(result.product.macros).toEqual({ calories: 100, protein: 1, carbs: 2, fat: 3 });
+      expect(result.product.corrected).toBe(true);
+    }
+  });
+
+  it('clearing an override restores raw values', async () => {
+    setBarcodeOverride('off3', { calories: 1, protein: 1, carbs: 1, fat: 1 });
+    clearBarcodeOverride('off3');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(OFF_PRODUCT));
+    const result = await lookupBarcode('off3');
+    if (result.status === 'found') {
+      expect(result.product.macros.calories).toBe(180);
+      expect(result.product.corrected).toBeUndefined();
     }
   });
 });

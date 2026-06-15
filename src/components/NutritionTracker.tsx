@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
   ChevronRight,
   CalendarDays,
   LayoutDashboard,
-  UtensilsCrossed,
   GraduationCap,
   Zap,
+  X,
 } from 'lucide-react';
 import { cn, localDayKey } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -19,7 +19,9 @@ import NutritionLogSheet from './nutrition/NutritionLogSheet';
 import NutritionCoach from './nutrition/NutritionCoach';
 import NutritionInsights from './nutrition/NutritionInsights';
 
-type Tab = 'dashboard' | 'log' | 'insights' | 'coach';
+// 'log' is no longer a tab — logging is a bottom sheet opened from the dashboard
+// FAB, so you never leave "Today" to add a meal.
+type Tab = 'dashboard' | 'review' | 'coach';
 
 interface NutritionTrackerProps {
   onClose: () => void;
@@ -27,6 +29,7 @@ interface NutritionTrackerProps {
 
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [showLog, setShowLog] = useState(false);
 
   // Date navigation
   // Local calendar day — useNutrition keys meals by local day, so the picker
@@ -53,9 +56,8 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
   const phaseLabel = activeDietPhase?.isActive ? activeDietPhase.goal : null;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'log', label: 'Log', icon: <UtensilsCrossed className="w-4 h-4" /> },
-    { id: 'insights', label: 'Insights', icon: <Zap className="w-4 h-4" /> },
+    { id: 'dashboard', label: 'Today', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'review', label: 'Review', icon: <Zap className="w-4 h-4" /> },
     { id: 'coach', label: 'Coach', icon: <GraduationCap className="w-4 h-4" /> },
   ];
 
@@ -148,16 +150,10 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
         {activeTab === 'dashboard' && (
           <NutritionDashboard
             nutrition={nutrition}
-            onOpenLog={() => setActiveTab('log')}
+            onOpenLog={() => setShowLog(true)}
           />
         )}
-        {activeTab === 'log' && (
-          <NutritionLogSheet
-            nutrition={nutrition}
-            selectedDate={selectedDate}
-          />
-        )}
-        {activeTab === 'insights' && (
+        {activeTab === 'review' && (
           <NutritionInsights
             todayMeals={nutrition.meals}
             allMeals={nutrition.allMeals}
@@ -172,6 +168,35 @@ export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
           <NutritionCoach nutrition={nutrition} />
         )}
       </div>
+
+      {/* Log — a bottom sheet over whatever you're looking at, so logging never
+          requires leaving the dashboard. */}
+      <AnimatePresence>
+        {showLog && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
+            onClick={() => setShowLog(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-lg max-h-[88vh] bg-grappler-900 rounded-t-2xl flex flex-col overlay-safe"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800 flex-shrink-0">
+                <span className="text-base font-bold text-grappler-100">Log food</span>
+                <button onClick={() => setShowLog(false)} className="p-1.5 text-grappler-400 hover:text-grappler-200" aria-label="Close">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-4 py-4 flex-1">
+                <NutritionLogSheet nutrition={nutrition} selectedDate={selectedDate} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

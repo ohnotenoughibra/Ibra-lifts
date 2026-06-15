@@ -3,6 +3,19 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.5.2] - 2026-06-15
+
+**Wrong macros on a scanned food? Fix them once — the correction sticks for every future scan.**
+
+### Added
+- **Edit a scanned product's macros.** Barcode data comes from OpenFoodFacts, which is community-edited and often wrong (mislabeled serving sizes, bad per-100g values). Now when you scan a food, you can tap "Wrong? Fix it", correct the calories/protein/carbs/fat, and log the right numbers. The fix is saved per barcode and re-applied automatically every time you scan that product again — so you only ever fix it once. Corrected foods show a "your numbers" badge.
+
+### Fixed
+- Removed two duplicate entries (avocado, edamame) from the food keyword matcher. No macro impact — the food database was already accurate (audited: every entry's calories reconcile with its protein/carbs/fat, and top foods check out against USDA). Note: a scanned/typed honey showing "34c" is not a data bug — 1 tbsp is correctly 17c; 34c is the 2-serving (2 tbsp) selection.
+
+### For contributors
+- `barcode-lookup.ts` gains a localStorage-backed override store (`getBarcodeOverride`/`setBarcodeOverride`/`clearBarcodeOverride`) applied via `withOverride()` at every `found` resolution (fresh, cache hit, stale). Overrides pass through the same `finiteNum` NaN guard as remote payloads. `BarcodeScanner` found-card gets an inline edit mode; `BarcodeProduct.corrected` flags overridden macros. Fixed a pre-existing date-flaky `shouldRefillShield` test (computed Monday via UTC `toISOString()` vs the implementation's local `localMondayKey`).
+
 ## [2.5.1] - 2026-06-15
 
 **Nutrition gets simpler: log without leaving home, and the app tells you what to eat to finish your day.**

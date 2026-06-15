@@ -22,7 +22,17 @@ Three deep audits (core energy/macro math · nutrition-science engines · UI/UX)
 - **Protein-left headline** under the calorie ring (the athlete's real KPI).
 - **Persistent log FAB** on the dashboard — logging is now one tap from the screen you land on.
 
-## DEFERRED — the big UI/IA rebuild (needs the founder's eyes, can't visually verify behind auth)
+## UI/IA rebuild — partially shipped (v2.5.1)
+- [x] **Logging is a bottom sheet from the dashboard FAB** — no more switching to a "Log" tab. 4 tabs → 3 (Today / Review / Coach).
+- [x] **"Finish your day" strip on the home screen** — one-tap foods from your history that best close the remaining gap (reuses `getSuggestions`). The "know what to eat next" loop now closes on Today.
+- [x] Protein-left headline + log FAB (v2.5.0).
+- [ ] Move the context-adjustment banner BELOW the ring (still above; it's a compact pill).
+- [ ] One-tap favorites/stamps skip the portion sheet (log at last-used portion).
+- [ ] Demote Insights+Trends fully to a Weekly Review; DietCoach → triggered setup/check-in flow.
+- [ ] Fold FightCampNutrition into the phase/contextual engine (still a separate overlay).
+- [ ] De-dup supplements to one home.
+
+## DEFERRED — the remaining big UI/IA pieces (need the founder's eyes, can't visually verify behind auth)
 The information architecture is the remaining disease: **two nutrition homes (tracker + DietCoach), a 4th parallel engine (FightCampNutrition), the daily loop (log / see / guidance) split across 3 tabs, supplements in 3 places, 3-deep nesting.** The bold target:
 - Collapse the 4 tabs → **one scrolling home**: ring (kcal-left + protein-left) → one-line context chip *below* the ring (move the adjustment banner down) → macro bars/water → a "finish your day" strip (one-tap foods that close the gap, reuse `getSuggestions`) → meals. Log sheet over home via the FAB; one-tap favorites skip the portion sheet (log at last-used portion).
 - Demote Insights + Trends to a **Weekly Review** (not daily tabs).

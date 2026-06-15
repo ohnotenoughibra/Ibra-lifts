@@ -16,8 +16,19 @@ import {
 } from 'lucide-react';
 import { MealEntry, MealType } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import type { useNutrition } from '@/hooks/useNutrition';
+import { getSuggestions } from './NutritionInsights';
 import EmptyState from '../EmptyState';
+
+// Time-of-day default meal type for one-tap logging from the home strip.
+function defaultMealType(): MealType {
+  const h = new Date().getHours();
+  if (h < 11) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -366,8 +377,15 @@ interface NutritionDashboardProps {
 }
 
 export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDashboardProps) {
-  const { meals, totals, targets, remaining, waterGlasses, setWaterGlasses, deleteMeal, updateMeal, contextualNutrition } = nutrition;
+  const { meals, totals, targets, remaining, waterGlasses, setWaterGlasses, deleteMeal, updateMeal, contextualNutrition, mealHistoryIndex } = nutrition;
   const [editingMeal, setEditingMeal] = useState<MealEntry | null>(null);
+  const addMeal = useAppStore(s => s.addMeal);
+  const [justLogged, setJustLogged] = useState<string | null>(null);
+
+  // "Finish your day" — foods from your history that best close the remaining
+  // gap, one tap to log. Closes the loop ("know what to eat next") on the home
+  // screen instead of a separate Insights tab.
+  const suggestions = getSuggestions(remaining, mealHistoryIndex).slice(0, 3);
 
   const waterTarget = Math.round((contextualNutrition.hydrationGoal || 3000) / 250);
 
@@ -499,6 +517,34 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
           <WaterRow glasses={waterGlasses} target={waterTarget} onChange={setWaterGlasses} />
         </div>
       </div>
+
+      {/* Finish your day — one-tap foods that close the remaining gap */}
+      {suggestions.length > 0 && (
+        <div className="card p-4">
+          <h3 className="text-xs font-semibold text-grappler-400 uppercase tracking-wide mb-2">Finish your day</h3>
+          <div className="space-y-1.5">
+            {suggestions.map((s, i) => (
+              <button
+                key={`${s.name}-${i}`}
+                onClick={() => {
+                  addMeal({ date: new Date(), mealType: defaultMealType(), name: s.name, calories: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat });
+                  setJustLogged(s.name);
+                  setTimeout(() => setJustLogged(prev => prev === s.name ? null : prev), 1500);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/40 hover:bg-grappler-700/60 transition-colors text-left"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-grappler-100 truncate">{s.name}</p>
+                  <p className="text-[11px] text-grappler-500">{Math.round(s.calories)} kcal · {Math.round(s.protein)}g protein</p>
+                </div>
+                {justLogged === s.name
+                  ? <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  : <Plus className="w-4 h-4 text-primary-400 flex-shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Persistent log FAB — logging is the highest-frequency action; put it
           one tap from the screen the user actually lands on. */}

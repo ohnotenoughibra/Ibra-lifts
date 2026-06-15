@@ -163,7 +163,7 @@ function ProteinDistribution({ analysis }: { analysis: ProteinGrade }) {
 
 // ── Smart Remaining Suggestions ─────────────────────────────────────
 
-interface FoodSuggestion {
+export interface FoodSuggestion {
   name: string;
   calories: number;
   protein: number;
@@ -173,7 +173,7 @@ interface FoodSuggestion {
   matchScore: number;
 }
 
-function getSuggestions(
+export function getSuggestions(
   remaining: { calories: number; protein: number; carbs: number; fat: number },
   historyIndex: Map<string, HistoryFood>,
 ): FoodSuggestion[] {

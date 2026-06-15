@@ -3,6 +3,17 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.5.1] - 2026-06-15
+
+**Nutrition gets simpler: log without leaving home, and the app tells you what to eat to finish your day.**
+
+### Changed
+- **Logging is now a slide-up sheet** you open from a button on the dashboard — no more switching to a separate "Log" tab to add a meal. The nutrition area is now three tabs (Today / Review / Coach) instead of four.
+- **"Finish your day"** — your dashboard now suggests a few foods from your history that best close your remaining calories and protein, each one tap to log.
+
+### For contributors
+- `NutritionTracker` collapses the Log tab into a bottom-sheet (FAB-triggered) over the dashboard. `getSuggestions` exported from NutritionInsights and reused on the dashboard with a one-tap `addMeal`. Remaining IA rebuild items tracked in tasks/audit-nutrition.md.
+
 ## [2.5.0] - 2026-06-15
 
 **Nutrition math, audited and made honest: your calorie number now always matches your macros, and the app stops giving you two different targets.**

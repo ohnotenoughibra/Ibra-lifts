@@ -26,6 +26,9 @@ export interface BarcodeProduct {
     fat: number;
   };
   imageUrl?: string;
+  // True when the macros below were corrected by the user (a saved override),
+  // not the raw OpenFoodFacts values. Lets the UI badge it as "your numbers".
+  corrected?: boolean;
 }
 
 interface CacheEntry {
@@ -69,6 +72,70 @@ function getCached(barcode: string): BarcodeProduct | null | undefined {
   if (!entry) return undefined; // not in cache
   if (Date.now() - entry.timestamp > CACHE_TTL_MS) return undefined; // expired
   return entry.product; // could be null (= "known not-found")
+}
+
+// ── User macro overrides ─────────────────────────────────────────────────────
+// OpenFoodFacts is community-edited and frequently wrong (mislabeled serving
+// sizes, bad per-100g values). Rather than fight upstream data, we let the user
+// correct a product's macros once; the correction is stored by barcode and
+// re-applied on every future scan of that product — so a fix sticks forever.
+
+const OVERRIDE_KEY = 'barcode_overrides';
+
+export interface MacroOverride {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+function getOverrides(): Record<string, MacroOverride> {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getBarcodeOverride(barcode: string): MacroOverride | null {
+  return getOverrides()[barcode] ?? null;
+}
+
+export function setBarcodeOverride(barcode: string, macros: MacroOverride): void {
+  try {
+    const all = getOverrides();
+    // Coerce through the same NaN guard as remote payloads — an override is just
+    // as capable of poisoning meal totals as a junk API value would be.
+    all[barcode] = {
+      calories: Math.max(0, Math.round(finiteNum(macros.calories))),
+      protein: Math.max(0, Math.round(finiteNum(macros.protein) * 10) / 10),
+      carbs: Math.max(0, Math.round(finiteNum(macros.carbs) * 10) / 10),
+      fat: Math.max(0, Math.round(finiteNum(macros.fat) * 10) / 10),
+    };
+    localStorage.setItem(OVERRIDE_KEY, JSON.stringify(all));
+  } catch {
+    // localStorage full or unavailable — silently ignore
+  }
+}
+
+export function clearBarcodeOverride(barcode: string): void {
+  try {
+    const all = getOverrides();
+    delete all[barcode];
+    localStorage.setItem(OVERRIDE_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
+// Overlay a saved correction onto a looked-up product. Applied at every point
+// that resolves to 'found' (fresh, cache hit, stale fallback) so the corrected
+// numbers are what the user always sees.
+function withOverride(product: BarcodeProduct): BarcodeProduct {
+  const o = getBarcodeOverride(product.barcode);
+  if (!o) return product;
+  return { ...product, macros: { ...o }, corrected: true };
 }
 
 // ── Lookup ───────────────────────────────────────────────────────────────────
@@ -128,7 +195,7 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
   // Cache hit (product OR known-not-found) short-circuits
   const cached = getCached(barcode);
   if (cached !== undefined) {
-    return cached ? { status: 'found', product: cached } : { status: 'not_found' };
+    return cached ? { status: 'found', product: withOverride(cached) } : { status: 'not_found' };
   }
 
   let lastErrorMessage = DEFAULT_LOOKUP_ERROR;
@@ -159,7 +226,7 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
 
       const product = parseProduct(barcode, data.product as Record<string, unknown>);
       setCache(barcode, product);
-      return { status: 'found', product };
+      return { status: 'found', product: withOverride(product) };
     } catch (err) {
       // A timeout already consumed the full LOOKUP_TIMEOUT_MS budget. Retrying
       // would double the wait (up to ~16s) before the user sees anything, and
@@ -176,6 +243,6 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
   // Both attempts failed. Fall back to a stale cache entry if we have one,
   // otherwise report the error (NOT cached) so a later retry can still succeed.
   const stale = getCache()[barcode]?.product;
-  if (stale) return { status: 'found', product: stale };
+  if (stale) return { status: 'found', product: withOverride(stale) };
   return { status: 'error', message: lastErrorMessage };
 }

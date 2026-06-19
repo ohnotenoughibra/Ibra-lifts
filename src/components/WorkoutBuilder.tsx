@@ -740,14 +740,9 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
           <h1 className="font-bold text-grappler-50">
             {view === 'browse' ? 'Exercise Database' : view === 'build' ? (editTemplateId ? 'Edit Workout' : 'Build Workout') : 'Program Templates'}
           </h1>
-          {view === 'build' && builtExercises.length > 0 ? (
-            <button onClick={() => saveWorkout(true)} className="btn btn-primary btn-sm gap-1">
-              <Play className="w-4 h-4" />
-              Start
-            </button>
-          ) : (
-            <div className="w-16" />
-          )}
+          {/* Actions live at the bottom of the build view (thumb reach) — no
+              redundant header CTA competing with them. */}
+          <div className="w-16" />
         </div>
 
         {/* View Tabs */}
@@ -1151,7 +1146,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
 
               {builtExercises.length > 0 && (
                 <div className="flex gap-4 text-xs text-grappler-400 pt-1">
-                  <span>{builtExercises.length} exercises</span>
+                  <span>{builtExercises.length} {builtExercises.length === 1 ? 'exercise' : 'exercises'}</span>
                   <span>{totalSets} total sets</span>
                   <span>~{Math.round(estDuration)} min</span>
                 </div>
@@ -1196,79 +1191,79 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                       </button>
                     </div>
 
-                    {/* Editable parameters */}
-                    <div className="grid grid-cols-4 gap-2">
+                    {/* Editable parameters — 2x2 on phone so each stepper is roomy and easy to tap */}
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                         <p className="text-xs text-grappler-400 mb-1">Sets</p>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-between px-2">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'sets', Math.max(1, be.sets - 1))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-4 h-4" />
                           </button>
                           <span className="text-sm font-bold text-grappler-100 w-5 text-center">{be.sets}</span>
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'sets', Math.min(10, be.sets + 1))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                         <p className="text-xs text-grappler-400 mb-1">Reps</p>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-between px-2">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'reps', Math.max(1, be.reps - 1))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-4 h-4" />
                           </button>
                           <span className="text-sm font-bold text-grappler-100 w-5 text-center">{be.reps}</span>
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'reps', Math.min(30, be.reps + 1))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                         <p className="text-xs text-grappler-400 mb-1">RPE</p>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-between px-2">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'rpe', Math.max(5, be.rpe - 0.5))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-4 h-4" />
                           </button>
                           <span className="text-sm font-bold text-grappler-100 w-5 text-center">{be.rpe}</span>
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'rpe', Math.min(10, be.rpe + 0.5))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
                       <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                         <p className="text-xs text-grappler-400 mb-1">Rest</p>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-between px-2">
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'restSeconds', Math.max(30, be.restSeconds - 15))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-4 h-4" />
                           </button>
                           <span className="text-xs font-bold text-grappler-100 w-7 text-center">
                             {be.restSeconds >= 60 ? `${Math.floor(be.restSeconds / 60)}m` : `${be.restSeconds}s`}
                           </span>
                           <button
                             onClick={() => updateBuiltExercise(be.exercise.id, 'restSeconds', Math.min(300, be.restSeconds + 15))}
-                            className="text-grappler-500 hover:text-grappler-200"
+                            className="p-2 -m-1 rounded-md text-grappler-300 hover:text-grappler-50 hover:bg-grappler-700 active:bg-grappler-600 transition-colors"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -1293,13 +1288,15 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                   </p>
                 )}
 
-                {/* Save-by-default: the workout is kept in My Workouts either way. */}
+                {/* Save-by-default: the workout is kept in My Workouts either way.
+                    Count + duration are shown in the summary above, so the label
+                    stays short and never wraps on a phone. */}
                 <button
                   onClick={() => saveWorkout(true)}
                   className="btn btn-primary btn-lg w-full gap-2 mt-4"
                 >
                   <Play className="w-5 h-5" />
-                  Save &amp; Start ({builtExercises.length} exercises, ~{Math.round(estDuration)} min)
+                  Save &amp; Start
                 </button>
                 <button
                   onClick={() => saveWorkout(false)}

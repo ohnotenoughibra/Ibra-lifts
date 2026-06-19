@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import WeeklyCalendar from './WeeklyCalendar';
+import MyWorkouts from './MyWorkouts';
 import type { OverlayView } from './dashboard-types';
 
 const EMPTY_ARR: never[] = [];
@@ -50,7 +51,7 @@ import { useToast } from './Toast';
  *  - Blocks button / queue row → BlockManagerSheet (complete/stop/switch/queue/history)
  *  - New Block → BlockComposer
  */
-export default function WorkoutView({ onNavigate }: { onNavigate?: (view: OverlayView) => void }) {
+export default function WorkoutView({ onNavigate }: { onNavigate?: (view: OverlayView, context?: string) => void }) {
   const {
     currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis,
     rawWorkoutLogs, swapProgramExercise, user, rawMesocycleHistory, trainingSessions, injuryLog,
@@ -540,6 +541,9 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
           defaultDays={user?.sessionsPerWeek}
         />
 
+        {/* Build-your-own lives here too — you don't need a block to make a workout */}
+        <MyWorkouts onNavigate={onNavigate} />
+
         {mesocycleHistory.length > 0 && (
           <button
             onClick={() => setShowManager(true)}
@@ -779,6 +783,9 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
           onDayTap={() => onNavigate?.('cardio_planner')}
         />
       </div>
+
+      {/* ── 7. MY WORKOUTS — your own creations, save-by-default ── */}
+      <MyWorkouts onNavigate={onNavigate} />
 
       {/* ── Sheets & modals ── */}
       <AnimatePresence>

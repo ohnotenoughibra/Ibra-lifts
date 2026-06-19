@@ -661,7 +661,7 @@ export default function Dashboard({
       setOverlayView(null);
     };
     const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
-      builder: <WorkoutBuilder onClose={closeOverlay} />,
+      builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
       nutrition: <NutritionTracker onClose={closeOverlay} />,
       wearable: <WearableIntegration onClose={closeOverlay} />,
       competition: <CompetitionPrep onClose={closeOverlay} />,

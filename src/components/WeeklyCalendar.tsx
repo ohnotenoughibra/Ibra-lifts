@@ -14,6 +14,8 @@ interface WeeklyCalendarProps {
   currentMesocycle: Mesocycle | null;
   workoutLogs: WorkoutLog[];
   scheduledCardio?: ScheduledCardioDay[];
+  /** Weekdays (0=Sun..6=Sat) that have one of your own workouts pinned. */
+  scheduledWorkoutDays?: number[];
   /** Tap a day to edit its cardio slot. Enables the inline schedule editor. */
   onDayTap?: (day: number) => void;
 }
@@ -47,6 +49,7 @@ export default function WeeklyCalendar({
   currentMesocycle,
   workoutLogs,
   scheduledCardio = [],
+  scheduledWorkoutDays = [],
   onDayTap,
 }: WeeklyCalendarProps) {
   const today = new Date().getDay(); // 0=Sun
@@ -120,6 +123,7 @@ export default function WeeklyCalendar({
 
           const meta = TYPE_META[typeKey] ?? TYPE_META.rest;
           const Icon = meta.icon;
+          const hasMyWorkout = scheduledWorkoutDays.includes(idx);
 
           return (
             <button
@@ -128,13 +132,21 @@ export default function WeeklyCalendar({
               onClick={() => onDayTap?.(idx)}
               disabled={!onDayTap}
               className={cn(
-                'flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-lg border transition-all',
+                'relative flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-lg border transition-all',
                 meta.bg,
                 isToday && 'ring-1 ring-primary-400/60 shadow-[0_0_8px_rgba(var(--color-primary-400),0.15)]',
                 isDone && typeKey !== 'rest' && 'opacity-60',
                 onDayTap && 'active:scale-95 cursor-pointer',
               )}
             >
+              {/* Your-own-workout pin marker (top-right corner dot) */}
+              {hasMyWorkout && (
+                <span
+                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary-400"
+                  title="Your workout"
+                />
+              )}
+
               {/* Day label */}
               <span className={cn(
                 'text-[10px] font-bold leading-none',

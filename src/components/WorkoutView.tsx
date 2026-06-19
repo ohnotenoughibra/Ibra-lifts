@@ -780,6 +780,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
           currentMesocycle={currentMesocycle}
           workoutLogs={rawWorkoutLogs}
           scheduledCardio={user?.scheduledCardio ?? EMPTY_ARR}
+          scheduledWorkoutDays={(user?.scheduledWorkouts ?? EMPTY_ARR).map(s => s.day)}
           onDayTap={() => onNavigate?.('cardio_planner')}
         />
       </div>

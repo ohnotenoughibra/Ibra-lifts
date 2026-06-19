@@ -3,6 +3,16 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.7.0] - 2026-06-19
+
+**Put your own workouts on your week. Schedule a My Workout to weekdays and it shows on your plan.**
+
+### Added
+- **Schedule a workout to your week.** Each workout in My Workouts now has a "Schedule" chip — tap it, pick the weekdays you want it on (Mon–Sun), and it repeats every week. A small dot appears on those days in your week strip, and a workout scheduled for *today* floats to the top of My Workouts with a "Today" badge so you can start it in one tap. Each weekday holds one of your workouts (assigning another to a taken day replaces it). This is the bottom-up counterpart to the top-down training blocks: compose your own workouts AND your own week.
+
+### For contributors
+- New `user.scheduledWorkouts: ScheduledWorkout[]` ({day, templateId}), saved via the existing `updateUserFields` (no new store action). Pure helpers + 7 tests in `scheduled-workouts.ts` (`toggleScheduledWorkout` enforces one-workout-per-day, `daysForTemplate`, `templateForDay`, `pruneScheduledWorkouts`, `formatScheduledDays`). `MyWorkouts` gains the schedule chip + inline weekday picker + today-first sort; `WeeklyCalendar` takes `scheduledWorkoutDays` and renders a corner dot. Deleting a workout prunes its weekday pins.
+
 ## [2.6.1] - 2026-06-19
 
 **Phone polish for the workout builder.**

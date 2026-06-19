@@ -493,7 +493,8 @@ interface AppState {
   deleteCustomExercise: (id: string) => void;
 
   // Session template actions
-  saveAsTemplate: (name: string, session: WorkoutSession) => void;
+  saveAsTemplate: (name: string, session: WorkoutSession) => string;
+  updateTemplate: (id: string, name: string, session: WorkoutSession) => void;
   deleteTemplate: (id: string) => void;
   useTemplate: (id: string) => boolean | void;
 
@@ -4067,14 +4068,26 @@ export const useAppStore = create<AppState>()(
       // Session template actions
       saveAsTemplate: (name, session) => {
         const { sessionTemplates } = get();
+        const id = uuidv4();
         const template: SessionTemplate = {
-          id: uuidv4(),
+          id,
           name,
           createdAt: new Date(),
           session,
           timesUsed: 0
         };
         set({ sessionTemplates: [...sessionTemplates, template] });
+        return id;
+      },
+
+      // Edit a saved workout in place — keeps its id, usage stats and creation
+      // date, swaps in the new name + exercises. Used by the builder's edit mode.
+      updateTemplate: (id, name, session) => {
+        set({
+          sessionTemplates: get().sessionTemplates.map(t =>
+            t.id === id ? { ...t, name, session } : t
+          ),
+        });
       },
 
       deleteTemplate: (id) => {

@@ -3,6 +3,13 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.6.1] - 2026-06-19
+
+**Phone polish for the workout builder.**
+
+### Fixed
+- The Build screen was cramped and fiddly on a phone. Fixed: the Sets / Reps / RPE / Rest steppers are now a roomy 2×2 grid with proper-sized tap targets (the − / + buttons were tiny before), removed the redundant "Start" button competing with the main action, and the primary button now reads a clean "Save & Start" instead of a label that wrapped to two lines and said "1 exercises". Exercise count / duration still show in the summary above the buttons.
+
 ## [2.6.0] - 2026-06-19
 
 **Build your own workouts — and keep them. A "My Workouts" home on the Train tab.**

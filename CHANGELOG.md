@@ -3,6 +3,18 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.6.0] - 2026-06-19
+
+**Build your own workouts — and keep them. A "My Workouts" home on the Train tab.**
+
+### Added
+- **My Workouts** — a new section on the Train tab for workouts you build yourself. Every workout you make is saved here automatically, so it's something you own and repeat, not a one-off. Each one: tap to start, or edit / duplicate / delete. Shows exercise count, rough duration, and how many times you've done it. "New workout" builds a fresh one from any of the 205 exercises (plus your custom ones).
+- **Save-by-default builder.** Building a workout now saves it. "Save & Start" saves it and starts the live session; "Save for later" just keeps it. New workouts open straight on the exercise picker instead of the program-templates screen.
+- **Edit a saved workout in place** — "Edit" reopens the builder preloaded with that workout; saving updates it (keeps its name, usage count, and history) instead of making a copy.
+
+### For contributors
+- New `MyWorkouts.tsx` (Train-tab section), rendered in both the empty and active block states. `WorkoutBuilder` gains an `editTemplateId` prop (preloads a `SessionTemplate`, defaults new builds to the `browse` view) and a save-by-default `saveWorkout(start)` path replacing the old start-only flow. Store: `saveAsTemplate` now returns the new id and a new `updateTemplate(id, name, session)` action edits in place. Saved workouts reuse the existing `sessionTemplates` storage — no new data model. `WorkoutView`/`Dashboard` widen `onNavigate` to pass the edit-target id as overlay context. 4 new store tests in `session-templates.test.ts`.
+
 ## [2.5.2] - 2026-06-15
 
 **Wrong macros on a scanned food? Fix them once — the correction sticks for every future scan.**

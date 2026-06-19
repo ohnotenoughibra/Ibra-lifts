@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { exercises as allExercises, getExercisesByEquipment } from '@/lib/exercises';
+import { exercises as allExercises, getExercisesByEquipment, getExerciseById } from '@/lib/exercises';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import {
   Search,
@@ -21,7 +21,8 @@ import {
   Target,
   Shuffle,
   Layers,
-  GripVertical
+  GripVertical,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
@@ -517,12 +518,19 @@ function QuickCustomExercise({ onSave, onClose }: {
 
 interface WorkoutBuilderProps {
   onClose: () => void;
+  /** When set, the builder opens in EDIT mode preloaded with this saved
+   *  workout (a SessionTemplate id) and saving updates it in place. */
+  editTemplateId?: string;
 }
 
-export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
-  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise, workoutLogs } = useAppStore();
+export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuilderProps) {
+  const { user, startWorkout, generateNewMesocycle, customExercises, addCustomExercise, workoutLogs,
+    sessionTemplates, saveAsTemplate, updateTemplate } = useAppStore();
   const { showToast } = useToast();
-  const [view, setView] = useState<BuilderView>('templates');
+  // New custom workouts land straight on the exercise picker. The "templates"
+  // tab (full block generation) is still reachable but is no longer the default —
+  // this screen is now "build a workout", not "pick a program".
+  const [view, setView] = useState<BuilderView>(editTemplateId ? 'build' : 'browse');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategory | 'all'>('all');
@@ -539,6 +547,27 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
   const equipment = user?.equipment || 'full_gym';
 
   const [showCustomCreator, setShowCustomCreator] = useState(false);
+
+  // Edit mode: hydrate the builder from a saved workout once on open.
+  useEffect(() => {
+    if (!editTemplateId) return;
+    const tmpl = sessionTemplates.find(t => t.id === editTemplateId);
+    if (!tmpl) return;
+    setWorkoutName(tmpl.name);
+    setWorkoutType(tmpl.session.type as WorkoutType);
+    setBuiltExercises(
+      tmpl.session.exercises.map(ex => ({
+        // Prefer the live DB entry (catches edits/custom exercises); fall back
+        // to the snapshot stored on the template.
+        exercise: getExerciseById(ex.exerciseId) ?? ex.exercise,
+        sets: ex.sets,
+        reps: ex.prescription.targetReps,
+        rpe: ex.prescription.rpe,
+        restSeconds: ex.prescription.restSeconds,
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editTemplateId]);
 
   // Filtered exercises (includes user's custom exercises)
   const filteredExercises = useMemo(() => {
@@ -627,36 +656,53 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
     ));
   };
 
-  const startCustomWorkout = () => {
+  const buildSession = (): WorkoutSession => ({
+    id: uuidv4(),
+    name: workoutName.trim() || 'My Workout',
+    type: workoutType,
+    dayNumber: 1,
+    exercises: builtExercises.map(be => ({
+      exerciseId: be.exercise.id,
+      exercise: be.exercise,
+      sets: be.sets,
+      prescription: {
+        targetReps: be.reps,
+        minReps: Math.max(1, be.reps - 2),
+        maxReps: be.reps + 2,
+        rpe: be.rpe,
+        restSeconds: be.restSeconds
+      }
+    })),
+    estimatedDuration: builtExercises.reduce((sum, e) =>
+      sum + (e.sets * 2) + (e.sets * e.restSeconds / 60), 5
+    ),
+    warmUp: ['5 min light cardio', 'Dynamic stretching', 'Warm-up sets at 50% weight'],
+    coolDown: ['Static stretching', 'Foam rolling target muscles']
+  });
+
+  // Save-by-default: building a workout always saves it to My Workouts (new) or
+  // updates it in place (edit). `start` then kicks off a live session from it.
+  const saveWorkout = (start: boolean) => {
     if (builtExercises.length === 0) return;
+    const session = buildSession();
+    const name = session.name;
 
-    const session: WorkoutSession = {
-      id: uuidv4(),
-      name: workoutName,
-      type: workoutType,
-      dayNumber: 1,
-      exercises: builtExercises.map(be => ({
-        exerciseId: be.exercise.id,
-        exercise: be.exercise,
-        sets: be.sets,
-        prescription: {
-          targetReps: be.reps,
-          minReps: Math.max(1, be.reps - 2),
-          maxReps: be.reps + 2,
-          rpe: be.rpe,
-          restSeconds: be.restSeconds
-        }
-      })),
-      estimatedDuration: builtExercises.reduce((sum, e) =>
-        sum + (e.sets * 2) + (e.sets * e.restSeconds / 60), 5
-      ),
-      warmUp: ['5 min light cardio', 'Dynamic stretching', 'Warm-up sets at 50% weight'],
-      coolDown: ['Static stretching', 'Foam rolling target muscles']
-    };
+    if (editTemplateId) {
+      updateTemplate(editTemplateId, name, session);
+    } else {
+      saveAsTemplate(name, session);
+    }
 
-    if (startWorkout(session) === false) {
-      showToast('Finish your current workout first', 'warning');
-      return;
+    if (start) {
+      // startWorkout clones the session into activeWorkout; the saved copy is
+      // untouched, so the library entry survives this run.
+      if (startWorkout(session) === false) {
+        showToast('Saved. Finish your current workout before starting this one.', 'warning');
+        onClose();
+        return;
+      }
+    } else {
+      showToast(editTemplateId ? 'Workout updated' : 'Saved to My Workouts', 'success');
     }
     onClose();
   };
@@ -692,12 +738,12 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
             <X className="w-5 h-5" />
           </button>
           <h1 className="font-bold text-grappler-50">
-            {view === 'browse' ? 'Exercise Database' : view === 'build' ? 'Build Workout' : 'Program Templates'}
+            {view === 'browse' ? 'Exercise Database' : view === 'build' ? (editTemplateId ? 'Edit Workout' : 'Build Workout') : 'Program Templates'}
           </h1>
           {view === 'build' && builtExercises.length > 0 ? (
-            <button onClick={startCustomWorkout} className="btn btn-primary btn-sm gap-1">
+            <button onClick={() => saveWorkout(true)} className="btn btn-primary btn-sm gap-1">
               <Play className="w-4 h-4" />
-              Go
+              Start
             </button>
           ) : (
             <div className="w-16" />
@@ -1247,13 +1293,20 @@ export default function WorkoutBuilder({ onClose }: WorkoutBuilderProps) {
                   </p>
                 )}
 
-                {/* Start Button */}
+                {/* Save-by-default: the workout is kept in My Workouts either way. */}
                 <button
-                  onClick={startCustomWorkout}
+                  onClick={() => saveWorkout(true)}
                   className="btn btn-primary btn-lg w-full gap-2 mt-4"
                 >
                   <Play className="w-5 h-5" />
-                  Start Workout ({builtExercises.length} exercises, ~{Math.round(estDuration)} min)
+                  Save &amp; Start ({builtExercises.length} exercises, ~{Math.round(estDuration)} min)
+                </button>
+                <button
+                  onClick={() => saveWorkout(false)}
+                  className="btn btn-secondary w-full gap-2 mt-2"
+                >
+                  <Check className="w-4 h-4" />
+                  {editTemplateId ? 'Save changes' : 'Save for later'}
                 </button>
               </div>
             )}

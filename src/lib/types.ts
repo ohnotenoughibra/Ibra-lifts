@@ -62,6 +62,7 @@ export interface UserProfile {
   trainingDays?: number[]; // 0=Sun, 1=Mon, ... 6=Sat
   combatTrainingDays?: CombatTrainingDay[]; // Combat sport schedule
   scheduledCardio?: ScheduledCardioDay[]; // Recurring weekly cardio sessions on the plan
+  scheduledWorkouts?: ScheduledWorkout[]; // Recurring weekly "My Workouts" assigned to weekdays
   // Wearable preferences
   wearableUsage?: WearableUsage;
   wearableProvider?: WearableProvider;
@@ -1043,6 +1044,12 @@ export interface ScheduledCardioDay {
   intensity: CardioIntensity;
   durationMin?: number;   // target duration in minutes
   label?: string;         // e.g., "Zone 2 base", "Intervals", "Long ride"
+}
+
+// A user's own workout (SessionTemplate) pinned to a weekday — repeats weekly.
+export interface ScheduledWorkout {
+  day: number;            // 0=Sun, 1=Mon, ... 6=Sat
+  templateId: string;     // id of the SessionTemplate in sessionTemplates
 }
 
 // ── Combat Athlete Nutrition Profile ────────────────────────────────────────
